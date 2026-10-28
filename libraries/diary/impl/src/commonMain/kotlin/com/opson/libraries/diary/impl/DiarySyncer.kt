@@ -411,7 +411,7 @@ class DiarySyncer(
         }
         if (changes.customFoods.isNotEmpty()) {
             val waiting = pending(SyncEntity.CustomFood)
-            changes.customFoods.filter { it.id !in waiting }.map { it.toEntity() }
+            changes.customFoods.filter { it.id !in waiting }.map { row -> row.toEntity(kept = row.takeIf { it.sizes == null }?.let { tables.customFoods.get(it.id) }) }
                 .takeIf { it.isNotEmpty() }?.let { tables.customFoods.upsert(it) }
         }
         if (changes.savedMeals.isNotEmpty()) {

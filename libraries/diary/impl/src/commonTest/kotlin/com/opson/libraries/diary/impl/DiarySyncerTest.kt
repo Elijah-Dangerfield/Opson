@@ -1,5 +1,9 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.CustomFoodDraft
+import com.opson.libraries.diary.FoodUnit
+import com.opson.libraries.diary.impl.wire.CustomFoodRowDto
+import com.opson.libraries.diary.impl.wire.FoodUnitDto
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
@@ -207,6 +211,44 @@ class DiarySyncerTest : CoroutineTest() {
         api.respond = { ackEverything(it).copy(applied = emptyList(), changes = SyncChangesDto(exercises = listOf(pulled))) }
         syncer.sync()
         assertEquals(local, db.exercises.state.value[pulled.id], "the waiting local edit wins")
+    }
+
+    @Test
+    fun aPulledCustomFoodKeepsItsWeightAndSizes_unlessTheServerPredatesThem() = runUnitTest {
+        val pulled = CustomFoodRowDto(
+            id = "00000000-0000-4000-8000-0000000000c1",
+            name = "Creamer",
+            servingAmount = 1.0,
+            servingUnit = "tbsp",
+            kcal = 35.0,
+            clientUpdatedAtEpochMs = 1_000,
+            servingGrams = 15.0,
+            sizes = listOf(FoodUnitDto("cup", 240.0)),
+            micros = mapOf("sugars_g" to 5.0),
+        )
+        api.respond = { ackEverything(it).copy(changes = SyncChangesDto(customFoods = listOf(pulled))) }
+        syncer.sync()
+        val stored = db.customFoods.state.value.getValue(pulled.id).toDomain()
+        assertEquals(15.0, stored.servingGrams)
+        assertEquals(listOf(FoodUnit("cup", 240.0)), stored.sizes)
+        assertEquals(mapOf("sugars_g" to 5.0), stored.micros)
+
+        // A server from before 0.2 echoes the row back without them: what is here stays.
+        val old = pulled.copy(name = "Oat creamer", clientUpdatedAtEpochMs = 2_000, servingGrams = null, sizes = null, micros = null)
+        api.respond = { ackEverything(it).copy(changes = SyncChangesDto(customFoods = listOf(old))) }
+        syncer.sync()
+        val kept = db.customFoods.state.value.getValue(pulled.id).toDomain()
+        assertEquals("Oat creamer", kept.name)
+        assertEquals(stored.copy(name = "Oat creamer"), kept)
+    }
+
+    @Test
+    fun aCustomFoodGoesUpWithItsSizesEvenWhenItHasNone() = runUnitTest {
+        CustomFoodRepositoryImpl(db.tables, DiaryWriter(db.tables, clock, FakeScheduler()))
+            .create(CustomFoodDraft(name = "Bar", servingAmount = 1.0, servingUnit = "bar"))
+        val sent = db.outbox.rows.single().payload
+        val row = com.opson.libraries.diary.impl.wire.WireJson.decodeFromString(CustomFoodRowDto.serializer(), sent)
+        assertEquals(emptyList(), row.sizes, "an empty list, never absent: absent is how the server tells a 0.1 row")
     }
 
     @Test

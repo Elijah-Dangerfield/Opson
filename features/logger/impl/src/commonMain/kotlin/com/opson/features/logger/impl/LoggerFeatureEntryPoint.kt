@@ -1,5 +1,7 @@
 package com.opson.features.logger.impl
 
+import com.opson.features.foods.EditCopyRoute
+import com.opson.libraries.navigation.BugReportRoute
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -333,6 +335,17 @@ class LoggerFeatureEntryPoint(
                     haptics.confirm()
                     router.goBack()
                 }
+                // TODO(review-queue): the review queue takes new packs (SubmitFoodRoute) but has no kind for a correction to a food it
+                // already holds; once it does, file this there. Until then the bug report carries the food's ref.
+                is FoodDetailEvent.OpenReport -> router.navigate(BugReportRoute(contextMessage = event.context))
+                is FoodDetailEvent.OpenEditCopy -> router.navigate(
+                    EditCopyRoute(
+                        dayIso = event.day.toString(),
+                        foodId = event.ref.id,
+                        isCustom = event.ref is FoodRef.Custom,
+                        slot = event.slot,
+                    ),
+                )
             }
         }
 

@@ -55,6 +55,9 @@ class RoomMigrationTest {
     fun fromVersion9_everyRowSurvives() = migratesKeepingEveryRow(9)
 
     @Test
+    fun fromVersion10_everyRowSurvives() = migratesKeepingEveryRow(10)
+
+    @Test
     fun theOldestMigratedVersionIsTheFirstWithAppData() {
         assertEquals(5, AppDatabase.FIRST_APP_DATA_VERSION, "a version below 5 would be dropped, not migrated; add a test for it")
     }
@@ -134,7 +137,7 @@ private class Schema(json: JsonObject) {
 
     companion object {
         /** `AppDatabase`'s version; a migrated file has to end up here. */
-        const val CURRENT = 10
+        const val CURRENT = 11
 
         fun read(version: Int): Schema {
             val file = File(directory(), "$version.json")

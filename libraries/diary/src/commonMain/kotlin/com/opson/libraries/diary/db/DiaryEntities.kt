@@ -101,6 +101,12 @@ data class CustomFoodEntity(
     val fiber: Double?,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean,
+    /** What one serving weighs; null when nobody weighed it (version 11). */
+    val servingGrams: Double? = null,
+    /** JSON array of `FoodUnit`s, the food's other serving sizes; null for none (version 11). */
+    val sizesJson: String? = null,
+    /** JSON object, nutrient key to amount per serving; null for none (version 11). */
+    val microsJson: String? = null,
 )
 
 @Entity(tableName = "saved_meals")

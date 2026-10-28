@@ -241,7 +241,8 @@ meal_feelings (user_id, day, slot, pk (user_id, day, slot),
 weigh_ins (id uuid pk, user_id, measured_at timestamptz, kg real)
 
 custom_foods (id uuid pk, user_id, name, brand null, serving_amount real, serving_unit text,
-  kcal real null, protein real null, carbs real null, fat real null, fiber real null)
+  kcal real null, protein real null, carbs real null, fat real null, fiber real null,
+  serving_grams real null, sizes jsonb null, micros jsonb null)   -- 0.2 (V25): a 0.1 row leaves the last three alone
 
 saved_meals (id uuid pk, user_id, name, usual_slot text null, items jsonb)   -- item snapshots
 

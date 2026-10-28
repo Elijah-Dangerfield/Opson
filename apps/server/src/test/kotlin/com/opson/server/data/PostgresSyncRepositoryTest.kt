@@ -4,6 +4,8 @@ import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodsTable
 import com.opson.server.db.LogEntriesTable
 import com.opson.server.domain.CustomFood
+import com.opson.server.domain.CustomFoodDetails
+import com.opson.server.domain.FoodSize
 import com.opson.server.domain.DayRecord
 import com.opson.server.domain.DiaryRules
 import com.opson.server.domain.Exercise
@@ -161,7 +163,7 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
         val alice = seedAuthUser()
         val bob = seedAuthUser()
         val weighIn = WeighIn(UUID.randomUUID(), T0, 70.0, T0, false)
-        val custom = CustomFood(UUID.randomUUID(), "Granola", null, 40.0, "g", Nutrients(kcal = 180.0), T0, false)
+        val custom = CustomFood(UUID.randomUUID(), "Granola", null, 40.0, "g", Nutrients(kcal = 180.0), T0, false, CustomFoodDetails())
         val saved = SavedMeal(UUID.randomUUID(), "Usual", MealSlot.Breakfast, "[]", T0, false)
         repo.sync(alice, 0, listOf(weighIn, custom, saved).map { mutation(it) })
 
@@ -190,7 +192,10 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
         val day = DayRecord(DAY, 1500, T0, "good day", mapOf(MealSlot.Snack to true), true, T0, false, untracked = true, feeling = "steady")
         val feeling = MealFeeling(DAY, MealSlot.Lunch, "hungry", "satisfied", listOf("calm", "tired"), "ok", T0, false)
         val weighIn = WeighIn(UUID.randomUUID(), T0, 70.4, T0, false)
-        val custom = CustomFood(UUID.randomUUID(), "Granola", "Home", 40.0, "g", Nutrients(kcal = 180.0, fat = 7.5), T0, false)
+        val custom = CustomFood(
+            UUID.randomUUID(), "Granola", "Home", 40.0, "g", Nutrients(kcal = 180.0, fat = 7.5), T0, false,
+            CustomFoodDetails(servingGrams = 40.0, sizes = listOf(FoodSize("cup", 110.0)), micros = mapOf("sugars_g" to 9.5, "sodium_mg" to 45.0)),
+        )
         val saved = SavedMeal(UUID.randomUUID(), "Usual breakfast", MealSlot.Breakfast, """[{"name":"Toast"}]""", T0, false)
         val settings = UserSettings("""{"preset":"full","overrides":{}}""", T0, T0, false)
 
@@ -202,6 +207,35 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
         assertEquals(listOf(custom), result.changes.customFoods)
         assertEquals("Usual breakfast", result.changes.savedMeals.single().name)
         assertEquals("full", Regex("\"preset\": ?\"(\\w+)\"").find(result.changes.settings!!.settingsJson)?.groupValues?.get(1))
+    }
+
+    @Test
+    fun anOlderClientsCustomFoodKeepsTheWeightSizesAndLabelItDoesNotKnow() = runTest {
+        val user = seedAuthUser()
+        val details = CustomFoodDetails(servingGrams = 15.0, sizes = listOf(FoodSize("cup", 240.0)), micros = mapOf("saturated_fat_g" to 1.0))
+        val creamer = CustomFood(UUID.randomUUID(), "Creamer", null, 1.0, "tbsp", Nutrients(kcal = 35.0), T0, false, details)
+        repo.sync(user, 0, listOf(mutation(creamer)))
+
+        // A 0.1 phone renames it: its row has no details at all.
+        repo.sync(user, 0, listOf(mutation(creamer.copy(name = "Oat creamer", clientUpdatedAt = T0 + 1.minutes, details = null))))
+
+        val stored = repo.sync(user, 0, emptyList()).changes.customFoods.single()
+        assertEquals("Oat creamer", stored.name)
+        assertEquals(details, stored.details)
+    }
+
+    @Test
+    fun aNewerClientCanClearTheDetails() = runTest {
+        val user = seedAuthUser()
+        val creamer = CustomFood(
+            UUID.randomUUID(), "Creamer", null, 1.0, "tbsp", Nutrients(kcal = 35.0), T0, false,
+            CustomFoodDetails(servingGrams = 15.0, sizes = listOf(FoodSize("cup", 240.0))),
+        )
+        repo.sync(user, 0, listOf(mutation(creamer)))
+
+        repo.sync(user, 0, listOf(mutation(creamer.copy(clientUpdatedAt = T0 + 1.minutes, details = CustomFoodDetails()))))
+
+        assertEquals(CustomFoodDetails(), repo.sync(user, 0, emptyList()).changes.customFoods.single().details)
     }
 
     @Test

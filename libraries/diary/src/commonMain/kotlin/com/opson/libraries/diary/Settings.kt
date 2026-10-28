@@ -136,6 +136,11 @@ data class Settings(
      * They show in that food's unit menu after its own portions.
      */
     val foodUnits: Map<String, List<FoodUnit>> = emptyMap(),
+    /**
+     * Foods taken off Recent from the food detail's ⋮, by food ref key, with when (epoch ms). A food
+     * logged again after that comes back. A top-level key, because settings sync merges shallowly.
+     */
+    val hiddenRecentFoods: Map<String, Long> = emptyMap(),
 
     // Today's summary card (design sync 2, `release.todaySummary`). Top-level keys on purpose:
     // the server merges settings one level deep.
@@ -214,6 +219,14 @@ data class Settings(
     /** Stars [foodKey], or takes the star off. */
     fun toggleFavorite(foodKey: String): Settings =
         copy(favoriteFoods = if (isFavorite(foodKey)) favoriteFoods - foodKey else listOf(foodKey) + favoriteFoods)
+
+    /** Takes [foodKey] off Recent as of [atEpochMs]; logging it after that brings it back. */
+    fun hideFromRecent(foodKey: String, atEpochMs: Long): Settings =
+        copy(hiddenRecentFoods = hiddenRecentFoods + (foodKey to atEpochMs))
+
+    /** An entry of [foodKey] logged at [loggedAtEpochMs] stays off Recent: it was logged before the food was taken off. */
+    fun hidesFromRecent(foodKey: String, loggedAtEpochMs: Long): Boolean =
+        hiddenRecentFoods[foodKey]?.let { loggedAtEpochMs <= it } ?: false
 
     fun unitsFor(foodKey: String): List<FoodUnit> = foodUnits[foodKey].orEmpty()
 
