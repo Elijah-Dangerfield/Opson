@@ -440,67 +440,67 @@ keeps existing ticks.
 
 ## onboarding-foods (61 files)
 
-- [ ] `features/foods/build.gradle.kts`
-- [ ] `features/foods/impl/build.gradle.kts`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodViewModel.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealViewModel.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyViewModel.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsCommon.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFeatureEntryPoint.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFixtures.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsLeakSurfaces.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsPreviews.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsViewModel.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/AddFoodTest.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/CreateMealTest.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/EditCopyTest.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/Fakes.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/FoodsTabTest.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/AddFoodRoute.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/CreateMealRoute.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/EditCopyRoute.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/FoodsRoute.kt`
-- [ ] `features/onboarding/build.gradle.kts`
-- [ ] `features/onboarding/impl/build.gradle.kts`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/AuthScreens.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/DisplayNameSuggester.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModePreview.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModeRecommender.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingCopy.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFeatureEntryPoint.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFixtures.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingLeakSurfaces.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingScreen.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingSetupEnabled.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupAnswers.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupSteps.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInMethods.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignUpViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/AuthViewModelFakes.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModePreviewTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModeRecommenderTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/OnboardingSetupStepsTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/OnboardingViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SetupAnswersTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SetupFakes.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignInViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignUpViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModelTest.kt`
-- [ ] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/AuthRoutes.kt`
-- [ ] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/OnboardingRoute.kt`
+- [x] `features/foods/build.gradle.kts`
+- [x] `features/foods/impl/build.gradle.kts`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodViewModel.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealViewModel.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyViewModel.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsCommon.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFeatureEntryPoint.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFixtures.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsLeakSurfaces.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsPreviews.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsViewModel.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/AddFoodTest.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/CreateMealTest.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/EditCopyTest.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/Fakes.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/FoodsTabTest.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/AddFoodRoute.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/CreateMealRoute.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/EditCopyRoute.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/FoodsRoute.kt`
+- [x] `features/onboarding/build.gradle.kts`
+- [x] `features/onboarding/impl/build.gradle.kts`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/AuthScreens.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/DisplayNameSuggester.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModePreview.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModeRecommender.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingCopy.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFeatureEntryPoint.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFixtures.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingLeakSurfaces.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingScreen.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingSetupEnabled.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupAnswers.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupSteps.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInMethods.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignUpViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModel.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/AuthViewModelFakes.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModePreviewTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModeRecommenderTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/OnboardingSetupStepsTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/OnboardingViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SetupAnswersTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SetupFakes.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignInViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignUpViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModelTest.kt`
+- [x] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/AuthRoutes.kt`
+- [x] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/OnboardingRoute.kt`
 
 ## features-other (15 files)
 
