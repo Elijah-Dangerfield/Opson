@@ -45,6 +45,9 @@ object DiaryRules {
     const val MAX_CHECK_IN = 400
     const val MAX_MOODS = 20
     const val MAX_MICROS = 100
+
+    /** A custom food's serving sizes (V25). */
+    const val MAX_SIZES = 20
     const val MAX_MICRO_KEY = 64
     const val MAX_JSON_CHARS = 64 * 1024
 
@@ -171,6 +174,17 @@ object DiaryRules {
             ?: amount("servingAmount", row.servingAmount, MAX_GRAMS)
             ?: positive("servingAmount", row.servingAmount)
             ?: nutrients(row.nutrients)
+            ?: row.details?.let(::details)
+
+    private fun details(details: CustomFoodDetails): String? =
+        amount("servingGrams", details.servingGrams, MAX_GRAMS)
+            ?: (if (details.sizes.size > MAX_SIZES) "sizes has too many entries" else null)
+            ?: details.sizes.firstNotNullOfOrNull { size ->
+                text("sizes.label", size.label, MAX_UNIT, required = true)
+                    ?: amount("sizes.grams", size.grams, MAX_GRAMS)
+                    ?: positive("sizes.grams", size.grams)
+            }
+            ?: micros(details.micros)
 
     private fun positive(field: String, value: Double): String? =
         if (value <= 0.0) "$field must be positive" else null

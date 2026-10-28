@@ -10,7 +10,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 // The scanner in each stage, from the real builder over LoggerFixtures. The camera is a hero-coloured
 // box: previews and screenshots never touch a device. No stage shows a number, so there is no Blind
-// variant here; the amount sheet a hit opens has its Full and Blind previews in LoggerPreviews.
+// variant here; the food detail a hit opens has its own in FoodDetailPreview.kt.
 
 @Composable
 private fun Scanner(model: ScanModel, dark: Boolean = false) = PreviewContent(darkTheme = dark) {
@@ -54,6 +54,11 @@ private fun LoggerScanMissDarkPreview() = Scanner(LoggerFixtures.missed, dark = 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerScanMissNamedPreview() = Scanner(LoggerFixtures.missedNamed)
+
+/** `release.submitFood` on: photograph the pack, before the name. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanMissAddFoodPreview() = Scanner(LoggerFixtures.missedAddFood)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

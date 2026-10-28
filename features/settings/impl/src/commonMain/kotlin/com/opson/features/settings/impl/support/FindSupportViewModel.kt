@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl.support
 
+import com.opson.libraries.core.DeviceRegion
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.navigation.WebLinkLauncher
 import me.tatarka.inject.annotations.Inject

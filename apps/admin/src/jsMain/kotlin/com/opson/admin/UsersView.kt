@@ -37,14 +37,21 @@ internal fun UsersView(ctx: AdminCtx) {
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<UserSummaryDto>?>(null) }
     var searching by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf<String?>(null) }
+    var searchFailed by remember { mutableStateOf(false) }
+    var pick by remember { mutableStateOf<AccountPick?>(null) }
+    val selected = pick?.userId
     var detail by remember { mutableStateOf<UserDetailDto?>(null) }
+    var detailFailed by remember { mutableStateOf(false) }
 
     fun search(text: String) {
         searching = true
         ctx.scope.launch {
             Catching { results = ctx.api.searchUsers(text.trim()) }
-                .onFailure { ctx.setStatus(Status(false, it.message ?: "Search failed")) }
+                .onSuccess { searchFailed = false }
+                .onFailure {
+                    searchFailed = true
+                    ctx.setStatus(Status(false, it.message ?: "Search failed"))
+                }
             searching = false
         }
     }
@@ -52,11 +59,15 @@ internal fun UsersView(ctx: AdminCtx) {
     // The most recently seen accounts, before anyone types.
     LaunchedEffect(Unit) { search("") }
 
-    LaunchedEffect(selected) {
+    LaunchedEffect(pick) {
         detail = null
-        val id = selected ?: return@LaunchedEffect
+        detailFailed = false
+        val id = pick?.userId ?: return@LaunchedEffect
         Catching { detail = ctx.api.userDetail(id) }
-            .onFailure { ctx.setStatus(Status(false, it.message ?: "Couldn't load that account")) }
+            .onFailure {
+                detailFailed = true
+                ctx.setStatus(Status(false, it.message ?: "Couldn't load that account"))
+            }
     }
 
     Div(attrs = { classes("panel") }) {
@@ -79,14 +90,43 @@ internal fun UsersView(ctx: AdminCtx) {
     }
 
     val found = results
-    when {
-        found == null -> P(attrs = { classes("muted") }) { Text("Loading…") }
-        found.isEmpty() -> P(attrs = { classes("muted") }) { Text("No account matches.") }
-        else -> UserTable(found, selected) { selected = it }
+    if (found.isNullOrEmpty()) {
+        P(attrs = { classes("muted") }) { Text(userListNote(found, searchFailed)) }
+    } else {
+        UserTable(found, selected) { pick = pick.next(it) }
     }
 
-    detail?.let { UserDetailPanel(it, ctx.isProd) }
+    val shown = detail
+    when {
+        shown != null -> UserDetailPanel(shown, ctx.isProd)
+        selected != null -> P(attrs = { classes("muted") }) {
+            Text(userDetailNote(detailFailed))
+        }
+    }
 }
+
+/**
+ * What the list says when it has no rows to show: failed, still loading, or nothing matched. A
+ * failure wins over an earlier empty result, which belongs to a query that is no longer the one
+ * in the box.
+ */
+internal fun userListNote(results: List<UserSummaryDto>?, searchFailed: Boolean): String = when {
+    searchFailed -> "Couldn't load accounts. Search to try again."
+    results != null -> "No account matches."
+    else -> "Loading…"
+}
+
+/** What the detail area says while the picked account loads, or after it failed to. */
+internal fun userDetailNote(detailFailed: Boolean): String =
+    if (detailFailed) "Couldn't load that account. Pick it again to retry." else "Loading the account…"
+
+/**
+ * One click on an account row. [attempt] counts the clicks, so picking the row that is already
+ * selected is still a new value and the detail load runs again: that is how a failed load retries.
+ */
+internal data class AccountPick(val userId: String, val attempt: Int)
+
+internal fun AccountPick?.next(userId: String): AccountPick = AccountPick(userId, (this?.attempt ?: 0) + 1)
 
 @Composable
 private fun UserTable(users: List<UserSummaryDto>, selected: String?, onSelect: (String) -> Unit) {

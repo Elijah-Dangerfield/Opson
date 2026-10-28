@@ -2,9 +2,11 @@ package com.opson.libraries.diary.impl
 
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.core.logging.logEvent
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.ExerciseRepository
+import com.opson.libraries.diary.valueOrNull
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.db.ExerciseEntity
 import com.opson.libraries.diary.impl.wire.ExerciseRowDto
@@ -21,7 +23,8 @@ import kotlin.time.Instant
 
 /**
  * Logged exercise in Room, each write queued for `/v1/sync` in the same transaction. A delete is
- * a tombstone, so it reaches the user's other phones.
+ * a tombstone, so it reaches the user's other phones. A day closed with Close the day takes no
+ * exercise and keeps what it has, like its food ([DayWrite.DayClosed]).
  *
  * Telemetry: `exercise.logged`, `exercise.edited` and `exercise.deleted`, with whether the
  * activity came from the list and whether the number was typed. Never the activity, its length
@@ -42,39 +45,50 @@ class ExerciseRepositoryImpl(
 
     override suspend fun get(id: String): ExerciseEntry? = tables.exercises.get(id)?.takeUnless { it.deleted }?.toDomain()
 
-    override suspend fun add(draft: ExerciseDraft): ExerciseEntry {
+    override suspend fun add(draft: ExerciseDraft): DayWrite<ExerciseEntry> {
         require(draft.problem() == null) { "exercise ${draft.problem()} is invalid" }
-        val entry = writer.write {
+        val result = writer.write {
+            tables.closedDay(draft.day.toString())?.let { return@write it }
             val row = draft.toEntity(id = newId(), clientUpdatedAtEpochMs = stamp(null))
             put(row, base = null)
-            row.toDomain()
+            DayWrite.Written(row.toDomain())
         }
-        logger.logEvent("exercise.logged", *draft.attributes())
-        return entry
+        if (result is DayWrite.Written) logger.logEvent("exercise.logged", *draft.attributes())
+        return result
     }
 
-    override suspend fun update(id: String, draft: ExerciseDraft) {
+    override suspend fun update(id: String, draft: ExerciseDraft): DayWrite<Unit> {
         require(draft.problem() == null) { "exercise ${draft.problem()} is invalid" }
         val updated = writer.write {
-            val existing = tables.exercises.get(id)?.takeUnless { it.deleted } ?: return@write false
+            val existing = tables.exercises.get(id)?.takeUnless { it.deleted } ?: return@write DayWrite.Written(false)
+            (tables.closedDay(existing.day) ?: tables.closedDay(draft.day.toString()))?.let { return@write it }
             put(draft.toEntity(id = id, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), base = existing)
-            true
+            DayWrite.Written(true)
         }
-        if (updated) logger.logEvent("exercise.edited", *draft.attributes())
+        if (updated.valueOrNull() == true) logger.logEvent("exercise.edited", *draft.attributes())
+        return updated.unit()
     }
 
-    override suspend fun delete(id: String) {
+    override suspend fun delete(id: String): DayWrite<Unit> {
         val deleted = writer.write {
-            val existing = tables.exercises.get(id)?.takeUnless { it.deleted } ?: return@write false
+            val existing = tables.exercises.get(id)?.takeUnless { it.deleted } ?: return@write DayWrite.Written(false)
+            tables.closedDay(existing.day)?.let { return@write it }
             put(existing.copy(deleted = true, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), base = existing)
-            true
+            DayWrite.Written(true)
         }
-        if (deleted) logger.logEvent("exercise.deleted")
+        if (deleted.valueOrNull() == true) logger.logEvent("exercise.deleted")
+        return deleted.unit()
     }
 
     private suspend fun DiaryWriter.WriteScope.put(row: ExerciseEntity, base: ExerciseEntity?) {
         tables.exercises.upsert(listOf(row))
         enqueue(SyncEntity.Exercise, row.id, row.json(), base?.json(), day = row.day)
+    }
+
+    /** Whether anything changed is for telemetry only; callers learn only whether the day was closed. */
+    private fun DayWrite<Boolean>.unit(): DayWrite<Unit> = when (this) {
+        is DayWrite.Written -> DayWrite.Written(Unit)
+        is DayWrite.DayClosed -> this
     }
 
     private fun ExerciseEntity.json() = WireJson.encodeToString(ExerciseRowDto.serializer(), toRow())

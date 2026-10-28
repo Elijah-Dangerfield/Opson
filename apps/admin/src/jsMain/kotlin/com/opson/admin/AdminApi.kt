@@ -11,6 +11,7 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.engine.js.Js
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
@@ -214,6 +215,92 @@ private data class UserSearchRequest(val query: String)
 @Serializable
 private data class UserSearchResponse(val users: List<UserSummaryDto>)
 
+// ---------- Food review ----------
+
+/** A label's facts as the server keeps them: nutrients by their `micros` key (`energy_kcal`, `sodium_mg`). */
+@Serializable
+data class LabelFactsDto(
+    val name: String? = null,
+    val brand: String? = null,
+    val barcode: String? = null,
+    val servingSize: Double? = null,
+    val servingUnit: String? = null,
+    val servingLabel: String? = null,
+    val servingsPerContainer: Double? = null,
+    val basis: String = "unknown",
+    val perServing: Map<String, Double> = emptyMap(),
+    val per100: Map<String, Double> = emptyMap(),
+    val acknowledged: List<String> = emptyList(),
+)
+
+@Serializable
+data class LabelCheckDto(val code: String, val fields: List<String> = emptyList(), val expected: Double? = null, val actual: Double? = null)
+
+@Serializable
+data class LabelReadingDto(
+    val facts: LabelFactsDto,
+    val confidence: Map<String, Double> = emptyMap(),
+    val readable: Boolean = true,
+    val unitChecks: List<LabelCheckDto> = emptyList(),
+)
+
+@Serializable
+data class SubmissionSummaryDto(
+    val id: String,
+    val createdAtEpochMs: Long,
+    val status: String,
+    val origin: String,
+    val name: String? = null,
+    val brand: String? = null,
+    val barcode: String? = null,
+    val failedChecks: List<String> = emptyList(),
+    val hasPhotos: Boolean = false,
+)
+
+@Serializable
+data class SubmissionListDto(val total: Long, val submissions: List<SubmissionSummaryDto>)
+
+@Serializable
+data class SubmissionDetailDto(
+    val summary: SubmissionSummaryDto,
+    val foodId: String,
+    val model: String? = null,
+    val parsed: LabelReadingDto? = null,
+    val parsedChecks: List<LabelCheckDto> = emptyList(),
+    val submitted: LabelFactsDto,
+    val reviewed: LabelFactsDto? = null,
+    val checks: List<LabelCheckDto> = emptyList(),
+    val reviewedAtEpochMs: Long? = null,
+    val reviewedBy: String? = null,
+    val rejectReason: String? = null,
+)
+
+@Serializable
+private data class ReviewEditRequest(val food: LabelFactsDto? = null)
+
+@Serializable
+private data class ReviewRejectRequest(val reason: String)
+
+@Serializable
+data class BarcodeLinkDto(
+    val gtin: String,
+    val barcode: String,
+    val foodId: String,
+    val foodName: String,
+    val foodBrand: String? = null,
+    val foodBarcode: String? = null,
+    val pairings: Int,
+    val firstAtEpochMs: Long,
+    val lastAtEpochMs: Long,
+    val status: String,
+)
+
+@Serializable
+private data class BarcodeLinkListDto(val links: List<BarcodeLinkDto>)
+
+@Serializable
+private data class BarcodeLinkDecision(val gtin: String, val foodId: String)
+
 val adminJson: Json = Json {
     ignoreUnknownKeys = true
     encodeDefaults = true
@@ -221,7 +308,7 @@ val adminJson: Json = Json {
 }
 
 /**
- * Thin client over `/v1/admin/config`. One instance per connection (a given
+ * Thin client over the server's `/v1/admin` routes. One instance per connection (a given
  * base URL + token + actor). Throws [AdminApiException] with the server's
  * problem message on a non-2xx so the UI can show why a write was refused.
  */
@@ -313,6 +400,62 @@ class AdminApi(
 
     suspend fun userDetail(userId: String): UserDetailDto =
         client.get("$base/v1/admin/users/${encode(userId)}") { auth() }.require()
+
+    suspend fun listSubmissions(status: String, limit: Int = 50): SubmissionListDto =
+        client.get("$base/v1/admin/food-submissions?status=${encode(status)}&limit=$limit") { auth() }.require()
+
+    suspend fun submission(id: String): SubmissionDetailDto =
+        client.get("$base/v1/admin/food-submissions/${encode(id)}") { auth() }.require()
+
+    /**
+     * A submission's photo, `front` or `label`, as bytes. Fetched with the token like everything
+     * else: an `<img src>` cannot carry the header, so the view turns these into a blob URL that
+     * lives only in this tab.
+     */
+    suspend fun submissionPhoto(id: String, kind: String): ByteArray =
+        client.get("$base/v1/admin/food-submissions/${encode(id)}/photos/${encode(kind)}") { auth() }
+            .also { it.requireOk() }
+            .readRawBytes()
+
+    suspend fun editSubmission(id: String, food: LabelFactsDto): SubmissionDetailDto =
+        client.put("$base/v1/admin/food-submissions/${encode(id)}") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(ReviewEditRequest(food))
+        }.require()
+
+    suspend fun approveSubmission(id: String, food: LabelFactsDto?): SubmissionDetailDto =
+        client.post("$base/v1/admin/food-submissions/${encode(id)}/approve") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(ReviewEditRequest(food))
+        }.require()
+
+    suspend fun rejectSubmission(id: String, reason: String): SubmissionDetailDto =
+        client.post("$base/v1/admin/food-submissions/${encode(id)}/reject") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(ReviewRejectRequest(reason))
+        }.require()
+
+    suspend fun listBarcodeLinks(status: String = "pending"): List<BarcodeLinkDto> =
+        client.get("$base/v1/admin/barcode-links?status=${encode(status)}") { auth() }.require<BarcodeLinkListDto>().links
+
+    suspend fun attachBarcodeLink(gtin: String, foodId: String) {
+        client.post("$base/v1/admin/barcode-links/attach") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(BarcodeLinkDecision(gtin, foodId))
+        }.requireOk()
+    }
+
+    suspend fun dismissBarcodeLink(gtin: String, foodId: String) {
+        client.post("$base/v1/admin/barcode-links/dismiss") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(BarcodeLinkDecision(gtin, foodId))
+        }.requireOk()
+    }
 
     private fun io.ktor.client.request.HttpRequestBuilder.auth() {
         header("X-Admin-Token", token)

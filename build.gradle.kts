@@ -85,8 +85,7 @@ if (System.getProperty("serverOnly") != "true") {
         val root = rootDir
         inputs.files(files).withPropertyName("composeResourceStringXml")
             .skipWhenEmpty()
-        // No output; up-to-date is driven purely by the inputs above.
-        outputs.upToDateWhen { true }
+        // No outputs, so Gradle runs it on every check. It reads a few XML files.
         doLast {
             // Body of any <string>/<item> element. DOTALL so a wrapped string is
             // still one body rather than silently unchecked.
@@ -130,15 +129,14 @@ if (System.getProperty("serverOnly") != "true") {
         val strings = composeResourceStringXml
         inputs.file(journey).withPropertyName("benchmarkJourney")
         inputs.files(strings).withPropertyName("composeResourceStringXml")
-        outputs.upToDateWhen { true }
         doLast {
             val copy = strings.files.joinToString("\n") { it.readText() }
                 .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&apos;", "'")
                 .replace("&amp;", "&")
             val missing = Regex("""const val (\w+) = "([^"]+)"""").findAll(journey.readText())
                 .map { it.groupValues[1] to it.groupValues[2] }
-                // The package name is not copy.
-                .filter { (name, text) -> name != "PACKAGE" && text !in copy }
+                // The package name and the instrumentation argument names are not copy.
+                .filter { (name, text) -> name != "PACKAGE" && !name.endsWith("_ARGUMENT") && text !in copy }
                 .toList()
             if (missing.isNotEmpty()) {
                 throw org.gradle.api.GradleException(
@@ -153,6 +151,39 @@ if (System.getProperty("serverOnly") != "true") {
     }
 
     tasks.named("check") { dependsOn(verifyBenchmarkJourneyCopy) }
+
+    // verifyReleaseEnvironment (ApplicationConventionPlugin) stops a release build that
+    // would sign in to the wrong Supabase project or ship without crash reporting, but only
+    // because the release Android and iOS builds depend on it. build-logic's tests cover what
+    // it checks, not that it runs, so a refactor or an AGP rename of preReleaseBuild could
+    // drop it with every test green. This fails `check` when the tasks release.yml, beta.yml
+    // and the Fastfile reach stop depending on it.
+    val verifyReleaseEnvironmentWired = tasks.register("verifyReleaseEnvironmentWired") {
+        group = "verification"
+        description = "Fails when a release build would no longer run verifyReleaseEnvironment."
+        val app = project(":apps:compose")
+        val verify = "${app.path}:verifyReleaseEnvironment"
+        // Resolved here, at configuration: the configuration cache keeps the result, and
+        // doLast must not touch the project.
+        val unwired = listOf("preReleaseBuild", "linkReleaseFrameworkIosArm64").mapNotNull { name ->
+            val task = app.tasks.findByName(name) ?: return@mapNotNull "${app.path}:$name does not exist"
+            val dependencies = task.taskDependencies.getDependencies(task).map { it.path }
+            if (verify in dependencies) null else "${task.path} does not depend on $verify"
+        }
+        doLast {
+            if (unwired.isNotEmpty()) {
+                throw org.gradle.api.GradleException(
+                    buildString {
+                        appendLine("A release build would skip the release environment check:")
+                        unwired.forEach { appendLine("  $it") }
+                        appendLine("See verifyReleaseEnvironment() in build-logic's ApplicationConventionPlugin.")
+                    },
+                )
+            }
+        }
+    }
+
+    tasks.named("check") { dependsOn(verifyReleaseEnvironmentWired) }
 
     // build-logic is an included build, so no sweep over this build's modules reaches its
     // tests. They decide which builds leave the QA menu out (isStoreChannel).

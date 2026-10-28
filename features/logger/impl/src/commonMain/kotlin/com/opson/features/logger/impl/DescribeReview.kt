@@ -86,7 +86,7 @@ sealed interface DescribeReviewAction : LoggerAction {
     /** "Add something it missed" with no key; "Search for something else" on a line with its key. */
     data class FindTapped(val replacing: String? = null) : DescribeReviewAction
     data class FindTyped(val text: String) : DescribeReviewAction
-    data class FindResultsArrived(val query: String, val foods: List<Food>) : DescribeReviewAction
+    data class FindResultsArrived(val query: String, val foods: List<Food>, val offline: Boolean = false) : DescribeReviewAction
     data class FindPicked(val id: String) : DescribeReviewAction
     data object FindClosed : DescribeReviewAction
 }
@@ -165,7 +165,7 @@ object DescribeRows {
         return row.quantity > step(food, unit)
     }
 
-    /** The unit menu's pick: the count stays and the weight follows, as on the amount sheet; to or from grams converts. */
+    /** The unit menu's pick: the count stays and the weight follows, as on the food detail; to or from grams converts. */
     fun unitPicked(row: DescribeRow, index: Int, householdOnly: Boolean): DescribeRow {
         val food = row.food ?: return row
         val from = row.unit ?: return row

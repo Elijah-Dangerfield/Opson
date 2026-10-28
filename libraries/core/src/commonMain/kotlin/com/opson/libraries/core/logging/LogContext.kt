@@ -32,9 +32,6 @@ interface Scope {
     fun extra(key: String, value: Float?)
     fun extra(key: String, value: Double?)
     fun extra(key: String, value: Boolean?)
-
-    fun removeTag(key: String) = tag(key, null)
-    fun removeExtra(key: String) = extra(key, null as String?)
 }
 
 internal class MutableScope(initial: LogContext = LogContext.Empty) : Scope {
@@ -51,10 +48,6 @@ internal class MutableScope(initial: LogContext = LogContext.Empty) : Scope {
     override fun extra(key: String, value: Float?) = setExtra(key, value)
     override fun extra(key: String, value: Double?) = setExtra(key, value)
     override fun extra(key: String, value: Boolean?) = setExtra(key, value)
-
-    override fun removeExtra(key: String) {
-        extras.remove(key)
-    }
 
     fun snapshot(): LogContext = if (tags.isEmpty() && extras.isEmpty()) {
         LogContext.Empty

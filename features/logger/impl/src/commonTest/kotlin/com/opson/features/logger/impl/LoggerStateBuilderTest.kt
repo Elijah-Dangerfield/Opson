@@ -25,6 +25,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * [LoggerStateBuilder], the + sheet: which actions the grid holds by flag, policy and meal,
@@ -247,11 +248,73 @@ class LoggerStateBuilderTest {
         assertEquals(listOf("Coffee, brewed", "Coffee, latte"), find.results?.map { it.name })
     }
 
+    // Quick add: the fields each mode takes, and the energy check
+
+    private fun quick(policy: VisibilityPolicy, form: QuickAddForm = LoggerFixtures.proteinBar): QuickAddUi? =
+        LoggerFixtures.quickAddState(policy, form).describe.quickAdd
+
     @Test
-    fun justANumberIsOnlyOfferedWhenCaloriesShow() {
-        assertTrue(LoggerFixtures.describeState(policy(PresetId.Full)).describe.canNumber)
-        assertFalse(LoggerFixtures.describeState(policy(PresetId.NoNumbers)).describe.canNumber)
-        assertFalse(LoggerFixtures.describeState(policy(PresetId.NoNumbers)).describe.canNumber)
+    fun allNumbers_takesEveryNumber_andSpellsOutAMismatch() {
+        val quick = assertNotNull(quick(policy(PresetId.Full)))
+        assertEquals(listOf(Metric.Calories, Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), quick.fields.map { it.metric })
+        assertEquals(listOf("400", "30", "50", "20", "4"), quick.fields.map { it.text }, "what was typed, never reformatted")
+        assertEquals("Protein bar", quick.name)
+        assertEquals(QuickAddMismatch(macroKcal = Display.Shown("500 kcal"), kcal = Display.Shown("400 kcal")), quick.mismatch)
+        assertTrue(quick.canAdd)
+    }
+
+    @Test
+    fun energyThatAgreesWithItsMacros_saysNothing() {
+        val agreeing = LoggerFixtures.proteinBar.copy(numbers = LoggerFixtures.proteinBar.numbers + (Metric.Calories to "510"))
+        assertNull(quick(policy(PresetId.Full), agreeing)?.mismatch)
+        // Energy alone, or macros alone, have nothing to disagree with.
+        assertNull(quick(policy(PresetId.Full), QuickAddForm(numbers = mapOf(Metric.Calories to "400")))?.mismatch)
+        assertNull(quick(policy(PresetId.Full), QuickAddForm(numbers = mapOf(Metric.Protein to "30")))?.mismatch)
+    }
+
+    @Test
+    fun macrosWithGrams_takesTheGramsOnly_andWorksOutNoEnergyOnScreen() {
+        val quick = assertNotNull(quick(policy(PresetId.MacrosWithGrams)))
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), quick.fields.map { it.metric })
+        assertNull(quick.mismatch, "no energy field, so nothing to compare and no calorie amount to show")
+        val draft = assertNotNull(QuickAdd.draft(LoggerFixtures.proteinBar, policy(PresetId.MacrosWithGrams)))
+        assertEquals(500.0, draft.kcal, "stored at 4/4/9 so the totals agree with the macros")
+    }
+
+    @Test
+    fun macrosOnlyAndNoNumbers_offerNoNumbers_soJustSaveTheNameRemains() {
+        assertNull(quick(policy(PresetId.MacrosOnly)))
+        assertNull(quick(policy(PresetId.NoNumbers)))
+        assertNull(QuickAdd.draft(LoggerFixtures.proteinBar, policy(PresetId.MacrosOnly)))
+        assertNull(QuickAdd.draft(LoggerFixtures.proteinBar, policy(PresetId.NoNumbers)))
+    }
+
+    @Test
+    fun later_takesTheNumbers_butKeepsTheWorkedOutEnergyUntilTheReveal() {
+        val later = VisibilityPolicy(NumbersSettings.later(), Clock.fixed(NOON), TimeZone.UTC)
+        val before = assertNotNull(quick(later))
+        assertEquals(5, before.fields.size, "the person is copying their own label, as on Add a food")
+        assertNull(before.mismatch, "500 kcal is a calorie amount nobody typed")
+
+        val revealed = VisibilityPolicy(NumbersSettings.later(), Clock.fixed(Instant.parse("2026-10-25T22:00:00Z")), TimeZone.UTC)
+        assertNotNull(quick(revealed)?.mismatch)
+    }
+
+    @Test
+    fun aSoftenedNumber_isNotAField() {
+        val softened = VisibilityPolicy(
+            NumbersSettings(preset = PresetId.Full, overrides = mapOf(Metric.Calories to Visibility.Soften)),
+            Clock.fixed(NOON),
+            TimeZone.UTC,
+        )
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), quick(softened)?.fields?.map { it.metric })
+    }
+
+    @Test
+    fun aNameAndNoNumber_isNotAQuickAdd() {
+        assertEquals(false, quick(policy(PresetId.Full), QuickAddForm(name = "Tea"))?.canAdd)
+        assertEquals(false, quick(policy(PresetId.Full), QuickAddForm(numbers = mapOf(Metric.Calories to "0")))?.canAdd)
+        assertEquals(true, quick(policy(PresetId.Full), QuickAddForm(numbers = mapOf(Metric.Fiber to "3")))?.canAdd)
     }
 
     @Test

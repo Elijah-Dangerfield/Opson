@@ -85,8 +85,6 @@ interface Colors {
     /* Overlays */
     /** Behind a bottom sheet. */
     val scrim: ColorResource
-    /** Behind a popover menu, lighter than [scrim]. */
-    val popoverScrim: ColorResource
 
     /*
      * Energy out. Cool colors on purpose, so Burned never looks like Eaten, whose bar is split by
@@ -192,7 +190,6 @@ private class AppColors(
     override val accentTint = named(scheme.accentTint, "accent-tint")
 
     override val scrim = named(scheme.scrim, "scrim")
-    override val popoverScrim = named(scheme.scrim.copy(alpha = 0.2f), "popover-scrim")
 
     override val restingEnergy = named(scheme.restingEnergy, "resting-energy")
     override val activeEnergy = named(scheme.activeEnergy, "active-energy")

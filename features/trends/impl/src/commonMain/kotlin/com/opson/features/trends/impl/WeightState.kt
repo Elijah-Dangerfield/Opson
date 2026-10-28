@@ -9,6 +9,7 @@ import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.ui.components.ChartReadout
 import com.opson.libraries.ui.time.DateCopy
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -104,6 +105,8 @@ data class WeightChart(
     val ranges: Boolean,
     /** Why the line is missing in this range, when it is; `null` when there is a line. */
     val gap: ChartGap? = null,
+    /** One per weigh-in: its day, and at Show the trend there and the reading. */
+    val readouts: List<ChartReadout?> = emptyList(),
 )
 
 /** Why a range has no line: nothing in it, or a single weigh-in, which is not a trend yet. */
@@ -148,6 +151,7 @@ object WeightStateBuilder {
                         curve.trend.isEmpty() -> ChartGap.OneReading
                         else -> null
                     },
+                    readouts = TrendsReadouts.weight(curve, inputs.today, unit, policy, weighIns = shown),
                 )
             },
             empty = level != Visibility.Hide && inputs.weighIns.isEmpty(),

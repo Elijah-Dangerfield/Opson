@@ -1,6 +1,7 @@
 package com.opson.features.today.impl.burned
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.LocalCalendar
@@ -20,7 +21,9 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -48,6 +51,8 @@ data class TodayBurnedCard(
     val total: Display,
     val parts: List<BurnedPart>,
     val entries: List<ExerciseRow>,
+    /** Closed with Close the day: no + to log more. */
+    val closed: Boolean = false,
 )
 
 enum class BurnedPartKind { Resting, Everyday, Health, Exercise }
@@ -88,6 +93,7 @@ data class TodayBurnedInputs(
     val policy: VisibilityPolicy,
     val released: Boolean,
     val timeZone: TimeZone,
+    val closed: Boolean = false,
 )
 
 object TodayBurnedStateBuilder {
@@ -126,6 +132,7 @@ object TodayBurnedStateBuilder {
                         watchHasIt = watchHasIt,
                     )
                 },
+                closed = inputs.closed,
             ),
         )
     }
@@ -141,6 +148,7 @@ class TodayBurnedViewModel(
     policySource: VisibilityPolicySource,
     burnedRepository: BurnedRepository,
     exercise: ExerciseRepository,
+    diary: DiaryRepository,
     release: ExerciseRelease,
     calendar: LocalCalendar,
 ) : SEAViewModel<TodayBurnedState, TodayBurnedEvent, TodayBurnedAction>(initialStateArg = TodayBurnedState()) {
@@ -156,8 +164,9 @@ class TodayBurnedViewModel(
                         exercise.observeDay(date),
                         settingsRepository.settings,
                         policySource.policy,
-                    ) { burned, entries, settings, policy ->
-                        TodayBurnedInputs(date, settings, burned, entries, policy, released = true, timeZone = calendar.timeZone())
+                        diary.observeDay(date).map { it.closedByUser }.distinctUntilChanged(),
+                    ) { burned, entries, settings, policy, closed ->
+                        TodayBurnedInputs(date, settings, burned, entries, policy, released = true, timeZone = calendar.timeZone(), closed = closed)
                     }
                 }.collect { takeAction(TodayBurnedAction.InputsArrived(it)) }
             }

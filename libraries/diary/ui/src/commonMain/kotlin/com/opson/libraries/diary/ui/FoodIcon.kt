@@ -70,9 +70,9 @@ private fun kindTone(kind: FoodKind): ToneColors {
     }
 }
 
-/** The tint [FoodIcon] uses for [seed], for anything drawn around it (the favorites' round tile). */
+/** The tint [FoodIcon] uses for [seed]. */
 @Composable
-fun foodTone(seed: String): ToneColors {
+private fun foodTone(seed: String): ToneColors {
     val nutrients = AppTheme.colors.nutrients
     return when (FoodTint.indexOf(seed)) {
         0 -> nutrients.protein

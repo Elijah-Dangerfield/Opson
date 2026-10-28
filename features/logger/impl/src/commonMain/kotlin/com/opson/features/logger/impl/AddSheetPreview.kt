@@ -61,3 +61,12 @@ private fun UncategorizedPreview() = Sheet(LoggerFixtures.uncategorizedState(ful
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun FirstRunExpandedPreview() = Sheet(LoggerFixtures.sheetState(full, height = SheetHeight.Full, firstRun = true, slot = MealSlot.Lunch))
+
+/** The + on a day closed with Close the day: the closed line with Reopen, and only a weigh-in and the fasting timer. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun ClosedDayPreview() = Sheet(LoggerFixtures.sheetState(full, closed = true))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun ClosedDayLightPreview() = Sheet(LoggerFixtures.sheetState(blind, closed = true), dark = false)

@@ -15,6 +15,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 private val full = previewVisibilityPolicy(PresetId.Full)
 private val blind = previewVisibilityPolicy(PresetId.NoNumbers)
+private val grams = previewVisibilityPolicy(PresetId.MacrosWithGrams)
 
 @Composable
 private fun Pane(state: LoggerState, dark: Boolean = false) = PreviewContent(darkTheme = dark) {
@@ -32,6 +33,16 @@ private fun LoggerDescribeBlindPreview() = Pane(LoggerFixtures.describeState(bli
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerDescribeEmptyPreview() = Pane(LoggerFixtures.describeState(full, parsedLines = false))
+
+/** Quick add with a label whose energy and macros disagree, and the fix either way. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerDescribeQuickAddPreview() = Pane(LoggerFixtures.quickAddState(full))
+
+/** Macros with grams: the four gram fields, no energy field and no energy worked out on screen. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerDescribeQuickAddGramsDarkPreview() = Pane(LoggerFixtures.quickAddState(grams), dark = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

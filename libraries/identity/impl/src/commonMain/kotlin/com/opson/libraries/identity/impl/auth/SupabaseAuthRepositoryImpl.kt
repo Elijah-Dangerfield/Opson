@@ -20,12 +20,16 @@ import com.opson.libraries.identity.auth.SendResetOutcome
 import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.identity.impl.ProfileApi
+import com.opson.libraries.identity.impl.problemCode
 import com.opson.libraries.networking.AuthTokenInvalidator
 import com.opson.libraries.networking.SessionRejectionBus
 import io.github.jan.supabase.exceptions.HttpRequestException
 import io.github.jan.supabase.exceptions.RestException
 import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.plugins.ResponseException
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -33,6 +37,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlin.time.Duration.Companion.minutes
 import me.tatarka.inject.annotations.Inject
@@ -73,6 +78,7 @@ class SupabaseAuthRepositoryImpl(
     private val userScopedDataReset: UserScopedDataReset,
     private val tokenInvalidator: AuthTokenInvalidator,
     private val sessionRejectionBus: SessionRejectionBus,
+    private val expiredAccounts: ExpiredAccountStore,
     private val appScope: AppCoroutineScope,
 ) : AuthRepository {
 
@@ -223,22 +229,20 @@ class SupabaseAuthRepositoryImpl(
 
     /**
      * Settle a resolve that found no session. [AuthState.Unauthenticated.Reason.SessionExpired]
-     * is sticky within the run: a re-resolve (connectivity flip, healer retry,
+     * and [AuthState.Unauthenticated.Reason.SignedOut] are sticky within the run:
+     * a re-resolve (connectivity flip, foreground, healer retry,
      * SessionExpired-screen retry) that still finds nothing keeps the reason —
      * and its [AuthState.Unauthenticated.wasAnonymous] — instead of decaying to
-     * `None`, which would make identity self-heal read the dead session as an
-     * ordinary stranding (AUTH-19).
+     * `None`, which would make identity self-heal read a dead session as an
+     * ordinary stranding (AUTH-19), or a sign-out as a lost session.
      */
     private suspend fun settleUnauthenticatedLocked(): AuthState.Unauthenticated {
         val last = lastEmittedOrNull() as? AuthState.Unauthenticated
-        return if (last?.reason == AuthState.Unauthenticated.Reason.SessionExpired) {
-            emitUnauthenticatedLocked(
-                cause = null,
-                reason = AuthState.Unauthenticated.Reason.SessionExpired,
-                wasAnonymous = last.wasAnonymous,
-            )
-        } else {
-            emitUnauthenticatedLocked(cause = null)
+        return when (last?.reason) {
+            AuthState.Unauthenticated.Reason.SessionExpired,
+            AuthState.Unauthenticated.Reason.SignedOut,
+            -> emitUnauthenticatedLocked(cause = null, reason = last.reason, wasAnonymous = last.wasAnonymous)
+            else -> emitUnauthenticatedLocked(cause = null)
         }
     }
 
@@ -353,17 +357,40 @@ class SupabaseAuthRepositoryImpl(
      * dump, no announcement — the guest keeps their progress. The state still
      * emits so the profile re-resolves to the now-claimed account and the
      * `isAnonymous` flip refires the level-keyed sync loops (`SyncTriggers`).
+     *
+     * A **session expiry** defers the dump. The person is sent to sign in again,
+     * and meals logged offline are still in the outbox, so the departing account
+     * is held in [expiredAccounts] instead. When that account signs back in the
+     * hold is released and the outbox drains; anyone else signing in wipes the
+     * held data first. The SessionExpired screen's sign-out is not a log out of
+     * the held account (its session is already gone), so the hold survives it.
      */
     private suspend fun emitLocked(next: AuthState) {
         val previous = lastEmittedOrNull()
         val previousUserId = (previous as? AuthState.Authenticated)?.userId
         val nextUserId = (next as? AuthState.Authenticated)?.userId
         val userChanged = previousUserId != nextUserId
+        val expiry = (next as? AuthState.Unauthenticated)
+            ?.takeIf { it.reason == AuthState.Unauthenticated.Reason.SessionExpired }
 
+        var dumped = false
         if (userChanged && previousUserId != null) {
-            logger.i { "User changed $previousUserId → ${nextUserId ?: "none"} — dumping prior user's local data before emit" }
-            Catching { userScopedDataReset.clearFor(previousUserId) }
-                .logOnFailure { "User-scoped data dump for $previousUserId failed; continuing with transition" }
+            if (expiry != null) {
+                logger.i { "Session for $previousUserId expired — keeping its local data until the next sign-in" }
+                Catching { expiredAccounts.hold(ExpiredAccount(previousUserId, expiry.wasAnonymous)) }
+                    .logOnFailure { "Holding $previousUserId's data after expiry failed; dumping it instead" }
+                    .onFailure {
+                        dumpLocked(previousUserId)
+                        dumped = true
+                    }
+            } else {
+                logger.i { "User changed $previousUserId → ${nextUserId ?: "none"} — dumping prior user's local data before emit" }
+                dumpLocked(previousUserId)
+                dumped = true
+            }
+        }
+        if (expiry == null && userChanged) {
+            settleExpiredAccountLocked(previous, next, alreadyDumped = dumped)
         }
 
         state.emit(next)
@@ -371,6 +398,51 @@ class SupabaseAuthRepositoryImpl(
         if (userChanged) {
             appEventBus.dispatch(AppEvent.UserChanged(previous = previousUserId, current = nextUserId))
         }
+    }
+
+    /**
+     * Release or wipe the account held since a session expiry, once someone
+     * signs in: the same account back keeps its data, a different one wipes it.
+     * Logging out of a live session already dumped everything, so the hold is
+     * just released. Any other state (still no session) keeps waiting.
+     */
+    private suspend fun settleExpiredAccountLocked(previous: AuthState?, next: AuthState, alreadyDumped: Boolean) {
+        val read = Catching { expiredAccounts.read() }
+            .logOnFailure { "Reading the expired-session account failed" }
+        if (read.isFailure) {
+            // Whose data is held is unknown, and a sign-in after a signed-out
+            // stretch may be someone else: wipe rather than let another
+            // account's outbox drain under this one's token. Not on the run's
+            // first emission (a launch with a live session), where no hold is
+            // pending and a wipe would only lose that account's own meals.
+            if (next is AuthState.Authenticated && previous is AuthState.Unauthenticated && !alreadyDumped) {
+                dumpLocked(UnreadableHeldAccount)
+                Catching { expiredAccounts.release() }
+                    .logOnFailure { "Releasing the expired-session account failed" }
+            }
+            return
+        }
+        val held = read.getOrNull() ?: return
+        when {
+            next is AuthState.Authenticated && next.userId == held.userId ->
+                logger.i { "${held.userId} signed back in after its session expired — keeping its local data" }
+            next is AuthState.Authenticated || next.isLogOut() -> {
+                logger.i { "Expired-session account ${held.userId} replaced — dumping its local data before emit" }
+                if (!alreadyDumped) dumpLocked(held.userId)
+            }
+            else -> return
+        }
+        Catching { expiredAccounts.release() }
+            .logOnFailure { "Releasing the expired-session account failed" }
+    }
+
+    private fun AuthState.isLogOut(): Boolean =
+        this is AuthState.Unauthenticated && reason == AuthState.Unauthenticated.Reason.SignedOut
+
+    /** A failed dump is logged and the transition carries on. */
+    private suspend fun dumpLocked(userId: String) {
+        Catching { userScopedDataReset.clearFor(userId) }
+            .logOnFailure { "User-scoped data dump for $userId failed; continuing with transition" }
     }
 
     private fun lastEmittedOrNull(): AuthState? = state.replayCache.firstOrNull()
@@ -527,18 +599,33 @@ class SupabaseAuthRepositoryImpl(
 
     override suspend fun signOut(): Unit = mutex.withLock {
         logger.i { "signOut: tearing down session" }
-        Catching { gateway.signOut() }
-            .logOnFailure { "Supabase signOut failed; clearing local state anyway" }
         // No session is created in its place: the user lands on onboarding's
         // sign-in step. A later retry() just re-resolves (still Unauthenticated).
-        // emitUnauthenticatedLocked → emitLocked dumps the prior user's local
-        // data and dispatches UserChanged(prev, null); no explicit dispatch here.
-        // Reason.SignedOut so identity self-heal doesn't treat this deliberate
-        // sign-out as a lost session.
-        emitUnauthenticatedLocked(
-            cause = null,
-            reason = AuthState.Unauthenticated.Reason.SignedOut,
-        )
+        signOutLocked(failureMessage = "Supabase signOut failed; clearing local state anyway")
+    }
+
+    /**
+     * Clear the session, then emit [AuthState.Unauthenticated.Reason.SignedOut],
+     * so identity self-heal doesn't treat a deliberate sign-out as a lost
+     * session. emitLocked dumps the prior user's local data and dispatches
+     * UserChanged(prev, null).
+     *
+     * The emit runs even when the caller is cancelled (the person left the
+     * screen while the logout request hung): the gateway drops the local
+     * session regardless, and a state left at Authenticated would keep the
+     * account's data on the phone with no session behind it.
+     */
+    private suspend fun signOutLocked(failureMessage: String) {
+        try {
+            Catching { gateway.signOut() }.logOnFailure { failureMessage }
+        } finally {
+            withContext(NonCancellable) {
+                emitUnauthenticatedLocked(
+                    cause = null,
+                    reason = AuthState.Unauthenticated.Reason.SignedOut,
+                )
+            }
+        }
     }
 
     override suspend fun deleteAccount(): DeleteAccountOutcome = mutex.withLock {
@@ -552,41 +639,14 @@ class SupabaseAuthRepositoryImpl(
         // diary, settings) is a real server-side account and a user has the
         // right to erase it. The admin delete handles anon users fine.
         val outcome = Catching { profileApi.deleteMe() }.fold(
-            onSuccess = { response ->
-                when (response.status.value) {
-                    204, 200, 404 -> DeleteAccountOutcome.Success
-                    401 -> DeleteAccountOutcome.NotSignedIn
-                    503 -> DeleteAccountOutcome.NotConfigured
-                    else -> DeleteAccountOutcome.Unknown(
-                        IllegalStateException("Unexpected status ${response.status.value}"),
-                    )
-                }
-            },
-            onFailure = { e ->
-                when (e) {
-                    is io.ktor.client.plugins.ClientRequestException -> when (e.response.status.value) {
-                        401 -> DeleteAccountOutcome.NotSignedIn
-                        else -> DeleteAccountOutcome.Unknown(e)
-                    }
-                    is io.ktor.client.plugins.ServerResponseException ->
-                        if (e.response.status.value == 503) DeleteAccountOutcome.NotConfigured
-                        else DeleteAccountOutcome.Unknown(e)
-                    else -> DeleteAccountOutcome.NetworkError(e)
-                }
-            },
+            onSuccess = { DeleteAccountOutcome.Success },
+            onFailure = { e -> mapDeleteFailure(e) },
         )
 
         if (outcome is DeleteAccountOutcome.Success) {
             logger.i { "deleteAccount: Success — signing out + clearing user-scoped data" }
-            Catching { gateway.signOut() }
-                .logOnFailure { "Supabase signOut after delete failed; clearing local state anyway" }
-            // emitUnauthenticatedLocked → emitLocked dumps this user's local
-            // data and dispatches UserChanged(prev, null). Reason.SignedOut so
-            // identity self-heal treats a delete like a sign-out.
-            emitUnauthenticatedLocked(
-                cause = null,
-                reason = AuthState.Unauthenticated.Reason.SignedOut,
-            )
+            // Identity self-heal treats a delete like a sign-out.
+            signOutLocked(failureMessage = "Supabase signOut after delete failed; clearing local state anyway")
         } else {
             logger.w { "deleteAccount: ${outcome::class.simpleName}" }
         }
@@ -967,6 +1027,20 @@ class SupabaseAuthRepositoryImpl(
 
     // ---------- Mappers ----------
 
+    /**
+     * Both of the server's 503s share a status, so the problem code tells them
+     * apart: `delete_not_configured` is a deploy without the service-role key,
+     * `delete_failed` a Supabase admin call that failed and is worth retrying.
+     */
+    private suspend fun mapDeleteFailure(e: Throwable): DeleteAccountOutcome = when {
+        e is ResponseException && e.response.status == HttpStatusCode.Unauthorized ->
+            DeleteAccountOutcome.NotSignedIn
+        e is ResponseException && e.problemCode() == "delete_not_configured" ->
+            DeleteAccountOutcome.NotConfigured
+        e is ResponseException -> DeleteAccountOutcome.Unknown(e)
+        else -> DeleteAccountOutcome.NetworkError(e)
+    }
+
     private fun mapSignInRestException(e: RestException, email: String): SignInOutcome {
         val msg = (e.message ?: "").lowercase()
         return when {
@@ -1024,6 +1098,13 @@ class SupabaseAuthRepositoryImpl(
     }
 
     private companion object {
+        /**
+         * Stands in for the departing user when the held account can't be read.
+         * The clearers wipe every row regardless of the id; the stoppers find no
+         * work under it.
+         */
+        const val UnreadableHeldAccount = "unreadable-expired-account"
+
         /** Bounded re-polls over supabase-kt's transient hydration states. */
         const val MaxResolveAttempts: Int = 5
 

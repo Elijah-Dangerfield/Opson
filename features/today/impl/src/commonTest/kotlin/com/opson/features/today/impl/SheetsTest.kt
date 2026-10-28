@@ -42,6 +42,7 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WaterUnit
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -218,6 +219,19 @@ class SheetsTest : CoroutineTest() {
         assertEquals(old.copy(hunger = Hunger.Full, note = "Picnic in the park"), stored.feelings.single().third)
     }
 
+    /** Save before the day is read would store the blank sheet over the Note already there. */
+    @Test
+    fun aMealNoteSavedBeforeTheDayIsReadWritesNothing() = runUnitTest {
+        val open = MutableStateFlow(false)
+        val vm = MealNoteViewModel(today, MealSlot.Lunch, diary.heldUntil(open))
+
+        vm.takeAction(MealNoteAction.SaveTapped)
+        assertTrue(diary.feelings.isEmpty())
+
+        open.value = true
+        assertEquals("Ate outside with Sam. Felt relaxed.", vm.state.draft)
+    }
+
     @Test
     fun anUntouchedEmptyMealNoteSavesQuietly() = runUnitTest {
         val vm = MealNoteViewModel(today, MealSlot.Dinner, diary)
@@ -317,6 +331,20 @@ class SheetsTest : CoroutineTest() {
         assertEquals(listOf<Pair<LocalDate, String?>>(today to "Lazy Sunday"), diary.notes)
         assertTrue(diary.closed.isEmpty())
         assertEquals<DayNoteEvent>(DayNoteEvent.Dismiss, events.last())
+    }
+
+    @Test
+    fun aDayNoteSavedBeforeTheDayIsReadWritesNothing() = runUnitTest {
+        val noted = FakeDiaryRepository(listOf(TodayFixtures.day().copy(note = "Dinner at Lola's")))
+        val open = MutableStateFlow(false)
+        val vm = DayNoteViewModel(today, noted.heldUntil(open), FakeCalendar())
+
+        vm.takeAction(DayNoteAction.SaveTapped)
+        assertTrue(noted.notes.isEmpty())
+
+        open.value = true
+        vm.takeAction(DayNoteAction.SaveTapped)
+        assertEquals(listOf<Pair<LocalDate, String?>>(today to "Dinner at Lola's"), noted.notes)
     }
 
     // Today's cards

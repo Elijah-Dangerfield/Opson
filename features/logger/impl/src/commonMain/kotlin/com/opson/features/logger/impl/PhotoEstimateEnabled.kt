@@ -10,7 +10,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
  * The 0.2 release flag for Photo estimate (docs/plans/0.2/README.md). Off,
- * the logger has no Photo chip and nothing can open the photo sheet, exactly
+ * the + sheet has no Photo tile, search no "Photograph it", and nothing can open the photo sheet, exactly
  * as 0.1 shipped; nothing about photos runs at launch either way. The 0.2
  * release flips it remotely, once the server has `ANTHROPIC_API_KEY` and the
  * privacy policy says where photos go.
@@ -22,5 +22,5 @@ class PhotoEstimateEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConf
     override val name = "Photo estimate"
     override val path = "release.photo"
     override val default = false
-    override val description = "The Photo chip in the logger, and the photo estimate sheet it opens"
+    override val description = "Photo on the + sheet and in search, and the photo estimate sheet they open"
 }

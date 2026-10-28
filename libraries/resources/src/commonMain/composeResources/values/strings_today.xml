@@ -63,11 +63,13 @@
     <string name="today_plan_it">Plan it</string>
     <!-- The header's moon button, read out -->
     <string name="today_close_day_cd">Close the day</string>
-    <string name="today_closed_day_cd">Day closed. Look back or change the note</string>
+    <string name="today_closed_day_cd">Day closed. Look back, change the note or reopen it</string>
 
     <!-- Day menu -->
     <string name="today_menu_close_day">Close the day</string>
     <string name="today_menu_close_this_day">Close this day</string>
+    <string name="today_menu_reopen_day">Reopen today</string>
+    <string name="today_menu_reopen_this_day">Reopen this day</string>
     <string name="today_menu_nutrients">This day's nutrients</string>
     <string name="today_menu_copy_yesterday">Copy yesterday</string>
     <string name="today_menu_copy_tomorrow">Copy this day to tomorrow</string>
@@ -195,7 +197,10 @@
     <string name="today_dayclose_note_label_other_day">Anything to remember about this day? · optional</string>
     <string name="today_dayclose_note_placeholder">Dinner at Lola's, a lazy Sunday</string>
     <string name="today_dayclose_done">Close the day</string>
-    <string name="today_dayclose_caption">You can still edit this day afterwards.</string>
+    <string name="today_dayclose_caption">You can reopen it later if you need to add something.</string>
+    <string name="today_dayclose_save">Save</string>
+    <string name="today_dayclose_closed_caption">This day is closed. Reopen it to add or change food.</string>
+    <string name="today_dayclose_reopen">Reopen this day</string>
 
     <!-- Design sync 2: the summary card (2.1 to 2.1e) -->
     <string name="today_stat_expended">Expended</string>

@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +36,7 @@ import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.EmptyCard
 import com.opson.libraries.ui.components.ListRow
 import com.opson.libraries.ui.components.ListRowChevron
+import com.opson.libraries.ui.components.LocalChartPreviewPick
 import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.SegmentedControl
@@ -256,10 +258,10 @@ private fun ChartCard(chart: WeightChart, range: WeightRange, onAction: (WeightA
         when (chart.gap) {
             ChartGap.NoneInRange -> GapNote(Res.string.trends_weight_none_in_range)
             ChartGap.OneReading -> {
-                TrendLine(points = chart.trend, dots = chart.dots)
+                TrendLine(points = chart.trend, dots = chart.dots, readouts = chart.readouts)
                 GapNote(Res.string.trends_weight_one_reading)
             }
-            null -> TrendLine(points = chart.trend, dots = chart.dots)
+            null -> TrendLine(points = chart.trend, dots = chart.dots, readouts = chart.readouts)
         }
         if (chart.gap != ChartGap.NoneInRange && chart.from != null && chart.to != null) {
             Row(Modifier.fillMaxWidth()) {
@@ -282,6 +284,7 @@ private fun SoftCard(word: Display, chart: WeightChart?, range: WeightRange) {
                 points = chart.trend,
                 dots = null,
                 modifier = Modifier.fillMaxWidth().height(Dimension.D1900).padding(vertical = Dimension.D700),
+                readouts = chart.readouts,
             )
         }
         when (chart?.gap) {
@@ -420,6 +423,19 @@ private fun WeightPhotosOffPreview() = Weight(TrendsFixtures.policy(), inputs = 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun WeightTrendPreview() = Weight(TrendsFixtures.policy(PresetId.MacrosOnly))
+
+/** A weigh-in picked on the line: its day, the trend there and the reading. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightPickedPreview() = CompositionLocalProvider(LocalChartPreviewPick provides PREVIEW_PICK) { Weight(TrendsFixtures.policy()) }
+
+/** Trend only, a point picked: the day and nothing more, since no amount shows at this level. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightTrendPickedPreview() =
+    CompositionLocalProvider(LocalChartPreviewPick provides PREVIEW_PICK) { Weight(TrendsFixtures.policy(PresetId.MacrosOnly)) }
+
+private const val PREVIEW_PICK = 18
 
 /** Hidden, mid weigh-in and just after one: the digits are dots and the save says it shows nowhere. */
 @Preview(widthDp = 390, heightDp = 844)

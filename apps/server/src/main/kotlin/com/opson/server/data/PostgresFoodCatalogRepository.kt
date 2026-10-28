@@ -578,6 +578,8 @@ class PostgresFoodCatalogRepository(
         }
 
         private fun foodsCondition(filter: SearchFilter): String = buildString {
+            // A food someone submitted is searchable once a reviewer approves it (V25); until then only they have it.
+            append(" AND f.review_status = 'approved'")
             if (!filter.nevo) append(" AND f.source <> '${CatalogSource.Nevo.wire}'")
             when (filter.category) {
                 SearchCategory.Restaurant -> append(" AND f.category = '${FoodCategory.Restaurant.wire}'")

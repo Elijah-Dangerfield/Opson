@@ -51,6 +51,7 @@
     <string name="photo_swap_placeholder">Search for the right food</string>
     <string name="photo_swap_searching">Searching</string>
     <string name="photo_swap_none">Nothing by that name. Try another word.</string>
+    <string name="photo_swap_offline">Finding a food needs a connection. Try again once you're back online.</string>
 
     <!-- Calm ends -->
     <string name="photo_empty_title">We couldn't make out any food</string>
@@ -70,7 +71,7 @@
     <string name="photo_try_again">Try again</string>
     <string name="photo_another">Try another photo</string>
     <string name="photo_describe_instead">Describe it instead</string>
-    <string name="photo_back_to_search">Back to search</string>
+    <string name="photo_back_to_search">Go back</string>
     <string name="photo_open_settings">Open Settings</string>
     <string name="photo_allow_camera">Allow camera</string>
 </resources>

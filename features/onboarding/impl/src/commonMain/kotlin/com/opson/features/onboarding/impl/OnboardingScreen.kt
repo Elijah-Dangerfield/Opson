@@ -45,11 +45,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealTimes
+import com.opson.libraries.diary.ui.HeightField
 import com.opson.libraries.diary.ui.detail
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.testTag
@@ -131,13 +133,18 @@ import opson.libraries.resources.generated.resources.onboarding_welcome_title
 import opson.libraries.resources.generated.resources.onboarding_body_activity
 import opson.libraries.resources.generated.resources.onboarding_body_body
 import opson.libraries.resources.generated.resources.onboarding_body_burned
+import opson.libraries.resources.generated.resources.onboarding_body_height_hint_cm
+import opson.libraries.resources.generated.resources.onboarding_body_height_hint_ft_in
 import opson.libraries.resources.generated.resources.onboarding_body_resting
 import opson.libraries.resources.generated.resources.onboarding_body_title
-import opson.libraries.resources.generated.resources.onboarding_body_units_imperial
-import opson.libraries.resources.generated.resources.onboarding_body_units_metric
 import opson.libraries.resources.generated.resources.onboarding_body_weight
+import opson.libraries.resources.generated.resources.onboarding_body_weight_hint_kg
+import opson.libraries.resources.generated.resources.onboarding_body_weight_hint_lb
+import opson.libraries.resources.generated.resources.onboarding_body_year_hint
+import opson.libraries.resources.generated.resources.onboarding_goal_based_on
 import opson.libraries.resources.generated.resources.onboarding_goal_burn_note
 import opson.libraries.resources.generated.resources.onboarding_goal_change
+import opson.libraries.resources.generated.resources.onboarding_goal_later
 import opson.libraries.resources.generated.resources.onboarding_goal_title
 import opson.libraries.resources.generated.resources.onboarding_meals_body
 import opson.libraries.resources.generated.resources.onboarding_meals_title
@@ -147,22 +154,21 @@ import opson.libraries.resources.generated.resources.reminders_time_title
 import opson.libraries.resources.generated.resources.settings_look_weight_kg
 import opson.libraries.resources.generated.resources.settings_look_weight_lb
 import opson.libraries.resources.generated.resources.settings_resting_birth_year
-import opson.libraries.resources.generated.resources.settings_resting_cm
-import opson.libraries.resources.generated.resources.settings_resting_height
-import opson.libraries.resources.generated.resources.settings_resting_in
 import opson.libraries.resources.generated.resources.settings_resting_sex
 import opson.libraries.resources.generated.resources.settings_resting_sex_female
 import opson.libraries.resources.generated.resources.settings_resting_sex_male
 import opson.libraries.resources.generated.resources.settings_resting_sex_unsaid
 import opson.libraries.resources.generated.resources.settings_targets_floor_note
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Onboarding (design v3, 1.1 to 1.6, with sign-in moved to the front when accounts became
- * required): Welcome and the plan, sign in, three questions, the optional statement and the
- * starting mode. All routing lives in [OnboardingViewModel]; this is a pure render of the state.
- * It shows no nutrition numbers.
+ * required): Welcome and the plan, sign in, two questions, the optional statement, the
+ * starting mode and its setup steps. All routing lives in [OnboardingViewModel]; this is a pure
+ * render of the state. The only numbers are the setup steps' goal and resting energy, which the
+ * state holds already resolved through the mode's policy.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -558,16 +564,21 @@ private fun AlternativeChip(label: String, enabled: Boolean, onClick: () -> Unit
 
 // ---------- Setup steps ----------
 
-/** The top bar and the pinned Continue every setup step shares. Continue on the last one saves. */
+/**
+ * The top bar and the pinned Continue every setup step shares. Continue on the last one saves.
+ * The goal's steps ([goalStep]) trade Skip for "Set this later" under Continue, which goes past
+ * the goal altogether: one plain way out, named for what it does.
+ */
 @Composable
 private fun ColumnScope.SetupStep(
     state: OnboardingState,
     onAction: (OnboardingAction) -> Unit,
     title: String,
     body: String? = null,
+    goalStep: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    OnboardingTopBar(canGoBack = state.canGoBack, onAction = onAction, canSkip = !state.isFinishing, showSkip = true)
+    OnboardingTopBar(canGoBack = state.canGoBack, onAction = onAction, canSkip = !state.isFinishing, showSkip = !goalStep)
 
     ScrollingBody {
         Text(
@@ -588,17 +599,32 @@ private fun ColumnScope.SetupStep(
         label = stringResource(if (state.isFinishing) Res.string.onboarding_finishing else Res.string.onboarding_continue),
         enabled = !state.isFinishing,
         onClick = { onAction(OnboardingAction.ContinueTapped) },
+        below = if (goalStep) {
+            {
+                ButtonGhost(
+                    onClick = { onAction(OnboardingAction.GoalLaterTapped) },
+                    enabled = !state.isFinishing,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(Res.string.onboarding_goal_later))
+                }
+            }
+        } else {
+            null
+        },
     )
 }
 
 /**
- * The goal, in Full numbers: the style (with `release.goalsAndEnergy`) and the range or the one
- * number on a stepper. Lower stops at the floor, as on Targets. Every amount is the policy's.
+ * The goal, for someone comfortable with numbers: the style (with `release.goalsAndEnergy`) and
+ * the range or the one number on a stepper, starting from an ordinary day's burn when the
+ * resting energy step gave one. Lower stops at the floor, as on Targets. Every amount is the
+ * policy's.
  */
 @Composable
 private fun ColumnScope.GoalStep(state: OnboardingState, onAction: (OnboardingAction) -> Unit) {
     val view = state.goalView ?: return
-    SetupStep(state, onAction, title = stringResource(Res.string.onboarding_goal_title)) {
+    SetupStep(state, onAction, title = stringResource(Res.string.onboarding_goal_title), goalStep = true) {
         if (view.styles.size > 1) {
             Column(verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
                 view.styles.forEach { style ->
@@ -623,6 +649,15 @@ private fun ColumnScope.GoalStep(state: OnboardingState, onAction: (OnboardingAc
                 canIncrease = !state.isFinishing,
                 amountModifier = Modifier.testTag(Metric.Calories.testTag()),
             )
+            (view.basedOn as? Display.Shown)?.let {
+                Spacer(Modifier.height(Dimension.D500))
+                Text(
+                    text = stringResource(Res.string.onboarding_goal_based_on, it.text),
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                    modifier = Modifier.testTag(Metric.EnergyOut.testTag()),
+                )
+            }
             if (!view.canLower) {
                 Spacer(Modifier.height(Dimension.D500))
                 Text(
@@ -649,53 +684,46 @@ private fun ColumnScope.GoalStep(state: OnboardingState, onAction: (OnboardingAc
 }
 
 /**
- * Resting energy's details, for a set deficit or surplus: units, the year born, height, weight
- * and sex. "Rather not say" is a real answer. The weight is logged as the first weigh-in.
+ * Resting energy's details, before the goal: the year born, height and weight (each in the
+ * region's units, with a switch), sex and an ordinary day. "Rather not say" is a real answer.
+ * The weight is logged as the first weigh-in, and what the details give is where the goal starts.
  */
 @Composable
 private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAction) -> Unit) {
     val view = state.bodyView ?: return
     val answer = view.answer
-    val imperial = answer.unit == WeightUnit.Lb
     SetupStep(
         state,
         onAction,
         title = stringResource(Res.string.onboarding_body_title),
         body = stringResource(Res.string.onboarding_body_body),
+        goalStep = true,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Dimension.D700)) {
-            SegmentedControl(
-                options = WeightUnit.entries,
-                selected = answer.unit,
-                onSelect = { onAction(OnboardingAction.UnitPicked(it)) },
-                label = {
-                    stringResource(
-                        if (it == WeightUnit.Lb) Res.string.onboarding_body_units_imperial else Res.string.onboarding_body_units_metric,
-                    )
-                },
-            )
-            NumberField(
-                value = answer.birthYear,
-                onValueChange = { onAction(OnboardingAction.BirthYearTyped(it)) },
-                label = stringResource(Res.string.settings_resting_birth_year),
-                allowDecimal = false,
-                enabled = !state.isFinishing,
-            )
-            NumberField(
-                value = answer.height,
-                onValueChange = { onAction(OnboardingAction.HeightTyped(it)) },
-                label = stringResource(Res.string.settings_resting_height),
-                unit = stringResource(if (imperial) Res.string.settings_resting_in else Res.string.settings_resting_cm),
-                enabled = !state.isFinishing,
-            )
-            if (view.weightShown) {
+            HintedField(hint = Res.string.onboarding_body_year_hint.takeIf { view.birthYearInvalid }) {
                 NumberField(
-                    value = answer.weight,
-                    onValueChange = { onAction(OnboardingAction.WeightTyped(it)) },
-                    label = stringResource(Res.string.onboarding_body_weight),
-                    unit = stringResource(if (imperial) Res.string.settings_look_weight_lb else Res.string.settings_look_weight_kg),
+                    value = answer.birthYear,
+                    onValueChange = { onAction(OnboardingAction.BirthYearTyped(it)) },
+                    label = stringResource(Res.string.settings_resting_birth_year),
+                    allowDecimal = false,
                     enabled = !state.isFinishing,
                 )
+            }
+            HintedField(
+                hint = (if (answer.height.unit == HeightUnit.FtIn) Res.string.onboarding_body_height_hint_ft_in else Res.string.onboarding_body_height_hint_cm)
+                    .takeIf { view.heightInvalid },
+            ) {
+                HeightField(
+                    input = answer.height,
+                    onUnitPicked = { onAction(OnboardingAction.HeightUnitPicked(it)) },
+                    onCmTyped = { onAction(OnboardingAction.HeightCmTyped(it)) },
+                    onFeetTyped = { onAction(OnboardingAction.HeightFeetTyped(it)) },
+                    onInchesTyped = { onAction(OnboardingAction.HeightInchesTyped(it)) },
+                    enabled = !state.isFinishing,
+                )
+            }
+            if (view.weightShown) {
+                WeightField(answer, invalid = view.weightInvalid, enabled = !state.isFinishing, onAction = onAction)
             }
             Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
                 Text(
@@ -751,6 +779,49 @@ private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAc
                     modifier = Modifier.testTag(Metric.EnergyOut.testTag()),
                 )
             }
+        }
+    }
+}
+
+/** Weight, in kilograms or pounds, with the switch between them, and a hint when it is [invalid]. */
+@Composable
+private fun WeightField(answer: BodyAnswer, invalid: Boolean, enabled: Boolean, onAction: (OnboardingAction) -> Unit) {
+    val pounds = answer.weightUnit == WeightUnit.Lb
+    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
+        Text(
+            text = stringResource(Res.string.onboarding_body_weight),
+            typography = AppTheme.type.secondarySmallStrong,
+            color = AppTheme.colors.muted,
+        )
+        SegmentedControl(
+            options = WeightUnit.entries,
+            selected = answer.weightUnit,
+            onSelect = { if (enabled) onAction(OnboardingAction.WeightUnitPicked(it)) },
+            label = { stringResource(if (it == WeightUnit.Lb) Res.string.settings_look_weight_lb else Res.string.settings_look_weight_kg) },
+        )
+        HintedField(hint = (if (pounds) Res.string.onboarding_body_weight_hint_lb else Res.string.onboarding_body_weight_hint_kg).takeIf { invalid }) {
+            NumberField(
+                value = answer.weight,
+                onValueChange = { onAction(OnboardingAction.WeightTyped(it)) },
+                unit = stringResource(if (pounds) Res.string.settings_look_weight_lb else Res.string.settings_look_weight_kg),
+                enabled = enabled,
+            )
+        }
+    }
+}
+
+/** A field with, when [hint] is set, a line under it saying what the field wants. */
+@Composable
+private fun HintedField(hint: StringResource?, field: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
+        field()
+        if (hint != null) {
+            Text(
+                text = stringResource(hint),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
         }
     }
 }
@@ -1062,6 +1133,7 @@ private fun PinnedPrimary(
     onClick: () -> Unit,
     footnote: String? = null,
     above: (@Composable () -> Unit)? = null,
+    below: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier
@@ -1075,6 +1147,7 @@ private fun PinnedPrimary(
         ButtonPrimary(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
             Text(label)
         }
+        below?.invoke()
         if (footnote != null) {
             Text(
                 text = footnote,
@@ -1205,6 +1278,16 @@ private fun OnboardingGoalRaisedPreview() = OnboardingPreview(
     OnboardingFixtures.goal(GoalAnswer(style = GoalChoice.OneNumber).stepped(up = true).stepped(up = true)),
 )
 
+/** After the resting energy step: the range starts from an ordinary day's burn, and says so. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalFromBurnPreview() = OnboardingPreview(OnboardingFixtures.goalFromBurn())
+
+/** A low estimate starts at the app's starting range, never under it. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalFromLowBurnPreview() = OnboardingPreview(OnboardingFixtures.goalFromBurn(OnboardingFixtures.Body))
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingGoalDeficitPreview() =
@@ -1223,10 +1306,15 @@ private fun OnboardingRestingEnergyPreview() = OnboardingPreview(OnboardingFixtu
 @Composable
 private fun OnboardingRestingEnergyEmptyPreview() = OnboardingPreview(OnboardingFixtures.body())
 
+/** A US phone: feet and inches, and pounds. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingRestingEnergyImperialPreview() = OnboardingPreview(OnboardingFixtures.body(OnboardingFixtures.ImperialBody))
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingRestingEnergyLargeTextPreview() =
-    OnboardingPreview(OnboardingFixtures.body(OnboardingFixtures.Body.copy(unit = WeightUnit.Lb, height = "66", weight = "141")), largeText = true)
+    OnboardingPreview(OnboardingFixtures.body(OnboardingFixtures.ImperialBody), largeText = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

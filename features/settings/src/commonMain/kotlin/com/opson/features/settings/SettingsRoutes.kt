@@ -31,7 +31,7 @@ class RestingEnergyRoute(val fromEnergyToday: Boolean = false) : Route()
 @Serializable
 class EnergyTodayRoute : Route()
 
-/** More › Today screen (design sync 4, 13.6): the summary card's preset, main number and pages, and the list's rows. */
+/** More › Today screen (design sync 4, 13.6): the summary card's preset, main number and pages, the list's rows and the header's Close the day. */
 @Serializable
 class TodayScreenSettingsRoute : Route()
 

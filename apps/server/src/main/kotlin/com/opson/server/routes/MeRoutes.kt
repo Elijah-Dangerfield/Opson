@@ -58,11 +58,11 @@ import org.slf4j.LoggerFactory
  *
  * DELETE ordering: admin call first (revokes the user's sessions immediately,
  * so even if the local profile delete fails the user can't come back via the
- * same account), then local cleanup. An orphan profile is recoverable by a
- * future sweep; an orphan auth.users with a live JWT is a security problem.
+ * same account), then local cleanup. An orphan auth.users with a live JWT is
+ * a security problem; an orphan profile can't outlive it.
  * Every user-owned table references `auth.users` with `ON DELETE CASCADE`
- * (V2, V8, V14), so the hard delete removes the diary with the account.
- * That includes the Apple token (V21), so it is read before the delete and
+ * (V2, V8, V14, V22, V24), so the hard delete removes the diary with the account.
+ * That includes the Apple token (V23), so it is read before the delete and
  * revoked after it. Revocation never blocks deletion: Apple being down or the
  * key being unset is logged, and the account is gone either way.
  */

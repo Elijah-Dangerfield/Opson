@@ -17,6 +17,8 @@ import com.opson.server.db.toJavaInstant
 import com.opson.server.db.toKotlinInstant
 import com.opson.server.di.ServerScope
 import com.opson.server.domain.CustomFood
+import com.opson.server.domain.CustomFoodDetails
+import com.opson.server.domain.FoodSize
 import com.opson.server.domain.DayRecord
 import com.opson.server.domain.DiaryChanges
 import com.opson.server.domain.DiaryRow
@@ -36,6 +38,8 @@ import com.opson.server.domain.SyncResult
 import com.opson.server.domain.UserId
 import com.opson.server.domain.UserSettings
 import com.opson.server.domain.WeighIn
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -74,6 +78,10 @@ import java.util.UUID
  *     user. Older and replayed mutations change nothing and do not bump
  *     `server_seq`. The `user_id` predicate means a client that sends another
  *     user's row id cannot touch that row.
+ *     An update writes only the columns the sending client knows. A 0.1 day
+ *     record has no check-in, so its update leaves `check_in` as a 0.2 phone
+ *     stored it rather than clearing it. A column added to a synced table
+ *     later needs the same care.
  *  3. New entries that reference a catalog food bump `foods.popularity`, in id
  *     order so concurrent syncs cannot deadlock on the shared rows.
  *  4. Pull every entity past the cursor, [DiaryRules.PAGE_SIZE] per entity.
@@ -98,6 +106,9 @@ class PostgresSyncRepository(
     ): SyncResult =
         database.readCommittedTransaction {
             lockUser(userId)
+            // `accepts` shipped before check-ins did, and 0.1 never sends it. A request without
+            // it comes from a client whose day records have no check-in field to send.
+            val knowsCheckIn = pullFasts || pullExercises
 
             val entries = mutations.map { it.row }.filterIsInstance<LogEntry>()
             val knownFoods = knownFoodIds(entries.mapNotNull { it.foodId }.toSet())
@@ -116,7 +127,7 @@ class PostgresSyncRepository(
                         existingEntries += entry.id
                     }
 
-                    else -> upsertOther(userId, row)
+                    else -> upsertOther(userId, row, knowsCheckIn)
                 }
             }
             bumpPopularity(picks)
@@ -166,6 +177,9 @@ class PostgresSyncRepository(
                 (clientUpdatedAt less row.clientUpdatedAt.toJavaInstant())
         }
 
+    // TODO(review): a 0.1 edit sends `estimate` for a `label` entry (it reads label as estimate),
+    // so the 0.2 phone loses "From label". Keep the stored label for requests without `accepts`;
+    // docs/review/findings/server-data.md finding 2.
     private fun upsertEntry(userId: UserId, row: LogEntry): Boolean =
         LogEntriesTable.upsert(
             LogEntriesTable.id,
@@ -195,13 +209,14 @@ class PostgresSyncRepository(
             it[deleted] = row.deleted
         }.insertedCount > 0
 
-    private fun upsertOther(userId: UserId, row: DiaryRow) {
+    private fun upsertOther(userId: UserId, row: DiaryRow, knowsCheckIn: Boolean) {
         when (row) {
             is LogEntry -> upsertEntry(userId, row)
 
             is DayRecord -> DayRecordsTable.upsert(
                 DayRecordsTable.userId,
                 DayRecordsTable.day,
+                onUpdateExclude = if (knowsCheckIn) null else listOf(DayRecordsTable.checkIn),
                 where = { DayRecordsTable.newerThanStored(userId, row) },
             ) {
                 it[this.userId] = userId.value
@@ -252,6 +267,8 @@ class PostgresSyncRepository(
 
             is CustomFood -> CustomFoodsTable.upsert(
                 CustomFoodsTable.id,
+                // A 0.1 row carries no details. Exposed would still update the columns to null, so they are left out of the update.
+                onUpdateExclude = if (row.details == null) CustomFoodsTable.detailColumns else null,
                 where = { CustomFoodsTable.newerThanStored(userId, row) },
             ) {
                 it[id] = row.id
@@ -265,6 +282,11 @@ class PostgresSyncRepository(
                 it[carbs] = row.nutrients.carbs?.toFloat()
                 it[fat] = row.nutrients.fat?.toFloat()
                 it[fiber] = row.nutrients.fiber?.toFloat()
+                row.details?.let { details ->
+                    it[servingGrams] = details.servingGrams?.toFloat()
+                    it[sizes] = JSON.encodeToString(SIZES_SERIALIZER, details.sizes.map { size -> SizeJson(size.label, size.grams) })
+                    it[micros] = JSON.encodeToString(MICROS_SERIALIZER, details.micros)
+                }
                 it[clientUpdatedAt] = row.clientUpdatedAt.toJavaInstant()
                 it[deleted] = row.deleted
             }
@@ -472,6 +494,11 @@ class PostgresSyncRepository(
         ),
         clientUpdatedAt = this[CustomFoodsTable.clientUpdatedAt].toKotlinInstant(),
         deleted = this[CustomFoodsTable.deleted],
+        details = CustomFoodDetails(
+            servingGrams = this[CustomFoodsTable.servingGrams].clean(),
+            sizes = this[CustomFoodsTable.sizes]?.let { JSON.decodeFromString(SIZES_SERIALIZER, it) }.orEmpty().map { FoodSize(it.label, it.grams) },
+            micros = this[CustomFoodsTable.micros]?.let { JSON.decodeFromString(MICROS_SERIALIZER, it) }.orEmpty(),
+        ),
     )
 
     private fun ResultRow.toSavedMeal(): SavedMeal = SavedMeal(
@@ -516,6 +543,7 @@ class PostgresSyncRepository(
     private companion object {
         val JSON = Json { ignoreUnknownKeys = true }
         val MICROS_SERIALIZER = MapSerializer(String.serializer(), Double.serializer())
+        val SIZES_SERIALIZER = ListSerializer(SizeJson.serializer())
         val SLOT_FLAGS_SERIALIZER = MapSerializer(String.serializer(), Boolean.serializer())
     }
 }
@@ -526,3 +554,7 @@ class PostgresSyncRepository(
  * string gives back the value the client sent.
  */
 internal fun Float?.clean(): Double? = this?.toString()?.toDouble()
+
+/** How `custom_foods.sizes` stores one size. */
+@Serializable
+private data class SizeJson(val label: String, val grams: Double)

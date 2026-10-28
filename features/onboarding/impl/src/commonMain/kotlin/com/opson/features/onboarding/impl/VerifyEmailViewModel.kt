@@ -152,8 +152,7 @@ class VerifyEmailViewModel(
      * Where to go once the email is confirmed. Three outcomes:
      *  - an anonymous guest who linked an email identity keeps their existing
      *    account + progress, so they're already onboarded — mark the flag and
-     *    land on Today ([VerifyEmailEvent.NavigateToAccountSaved], so the app
-     *    can float a confirmation surface if it has one);
+     *    land on Today ([VerifyEmailEvent.NavigateToAccountSaved]);
      *  - a brand-new signup has not set up yet, so it re-enters onboarding at
      *    the first question;
      *  - a returning account (its email was merely unconfirmed) already has

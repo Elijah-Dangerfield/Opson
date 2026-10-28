@@ -3,26 +3,26 @@ package com.opson.libraries.config
 /**
  * A single strongly-typed value that resolves from the merged [AppConfigMap]
  * (defaults + remote + QA overrides). Each value is its own injectable class,
- * contributed into the app graph's `Set<ConfiguredValue<*>>` so it shows up in
+ * contributed into the app graph's `Set<QaConfigValue>` so it shows up in
  * the QA menu automatically — see the typed bases in `TypedConfiguredValues.kt`
  * ([FlagConfigValue], [IntConfigValue], [StringConfigValue], …) which fill in
  * [resolveValue] for the common scalar types.
  *
- * Example — a flag:
+ * Example — a release flag:
  *
  * ```kotlin
  * @Inject
  * @SingleIn(AppScope::class)
- * @ContributesBinding(AppScope::class, ConfiguredValue::class, multibinding = true)
- * class GoogleSignInEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap) {
- *     override val name = "Google sign-in enabled"
- *     override val path = "identity.googleSignInEnabled"
+ * @ContributesBinding(AppScope::class, boundType = QaConfigValue::class, multibinding = true)
+ * class BarcodeScanEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap) {
+ *     override val name = "Barcode scan"
+ *     override val path = "release.barcode"
  *     override val default = false
  * }
  *
  * @Inject
- * class SignInViewModel(googleSignInEnabled: GoogleSignInEnabled) {
- *     val showGoogle = googleSignInEnabled()   // resolves the value
+ * class LoggerViewModel(barcodeScanEnabled: BarcodeScanEnabled) {
+ *     val showScanner = barcodeScanEnabled()   // resolves the value
  * }
  * ```
  *
@@ -62,11 +62,6 @@ abstract class ConfiguredValue<out T : Any> : QaConfigValue {
      */
     open val group: String
         get() = path.substringBefore(".")
-
-    /**
-     * Value to be used specifically for debug builds.
-     */
-    open val debugOverride: T? = null
 
     /**
      * Optional list of valid values for this config. When provided, the QA

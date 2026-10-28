@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.MealFeeling
@@ -18,6 +19,7 @@ import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.PreviewContent
+import com.opson.libraries.ui.components.LocalChartPreviewPick
 import com.opson.system.AppTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -60,6 +62,22 @@ private fun TrendsDarkPreview() = Phone(dark = true) { Trends(full) }
 private fun TrendsBelowPreview() = Phone {
     TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(), full), onAction = {}, modifier = below())
 }
+
+/** A finger on Wednesday: the Eaten bar's label, and each line's point at the same index. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsPickedPreview() = Phone { Picked { Trends(full) } }
+
+/** The week's Hunger bars with Wednesday picked: the day, and the nearest answer as a word. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsHungerPickedPreview() = Picked { Journal(TrendsFixtures.trendsInputs(), notes = false) }
+
+/** Every chart below starts with the point at [PREVIEW_PICK] picked. */
+@Composable
+private fun Picked(content: @Composable () -> Unit) = CompositionLocalProvider(LocalChartPreviewPick provides PREVIEW_PICK, content = content)
+
+private const val PREVIEW_PICK = 2
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -221,6 +239,11 @@ private fun PatternsBelowPreview() = Phone { Patterns(full, below()) }
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun PatternsDarkPreview() = Phone(dark = true) { Patterns(full) }
+
+/** Below the fold with a weekday's hunger bar picked: the weekday and the check-in answer. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun PatternsPickedPreview() = Phone { Picked { Patterns(full, below()) } }
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

@@ -11,6 +11,8 @@
  *  - pushes the Supabase values from `apps/server/.env` as Fly secrets
  *  - mints a deploy token per app and sets FLY_API_TOKEN_DEV / _PROD as repo
  *    secrets, which is what `server-deploy.yml` authenticates with
+ *  - gives dev an admin token, on the Fly app and as ADMIN_API_TOKEN_DEV, so
+ *    the dev deploy can upload the config manifest and turn on new flags
  *  - offers the first deploy, and proves it by curling `/_health`
  *
  * Creating apps is free; they cost nothing until something runs on them. The
@@ -22,6 +24,7 @@
  */
 
 import java.io.File
+import java.security.SecureRandom
 import kotlin.system.exitProcess
 
 // ── fly ─────────────────────────────────────────────────────────────────────
@@ -71,17 +74,30 @@ fun readEnvFile(file: File): Map<String, String> {
         .filterValues { it.isNotEmpty() }
 }
 
+/**
+ * Sets [secrets] on [app] through `fly secrets import`, which reads
+ * `NAME=VALUE` lines on stdin. `fly secrets set NAME=VALUE` would put the
+ * database password and the service-role key on argv, which every process on
+ * the machine can read (the reason [createDeployToken] pipes its token too).
+ */
 fun setFlySecrets(app: String, secrets: Map<String, String>): Boolean {
     if (secrets.isEmpty()) return true
     // `--stage` then `deploy` would be tidier, but staged secrets are invisible
     // until the next deploy — which is exactly the kind of "configured but not
     // live" state this repo keeps getting burned by. Set them for real.
-    val command = listOf("fly", "secrets", "set") +
-        secrets.map { (key, value) -> "$key=$value" } +
-        listOf("-a", app)
-    val result = run(*command.toTypedArray())
+    val lines = secrets.entries.joinToString("\n", postfix = "\n") { (key, value) -> "$key=$value" }
+    val result = run("fly", "secrets", "import", "-a", app, stdin = lines)
     if (!result.ok) yellow("Could not set secrets on $app: ${result.output.trim().take(300)}")
     return result.ok
+}
+
+/** Whether a listing (`fly secrets list`, `gh secret list`) names [secret]; null when it failed. */
+fun listsSecret(listing: CommandResult, secret: String): Boolean? =
+    listing.takeIf { it.ok }?.output?.let { Regex("""(?m)^\s*${Regex.escape(secret)}\s""").containsMatchIn(it) }
+
+fun randomHexToken(): String {
+    val bytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
+    return bytes.joinToString("") { "%02x".format(it) }
 }
 
 /**
@@ -190,6 +206,32 @@ if (!hasGhRepo()) {
         }
     }
     yellow("These expire in a year. When a deploy starts failing on auth, re-run this script.")
+}
+
+bold("\nDev admin token")
+// The config admin routes mount only when the server has ADMIN_API_TOKEN, and
+// server-deploy.yml uses ADMIN_API_TOKEN_DEV to upload the manifest and turn
+// new release flags on in dev. The two must match, and neither Fly nor GitHub
+// shows a secret back, so when either side is missing both get a fresh value.
+// Prod is left alone, like its database.
+if (!devReady || !hasGhRepo()) {
+    yellow("Skipped: needs the dev app and a GitHub repo.")
+} else {
+    val onFly = listsSecret(run("fly", "secrets", "list", "-a", devApp), "ADMIN_API_TOKEN")
+    val onGithub = listsSecret(run("gh", "secret", "list"), "ADMIN_API_TOKEN_DEV")
+    when {
+        onFly == null || onGithub == null ->
+            yellow("Could not list the secrets on $devApp or the repo, so the admin token was left alone.")
+        onFly && onGithub -> green("✓ ADMIN_API_TOKEN on $devApp and ADMIN_API_TOKEN_DEV are both set")
+        else -> {
+            val token = randomHexToken()
+            if (setFlySecrets(devApp, mapOf("ADMIN_API_TOKEN" to token)) && setGhSecret("ADMIN_API_TOKEN_DEV", token)) {
+                green("✓ Set ADMIN_API_TOKEN on $devApp and ADMIN_API_TOKEN_DEV to one new value ($devApp restarts)")
+            } else {
+                yellow("Could not set both. Re-run this script; it makes a fresh pair whenever one side is missing.")
+            }
+        }
+    }
 }
 
 bold("\nFirst deploy")

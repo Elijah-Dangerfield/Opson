@@ -117,7 +117,7 @@ thread, and a failed weigh-in says so. Each finding below names the place, the r
 - **Rule:** §1 "Stale comments are bugs".
 - **Fix:** `docs(trends): comments match what the code does now`.
 
-## 9. The charts say nothing to a screen reader: deferred
+## 9. The charts say nothing to a screen reader: fixed on main
 
 - **Where:** `PatternsScreen.kt` `HungerCardView` (a `TODO(review)` marks it), and the shared
   `IntakeBarChart` that Trends' Eaten and Hunger cards draw (`libraries/ui`, another slice).
@@ -129,6 +129,11 @@ thread, and a failed weigh-in says so. Each finding below names the place, the r
   for the Eaten chart those words are themselves visibility-sensitive. That is a copy and
   policy decision, not a code fix. Cross-slice when decided: `IntakeBarChart` takes an optional
   per-bar description and sets it with `clearAndSetSemantics`.
+- **Since:** main's `feat(trends): every chart says what a point is when you touch it`
+  (ff6889c6) settled both. `InspectableChart` gives a screen reader one node per point, saying
+  what its label says ("Monday, Hungry"; an amount only when the mode shows it), and Patterns'
+  hunger chart and `IntakeBarChart` both use it. Merging main into this branch took that side of
+  `HungerCardView` and dropped the `TODO(review)`.
 
 ## Not a problem
 
@@ -194,9 +199,6 @@ guard locally to see whether its test notices. Two were real; the rest held. Fat
 
 ## Product notes
 
-- **Charts need spoken summaries** (finding 9): today a screen reader user gets the card titles
-  and weekday names only. Deciding the words for "hungrier than usual" unlocks Patterns and the
-  Hunger card at once. Fairly sure this matters.
 - **Weight could catch plausible typos too.** Finding 6 stops zero and 7255; 27.5 for 72.5 still
   saves. A gentle "that's a long way from your last weigh-in, save it anyway?" when a reading is
   more than, say, 15% off the trend would catch the rest. Not sure the extra step is welcome.

@@ -4,15 +4,9 @@ import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
-import androidx.test.uiautomator.Until
-import com.opson.baselineprofile.BenchmarkJourney.SETTING_UP
-import com.opson.baselineprofile.BenchmarkJourney.SKIP_AND_START_LOGGING
-import com.opson.baselineprofile.BenchmarkJourney.todayScreen
-import com.opson.baselineprofile.BenchmarkJourney.ciAnyOf
-import com.opson.baselineprofile.BenchmarkJourney.describeScreen
 import com.opson.baselineprofile.BenchmarkJourney.launchIntent
 import com.opson.baselineprofile.BenchmarkJourney.openAndCloseLogger
-import com.opson.baselineprofile.BenchmarkJourney.tapMatching
+import com.opson.baselineprofile.BenchmarkJourney.reachToday
 import com.opson.baselineprofile.BenchmarkJourney.visitTabs
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,8 +38,12 @@ import org.junit.runner.RunWith
  * written for.
  *
  * ```
- * ./gradlew :apps:baselineprofile:pixel6Api34BenchmarkReleaseAndroidTest
+ * ./gradlew :apps:baselineprofile:pixel6Api34BenchmarkReleaseAndroidTest \
+ *     -Pandroid.testInstrumentationRunnerArguments.benchmarkEmail=... \
+ *     -Pandroid.testInstrumentationRunnerArguments.benchmarkPassword=...
  * ```
+ *
+ * The account is the benchmark one described in [BenchmarkJourney].
  */
 @RunWith(AndroidJUnit4::class)
 class MinifiedReleaseSmokeTest {
@@ -62,20 +60,11 @@ class MinifiedReleaseSmokeTest {
             ),
         )
 
-        // Walk onboarding if it is showing. Adaptive for the same reason as the
-        // generators: a device that is already onboarded lands straight on Today.
-        val anyOnboardingCta = ciAnyOf(SKIP_AND_START_LOGGING, SETTING_UP)
-        repeat(BenchmarkJourney.ONBOARDING_MAX_STEPS) {
-            if (device.hasObject(todayScreen())) return@repeat
-            device.tapMatching(anyOnboardingCta, ONBOARDING_STEP_TIMEOUT_MS)
-        }
-
-        // Reaching Today means the DI graph built, persisted app state
-        // deserialized through its generated serializer, and the start
-        // destination resolved — the first things R8 could have broken.
-        check(device.wait(Until.hasObject(todayScreen()), LAUNCH_TIMEOUT_MS) == true) {
-            "Never reached Today. " + device.describeScreen()
-        }
+        // Reaching Today means the DI graph built, sign-in went through,
+        // persisted app state deserialized through its generated serializer, and
+        // the start destination resolved: the first things R8 could have broken.
+        // The same walk as the generators, sign-in included.
+        device.reachToday(todayTimeoutMs = MINIFIED_LAUNCH_TIMEOUT_MS)
 
         // Each tab switch and the logger resolve a @Serializable route by type.
         // If R8 renamed one, this fails with an argument error rather than a
@@ -85,7 +74,8 @@ class MinifiedReleaseSmokeTest {
     }
 
     private companion object {
-        const val LAUNCH_TIMEOUT_MS = 30_000L
-        const val ONBOARDING_STEP_TIMEOUT_MS = 15_000L
+        // A minified release start on a CI emulator is slower than the generators'
+        // non-minified one; this test waited 30 s before it shared the journey.
+        const val MINIFIED_LAUNCH_TIMEOUT_MS = 30_000L
     }
 }

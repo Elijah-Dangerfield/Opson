@@ -109,7 +109,7 @@ class TargetsGoalStylesTest : CoroutineTest() {
         listOf(NumbersSettings(PresetId.MacrosOnly), NumbersSettings.later(), NumbersSettings(PresetId.NoNumbers)).forEach { numbers ->
             listOf(SettingsFixtures.exactTargets, SettingsFixtures.surplusTargets, SettingsFixtures.shapedByDayTargets).forEach { targets ->
                 val state = build(targets, numbers, burned = SettingsFixtures.burned, editingGroup = 1)
-                assertEquals(TargetsState(visible = false), state, "in $numbers")
+                assertEquals(TargetsState(loaded = true, visible = false), state, "in $numbers")
             }
         }
     }

@@ -101,6 +101,12 @@ data class CustomFoodEntity(
     val fiber: Double?,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean,
+    /** What one serving weighs; null when nobody weighed it (version 11). */
+    val servingGrams: Double? = null,
+    /** JSON array of `FoodUnit`s, the food's other serving sizes; null for none (version 11). */
+    val sizesJson: String? = null,
+    /** JSON object, nutrient key to amount per serving; null for none (version 11). */
+    val microsJson: String? = null,
 )
 
 @Entity(tableName = "saved_meals")
@@ -159,8 +165,9 @@ data class ExerciseEntity(
  * did not exist; a rejection restores it.
  *
  * [day] is the diary day the row belongs to, when it has one. The server
- * refuses a day more than two days ahead while Today lets the user plan six
- * ahead, so a change to a later day waits here until its day comes into range.
+ * refuses a day more than eight days past its own today, in UTC
+ * (`SERVER_MAX_DAYS_AHEAD`), so a change to a later day, from a phone whose
+ * date runs ahead, waits here until its day comes into range.
  */
 @Entity(
     tableName = "outbox",

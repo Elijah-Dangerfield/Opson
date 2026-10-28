@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.MealSlot
@@ -26,17 +27,20 @@ import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.diary.ui.tileColors
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.ui.components.ChartAxis
 import com.opson.libraries.ui.components.ColorDot
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EmptyCard
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HorizontalDivider
+import com.opson.libraries.ui.components.InspectableChart
 import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.ShareBar
 import com.opson.libraries.ui.components.TimelineAxis
 import com.opson.libraries.ui.components.TimelineTrack
+import com.opson.libraries.ui.components.rememberChartSelection
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
@@ -285,21 +289,28 @@ private fun HungerCardView(card: HungerCard) {
                 modifier = Modifier.weight(HUNGER_NOTE_WEIGHT),
             )
         }
-        // TODO(review): a screen reader hears the weekday names and nothing of the bars. Each bar
-        // needs a spoken level, which waits on wording for a relative hunger level (findings/trends.md 9).
-        Row(
+        val selection = rememberChartSelection(card.readouts)
+        InspectableChart(
+            readouts = card.readouts,
+            axis = ChartAxis.Slots(Dimension.D300),
+            selection = selection,
             modifier = Modifier.fillMaxWidth().height(HUNGER_CHART).padding(top = Dimension.D200),
-            horizontalArrangement = Arrangement.spacedBy(Dimension.D300),
-            verticalAlignment = Alignment.Bottom,
         ) {
-            card.days.forEach { day ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight((day.level ?: 0f).coerceIn(HUNGER_FLOOR, 1f))
-                        .clip(AppTheme.shapes.inputLarge)
-                        .background(if (day.level == null) AppTheme.colors.track else AppTheme.colors.accentTint),
-                )
+            Row(
+                modifier = Modifier.matchParentSize(),
+                horizontalArrangement = Arrangement.spacedBy(Dimension.D300),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                card.days.forEachIndexed { index, day ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight((day.level ?: 0f).coerceIn(HUNGER_FLOOR, 1f))
+                            .graphicsLayer { alpha = selection.emphasis(index, faded = HUNGER_UNPICKED_ALPHA) }
+                            .clip(AppTheme.shapes.inputLarge)
+                            .background(if (day.level == null) AppTheme.colors.track else AppTheme.colors.accentTint),
+                    )
+                }
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Dimension.D300)) {
@@ -336,6 +347,7 @@ private val AXIS = listOf(
 private val SLOT_LABEL_WIDTH = Dimension.D1600
 private val HUNGER_CHART = 96.dp
 private const val HUNGER_FLOOR = 0.08f
+private const val HUNGER_UNPICKED_ALPHA = 0.55f
 private const val HUNGER_NOTE_WEIGHT = 0.6f
 private const val QUARTER_HOUR = 15
 private const val MINUTES_PER_HOUR = 60

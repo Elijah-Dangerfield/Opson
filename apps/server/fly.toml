@@ -27,7 +27,7 @@ primary_region = 'iad'   # pick the region closest to your database
   # has a ~150-200MB off-heap floor (metaspace, thread stacks, JIT, Netty direct
   # buffers) before the heap counts at all, so a naive 256MB total OOM-loops.
   # 256m heap + 96m metaspace leaves ~150MB headroom on the 512MB box.
-  JAVA_OPTS = '-Xms64m -Xmx256m -XX:MaxMetaspaceSize=96m -XX:+UseSerialGC -XX:+UnlockExperimentalVMOptions'
+  JAVA_OPTS = '-Xms64m -Xmx256m -XX:MaxMetaspaceSize=96m -XX:+UseSerialGC'
 
 [http_service]
   internal_port = 8080

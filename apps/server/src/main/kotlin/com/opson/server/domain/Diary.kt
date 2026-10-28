@@ -132,6 +132,10 @@ data class WeighIn(
     override val deleted: Boolean,
 ) : DiaryRow
 
+/**
+ * [details] is null on a row from a build that predates them (0.1), which knows nothing of them:
+ * storing that row leaves the stored details as they are.
+ */
 data class CustomFood(
     val id: UUID,
     val name: String,
@@ -141,7 +145,18 @@ data class CustomFood(
     val nutrients: Nutrients,
     override val clientUpdatedAt: Instant,
     override val deleted: Boolean,
+    val details: CustomFoodDetails? = null,
 ) : DiaryRow
+
+/** V25: what one serving weighs, the food's other sizes, and the rest of its label per serving. */
+data class CustomFoodDetails(
+    val servingGrams: Double? = null,
+    val sizes: List<FoodSize> = emptyList(),
+    val micros: Map<String, Double> = emptyMap(),
+)
+
+/** One of a unit with its weight: "tbsp" is 15 g. */
+data class FoodSize(val label: String, val grams: Double)
 
 /** [itemsJson] is a JSON array of item snapshots, opaque to the server. */
 data class SavedMeal(
