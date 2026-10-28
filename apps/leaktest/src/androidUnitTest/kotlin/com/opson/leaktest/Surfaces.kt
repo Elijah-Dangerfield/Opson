@@ -98,6 +98,11 @@ private val typedLabel = Reveal.Only(
     "Add a food asks for a field unless the mode hides it outright, so Later and soft modes fill the label in. " +
         "120 is what the person typed, not a number the app worked out.",
 )
+private val typedQuickAdd = Reveal.Only(
+    setOf("400 kcal"),
+    "Quick add offers a field for a number held for Later, as Add a food does. 400 is what the person typed; " +
+        "the energy their macros come to stays hidden until the reveal.",
+)
 
 /**
  * The surfaces a delayed or softened preset shows a calorie amount on by design. Every entry is a
@@ -115,5 +120,6 @@ internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
 
     listOf("later", "later-weekly").forEach { mode ->
         listOf("foods-add-food", "foods-add-food-blind").forEach { put(mode to it, typedLabel) }
+        put(mode to "logger-describe-quick-add", typedQuickAdd)
     }
 }

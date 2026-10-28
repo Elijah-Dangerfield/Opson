@@ -386,6 +386,7 @@ object LoggerFixtures {
         parsedLines: Boolean = true,
         review: DescribeReview = if (parsedLines) describeReview(policy) else DescribeReview(),
         text: String = if (parsedLines) "2 eggs and toast" else "",
+        quickAdd: QuickAddForm = QuickAddForm(),
     ): LoggerState = LoggerStateBuilder.build(
         inputs = inputs(),
         policy = policy,
@@ -396,8 +397,22 @@ object LoggerFixtures {
             describeText = text,
             describeStatus = if (review.rows.isNotEmpty()) DescribeStatus.Parsed else DescribeStatus.Idle,
             review = review,
+            quickAdd = quickAdd,
         ),
     )
+
+    /**
+     * A protein bar's label copied into quick add. Its macros come to 500 kcal at 4/4/9 and the
+     * energy typed is 400, so All numbers spells out the gap.
+     */
+    val proteinBar = QuickAddForm(
+        name = "Protein bar",
+        numbers = mapOf(Metric.Calories to "400", Metric.Protein to "30", Metric.Carbs to "50", Metric.Fat to "20", Metric.Fiber to "4"),
+    )
+
+    /** Describe with nothing typed in the box and [proteinBar] in "Or just the numbers". */
+    fun quickAddState(policy: VisibilityPolicy, form: QuickAddForm = proteinBar): LoggerState =
+        describeState(policy, parsedLines = false, quickAdd = form)
 
     /**
      * After fixing the read: the eggs swapped to scrambled and stepped to three,

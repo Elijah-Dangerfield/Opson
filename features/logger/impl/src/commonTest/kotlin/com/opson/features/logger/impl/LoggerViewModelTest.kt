@@ -13,6 +13,8 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.FoodRef
+import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.coroutines.flow.toList
@@ -26,6 +28,8 @@ import opson.libraries.resources.generated.resources.Res
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -238,8 +242,8 @@ class LoggerViewModelTest : CoroutineTest() {
 
         vm.takeAction(LoggerAction.CopyMealTapped)
         vm.takeAction(LoggerAction.CopyMealTapped)
-        vm.takeAction(LoggerAction.NumberTyped("450"))
-        vm.takeAction(LoggerAction.AddNumberTapped)
+        vm.takeAction(QuickAddAction.NumberTyped(Metric.Calories, "450"))
+        vm.takeAction(QuickAddAction.AddTapped)
         vm.takeAction(LoggerAction.WaterTapped)
 
         assertEquals(1, diary.copied.size)
@@ -435,33 +439,142 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(listOf<LoggerEvent>(LoggerEvent.Dismiss), events)
     }
 
+    // Quick add
+
+    private suspend fun LoggerViewModel.typeQuick(form: QuickAddForm) {
+        takeAction(QuickAddAction.NameTyped(form.name))
+        form.numbers.forEach { (metric, text) -> takeAction(QuickAddAction.NumberTyped(metric, text)) }
+    }
+
     @Test
-    fun describesNumberLogsOnItsOwn() = runUnitTest {
+    fun aQuickNumberLogsOnItsOwn_underTheDefaultName() = runUnitTest {
         val vm = vm()
         val events = events(vm)
         vm.takeAction(LoggerAction.DescribeItTapped)
 
-        vm.takeAction(LoggerAction.NumberTyped("4a50"))
-        assertEquals("450", vm.state.describe.number)
-        vm.takeAction(LoggerAction.AddNumberTapped)
+        vm.takeAction(QuickAddAction.NumberTyped(Metric.Calories, "4a50"))
+        assertEquals("450", vm.state.describe.quickAdd?.fields?.first()?.text)
+        vm.takeAction(QuickAddAction.AddTapped)
 
         val added = diary.added.single()
         assertEquals(LogMethod.QuickNumber, added.method)
-        assertEquals(450.0, added.items.single().kcal)
-        assertEquals(LoggerViewModel.QUICK_ADD_NAME, added.items.single().name)
+        val item = added.items.single()
+        assertEquals(450.0, item.kcal)
+        assertEquals(QuickAdd.DEFAULT_NAME, item.name)
+        assertNull(item.protein, "a macro nobody typed is unknown, not 0")
         assertEquals(1, recentLogEvents.logged.single().itemIds.size)
+        assertEquals(listOf(LogVia.QuickNumber to 1), telemetry.events)
         assertEquals(listOf<LoggerEvent>(LoggerEvent.Dismiss), events)
     }
 
     @Test
-    fun aNumberIsRefusedWhenCaloriesAreHidden() = runUnitTest {
-        policySource.policy.value = policy(PresetId.NoNumbers)
+    fun allNumbers_logsTheNameEnergyAndMacrosAsTyped() = runUnitTest {
         val vm = vm()
-        vm.takeAction(LoggerAction.NumberTyped("450"))
+        settle()
+        vm.typeQuick(LoggerFixtures.proteinBar)
+        vm.takeAction(QuickAddAction.NumberTyped(Metric.Fat, "20,5"))
 
-        vm.takeAction(LoggerAction.AddNumberTapped)
+        vm.takeAction(QuickAddAction.AddTapped)
+
+        val item = diary.added.single().items.single()
+        assertEquals("Protein bar", item.name)
+        assertEquals(listOf(400.0, 30.0, 50.0, 20.5, 4.0), listOf(item.kcal, item.protein, item.carbs, item.fat, item.fiber))
+    }
+
+    @Test
+    fun macrosWithGrams_storesTheMacrosEnergy_neverATypedOne() = runUnitTest {
+        policySource.policy.value = policy(PresetId.MacrosWithGrams)
+        val vm = vm()
+        settle()
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), vm.state.describe.quickAdd?.fields?.map { it.metric })
+        // A calorie number sent anyway (a field left over from a mode change) is not this mode's to take.
+        vm.typeQuick(LoggerFixtures.proteinBar)
+
+        vm.takeAction(QuickAddAction.AddTapped)
+
+        val item = diary.added.single().items.single()
+        assertEquals(30.0 * 4 + 50.0 * 4 + 20.0 * 9, item.kcal, "4/4/9, so the day's totals agree with the macros")
+        assertEquals(30.0, item.protein)
+        assertEquals(4.0, item.fiber)
+    }
+
+    @Test
+    fun macrosOnlyAndNoNumbers_takeNoNumbers() = runUnitTest {
+        listOf(PresetId.MacrosOnly, PresetId.NoNumbers).forEach { preset ->
+            policySource.policy.value = policy(preset)
+            val vm = vm()
+            settle()
+            assertNull(vm.state.describe.quickAdd, "$preset")
+            vm.typeQuick(LoggerFixtures.proteinBar)
+
+            vm.takeAction(QuickAddAction.AddTapped)
+
+            assertTrue(diary.added.isEmpty(), "$preset")
+        }
+    }
+
+    @Test
+    fun aModeThatHidesTheNumbersAfterTheyWereTyped_hasTheLastWord() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.typeQuick(LoggerFixtures.proteinBar)
+
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        settle()
+        vm.takeAction(QuickAddAction.AddTapped)
 
         assertTrue(diary.added.isEmpty())
+    }
+
+    @Test
+    fun theMismatch_isFixedEitherWay() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.typeQuick(LoggerFixtures.proteinBar)
+        assertEquals(QuickAddMismatch(Display.Shown("500 kcal"), Display.Shown("400 kcal")), vm.state.describe.quickAdd?.mismatch)
+
+        // The macros drive.
+        vm.takeAction(QuickAddAction.UseMacroEnergyTapped)
+        assertEquals("500", vm.state.describe.quickAdd?.fields?.first { it.metric == Metric.Calories }?.text)
+        assertNull(vm.state.describe.quickAdd?.mismatch)
+
+        // The energy drives: back to 400, and the three macros scale down together.
+        vm.takeAction(QuickAddAction.NumberTyped(Metric.Calories, "400"))
+        vm.takeAction(QuickAddAction.FitMacrosTapped)
+        val fields = vm.state.describe.quickAdd?.fields.orEmpty().associate { it.metric to it.text }
+        assertEquals(mapOf(Metric.Calories to "400", Metric.Protein to "24", Metric.Carbs to "40", Metric.Fat to "16", Metric.Fiber to "4"), fields)
+        assertNull(vm.state.describe.quickAdd?.mismatch)
+
+        vm.takeAction(QuickAddAction.AddTapped)
+        val item = diary.added.single().items.single()
+        assertEquals(listOf(400.0, 24.0, 40.0, 16.0), listOf(item.kcal, item.protein, item.carbs, item.fat))
+    }
+
+    @Test
+    fun nothingAboveZero_addsNothing() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(QuickAddAction.NameTyped("Tea"))
+        vm.takeAction(QuickAddAction.NumberTyped(Metric.Calories, "0"))
+        assertEquals(false, vm.state.describe.quickAdd?.canAdd)
+
+        vm.takeAction(QuickAddAction.AddTapped)
+
+        assertTrue(diary.added.isEmpty())
+    }
+
+    @Test
+    fun backOutOfDescribe_dropsTheQuickAdd() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(LoggerAction.DescribeItTapped)
+        vm.typeQuick(LoggerFixtures.proteinBar)
+
+        vm.takeAction(LoggerAction.BackTapped)
+        vm.takeAction(LoggerAction.DescribeItTapped)
+
+        assertEquals("", vm.state.describe.quickAdd?.name)
+        assertTrue(vm.state.describe.quickAdd?.fields.orEmpty().all { it.text.isEmpty() })
     }
 
     // The meal
@@ -545,11 +658,11 @@ class LoggerViewModelTest : CoroutineTest() {
     fun aDifferentModeRebuildsWithoutReopening() = runUnitTest {
         val vm = vm()
         settle()
-        assertTrue(vm.state.describe.canNumber)
+        assertNotNull(vm.state.describe.quickAdd)
 
         policySource.policy.value = policy(PresetId.NoNumbers)
         settle()
 
-        assertFalse(vm.state.describe.canNumber)
+        assertNull(vm.state.describe.quickAdd)
     }
 }

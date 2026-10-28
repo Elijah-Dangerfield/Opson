@@ -112,7 +112,8 @@ class SurfacesCoverageTest {
                 "add-sheet", "add-sheet-expanded", "add-sheet-uncategorized",
                 "search-full", "search-browse", "search-saved-meals", "search-pick-for-meal", "search-tabs", "search-options",
                 "search-empty",
-                "logger-describe", "logger-describe-voice", "logger-describe-edited", "logger-describe-find", "logger-saved",
+                "logger-describe", "logger-describe-voice", "logger-describe-edited", "logger-describe-quick-add", "logger-describe-find",
+                "logger-saved",
                 "food-detail", "food-detail-nutrients", "food-detail-units", "food-detail-scan", "food-detail-no-numbers",
                 "logger-photo", "logger-photo-swap", "logger-photo-start", "logger-scan-miss",
                 "exercise-sheet", "exercise-sheet-other", "exercise-sheet-pick",
@@ -150,7 +151,7 @@ class SurfacesCoverageTest {
             "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
             "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "edit-a-copy",
             "logger-describe-voice", "search-tabs", "food-detail-units",
-            "food-detail-scan", "food-detail-nutrients", "logger-describe-edited", "logger-describe-find",
+            "food-detail-scan", "food-detail-nutrients", "logger-describe-edited", "logger-describe-find", "logger-describe-quick-add",
             "widget", "widgets",
             "today-burned", "today-burned-health", "exercise-sheet", "exercise-sheet-other",
         )

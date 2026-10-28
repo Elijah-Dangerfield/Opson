@@ -25,7 +25,8 @@ data class LoggerChoices(
     val describeStatus: DescribeStatus = DescribeStatus.Idle,
     /** Describe's lines as the person has corrected them. */
     val review: DescribeReview = DescribeReview(),
-    val number: String = "",
+    /** Describe's "Or just the numbers" as typed. */
+    val quickAdd: QuickAddForm = QuickAddForm(),
     /** `release.barcode`, read once when the sheet opens. */
     val scanAvailable: Boolean = false,
     /** `release.photo`, read once when the sheet opens. */
@@ -60,7 +61,6 @@ object LoggerStateBuilder {
         val slot = effectiveSlot(inputs, choices.slot)
         val context = inputs.day.formatContext(inputs.today)
         val bare = inputs.day.formatContext(inputs.today, bare = true)
-        val canNumber = policy.level(Metric.Calories) != Visibility.Hide
         return LoggerState(
             loading = false,
             day = RelativeDay.of(inputs.day.date, inputs.today),
@@ -76,8 +76,7 @@ object LoggerStateBuilder {
                 lines = describedLines(choices.review, policy, bare),
                 total = describeTotal(choices.review, policy, context),
                 find = choices.review.find?.let { describeFind(it, choices.review, policy, bare) },
-                canNumber = canNumber,
-                number = if (canNumber) choices.number else "",
+                quickAdd = QuickAdd.build(choices.quickAdd, policy, context),
                 // A spoken description becomes the same text and the same lines as a typed one.
                 voice = VoiceStateBuilder.build(choices.voiceEnabled, choices.voice),
             ),

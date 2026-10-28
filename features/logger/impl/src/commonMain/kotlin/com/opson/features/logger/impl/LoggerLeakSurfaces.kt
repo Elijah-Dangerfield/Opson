@@ -52,6 +52,10 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-describe-edited", label = "Describe a meal, lines corrected", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeEditedState(policy), onAction = {})
         },
+        // Quick add with a label typed in: the fields each mode offers, and the energy check where calories show.
+        LeakSurface(id = "logger-describe-quick-add", label = "Describe a meal, just the numbers", showsCaloriesInFull = true) { policy ->
+            LoggerSheetContent(state = LoggerFixtures.quickAddState(policy), onAction = {})
+        },
         LeakSurface(id = "logger-describe-find", label = "Describe a meal, finding a food", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.describeFindState(policy), onAction = {})
         },

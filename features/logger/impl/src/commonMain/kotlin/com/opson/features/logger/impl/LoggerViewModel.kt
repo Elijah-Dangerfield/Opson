@@ -9,12 +9,10 @@ import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.diary.LocalCalendar
-import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealSlotPicker
-import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
@@ -30,7 +28,6 @@ import com.opson.libraries.speech.Heard
 import com.opson.libraries.speech.MicPermission
 import com.opson.libraries.speech.SpeechAvailability
 import com.opson.libraries.speech.SpeechFailure
-import com.opson.libraries.ui.components.text.NumberInput
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -180,8 +177,7 @@ class LoggerViewModel(
             }
             is DescribeReviewAction -> reviewAction(action)
             LoggerAction.SaveNameTapped -> saveName()
-            is LoggerAction.NumberTyped -> action.choose { copy(number = NumberInput.sanitize(action.text, allowDecimal = false)) }
-            LoggerAction.AddNumberTapped -> addNumber()
+            is QuickAddAction -> quickAddAction(action)
             LoggerAction.AddToMealTapped -> logDescribed()
             LoggerAction.BackTapped -> back(action)
             LoggerAction.CloseTapped -> sendEvent(LoggerEvent.Dismiss)
@@ -330,7 +326,7 @@ class LoggerViewModel(
                         describeText = "",
                         describeStatus = DescribeStatus.Idle,
                         review = DescribeReview(),
-                        number = "",
+                        quickAdd = QuickAddForm(),
                         voice = VoiceCapture.Idle(),
                     )
                 }
@@ -388,13 +384,25 @@ class LoggerViewModel(
         sendEvent(LoggerEvent.Dismiss)
     }
 
-    private suspend fun addNumber() {
+    private suspend fun quickAddAction(action: QuickAddAction) {
+        val form = model.choices.quickAdd
+        val policy = model.policy
+        when (action) {
+            is QuickAddAction.NameTyped -> action.choose { copy(quickAdd = form.copy(name = action.text)) }
+            is QuickAddAction.NumberTyped -> action.choose {
+                copy(quickAdd = form.copy(numbers = form.numbers + (action.metric to QuickAdd.sanitize(action.metric, action.text))))
+            }
+            QuickAddAction.UseMacroEnergyTapped -> action.choose { copy(quickAdd = QuickAdd.macroEnergyUsed(form, policy)) }
+            QuickAddAction.FitMacrosTapped -> action.choose { copy(quickAdd = QuickAdd.macrosFitted(form, policy)) }
+            QuickAddAction.AddTapped -> addQuick()
+        }
+    }
+
+    /** Quick add: one item, the numbers as this mode takes them (the policy has the last word, even over a field still on screen). */
+    private suspend fun addQuick() {
         if (model.inputs == null || written) return
-        // Typing a number is a calorie entry, so the policy has the last word even if the field was showing.
-        if (model.policy.level(Metric.Calories) == Visibility.Hide) return
-        val kcal = model.choices.number.toIntOrNull()?.takeIf { it > 0 } ?: return
+        val draft = QuickAdd.draft(model.choices.quickAdd, model.policy) ?: return
         val slot = slot()
-        val draft = LogDraft(name = QUICK_ADD_NAME, precision = Precision.Named, kcal = kcal.toDouble(), method = LogMethod.QuickNumber)
         val items: List<LogItem> = diary.addItems(day, slot, listOf(draft), LogMethod.QuickNumber)
         telemetry.methodPicked(LogVia.QuickNumber, items.size)
         logger.announce(day, slot, items)
@@ -655,13 +663,6 @@ class LoggerViewModel(
 
         /** Recent at full height (13.4b). */
         const val RECENT_LIMIT = 6
-
-        /**
-         * The stored name of a "just a number" entry, as the prototype logs it.
-         * It is the item's name in the diary (and on the server), not screen
-         * copy, so it is a constant rather than a resource.
-         */
-        const val QUICK_ADD_NAME = "Quick add"
     }
 }
 
