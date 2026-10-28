@@ -71,7 +71,7 @@
     <string name="photo_try_again">Try again</string>
     <string name="photo_another">Try another photo</string>
     <string name="photo_describe_instead">Describe it instead</string>
-    <string name="photo_back_to_search">Back to search</string>
+    <string name="photo_back_to_search">Go back</string>
     <string name="photo_open_settings">Open Settings</string>
     <string name="photo_allow_camera">Allow camera</string>
 </resources>

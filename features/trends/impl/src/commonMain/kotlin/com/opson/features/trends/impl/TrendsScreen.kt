@@ -247,7 +247,7 @@ private fun IntakeCardView(card: IntakeCard) {
             Text(text = stringResource(Res.string.trends_eaten_empty), typography = AppTheme.type.body, color = AppTheme.colors.inkSoft)
             return@TrendsCard
         }
-        IntakeBarChart(bars = card.bars, band = card.band, bandColor = AppTheme.colors.accentTint)
+        IntakeBarChart(bars = card.bars, band = card.band, readouts = card.readouts, bandColor = AppTheme.colors.accentTint)
         Text(
             text = stringResource(
                 when (card.caption) {
@@ -455,6 +455,7 @@ private fun ExpendedCardView(card: ExpendedCard) {
                 points = card.trend,
                 dots = null,
                 modifier = Modifier.fillMaxWidth().height(Dimension.D1600),
+                readouts = card.readouts,
                 lineColor = AppTheme.colors.inkSoft,
             )
         }
@@ -478,6 +479,7 @@ private fun WeightCardView(card: WeightCard, onClick: () -> Unit) {
                 points = card.trend,
                 dots = null,
                 modifier = Modifier.fillMaxWidth().height(Dimension.D1600),
+                readouts = card.readouts,
             )
         }
     }
@@ -501,7 +503,7 @@ internal fun HungerCardView(trend: HungerTrend) {
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-                IntakeBarChart(bars = trend.bars, band = null)
+                IntakeBarChart(bars = trend.bars, band = null, readouts = trend.readouts)
                 Text(
                     text = stringResource(if (trend.perWeek) Res.string.trends_hunger_caption_weeks else Res.string.trends_hunger_caption_days),
                     typography = AppTheme.type.secondary,

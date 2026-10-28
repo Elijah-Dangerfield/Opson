@@ -2,8 +2,8 @@
 -- foreign key has something to point at. The real table (owned by Supabase Auth)
 -- has dozens more columns; we only need `id` (for the FK), `is_anonymous`
 -- (read by auth-aware queries), and the email and timestamps the support views
--- (V22) read. Production uses the real table and never runs
--- this script.
+-- (V22) read. The local docker-compose Postgres mounts this same file.
+-- Production uses the real table and never runs this script.
 CREATE SCHEMA IF NOT EXISTS auth;
 
 CREATE TABLE IF NOT EXISTS auth.users (

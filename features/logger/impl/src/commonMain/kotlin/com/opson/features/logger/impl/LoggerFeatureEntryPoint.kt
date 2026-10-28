@@ -1,5 +1,7 @@
 package com.opson.features.logger.impl
 
+import com.opson.features.foods.EditCopyRoute
+import com.opson.libraries.navigation.BugReportRoute
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +25,7 @@ import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
 import com.opson.features.settings.FastingRoute
+import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
 import com.opson.features.trends.WeightRoute
 import com.opson.libraries.diary.DiaryRepository
@@ -133,7 +136,7 @@ class LoggerFeatureEntryPoint(
             BarcodeScanner(backStackEntry.toRoute<BarcodeScanRoute>(), router)
         }
 
-        // Only Photo on the + sheet and search's "Photograph it" open it, both behind release.photo.
+        // Only Photo on the + sheet opens it, behind release.photo. Packaged foods go through "Add this food" instead.
         bottomSheet<PhotoEstimateRoute>(
             typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
         ) { backStackEntry, sheetState ->
@@ -149,6 +152,11 @@ class LoggerFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is ExerciseSheetEvent.ShowToast -> showToast(event.toast)
+                    // The sheet gives way to the closed one, so Back lands where it was opened.
+                    is ExerciseSheetEvent.DayClosed -> router.batch {
+                        goBack()
+                        navigate(DayClosedRoute(event.day.toString()))
+                    }
                     ExerciseSheetEvent.Dismiss -> sheetState.dismiss()
                 }
             }
@@ -295,7 +303,7 @@ class LoggerFeatureEntryPoint(
                 )
                 // Over search, so Back from these lands here.
                 is SearchEvent.OpenScanner -> router.navigate(BarcodeScanRoute(event.day.toString(), event.slot, overSearch = true))
-                is SearchEvent.OpenPhoto -> router.navigate(PhotoEstimateRoute(event.day.toString(), event.slot))
+                is SearchEvent.OpenSubmitFood -> router.navigate(SubmitFoodRoute(event.day.toString(), event.slot, fromSearch = true))
                 is SearchEvent.OpenDescribe -> router.navigate(
                     LoggerRoute(slot = event.slot, dayIso = event.day.toString(), start = LoggerStart.Describe, describeText = event.text),
                 )
@@ -319,11 +327,24 @@ class LoggerFeatureEntryPoint(
         viewModel.ObserveEvents { event ->
             when (event) {
                 FoodDetailEvent.Dismiss -> router.goBack()
+                // Over the detail, so after Reopen the food is still there to add.
+                is FoodDetailEvent.DayClosed -> router.navigate(DayClosedRoute(event.day.toString()))
                 // Back to where it was opened: search draws ✓, Today takes it from RecentLogEvents.
                 is FoodDetailEvent.Logged -> {
                     haptics.confirm()
                     router.goBack()
                 }
+                // TODO(review-queue): the review queue takes new packs (SubmitFoodRoute) but has no kind for a correction to a food it
+                // already holds; once it does, file this there. Until then the bug report carries the food's ref.
+                is FoodDetailEvent.OpenReport -> router.navigate(BugReportRoute(contextMessage = event.context))
+                is FoodDetailEvent.OpenEditCopy -> router.navigate(
+                    EditCopyRoute(
+                        dayIso = event.day.toString(),
+                        foodId = event.ref.id,
+                        isCustom = event.ref is FoodRef.Custom,
+                        slot = event.slot,
+                    ),
+                )
             }
         }
 
@@ -358,6 +379,10 @@ class LoggerFeatureEntryPoint(
                 is PhotoEstimateEvent.Logged -> {
                     haptics.confirm()
                     router.goBack()
+                }
+                is PhotoEstimateEvent.DayClosed -> router.batch {
+                    goBack()
+                    navigate(DayClosedRoute(event.day.toString()))
                 }
                 PhotoEstimateEvent.Dismiss -> sheetState.dismiss()
             }
@@ -398,11 +423,17 @@ class LoggerFeatureEntryPoint(
                     goBack()
                     navigate(FoodDetailRoute(event.foodId, isCustom = false, source = PickSource.Barcode, dayIso = event.day.toString(), slot = event.slot))
                 }
+                // The pack's photos take the scanner's place, for the code that missed.
+                is BarcodeScanEvent.OpenSubmitFood -> router.batch {
+                    goBack()
+                    navigate(SubmitFoodRoute(event.day.toString(), event.slot, barcode = event.code))
+                }
                 is BarcodeScanEvent.OpenSearch -> router.batch {
                     goBack()
                     navigate(FoodSearchRoute(slot = event.slot, dayIso = event.day.toString()))
                 }
                 BarcodeScanEvent.Close -> router.goBack()
+                is BarcodeScanEvent.DayClosed -> router.navigate(DayClosedRoute(event.day.toString()))
             }
         }
 

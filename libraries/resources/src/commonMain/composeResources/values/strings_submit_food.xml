@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for "Add this food" (0.2, behind release.submitFood): two photos of a
+  pack, the label read and checked, the food logged and sent for review. A
+  barcode miss and a search with no results open it. Nothing here states a
+  nutrition number except the check lines, which only draw where the mode
+  shows calories. Same rules as strings.xml: no backslash escapes, positional
+  %1$s arguments.
+-->
+<resources>
+
+    <!-- Entry points -->
+    <string name="submit_add_this_food">Add this food</string>
+    <string name="submit_add_this_food_body">Photograph the pack and we'll read the label for you.</string>
+
+    <!-- Header -->
+    <string name="submit_overline">New food for %1$s</string>
+    <string name="submit_title">Add this food</string>
+
+    <!-- Photos -->
+    <string name="submit_intro">Take two photos of the pack. We'll read the label, you check it, and it's logged right away.</string>
+    <string name="submit_front_title">Front of the pack</string>
+    <string name="submit_front_hint">The name and the brand</string>
+    <string name="submit_label_title">Nutrition label</string>
+    <string name="submit_label_hint">The whole panel, straight on, without glare</string>
+    <string name="submit_front_cd">Photo of the front of the pack</string>
+    <string name="submit_label_cd">Photo of the nutrition label</string>
+    <string name="submit_take">Take photo</string>
+    <string name="submit_retake">Retake</string>
+    <string name="submit_choose">Choose from library</string>
+    <string name="submit_read">Read the label</string>
+    <string name="submit_privacy">The photos go to our AI provider to read the label, and to us so someone can check the food before anyone else sees it. Only you and the person checking it see the photos.</string>
+
+    <!-- Reading -->
+    <string name="submit_reading">Reading the label</string>
+    <string name="submit_reading_body">This can take up to a minute.</string>
+
+    <!-- Review -->
+    <string name="submit_review_title">Check what we read</string>
+    <string name="submit_review_body">Fix anything that doesn't match the pack.</string>
+    <string name="submit_notice_unavailable">We can't read labels right now. Fill it in from your photos.</string>
+    <string name="submit_notice_by_hand">Fill it in from your photos.</string>
+    <string name="submit_field_name">Name</string>
+    <string name="submit_field_brand">Brand</string>
+    <string name="submit_field_barcode">Barcode</string>
+    <string name="submit_field_barcode_optional">Barcode, if the pack has one</string>
+    <string name="submit_field_serving">Serving size</string>
+    <string name="submit_field_per_container">Servings per pack</string>
+    <string name="submit_check_this">Check this</string>
+    <string name="submit_needed">Needed</string>
+    <string name="submit_per_serving">Per serving</string>
+    <string name="submit_more">More from the label</string>
+
+    <string name="submit_n_energy_kcal">Calories</string>
+    <string name="submit_n_protein_g">Protein</string>
+    <string name="submit_n_carbs_g">Carbs</string>
+    <string name="submit_n_fat_g">Fat</string>
+    <string name="submit_n_fiber_g">Fiber</string>
+    <string name="submit_n_sugars_g">Sugars</string>
+    <string name="submit_n_added_sugars_g">Added sugars</string>
+    <string name="submit_n_sugar_alcohols_g">Sugar alcohols</string>
+    <string name="submit_n_saturated_fat_g">Saturated fat</string>
+    <string name="submit_n_trans_fat_g">Trans fat</string>
+    <string name="submit_n_cholesterol_mg">Cholesterol</string>
+    <string name="submit_n_sodium_mg">Sodium</string>
+    <string name="submit_n_potassium_mg">Potassium</string>
+    <string name="submit_n_calcium_mg">Calcium</string>
+    <string name="submit_n_iron_mg">Iron</string>
+    <string name="submit_n_magnesium_mg">Magnesium</string>
+    <string name="submit_n_phosphorus_mg">Phosphorus</string>
+    <string name="submit_n_zinc_mg">Zinc</string>
+    <string name="submit_n_copper_mg">Copper</string>
+    <string name="submit_n_manganese_mg">Manganese</string>
+    <string name="submit_n_selenium_ug">Selenium</string>
+    <string name="submit_n_vitamin_a_rae_ug">Vitamin A</string>
+    <string name="submit_n_vitamin_c_mg">Vitamin C</string>
+    <string name="submit_n_vitamin_d_ug">Vitamin D</string>
+    <string name="submit_n_vitamin_e_mg">Vitamin E</string>
+    <string name="submit_n_vitamin_k_ug">Vitamin K</string>
+    <string name="submit_n_thiamin_mg">Thiamin</string>
+    <string name="submit_n_riboflavin_mg">Riboflavin</string>
+    <string name="submit_n_niacin_mg">Niacin</string>
+    <string name="submit_n_vitamin_b6_mg">Vitamin B6</string>
+    <string name="submit_n_folate_dfe_ug">Folate</string>
+    <string name="submit_n_vitamin_b12_ug">Vitamin B12</string>
+    <string name="submit_n_choline_mg">Choline</string>
+
+    <!-- Checks. Only drawn where the mode shows calories. -->
+    <string name="submit_check_energy">Calories don't match the macros by %1$s</string>
+    <string name="submit_check_kj">That looks like kJ, not kcal</string>
+    <string name="submit_check_serving_size">The serving size doesn't match the per 100 numbers</string>
+    <string name="submit_check_serving_nutrient">%1$s per serving doesn't match per 100</string>
+    <string name="submit_check_sodium">Sodium looks a thousand times off</string>
+    <string name="submit_check_impossible">These can't be right: %1$s</string>
+    <string name="submit_use">Use %1$s</string>
+    <string name="submit_keep">Keep %1$s</string>
+    <string name="submit_kept">Kept as the label has it</string>
+
+    <!-- The numbers in a mode that hides them -->
+    <string name="submit_hidden_title">Nutrition</string>
+    <string name="submit_hidden_adds_up">We read the label's numbers. They're saved with the food, and your mode keeps them out of sight.</string>
+    <string name="submit_hidden_off">Something on the label doesn't add up. You can still add it, and someone will check it against your photos.</string>
+    <string name="submit_hidden_incomplete">Some numbers couldn't be read. Someone will fill them in from your photos.</string>
+
+    <!-- Footer -->
+    <string name="submit_add">Add to %1$s</string>
+    <string name="submit_missing">Fill in %1$s to add it.</string>
+    <string name="submit_list_and">%1$s and %2$s</string>
+    <string name="submit_after">It's saved to your foods and logged now. Someone checks it against your photos before it's shared with everyone.</string>
+    <string name="submit_saving">Adding it</string>
+
+    <!-- Calm ends -->
+    <string name="submit_no_label_title">No nutrition label in that photo</string>
+    <string name="submit_no_label_body">Take the second photo of the nutrition facts panel, straight on.</string>
+    <string name="submit_retake_label">Retake the label</string>
+    <string name="submit_type_it_in">Type it in</string>
+    <string name="submit_too_many_title">That's a lot of labels for now</string>
+    <string name="submit_too_many_body">Try again in a little while, or type this one in.</string>
+    <string name="submit_failed_title">Couldn't read the label</string>
+    <string name="submit_failed_body">Try again in a moment, or type it in.</string>
+    <string name="submit_failed_offline">You're offline. Connect and try again, or type it in.</string>
+    <string name="submit_try_again">Try again</string>
+    <string name="submit_camera_title">The camera is off</string>
+    <string name="submit_camera_body_ask">Allow the camera to photograph the pack, or choose photos from your library.</string>
+    <string name="submit_camera_body">Turn the camera on in Settings, or choose photos from your library.</string>
+    <string name="submit_allow_camera">Allow camera</string>
+    <string name="submit_open_settings">Open Settings</string>
+    <string name="submit_send_failed_title">Added to your foods</string>
+    <string name="submit_send_failed_body">It's logged. Sending it for review didn't work, so only you have it for now.</string>
+    <string name="submit_send_failed_offline">It's logged. You're offline, so it hasn't gone for review yet.</string>
+    <string name="submit_send_failed_too_many">It's logged. You've sent a lot of foods today, so this one waits. Try again later.</string>
+    <string name="submit_done">Done</string>
+
+    <!-- After -->
+    <string name="submit_done_sent">%1$s added to %2$s. We'll check it for everyone.</string>
+    <string name="submit_done_kept">%1$s added to %2$s.</string>
+</resources>

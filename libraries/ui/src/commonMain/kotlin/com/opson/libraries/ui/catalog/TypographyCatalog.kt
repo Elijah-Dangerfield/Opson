@@ -26,14 +26,14 @@ internal fun TypographyCatalogBody() {
     TypographyCatalogBodyText()
 }
 
-/** First half — the big stuff: serif Display, the Brand face, and sans Heading. */
+/** First half, the big styles: Display, Brand and Heading. */
 @Composable
 internal fun TypographyCatalogBodyHeadlines() {
     val t = AppTheme.typography
 
     CatalogSection(
-        "Display · serif",
-        "Hero headlines only. The italic is the dialog & bottom-sheet title signature.",
+        "Display",
+        "Large headlines.",
     ) {
         TypeRow("Display.D1500", t.Display.D1500, "Welcome back")
         TypeRow("Display.D1300", t.Display.D1300, "Welcome back")
@@ -54,7 +54,7 @@ internal fun TypographyCatalogBodyHeadlines() {
     }
 
     CatalogSection(
-        "Heading · sans",
+        "Heading",
         "Section and screen titles. Step down the scale as the heading nests deeper.",
     ) {
         TypeRow("Heading.H1100", t.Heading.H1100, "Activity")
@@ -67,13 +67,13 @@ internal fun TypographyCatalogBodyHeadlines() {
     }
 }
 
-/** Second half — running text: sans Body, Label, Caption. */
+/** Second half, running text: Body, Label and Caption. */
 @Composable
 internal fun TypographyCatalogBodyText() {
     val t = AppTheme.typography
 
     CatalogSection(
-        "Body · sans",
+        "Body",
         "Running prose — descriptions, dialog bodies, explainers. Optimized for reading, not labels.",
     ) {
         TypeRow("Body.B700", t.Body.B700, "Your changes sync automatically across devices.")
@@ -83,7 +83,7 @@ internal fun TypographyCatalogBodyText() {
     }
 
     CatalogSection(
-        "Label · sans (UI elements)",
+        "Label (UI elements)",
         "Buttons, chips, tabs — tight line height tuned for single-line UI, not paragraphs.",
     ) {
         TypeRow("Label.L700", t.Label.L700, "Continue")
@@ -94,7 +94,7 @@ internal fun TypographyCatalogBodyText() {
     }
 
     CatalogSection(
-        "Caption · sans (metadata)",
+        "Caption (metadata)",
         "The smallest type — timestamps, counts, helper text. Pair with textSecondary.",
     ) {
         TypeRow("Caption.C400", t.Caption.C400, "42m remaining")

@@ -147,6 +147,9 @@ sealed interface PhotoEstimateEvent {
 
     /** Written: close this sheet. Today takes it from `RecentLogEvents`. */
     data class Logged(val day: LocalDate, val committed: Committed) : PhotoEstimateEvent
+
+    /** The day is closed (Close the day, maybe on another phone): nothing was logged. */
+    data class DayClosed(val day: LocalDate) : PhotoEstimateEvent
     data object Dismiss : PhotoEstimateEvent
 }
 

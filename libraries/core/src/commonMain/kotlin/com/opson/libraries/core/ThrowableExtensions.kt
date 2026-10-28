@@ -19,9 +19,3 @@ val Throwable.isExpectedControlFlow: Boolean
 
 class DebugException(e: Throwable? = null, message: String? = e?.message) :
     Exception(message, e)
-
-fun throwIfDebug(throwable: Throwable) {
-    if (BuildInfo.isDebug) {
-        throw DebugException(message = throwable.message.orEmpty())
-    }
-}

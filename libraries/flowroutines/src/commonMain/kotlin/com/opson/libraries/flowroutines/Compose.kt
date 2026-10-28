@@ -2,6 +2,8 @@ package com.opson.libraries.flowroutines
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -59,13 +61,16 @@ fun <T> ObserveWithLifecycle(
     onItem: suspend (T) -> Unit,
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
+    // The effect outlives recompositions, so without this it keeps calling the handler from the
+    // first one, along with whatever that handler captured then.
+    val currentOnItem by rememberUpdatedState(onItem)
 
     LaunchedEffect(lifecycleOwner.lifecycle, flow) {
         flow.collectWithLifecycle(
             lifecycle = lifecycleOwner.lifecycle,
             state = Lifecycle.State.STARTED,
             tag = tag,
-            onItem = onItem,
+            onItem = { currentOnItem(it) },
         )
     }
 }

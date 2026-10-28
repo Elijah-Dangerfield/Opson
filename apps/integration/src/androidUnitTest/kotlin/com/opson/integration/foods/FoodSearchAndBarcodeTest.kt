@@ -1,9 +1,16 @@
 package com.opson.integration.foods
 
 import com.opson.integration.helpers.FakeUpstreams.OffProduct
+import com.opson.integration.helpers.FaultProxy.Fault
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.randomUserId
+import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.Portion
+import com.opson.libraries.foods.SearchCategory
+import com.opson.libraries.foods.SearchOptions
+import com.opson.libraries.foods.SearchOrder
+import com.opson.libraries.foods.SearchSource
+import io.ktor.http.HttpStatusCode
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -120,6 +127,59 @@ class FoodSearchAndBarcodeTest : IntegrationTest() {
             "no column could hold who scanned it",
         )
         assertFalse(miss.values.any { it?.toString() == user }, "and no value is the user's id")
+    }
+
+    /**
+     * Open Food Facts down and the catalog without the code: the server can't say whether anyone
+     * knows it, so it answers 503 `barcode_lookup_unavailable`. That is a failure on the phone,
+     * not "nobody knows it", so the logger never offers to report a miss for a code that may be
+     * fine. A code the phone scanned before still opens from its own cache.
+     */
+    @Test
+    fun barcodeWhenEverySourceIsDown_failsRatherThanMisses_andFallsBackToTheCache() = integration {
+        val known = randomEan13()
+        server.seedFood("$word muesli", kcalPer100g = 360.0, barcode = known, source = "usda_branded")
+        val proxy = faultProxy()
+        val phone = client(through = proxy)
+        val cached = assertNotNull(phone.foods.barcode(known).getOrThrow())
+
+        server.upstreams.openFoodFactsDown = true
+        val unknown = phone.foods.barcode(randomEan13())
+        assertTrue(unknown.isFailure, "unavailable, not a miss: $unknown")
+
+        proxy.failAll(
+            "/v1/foods/barcode",
+            Fault.Status(
+                HttpStatusCode.ServiceUnavailable,
+                """{"error":{"code":"barcode_lookup_unavailable","message":"Barcode lookup is unavailable right now. Try again."}}""",
+            ),
+        )
+        assertEquals(cached.id, phone.foods.barcode(known).getOrThrow()?.id, "the code scanned before opens from the device")
+    }
+
+    /**
+     * The Logger's search options: `category`, `source` and `sort` reach the server's filter, and
+     * `/search/options` says which sources this server offers. Open Food Facts search is off unless
+     * `FOOD_SEARCH_OFF_ENABLED` is set, as here.
+     */
+    @Test
+    fun filtersAndOptions_matchWhatTheServerOffers() = integration {
+        val tea = server.seedFood("$word tea", kcalPer100g = 1.0)
+        val iced = server.seedFood("$word tea, iced", kcalPer100g = 30.0, source = "usda_branded", category = "beverage")
+        val bun = server.seedFood("$word tea bun", kcalPer100g = 320.0)
+        val phone = client()
+
+        assertEquals(SearchOptions(openFoodFacts = false), phone.foods.searchOptions().getOrThrow())
+
+        val drinks = phone.foods.search("$word tea", filter = FoodSearchFilter(category = SearchCategory.Beverage)).getOrThrow()
+        assertEquals(listOf(iced), drinks.foods.map { it.id }, "beverages only")
+
+        val usda = phone.foods.search("$word tea", filter = FoodSearchFilter(source = SearchSource.Usda)).getOrThrow()
+        assertEquals(setOf(tea, iced, bun), usda.foods.map { it.id }.toSet(), "every one of them is USDA's")
+
+        val byName = phone.foods.search("$word tea", filter = FoodSearchFilter(order = SearchOrder.Name)).getOrThrow()
+        val names = byName.foods.map { it.name }
+        assertEquals(names.sortedBy { it.lowercase() }, names, "A to Z")
     }
 
     private fun randomEan13(prefix: Char = '2'): String = withCheckDigit(prefix + digits(11))

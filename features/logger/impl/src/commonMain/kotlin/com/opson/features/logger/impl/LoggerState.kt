@@ -10,6 +10,7 @@ import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -18,6 +19,8 @@ import kotlinx.datetime.TimeZone
 /** What the add sheet draws. Built by [LoggerStateBuilder]; every number in it is policy-resolved. */
 data class LoggerState(
     val loading: Boolean = true,
+    /** The day it logs to: the closed notice says Today when it is today. */
+    val day: RelativeDay = RelativeDay.Today,
     val slot: MealSlot = MealSlot.Dinner,
     /** The title's dropdown. One entry, and no chevron, with meal groups off. */
     val slots: List<MealSlot> = MealSlot.entries,
@@ -30,6 +33,11 @@ data class LoggerState(
     val recent: List<FoodRowUi> = emptyList(),
     val describe: DescribeUi = DescribeUi(),
     val saved: SavedUi = SavedUi(),
+    /**
+     * The day was closed with Close the day: "Today is closed. Reopen it to add more." over the
+     * grid, which keeps only what is not part of the day (a weigh-in, the fasting timer).
+     */
+    val closed: Boolean = false,
 )
 
 /** How tall the add sheet is. It opens [Partial] from a + and only ever grows. */
@@ -76,9 +84,8 @@ data class DescribeUi(
     val total: DescribeTotal? = null,
     /** The search for a missed food or a line's replacement, drawn in place of the lines; null when closed. */
     val find: DescribeFindUi? = null,
-    /** "Or just a number" is a calorie entry, so it is not offered when calories are hidden. */
-    val canNumber: Boolean = false,
-    val number: String = "",
+    /** "Or just the numbers"; null in a mode that shows none of them as numbers. */
+    val quickAdd: QuickAddUi? = null,
     /** The mic and what it is doing; null with `release.voice` off. */
     val voice: VoiceUi? = null,
 )
@@ -159,11 +166,12 @@ sealed interface LoggerAction {
 
     /** Describe's "Just save the name". */
     data object SaveNameTapped : LoggerAction
-    data class NumberTyped(val text: String) : LoggerAction
-    data object AddNumberTapped : LoggerAction
 
     /** Describe's Add: logs its lines. */
     data object AddToMealTapped : LoggerAction
+
+    /** Reopen on the closed line: the day takes food again and the grid comes back. */
+    data object ReopenTapped : LoggerAction
 
     data object BackTapped : LoggerAction
     data object CloseTapped : LoggerAction

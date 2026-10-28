@@ -18,8 +18,6 @@ import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.ToneIcon
-import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.RowIcon
 import com.opson.libraries.ui.components.text.Text

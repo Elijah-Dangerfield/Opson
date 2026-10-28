@@ -5,19 +5,19 @@ import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
 import com.opson.libraries.core.AppState
 import com.opson.libraries.diary.CustomFoodRepository
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.diary.LocalCalendar
-import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealSlotPicker
-import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.valueOrNull
 import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.FoodCatalog
@@ -30,7 +30,6 @@ import com.opson.libraries.speech.Heard
 import com.opson.libraries.speech.MicPermission
 import com.opson.libraries.speech.SpeechAvailability
 import com.opson.libraries.speech.SpeechFailure
-import com.opson.libraries.ui.components.text.NumberInput
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -189,9 +188,9 @@ class LoggerViewModel(
             }
             is DescribeReviewAction -> reviewAction(action)
             LoggerAction.SaveNameTapped -> saveName()
-            is LoggerAction.NumberTyped -> action.choose { copy(number = NumberInput.sanitize(action.text, allowDecimal = false)) }
-            LoggerAction.AddNumberTapped -> addNumber()
+            is QuickAddAction -> quickAddAction(action)
             LoggerAction.AddToMealTapped -> logDescribed()
+            LoggerAction.ReopenTapped -> diary.reopenDay(day)
             LoggerAction.BackTapped -> back(action)
             LoggerAction.CloseTapped -> sendEvent(LoggerEvent.Dismiss)
             is VoiceAction -> voiceAction(action)
@@ -227,7 +226,8 @@ class LoggerViewModel(
             return
         }
         val pick = LoggerStateBuilder.recentPicks(inputs).firstOrNull { it.key == row.key } ?: return
-        logger.log(day, slot, listOf(pick.toLogPick()))?.let { unshown.logged(row.key, it.itemIds) }
+        // A closed day writes nothing, so nothing waits to be shown and a + after Reopen logs it.
+        logger.log(day, slot, listOf(pick.toLogPick()))?.valueOrNull()?.let { unshown.logged(row.key, it.itemIds) }
     }
 
     private suspend fun describeTyped(action: LoggerAction, typed: String, debounce: Duration = DESCRIBE_DEBOUNCE) {
@@ -342,7 +342,7 @@ class LoggerViewModel(
                         describeText = "",
                         describeStatus = DescribeStatus.Idle,
                         review = DescribeReview(),
-                        number = "",
+                        quickAdd = QuickAddForm(),
                         voice = VoiceCapture.Idle(),
                     )
                 }
@@ -355,8 +355,7 @@ class LoggerViewModel(
     private suspend fun logDescribed() {
         if (model.inputs == null || written) return
         val picks = model.choices.review.rows.map { it.toLogPick() }
-        logger.log(day, slot(), picks) ?: return
-        finish()
+        finishIfWritten(logger.log(day, slot(), picks) ?: return)
     }
 
     /** Describe's "Just save the name": a name-only food made (or reused) and logged. */
@@ -367,8 +366,7 @@ class LoggerViewModel(
         endVoice()
         describeJob?.cancel()
         findJob?.cancel()
-        logger.log(day, slot(), listOf(pick))
-        finish()
+        finishIfWritten(logger.log(day, slot(), listOf(pick)) ?: return)
     }
 
     private suspend fun logSavedMeal(id: String) {
@@ -378,14 +376,13 @@ class LoggerViewModel(
             val ref = draft.foodRef()
             LogPick(key = ref?.key ?: "saved:$id:$index", ref = ref, draft = draft.copy(method = LogMethod.Saved), source = PickSource.Saved)
         }
-        logger.log(day, slot(), picks) ?: return
-        finish()
+        finishIfWritten(logger.log(day, slot(), picks) ?: return)
     }
 
     private suspend fun copyYesterday() {
         if (model.inputs == null || written) return
         val slot = slot()
-        val copied = diary.copySlot(day.minus(1, DateTimeUnit.DAY), day, slot)
+        val copied = diary.copySlot(day.minus(1, DateTimeUnit.DAY), day, slot).valueOrNull() ?: return
         telemetry.methodPicked(LogVia.Yesterday, copied.size)
         logger.announce(day, slot, copied)
         finish()
@@ -393,24 +390,45 @@ class LoggerViewModel(
 
     private suspend fun addWater() {
         if (written) return
-        written = true
         val ml = settingsRepository.settings.value.glassMl
-        diary.addWater(day, ml)
+        if (diary.addWater(day, ml) is DayWrite.DayClosed) return
+        written = true
         sendEvent(LoggerEvent.WaterAdded(day, ml))
         sendEvent(LoggerEvent.Dismiss)
     }
 
-    private suspend fun addNumber() {
+    private suspend fun quickAddAction(action: QuickAddAction) {
+        val form = model.choices.quickAdd
+        val policy = model.policy
+        when (action) {
+            is QuickAddAction.NameTyped -> action.choose { copy(quickAdd = form.copy(name = action.text)) }
+            is QuickAddAction.NumberTyped -> action.choose {
+                copy(quickAdd = form.copy(numbers = form.numbers + (action.metric to QuickAdd.sanitize(action.metric, action.text))))
+            }
+            QuickAddAction.UseMacroEnergyTapped -> action.choose { copy(quickAdd = QuickAdd.macroEnergyUsed(form, policy)) }
+            QuickAddAction.FitMacrosTapped -> action.choose { copy(quickAdd = QuickAdd.macrosFitted(form, policy)) }
+            QuickAddAction.AddTapped -> addQuick()
+        }
+    }
+
+    /** Quick add: one item, the numbers as this mode takes them (the policy has the last word, even over a field still on screen). */
+    private suspend fun addQuick() {
         if (model.inputs == null || written) return
-        // Typing a number is a calorie entry, so the policy has the last word even if the field was showing.
-        if (model.policy.level(Metric.Calories) == Visibility.Hide) return
-        val kcal = model.choices.number.toIntOrNull()?.takeIf { it > 0 } ?: return
+        val draft = QuickAdd.draft(model.choices.quickAdd, model.policy) ?: return
         val slot = slot()
-        val draft = LogDraft(name = QUICK_ADD_NAME, precision = Precision.Named, kcal = kcal.toDouble(), method = LogMethod.QuickNumber)
-        val items: List<LogItem> = diary.addItems(day, slot, listOf(draft), LogMethod.QuickNumber)
+        // A closed day refuses it, and the sheet stays open on "Today is closed" with Reopen.
+        val items: List<LogItem> = diary.addItems(day, slot, listOf(draft), LogMethod.QuickNumber).valueOrNull() ?: return
         telemetry.methodPicked(LogVia.QuickNumber, items.size)
         logger.announce(day, slot, items)
         finish()
+    }
+
+    /**
+     * Closes the sheet once something was logged. A closed day refused it, and the sheet stays
+     * open on "Today is closed" (the day it reads is closed too) with Reopen.
+     */
+    private fun finishIfWritten(result: DayWrite<Committed>) {
+        if (result is DayWrite.Written) finish()
     }
 
     /** Logged: the sheet closes and Today takes it from `RecentLogEvents`. */
@@ -670,13 +688,6 @@ class LoggerViewModel(
 
         /** Recent at full height (13.4b). */
         const val RECENT_LIMIT = 6
-
-        /**
-         * The stored name of a "just a number" entry, as the prototype logs it.
-         * It is the item's name in the diary (and on the server), not screen
-         * copy, so it is a constant rather than a resource.
-         */
-        const val QUICK_ADD_NAME = "Quick add"
     }
 }
 

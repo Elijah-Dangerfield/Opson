@@ -1,5 +1,9 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.CustomFoodDraft
+import com.opson.libraries.diary.FoodUnit
+import com.opson.libraries.diary.impl.wire.CustomFoodRowDto
+import com.opson.libraries.diary.impl.wire.FoodUnitDto
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
@@ -9,6 +13,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsJson
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.SyncRejection
+import com.opson.libraries.diary.db.SyncStateEntity
 import com.opson.libraries.diary.impl.wire.ExerciseRowDto
 import com.opson.libraries.diary.impl.wire.FastRowDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
@@ -56,7 +61,7 @@ class DiarySyncerTest : CoroutineTest() {
     private val appScope by lazy { AppCoroutineScope(dispatchers) }
     private val api = FakeSyncApi { ackEverything(it) }
     private val settingsStore by lazy { SettingsStore(FakeCacheFactory(), db.outboxDao, db.transactor, clock, user, appScope) }
-    private val syncer by lazy { DiarySyncer(api, db.tables, settingsStore, user, appScope, clock) }
+    private val syncer by lazy { DiarySyncer(api, db.tables, settingsStore, user, appScope, clock, FakeCacheFactory()) }
     private val repo = DiaryRepositoryImpl(
         db.tables,
         DiaryWriter(db.tables, clock, FakeScheduler()),
@@ -98,7 +103,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun acknowledgedMutationsLeaveTheOutbox() = runUnitTest {
-        val items = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice"), draft("Beans")), LogMethod.Search)
+        val items = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice"), draft("Beans")), LogMethod.Search).written()
 
         syncer.sync()
 
@@ -110,7 +115,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun theOutboxDrainsTwoHundredRowsAtATime() = runUnitTest {
-        repo.addItems(today, MealSlot.Lunch, (1..250).map { draft("Item $it") }, LogMethod.Search)
+        repo.addItems(today, MealSlot.Lunch, (1..250).map { draft("Item $it") }, LogMethod.Search).written()
 
         syncer.sync()
 
@@ -121,7 +126,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aPulledRowReplacesTheLocalRowWhenNothingIsWaiting() = runUnitTest {
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).written().single()
         syncer.sync()
         val fromOtherDevice = db.entries.state.value.getValue(item.id).toRow()
             .copy(name = "Brown rice", clientUpdatedAtEpochMs = clock.now.toEpochMilliseconds() + 60_000)
@@ -134,7 +139,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aLocalChangeStillWaitingWinsOverAPulledRow() = runUnitTest {
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).written().single()
         api.respond = { request ->
             // The user moves the item while the request is in flight; the
             // response then echoes the version that went up.
@@ -155,7 +160,7 @@ class DiarySyncerTest : CoroutineTest() {
     fun aRefusedNewRowIsRemovedAndReported() = runUnitTest {
         val rejections = mutableListOf<SyncRejection>()
         backgroundScope.launch { syncer.rejections.toList(rejections) }
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).written().single()
         api.respond = { request -> refuseEverything(request) }
 
         syncer.sync()
@@ -167,7 +172,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aRefusedEditRollsBackToTheSyncedRow() = runUnitTest {
-        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).single()
+        val item = repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).written().single()
         syncer.sync()
         repo.updateItem(item.copy(name = "x".repeat(10)))
         api.respond = { request -> refuseEverything(request) }
@@ -209,6 +214,44 @@ class DiarySyncerTest : CoroutineTest() {
     }
 
     @Test
+    fun aPulledCustomFoodKeepsItsWeightAndSizes_unlessTheServerPredatesThem() = runUnitTest {
+        val pulled = CustomFoodRowDto(
+            id = "00000000-0000-4000-8000-0000000000c1",
+            name = "Creamer",
+            servingAmount = 1.0,
+            servingUnit = "tbsp",
+            kcal = 35.0,
+            clientUpdatedAtEpochMs = 1_000,
+            servingGrams = 15.0,
+            sizes = listOf(FoodUnitDto("cup", 240.0)),
+            micros = mapOf("sugars_g" to 5.0),
+        )
+        api.respond = { ackEverything(it).copy(changes = SyncChangesDto(customFoods = listOf(pulled))) }
+        syncer.sync()
+        val stored = db.customFoods.state.value.getValue(pulled.id).toDomain()
+        assertEquals(15.0, stored.servingGrams)
+        assertEquals(listOf(FoodUnit("cup", 240.0)), stored.sizes)
+        assertEquals(mapOf("sugars_g" to 5.0), stored.micros)
+
+        // A server from before 0.2 echoes the row back without them: what is here stays.
+        val old = pulled.copy(name = "Oat creamer", clientUpdatedAtEpochMs = 2_000, servingGrams = null, sizes = null, micros = null)
+        api.respond = { ackEverything(it).copy(changes = SyncChangesDto(customFoods = listOf(old))) }
+        syncer.sync()
+        val kept = db.customFoods.state.value.getValue(pulled.id).toDomain()
+        assertEquals("Oat creamer", kept.name)
+        assertEquals(stored.copy(name = "Oat creamer"), kept)
+    }
+
+    @Test
+    fun aCustomFoodGoesUpWithItsSizesEvenWhenItHasNone() = runUnitTest {
+        CustomFoodRepositoryImpl(db.tables, DiaryWriter(db.tables, clock, FakeScheduler()))
+            .create(CustomFoodDraft(name = "Bar", servingAmount = 1.0, servingUnit = "bar"))
+        val sent = db.outbox.rows.single().payload
+        val row = com.opson.libraries.diary.impl.wire.WireJson.decodeFromString(CustomFoodRowDto.serializer(), sent)
+        assertEquals(emptyList(), row.sizes, "an empty list, never absent: absent is how the server tells a 0.1 row")
+    }
+
+    @Test
     fun aRefusedExerciseEditRollsBack_andARefusedNewOneIsRemoved() = runUnitTest {
         val json = com.opson.libraries.diary.impl.wire.WireJson
         val synced = ExerciseRowDto(
@@ -240,6 +283,99 @@ class DiarySyncerTest : CoroutineTest() {
         assertEquals(synced.toEntity(), db.exercises.state.value[synced.id])
         assertEquals(null, db.exercises.state.value[fresh.id])
         assertTrue(db.outbox.rows.isEmpty())
+    }
+
+    @Test
+    fun aCursorFromABuildThatDidNotReadExercise_pullsAgainFromTheStart() = runUnitTest {
+        // An older build pulled to 50 without `exercise`; the server moved its
+        // cursor past the exercise another phone logged at 20.
+        db.syncState.put(SyncStateEntity.SINGLETON_ID, SyncStateEntity(cursor = 50, lastSuccessAtEpochMs = 1))
+        val walk = ExerciseRowDto(
+            id = "00000000-0000-4000-8000-000000000009",
+            day = "2026-10-24",
+            startedAtEpochMs = 1_000,
+            activity = "walking",
+            minutes = 30,
+            kcal = 120,
+            clientUpdatedAtEpochMs = 1_000,
+        )
+        api.respond = { request ->
+            val changes = if (request.cursor < 20) SyncChangesDto(exercises = listOf(walk)) else SyncChangesDto()
+            ackEverything(request).copy(changes = changes, cursor = maxOf(request.cursor, 50) + 1)
+        }
+
+        syncer.sync()
+        syncer.sync()
+
+        assertEquals(listOf(0L, 51L), api.requests.map { it.cursor }, "once from the start, then on from where it got to")
+        assertEquals(walk.toEntity(), db.exercises.state.value[walk.id])
+    }
+
+    @Test
+    fun anEntityTheServerDoesNotKnowYet_keepsTheWriteAndSendsItLater() = runUnitTest {
+        val rejections = mutableListOf<SyncRejection>()
+        backgroundScope.launch { syncer.rejections.toList(rejections) }
+        val json = com.opson.libraries.diary.impl.wire.WireJson
+        val run = ExerciseRowDto(
+            id = "00000000-0000-4000-8000-000000000004",
+            day = "2026-10-25",
+            startedAtEpochMs = 1_000,
+            activity = "running",
+            minutes = 20,
+            kcal = 200,
+            clientUpdatedAtEpochMs = 1_000,
+        )
+        db.exercises.put(run.id, run.toEntity())
+        db.outboxDao.enqueue(SyncEntity.Exercise, run.id, json.encodeToString(ExerciseRowDto.serializer(), run), base = null, nowEpochMs = 1_000)
+        repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search)
+        // A server from before exercise: it applies the food and has no table for the run.
+        api.respond = { request ->
+            val (unknown, known) = request.mutations.partition { it.entity == "exercise" }
+            ackEverything(request).copy(
+                applied = known.map { it.id },
+                rejected = unknown.map { SyncRejectionDto(it.id, "unknown_entity", "Unknown entity 'exercise'") },
+            )
+        }
+
+        syncer.sync()
+
+        assertEquals(run.toEntity(), db.exercises.state.value[run.id], "the run stays on the phone")
+        assertEquals(listOf("exercise"), db.outbox.rows.map { it.entity }, "and its change stays queued")
+        assertTrue(rejections.isEmpty(), "nothing to tell the person: nothing was lost")
+
+        api.respond = { ackEverything(it) }
+        syncer.sync()
+
+        assertEquals(run.id, api.requests.last().mutations.single().row.getValue("id").toString().trim('"'))
+        assertTrue(db.outbox.rows.isEmpty())
+    }
+
+    @Test
+    fun anEntityTheServerDoesNotKnowYet_doesNotHoldUpThePull() = runUnitTest {
+        val json = com.opson.libraries.diary.impl.wire.WireJson
+        val swim = ExerciseRowDto(
+            id = "00000000-0000-4000-8000-000000000005",
+            day = "2026-10-25",
+            startedAtEpochMs = 1_000,
+            activity = "swimming",
+            minutes = 40,
+            kcal = 300,
+            clientUpdatedAtEpochMs = 1_000,
+        )
+        db.exercises.put(swim.id, swim.toEntity())
+        db.outboxDao.enqueue(SyncEntity.Exercise, swim.id, json.encodeToString(ExerciseRowDto.serializer(), swim), base = null, nowEpochMs = 1_000)
+        api.respond = { request ->
+            ackEverything(request).copy(
+                applied = emptyList(),
+                rejected = request.mutations.map { SyncRejectionDto(it.id, "unknown_entity", "Unknown entity 'exercise'") },
+                hasMore = request.cursor < 3,
+            )
+        }
+
+        syncer.sync()
+
+        assertEquals(listOf(0L, 1L, 2L, 3L), api.requests.map { it.cursor }, "the pull goes on past the held row")
+        assertEquals(1, db.outbox.rows.size)
     }
 
     @Test
@@ -347,7 +483,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aPageTheServerNeverResolvesStallsTheDrainWithAWarning() = runUnitTest {
-        repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search)
+        repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search).written()
         api.respond = { request -> ackEverything(request).copy(applied = emptyList()) }
 
         syncer.sync()
@@ -358,7 +494,7 @@ class DiarySyncerTest : CoroutineTest() {
 
     @Test
     fun aSyncThatSpendsItsBudgetWarnsWithTheRowsLeft() = runUnitTest {
-        repo.addItems(today, MealSlot.Lunch, (1..2_100).map { draft("Item $it") }, LogMethod.Search)
+        repo.addItems(today, MealSlot.Lunch, (1..2_100).map { draft("Item $it") }, LogMethod.Search).written()
 
         syncer.sync()
 
@@ -371,7 +507,7 @@ class DiarySyncerTest : CoroutineTest() {
     fun aChangeToADayTooFarAheadWaitsUntilTheServerWillTakeIt() = runUnitTest {
         // One day past what the server takes, counted from the fake clock's 2026-10-25.
         val planned = LocalDate(2026, 10, 25).plus(SERVER_MAX_DAYS_AHEAD + 1, DateTimeUnit.DAY)
-        repo.addItems(planned, MealSlot.Lunch, listOf(draft("Planned")), LogMethod.Search)
+        repo.addItems(planned, MealSlot.Lunch, listOf(draft("Planned")), LogMethod.Search).written()
 
         syncer.sync()
 

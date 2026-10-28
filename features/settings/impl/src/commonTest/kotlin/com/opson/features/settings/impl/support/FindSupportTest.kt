@@ -2,6 +2,7 @@ package com.opson.features.settings.impl.support
 
 import com.opson.features.settings.impl.FakeLinks
 import com.opson.features.settings.impl.eventsOf
+import com.opson.libraries.core.DeviceRegion
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

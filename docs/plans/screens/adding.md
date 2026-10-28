@@ -78,18 +78,21 @@ the app scope so it outlives the screen), and stays. Rows logged to this meal
 since the screen opened draw ✓; tapping ✓ takes those items out again.
 
 Tapping the name opens the food detail. "Not finding it?" closes the results
-with Photograph it (`release.photo`, the meal photo estimate), Describe it
-(the sheet's Describe pane, with the term) and Save the name (a name-only
-custom food, logged at once with Undo). With no results the 3.6 empty state
-offers the same.
+with Describe it (the sheet's Describe pane, with the term) and Save the name
+(a name-only custom food, logged at once with Undo). With no results the 3.6
+empty state offers the same, and with `release.submitFood` also Add this
+food: photos of the pack's front and label, read and checked, logged as the
+person's own food and sent for review (`submit-food.md`). The meal photo
+estimate is not offered from search: it is the + sheet's Photo tile alone
+(docs/decisions.md, 2026-10-27).
 
 Kept from the speed work: the catalog's five-minute client cache answers with
 no debounce, otherwise 250 ms; the spinner only after a delay.
 
 Pick for a meal (Create a meal): + and the name toggle a pick (✓), "Add to
 this meal" pinned at the bottom hands the picks back through `MealPicks`.
-No meal chip, no Saved meals chip, no scanner or photo, and a miss offers only
-Save the name.
+No meal chip, no Saved meals chip, no scanner or Add this food, and a miss
+offers only Save the name.
 
 ## Food detail (13.4d)
 

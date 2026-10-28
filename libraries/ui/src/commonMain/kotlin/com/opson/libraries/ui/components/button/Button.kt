@@ -74,7 +74,6 @@ fun Button(
     style: ButtonStyle = LocalButtonStyle.current,
     enabled: Boolean = true,
     deep: Boolean = false,
-    onDisabledTap: (() -> Unit)? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable () -> Unit,
 ) {
@@ -108,7 +107,6 @@ fun Button(
         icon = icon,
         size = size,
         enabled = enabled,
-        onDisabledTap = onDisabledTap,
         interactionSource = interactionSource,
         content = content
     )
@@ -202,7 +200,6 @@ fun ButtonPrimary(
     accent: ButtonAccent = ButtonAccent.Primary,
     size: ButtonSize = LocalButtonSize.current,
     style: ButtonStyle = ButtonStyle.Filled,
-    onDisabledTap: (() -> Unit)? = null,
     enabled: Boolean = true,
     deep: Boolean = false,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
@@ -215,7 +212,6 @@ fun ButtonPrimary(
         type = ButtonType.Primary,
         accent = accent,
         size = size,
-        onDisabledTap = onDisabledTap,
         style = style,
         enabled = enabled,
         deep = deep,
@@ -239,7 +235,6 @@ fun ButtonSecondary(
     icon: IconResource? = null,
     size: ButtonSize = LocalButtonSize.current,
     style: ButtonStyle = ButtonStyle.Outlined,
-    onDisabledTap: (() -> Unit)? = null,
     enabled: Boolean = true,
     deep: Boolean = false,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
@@ -251,7 +246,6 @@ fun ButtonSecondary(
         icon = icon,
         type = ButtonType.Secondary,
         size = size,
-        onDisabledTap = onDisabledTap,
         style = style,
         enabled = enabled,
         deep = deep,
@@ -276,7 +270,6 @@ fun ButtonGhost(
     style: ButtonStyle = ButtonStyle.Text,
     enabled: Boolean = true,
     deep: Boolean = false,
-    onDisabledTap: (() -> Unit)? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable () -> Unit,
 ) {
@@ -286,7 +279,6 @@ fun ButtonGhost(
         icon = icon,
         type = ButtonType.Ghost,
         size = size,
-        onDisabledTap = onDisabledTap,
         style = style,
         enabled = enabled,
         deep = deep,

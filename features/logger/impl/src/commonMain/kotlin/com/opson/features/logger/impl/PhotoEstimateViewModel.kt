@@ -2,6 +2,7 @@ package com.opson.features.logger.impl
 
 import androidx.lifecycle.viewModelScope
 import com.opson.libraries.core.AppState
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.MealSlot
@@ -264,7 +265,13 @@ class PhotoEstimateViewModel(
     private suspend fun addToMeal() {
         val rows = model.rows
         if (logged || model.step != PhotoStep.Review || model.swap != null) return
-        val committed = logger.log(day, slot, rows.map { it.toLogPick() }) ?: return
+        val committed = when (val result = logger.log(day, slot, rows.map { it.toLogPick() }) ?: return) {
+            is DayWrite.Written -> result.value
+            is DayWrite.DayClosed -> {
+                sendEvent(PhotoEstimateEvent.DayClosed(result.day))
+                return
+            }
+        }
         logged = true
         telemetry.added(items = rows.size)
         sendEvent(PhotoEstimateEvent.Logged(day, committed))

@@ -33,8 +33,8 @@ class RecentLogEventsTest : CoroutineTest() {
 
     @Test
     fun undoRemovesExactlyTheItemsThatWereLogged() = runUnitTest {
-        val earlier = repo.addItems(today, MealSlot.Dinner, listOf(draft("Soup")), LogMethod.Search)
-        val added = repo.addItems(today, MealSlot.Dinner, listOf(draft("Rice"), draft("Salad")), LogMethod.Search)
+        val earlier = repo.addItems(today, MealSlot.Dinner, listOf(draft("Soup")), LogMethod.Search).written()
+        val added = repo.addItems(today, MealSlot.Dinner, listOf(draft("Rice"), draft("Salad")), LogMethod.Search).written()
         val event = LoggedToMeal(today, MealSlot.Dinner, added.map { it.id }, at)
         events.logged(event)
 
@@ -42,6 +42,17 @@ class RecentLogEventsTest : CoroutineTest() {
 
         assertEquals(earlier.map { it.id }, repo.observeDay(today).first().items(MealSlot.Dinner).map { it.id })
         assertNull(events.latest.value)
+    }
+
+    @Test
+    fun undoRemovesTheWholeBasketInOneWrite() = runUnitTest {
+        val added = repo.addItems(today, MealSlot.Dinner, listOf(draft("Rice"), draft("Salad"), draft("Tea")), LogMethod.Search)
+        val before = db.transactionsCommitted
+
+        events.undo(LoggedToMeal(today, MealSlot.Dinner, added.map { it.id }, at))
+
+        assertEquals(1, db.transactionsCommitted - before)
+        assertTrue(repo.observeDay(today).first().allItems.isEmpty())
     }
 
     @Test

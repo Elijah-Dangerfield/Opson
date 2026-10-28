@@ -97,8 +97,9 @@ fun ShakeDialog(
 
                 Spacer(modifier = Modifier.height(Dimension.D500))
 
+                // Plays the exit, then onDismiss runs, as for a tap outside.
                 Button(
-                    onClick = onDismiss,
+                    onClick = state::dismiss,
                     modifier = Modifier.fillMaxWidth(),
                     size = ButtonSize.Medium,
                     style = ButtonStyle.Text

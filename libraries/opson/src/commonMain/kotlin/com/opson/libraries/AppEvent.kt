@@ -12,9 +12,9 @@ sealed class AppEvent {
      * The active user identity changed. Fired by the auth layer at the single
      * point it knows the current user id moved — covering every transition:
      *
-     *  - `null → X`  first sign-in / guest creation (nothing to clear).
-     *  - `X → X`     **not fired** — claim/link keeps the same user; the guest's
-     *                progress is theirs to keep.
+     *  - `null → X`  first sign-in (nothing to clear).
+     *  - `X → X`     **not fired** — linking an identity onto a legacy guest
+     *                keeps the same user, and their log is theirs to keep.
      *  - `X → Y`     account switch — Y is now active; X's local data was already
      *                wiped (see below) before this event.
      *  - `X → null`  sign-out / delete / forced session invalidation.

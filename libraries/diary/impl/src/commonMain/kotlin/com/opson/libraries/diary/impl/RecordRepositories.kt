@@ -95,6 +95,9 @@ class CustomFoodRepositoryImpl(
             carbs = draft.carbs,
             fat = draft.fat,
             fiber = draft.fiber,
+            servingGrams = draft.servingGrams,
+            sizes = draft.sizes,
+            micros = draft.micros,
         ).validated()
         return writer.write {
             val row = food.toEntity(stamp(null))
@@ -140,6 +143,14 @@ class CustomFoodRepositoryImpl(
             carbs = carbs.clean(),
             fat = fat.clean(),
             fiber = fiber.clean(),
+            servingGrams = servingGrams.clean()?.takeIf { it > 0.0 },
+            // A size needs a name and a weight, or nothing converts through it; one name, one size.
+            sizes = sizes
+                .map { it.copy(label = it.label.trim().take(MAX_UNIT)) }
+                .filter { it.label.isNotEmpty() && it.grams.isFinite() && it.grams > 0.0 && it.grams <= MAX_AMOUNT }
+                .distinctBy { it.label.lowercase() }
+                .take(MAX_SIZES),
+            micros = micros.filter { (key, amount) -> key.isNotBlank() && key.length <= MAX_MICRO_KEY && amount.clean() != null }.entries.take(MAX_MICROS).associate { it.toPair() },
         )
     }
 
@@ -149,6 +160,11 @@ class CustomFoodRepositoryImpl(
         const val MAX_NAME = 200
         const val MAX_UNIT = 32
         const val MAX_AMOUNT = 100_000.0
+
+        /** The server's caps (`DiaryRules`): a food with more is refused whole, so they are trimmed here. */
+        const val MAX_SIZES = 20
+        const val MAX_MICROS = 100
+        const val MAX_MICRO_KEY = 64
     }
 }
 

@@ -3,6 +3,7 @@ package com.opson.libraries.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,6 +20,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -50,56 +53,69 @@ data class IntakeBar(val label: String, val fraction: Float?, val isCurrent: Boo
  *
  * [band] is in the same fractions, `min..max`. Pass `null` for no band. A band whose ends meet is
  * one number, and draws as a thin line at it.
+ *
+ * [readouts], one per bar and `null` for a gap, make it inspectable ([InspectableChart]): the picked
+ * bar stays solid and the rest fade. Their words come resolved from the builder too, so inspecting
+ * a bar can only say what the mode already allows.
  */
 @Composable
 fun IntakeBarChart(
     bars: List<IntakeBar>,
     band: ClosedFloatingPointRange<Float>?,
     modifier: Modifier = Modifier,
+    readouts: List<ChartReadout?> = emptyList(),
+    selection: ChartSelection = rememberChartSelection(readouts),
     chartHeight: Dp = 130.dp,
     barColor: ColorResource = AppTheme.colors.accent,
     bandColor: ColorResource = AppTheme.colors.soft,
 ) {
     if (bars.isEmpty()) return
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(chartHeight)
-                .drawBehind {
-                    band ?: return@drawBehind
-                    val low = band.start.coerceIn(0f, 1f)
-                    val high = band.endInclusive.coerceIn(low, 1f)
-                    // One number has no height of its own: a thin line at it, centred, not a band.
-                    val height = (size.height * (high - low)).coerceAtLeast(GOAL_LINE.toPx())
-                    val top = size.height * (1f - (low + high) / 2) - height / 2
-                    drawRoundRect(
-                        color = bandColor.color,
-                        topLeft = Offset(0f, top),
-                        size = Size(size.width, height),
-                        cornerRadius = CornerRadius(BAND_RADIUS.toPx()),
-                    )
-                },
-            horizontalArrangement = Arrangement.spacedBy(BAR_GAP),
-            verticalAlignment = Alignment.Bottom,
+        InspectableChart(
+            readouts = readouts,
+            axis = ChartAxis.Slots(BAR_GAP),
+            selection = selection,
+            modifier = Modifier.fillMaxWidth().height(chartHeight),
         ) {
-            bars.forEach { bar ->
-                Box(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    contentAlignment = Alignment.BottomCenter,
-                ) {
-                    val fraction = bar.fraction?.coerceIn(0f, 1f)
-                    if (fraction != null && fraction > 0f) {
-                        Box(
-                            Modifier
-                                // The cap comes first: after fillMaxWidth the slot's width is fixed and wins.
-                                .widthIn(max = MAX_BAR_WIDTH)
-                                .fillMaxWidth()
-                                .fillMaxHeight(fraction)
-                                .heightIn(min = MIN_BAR_HEIGHT)
-                                .clip(BarShape)
-                                .then(if (bar.isCurrent) Modifier.stripes(barColor) else Modifier.background(barColor)),
+            Row(
+                modifier = Modifier
+                    .matchParentSize()
+                    .drawBehind {
+                        band ?: return@drawBehind
+                        val low = band.start.coerceIn(0f, 1f)
+                        val high = band.endInclusive.coerceIn(low, 1f)
+                        // One number has no height of its own: a thin line at it, centred, not a band.
+                        val height = (size.height * (high - low)).coerceAtLeast(GOAL_LINE.toPx())
+                        val top = size.height * (1f - (low + high) / 2) - height / 2
+                        drawRoundRect(
+                            color = bandColor.color,
+                            topLeft = Offset(0f, top),
+                            size = Size(size.width, height),
+                            cornerRadius = CornerRadius(BAND_RADIUS.toPx()),
                         )
+                    },
+                horizontalArrangement = Arrangement.spacedBy(BAR_GAP),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                bars.forEachIndexed { index, bar ->
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        val fraction = bar.fraction?.coerceIn(0f, 1f)
+                        if (fraction != null && fraction > 0f) {
+                            Box(
+                                Modifier
+                                    // The cap comes first: after fillMaxWidth the slot's width is fixed and wins.
+                                    .widthIn(max = MAX_BAR_WIDTH)
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(fraction)
+                                    .heightIn(min = MIN_BAR_HEIGHT)
+                                    .graphicsLayer { alpha = selection.emphasis(index) }
+                                    .clip(BarShape)
+                                    .then(if (bar.isCurrent) Modifier.stripes(barColor) else Modifier.background(barColor)),
+                            )
+                        }
                     }
                 }
             }
@@ -143,29 +159,39 @@ private const val STRIPE_BASE_ALPHA = 0.3f
 private const val STRIPE_ALPHA = 0.22f
 private val BarShape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
 
+/** The prototype week, Oct 19 to 25 over a 3,200 scale, with Thursday untracked. */
+private val PreviewWeek = listOf("Mon" to 2050f, "Tue" to 1980f, "Wed" to 2240f, "Thu" to null, "Fri" to 2410f, "Sat" to 2160f, "Sun" to 1245f)
+
+private fun previewBars() = PreviewWeek.mapIndexed { index, (label, kcal) -> IntakeBar(label, kcal?.div(3200f), isCurrent = index == PreviewWeek.lastIndex) }
+
 @Preview(widthDp = 390)
 @Composable
 private fun IntakeBarChartPreview() {
-    // The prototype week, Oct 19 to 25 over a 3,200 scale, with Thursday untracked.
-    val week = listOf("Mon" to 2050f, "Tue" to 1980f, "Wed" to 2240f, "Thu" to null, "Fri" to 2410f, "Sat" to 2160f, "Sun" to 1245f)
     PreviewLightDark {
-        IntakeBarChart(
-            bars = week.mapIndexed { index, (label, kcal) ->
-                IntakeBar(label, kcal?.div(3200f), isCurrent = index == week.lastIndex)
-            },
-            band = 1900f / 3200f..2300f / 3200f,
-        )
+        IntakeBarChart(bars = previewBars(), band = 1900f / 3200f..2300f / 3200f)
     }
 }
 
 @Preview(widthDp = 390)
 @Composable
 private fun IntakeBarChartOneNumberPreview() {
-    val week = listOf("Mon" to 2050f, "Tue" to 1980f, "Wed" to 2240f, "Thu" to null, "Fri" to 2410f, "Sat" to 2160f, "Sun" to 1245f)
     PreviewLightDark {
+        IntakeBarChart(bars = previewBars(), band = 2100f / 3200f..2100f / 3200f)
+    }
+}
+
+/** Friday picked: the bar a finger rests on, its guide and its label, the rest faded. */
+@Preview(widthDp = 390)
+@Composable
+private fun IntakeBarChartPickedPreview() {
+    PreviewLightDark(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 64.dp, bottom = 20.dp)) {
         IntakeBarChart(
-            bars = week.mapIndexed { index, (label, kcal) -> IntakeBar(label, kcal?.div(3200f), isCurrent = index == week.lastIndex) },
-            band = 2100f / 3200f..2100f / 3200f,
+            bars = previewBars(),
+            band = 1900f / 3200f..2300f / 3200f,
+            readouts = PreviewWeek.mapIndexed { index, (label, kcal) ->
+                kcal?.let { ChartReadout("$label, Oct ${19 + index}", listOf(ChartReading(value = "${it.toInt()} kcal"))) }
+            },
+            selection = remember { ChartSelection(initial = 4) },
         )
     }
 }

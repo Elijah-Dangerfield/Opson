@@ -29,9 +29,9 @@ import com.opson.system.color.ToneColors
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * A card that offers one gentle thing: an icon tile, a bold [title], a [body], then [actions]
- * side by side (each a [PromptAction] with `Modifier.weight(1f)`). Explorer's food bridge
- * ("A small step from rice", v3 2.8) and Today's untracked day are this card.
+ * A card that offers one gentle thing: a [ToneIcon], a bold [title], a [body], then [actions]
+ * side by side (each a [PromptAction] with `Modifier.weight(1f)`). Today's untracked day is this
+ * card.
  */
 @Composable
 fun PromptCard(
@@ -94,13 +94,12 @@ fun PromptAction(
 private fun PromptCardPreview() {
     PreviewLightDark {
         PromptCard(
-            icon = AppIcons.Route,
+            icon = AppIcons.BeachAccess,
             tone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint),
-            title = "A small step from rice",
-            body = "You've had rice pudding before, and it has rice in it too.",
+            title = "Not tracking this day",
+            body = "Trends leaves a gap here, not a low day.",
         ) {
-            PromptAction(label = "I tried it", onClick = {}, emphasis = true, modifier = Modifier.weight(1f))
-            PromptAction(label = "Not today", onClick = {}, modifier = Modifier.weight(1f))
+            PromptAction(label = "Track it again", onClick = {}, modifier = Modifier.weight(1f))
         }
     }
 }

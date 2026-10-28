@@ -12,8 +12,9 @@ import opson.libraries.resources.generated.resources.integrations_targets_exerci
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-// Targets' Exercise adjustment row (v3 targets.png, 0.2 behind release.health). Kept apart from
-// TargetsScreen so the 0.2 work merges cleanly.
+// Targets' Exercise adjustment row (v3 targets.png, behind release.health). It stays out of
+// TargetsScreen because a preview's file name is part of its design-sync id, and moving these
+// would unpair them from their designs.
 
 /** "Exercise adjustment", the answer under it; opens Watch and health apps, where it is asked. */
 @Composable

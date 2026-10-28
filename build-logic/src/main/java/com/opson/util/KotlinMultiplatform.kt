@@ -20,6 +20,9 @@ internal fun Project.configureKotlinMultiplatform(
 
         sourceSets.apply {
             androidMain.dependencies {
+                // TODO(review): plain Kotlin libraries such as :libraries:core don't need this.
+                // Move it to the Compose plugins once each module is checked for an implicit use
+                // (docs/review/findings/build-config.md, finding 9).
                 implementation(libs.androidx.activity.compose)
             }
             commonMain.dependencies {

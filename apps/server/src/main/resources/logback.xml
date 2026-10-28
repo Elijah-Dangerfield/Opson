@@ -10,7 +10,8 @@
         plugins/Telemetry.kt; if OTel is never installed the records age out of
         a bounded queue without crashing.
 
-    INFO floor; Ktor's noisy io.netty is pinned to WARN, Exposed to ERROR.
+    The root level is LOG_LEVEL (fly.toml sets it; INFO when unset). Ktor's
+    noisy io.netty is pinned to WARN, Exposed to ERROR, whatever LOG_LEVEL says.
 -->
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -42,7 +43,7 @@
     -->
     <logger name="Exposed" level="ERROR"/>
 
-    <root level="INFO">
+    <root level="${LOG_LEVEL:-INFO}">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="OPEN_TELEMETRY"/>
     </root>

@@ -37,7 +37,6 @@
     <string name="adding_scope_yours">Your foods</string>
     <string name="adding_scope_saved">Saved meals</string>
     <string name="adding_not_finding">Not finding it?</string>
-    <string name="adding_not_finding_photo">Photograph it</string>
     <string name="adding_not_finding_describe">Describe it</string>
     <string name="adding_not_finding_save">Save the name</string>
     <string name="adding_no_foods_yet">Foods you make or log show up here.</string>
@@ -46,9 +45,12 @@
     <!-- Food detail -->
     <string name="adding_detail_back_cd">Back</string>
     <string name="adding_detail_menu_cd">More for this food</string>
-    <string name="adding_detail_meal">Meal: %1$s</string>
-    <string name="adding_detail_time">Time: %1$s</string>
-    <string name="adding_detail_time_now">Time: now, %1$s</string>
+    <string name="adding_detail_meal">Meal</string>
+    <string name="adding_detail_meal_cd">Meal, %1$s</string>
+    <string name="adding_detail_time">Time</string>
+    <string name="adding_detail_time_now">Now, %1$s</string>
+    <string name="adding_detail_time_cd">Time, %1$s</string>
+    <string name="adding_detail_sure_cd">How sure, %1$s</string>
     <string name="adding_detail_amount">Amount</string>
     <string name="adding_detail_amount_cd">Amount</string>
     <string name="adding_detail_sure">How sure</string>
@@ -57,5 +59,20 @@
     <string name="adding_detail_all_cd">All nutrients, %1$s</string>
     <string name="adding_detail_today">Today with this</string>
     <string name="adding_detail_today_plus_minus">%1$s ± %2$s kcal</string>
+    <!-- What the amount weighs, under "2 tbsp" -->
+    <string name="adding_detail_weighs">That is %1$s</string>
+    <string name="adding_detail_energy">Energy</string>
+    <!-- This food's share of a day's target, after "44 / 120 g" -->
+    <string name="adding_detail_adds">+%1$s</string>
+    <plurals name="adding_detail_nutrient_count">
+        <item quantity="one">%1$d nutrient listed</item>
+        <item quantity="other">%1$d nutrients listed</item>
+    </plurals>
+    <string name="adding_detail_from_usda">From USDA FoodData Central</string>
+    <string name="adding_detail_from_off">From Open Food Facts</string>
+    <string name="adding_detail_from_yours">Your own food</string>
+    <string name="adding_detail_remove_recent">Remove from recents</string>
+    <string name="adding_detail_report">Report a problem</string>
+    <string name="adding_detail_edit_copy">Edit a copy</string>
 
 </resources>

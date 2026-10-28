@@ -164,33 +164,12 @@ fun InfoBanner(
     }
 }
 
-/** A small surface pill with a coloured icon and a bold count: "3 meals logged", "3 glasses". */
-@Composable
-fun CountChip(
-    icon: IconResource,
-    iconColor: ColorResource,
-    text: String,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .defaultMinSize(minHeight = MinTouchTarget)
-            .clip(AppTheme.shapes.inputLarge)
-            .background(AppTheme.colors.surface)
-            .padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(icon = icon, size = 22.dp, color = iconColor)
-        Text(text = text, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.ink, maxLines = 1)
-    }
-}
-
 /**
- * A bar with a range drawn as a dashed box (design v3 "the dashed box marks your range"), on the
- * hero by default. [fill], [rangeStart] and [rangeEnd] are fractions of the bar; the fill stops at
- * the end, so going past the range shows nothing new. 14 tall track, 18 tall box. Nutrients detail
- * draws it on a white card with [RangeBarDefaults.onSurface].
+ * A bar with a range drawn as a dashed box (design v3 "the dashed box marks your range").
+ * [fill], [rangeStart] and [rangeEnd] are fractions of the bar; the fill stops at the end, so
+ * going past the range shows nothing new. The track is 60% of [height] and the box the full
+ * height. Today's summary card uses [RangeBarDefaults.summary]; Nutrients detail draws it with
+ * [RangeBarDefaults.onSurface].
  *
  * When [rangeStart] and [rangeEnd] meet, the goal is one number, and it is drawn as a solid mark
  * across the bar at that point instead of a box. Both at 0 is no goal at all, and draws nothing.
@@ -206,7 +185,7 @@ fun RangeBar(
     rangeStart: Float,
     rangeEnd: Float,
     modifier: Modifier = Modifier,
-    colors: RangeBarColors = RangeBarDefaults.onHero(),
+    colors: RangeBarColors = RangeBarDefaults.summary(),
     height: Dp = RangeBarDefaults.Height,
     segments: List<RangeBarSegment> = emptyList(),
     tick: Float? = null,
@@ -277,14 +256,6 @@ object RangeBarDefaults {
     /** A row in a list, as Nutrients' energy row: about half as tall (design v3, 5.4). */
     val CompactHeight: Dp = 12.dp
 
-    /** White on the hero colour, as Today's summary. */
-    @Composable
-    fun onHero(): RangeBarColors = RangeBarColors(
-        track = AppTheme.colors.onHero.withAlpha(RANGE_TRACK_ALPHA),
-        fill = AppTheme.colors.onHero,
-        box = AppTheme.colors.onHero.withAlpha(RANGE_BOX_ALPHA),
-    )
-
     /** Ink on a white card: the energy row on Nutrients detail. */
     @Composable
     fun onSurface(): RangeBarColors = RangeBarColors(
@@ -311,8 +282,6 @@ private const val DASH = 8f
 private const val STROKE = 3f
 private const val BOX_RADIUS = 10f
 private const val MARK_WIDTH = 5f
-private const val RANGE_TRACK_ALPHA = 0.16f
-private const val RANGE_BOX_ALPHA = 0.7f
 private const val DISABLED_ALPHA = 0.5f
 private const val HALF_TURN = 180f
 
@@ -373,11 +342,7 @@ private fun DayHeaderPreview() {
                 HeaderIconButton(icon = AppIcons.MoreVert, onClick = {})
             }
             InfoBanner(icon = AppIcons.EventNote, title = "Planned meals count as logged", body = "Edit anything tomorrow if plans change.")
-            Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-                CountChip(icon = AppIcons.Restaurant, iconColor = AppTheme.colors.accent, text = "3 meals logged")
-                CountChip(icon = AppIcons.WaterDrop, iconColor = AppTheme.colors.nutrients.water.content, text = "3 glasses")
-            }
-            HeroCard { RangeBar(fill = 0.45f, rangeStart = 0.69f, rangeEnd = 0.83f) }
+            RangeBar(fill = 0.45f, rangeStart = 0.69f, rangeEnd = 0.83f)
             RangeBar(
                 fill = 0.8f,
                 rangeStart = 0.69f,

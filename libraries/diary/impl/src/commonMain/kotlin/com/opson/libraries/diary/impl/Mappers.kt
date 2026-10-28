@@ -6,6 +6,7 @@ import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.DayHunger
 import com.opson.libraries.diary.Energy
+import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
@@ -27,6 +28,7 @@ import com.opson.libraries.diary.db.WeighInEntity
 import com.opson.libraries.diary.impl.wire.CheckInWire
 import com.opson.libraries.diary.impl.wire.CustomFoodRowDto
 import com.opson.libraries.diary.impl.wire.DayRecordRowDto
+import com.opson.libraries.diary.impl.wire.FoodUnitDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
 import com.opson.libraries.diary.impl.wire.MealFeelingRowDto
 import com.opson.libraries.diary.impl.wire.SavedMealRowDto
@@ -43,6 +45,7 @@ private val microsSerializer = MapSerializer(String.serializer(), Double.seriali
 private val ateSerializer = MapSerializer(String.serializer(), Boolean.serializer())
 private val moodsSerializer = ListSerializer(String.serializer())
 private val draftsSerializer = ListSerializer(LogDraft.serializer())
+private val sizesSerializer = ListSerializer(FoodUnit.serializer())
 
 // ---------- log entries ----------
 
@@ -299,6 +302,10 @@ internal fun CustomFoodEntity.toDomain(): CustomFood = CustomFood(
     carbs = carbs,
     fat = fat,
     fiber = fiber,
+    servingGrams = servingGrams,
+    // Sizes or micros another build wrote in a shape this one cannot read are dropped, not fatal.
+    sizes = sizesJson?.let { Catching { WireJson.decodeFromString(sizesSerializer, it) }.getOrNull() }.orEmpty(),
+    micros = microsJson?.let { Catching { WireJson.decodeFromString(microsSerializer, it) }.getOrNull() }.orEmpty(),
 )
 
 internal fun CustomFood.toEntity(updatedAtEpochMs: Long, deleted: Boolean = false): CustomFoodEntity = CustomFoodEntity(
@@ -314,37 +321,61 @@ internal fun CustomFood.toEntity(updatedAtEpochMs: Long, deleted: Boolean = fals
     fiber = fiber,
     clientUpdatedAtEpochMs = updatedAtEpochMs,
     deleted = deleted,
+    servingGrams = servingGrams,
+    sizesJson = sizes.takeIf { it.isNotEmpty() }?.let { WireJson.encodeToString(sizesSerializer, it) },
+    microsJson = micros.takeIf { it.isNotEmpty() }?.let { WireJson.encodeToString(microsSerializer, it) },
 )
 
-internal fun CustomFoodEntity.toRow(): CustomFoodRowDto = CustomFoodRowDto(
-    id = id,
-    name = name,
-    brand = brand,
-    servingAmount = servingAmount,
-    servingUnit = servingUnit,
-    kcal = kcal,
-    protein = protein,
-    carbs = carbs,
-    fat = fat,
-    fiber = fiber,
-    clientUpdatedAtEpochMs = clientUpdatedAtEpochMs,
-    deleted = deleted,
-)
+internal fun CustomFoodEntity.toRow(): CustomFoodRowDto {
+    val food = toDomain()
+    return CustomFoodRowDto(
+        id = id,
+        name = name,
+        brand = brand,
+        servingAmount = servingAmount,
+        servingUnit = servingUnit,
+        kcal = kcal,
+        protein = protein,
+        carbs = carbs,
+        fat = fat,
+        fiber = fiber,
+        clientUpdatedAtEpochMs = clientUpdatedAtEpochMs,
+        deleted = deleted,
+        servingGrams = servingGrams,
+        // Always present, empty for none: an absent list is how the server tells an older build's row.
+        sizes = food.sizes.map { FoodUnitDto(it.label, it.grams) },
+        micros = food.micros,
+    )
+}
 
-internal fun CustomFoodRowDto.toEntity(): CustomFoodEntity = CustomFoodEntity(
-    id = id,
-    name = name,
-    brand = brand,
-    servingAmount = servingAmount,
-    servingUnit = servingUnit,
-    kcal = kcal,
-    protein = protein,
-    carbs = carbs,
-    fat = fat,
-    fiber = fiber,
-    clientUpdatedAtEpochMs = clientUpdatedAtEpochMs,
-    deleted = deleted,
-)
+/**
+ * A pulled row as stored. One without [CustomFoodRowDto.sizes] came from a server or a build
+ * that predates them, so the serving's weight, sizes and micros already [kept] here stay.
+ */
+internal fun CustomFoodRowDto.toEntity(kept: CustomFoodEntity? = null): CustomFoodEntity {
+    val known = sizes != null
+    return CustomFoodEntity(
+        id = id,
+        name = name,
+        brand = brand,
+        servingAmount = servingAmount,
+        servingUnit = servingUnit,
+        kcal = kcal,
+        protein = protein,
+        carbs = carbs,
+        fat = fat,
+        fiber = fiber,
+        clientUpdatedAtEpochMs = clientUpdatedAtEpochMs,
+        deleted = deleted,
+        servingGrams = if (known) servingGrams else kept?.servingGrams,
+        sizesJson = if (known) {
+            sizes.orEmpty().takeIf { it.isNotEmpty() }?.let { units -> WireJson.encodeToString(sizesSerializer, units.map { FoodUnit(it.label, it.grams) }) }
+        } else {
+            kept?.sizesJson
+        },
+        microsJson = if (known) micros?.takeIf { it.isNotEmpty() }?.let { WireJson.encodeToString(microsSerializer, it) } else kept?.microsJson,
+    )
+}
 
 // ---------- saved meals ----------
 
