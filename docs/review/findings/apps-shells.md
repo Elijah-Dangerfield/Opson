@@ -237,6 +237,25 @@ replaced by finding 1 here, which removes the wait.
   (`kSecAttrAccessibleAfterFirstUnlock`, `currentBackStackEntryAsState`) or
   match the repo's sentence-style test names.
 
+## Second review
+
+A second reviewer checked this round's fixes and flagged two problems in
+finding 5's commit. Both were real.
+
+1. **Picking a failed account again did nothing** (fixed). The new detail
+   note said "Pick it again to retry", but the load was keyed on the selected
+   id, and clicking the row already selected sets the same value, so the
+   effect never ran again. The operator had to pick another account and come
+   back. Fixed in `fix(admin): picking a failed account again retries its
+   load`: each click is an `AccountPick` with a running count, so a repeat
+   pick is a new key. `UsersViewTest` checks that a repeat pick differs from
+   the first and pins the detail note's wording.
+2. **A failed search after an empty one said "No account matches."**
+   (fixed). `userListNote` checked for results before the failure, so a stale
+   empty list from the previous query won. Fixed in `fix(admin): a failed
+   search after an empty one says it failed`: the failure is checked first,
+   with a `UsersViewTest` case for an empty list plus a failure.
+
 ## Product notes
 
 - **A developer's phone can't hold TestFlight and a Debug build at once on
