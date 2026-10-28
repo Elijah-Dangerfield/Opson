@@ -141,7 +141,7 @@ class KeyboardDismissTest {
         render {
             Column {
                 NumberField(value = "", onValueChange = {}, modifier = Modifier.testTag(FIELD))
-                Box(Modifier.fillMaxWidth().height(48.dp).testTag(BUTTON).clickable { clicks++ }) { Text("Add") }
+                Box(Modifier.fillMaxWidth().height(48.dp).testTag(BUTTON).clickable { clicks++ })
             }
         }
         focusField()
