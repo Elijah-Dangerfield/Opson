@@ -2,10 +2,6 @@
 
 Utility scripts for this project.
 
-> Template maintainers: init/verification tooling (`init_project.main.kts`,
-> `verify_template.sh`) is documented in `docs/template-maintenance.md`.
-> Those scripts are removed from generated projects.
-
 ## install_hooks.sh
 
 Installs the repo's git hooks (`.githooks/`) into your local clone. Run once
@@ -14,18 +10,6 @@ after cloning, before your first commit:
 ```bash
 ./scripts/install_hooks.sh
 ```
-
-## enable_ci.sh
-
-Present only if CI was declined at project init. Installs the staged CI /
-release automation (`.github/workflows/`, fastlane files, `legal/`,
-release-please config) and then removes itself:
-
-```bash
-./scripts/enable_ci.sh
-```
-
-See SETUP.md for the GitHub secrets the pipeline needs.
 
 ## create_module.main.kts
 
@@ -219,19 +203,31 @@ app actually ships:
 ./scripts/setup_supabase.main.kts
 ```
 
-Turns on anonymous sign-ins (the guest flow does not work without it), sets the
-site URL and redirect allow-list to this project's custom scheme, authorizes
-your iOS bundle ID for native Sign in with Apple, writes
-`supabase.projectId` / `url` / `anonKey` into `local.properties`, and fills the
-Supabase half of `apps/server/.env`. Needs a Supabase personal access token
-(`sbp_…`). The credential store holds it after the first time.
+Sets the site URL and redirect allow-list to this project's custom scheme,
+authorizes your iOS bundle ID for native Sign in with Apple, turns on manual
+linking, writes `supabase.projectId` / `url` / `anonKey` into
+`local.properties`, and fills the Supabase half of `apps/server/.env`. Needs a
+Supabase personal access token (`sbp_…`). The credential store holds it after
+the first time.
+
+Anonymous sign-ins go off on a project it creates: nothing in the app creates
+guests any more, so there they would only let anyone with the publishable key
+mint accounts. An adopted project keeps its setting, because 0.1 builds still
+make a guest on first launch. `--allow-anonymous` turns them on.
+
+`local.properties` is what debug builds sign in with. Release builds never read
+it: they take the prod project from `SUPABASE_PROD_PROJECT_ID` and
+`SUPABASE_PROD_ANON_KEY` when those are set in the environment, and otherwise
+from the committed `supabase.properties`. If this run set up prod, copy the id
+and key there and commit it.
 
 It prints the generated database password exactly once. That value is per
 project, so it is deliberately not stored, and the Management API will not hand
 it back.
 
 Not covered: Google sign-in, which needs an OAuth client from the Google Cloud
-console. The app runs fine without it.
+console. Android has no other way to sign in, so an Android build cannot get
+past onboarding until it is set up (SETUP.md, step 3).
 
 ## setup_fly.main.kts
 

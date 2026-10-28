@@ -31,6 +31,7 @@ import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.ui.components.AppSwitch
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.ProgressRing
 import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.components.icon.AppIcons
@@ -42,6 +43,7 @@ import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_back_more
+import opson.libraries.resources.generated.resources.settings_loading_cd
 import opson.libraries.resources.generated.resources.settings_today_burned_breakdown
 import opson.libraries.resources.generated.resources.settings_today_burned_breakdown_line
 import opson.libraries.resources.generated.resources.settings_today_card_from_mode
@@ -52,6 +54,7 @@ import opson.libraries.resources.generated.resources.settings_today_follow_defic
 import opson.libraries.resources.generated.resources.settings_today_follow_exact
 import opson.libraries.resources.generated.resources.settings_today_follow_range
 import opson.libraries.resources.generated.resources.settings_today_follow_surplus
+import opson.libraries.resources.generated.resources.settings_today_in_header
 import opson.libraries.resources.generated.resources.settings_today_in_list
 import opson.libraries.resources.generated.resources.settings_today_main_balance
 import opson.libraries.resources.generated.resources.settings_today_main_eaten
@@ -90,7 +93,10 @@ fun TodayScreenSettingsScreen(
             backLabel = stringResource(Res.string.settings_back_more),
             onBack = { onAction(TodayScreenSettingsAction.BackTapped) },
         )
-        if (!state.loaded) return@SettingsPage
+        if (!state.loaded) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
+            return@SettingsPage
+        }
         SectionLabel(stringResource(Res.string.settings_today_summary_card))
         if (state.cardArranged) {
             Presets(state.presets, onAction)
@@ -139,7 +145,10 @@ fun TodayScreenSettingsScreen(
         SectionLabel(stringResource(Res.string.settings_today_in_list))
         SettingsCard {
             Switch(Res.string.settings_today_water, state.water, TodaySwitch.Water, onAction)
-            Switch(Res.string.settings_today_weight, state.weight, TodaySwitch.Weight, onAction)
+            Switch(Res.string.settings_today_weight, state.weight, TodaySwitch.Weight, onAction, last = true)
+        }
+        SectionLabel(stringResource(Res.string.settings_today_in_header))
+        SettingsCard {
             Switch(Res.string.settings_today_close_day, state.closeDay, TodaySwitch.CloseDay, onAction, last = true)
         }
     }

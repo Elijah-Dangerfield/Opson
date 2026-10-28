@@ -1,9 +1,7 @@
 #!/usr/bin/env kotlin
 
-@file:DependsOn("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-
 import java.io.File
-import java.util.*
+import kotlin.system.exitProcess
 
 // Color codes for terminal output
 private val RED = "\u001b[31m"
@@ -79,6 +77,7 @@ fun main() {
     } catch (e: Exception) {
         printRed("❌ Error creating module: ${e.message}")
         e.printStackTrace()
+        exitProcess(1)
     }
 }
 
@@ -107,7 +106,7 @@ fun checkForHelp(): Boolean {
               library    - Pure Kotlin logic, utilities, data handling
             
             Features:
-              ✅ Kotlin Multiplatform structure (commonMain, androidMain, iosMain, jvmMain)
+              ✅ Kotlin Multiplatform structure (commonMain, androidMain, iosMain)
               ✅ Proper build.gradle.kts with correct plugins
               ✅ Package structure with base files
               ✅ Settings.gradle.kts auto-update
@@ -218,24 +217,21 @@ fun createModuleDirectory(config: ModuleConfig): File {
 fun createSourceStructure(config: ModuleConfig, moduleDir: File) {
     val packagePath = "com.opson.${config.baseDir}.${config.fullName.replace(":", ".")}".replace(".", "/")
     
-    // Create KMP source structure
-    val sourceSets = listOf("commonMain", "androidMain", "iosMain", "jvmMain")
-    
+    // The targets the convention plugins configure. There is no jvm() target,
+    // so a jvmMain folder would never compile.
+    val sourceSets = listOf("commonMain", "androidMain", "iosMain")
+
     sourceSets.forEach { sourceSet ->
         val kotlinDir = File(moduleDir, "src/$sourceSet/kotlin/$packagePath")
         kotlinDir.mkdirs()
-        
-        // Create a placeholder file for each source set
+
+        // Only commonMain gets a starter file.
         if (sourceSet == "commonMain") {
             createMainSourceFile(config, kotlinDir)
-            
-            // Create composeResources directory for commonMain
-            val composeResourcesDir = File(moduleDir, "src/$sourceSet/composeResources")
-            composeResourcesDir.mkdirs()
+            File(moduleDir, "src/$sourceSet/composeResources").mkdirs()
         }
     }
-    
-    // Create test directories
+
     val testDir = File(moduleDir, "src/commonTest/kotlin/$packagePath")
     testDir.mkdirs()
 }
@@ -310,7 +306,6 @@ ${routeImport}import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.ui.components.Screen
-import com.opson.libraries.ui.components.text.Text
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -332,7 +327,8 @@ class ${config.capitalizedName}FeatureEntryPoint : FeatureEntryPoint {
 fun ${config.capitalizedName}Screen() {
     Screen(modifier = Modifier.fillMaxSize()) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
-            Text(text = "${config.capitalizedName} Screen")
+            // Copy comes from :libraries:resources through stringResource(...).
+            // Detekt's VerifyStrings fails the build on an inline literal.
         }
     }
 }
@@ -348,7 +344,6 @@ fun createFeatureViewModel(config: ModuleConfig, kotlinDir: File, packageName: S
 package $packageName
 
 import com.opson.libraries.flowroutines.SEAViewModel
-import kotlinx.coroutines.delay
 import me.tatarka.inject.annotations.Inject
 
 class ${config.capitalizedName}ViewModel @Inject constructor() : SEAViewModel<State, Event, Action>(initialStateArg = State()) {
@@ -360,7 +355,6 @@ class ${config.capitalizedName}ViewModel @Inject constructor() : SEAViewModel<St
     }
     
     private suspend fun Action.Load.handle() {
-        delay(5000) // do some loading
         updateState {
             it.copy(isLoading = false)
         }
@@ -396,8 +390,6 @@ package $packageName
 
 /**
  * ${config.capitalizedName} library module
- * 
- * TODO: Add your library implementation here
  */
 class ${config.capitalizedName}
     """.trimIndent()

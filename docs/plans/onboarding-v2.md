@@ -16,7 +16,8 @@ surplus, and meal times for No numbers or someone eating regularly.
 
 | Step | Who sees it | What it writes | Flag |
 |---|---|---|---|
-| Welcome | everyone | nothing ("Skip and start logging" writes Full numbers) | |
+| Welcome | everyone | nothing; "Get started" opens sign-in | |
+| Sign in | everyone, required (908798dd) | the account: Apple (iOS), Google, email when `SignInMethods.EMAIL` is on. An account that already exists goes to Today and keeps its mode | |
 | 1 of 3: Why are you tracking? | everyone, skippable | `onboarding.why` | |
 | 2 of 3: How do numbers sit with you? | everyone, skippable | `onboarding.feel` | |
 | 3 of 3: Does this sound like you? (optional) | everyone, skippable | `onboarding.hard` | |
@@ -24,7 +25,6 @@ surplus, and meal times for No numbers or someone eating regularly.
 | What you burn in a day | the goal step is shown, before it | `birthYear`, `heightCm`, `heightUnit`, `bodySex`, `weightUnit`, `everydayActivity`, and a first weigh-in | also `release.goalsAndEnergy` |
 | Your daily goal | the mode shows calories (Full numbers) and numbers have not been hard | `targets` (style and range), starting from the step above | `release.onboardingSetup` |
 | When do you usually eat? | No numbers, or "Eating regularly" | `mealTimes` | `release.onboardingSetup` |
-| Save your setup | a phone that can sign in (iOS) | links the guest | |
 
 Every key is a top-level setting, so the shallow `||` merge on the server
 keeps them. Skip moves on and keeps whatever is there; on the two goal steps
@@ -115,8 +115,9 @@ friction); the first means a yes is permanent.
 
 ## How long is it?
 
-Taps from Welcome to Today, answering one option per question and keeping the
-account step on the phone:
+Taps from Welcome to Today, answering one option per question, counted before
+sign-in became required (908798dd). The one-tap Skip is gone, and every path
+now also passes the sign-in step:
 
 | | Fastest | Answering everything |
 |---|---|---|
@@ -179,8 +180,7 @@ Not built; it needs the lawyer.**
   data. The privacy policy says they rest on explicit consent, and the app has
   no consent step. Explicit consent has to be a clear, separate act, so it
   can't hide in "Get started". The place for it is Welcome, before anything is
-  written: the first write is either the setup answers or, with "Skip and start
-  logging", the first log. One line and a button ("Agree and continue", linking
+  written: the first write is the account at sign-in, then the setup answers. One line and a button ("Agree and continue", linking
   the health data policy), shown when the device region is in the EEA or UK.
   The legal review's alternative, limiting App Store availability to the US
   until a lawyer answers, needs no code.
@@ -237,13 +237,11 @@ it.
    alone. Wants a design pass on the three new screens first.
 2. **Consent** for the EEA and UK: build the Welcome line, or limit the store
    to the US. Lawyer.
-3. **Should "Skip and start logging" land in Full numbers?** The design says
-   yes. Later would be the safer default for someone who told us nothing.
-4. **The why options that do nothing** (curious, a medical need, working with a
+3. **The why options that do nothing** (curious, a medical need, working with a
    provider): keep them so people see themselves in the list, or cut them.
-5. **Changing the statement later.** Today a yes is permanent.
-6. **A `setupDone` key** for the abandoned-setup edge above.
-7. **Units from the device region** for everyone. Done for the resting energy
+4. **Changing the statement later.** Today a yes is permanent.
+5. **A `setupDone` key** for the abandoned-setup edge above.
+6. **Units from the device region** for everyone. Done for the resting energy
    step and Resting energy's height; `weightUnit` and `waterUnit` still start
    metric for someone who never sees that step.
-8. **Clinician review** of the statement copy and the reason lines.
+7. **Clinician review** of the statement copy and the reason lines.

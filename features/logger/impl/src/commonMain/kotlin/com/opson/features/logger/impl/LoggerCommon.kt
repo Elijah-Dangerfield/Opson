@@ -14,9 +14,9 @@ import org.jetbrains.compose.resources.StringResource
 data class Toast(val message: StringResource, val args: List<Any> = emptyList())
 
 /**
- * A food's name cut at the first comma or bracket, for the Favorites tiles,
- * the basket line and the toast: "Greek yogurt, plain" is "Greek yogurt". The
- * prototype's `SHORT`, generalized.
+ * A food's name cut at the first comma or bracket, for the Undo snackbar, a
+ * saved meal's list of foods and the photo swap's first search: "Greek yogurt,
+ * plain" is "Greek yogurt". The prototype's `SHORT`, generalized.
  */
 fun shortName(name: String): String {
     val cut = name.indexOfFirst { it == ',' || it == '(' || it == '[' }
@@ -45,13 +45,6 @@ internal fun LogItem.againDraft(): LogDraft {
     return if (draft.precision == Precision.Weighed) draft.copy(precision = Precision.Estimate) else draft
 }
 
-/** Just the name: no amount and no nutrients, which everywhere else reads as "we do not know". */
-internal fun LogDraft.nameOnly(): LogDraft =
-    LogDraft(name = name, precision = Precision.Named, foodId = foodId, customFoodId = customFoodId, method = method)
-
 /** The sum of the drafts' energy, or null when none of them has any. */
 internal fun List<LogDraft>.totalKcal(): Double? =
     mapNotNull { it.kcal }.takeIf { it.isNotEmpty() }?.sum()
-
-/** The amount sheet stacks on the logger with a strip of it still showing above (3.3). */
-internal const val AMOUNT_HEIGHT_FRACTION = 0.9f

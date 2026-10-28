@@ -28,8 +28,9 @@ interface NetworkClient {
     val client: HttpClient
 
     /**
-     * Use for authenticated requests. Adds the bearer token from
-     * `AuthTokenProvider.accessToken()` on every call and refreshes on 401.
+     * Use for authenticated requests. Ktor's bearer plugin loads the token from
+     * `AuthTokenProvider.accessToken()` once and keeps it until a 401 refreshes
+     * it or `AuthTokenInvalidator` drops it on a session change.
      */
     @InternalNetworkingApi
     val authenticatedClient: HttpClient

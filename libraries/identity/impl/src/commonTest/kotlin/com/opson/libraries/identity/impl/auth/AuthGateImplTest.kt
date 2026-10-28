@@ -199,6 +199,7 @@ class AuthGateImplTest : CoroutineTest() {
         val healer = SessionHealer(
             authRepositoryProvider = { auth },
             profileRepositoryProvider = { FakeProfileRepository() },
+            expiredAccounts = ExpiredAccountStore(TestCacheFactory()),
             appCache = appCache,
             appState = appState,
             appScope = scope,

@@ -64,9 +64,6 @@ object EdgeCardDefaults {
 
     /** A card inside the page padding holding text and buttons (Support, Targets). */
     val InsetPadding = PaddingValues(18.dp)
-
-    /** The gap between a card's sections when [ContentGap] is too tight (Targets, the friction sheet). */
-    val SectionGap = 14.dp
 }
 
 /**

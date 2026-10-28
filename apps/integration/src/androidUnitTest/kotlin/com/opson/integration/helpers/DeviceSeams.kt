@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
@@ -48,8 +49,39 @@ class StubSupabaseGateway(
     private val newAccount: () -> String,
 ) : SupabaseAuthGateway {
 
+    /** Signs every token this hands out, on sign-in and refresh alike. */
     @Volatile
-    private var session: GatewaySession? = signedInAs?.let(::sessionFor)
+    private var signer: (userId: String) -> String = { IntegrationAuth.mintJwt(it) }
+
+    @Volatile
+    private var session: GatewaySession? = signedInAs?.let { sessionFor(it) }
+
+    /**
+     * Signs this session's tokens, now and on every refresh, with [signer]: a phone signed in to
+     * another Supabase project gets that project's tokens however often it refreshes.
+     */
+    fun signWith(signer: (userId: String) -> String) {
+        this.signer = signer
+        session?.let { holdToken(signer(it.userId)) }
+    }
+
+    /**
+     * Thrown by every refresh while set, as Supabase throws when it refuses the refresh token
+     * (revoked, or the user deleted). Null refreshes normally: a new token for the same user.
+     */
+    @Volatile
+    var refusesRefresh: Throwable? = null
+
+    /** Refreshes asked for so far, refused ones included. */
+    val refreshes = AtomicInteger()
+
+    /**
+     * Swaps the access token the session holds for [token], keeping the user: an expired token,
+     * or one another Supabase project signed.
+     */
+    fun holdToken(token: String) {
+        session = checkNotNull(session) { "No session to hold a token" }.copy(accessToken = token)
+    }
 
     override suspend fun awaitInitialization() = Unit
 
@@ -59,6 +91,8 @@ class StubSupabaseGateway(
     override fun currentSession(): GatewaySession? = session
 
     override suspend fun refreshSession() {
+        refreshes.incrementAndGet()
+        refusesRefresh?.let { throw it }
         session = session?.let { sessionFor(it.userId, anonymous = it.isAnonymous) }
     }
 
@@ -91,15 +125,13 @@ class StubSupabaseGateway(
 
     private fun unused(): Nothing = error("Not used by the integration suite")
 
-    private companion object {
-        fun sessionFor(userId: String, anonymous: Boolean = true) = GatewaySession(
-            userId = userId,
-            email = null,
-            accessToken = IntegrationAuth.mintJwt(userId),
-            isAnonymous = anonymous,
-            isEmailConfirmed = true,
-        )
-    }
+    private fun sessionFor(userId: String, anonymous: Boolean = true) = GatewaySession(
+        userId = userId,
+        email = null,
+        accessToken = signer(userId),
+        isAnonymous = anonymous,
+        isEmailConfirmed = true,
+    )
 }
 
 /**

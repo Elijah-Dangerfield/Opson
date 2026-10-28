@@ -2,6 +2,7 @@ package com.opson.features.settings.impl.more
 
 import com.opson.features.settings.MoreRowContribution
 import com.opson.features.settings.impl.FakeAuthRepository
+import com.opson.features.settings.impl.FakeDiarySync
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.features.settings.impl.SettingsFixtures
@@ -23,9 +24,11 @@ import com.opson.libraries.ui.components.icon.AppIcons
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_more_support
 import opson.libraries.resources.generated.resources.settings_more_support_sub
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * The More list (design v3): its three cards then About, Account and other modules' rows, the changes
@@ -126,10 +129,118 @@ class MoreTest : CoroutineTest() {
         assertEquals("0.2.0 (702) · beta · 4a8b463", MoreVersion.line("0.2.0", 702, "beta", "4a8b46391234"))
     }
 
-    private fun moreVm(vararg contributions: MoreRowContribution, auth: FakeAuthRepository = FakeAuthRepository()) = MoreViewModel(
+    private fun moreVm(
+        vararg contributions: MoreRowContribution,
+        auth: FakeAuthRepository = FakeAuthRepository(),
+        sync: FakeDiarySync = FakeDiarySync(),
+    ) = MoreViewModel(
         FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(),
-        FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), auth, contributions.toSet(),
+        FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), auth, sync, contributions.toSet(),
     )
+
+    private fun signedIn() = FakeAuthRepository(initial = AuthState.Authenticated(userId = "u1", isAnonymous = false, email = "sam@example.com"))
+
+    private fun MoreViewModel.confirmLogOut() {
+        takeAction(MoreAction.RowTapped(state.groups.flatten().filterIsInstance<MoreRow.LogOut>().single()))
+        takeAction(MoreAction.LogOutConfirmed)
+    }
+
+    // --- Changes still on the phone when logging out (journeys audit) ---
+
+    @Test
+    fun logOut_sendsWhatIsQueued_beforeSigningOut() = runUnitTest {
+        val auth = signedIn()
+        val sync = FakeDiarySync()
+        val vm = moreVm(auth = auth, sync = sync)
+
+        vm.confirmLogOut()
+
+        assertEquals(1, sync.syncs)
+        assertEquals(1, auth.signOuts)
+    }
+
+    @Test
+    fun logOut_whenTheAccountCantBeReached_asksAgain_andWipesNothingYet() = runUnitTest {
+        val auth = signedIn()
+        val vm = moreVm(auth = auth, sync = FakeDiarySync(Result.failure(IllegalStateException("offline"))))
+        val events = eventsOf(vm)
+
+        vm.confirmLogOut()
+
+        assertEquals(LogOutStep.Unsynced, vm.state.logOut)
+        assertEquals(0, auth.signOuts, "signing out wipes the outbox, so it waits for a second yes")
+        assertTrue(events.isEmpty())
+
+        vm.takeAction(MoreAction.LogOutConfirmed)
+
+        assertEquals(1, auth.signOuts)
+        assertEquals(LogOutStep.Idle, vm.state.logOut)
+        assertEquals(listOf<MoreEvent>(MoreEvent.GoToOnboarding), events)
+    }
+
+    @Test
+    fun logOut_unreached_stayKeepsEverything() = runUnitTest {
+        val auth = signedIn()
+        val vm = moreVm(auth = auth, sync = FakeDiarySync(Result.failure(IllegalStateException("offline"))))
+
+        vm.confirmLogOut()
+        vm.takeAction(MoreAction.LogOutCancelled)
+
+        assertEquals(LogOutStep.Idle, vm.state.logOut)
+        assertEquals(0, auth.signOuts)
+    }
+
+    @Test
+    fun logOut_aSyncThatHangs_isGivenUpOn_andAsksAgain() = runUnitTest {
+        val auth = signedIn()
+        val vm = moreVm(auth = auth, sync = FakeDiarySync(hangs = true))
+
+        vm.confirmLogOut()
+        assertEquals(LogOutStep.Working(guest = false), vm.state.logOut)
+
+        advanceTimeBy(11.seconds)
+
+        assertEquals(LogOutStep.Unsynced, vm.state.logOut)
+        assertEquals(0, auth.signOuts)
+    }
+
+    @Test
+    fun logOut_backPressedWhileItSends_stillShowsTheWarning() = runUnitTest {
+        val auth = signedIn()
+        val vm = moreVm(auth = auth, sync = FakeDiarySync(hangs = true))
+
+        vm.confirmLogOut()
+        // The dialog's own dismiss (back, or a tap outside) while the buttons are off.
+        vm.takeAction(MoreAction.LogOutCancelled)
+        advanceTimeBy(11.seconds)
+
+        assertEquals(LogOutStep.Unsynced, vm.state.logOut, "the warning is read, not swallowed by a queued cancel")
+        assertEquals(0, auth.signOuts)
+    }
+
+    @Test
+    fun logOut_anyway_keepsSayingWhatIsLost_whileItSignsOut() = runUnitTest {
+        val auth = signedIn().apply { signOutHangs = true }
+        val vm = moreVm(auth = auth, sync = FakeDiarySync(Result.failure(IllegalStateException("offline"))))
+
+        vm.confirmLogOut()
+        vm.takeAction(MoreAction.LogOutConfirmed)
+
+        assertTrue(vm.state.logOut is LogOutStep.Working)
+        assertEquals(LogOutCopy.Unsynced, LogOutCopy.of(vm.state.logOut), "not \"Your log stays in your account\"")
+    }
+
+    @Test
+    fun logOut_asAGuest_sendsNothing_sinceNoAccountCanBeReachedAgain() = runUnitTest {
+        val auth = FakeAuthRepository(initial = AuthState.Authenticated(userId = "u1", isAnonymous = true, email = null))
+        val sync = FakeDiarySync(Result.failure(IllegalStateException("offline")))
+        val vm = moreVm(auth = auth, sync = sync)
+
+        vm.confirmLogOut()
+
+        assertEquals(0, sync.syncs)
+        assertEquals(1, auth.signOuts)
+    }
 
     private val contribution = FakeContribution()
 
@@ -159,7 +270,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun settingsArriveAsState() = runUnitTest {
         val settings = FakeSettingsRepository(SettingsFixtures.settings())
-        val vm = MoreViewModel(settings, FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository())
+        val vm = MoreViewModel(settings, FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
 
         settings.state.value = settings.state.value.copy(waterGlasses = 10)
 
@@ -168,7 +279,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun eachRowOpensItsPage_andPlanOpensNothing() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository())
+        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         val events = eventsOf(vm)
 
         vm.state.groups.flatten().forEach { vm.takeAction(MoreAction.RowTapped(it)) }
@@ -223,7 +334,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theFastingRowOpensFasting() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { true }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository())
+        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { true }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         val events = eventsOf(vm)
 
         vm.takeAction(MoreAction.RowTapped(vm.state.groups[1][1]))
@@ -256,7 +367,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theWidgetsRowOpensWidgets() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(on = true), goalsAndEnergyFlag(), FakeAuthRepository())
+        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(on = true), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         val events = eventsOf(vm)
 
         vm.takeAction(MoreAction.RowTapped(vm.state.groups[1].last()))
@@ -267,7 +378,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOff_noRow_andTheStoreIsNeverTouched() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.Connected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
 
         assertTrue(vm.state.groups.flatten().none { it is MoreRow.Health })
         assertEquals(0, health.refreshes)
@@ -276,7 +387,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOff_comingBackToMore_stillNeverTouchesTheStore() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.Connected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
 
         vm.takeAction(MoreAction.ScreenResumed)
 
@@ -286,7 +397,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOn_theRowSaysWhetherItIsConnected() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.NotConnected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         assertEquals(MoreRow.Health(connected = false), vm.state.groups[0].filterIsInstance<MoreRow.Health>().single())
 
         health.statusFlow.value = HealthStatus.Connected
@@ -297,7 +408,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun screenResumed_rechecksTheConnection() = runUnitTest {
         val health = FakeHealthRepository()
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         val before = health.refreshes
         vm.takeAction(MoreAction.ScreenResumed)
         assertEquals(before + 1, health.refreshes)
@@ -331,7 +442,7 @@ class MoreTest : CoroutineTest() {
             MoreStateBuilder.build(settings, remindersOn = true).groups[0],
         )
 
-        val vm = MoreViewModel(FakeSettingsRepository(settings), FakeHealthRepository(), healthFlag(on = false), remindersFlag(on = true), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository())
+        val vm = MoreViewModel(FakeSettingsRepository(settings), FakeHealthRepository(), healthFlag(on = false), remindersFlag(on = true), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         val events = eventsOf(vm)
         vm.takeAction(MoreAction.RowTapped(MoreRow.Reminders(quiet = false)))
         assertEquals(listOf<MoreEvent>(MoreEvent.OpenReminders), events)

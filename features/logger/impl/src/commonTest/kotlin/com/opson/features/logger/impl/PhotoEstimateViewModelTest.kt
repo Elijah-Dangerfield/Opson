@@ -281,6 +281,19 @@ class PhotoEstimateViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun aSwapSearchOfflineWithNothingCachedSaysItNeedsAConnection() = runUnitTest {
+        val vm = reviewing()
+        catalog.online = false
+        vm.takeAction(PhotoEstimateAction.AddMissedTapped)
+        vm.takeAction(PhotoEstimateAction.SwapTyped("kugel"))
+        settle()
+
+        val swap = assertIs<PhotoStage.Swap>(vm.state.stage)
+        assertEquals(emptyList(), swap.results)
+        assertTrue(swap.offline)
+    }
+
+    @Test
     fun aStaleSearchAnswerIsDropped() = runUnitTest {
         val vm = reviewing()
         vm.takeAction(PhotoEstimateAction.AddMissedTapped)

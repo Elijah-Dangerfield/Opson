@@ -1,6 +1,7 @@
 package com.opson.integration.config
 
 import com.opson.features.upgrade.AppGuardState
+import com.opson.integration.helpers.IntegrationAuth
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.TestClient
 import com.opson.integration.helpers.putFlagRule
@@ -13,6 +14,8 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlin.random.Random
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
@@ -104,6 +107,35 @@ class AppGuardJourneyTest : IntegrationTest() {
         phone.lifecycle.foreground()
         phone.guard.retry() // waits out the failed fetch
         assertEquals(AppGuardState.Normal, phone.guard.state.value, "no config ever loaded, so the guard fails open")
+    }
+
+    /**
+     * The 0.2 TestFlight build signed in to the dev Supabase project and called the prod server,
+     * so every token it sent was one this server cannot verify. The config fetch is meant to work
+     * with no session at all, because the version floor and the kill switch are how such a build
+     * is stopped. A token it cannot verify has to count as no token there, not as a 401.
+     */
+    @Ignore // TODO(review): optional auth on /v1/app-config still 401s a token it cannot verify; deferred to apps/server, see docs/review/findings/test-apps.md
+    @Test
+    fun aPhoneWithAForeignToken_stillGetsTheVersionFloor() = integration {
+        // An operator can't name a user the server can't identify, so the rule names the build.
+        val build = "0.0.${Random.nextInt(1_000_000)}"
+        val rule = putFlagRule(
+            "upgrade.minSupportedVersionCode",
+            JsonPrimitive(BuildInfo.versionCode + 1),
+            buildJsonObject {
+                put("minAppVersion", JsonPrimitive(build))
+                put("maxAppVersion", JsonPrimitive(build))
+            },
+        )
+        try {
+            val user = randomUserId()
+            val phone = client(user, device = { it.copy(appVersion = build) }, setUpSession = { it.signWith(IntegrationAuth::mintForeignJwt) })
+            phone.lifecycle.foreground()
+            phone.awaitGuard(AppGuardState.UpgradeRequired)
+        } finally {
+            removeFlagRule(rule)
+        }
     }
 
     private fun onlyFor(userId: String) = buildJsonObject {

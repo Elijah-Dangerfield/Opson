@@ -55,8 +55,27 @@ class RoomMigrationTest {
     fun fromVersion9_everyRowSurvives() = migratesKeepingEveryRow(9)
 
     @Test
+    fun fromVersion10_everyRowSurvives() = migratesKeepingEveryRow(10)
+
+    @Test
     fun theOldestMigratedVersionIsTheFirstWithAppData() {
         assertEquals(5, AppDatabase.FIRST_APP_DATA_VERSION, "a version below 5 would be dropped, not migrated; add a test for it")
+    }
+
+    /**
+     * The tests above are one per version so a failure names it, and this is what stops the
+     * next version shipping without one: every exported schema older than the current one has
+     * to be in [TESTED_VERSIONS], and the current one has to be [Schema.CURRENT].
+     */
+    @Test
+    fun everyExportedSchemaHasAMigrationTest() {
+        val exported = Schema.exportedVersions()
+        assertEquals(Schema.CURRENT, exported.max(), "AppDatabase moved to ${exported.max()}: update Schema.CURRENT")
+        assertEquals(
+            exported.filter { it >= AppDatabase.FIRST_APP_DATA_VERSION && it < Schema.CURRENT }.toSet(),
+            TESTED_VERSIONS,
+            "add a fromVersionN_everyRowSurvives test for every version a shipped app can be on",
+        )
     }
 
     private fun migratesKeepingEveryRow(from: Int) = runTest {
@@ -100,6 +119,9 @@ class RoomMigrationTest {
     private companion object {
         const val LOG_ENTRIES_SINCE = 6
         const val UNTRACKED_SINCE = 7
+
+        /** The versions the `fromVersionN` tests above cover. */
+        val TESTED_VERSIONS = setOf(5, 6, 7, 8, 9)
     }
 }
 
@@ -115,14 +137,23 @@ private class Schema(json: JsonObject) {
 
     companion object {
         /** `AppDatabase`'s version; a migrated file has to end up here. */
-        const val CURRENT = 10
+        const val CURRENT = 11
 
         fun read(version: Int): Schema {
-            val root = System.getProperty("repoRoot") ?: error("repoRoot is unset; apps/integration/build.gradle.kts should supply it")
-            val file = File(root, "libraries/storage/impl/schemas/com.opson.libraries.storage.impl.db.AppDatabase/$version.json")
+            val file = File(directory(), "$version.json")
             val database = Json.parseToJsonElement(file.readText()).jsonObject.getValue("database").jsonObject
             check(database.getValue("version").jsonPrimitive.int == version) { "$file is not version $version" }
             return Schema(database)
+        }
+
+        /** Every version Room has exported a schema for. */
+        fun exportedVersions(): List<Int> =
+            directory().listFiles().orEmpty().mapNotNull { it.name.removeSuffix(".json").toIntOrNull() }
+                .also { check(it.isNotEmpty()) { "no exported schemas under ${directory()}" } }
+
+        private fun directory(): File {
+            val root = System.getProperty("repoRoot") ?: error("repoRoot is unset; apps/integration/build.gradle.kts should supply it")
+            return File(root, "libraries/storage/impl/schemas/com.opson.libraries.storage.impl.db.AppDatabase")
         }
     }
 }

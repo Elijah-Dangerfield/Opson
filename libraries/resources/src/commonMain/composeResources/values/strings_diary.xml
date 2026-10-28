@@ -40,8 +40,6 @@
     <!-- Food rows -->
     <string name="diary_pick_cd">Pick %1$s</string>
     <string name="diary_remove_cd">Remove %1$s</string>
-    <string name="diary_meal_done_cd">%1$s, done</string>
-    <string name="diary_meal_not_done_cd">%1$s, not yet</string>
 
     <!-- A day closed with Close the day, wherever someone tries to add to it -->
     <string name="diary_closed_today">Today is closed. Reopen it to add more.</string>

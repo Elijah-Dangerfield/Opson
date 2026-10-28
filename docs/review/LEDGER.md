@@ -5,710 +5,726 @@ Each reviewer ticks the files in its slice as it reviews them. Findings go in
 keeps existing ticks.
 
 
-## scripts-ops-ci (61 files)
+## scripts-ops-ci (67 files)
 
-- [ ] `.githooks/commit-msg`
-- [ ] `.githooks/post-commit`
-- [ ] `.githooks/pre-push`
-- [ ] `.github/workflows/auto-merge.yml`
-- [ ] `.github/workflows/baseline-profile.yml`
-- [ ] `.github/workflows/beta.yml`
-- [ ] `.github/workflows/ci.yml`
-- [ ] `.github/workflows/commitlint.yml`
-- [ ] `.github/workflows/food-catalog-refresh.yml`
-- [ ] `.github/workflows/legal-sync.yml`
-- [ ] `.github/workflows/pages.yml`
-- [ ] `.github/workflows/release-please.yml`
-- [ ] `.github/workflows/release.yml`
-- [ ] `.github/workflows/retag-release.yml`
-- [ ] `.github/workflows/server-deploy-prod.yml`
-- [ ] `.github/workflows/server-deploy.yml`
-- [ ] `apps/ios/fastlane/Appfile`
-- [ ] `apps/ios/fastlane/Fastfile`
-- [ ] `ops/grafana/app-health.json`
-- [ ] `ops/grafana/connectivity.json`
-- [ ] `ops/grafana/foods.json`
-- [ ] `ops/grafana/generate_db_dashboards.py`
-- [ ] `ops/grafana/logging.json`
-- [ ] `ops/grafana/modes.json`
-- [ ] `ops/grafana/onboarding-funnel.json`
-- [ ] `ops/grafana/pulse.json`
-- [ ] `ops/grafana/retention.json`
-- [ ] `ops/grafana/user.json`
-- [ ] `ops/grafana/users.json`
-- [ ] `scripts/backfill_default_portions.py`
-- [ ] `scripts/backfill_food_categories.py`
-- [ ] `scripts/bench_off_search.py`
-- [ ] `scripts/beta_ios.sh`
-- [ ] `scripts/cleanup.sh`
-- [ ] `scripts/create_module.main.kts`
-- [ ] `scripts/design_sync.main.kts`
-- [ ] `scripts/dev/drive.py`
-- [ ] `scripts/import_nevo_foods.py`
-- [ ] `scripts/import_off_foods.py`
-- [ ] `scripts/import_usda_foods.py`
-- [ ] `scripts/install_hooks.sh`
-- [ ] `scripts/ios_launch_smoke.sh`
-- [ ] `scripts/lib/setup_store.main.kts`
-- [ ] `scripts/load_off_watched.sh`
-- [ ] `scripts/review_ledger.py`
-- [ ] `scripts/search_relevance_fixture.py`
-- [ ] `scripts/setup.main.kts`
-- [ ] `scripts/setup_cloudflare_site.sh`
-- [ ] `scripts/setup_credentials.main.kts`
-- [ ] `scripts/setup_fly.main.kts`
-- [ ] `scripts/setup_github_secrets.main.kts`
-- [ ] `scripts/setup_legal_sync.sh`
-- [ ] `scripts/setup_sentry.main.kts`
-- [ ] `scripts/setup_sentry_ci.sh`
-- [ ] `scripts/setup_supabase.main.kts`
-- [ ] `scripts/test_backfill_default_portions.py`
-- [ ] `scripts/test_backfill_food_categories.py`
-- [ ] `scripts/test_import_nevo_foods.py`
-- [ ] `scripts/test_import_off_foods.py`
-- [ ] `scripts/test_import_usda_foods.py`
-- [ ] `scripts/test_review_ledger.py`
+- [x] `.githooks/commit-msg`
+- [x] `.githooks/post-commit`
+- [x] `.githooks/pre-push`
+- [x] `.github/workflows/auto-merge.yml`
+- [x] `.github/workflows/baseline-profile.yml`
+- [x] `.github/workflows/beta.yml`
+- [x] `.github/workflows/ci.yml`
+- [x] `.github/workflows/commitlint.yml`
+- [x] `.github/workflows/food-catalog-refresh.yml`
+- [x] `.github/workflows/legal-sync.yml`
+- [x] `.github/workflows/pages.yml`
+- [x] `.github/workflows/release-please.yml`
+- [x] `.github/workflows/release.yml`
+- [x] `.github/workflows/retag-release.yml`
+- [x] `.github/workflows/server-deploy-prod.yml`
+- [x] `.github/workflows/server-deploy.yml`
+- [x] `apps/ios/fastlane/Appfile`
+- [x] `apps/ios/fastlane/Fastfile`
+- [x] `ops/grafana/app-health.json`
+- [x] `ops/grafana/connectivity.json`
+- [x] `ops/grafana/foods.json`
+- [x] `ops/grafana/generate_db_dashboards.py`
+- [x] `ops/grafana/logging.json`
+- [x] `ops/grafana/modes.json`
+- [x] `ops/grafana/onboarding-funnel.json`
+- [x] `ops/grafana/pulse.json`
+- [x] `ops/grafana/retention.json`
+- [x] `ops/grafana/user.json`
+- [x] `ops/grafana/users.json`
+- [x] `scripts/backfill_default_portions.py`
+- [x] `scripts/backfill_food_categories.py`
+- [x] `scripts/bench_off_search.py`
+- [x] `scripts/beta_ios.sh`
+- [x] `scripts/cleanup.sh`
+- [x] `scripts/create_module.main.kts`
+- [x] `scripts/design_sync.main.kts`
+- [x] `scripts/dev/drive.py`
+- [x] `scripts/import_nevo_foods.py`
+- [x] `scripts/import_off_foods.py`
+- [x] `scripts/import_usda_foods.py`
+- [x] `scripts/install_hooks.sh`
+- [x] `scripts/ios_launch_smoke.sh`
+- [x] `scripts/lib/setup_store.main.kts`
+- [x] `scripts/load_off_watched.sh`
+- [x] `scripts/review_ledger.py`
+- [x] `scripts/search_relevance_fixture.py`
+- [x] `scripts/seed_dev_config.py`
+- [x] `scripts/setup.main.kts`
+- [x] `scripts/setup_cloudflare_site.sh`
+- [x] `scripts/setup_credentials.main.kts`
+- [x] `scripts/setup_fly.main.kts`
+- [x] `scripts/setup_github_secrets.main.kts`
+- [x] `scripts/setup_legal_sync.sh`
+- [x] `scripts/setup_sentry.main.kts`
+- [x] `scripts/setup_sentry_ci.sh`
+- [x] `scripts/setup_supabase.main.kts`
+- [x] `scripts/store_release_notes.py`
+- [x] `scripts/test_backfill_default_portions.py`
+- [x] `scripts/test_backfill_food_categories.py`
+- [x] `scripts/test_import_nevo_foods.py`
+- [x] `scripts/test_import_off_foods.py`
+- [x] `scripts/test_import_usda_foods.py`
+- [x] `scripts/test_review_ledger.py`
+- [x] `scripts/test_seed_dev_config.py`
+- [x] `scripts/test_setup_sentry_ci.py`
+- [x] `scripts/test_workflows.py`
+- [x] `scripts/verify_release_config.py`
 
 ## apps-shells (62 files)
 
-- [ ] `apps/admin/build.gradle.kts`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminApi.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminEnv.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/AuditView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Catching.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/ConfirmModal.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/DiffView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/FlagsView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/KillSwitchPanel.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Main.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Revert.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/RuleEditor.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Support.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/TargetBar.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/TokenStore.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/TypedValueEditor.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/UsersView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/Validation.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/VersionsView.kt`
-- [ ] `apps/admin/src/jsMain/kotlin/com/opson/admin/WaitlistView.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/DiffRowsTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/FlagRowsTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/KillSwitchWordingTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/RevertTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/UsersViewTest.kt`
-- [ ] `apps/admin/src/jsTest/kotlin/com/opson/admin/ValidationTest.kt`
-- [ ] `apps/compose/build.gradle.kts`
-- [ ] `apps/compose/proguard-rules.pro`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/AndroidActivityProvider.kt`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/AndroidAppComponent.kt`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/MainActivity.kt`
-- [ ] `apps/compose/src/androidMain/kotlin/com/opson/OpsonApplication.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/App.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/AppComponent.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/AppShell.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/AppViewModel.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/BootLoadingScreen.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/NavigationQueueWatchdog.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/OpsonNetworkConfig.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/ShakeDialogEntryPoint.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/ShakeHandler.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/SplashScreen.kt`
-- [ ] `apps/compose/src/commonMain/kotlin/com/opson/UserTheme.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/AppViewModelTest.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/DeepLinkLogTest.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/OpsonNetworkConfigTest.kt`
-- [ ] `apps/compose/src/commonTest/kotlin/com/opson/UserThemeTest.kt`
-- [ ] `apps/compose/src/iosMain/kotlin/com/opson/IosAppComponent.kt`
-- [ ] `apps/compose/src/iosMain/kotlin/com/opson/MainViewController.kt`
-- [ ] `apps/compose/src/iosMain/kotlin/com/opson/SwiftUsageBridge.kt`
-- [ ] `apps/ios/Configuration/Config.xcconfig`
-- [ ] `apps/ios/OpsonWidgets/TodayWidget.swift`
-- [ ] `apps/ios/OpsonWidgets/TodayWidgetView.swift`
-- [ ] `apps/ios/OpsonWidgets/WidgetSnapshot.swift`
-- [ ] `apps/ios/iosApp/Platform/FileSharePresenter.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSAppleSignInCoordinator.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSNativeViewFactory.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSSecureSessionStorage.swift`
-- [ ] `apps/ios/iosApp/Platform/IOSWidgetBridge.swift`
-- [ ] `apps/ios/iosApp/Platform/Logger+MessageScope.swift`
-- [ ] `apps/ios/iosApp/Platform/ReviewLauncher.swift`
-- [ ] `apps/ios/iosApp/iOSApp.swift`
+- [x] `apps/admin/build.gradle.kts`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminApi.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/AdminEnv.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/AuditView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Catching.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/ConfirmModal.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/DiffView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/FlagsView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/KillSwitchPanel.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Main.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Revert.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/RuleEditor.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Support.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/TargetBar.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/TokenStore.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/TypedValueEditor.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/UsersView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/Validation.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/VersionsView.kt`
+- [x] `apps/admin/src/jsMain/kotlin/com/opson/admin/WaitlistView.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/DiffRowsTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/FlagRowsTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/KillSwitchWordingTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/RevertTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/UsersViewTest.kt`
+- [x] `apps/admin/src/jsTest/kotlin/com/opson/admin/ValidationTest.kt`
+- [x] `apps/compose/build.gradle.kts`
+- [x] `apps/compose/proguard-rules.pro`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/AndroidActivityProvider.kt`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/AndroidAppComponent.kt`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/MainActivity.kt`
+- [x] `apps/compose/src/androidMain/kotlin/com/opson/OpsonApplication.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/App.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/AppComponent.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/AppShell.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/AppViewModel.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/BootLoadingScreen.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/NavigationQueueWatchdog.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/OpsonNetworkConfig.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/ShakeDialogEntryPoint.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/ShakeHandler.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/SplashScreen.kt`
+- [x] `apps/compose/src/commonMain/kotlin/com/opson/UserTheme.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/AppViewModelTest.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/DeepLinkLogTest.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/OpsonNetworkConfigTest.kt`
+- [x] `apps/compose/src/commonTest/kotlin/com/opson/UserThemeTest.kt`
+- [x] `apps/compose/src/iosMain/kotlin/com/opson/IosAppComponent.kt`
+- [x] `apps/compose/src/iosMain/kotlin/com/opson/MainViewController.kt`
+- [x] `apps/compose/src/iosMain/kotlin/com/opson/SwiftUsageBridge.kt`
+- [x] `apps/ios/Configuration/Config.xcconfig`
+- [x] `apps/ios/OpsonWidgets/TodayWidget.swift`
+- [x] `apps/ios/OpsonWidgets/TodayWidgetView.swift`
+- [x] `apps/ios/OpsonWidgets/WidgetSnapshot.swift`
+- [x] `apps/ios/iosApp/Platform/FileSharePresenter.swift`
+- [x] `apps/ios/iosApp/Platform/IOSAppleSignInCoordinator.swift`
+- [x] `apps/ios/iosApp/Platform/IOSNativeViewFactory.swift`
+- [x] `apps/ios/iosApp/Platform/IOSSecureSessionStorage.swift`
+- [x] `apps/ios/iosApp/Platform/IOSWidgetBridge.swift`
+- [x] `apps/ios/iosApp/Platform/Logger+MessageScope.swift`
+- [x] `apps/ios/iosApp/Platform/ReviewLauncher.swift`
+- [x] `apps/ios/iosApp/iOSApp.swift`
 
 ## build-config (47 files)
 
-- [ ] `.release-please-manifest.json`
-- [ ] `apps/baselineprofile/build.gradle.kts`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/BenchmarkJourney.kt`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/JourneyProfileGenerator.kt`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/MinifiedReleaseSmokeTest.kt`
-- [ ] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/StartupProfileGenerator.kt`
-- [ ] `build-logic/build.gradle.kts`
-- [ ] `build-logic/settings.gradle.kts`
-- [ ] `build-logic/src/main/java/com/opson/ext/ConfigurationExtension.kt`
-- [ ] `build-logic/src/main/java/com/opson/ext/ExtDsl.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/ApplicationConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/ComposeMultiplatformConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/FeatureConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/plugin/KotlinMultiplatformConventionPlugin.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/AndroidConfiguration.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/ComposeMetrics.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/GitHooks.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/KotlinMultiplatform.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/ModuleBoundaries.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/ProjectExtensions.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/SharedConstants.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/Signing.kt`
-- [ ] `build-logic/src/main/java/com/opson/util/Versioning.kt`
-- [ ] `build-logic/src/test/java/com/opson/util/QaBoundaryTest.kt`
-- [ ] `build-logic/src/test/java/com/opson/util/ReleaseChannelTest.kt`
-- [ ] `build.gradle.kts`
-- [ ] `config/detekt/detekt.yml`
-- [ ] `detekt-rules/build.gradle.kts`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/AnimatedStateReadInComposition.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/ClassNameInTelemetryAttribute.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/HardcodedDisplay.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/OpsonRuleSetProvider.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/ScrollInsideBottomSheet.kt`
-- [ ] `detekt-rules/src/main/kotlin/com/opson/detekt/VerifyStrings.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/AnimatedStateReadInCompositionTest.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/ClassNameInTelemetryAttributeTest.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/HardcodedDisplayTest.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/RuleHarness.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/ScrollInsideBottomSheetTest.kt`
-- [ ] `detekt-rules/src/test/kotlin/com/opson/detekt/VerifyStringsTest.kt`
-- [ ] `gradle.properties`
-- [ ] `gradle/libs.versions.toml`
-- [ ] `gradle/wrapper/gradle-wrapper.properties`
-- [ ] `release-please-config.json`
-- [ ] `settings.gradle.kts`
-- [ ] `telemetry.properties`
-- [ ] `versions.properties`
+- [x] `.release-please-manifest.json`
+- [x] `apps/baselineprofile/build.gradle.kts`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/BenchmarkJourney.kt`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/JourneyProfileGenerator.kt`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/MinifiedReleaseSmokeTest.kt`
+- [x] `apps/baselineprofile/src/main/kotlin/com/opson/baselineprofile/StartupProfileGenerator.kt`
+- [x] `build-logic/build.gradle.kts`
+- [x] `build-logic/settings.gradle.kts`
+- [x] `build-logic/src/main/java/com/opson/ext/ConfigurationExtension.kt`
+- [x] `build-logic/src/main/java/com/opson/ext/ExtDsl.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/ApplicationConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/ComposeMultiplatformConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/FeatureConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/plugin/KotlinMultiplatformConventionPlugin.kt`
+- [x] `build-logic/src/main/java/com/opson/util/AndroidConfiguration.kt`
+- [x] `build-logic/src/main/java/com/opson/util/ComposeMetrics.kt`
+- [x] `build-logic/src/main/java/com/opson/util/GitHooks.kt`
+- [x] `build-logic/src/main/java/com/opson/util/KotlinMultiplatform.kt`
+- [x] `build-logic/src/main/java/com/opson/util/ModuleBoundaries.kt`
+- [x] `build-logic/src/main/java/com/opson/util/ProjectExtensions.kt`
+- [x] `build-logic/src/main/java/com/opson/util/SharedConstants.kt`
+- [x] `build-logic/src/main/java/com/opson/util/Signing.kt`
+- [x] `build-logic/src/main/java/com/opson/util/Versioning.kt`
+- [x] `build-logic/src/test/java/com/opson/util/QaBoundaryTest.kt`
+- [x] `build-logic/src/test/java/com/opson/util/ReleaseChannelTest.kt`
+- [x] `build.gradle.kts`
+- [x] `config/detekt/detekt.yml`
+- [x] `detekt-rules/build.gradle.kts`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/AnimatedStateReadInComposition.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/ClassNameInTelemetryAttribute.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/HardcodedDisplay.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/OpsonRuleSetProvider.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/ScrollInsideBottomSheet.kt`
+- [x] `detekt-rules/src/main/kotlin/com/opson/detekt/VerifyStrings.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/AnimatedStateReadInCompositionTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/ClassNameInTelemetryAttributeTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/HardcodedDisplayTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/RuleHarness.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/ScrollInsideBottomSheetTest.kt`
+- [x] `detekt-rules/src/test/kotlin/com/opson/detekt/VerifyStringsTest.kt`
+- [x] `gradle.properties`
+- [x] `gradle/libs.versions.toml`
+- [x] `gradle/wrapper/gradle-wrapper.properties`
+- [x] `release-please-config.json`
+- [x] `settings.gradle.kts`
+- [x] `telemetry.properties`
+- [x] `versions.properties`
 
 ## test-apps (47 files)
 
-- [ ] `apps/integration/build.gradle.kts`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/android/database/SQLException.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/AdminUserLookupTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/AppleRevocationTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/DeleteEverythingTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/AppGuardJourneyTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/ConfigManifestRegistryDriftTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/FlagTargetingTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/RemoteFlagTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/errors/ErrorSurfacesTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/exercise/ExerciseSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/fasting/FastingSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/DescribeAndPhotoTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/FoodSearchAndBarcodeTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/DeviceSeams.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FakeUpstreams.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FaultProxy.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/InProcessServer.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationAuth.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/ServerCalls.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/TestClient.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/onboarding/SignInOnboardingSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/security/SyncAuthorizationTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/setup/HarnessSmokeTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/storage/RoomMigrationTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/AppearanceAcrossVersionsTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/OfflineOutboxTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/SettingsMergeAcrossVersionsTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/TwoDeviceSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/telemetry/DashboardQueryContractTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/waitlist/WaitlistTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/resources/init-auth.sql`
-- [ ] `apps/leaktest/build.gradle.kts`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindMealGapsTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindModeLeakTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/EnergyOutHiddenLeakTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakScan.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakTestControlTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/MicrosHiddenLeakTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/NoNumbersLeakTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/Surfaces.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/SurfacesCoverageTest.kt`
-- [ ] `apps/screenshots/build.gradle.kts`
-- [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/PreviewScreenshotTest.kt`
-- [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenIds.kt`
-- [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenResult.kt`
+- [x] `apps/integration/build.gradle.kts`
+- [x] `apps/integration/src/androidUnitTest/kotlin/android/database/SQLException.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/AdminUserLookupTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/AppleRevocationTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/DeleteEverythingTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/AppGuardJourneyTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/ConfigManifestRegistryDriftTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/FlagTargetingTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/RemoteFlagTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/errors/ErrorSurfacesTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/exercise/ExerciseSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/fasting/FastingSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/DescribeAndPhotoTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/FoodSearchAndBarcodeTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/DeviceSeams.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FakeUpstreams.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FaultProxy.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/InProcessServer.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationAuth.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/ServerCalls.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/TestClient.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/onboarding/SignInOnboardingSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/security/SyncAuthorizationTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/setup/HarnessSmokeTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/storage/RoomMigrationTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/AppearanceAcrossVersionsTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/OfflineOutboxTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/SettingsMergeAcrossVersionsTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/TwoDeviceSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/telemetry/DashboardQueryContractTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/waitlist/WaitlistTest.kt`
+- [x] `apps/integration/src/androidUnitTest/resources/init-auth.sql`
+- [x] `apps/leaktest/build.gradle.kts`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindMealGapsTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindModeLeakTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/EnergyOutHiddenLeakTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakScan.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakTestControlTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/MicrosHiddenLeakTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/NoNumbersLeakTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/Surfaces.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/SurfacesCoverageTest.kt`
+- [x] `apps/screenshots/build.gradle.kts`
+- [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/PreviewScreenshotTest.kt`
+- [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenIds.kt`
+- [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenResult.kt`
 
-## server-data (90 files)
+Added in round two (reviewed as written):
 
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/AnthropicEstimateProvider.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/AppConfigTargetingEngine.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/AppConfigTree.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/CatalogBarcodeLookup.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/CatalogFoodDescriber.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/ConfigValidation.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/HttpAppleSignInClient.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/HttpOpenFoodFactsClient.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/HttpSupabaseAdminClient.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/InMemoryExampleSource.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/LiveFoodSources.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/NutritionixSource.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/OpenFoodFactsSearch.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PhotoDescriber.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigAdminRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigManifestRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigSource.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppleTokenRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresBarcodeMissRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresExportRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresFoodCatalogRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresModerationRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresProfileRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresSyncRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresUserSupport.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/PostgresWaitlistRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/SearchResultCache.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/SemVer.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/data/WebhookConfigChangeNotifier.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/db/Database.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/db/JsonbColumn.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/db/Tables.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/db/TimeConversions.kt`
-- [ ] `apps/server/src/main/resources/db/migration/V10__food_tiers.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V11__untracked_days.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V12__off_foods.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V13__barcode_misses.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V14__fasts.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V15__search_quality.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V16__waitlist.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V17__food_category.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V18__day_check_in.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V19__rls_on_early_tables.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V1__profiles.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V20__nevo_source.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V21__precision_label.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V22__support_views.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V23__apple_refresh_tokens.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V24__exercises.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V2__fk_auth_users.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V3__player_reports.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V4__app_config.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V5__app_config_targeting.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V6__app_config_manifest.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V7__food_catalog.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V8__diary.sql`
-- [ ] `apps/server/src/main/resources/db/migration/V9__analytics.sql`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/AnthropicEstimateProviderTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/AppConfigTargetingEngineTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/AppConfigTreeTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/CatalogBarcodeLookupTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/CatalogFoodDescriberTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/ConfigValidationTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/DescribeFixturesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/HttpAppleSignInClientTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/HttpOpenFoodFactsClientTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/HttpSupabaseAdminClientTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/NutritionixSourceTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/OpenFoodFactsCatalogTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/OpenFoodFactsSearchTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PhotoDescriberTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigAdminRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigManifestRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigSourceTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppleTokenRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresBarcodeMissRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresExportRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresFoodCatalogRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresModerationRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresProfileRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresSyncRepositoryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/PostgresUserSupportTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/SearchRelevanceTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/SearchResultCacheTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/SearchTermsTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/data/UsdaFoodSeedTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseSchemaTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTimeoutTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/db/QueryPlanTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/BanTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/DisplayNameTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/ExportTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/SessionTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/DayRecordAcrossVersionsTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/PagingTest.kt`
+
+## server-data (91 files)
+
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/AnthropicEstimateProvider.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/AppConfigTargetingEngine.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/AppConfigTree.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/CatalogBarcodeLookup.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/CatalogFoodDescriber.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/ConfigValidation.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/HttpAppleSignInClient.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/HttpOpenFoodFactsClient.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/HttpSupabaseAdminClient.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/InMemoryExampleSource.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/LiveFoodSources.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/NutritionixSource.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/OpenFoodFactsSearch.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PhotoDescriber.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigAdminRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigManifestRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppConfigSource.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresAppleTokenRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresBarcodeMissRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresExportRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresFoodCatalogRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresModerationRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresProfileRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresSyncRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresUserSupport.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/PostgresWaitlistRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/SearchResultCache.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/SemVer.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/data/WebhookConfigChangeNotifier.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/db/Database.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/db/JsonbColumn.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/db/Tables.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/db/TimeConversions.kt`
+- [x] `apps/server/src/main/resources/db/migration/V10__food_tiers.sql`
+- [x] `apps/server/src/main/resources/db/migration/V11__untracked_days.sql`
+- [x] `apps/server/src/main/resources/db/migration/V12__off_foods.sql`
+- [x] `apps/server/src/main/resources/db/migration/V13__barcode_misses.sql`
+- [x] `apps/server/src/main/resources/db/migration/V14__fasts.sql`
+- [x] `apps/server/src/main/resources/db/migration/V15__search_quality.sql`
+- [x] `apps/server/src/main/resources/db/migration/V16__waitlist.sql`
+- [x] `apps/server/src/main/resources/db/migration/V17__food_category.sql`
+- [x] `apps/server/src/main/resources/db/migration/V18__day_check_in.sql`
+- [x] `apps/server/src/main/resources/db/migration/V19__rls_on_early_tables.sql`
+- [x] `apps/server/src/main/resources/db/migration/V1__profiles.sql`
+- [x] `apps/server/src/main/resources/db/migration/V20__nevo_source.sql`
+- [x] `apps/server/src/main/resources/db/migration/V21__precision_label.sql`
+- [x] `apps/server/src/main/resources/db/migration/V22__support_views.sql`
+- [x] `apps/server/src/main/resources/db/migration/V23__apple_refresh_tokens.sql`
+- [x] `apps/server/src/main/resources/db/migration/V24__exercises.sql`
+- [x] `apps/server/src/main/resources/db/migration/V2__fk_auth_users.sql`
+- [x] `apps/server/src/main/resources/db/migration/V3__player_reports.sql`
+- [x] `apps/server/src/main/resources/db/migration/V4__app_config.sql`
+- [x] `apps/server/src/main/resources/db/migration/V5__app_config_targeting.sql`
+- [x] `apps/server/src/main/resources/db/migration/V6__app_config_manifest.sql`
+- [x] `apps/server/src/main/resources/db/migration/V7__food_catalog.sql`
+- [x] `apps/server/src/main/resources/db/migration/V8__diary.sql`
+- [x] `apps/server/src/main/resources/db/migration/V9__analytics.sql`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/AnthropicEstimateProviderTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/AppConfigTargetingEngineTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/AppConfigTreeTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/CatalogBarcodeLookupTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/CatalogFoodDescriberTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/ConfigValidationTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/DescribeFixturesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/HttpAppleSignInClientTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/HttpOpenFoodFactsClientTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/HttpSupabaseAdminClientTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/NutritionixSourceTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/OpenFoodFactsCatalogTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/OpenFoodFactsSearchTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PhotoDescriberTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigAdminRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigManifestRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppConfigSourceTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresAppleTokenRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresBarcodeMissRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresExportRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresFoodCatalogRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresModerationRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresProfileRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresSyncRepositoryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/PostgresUserSupportTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/SearchRelevanceTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/SearchResultCacheTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/SearchTermsTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/UsdaFoodSeedTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/data/WebhookConfigChangeNotifierTest.kt` (new in round two)
+- [x] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseSchemaTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/db/DatabaseTimeoutTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/db/QueryPlanTest.kt`
 
 ## server (108 files)
 
-- [ ] `apps/server/Dockerfile`
-- [ ] `apps/server/build.gradle.kts`
-- [ ] `apps/server/docker-compose.yml`
-- [ ] `apps/server/docker/init-auth.sql`
-- [ ] `apps/server/fly.prod.toml`
-- [ ] `apps/server/fly.toml`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/Application.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/Main.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/config/Env.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/config/ServerConfig.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/di/ServerComponent.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/di/ServerScope.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/AppConfigAdminRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/AppConfigManifestRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/AppConfigSource.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/AppConfigTargeting.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/AppleSignIn.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/BarcodeMisses.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/CommonFoods.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/ConfigChangeNotifier.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/Describe.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/DescribeVocabulary.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/Diary.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/DiaryRules.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/DisplayNameRules.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/ExampleSource.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/Export.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/Foods.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/ModerationRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/PhotoEstimate.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/PhotoEstimateLimiter.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/Profile.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/ProfileRepository.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/SupabaseAdminClient.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/UserId.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/UserSupport.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/Waitlist.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/domain/WaitlistLimiter.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/http/ClientContext.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/AccessControl.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/AdminWeb.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/Authentication.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/BodyLimit.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/Cors.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/Errors.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/InstallSightings.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/Observability.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/RateLimits.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/Sentry.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/Serialization.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/Telemetry.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/plugins/Tracing.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/AdminAuth.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/AppConfigRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/BarcodeMissRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/ConfigAdminRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/ExampleDto.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/ExampleRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/ExportRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/FoodDto.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/FoodRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/HealthRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/MeDto.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/MeRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/PhotoRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/SyncDto.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/SyncRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/UserAdminRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/WaitlistAdminRoutes.kt`
-- [ ] `apps/server/src/main/kotlin/com/opson/server/routes/WaitlistRoutes.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/FullStackFoodLatencyTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/FullStackMeTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/FullStackSyncTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/config/AppleSignInConfigTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/config/EnvTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/config/ParsedPostgresUrlTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/config/WaitlistConfigTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/domain/BarcodesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/domain/DescribeParserTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/domain/DiaryRulesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/domain/ImageTypeTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/domain/PhotoEstimateLimiterTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/domain/WaitlistLimiterTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/domain/WaitlistSignupTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/http/ClientContextTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/plugins/AdminWebTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/plugins/BanEnforcementTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/plugins/BanGateTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/plugins/BodyLimitTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/plugins/StatusPagesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/plugins/TelemetryTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/BarcodeMissRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/ConfigAdminRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/ExampleRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/ExportRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/FoodRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/HealthRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/MeRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/PhotoRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/SyncRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/UserAdminRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/WaitlistAdminRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/routes/WaitlistRoutesTest.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/testing/DiaryFixtures.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/testing/FakeEstimateProvider.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/testing/FakeFoodCatalog.kt`
-- [ ] `apps/server/src/test/kotlin/com/opson/server/testing/TestJwt.kt`
-- [ ] `apps/server/src/test/resources/init-auth.sql`
+- [x] `apps/server/Dockerfile`
+- [x] `apps/server/build.gradle.kts`
+- [x] `apps/server/docker-compose.yml`
+- [x] `apps/server/docker/init-auth.sql`
+- [x] `apps/server/fly.prod.toml`
+- [x] `apps/server/fly.toml`
+- [x] `apps/server/src/main/kotlin/com/opson/server/Application.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/Main.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/config/Env.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/config/ServerConfig.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/di/ServerComponent.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/di/ServerScope.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/AppConfigAdminRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/AppConfigManifestRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/AppConfigSource.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/AppConfigTargeting.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/AppleSignIn.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/BarcodeMisses.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/CommonFoods.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/ConfigChangeNotifier.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/Describe.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/DescribeVocabulary.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/Diary.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/DiaryRules.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/DisplayNameRules.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/ExampleSource.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/Export.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/Foods.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/ModerationRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/PhotoEstimate.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/PhotoEstimateLimiter.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/Profile.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/ProfileRepository.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/SupabaseAdminClient.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/UserId.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/UserSupport.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/Waitlist.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/domain/WaitlistLimiter.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/http/ClientContext.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/AccessControl.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/AdminWeb.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Authentication.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/BodyLimit.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Cors.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Errors.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/InstallSightings.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Observability.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/RateLimits.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Sentry.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Serialization.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Telemetry.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/plugins/Tracing.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/AdminAuth.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/AppConfigRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/BarcodeMissRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/ConfigAdminRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/ExampleDto.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/ExampleRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/ExportRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/FoodDto.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/FoodRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/HealthRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/MeDto.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/MeRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/PhotoRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/SyncDto.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/SyncRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/UserAdminRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/WaitlistAdminRoutes.kt`
+- [x] `apps/server/src/main/kotlin/com/opson/server/routes/WaitlistRoutes.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/FullStackFoodLatencyTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/FullStackMeTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/FullStackSyncTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/config/AppleSignInConfigTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/config/EnvTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/config/ParsedPostgresUrlTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/config/WaitlistConfigTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/domain/BarcodesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/domain/DescribeParserTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/domain/DiaryRulesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/domain/ImageTypeTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/domain/PhotoEstimateLimiterTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/domain/WaitlistLimiterTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/domain/WaitlistSignupTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/http/ClientContextTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/plugins/AdminWebTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/plugins/BanEnforcementTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/plugins/BanGateTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/plugins/BodyLimitTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/plugins/StatusPagesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/plugins/TelemetryTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/BarcodeMissRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/ConfigAdminRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/ExampleRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/ExportRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/FoodRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/HealthRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/MeRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/PhotoRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/SyncRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/UserAdminRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/WaitlistAdminRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/routes/WaitlistRoutesTest.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/testing/DiaryFixtures.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/testing/FakeEstimateProvider.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/testing/FakeFoodCatalog.kt`
+- [x] `apps/server/src/test/kotlin/com/opson/server/testing/TestJwt.kt`
+- [x] `apps/server/src/test/resources/init-auth.sql`
 
 ## onboarding-foods (61 files)
 
-- [ ] `features/foods/build.gradle.kts`
-- [ ] `features/foods/impl/build.gradle.kts`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodViewModel.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealViewModel.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyViewModel.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsCommon.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFeatureEntryPoint.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFixtures.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsLeakSurfaces.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsPreviews.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsScreen.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsState.kt`
-- [ ] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsViewModel.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/AddFoodTest.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/CreateMealTest.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/EditCopyTest.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/Fakes.kt`
-- [ ] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/FoodsTabTest.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/AddFoodRoute.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/CreateMealRoute.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/EditCopyRoute.kt`
-- [ ] `features/foods/src/commonMain/kotlin/com/opson/features/foods/FoodsRoute.kt`
-- [ ] `features/onboarding/build.gradle.kts`
-- [ ] `features/onboarding/impl/build.gradle.kts`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/AuthScreens.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/DisplayNameSuggester.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModePreview.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModeRecommender.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingCopy.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFeatureEntryPoint.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFixtures.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingLeakSurfaces.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingScreen.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingSetupEnabled.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupAnswers.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupSteps.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInMethods.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignUpViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModel.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/AuthViewModelFakes.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModePreviewTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModeRecommenderTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/OnboardingSetupStepsTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/OnboardingViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SetupAnswersTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SetupFakes.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignInViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignUpViewModelTest.kt`
-- [ ] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModelTest.kt`
-- [ ] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/AuthRoutes.kt`
-- [ ] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/OnboardingRoute.kt`
+- [x] `features/foods/build.gradle.kts`
+- [x] `features/foods/impl/build.gradle.kts`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/AddFoodViewModel.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/CreateMealViewModel.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/EditCopyViewModel.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsCommon.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFeatureEntryPoint.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsFixtures.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsLeakSurfaces.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsPreviews.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsScreen.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsState.kt`
+- [x] `features/foods/impl/src/commonMain/kotlin/com/opson/features/foods/impl/FoodsViewModel.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/AddFoodTest.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/CreateMealTest.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/EditCopyTest.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/Fakes.kt`
+- [x] `features/foods/impl/src/commonTest/kotlin/com/opson/features/foods/impl/FoodsTabTest.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/AddFoodRoute.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/CreateMealRoute.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/EditCopyRoute.kt`
+- [x] `features/foods/src/commonMain/kotlin/com/opson/features/foods/FoodsRoute.kt`
+- [x] `features/onboarding/build.gradle.kts`
+- [x] `features/onboarding/impl/build.gradle.kts`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/AuthScreens.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/DisplayNameSuggester.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModePreview.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/ModeRecommender.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingCopy.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFeatureEntryPoint.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingFixtures.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingLeakSurfaces.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingScreen.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingSetupEnabled.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/OnboardingViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupAnswers.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SetupSteps.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInMethods.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignInViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/SignUpViewModel.kt`
+- [x] `features/onboarding/impl/src/commonMain/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModel.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/AuthViewModelFakes.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ForgotPasswordViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModePreviewTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/ModeRecommenderTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/OnboardingSetupStepsTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/OnboardingViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SetupAnswersTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SetupFakes.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignInViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/SignUpViewModelTest.kt`
+- [x] `features/onboarding/impl/src/commonTest/kotlin/com/opson/features/onboarding/impl/VerifyEmailViewModelTest.kt`
+- [x] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/AuthRoutes.kt`
+- [x] `features/onboarding/src/commonMain/kotlin/com/opson/features/onboarding/OnboardingRoute.kt`
 
 ## features-other (15 files)
 
-- [ ] `features/home/build.gradle.kts`
-- [ ] `features/home/impl/build.gradle.kts`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeFeatureEntryPoint.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeViewModel.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportScreen.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportViewModel.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackRepository.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackScreen.kt`
-- [ ] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModel.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/HomeViewModelTest.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackRepositoryImplTest.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModelTest.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenario.kt`
-- [ ] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
-- [ ] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
+- [x] `features/home/build.gradle.kts`
+- [x] `features/home/impl/build.gradle.kts`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeFeatureEntryPoint.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/HomeViewModel.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportScreen.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/bugreport/BugReportViewModel.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackRepository.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackScreen.kt`
+- [x] `features/home/impl/src/commonMain/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModel.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/HomeViewModelTest.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackRepositoryImplTest.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/feedback/FeedbackViewModelTest.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenario.kt`
+- [x] `features/home/impl/src/commonTest/kotlin/com/opson/features/home/impl/harness/HomeScenarioTest.kt`
+- [x] `features/home/src/commonMain/kotlin/com/opson/features/home/FeedbackRoute.kt`
 
 ## logger (81 files)
 
-- [ ] `features/logger/build.gradle.kts`
-- [ ] `features/logger/impl/build.gradle.kts`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AddFoodRow.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AddSheetPreview.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScan.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanPreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanScreen.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeReview.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeReviewViews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoice.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoiceViews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetPreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetState.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetail.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailCustomSize.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailPreview.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodLogger.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodPicks.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearch.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchScreen.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchStateBuilder.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LogPick.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerCommon.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFeatureEntryPoint.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerLeakSurfaces.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPanes.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerState.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerStateBuilder.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/NameOnlyPick.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimate.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimatePreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilder.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModel.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptions.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheet.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheetContent.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsTelemetry.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchPreview.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceFixtures.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceLogEnabled.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoicePreviews.kt`
-- [ ] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceTelemetry.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeReviewViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeRowsTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeVoiceViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/ExerciseSheetViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/Fakes.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodDetailTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodSearchStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodSearchViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/NevoCitationTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoRowsTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsStateBuilderTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsViewModelTest.kt`
-- [ ] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/VoiceStateBuilderTest.kt`
-- [ ] `features/logger/src/commonMain/kotlin/com/opson/features/logger/LoggerRoute.kt`
+- [x] `features/logger/build.gradle.kts`
+- [x] `features/logger/impl/build.gradle.kts`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AddFoodRow.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/AddSheetPreview.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScan.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanPreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanScreen.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeScanViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/BarcodeTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeReview.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeReviewViews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoice.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/DescribeVoiceViews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetPreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetState.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/ExerciseSheetViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetail.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailCustomSize.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailPreview.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodDetailViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodLogger.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodPicks.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearch.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchScreen.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchStateBuilder.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/FoodSearchViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LogPick.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerCommon.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFeatureEntryPoint.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerLeakSurfaces.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPanes.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerPreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerState.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerStateBuilder.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/LoggerViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/NameOnlyPick.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimate.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimatePreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilder.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModel.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/PhotoTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptions.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheet.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsSheetContent.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchOptionsTelemetry.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/SearchPreview.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceFixtures.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceLogEnabled.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoicePreviews.kt`
+- [x] `features/logger/impl/src/commonMain/kotlin/com/opson/features/logger/impl/VoiceTelemetry.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/BarcodeScanViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeReviewViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeRowsTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/DescribeVoiceViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/ExerciseSheetViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/Fakes.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodDetailTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodSearchStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/FoodSearchViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/LoggerViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/NevoCitationTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoEstimateViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/PhotoRowsTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsStateBuilderTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/SearchOptionsViewModelTest.kt`
+- [x] `features/logger/impl/src/commonTest/kotlin/com/opson/features/logger/impl/VoiceStateBuilderTest.kt`
+- [x] `features/logger/src/commonMain/kotlin/com/opson/features/logger/LoggerRoute.kt`
 
 ## settings (103 files)
 
-- [ ] `features/qa/build.gradle.kts`
-- [ ] `features/qa/impl/build.gradle.kts`
-- [ ] `features/qa/impl/src/androidMain/kotlin/com/opson/features/qa/impl/AndroidQaAccess.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaAccess.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaFeatureEntryPoint.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaPage.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaScreen.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaState.kt`
-- [ ] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaViewModel.kt`
-- [ ] `features/qa/impl/src/commonTest/kotlin/com/opson/features/qa/impl/QaFakes.kt`
-- [ ] `features/qa/impl/src/commonTest/kotlin/com/opson/features/qa/impl/QaTest.kt`
-- [ ] `features/qa/impl/src/iosMain/kotlin/com/opson/features/qa/impl/IosQaAccess.kt`
-- [ ] `features/qa/src/commonMain/kotlin/com/opson/features/qa/QaMenuRoute.kt`
-- [ ] `features/settings/build.gradle.kts`
-- [ ] `features/settings/impl/build.gradle.kts`
-- [ ] `features/settings/impl/src/androidMain/kotlin/com/opson/features/settings/impl/support/AndroidDeviceRegion.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsCopy.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFeatureEntryPoint.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFixtures.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsLeakSurfaces.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsPage.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsFixtures.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/LeaveOutDay.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseSheetContent.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/ReminderNotification.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/CreditsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/CreditsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/DeviceRegion.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportDirectory.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseRow.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsScreen.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsState.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsViewModel.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/Widgets.kt`
-- [ ] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModel.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/SettingsFakes.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/energy/EnergyTodayTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/energy/RestingEnergyTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/fasting/FastingTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/ExerciseAndLeftOutStateTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/HealthFakes.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsStateBuilderTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/LeaveOutViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/modes/ModesTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/more/MoreTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/pause/PauseViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/reminders/RemindersTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/CreditsTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/FindSupportTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/SupportViewModelTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsBurnAndDaysTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsGoalStylesTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsMacroEditorTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/water/WaterSettingsTest.kt`
-- [ ] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModelTest.kt`
-- [ ] `features/settings/impl/src/iosMain/kotlin/com/opson/features/settings/impl/support/IosDeviceRegion.kt`
-- [ ] `features/settings/impl/src/iosTest/kotlin/com/opson/features/settings/impl/support/ShippedCreditsTest.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/FindSupportEnabled.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/MoreRoute.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/MoreRowContribution.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/PauseBeforeMoreRoute.kt`
-- [ ] `features/settings/src/commonMain/kotlin/com/opson/features/settings/SettingsRoutes.kt`
-- [ ] `features/settings/src/commonTest/kotlin/com/opson/features/settings/PauseBeforeMoreRouteTest.kt`
+- [x] `features/qa/build.gradle.kts`
+- [x] `features/qa/impl/build.gradle.kts`
+- [x] `features/qa/impl/src/androidMain/kotlin/com/opson/features/qa/impl/AndroidQaAccess.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaAccess.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaFeatureEntryPoint.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaPage.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaScreen.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaState.kt`
+- [x] `features/qa/impl/src/commonMain/kotlin/com/opson/features/qa/impl/QaViewModel.kt`
+- [x] `features/qa/impl/src/commonTest/kotlin/com/opson/features/qa/impl/QaFakes.kt`
+- [x] `features/qa/impl/src/commonTest/kotlin/com/opson/features/qa/impl/QaTest.kt`
+- [x] `features/qa/impl/src/iosMain/kotlin/com/opson/features/qa/impl/IosQaAccess.kt`
+- [x] `features/qa/src/commonMain/kotlin/com/opson/features/qa/QaMenuRoute.kt`
+- [x] `features/settings/build.gradle.kts`
+- [x] `features/settings/impl/build.gradle.kts`
+- [x] `features/settings/impl/src/androidMain/kotlin/com/opson/features/settings/impl/support/AndroidDeviceRegion.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsCopy.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFeatureEntryPoint.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFixtures.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsLeakSurfaces.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsPage.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/EnergyTodayViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/energy/RestingEnergyViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/fasting/FastingViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsFixtures.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/integrations/LeaveOutDay.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/modes/ModesViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/more/MoreViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseSheetContent.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/pause/PauseViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/ReminderNotification.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/reminders/RemindersViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/CreditsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/CreditsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/DeviceRegion.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportDirectory.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/SupportViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseRow.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/targets/TargetsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsScreen.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsState.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/water/WaterSettingsViewModel.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/Widgets.kt`
+- [x] `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModel.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/SettingsFakes.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/energy/EnergyTodayTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/energy/RestingEnergyTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/fasting/FastingTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/ExerciseAndLeftOutStateTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/HealthFakes.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsStateBuilderTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/IntegrationsViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/integrations/LeaveOutViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/look/LookAndFeelViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/modes/ModesTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/more/MoreTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/pause/PauseViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/reminders/RemindersTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/CreditsTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/FindSupportTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/support/SupportViewModelTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsBurnAndDaysTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsExerciseTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsGoalStylesTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsMacroEditorTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/targets/TargetsTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/todayscreen/TodayScreenSettingsTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/water/WaterSettingsTest.kt`
+- [x] `features/settings/impl/src/commonTest/kotlin/com/opson/features/settings/impl/widgets/WidgetsViewModelTest.kt`
+- [x] `features/settings/impl/src/iosMain/kotlin/com/opson/features/settings/impl/support/IosDeviceRegion.kt`
+- [x] `features/settings/impl/src/iosTest/kotlin/com/opson/features/settings/impl/support/ShippedCreditsTest.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/FindSupportEnabled.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/MoreRoute.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/MoreRowContribution.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/PauseBeforeMoreRoute.kt`
+- [x] `features/settings/src/commonMain/kotlin/com/opson/features/settings/SettingsRoutes.kt`
+- [x] `features/settings/src/commonTest/kotlin/com/opson/features/settings/PauseBeforeMoreRouteTest.kt`
 
 ## today (58 files)
 
@@ -840,161 +856,161 @@ keeps existing ticks.
 
 ## domain-diary-nutrition (155 files)
 
-- [ ] `libraries/diary/build.gradle.kts`
-- [ ] `libraries/diary/impl/build.gradle.kts`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ActiveUser.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryStore.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncApi.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncer.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ExerciseRepositoryImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/HttpDataExport.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/Mappers.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/MealPicksImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecentLogEventsImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecordRepositories.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SelectedDayImpl.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChanger.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsStore.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySource.kt`
-- [ ] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/wire/SyncWire.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImplTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerDebounceTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/ExerciseRepositoryImplTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/Fakes.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImplTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/RecentLogEventsTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChangerTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsStoreTest.kt`
-- [ ] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySourceTest.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/CheckInEnabled.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/DataExport.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Day.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/EatenUncertaintyOfDay.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Exercise.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FastingReleaseFlag.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Fasts.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FoodKind.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/HouseholdAmount.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LocalCalendar.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LogItem.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealJournal.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPatterns.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPicks.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlot.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlotPicker.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/NumbersChanger.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/RecentLogEvents.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Records.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Repositories.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SelectedDay.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Settings.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SettingsSerializers.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/TodayCardSettings.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryDaos.kt`
-- [ ] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryEntities.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/CheckInSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/DayTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/EatenUncertaintyOfDayTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ExerciseRangeSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FastsTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodKindTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodPrefsSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HouseholdAmountTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HungerTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/LogItemQuantityTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealJournalTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealPatternsTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealSlotPickerTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ModeSettingWireTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ProgressPhotosSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SearchOptionsSettingTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SettingsTest.kt`
-- [ ] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/TodayCardSettingsTest.kt`
-- [ ] `libraries/diary/ui/build.gradle.kts`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DayTotals.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DiaryItemRow.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/ExerciseLabels.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FastingCards.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FavoriteFoodTile.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodIcon.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodPickRow.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowActions.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowsCard.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/Labels.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/MealSlotStyle.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/NutrientTile.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/SummaryCard.kt`
-- [ ] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/TodayCards.kt`
-- [ ] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/ExerciseLabelsTest.kt`
-- [ ] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/FoodTintTest.kt`
-- [ ] `libraries/nutrition/build.gradle.kts`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Burned.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Display.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/EatenUncertainty.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Exercise.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Fasting.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/LegacyPreset.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroGoals.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroLine.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroShares.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Metric.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MicroWireKeys.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Micronutrient.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/ModeTiming.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersChange.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersSettings.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutrientAmounts.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutritionFormatter.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Presets.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RangeAndShare.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RingValue.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/TargetStyle.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Targets.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Units.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicy.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicySource.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WaterProgress.kt`
-- [ ] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WeightTrend.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/BurnedTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/EatenUncertaintyTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExactAndSurplusTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseRangeTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/Fixtures.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/FormatTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/GoalStyleTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/LegacyPresetTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroGoalsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroLineTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroSharesTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MathTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroPercentsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroWireKeysTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ModeTimingTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersChangeTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersSettingsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NutrientAmountsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PerDayGoalsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PresetsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RangeAndShareTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RingValueTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetStyleTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetsTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyResolveTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyRevealTest.kt`
-- [ ] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/WaterProgressTest.kt`
-- [ ] `libraries/nutrition/ui/build.gradle.kts`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/LocalVisibilityPolicy.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/MacroLine.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFigure.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFillBar.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientPhrase.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientRingLabel.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientValue.kt`
-- [ ] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/leak/LeakSurface.kt`
+- [x] `libraries/diary/build.gradle.kts`
+- [x] `libraries/diary/impl/build.gradle.kts`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ActiveUser.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiaryStore.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncApi.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/DiarySyncer.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/ExerciseRepositoryImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/HttpDataExport.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/Mappers.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/MealPicksImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecentLogEventsImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/RecordRepositories.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SelectedDayImpl.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChanger.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsStore.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySource.kt`
+- [x] `libraries/diary/impl/src/commonMain/kotlin/com/opson/libraries/diary/impl/wire/SyncWire.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiaryRepositoryImplTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerDebounceTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/DiarySyncerTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/ExerciseRepositoryImplTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/Fakes.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/FastingRepositoryImplTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/RecentLogEventsTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsNumbersChangerTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsStoreTest.kt`
+- [x] `libraries/diary/impl/src/commonTest/kotlin/com/opson/libraries/diary/impl/SettingsVisibilityPolicySourceTest.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/CheckInEnabled.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/DataExport.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Day.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/EatenUncertaintyOfDay.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Exercise.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FastingReleaseFlag.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Fasts.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/FoodKind.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/HouseholdAmount.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LocalCalendar.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/LogItem.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealJournal.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPatterns.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealPicks.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlot.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/MealSlotPicker.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/NumbersChanger.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/RecentLogEvents.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Records.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Repositories.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SelectedDay.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/Settings.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/SettingsSerializers.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/TodayCardSettings.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryDaos.kt`
+- [x] `libraries/diary/src/commonMain/kotlin/com/opson/libraries/diary/db/DiaryEntities.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/CheckInSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/DayTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/EatenUncertaintyOfDayTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ExerciseRangeSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FastsTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodKindTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/FoodPrefsSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HouseholdAmountTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/HungerTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/LogItemQuantityTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealJournalTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealPatternsTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/MealSlotPickerTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ModeSettingWireTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/ProgressPhotosSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SearchOptionsSettingTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/SettingsTest.kt`
+- [x] `libraries/diary/src/commonTest/kotlin/com/opson/libraries/diary/TodayCardSettingsTest.kt`
+- [x] `libraries/diary/ui/build.gradle.kts`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DayTotals.kt` (deleted: dead code, finding 5)
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/DiaryItemRow.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/ExerciseLabels.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FastingCards.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FavoriteFoodTile.kt` (deleted: dead code, finding 5)
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodIcon.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodPickRow.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowActions.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/FoodRowsCard.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/Labels.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/MealSlotStyle.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/NutrientTile.kt` (deleted: dead code, finding 5)
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/SummaryCard.kt`
+- [x] `libraries/diary/ui/src/commonMain/kotlin/com/opson/libraries/diary/ui/TodayCards.kt`
+- [x] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/ExerciseLabelsTest.kt`
+- [x] `libraries/diary/ui/src/commonTest/kotlin/com/opson/libraries/diary/ui/FoodTintTest.kt`
+- [x] `libraries/nutrition/build.gradle.kts`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Burned.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Display.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/EatenUncertainty.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Exercise.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Fasting.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/LegacyPreset.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroGoals.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroLine.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MacroShares.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Metric.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/MicroWireKeys.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Micronutrient.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/ModeTiming.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersChange.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NumbersSettings.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutrientAmounts.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/NutritionFormatter.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Presets.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RangeAndShare.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/RingValue.kt` (deleted: dead code, finding 5)
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/TargetStyle.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Targets.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/Units.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicy.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/VisibilityPolicySource.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WaterProgress.kt`
+- [x] `libraries/nutrition/src/commonMain/kotlin/com/opson/libraries/nutrition/WeightTrend.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/BurnedTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/EatenUncertaintyTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExactAndSurplusTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseRangeTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ExerciseTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/Fixtures.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/FormatTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/GoalStyleTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/LegacyPresetTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroGoalsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroLineTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MacroSharesTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MathTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroPercentsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/MicroWireKeysTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/ModeTimingTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersChangeTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NumbersSettingsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/NutrientAmountsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PerDayGoalsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/PresetsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RangeAndShareTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/RingValueTest.kt` (deleted: dead code, finding 5)
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetStyleTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/TargetsTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyResolveTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/VisibilityPolicyRevealTest.kt`
+- [x] `libraries/nutrition/src/commonTest/kotlin/com/opson/libraries/nutrition/WaterProgressTest.kt`
+- [x] `libraries/nutrition/ui/build.gradle.kts`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/LocalVisibilityPolicy.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/MacroLine.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFigure.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientFillBar.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientPhrase.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientRingLabel.kt` (deleted: dead code, finding 5)
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/NutrientValue.kt`
+- [x] `libraries/nutrition/ui/src/commonMain/kotlin/com/opson/libraries/nutrition/ui/leak/LeakSurface.kt`
 
 ## platform-libraries (166 files)
 
@@ -1165,464 +1181,470 @@ keeps existing ticks.
 - [ ] `libraries/widgets/src/commonTest/kotlin/com/opson/libraries/widgets/WidgetSnapshotBuilderTest.kt`
 - [ ] `libraries/widgets/src/iosMain/kotlin/com/opson/libraries/widgets/WidgetBridge.kt`
 
-## identity-networking (134 files)
+## identity-networking (137 files)
 
-- [ ] `libraries/identity/build.gradle.kts`
-- [ ] `libraries/identity/impl/build.gradle.kts`
-- [ ] `libraries/identity/impl/src/androidMain/kotlin/com/opson/libraries/identity/impl/auth/AndroidAppleSignInCoordinator.kt`
-- [ ] `libraries/identity/impl/src/androidMain/kotlin/com/opson/libraries/identity/impl/auth/EncryptedSessionStorage.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/DefaultIdentityConfig.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/MeDto.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/ProfileApi.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/SupabaseClientFactory.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthClaims.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthGateImpl.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthReResolver.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/DefaultAuthOutcomeClassifier.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/FreshInstall.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/GatewayAuthTokenProvider.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/PendingGuestAccountStore.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/RealSupabaseAuthGateway.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/RefreshFailureClassifier.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SecureSessionManager.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SessionHealer.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SessionMirrorStore.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/StrandedIdentityDetector.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthGateway.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthRepositoryImpl.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/PendingProfileEditStore.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileCache.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileEditFlusher.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileRepositoryImpl.kt`
-- [ ] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/UserScopedProfileCacheCleaner.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/AuthClaimsTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/AuthGateImplTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/DefaultAuthOutcomeClassifierTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/FakeSessionRejectionBus.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/FreshInstallStoreTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/GatewayAuthTokenProviderTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/RefreshFailureClassifierTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/SecureSessionManagerTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/SessionHealerTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthRepositoryImplTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/profile/ProfileEditFlusherTest.kt`
-- [ ] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/profile/ProfileRepositoryImplTest.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/IdentityConfig.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AppleSignInCoordinator.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcome.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcomeClassifier.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcomes.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthRepository.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/PendingIdentity.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/SecureSessionStorage.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/profile/DisplayNameRules.kt`
-- [ ] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/profile/ProfileRepository.kt`
-- [ ] `libraries/identity/src/commonTest/kotlin/com/opson/libraries/identity/profile/DisplayNameRulesTest.kt`
-- [ ] `libraries/networking/build.gradle.kts`
-- [ ] `libraries/networking/impl/build.gradle.kts`
-- [ ] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/AndroidConnectivityObserver.kt`
-- [ ] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.android.kt`
-- [ ] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/NetworkInspectorLauncher.android.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/AccessDeniedBusImpl.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/AppStateImpl.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/BearerTokenInvalidator.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/ConnectivityObserver.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/DefaultClientHeadersProvider.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/DefaultNetworkConfig.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/NetworkClientImpl.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/NetworkReachabilityImpl.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/SessionRejectionBusImpl.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/UnresolvedRelativeRequest.kt`
-- [ ] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/WiretapNetworkInspector.kt`
-- [ ] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/AppStateImplTest.kt`
-- [ ] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/CommonConfigTimeoutTest.kt`
-- [ ] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/NetworkReachabilityImplTest.kt`
-- [ ] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/UnresolvedRelativeRequestTest.kt`
-- [ ] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/IosConnectivityObserver.kt`
-- [ ] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.ios.kt`
-- [ ] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/NetworkInspectorLauncher.ios.kt`
-- [ ] `libraries/networking/src/androidMain/kotlin/com/opson/libraries/networking/OfflineErrors.android.kt`
-- [ ] `libraries/networking/src/androidMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.android.kt`
-- [ ] `libraries/networking/src/androidUnitTest/kotlin/com/opson/libraries/networking/OfflineErrorsTest.kt`
-- [ ] `libraries/networking/src/androidUnitTest/kotlin/com/opson/libraries/networking/PlatformHttpEngineTest.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AccessDeniedBus.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AuthTokenInvalidator.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AuthTokenProvider.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/ClientHeaders.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/InstallIdProvider.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/InternalNetworkingApi.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkCall.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkClient.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkConfig.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkInspector.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkJson.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkReachability.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NoOpAuthTokenProvider.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/OfflineErrors.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/SessionIdProvider.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/SessionRejectionBus.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/Backoff.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/Jitter.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/RetryPolicy.kt`
-- [ ] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/WithRetry.kt`
-- [ ] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/BackoffTest.kt`
-- [ ] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/JitterTest.kt`
-- [ ] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/RetryPolicyTest.kt`
-- [ ] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/WithRetryTest.kt`
-- [ ] `libraries/networking/src/iosMain/kotlin/com/opson/libraries/networking/OfflineErrors.ios.kt`
-- [ ] `libraries/networking/src/iosMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.ios.kt`
-- [ ] `libraries/networking/src/iosTest/kotlin/com/opson/libraries/networking/OfflineErrorsTest.kt`
-- [ ] `libraries/networking/src/iosTest/kotlin/com/opson/libraries/networking/PlatformHttpEngineTest.kt`
-- [ ] `libraries/storage/build.gradle.kts`
-- [ ] `libraries/storage/impl/build.gradle.kts`
-- [ ] `libraries/storage/impl/src/androidMain/kotlin/com/opson/libraries/storage/impl/cache/AndroidFileManager.kt`
-- [ ] `libraries/storage/impl/src/androidMain/kotlin/com/opson/libraries/storage/impl/db/AndroidAppDatabaseBuilderFactory.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/UserScopedDaoCleaner.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/cache/DataStoreCacheFactory.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/cache/InMemoryCache.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabase.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabaseBuilderFactory.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabaseProvider.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/ProvideDaos.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/RealAppDatabaseProvider.kt`
-- [ ] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/RoomDatabaseTransactor.kt`
-- [ ] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/UserScopedDaoCleanerTest.kt`
-- [ ] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/cache/DataStoreCacheTest.kt`
-- [ ] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/cache/InMemoryCacheTest.kt`
-- [ ] `libraries/storage/impl/src/iosMain/kotlin/com/opson/libraries/storage/impl/NoBackupDirectory.kt`
-- [ ] `libraries/storage/impl/src/iosMain/kotlin/com/opson/libraries/storage/impl/cache/IosFileManager.kt`
-- [ ] `libraries/storage/impl/src/iosMain/kotlin/com/opson/libraries/storage/impl/db/IosAppDatabaseBuilderFactory.kt`
-- [ ] `libraries/storage/impl/src/iosTest/kotlin/com/opson/libraries/storage/impl/NoBackupDirectoryTest.kt`
-- [ ] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/Cache.kt`
-- [ ] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/CacheFactory.kt`
-- [ ] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/CacheJsonSerializer.kt`
-- [ ] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/FileManager.kt`
-- [ ] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/VersionedCacheJsonSerializer.kt`
-- [ ] `libraries/storage/src/commonTest/kotlin/com/opson/libraries/storage/VersionedCacheJsonSerializerTest.kt`
+- [x] `libraries/identity/build.gradle.kts`
+- [x] `libraries/identity/impl/build.gradle.kts`
+- [x] `libraries/identity/impl/src/androidMain/kotlin/com/opson/libraries/identity/impl/auth/AndroidAppleSignInCoordinator.kt`
+- [x] `libraries/identity/impl/src/androidMain/kotlin/com/opson/libraries/identity/impl/auth/EncryptedSessionStorage.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/DefaultIdentityConfig.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/MeDto.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/ProfileApi.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/SupabaseClientFactory.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthClaims.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthGateImpl.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/AuthReResolver.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/DefaultAuthOutcomeClassifier.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/ExpiredAccountStore.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/FallbackDisplayNameStore.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/FreshInstall.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/GatewayAuthTokenProvider.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/RealSupabaseAuthGateway.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/RefreshFailureClassifier.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SecureSessionManager.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SessionHealer.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SessionMirrorStore.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/StrandedIdentityDetector.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthGateway.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthRepositoryImpl.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/PendingProfileEditStore.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileCache.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileEditFlusher.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/ProfileRepositoryImpl.kt`
+- [x] `libraries/identity/impl/src/commonMain/kotlin/com/opson/libraries/identity/impl/profile/UserScopedProfileCacheCleaner.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/AuthClaimsTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/AuthGateImplTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/DefaultAuthOutcomeClassifierTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/FakeSessionRejectionBus.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/FreshInstallStoreTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/GatewayAuthTokenProviderTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/RealSupabaseAuthGatewayTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/RefreshFailureClassifierTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/SecureSessionManagerTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/SessionHealerTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/SupabaseAuthRepositoryImplTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/auth/TestCacheFactory.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/profile/ProfileEditFlusherTest.kt`
+- [x] `libraries/identity/impl/src/commonTest/kotlin/com/opson/libraries/identity/impl/profile/ProfileRepositoryImplTest.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/IdentityConfig.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AppleSignInCoordinator.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcome.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcomeClassifier.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthOutcomes.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/AuthRepository.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/PendingIdentity.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/auth/SecureSessionStorage.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/profile/DisplayNameRules.kt`
+- [x] `libraries/identity/src/commonMain/kotlin/com/opson/libraries/identity/profile/ProfileRepository.kt`
+- [x] `libraries/identity/src/commonTest/kotlin/com/opson/libraries/identity/profile/DisplayNameRulesTest.kt`
+- [x] `libraries/networking/build.gradle.kts`
+- [x] `libraries/networking/impl/build.gradle.kts`
+- [x] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/AndroidConnectivityObserver.kt`
+- [x] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.android.kt`
+- [x] `libraries/networking/impl/src/androidMain/kotlin/com/opson/libraries/networking/impl/NetworkInspectorLauncher.android.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/AccessDeniedBusImpl.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/AppStateImpl.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/BearerTokenInvalidator.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/ConnectivityObserver.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/DefaultClientHeadersProvider.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/DefaultNetworkConfig.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/NetworkClientImpl.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/NetworkReachabilityImpl.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/SessionRejectionBusImpl.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/UnresolvedRelativeRequest.kt`
+- [x] `libraries/networking/impl/src/commonMain/kotlin/com/opson/libraries/networking/impl/WiretapNetworkInspector.kt`
+- [x] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/AppStateImplTest.kt`
+- [x] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/CommonConfigTimeoutTest.kt`
+- [x] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/NetworkReachabilityImplTest.kt`
+- [x] `libraries/networking/impl/src/commonTest/kotlin/com/opson/libraries/networking/impl/UnresolvedRelativeRequestTest.kt`
+- [x] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/IosConnectivityObserver.kt`
+- [x] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/LocaleSource.ios.kt`
+- [x] `libraries/networking/impl/src/iosMain/kotlin/com/opson/libraries/networking/impl/NetworkInspectorLauncher.ios.kt`
+- [x] `libraries/networking/src/androidMain/kotlin/com/opson/libraries/networking/OfflineErrors.android.kt`
+- [x] `libraries/networking/src/androidMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.android.kt`
+- [x] `libraries/networking/src/androidUnitTest/kotlin/com/opson/libraries/networking/OfflineErrorsTest.kt`
+- [x] `libraries/networking/src/androidUnitTest/kotlin/com/opson/libraries/networking/PlatformHttpEngineTest.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AccessDeniedBus.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AuthTokenInvalidator.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/AuthTokenProvider.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/ClientHeaders.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/InstallIdProvider.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/InternalNetworkingApi.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkCall.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkClient.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkConfig.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkInspector.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkJson.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkReachability.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NoOpAuthTokenProvider.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/OfflineErrors.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/SessionIdProvider.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/SessionRejectionBus.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/Backoff.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/Jitter.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/RetryPolicy.kt`
+- [x] `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/retry/WithRetry.kt`
+- [x] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/BackoffTest.kt`
+- [x] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/JitterTest.kt`
+- [x] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/RetryPolicyTest.kt`
+- [x] `libraries/networking/src/commonTest/kotlin/com/opson/libraries/networking/retry/WithRetryTest.kt`
+- [x] `libraries/networking/src/iosMain/kotlin/com/opson/libraries/networking/OfflineErrors.ios.kt`
+- [x] `libraries/networking/src/iosMain/kotlin/com/opson/libraries/networking/PlatformHttpEngine.ios.kt`
+- [x] `libraries/networking/src/iosTest/kotlin/com/opson/libraries/networking/OfflineErrorsTest.kt`
+- [x] `libraries/networking/src/iosTest/kotlin/com/opson/libraries/networking/PlatformHttpEngineTest.kt`
+- [x] `libraries/storage/build.gradle.kts`
+- [x] `libraries/storage/impl/build.gradle.kts`
+- [x] `libraries/storage/impl/src/androidMain/kotlin/com/opson/libraries/storage/impl/cache/AndroidFileManager.kt`
+- [x] `libraries/storage/impl/src/androidMain/kotlin/com/opson/libraries/storage/impl/db/AndroidAppDatabaseBuilderFactory.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/UserScopedDaoCleaner.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/cache/DataStoreCacheFactory.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/cache/InMemoryCache.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabase.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabaseBuilderFactory.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/AppDatabaseProvider.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/ProvideDaos.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/RealAppDatabaseProvider.kt`
+- [x] `libraries/storage/impl/src/commonMain/kotlin/com/opson/libraries/storage/impl/db/RoomDatabaseTransactor.kt`
+- [x] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/UserScopedDaoCleanerTest.kt`
+- [x] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/cache/DataStoreCacheTest.kt`
+- [x] `libraries/storage/impl/src/commonTest/kotlin/com/opson/libraries/storage/impl/cache/InMemoryCacheTest.kt`
+- [x] `libraries/storage/impl/src/iosMain/kotlin/com/opson/libraries/storage/impl/NoBackupDirectory.kt`
+- [x] `libraries/storage/impl/src/iosMain/kotlin/com/opson/libraries/storage/impl/cache/IosFileManager.kt`
+- [x] `libraries/storage/impl/src/iosMain/kotlin/com/opson/libraries/storage/impl/db/IosAppDatabaseBuilderFactory.kt`
+- [x] `libraries/storage/impl/src/iosTest/kotlin/com/opson/libraries/storage/impl/NoBackupDirectoryTest.kt`
+- [x] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/Cache.kt`
+- [x] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/CacheFactory.kt`
+- [x] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/CacheJsonSerializer.kt`
+- [x] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/FileManager.kt`
+- [x] `libraries/storage/src/commonMain/kotlin/com/opson/libraries/storage/VersionedCacheJsonSerializer.kt`
+- [x] `libraries/storage/src/commonTest/kotlin/com/opson/libraries/storage/VersionedCacheJsonSerializerTest.kt`
 
 ## ui-library (136 files)
 
-- [ ] `libraries/resources/build.gradle.kts`
-- [ ] `libraries/ui/build.gradle.kts`
-- [ ] `libraries/ui/src/androidMain/kotlin/com/opson/libraries/ui/system/ReduceMotion.android.kt`
-- [ ] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/PopoverMenuTest.kt`
-- [ ] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/radio/RadioMatrixTest.kt`
-- [ ] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextFieldSemanticsTest.kt`
-- [ ] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextTest.kt`
-- [ ] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/system/BounceClickTest.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/NoScreenshot.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/Preview.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/ButtonCatalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/Catalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/ColorCatalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/DesignSystemGallery.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/DesignSystemPreview.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/FormCatalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/RadiiCatalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/TypographyCatalog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Banner.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BottomNavBar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChecklistRow.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChevronLink.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChoiceRow.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/CircularProgressIndicator.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/CyclingLoadingMessage.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DayHeader.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DelayedLoadingIndicator.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Dots.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/EdgeCard.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/EmptyCard.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HeroBlock.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HeroParts.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HorizontalDivider.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/IntakeBarChart.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ListRow.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LoopingAnimation.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/MenuPopover.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/MonthGrid.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/OpsonLoader.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/OpsonLockup.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PageHeader.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PageHeaderSubtitle.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PhotoThumbnail.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Progress.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PromptCard.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ScanFrame.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Screen.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SectionCard.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SegmentedControl.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SheetHeader.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SheetMenu.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Snackbar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Stepper.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/StripedBar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Surface.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SwipePages.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Switch.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TapField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Timeline.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TintTile.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TrendLine.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/UndoBar.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/BasicButton.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/Button.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/FlatButton.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/SquareCheck.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/chip/PillChip.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/BasicDialog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/Dialog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/DialogHostState.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/DialogState.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/ModalContent.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/ShakeDialog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/TimePickerDialog.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheet.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetDefaults.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetState.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetValue.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/ExpandOnDragUp.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/SheetFrame.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/header/Header.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/AppIcons.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icon.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/IconButton.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icons.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/ToneIcon.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/Fruit.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioMatrix.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioRow.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BasicTextField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/InputBox.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/MaskedTextField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/NumberField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlinedTextField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/SearchField.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/Text.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TextArea.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TextInput.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TypedText.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/debug/RecompositionCounter.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/snackbar/PresenterSnackbarHost.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/snackbar/SnackBarPresenter.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/AppTheme.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Border.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/BounceClick.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/DimensionResource.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Elevation.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Haptics.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Local.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ModifierExt.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Outlines.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/PaddingValuesExt.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Radius.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ReduceMotion.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Shapes.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Spacers.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Tokens.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/TouchTarget.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/ColorResource.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/Colors.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/Slate.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/FontFamily.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypeScale.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypographyResource.kt`
-- [ ] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/time/RelativeDay.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/BarFillTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/OpsonLoaderSteamTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetStateSaverTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/NumberInputTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/TypedTextTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/snackbar/SnackbarMessageTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/system/color/ColorResourceTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/time/RelativeDayTest.kt`
-- [ ] `libraries/ui/src/commonTest/kotlin/com/opson/system/color/SlateTest.kt`
-- [ ] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/nativeviews/NativeViewFactory.kt`
-- [ ] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/system/ReduceMotion.ios.kt`
+- [x] `libraries/resources/build.gradle.kts`
+- [x] `libraries/ui/build.gradle.kts`
+- [x] `libraries/ui/src/androidMain/kotlin/com/opson/libraries/ui/system/ReduceMotion.android.kt`
+- [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/PopoverMenuTest.kt`
+- [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/radio/RadioMatrixTest.kt`
+- [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextFieldSemanticsTest.kt`
+- [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/components/text/TextTest.kt`
+- [x] `libraries/ui/src/androidUnitTest/kotlin/com/opson/libraries/ui/system/BounceClickTest.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/NoScreenshot.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/Preview.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/ButtonCatalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/Catalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/ColorCatalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/DesignSystemGallery.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/DesignSystemPreview.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/FormCatalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/RadiiCatalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/catalog/TypographyCatalog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Banner.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/BottomNavBar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChecklistRow.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChevronLink.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ChoiceRow.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/CircularProgressIndicator.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/CyclingLoadingMessage.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DayHeader.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/DelayedLoadingIndicator.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Dots.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/EdgeCard.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/EmptyCard.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HeroBlock.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HeroParts.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/HorizontalDivider.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/IntakeBarChart.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ListRow.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/LoopingAnimation.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/MenuPopover.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/MonthGrid.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/OpsonLoader.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/OpsonLockup.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PageHeader.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PageHeaderSubtitle.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PhotoThumbnail.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Progress.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/PromptCard.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/ScanFrame.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Screen.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SectionCard.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SegmentedControl.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SheetHeader.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SheetMenu.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Snackbar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Stepper.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/StripedBar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Surface.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/SwipePages.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Switch.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TapField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/Timeline.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TintTile.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/TrendLine.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/UndoBar.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/BasicButton.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/Button.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/button/FlatButton.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/checkbox/SquareCheck.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/chip/PillChip.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/BasicDialog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/Dialog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/DialogHostState.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/DialogState.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/ModalContent.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/ShakeDialog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/TimePickerDialog.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheet.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetDefaults.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetState.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetValue.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/ExpandOnDragUp.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/SheetFrame.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/header/Header.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/AppIcons.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icon.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/IconButton.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/Icons.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/ToneIcon.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/icon/icons/Fruit.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioMatrix.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/radio/RadioRow.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/BasicTextField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/InputBox.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/MaskedTextField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/NumberField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/OutlinedTextField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/SearchField.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/Text.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TextArea.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TextInput.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/components/text/TypedText.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/debug/RecompositionCounter.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/snackbar/PresenterSnackbarHost.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/snackbar/SnackBarPresenter.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/AppTheme.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Border.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/BounceClick.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/DimensionResource.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Elevation.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Haptics.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Local.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ModifierExt.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Outlines.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/PaddingValuesExt.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Radius.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/ReduceMotion.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Shapes.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Spacers.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/Tokens.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/TouchTarget.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/ColorResource.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/Colors.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/color/Slate.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/FontFamily.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypeScale.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/system/typography/TypographyResource.kt`
+- [x] `libraries/ui/src/commonMain/kotlin/com/opson/libraries/ui/time/RelativeDay.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/BarFillTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/OpsonLoaderSteamTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/dialog/bottomsheet/BottomSheetStateSaverTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/NumberInputTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/components/text/TypedTextTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/snackbar/SnackbarMessageTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/system/color/ColorResourceTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/libraries/ui/time/RelativeDayTest.kt`
+- [x] `libraries/ui/src/commonTest/kotlin/com/opson/system/color/SlateTest.kt`
+- [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/nativeviews/NativeViewFactory.kt`
+- [x] `libraries/ui/src/iosMain/kotlin/com/opson/libraries/ui/system/ReduceMotion.ios.kt`
 
 ## core-libraries (180 files)
 
-- [ ] `libraries/config/build.gradle.kts`
-- [ ] `libraries/config/impl/build.gradle.kts`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/ConfigDiModule.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/ConfigRefreshThrottleMs.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/EnsureAppConfigLoadedImpl.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/MapOverrides.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/ConfigCache.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/ConfigOverrideRepositoryImpl.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/RemoteConfigDataSource.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/RemoteConfigRemoteDataSource.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/model/BasicMapAppConfig.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/model/FallbackConfigMap.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/repository/OfflineFirstAppConfigRepository.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/serialization/ConfigJsonConverter.kt`
-- [ ] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/serialization/JsonValueConverters.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/JsonConfigValueTest.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/MapExtTest.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/MapOverridesTest.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/data/ConfigOverrideRepositoryImplTest.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/repository/OfflineFirstAppConfigRepositoryTest.kt`
-- [ ] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/serialization/ConfigJsonConverterTest.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigFlow.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigMap.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigRefresher.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigRepository.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfigOverride.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfigOverrideRepository.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfiguredValue.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/EnsureAppConfigLoaded.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/JsonConfigValue.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/MapExt.kt`
-- [ ] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/TypedConfiguredValues.kt`
-- [ ] `libraries/core/build.gradle.kts`
-- [ ] `libraries/core/src/androidMain/kotlin/com/opson/libraries/core/AndroidShakeDetector.kt`
-- [ ] `libraries/core/src/androidMain/kotlin/com/opson/libraries/core/BuildConfig.android.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AnyExts.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AppState.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AuthGate.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AutoInit.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/BuildInfo.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/Catching.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/RateLimiter.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeDetector.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeMessageProvider.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeRecognizer.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/SupabaseInfo.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/TelemetryInfo.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ThrowableExtensions.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/Time.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/AppEvents.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/KLog.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogContext.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogEntry.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogLevel.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogTree.kt`
-- [ ] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/Logger.kt`
-- [ ] `libraries/core/src/commonTest/kotlin/com/opson/libraries/core/ShakeRecognizerTest.kt`
-- [ ] `libraries/core/src/iosMain/kotlin/com/opson/libraries/core/BuildConfig.ios.kt`
-- [ ] `libraries/core/src/iosMain/kotlin/com/opson/libraries/core/IosShakeDetector.kt`
-- [ ] `libraries/flowroutines/build.gradle.kts`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/Compose.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/Coroutines.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/DispatcherProvider.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/FlowExt.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/RunWhen.kt`
-- [ ] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/SEAViewModel.kt`
-- [ ] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/AppCoroutineScopeTest.kt`
-- [ ] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/RunWhenTest.kt`
-- [ ] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/SEAViewModelEventExpiryTest.kt`
-- [ ] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/SEAViewModelStateTest.kt`
-- [ ] `libraries/flowroutines/testing/build.gradle.kts`
-- [ ] `libraries/flowroutines/testing/src/commonMain/kotlin/com/opson/libraries/flowroutines/testing/CoroutineTest.kt`
-- [ ] `libraries/flowroutines/testing/src/commonMain/kotlin/com/opson/libraries/flowroutines/testing/TestDispatcherProvider.kt`
-- [ ] `libraries/navigation/build.gradle.kts`
-- [ ] `libraries/navigation/impl/build.gradle.kts`
-- [ ] `libraries/navigation/impl/src/androidMain/kotlin/com/opson/libraries/navigation/impl/AndroidFileShareLauncher.kt`
-- [ ] `libraries/navigation/impl/src/androidMain/kotlin/com/opson/libraries/navigation/impl/AndroidWebLinkLauncher.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/AccessDeniedScreen.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/AppNavigationTracker.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/BlockingErrorScreen.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ChannelDrain.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/DeepLinkBridgeImpl.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/DelegatingRouter.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ErrorDialogContent.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ErrorEntryPoints.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/SessionExpiredScreen.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/SessionExpiredViewModel.kt`
-- [ ] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/TabBarImpl.kt`
-- [ ] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/AccessRestoredDateTest.kt`
-- [ ] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/ChannelDrainTest.kt`
-- [ ] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/DeepLinkBridgeImplTest.kt`
-- [ ] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/SessionExpiredViewModelTest.kt`
-- [ ] `libraries/navigation/impl/src/iosMain/kotlin/com/opson/libraries/navigation/impl/IosFileShareLauncher.kt`
-- [ ] `libraries/navigation/impl/src/iosMain/kotlin/com/opson/libraries/navigation/impl/IosWebLinkLauncher.kt`
-- [ ] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/NullableNavTypeTest.kt`
-- [ ] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/RepeatNavigationTest.kt`
-- [ ] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/TabNavigationTest.kt`
-- [ ] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/TabReselectTest.kt`
-- [ ] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowHostTest.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/BugReportRoute.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/DeepLinkBridge.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/ErrorRoutes.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/FeatureEntryPoint.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/FileShareLauncher.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavGraphBuilderExt.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigableWhileBlocked.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigationRecovery.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigationTracker.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/RepeatNavigation.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/Route.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/Router.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/ShakeDialogRoute.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TabBar.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TabNavigation.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TabReselect.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TrackableRoute.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/WebLinkLauncher.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/BottomSheetDestination.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/DialogDestination.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowHost.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowNavDestinationBuilder.kt`
-- [ ] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowNavigator.kt`
-- [ ] `libraries/navigation/src/commonTest/kotlin/com/opson/libraries/navigation/ShareFileNameTest.kt`
-- [ ] `libraries/navigation/src/iosMain/kotlin/com/opson/libraries/navigation/FileSharePresenter.kt`
-- [ ] `libraries/opson/build.gradle.kts`
-- [ ] `libraries/opson/impl/build.gradle.kts`
-- [ ] `libraries/opson/impl/src/androidUnitTest/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTreeConnectivityTest.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppEventDispatcher.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppEventsDiModule.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppTelemetry.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/CachedInstallIdProvider.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/ConnectivityEdgeDispatcher.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/DefaultUserScopedDataReset.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/LifecycleAppEventLogger.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SessionTelemetryBinder.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SessionTrackerImpl.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SyncTriggers.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/TelemetryUserBinder.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedAppDataReset.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedSyncCoordinator.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedWorkRegistry.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/DevConsoleWriter.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/KermitLogTree.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/LogRingBuffer.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTree.kt`
-- [ ] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/SentryUrlScrubbing.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/AppEventDispatcherTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/CachedInstallIdProviderTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/ConnectivityEdgeDispatcherTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/DefaultUserScopedDataResetTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/LifecycleAppEventLoggerTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/SentryRuntimeConfigTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/SessionTrackerImplTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/TelemetryUserBinderTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/UserScopedSyncCoordinatorTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/logging/LogRingBufferTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTreeTest.kt`
-- [ ] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/logging/SentryUrlScrubbingTest.kt`
-- [ ] `libraries/opson/src/androidMain/kotlin/com/opson/libraries/ActivityProvider.kt`
-- [ ] `libraries/opson/src/androidMain/kotlin/com/opson/libraries/opson/AndroidAppLifecycle.kt`
-- [ ] `libraries/opson/src/androidUnitTest/kotlin/com/opson/libraries/opson/AndroidAppLifecycleTest.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppCache.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppEvent.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppEvents.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/Session.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/Telemetry.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/UserScopedData.kt`
-- [ ] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/UserScopedSyncer.kt`
-- [ ] `libraries/opson/src/iosMain/kotlin/com/opson/libraries/opson/IosAppLifecycle.kt`
-- [ ] `libraries/opson/storage/build.gradle.kts`
-- [ ] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/ClearableDao.kt`
-- [ ] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/DatabaseTransactor.kt`
-- [ ] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/ExampleUserDataDao.kt`
-- [ ] `libraries/review/build.gradle.kts`
-- [ ] `libraries/review/impl/build.gradle.kts`
-- [ ] `libraries/review/impl/src/androidMain/kotlin/com/opson/libraries/review/impl/AndroidReviewLauncher.kt`
-- [ ] `libraries/review/impl/src/commonMain/kotlin/com/opson/libraries/review/impl/RealReviewPromptCoordinator.kt`
-- [ ] `libraries/review/impl/src/commonTest/kotlin/com/opson/libraries/review/impl/RealReviewPromptCoordinatorTest.kt`
-- [ ] `libraries/review/src/commonMain/kotlin/com/opson/libraries/review/ReviewLauncher.kt`
-- [ ] `libraries/review/src/commonMain/kotlin/com/opson/libraries/review/ReviewPromptCoordinator.kt`
+- [x] `libraries/config/build.gradle.kts`
+- [x] `libraries/config/impl/build.gradle.kts`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/ConfigDiModule.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/ConfigRefreshThrottleMs.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/EnsureAppConfigLoadedImpl.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/MapOverrides.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/ConfigCache.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/ConfigOverrideRepositoryImpl.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/RemoteConfigDataSource.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/data/RemoteConfigRemoteDataSource.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/model/BasicMapAppConfig.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/model/FallbackConfigMap.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/repository/OfflineFirstAppConfigRepository.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/serialization/ConfigJsonConverter.kt`
+- [x] `libraries/config/impl/src/commonMain/kotlin/com/opson/libraries/config/impl/serialization/JsonValueConverters.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/JsonConfigValueTest.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/MapExtTest.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/MapOverridesTest.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/data/ConfigOverrideRepositoryImplTest.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/repository/OfflineFirstAppConfigRepositoryTest.kt`
+- [x] `libraries/config/impl/src/commonTest/kotlin/com/opson/libraries/config/impl/serialization/ConfigJsonConverterTest.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigFlow.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigMap.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigRefresher.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/AppConfigRepository.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfigOverride.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfigOverrideRepository.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/ConfiguredValue.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/EnsureAppConfigLoaded.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/JsonConfigValue.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/MapExt.kt`
+- [x] `libraries/config/src/commonMain/kotlin/com/opson/libraries/config/TypedConfiguredValues.kt`
+- [x] `libraries/core/build.gradle.kts`
+- [x] `libraries/core/src/androidMain/kotlin/com/opson/libraries/core/AndroidShakeDetector.kt`
+- [x] `libraries/core/src/androidMain/kotlin/com/opson/libraries/core/BuildConfig.android.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AnyExts.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AppState.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AuthGate.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/AutoInit.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/BuildInfo.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/Catching.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/RateLimiter.kt` (deleted)
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeDetector.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeMessageProvider.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ShakeRecognizer.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/SupabaseInfo.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/TelemetryInfo.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/ThrowableExtensions.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/Time.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/AppEvents.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/KLog.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogContext.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogEntry.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogLevel.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/LogTree.kt`
+- [x] `libraries/core/src/commonMain/kotlin/com/opson/libraries/core/logging/Logger.kt`
+- [x] `libraries/core/src/commonTest/kotlin/com/opson/libraries/core/ShakeRecognizerTest.kt`
+- [x] `libraries/core/src/iosMain/kotlin/com/opson/libraries/core/BuildConfig.ios.kt`
+- [x] `libraries/core/src/iosMain/kotlin/com/opson/libraries/core/IosShakeDetector.kt`
+- [x] `libraries/flowroutines/build.gradle.kts`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/Compose.kt`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/Coroutines.kt`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/DispatcherProvider.kt`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/FlowExt.kt`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/RunWhen.kt`
+- [x] `libraries/flowroutines/src/commonMain/kotlin/com/opson/libraries/flowroutines/SEAViewModel.kt`
+- [x] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/AppCoroutineScopeTest.kt`
+- [x] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/RunWhenTest.kt`
+- [x] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/SEAViewModelEventExpiryTest.kt`
+- [x] `libraries/flowroutines/src/commonTest/kotlin/com/opson/libraries/flowroutines/SEAViewModelStateTest.kt`
+- [x] `libraries/flowroutines/testing/build.gradle.kts`
+- [x] `libraries/flowroutines/testing/src/commonMain/kotlin/com/opson/libraries/flowroutines/testing/CoroutineTest.kt`
+- [x] `libraries/flowroutines/testing/src/commonMain/kotlin/com/opson/libraries/flowroutines/testing/TestDispatcherProvider.kt`
+- [x] `libraries/navigation/build.gradle.kts`
+- [x] `libraries/navigation/impl/build.gradle.kts`
+- [x] `libraries/navigation/impl/src/androidMain/kotlin/com/opson/libraries/navigation/impl/AndroidFileShareLauncher.kt`
+- [x] `libraries/navigation/impl/src/androidMain/kotlin/com/opson/libraries/navigation/impl/AndroidWebLinkLauncher.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/AccessDeniedScreen.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/AppNavigationTracker.kt` (deleted)
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/BlockingErrorScreen.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ChannelDrain.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/DeepLinkBridgeImpl.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/DelegatingRouter.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ErrorDialogContent.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/ErrorEntryPoints.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/SessionExpiredScreen.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/SessionExpiredViewModel.kt`
+- [x] `libraries/navigation/impl/src/commonMain/kotlin/com/opson/libraries/navigation/impl/TabBarImpl.kt`
+- [x] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/AccessRestoredDateTest.kt`
+- [x] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/ChannelDrainTest.kt`
+- [x] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/DeepLinkBridgeImplTest.kt`
+- [x] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/SessionExpiredViewModelTest.kt`
+- [x] `libraries/navigation/impl/src/iosMain/kotlin/com/opson/libraries/navigation/impl/IosFileShareLauncher.kt`
+- [x] `libraries/navigation/impl/src/iosMain/kotlin/com/opson/libraries/navigation/impl/IosWebLinkLauncher.kt`
+- [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/NullableNavTypeTest.kt`
+- [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/RepeatNavigationTest.kt`
+- [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/TabNavigationTest.kt`
+- [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/TabReselectTest.kt`
+- [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowHostTest.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/BugReportRoute.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/DeepLinkBridge.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/ErrorRoutes.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/FeatureEntryPoint.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/FileShareLauncher.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavGraphBuilderExt.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigableWhileBlocked.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigationRecovery.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/NavigationTracker.kt` (deleted)
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/RepeatNavigation.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/Route.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/Router.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/ShakeDialogRoute.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TabBar.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TabNavigation.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TabReselect.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/TrackableRoute.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/WebLinkLauncher.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/BottomSheetDestination.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/DialogDestination.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowHost.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowNavDestinationBuilder.kt`
+- [x] `libraries/navigation/src/commonMain/kotlin/com/opson/libraries/navigation/floatingwindow/FloatingWindowNavigator.kt`
+- [x] `libraries/navigation/src/commonTest/kotlin/com/opson/libraries/navigation/ShareFileNameTest.kt`
+- [x] `libraries/navigation/src/iosMain/kotlin/com/opson/libraries/navigation/FileSharePresenter.kt`
+- [x] `libraries/opson/build.gradle.kts`
+- [x] `libraries/opson/impl/build.gradle.kts`
+- [x] `libraries/opson/impl/src/androidUnitTest/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTreeConnectivityTest.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppEventDispatcher.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppEventsDiModule.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/AppTelemetry.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/CachedInstallIdProvider.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/ConnectivityEdgeDispatcher.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/DefaultUserScopedDataReset.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/LifecycleAppEventLogger.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SessionTelemetryBinder.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SessionTrackerImpl.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/SyncTriggers.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/TelemetryUserBinder.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedAppDataReset.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedSyncCoordinator.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/UserScopedWorkRegistry.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/DevConsoleWriter.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/KermitLogTree.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/LogRingBuffer.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTree.kt`
+- [x] `libraries/opson/impl/src/commonMain/kotlin/com/opson/libraries/opson/impl/logging/SentryUrlScrubbing.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/AppEventDispatcherTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/CachedInstallIdProviderTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/ConnectivityEdgeDispatcherTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/DefaultUserScopedDataResetTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/LifecycleAppEventLoggerTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/SentryRuntimeConfigTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/SessionTrackerImplTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/TelemetryUserBinderTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/UserScopedSyncCoordinatorTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/logging/LogRingBufferTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/logging/SentryLogTreeTest.kt`
+- [x] `libraries/opson/impl/src/commonTest/kotlin/com/opson/libraries/opson/impl/logging/SentryUrlScrubbingTest.kt`
+- [x] `libraries/opson/src/androidMain/kotlin/com/opson/libraries/ActivityProvider.kt`
+- [x] `libraries/opson/src/androidMain/kotlin/com/opson/libraries/opson/AndroidAppLifecycle.kt`
+- [x] `libraries/opson/src/androidUnitTest/kotlin/com/opson/libraries/opson/AndroidAppLifecycleTest.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppCache.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppEvent.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/AppEvents.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/Session.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/Telemetry.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/UserScopedData.kt`
+- [x] `libraries/opson/src/commonMain/kotlin/com/opson/libraries/UserScopedSyncer.kt`
+- [x] `libraries/opson/src/iosMain/kotlin/com/opson/libraries/opson/IosAppLifecycle.kt`
+- [x] `libraries/opson/storage/build.gradle.kts`
+- [x] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/ClearableDao.kt`
+- [x] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/DatabaseTransactor.kt`
+- [x] `libraries/opson/storage/src/commonMain/kotlin/com/opson/libraries/opson/storage/db/ExampleUserDataDao.kt`
+- [x] `libraries/review/build.gradle.kts`
+- [x] `libraries/review/impl/build.gradle.kts`
+- [x] `libraries/review/impl/src/androidMain/kotlin/com/opson/libraries/review/impl/AndroidReviewLauncher.kt`
+- [x] `libraries/review/impl/src/commonMain/kotlin/com/opson/libraries/review/impl/RealReviewPromptCoordinator.kt`
+- [x] `libraries/review/impl/src/commonTest/kotlin/com/opson/libraries/review/impl/RealReviewPromptCoordinatorTest.kt`
+- [x] `libraries/review/src/commonMain/kotlin/com/opson/libraries/review/ReviewLauncher.kt`
+- [x] `libraries/review/src/commonMain/kotlin/com/opson/libraries/review/ReviewPromptCoordinator.kt`
+- [x] `libraries/navigation/impl/src/commonTest/kotlin/com/opson/libraries/navigation/impl/OpenWebLinkTest.kt` (new)
+- [x] `libraries/navigation/src/androidUnitTest/kotlin/com/opson/libraries/navigation/ObserveWithLifecycleTest.kt` (new)
+- [x] `libraries/opson/src/commonTest/kotlin/com/opson/libraries/opson/AppDataReadTest.kt` (new)
 
 ## website (20 files)
 

@@ -24,10 +24,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * The Compose loading gate shown after the platform splash hands off but
- * before the app has finished booting (app-config + profile resolve): the
- * steaming bowl, centred, where the iOS launch screen drew it still. It
- * surfaces [CyclingLoadingMessage] once the wait runs long (it self-delays,
- * so a fast boot never flashes the caption).
+ * before the app config is in: the steaming bowl, centred, where the iOS
+ * launch screen drew it still. It surfaces [CyclingLoadingMessage] once the
+ * wait runs long (it self-delays, so a fast boot never flashes the caption).
  *
  * The caption start-delay is short enough that the status text cycles during
  * the wait rather than appearing only after a long hold.

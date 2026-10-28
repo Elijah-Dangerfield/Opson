@@ -19,12 +19,13 @@ import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.PortionAmount
 import com.opson.libraries.foods.amountText
-import com.opson.libraries.foods.amountUnits
 import com.opson.libraries.foods.chipLabel
+import com.opson.libraries.foods.detailUnits
 import com.opson.libraries.foods.draftFor
 import com.opson.libraries.foods.gramsLabel
 import com.opson.libraries.foods.initialQuantity
 import com.opson.libraries.foods.isByWeight
+import com.opson.libraries.foods.isMeasure
 import com.opson.libraries.foods.isUsda
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.nutrition.Display
@@ -37,6 +38,10 @@ import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.nutrition.macroEnergyShares
+import com.opson.libraries.nutrition.share
+import com.opson.libraries.nutrition.targetShare
 import com.opson.libraries.nutrition.toMicronutrients
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -45,11 +50,11 @@ import kotlin.math.round
 import kotlin.time.Instant
 
 /**
- * A food's detail (design sync 4, 13.4d), a full screen. Opened from a row's name in search, a
- * barcode hit, and a food chosen on the Foods tab or Today, so the route lives in the impl and
- * the add sheet's `prePickFoodId` stands in for it from outside. [source] is where the food was
- * found, for the method and telemetry. [dayIso] and [slot] are where "Add to {meal}" logs; null
- * is the day Today shows and the meal picked from this person's logging times.
+ * A food's detail, a full screen. Opened from a row's name in search, a barcode hit, and a food
+ * chosen on the Foods tab or Today, so the route lives in the impl and the add sheet's
+ * `prePickFoodId` stands in for it from outside. [source] is where the food was found, for the
+ * method and telemetry. [dayIso] and [slot] are where "Add to {meal}" logs; null is the day Today
+ * shows and the meal picked from this person's logging times.
  */
 @Serializable
 data class FoodDetailRoute(
@@ -63,9 +68,10 @@ data class FoodDetailRoute(
 }
 
 /**
- * What the food detail draws. Every number in it comes from the policy; unit weights, the
- * serving chips' grams and the source line are amounts of food, not nutrients, so they stay in
- * every mode.
+ * What the food detail draws: a list of rows (the amount and its unit, the meal, the time, how
+ * sure), what is in the amount, how it fits today, and where the numbers come from. Every number
+ * comes from the policy; unit weights and the weight of the amount are amounts of food, not
+ * nutrients, so they stay in every mode but No numbers.
  */
 data class FoodDetailState(
     val loading: Boolean = true,
@@ -76,25 +82,31 @@ data class FoodDetailState(
     val tag: String? = null,
     /** Saved to favorites, from the ⋮ menu. */
     val favorite: Boolean = false,
-    /** Where "Add to {meal}" logs, and the ⋮ menu's Meal: every meal, Uncategorized last. */
+    /** On the Recent row now, so the ⋮ menu offers to take it off. */
+    val inRecents: Boolean = false,
+    /** Where "Add to {meal}" logs: every meal, Uncategorized last. One meal means meal groups are off, and no Meal row. */
     val slot: MealSlot = MealSlot.Dinner,
     val slots: List<MealSlot> = MealSlot.entries,
-    /** When it was eaten: now until the person changes it in the ⋮ menu. */
+    /** When it was eaten: now until the person picks a time. */
     val time: LocalTime = LocalTime(0, 0),
     val timeIsNow: Boolean = true,
     /** The typed amount, as typed: "32", "1.5", or empty while the field is cleared. */
     val amount: String = "",
-    /** The unit dropdown, each with its weight ("tbsp", "16 g"); grams has none. */
+    /** The unit menu, each with its weight ("tbsp", "16 g"); weights and volumes themselves have none. */
     val units: List<UnitUi> = emptyList(),
     val unitIndex: Int = 0,
     /** "Custom size…" at the end of the menu: a food whose weight is known. */
     val canAddUnit: Boolean = false,
-    /** "1 tbsp · 16 g", "2 tbsp · 32 g", "100 g". */
+    /** "1 tbsp", "2 tbsp", "100 g": quick amounts, never with a weight beside them. */
     val servings: List<ServingChip> = emptyList(),
-    /** How sure: Estimate, Weighed, From label. */
+    /** "32 g": what the amount weighs, when it is counted in anything but grams and the weight is known. */
+    val weight: String? = null,
+    /** How sure: worked out from how the amount was given, unless the person picked one. */
     val precision: Precision = Precision.Estimate,
-    /** kcal, the macro tiles and "Today with this": null when energy and every macro hide. */
-    val energy: EnergyCard? = null,
+    /** The calories, each macro and its share of the energy: null when the policy leaves nothing in it. */
+    val breakdown: Breakdown? = null,
+    /** The day it logs to with this food in it, against the targets: null when the policy leaves nothing. */
+    val targets: TodayTargets? = null,
     /**
      * All nutrients: null unless vitamins and minerals are visible in Modes and numbers and the
      * food carries at least one of them.
@@ -105,7 +117,7 @@ data class FoodDetailState(
     val customSize: CustomSizeUi? = null,
     /** An amount above nothing: Add is off while the field is empty or zero. */
     val canAdd: Boolean = false,
-    /** No numbers (13.5e): the amount and the hunger check only; no how sure, no energy, no grams. */
+    /** No numbers: the amount, the meal and the time, and the hunger check; no how sure, no grams. */
     val noNumbers: Boolean = false,
     /** No numbers' optional "How hungry were you?", null while the hunger questions are off. */
     val hunger: HungerCheck? = null,
@@ -118,23 +130,39 @@ data class UnitUi(val label: String, val grams: String?)
 /** "How hungry were you?", with the answer picked so far, if any. */
 data class HungerCheck(val picked: Hunger?)
 
-/** A serving chip: "1 tbsp" and "16 g". [selected] while the amount is exactly it. */
-data class ServingChip(val label: String, val grams: String?, val selected: Boolean)
+/** A quick amount: "1 tbsp". [selected] while the amount is exactly it. */
+data class ServingChip(val label: String, val selected: Boolean)
 
 /**
- * The energy card: [energy] big, a tile per macro in its own colour, and the day with this food
- * in it. A tile the policy hides is left out.
+ * What is in the amount: [energy] big, then a split bar and a line per macro with its grams and
+ * its share of the energy. A macro the policy hides is left out, and the shares are of the macros
+ * on show, so a hidden one can't be read off the gap.
  */
-data class EnergyCard(val energy: Display, val macros: List<MacroTile>, val today: TodayWithThis?)
+data class Breakdown(val energy: Display, val macros: List<MacroRow>)
 
-data class MacroTile(val metric: Metric, val amount: Display)
+/** "Protein 8 g 17%". [weight] is the share as a fraction of the split bar; 0 when the share is hidden. */
+data class MacroRow(val metric: Metric, val amount: Display, val share: Display, val weight: Float)
 
 /**
- * "Today with this 1,435 ± 100 kcal": [total] with its unit, or as [bare] beside [plusMinus], the
- * day's ± from how each food was logged, this one at the how-sure picked (`eatenUncertainty`).
- * [plusMinus] is hidden while nothing in the day is uncertain, or the policy hides it.
+ * Today with this: a row per number the policy shows, each the day so far plus this food against
+ * its target. In Macros only the rows are words and bars.
  */
-data class TodayWithThis(val total: Display, val bare: Display = Display.Hidden, val plusMinus: Display = Display.Hidden)
+data class TodayTargets(val rows: List<TargetRow>)
+
+/**
+ * One row. [total] is the day with this food ("44 / 120 g"); for energy [bare] and [plusMinus]
+ * spell "1,063 ± 160 kcal" when the day has a ±. [adds] is this food's share of the target
+ * ("12%"). [soFar] and [food] are fractions of the target for the bar, before and with this food.
+ */
+data class TargetRow(
+    val metric: Metric,
+    val total: Display,
+    val adds: Display,
+    val soFar: Float,
+    val food: Float,
+    val bare: Display = Display.Hidden,
+    val plusMinus: Display = Display.Hidden,
+)
 
 /** Vitamins, then minerals, each in the table's order, every one of them once the food lists any. */
 data class AllNutrients(val open: Boolean, val groups: List<NutrientGroup>)
@@ -147,8 +175,11 @@ data class NutrientGroup(val group: MicroGroup, val rows: List<NutrientRow>)
  */
 data class NutrientRow(val micro: Micronutrient, val display: Display, val notListed: Boolean = false)
 
-/** "Per 350 g plate · Source: USDA FoodData Central". [per] is null for grams. */
-data class SourceLine(val per: String?, val source: FoodOrigin?)
+/**
+ * "From USDA FoodData Central · 34 nutrients listed". [nutrientCount] is how many nutrients the
+ * source gives, shown beside All nutrients only, so a mode without that link shows no count.
+ */
+data class SourceLine(val source: FoodOrigin?, val nutrientCount: Int? = null)
 
 enum class FoodOrigin { Usda, OpenFoodFacts, Nevo, Yours }
 
@@ -161,17 +192,17 @@ data class CustomSizeUi(val name: String = "", val grams: String = "") {
 sealed interface AmountFood {
     val name: String
 
-    /** Its units, with the person's [saved] sizes for it. */
-    fun units(saved: List<FoodUnit>): List<AmountUnit>
+    /** Its units, with the person's [saved] sizes for it; ounces first when they weigh themselves in pounds. */
+    fun units(saved: List<FoodUnit>, prefersOunces: Boolean = false): List<AmountUnit>
 
     data class Catalog(val food: Food) : AmountFood {
         override val name: String get() = food.name
-        override fun units(saved: List<FoodUnit>): List<AmountUnit> = food.amountUnits(saved)
+        override fun units(saved: List<FoodUnit>, prefersOunces: Boolean): List<AmountUnit> = food.detailUnits(saved, prefersOunces)
     }
 
     data class Custom(val food: CustomFood) : AmountFood {
         override val name: String get() = food.name
-        override fun units(saved: List<FoodUnit>): List<AmountUnit> = food.amountUnits(saved)
+        override fun units(saved: List<FoodUnit>, prefersOunces: Boolean): List<AmountUnit> = food.detailUnits(saved, prefersOunces)
     }
 
     val tag: String?
@@ -180,7 +211,7 @@ sealed interface AmountFood {
             is Custom -> food.brand
         }
 
-    /** A size in grams converts to it: every catalog food, and a custom food counted in grams. */
+    /** A size in grams converts to it: every catalog food, and a custom food whose serving has a weight. */
     val takesSizes: Boolean
         get() = when (this) {
             is Catalog -> true
@@ -188,19 +219,27 @@ sealed interface AmountFood {
         }
 
     fun initialQuantity(unit: AmountUnit): Double = when (this) {
-        is Catalog -> PortionAmount.initial(unit)
-        is Custom -> if (unit is AmountUnit.Saved) 1.0 else food.initialQuantity
+        // A weight or volume starts at about 100 g of the food, as grams do.
+        is Catalog -> if (unit is AmountUnit.Measure) PortionAmount.convert(GRAMS_START, AmountUnit.Grams, unit) else PortionAmount.initial(unit)
+        is Custom -> when (unit) {
+            is AmountUnit.Saved -> 1.0
+            is AmountUnit.Serving -> food.initialQuantity
+            else -> food.gramsPerServing?.let { PortionAmount.convert(it, AmountUnit.Grams, unit) } ?: food.initialQuantity
+        }
+    }
+
+    private companion object {
+        const val GRAMS_START = 100.0
     }
 }
 
 /**
  * What the person has chosen on the detail so far. [unit] null is the food's first unit.
- * [typed] is the field's text while the person is typing in it; null shows [quantity].
- * [precisionPicked]: the person chose how sure themselves, so typing no longer changes it.
+ * [typed] is the field's text while the person is typing in it; null shows [quantity], and means
+ * the amount came from a chip, the menu or the last time. [picked] is a how-sure the person chose.
  */
 data class DetailChoice(
-    val precision: Precision = Precision.Estimate,
-    val precisionPicked: Boolean = false,
+    val picked: Precision? = null,
     val unit: AmountUnit? = null,
     val quantity: Double = 1.0,
     val typed: String? = null,
@@ -216,38 +255,41 @@ data class DetailChoice(
     fun unitIn(units: List<AmountUnit>): AmountUnit = unit?.takeIf { it in units } ?: units.first()
 
     /**
-     * The amount typed: Estimate becomes Weighed, since a typed number is a measured one, unless
-     * the person already picked how sure they are. A chip or the unit menu is not typing. In No
-     * numbers ([weighs] false) the amount is a household count and how sure is not asked, so it stays.
+     * How sure, unless the person picked: an amount typed in grams or another weight or volume
+     * was measured, so Weighed; a scanned label's serving is From label; anything else is an
+     * Estimate. A chip or the menu is not typing.
      */
-    fun typed(text: String, weighs: Boolean = true): DetailChoice {
-        val weighed = if (weighs && !precisionPicked && precision == Precision.Estimate) Precision.Weighed else precision
-        return copy(typed = text, quantity = text.toDoubleOrNull() ?: 0.0, precision = weighed)
+    fun precision(unit: AmountUnit, source: PickSource): Precision = picked ?: when {
+        typed != null && unit.isMeasure -> Precision.Weighed
+        source == PickSource.Barcode && !unit.isMeasure -> Precision.Label
+        else -> Precision.Estimate
     }
 
+    fun typed(text: String): DetailChoice = copy(typed = text, quantity = text.toDoubleOrNull() ?: 0.0)
+
     companion object {
-        fun initial(food: AmountFood, slot: MealSlot, saved: List<FoodUnit> = emptyList()): DetailChoice {
-            val unit = food.units(saved).first()
+        fun initial(food: AmountFood, slot: MealSlot, saved: List<FoodUnit> = emptyList(), prefersOunces: Boolean = false): DetailChoice {
+            val unit = food.units(saved, prefersOunces).first()
             return DetailChoice(unit = unit, quantity = food.initialQuantity(unit), slot = slot)
         }
 
-        /** Opens at the person's last amount of this food, an estimate again however it was logged. */
-        fun lastUsed(food: AmountFood, item: LogItem, slot: MealSlot, saved: List<FoodUnit> = emptyList()): DetailChoice {
-            val fresh = initial(food, slot, saved)
-            val unit = food.units(saved).firstOrNull { it.label == item.unit || it.chipLabel == item.unit }
+        /** Opens at the person's last amount of this food, worked out again however it was logged. */
+        fun lastUsed(food: AmountFood, item: LogItem, slot: MealSlot, saved: List<FoodUnit> = emptyList(), prefersOunces: Boolean = false): DetailChoice {
+            val fresh = initial(food, slot, saved, prefersOunces)
+            val unit = food.units(saved, prefersOunces).firstOrNull { it.label == item.unit || it.chipLabel == item.unit }
             val quantity = item.quantity
             return if (unit != null && quantity != null && quantity > 0.0) fresh.copy(unit = unit, quantity = quantity) else fresh
         }
     }
 }
 
-/** The draft for [choice] with [saved] sizes: what the detail shows and Add logs. */
-fun AmountFood.draftFor(choice: DetailChoice, source: PickSource, ref: FoodRef, saved: List<FoodUnit> = emptyList()): LogDraft {
-    val unit = choice.unitIn(units(saved))
+/** The draft for [choice] in [unit]: what the detail shows and Add logs. */
+fun AmountFood.draftFor(choice: DetailChoice, unit: AmountUnit, source: PickSource, ref: FoodRef): LogDraft {
     val method = source.methodFor(ref)
+    val precision = choice.precision(unit, source)
     return when (this) {
-        is AmountFood.Catalog -> food.draftFor(unit, choice.quantity, choice.precision, method)
-        is AmountFood.Custom -> food.draftFor(unit, choice.quantity, choice.precision, method)
+        is AmountFood.Catalog -> food.draftFor(unit, choice.quantity, precision, method)
+        is AmountFood.Custom -> food.draftFor(unit, choice.quantity, precision, method)
     }
 }
 
@@ -255,103 +297,89 @@ fun AmountFood.draftFor(choice: DetailChoice, source: PickSource, ref: FoodRef, 
 data class DetailInputs(
     val settings: Settings,
     val policy: VisibilityPolicy,
-    /** The day it logs to as it stands, for "Today with this". */
+    /** The day it logs to as it stands, for Today with this. */
     val day: Day?,
     val today: LocalDate,
     /** The clock now, shown while the time is now. */
     val now: LocalTime,
     /** The last 14 days, for the usual size of a meal eaten with no details in the ±. */
     val history: List<Day> = emptyList(),
+    /** On the Recent row now. */
+    val inRecents: Boolean = false,
 )
 
 /** The food detail's state as a pure function, like [LoggerStateBuilder]. Surface [Surface.Logger]. */
 object FoodDetailStateBuilder {
 
-    /** How sure, in the design's order. Name only is not offered here: "Save the name" makes those. */
+    /** How sure, in the menu's order. Name only is not offered here: "Save the name" makes those. */
     val PRECISIONS = listOf(Precision.Estimate, Precision.Weighed, Precision.Label)
 
     /**
-     * No numbers (13.5e): the mode lays Today out as a meal timeline and every nutrient hides, so
-     * the detail is the amount in household measures and the optional hunger check, nothing else.
-     * A number the person turns back on brings the full detail back.
+     * No numbers: the mode lays Today out as a meal timeline and every nutrient hides, so the
+     * detail is the amount in household measures, the meal, the time and the optional hunger
+     * check, nothing else. A number the person turns back on brings the full detail back.
      */
     fun isNoNumbers(policy: VisibilityPolicy): Boolean =
         policy.preset.today == TodayLayout.MealTimeline && NUTRITION.all { policy.level(it) == Visibility.Hide }
 
-    /** The unit menu: in No numbers household measures only, unless grams is all the food has. */
-    fun shownUnits(food: AmountFood, saved: List<FoodUnit>, noNumbers: Boolean): List<AmountUnit> {
-        val units = food.units(saved)
+    /** Someone who weighs themselves in pounds sees ounces before grams. */
+    fun prefersOunces(settings: Settings): Boolean = settings.weightUnit == WeightUnit.Lb
+
+    /** The unit menu: in No numbers household measures only, unless a weight is all the food has. */
+    fun shownUnits(food: AmountFood, settings: Settings, ref: FoodRef, noNumbers: Boolean): List<AmountUnit> {
+        val units = food.units(settings.unitsFor(ref.key), prefersOunces(settings))
         if (!noNumbers) return units
-        return units.filterNot { it is AmountUnit.Grams }.ifEmpty { units }
+        return units.filterNot { it.isMeasure }.ifEmpty { units.take(1) }
     }
 
     fun build(food: AmountFood, choice: DetailChoice, inputs: DetailInputs, ref: FoodRef, source: PickSource): FoodDetailState {
-        val saved = inputs.settings.unitsFor(ref.key)
         val noNumbers = isNoNumbers(inputs.policy)
-        val units = shownUnits(food, saved, noNumbers)
+        val units = shownUnits(food, inputs.settings, ref, noNumbers)
         val unit = choice.unitIn(units)
-        val draft = food.draftFor(choice.copy(unit = unit), source, ref, saved)
+        val draft = food.draftFor(choice, unit, source, ref)
         val groupsOn = inputs.day?.mealGroupsOn(inputs.settings) ?: inputs.settings.mealGroups
-        if (noNumbers) return noNumbersState(food, choice, inputs, ref, units, unit, groupsOn)
-        return FoodDetailState(
+        val base = FoodDetailState(
             loading = false,
             name = food.name,
             tag = food.tag,
             favorite = inputs.settings.isFavorite(ref.key),
+            inRecents = inputs.inRecents,
             slot = if (groupsOn) choice.slot else MealSlot.Uncategorized,
             slots = if (groupsOn) MealSlot.entries else listOf(MealSlot.Uncategorized),
             time = choice.time ?: inputs.now,
             timeIsNow = choice.time == null,
             amount = choice.typed ?: number(choice.quantity),
-            units = units.map { UnitUi(it.chipLabel, it.gramsLabel) },
             unitIndex = units.indexOf(unit),
-            canAddUnit = food.takesSizes,
-            servings = servings(units, unit, choice.quantity),
-            precision = choice.precision,
-            energy = energy(draft, inputs),
-            nutrients = nutrients(draft, inputs, choice.nutrientsOpen),
-            source = sourceLine(food, unit),
-            customSize = choice.customSize,
+            servings = servings(units, unit, choice),
+            precision = draft.precision,
             canAdd = choice.quantity > 0.0,
+        )
+        if (noNumbers) {
+            return base.copy(
+                // A weight is a number too: the menu and the chips are measures, with no grams beside them.
+                units = units.map { UnitUi(it.chipLabel, grams = null) },
+                noNumbers = true,
+                hunger = HungerCheck(choice.hunger).takeIf { inputs.settings.askTags },
+                // The source still names itself (NEVO asks to be cited wherever its foods show).
+                source = SourceLine(origin(food)),
+            )
+        }
+        val nutrients = nutrients(draft, inputs, choice.nutrientsOpen)
+        return base.copy(
+            units = units.map { UnitUi(it.chipLabel, it.gramsLabel) },
+            canAddUnit = food.takesSizes,
+            weight = weight(unit, choice.quantity, draft),
+            breakdown = breakdown(draft, inputs.policy),
+            targets = targets(draft, inputs),
+            nutrients = nutrients,
+            source = SourceLine(origin(food), nutrientCount = nutrients?.let { draft.nutrientCount() }),
+            customSize = choice.customSize,
         )
     }
 
-    /** 13.5e: the amount, its unit and household chips, and the hunger check while the hunger questions are on. */
-    @Suppress("LongParameterList")
-    private fun noNumbersState(
-        food: AmountFood,
-        choice: DetailChoice,
-        inputs: DetailInputs,
-        ref: FoodRef,
-        units: List<AmountUnit>,
-        unit: AmountUnit,
-        groupsOn: Boolean,
-    ): FoodDetailState = FoodDetailState(
-        loading = false,
-        name = food.name,
-        tag = food.tag,
-        favorite = inputs.settings.isFavorite(ref.key),
-        slot = if (groupsOn) choice.slot else MealSlot.Uncategorized,
-        slots = if (groupsOn) MealSlot.entries else listOf(MealSlot.Uncategorized),
-        time = choice.time ?: inputs.now,
-        timeIsNow = choice.time == null,
-        amount = choice.typed ?: number(choice.quantity),
-        // A weight is a number too: the menu and the chips are measures, with no grams beside them.
-        units = units.map { UnitUi(it.chipLabel, grams = null) },
-        unitIndex = units.indexOf(unit),
-        canAddUnit = false,
-        servings = servings(units, unit, choice.quantity).map { it.copy(grams = null) },
-        precision = choice.precision,
-        noNumbers = true,
-        hunger = HungerCheck(choice.hunger).takeIf { inputs.settings.askTags },
-        // The source still names itself (NEVO asks to be cited wherever its foods show), without a weight.
-        source = sourceLine(food, unit).copy(per = null),
-        canAdd = choice.quantity > 0.0,
-    )
-
-    /** The serving chips: one and two of the food's first measure, and 100 g when it weighs anything. */
+    /** The quick amounts: one and two of the food's first household measure, and 100 g when it weighs anything. */
     fun servingAmounts(units: List<AmountUnit>): List<Pair<AmountUnit, Double>> {
-        val household = units.firstOrNull { it !is AmountUnit.Grams }
+        val household = units.firstOrNull { !it.isMeasure }
         return buildList {
             if (household != null) {
                 add(household to 1.0)
@@ -361,14 +389,17 @@ object FoodDetailStateBuilder {
         }
     }
 
-    private fun servings(units: List<AmountUnit>, unit: AmountUnit, quantity: Double): List<ServingChip> =
+    private fun servings(units: List<AmountUnit>, unit: AmountUnit, choice: DetailChoice): List<ServingChip> =
         servingAmounts(units).map { (chipUnit, count) ->
-            ServingChip(
-                label = chipUnit.amountText(count),
-                grams = if (chipUnit is AmountUnit.Grams) null else chipUnit.gramsEach?.let { HouseholdAmount.of(round(it * count), "g") },
-                selected = chipUnit == unit && count == quantity,
-            )
+            ServingChip(label = chipUnit.amountText(count), selected = chipUnit == unit && count == choice.quantity)
         }
+
+    /** What the amount weighs, said once: "32 g" under "2 tbsp". Grams already say it, and an unknown weight says nothing. */
+    private fun weight(unit: AmountUnit, quantity: Double, draft: LogDraft): String? {
+        if (unit == AmountUnit.Grams || quantity <= 0.0) return null
+        val grams = draft.grams?.takeIf { unit.gramsEach != null && it > 0.0 } ?: return null
+        return HouseholdAmount.of(round(grams), "g")
+    }
 
     /** A typed field's number: "32", "1.5", never "1½", which nobody can type. */
     fun number(quantity: Double): String {
@@ -376,33 +407,56 @@ object FoodDetailStateBuilder {
         return if (rounded == round(rounded)) rounded.toLong().toString() else rounded.toString()
     }
 
-    private fun energy(draft: LogDraft, inputs: DetailInputs): EnergyCard? {
-        val policy = inputs.policy
+    private fun breakdown(draft: LogDraft, policy: VisibilityPolicy): Breakdown? {
         // Soften needs a goal and a portion has none, so a softened metric hides here.
         val energy = policy.resolve(Metric.Calories, draft.kcal, Surface.Logger, FormatContext(bare = true))
-        val macros = listOf(Metric.Protein to draft.protein, Metric.Carbs to draft.carbs, Metric.Fat to draft.fat)
-            .map { (metric, grams) -> MacroTile(metric, policy.resolve(metric, grams, Surface.Logger, FormatContext(goal = GoalStyle.None))) }
-            .filter { it.amount !is Display.Hidden }
+        val amounts = mapOf(Metric.Protein to draft.protein, Metric.Carbs to draft.carbs, Metric.Fat to draft.fat)
+        val shares = macroEnergyShares(draft.protein, draft.carbs, draft.fat) {
+            policy.effectiveLevel(it, Surface.Logger) == Visibility.Show
+        }
+        val macros = amounts.mapNotNull { (metric, grams) ->
+            val amount = policy.resolve(metric, grams, Surface.Logger, FormatContext(goal = GoalStyle.None))
+            if (amount is Display.Hidden) return@mapNotNull null
+            val percent = shares[metric]
+            val share = percent?.let { policy.share(metric, it, Surface.Logger) } ?: Display.Hidden
+            MacroRow(metric, amount, share, weight = if (share is Display.Shown && percent != null) percent.toFloat() else 0f)
+        }
         if (energy is Display.Hidden && macros.isEmpty()) return null
-        return EnergyCard(energy = energy, macros = macros, today = today(draft, inputs))
+        return Breakdown(energy = energy, macros = macros)
     }
 
-    /** The day it logs to with this food in it, against the day's range, as Today reads it. */
-    private fun today(draft: LogDraft, inputs: DetailInputs): TodayWithThis? {
+    /** The day it logs to with this food in it, against each target, as Today reads it. */
+    private fun targets(draft: LogDraft, inputs: DetailInputs): TodayTargets? {
         val day = inputs.day ?: return null
+        val targets = inputs.settings.targets
+        val totals = day.totals()
+        val rows = listOfNotNull(
+            energyRow(draft, day, inputs),
+            macroRow(Metric.Protein, totals.protein.known, draft.protein, targets.proteinG, day, inputs),
+            macroRow(Metric.Carbs, totals.carbs.known, draft.carbs, targets.carbsG, day, inputs),
+            macroRow(Metric.Fat, totals.fat.known, draft.fat, targets.fatG, day, inputs),
+        )
+        return rows.takeIf { it.isNotEmpty() }?.let(::TodayTargets)
+    }
+
+    private fun energyRow(draft: LogDraft, day: Day, inputs: DetailInputs): TargetRow? {
         val added = draft.kcal ?: return null
         val policy = inputs.policy
-        val range = inputs.settings.targets.rangeFor(day.date, policy.settings.preset).maxKcal.toDouble()
-        val context = day.formatContext(inputs.today, of = range)
-        val sum = (day.totals().kcal.value ?: 0.0) + added
-        val total = policy.resolve(Metric.Calories, sum, Surface.Logger, context)
+        val of = inputs.settings.targets.rangeFor(day.date, policy.settings.preset).maxKcal.toDouble()
+        val context = day.formatContext(inputs.today, of = of)
+        val soFar = day.totals().kcal.value ?: 0.0
+        val total = policy.resolve(Metric.Calories, soFar + added, Surface.Logger, context)
         if (total is Display.Hidden) return null
         val withThis = day.copy(itemsBySlot = day.itemsBySlot + (MealSlot.Uncategorized to day.items(MealSlot.Uncategorized) + draft.asItem(day.date)))
         val spread = withThis.eatenUncertainty(UsualMealSize.from(inputs.history, inputs.settings.targets.energyKcal)).plusMinusKcal
         val bare = context.copy(bare = true)
-        return TodayWithThis(
+        return TargetRow(
+            metric = Metric.Calories,
             total = total,
-            bare = policy.resolve(Metric.Calories, sum, Surface.Logger, bare),
+            adds = policy.targetShare(Metric.Calories, added / of * PERCENT, Surface.Logger, context),
+            soFar = fraction(soFar, of),
+            food = fraction(added, of),
+            bare = policy.resolve(Metric.Calories, soFar + added, Surface.Logger, bare),
             // A softened day reads as a word, and a word has no ±.
             plusMinus = if (spread > 0 && total is Display.Shown) {
                 policy.resolve(Metric.Calories, spread.toDouble(), Surface.Logger, bare.copy(of = null))
@@ -411,6 +465,24 @@ object FoodDetailStateBuilder {
             },
         )
     }
+
+    @Suppress("LongParameterList")
+    private fun macroRow(metric: Metric, soFar: Double, added: Double?, target: Int, day: Day, inputs: DetailInputs): TargetRow? {
+        val grams = added ?: return null
+        val of = target.toDouble().takeIf { it > 0.0 } ?: return null
+        val context = day.formatContext(inputs.today, of = of).copy(goal = GoalStyle.Slash)
+        val total = inputs.policy.resolve(metric, soFar + grams, Surface.Logger, context)
+        if (total is Display.Hidden) return null
+        return TargetRow(
+            metric = metric,
+            total = total,
+            adds = inputs.policy.targetShare(metric, grams / of * PERCENT, Surface.Logger, context),
+            soFar = fraction(soFar, of),
+            food = fraction(grams, of),
+        )
+    }
+
+    private fun fraction(amount: Double, of: Double): Float = (amount / of).toFloat().coerceAtLeast(0f)
 
     private fun nutrients(draft: LogDraft, inputs: DetailInputs, open: Boolean): AllNutrients? {
         val policy = inputs.policy
@@ -433,19 +505,19 @@ object FoodDetailStateBuilder {
         return groups.takeIf { it.any { group -> group.rows.any { row -> !row.notListed } } }?.let { AllNutrients(open = open, groups = it) }
     }
 
-    private fun sourceLine(food: AmountFood, unit: AmountUnit): SourceLine {
-        val per = unit.gramsLabel?.let { "$it ${unit.chipLabel}" }
-        val origin = when (food) {
-            is AmountFood.Custom -> FoodOrigin.Yours
-            is AmountFood.Catalog -> when {
-                food.food.source.isUsda -> FoodOrigin.Usda
-                food.food.source == FoodSource.OpenFoodFacts -> FoodOrigin.OpenFoodFacts
-                food.food.source == FoodSource.Nevo -> FoodOrigin.Nevo
-                else -> null
-            }
+    private fun origin(food: AmountFood): FoodOrigin? = when (food) {
+        is AmountFood.Custom -> FoodOrigin.Yours
+        is AmountFood.Catalog -> when {
+            food.food.source.isUsda -> FoodOrigin.Usda
+            food.food.source == FoodSource.OpenFoodFacts -> FoodOrigin.OpenFoodFacts
+            food.food.source == FoodSource.Nevo -> FoodOrigin.Nevo
+            else -> null
         }
-        return SourceLine(per, origin)
     }
+
+    /** Energy, the four macros and everything else the source gives a number for. */
+    private fun LogDraft.nutrientCount(): Int =
+        listOfNotNull(kcal, protein, carbs, fat, fiber).size + micros.orEmpty().count { it.value.isFinite() }
 
     private const val PERCENT = 100.0
     private const val HUNDRED = 100.0

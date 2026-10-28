@@ -45,6 +45,11 @@
     <string name="settings_log_out_body">Your log stays in your account. Sign in again to pick up where you left off.</string>
     <string name="settings_log_out_body_guest">You're using Opson as a guest. Logging out removes your log from this phone, and there's no account to sign back in to.</string>
     <string name="settings_log_out_cancel">Cancel</string>
+    <!-- The sync before logging out couldn't reach the account -->
+    <string name="settings_log_out_unsynced_title">Couldn't reach your account</string>
+    <string name="settings_log_out_unsynced_body">Anything you logged since Opson last synced is only on this phone, and logging out removes it. Stay, and try again when you're online.</string>
+    <string name="settings_log_out_stay">Stay</string>
+    <string name="settings_log_out_anyway">Log out anyway</string>
 
     <!-- Metrics, as the per-number grid names them -->
     <string name="settings_metric_calories">Calories</string>
@@ -442,6 +447,7 @@
     <string name="settings_today_in_list">In the list</string>
     <string name="settings_today_water">Water</string>
     <string name="settings_today_weight">Weight on days you weigh in</string>
+    <string name="settings_today_in_header">In the header</string>
     <string name="settings_today_close_day">Close the day</string>
     <string name="settings_today_card_from_mode">In this mode the card's layout comes from the mode.</string>
 

@@ -12,6 +12,7 @@ import com.opson.features.settings.impl.integrations.FakeHealthRepository
 import com.opson.features.settings.impl.integrations.healthFlag
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
@@ -21,7 +22,11 @@ import com.opson.libraries.nutrition.RangeEnd
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_targets_deficit_cap_toast
 import opson.libraries.resources.generated.resources.settings_targets_floor_toast
@@ -80,7 +85,7 @@ class TargetsTest : CoroutineTest() {
         listOf(NumbersSettings(PresetId.MacrosOnly), NumbersSettings.later(), NumbersSettings(PresetId.NoNumbers)).forEach { numbers ->
             listOf(SettingsFixtures.rangeTargets, SettingsFixtures.deficitTargets, SettingsFixtures.byDayTargets).forEach { targets ->
                 val state = build(numbers, targets, burned = SettingsFixtures.burned, editingGroup = 1)
-                assertEquals(TargetsState(visible = false), state, "in $numbers")
+                assertEquals(TargetsState(loaded = true, visible = false), state, "in $numbers")
             }
         }
     }
@@ -197,6 +202,26 @@ class TargetsTest : CoroutineTest() {
     )
 
     private fun FakeSettingsRepository.targets(): Targets = state.value.targets
+
+    @Test
+    fun untilBurnedArrives_thePageIsLoading_notTheBackgroundCard() = runUnitTest {
+        val burned = FakeBurnedRepository()
+        val waiting = object : BurnedRepository by burned {
+            override fun burned(day: LocalDate): Flow<Burned?> = flow { awaitCancellation() }
+        }
+        val vm = TargetsViewModel(
+            FakeSettingsRepository(),
+            FakePolicySource(SettingsFixtures.policy(PresetId.Full)),
+            FakeHealthRepository(),
+            healthFlag(false),
+            goalsAndEnergyFlag(true),
+            waiting,
+            FakeCalendar(),
+        )
+
+        assertFalse(vm.state.loaded)
+        assertTrue(viewModel(FakeSettingsRepository()).state.loaded, "once everything has arrived")
+    }
 
     @Test
     fun eachEndStepsOnItsOwn() = runUnitTest {

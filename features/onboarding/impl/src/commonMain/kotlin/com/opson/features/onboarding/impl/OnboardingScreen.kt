@@ -51,6 +51,7 @@ import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.testTag
@@ -132,9 +133,14 @@ import opson.libraries.resources.generated.resources.onboarding_welcome_title
 import opson.libraries.resources.generated.resources.onboarding_body_activity
 import opson.libraries.resources.generated.resources.onboarding_body_body
 import opson.libraries.resources.generated.resources.onboarding_body_burned
+import opson.libraries.resources.generated.resources.onboarding_body_height_hint_cm
+import opson.libraries.resources.generated.resources.onboarding_body_height_hint_ft_in
 import opson.libraries.resources.generated.resources.onboarding_body_resting
 import opson.libraries.resources.generated.resources.onboarding_body_title
 import opson.libraries.resources.generated.resources.onboarding_body_weight
+import opson.libraries.resources.generated.resources.onboarding_body_weight_hint_kg
+import opson.libraries.resources.generated.resources.onboarding_body_weight_hint_lb
+import opson.libraries.resources.generated.resources.onboarding_body_year_hint
 import opson.libraries.resources.generated.resources.onboarding_goal_based_on
 import opson.libraries.resources.generated.resources.onboarding_goal_burn_note
 import opson.libraries.resources.generated.resources.onboarding_goal_change
@@ -153,14 +159,16 @@ import opson.libraries.resources.generated.resources.settings_resting_sex_female
 import opson.libraries.resources.generated.resources.settings_resting_sex_male
 import opson.libraries.resources.generated.resources.settings_resting_sex_unsaid
 import opson.libraries.resources.generated.resources.settings_targets_floor_note
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Onboarding (design v3, 1.1 to 1.6, with sign-in moved to the front when accounts became
- * required): Welcome and the plan, sign in, three questions, the optional statement and the
- * starting mode. All routing lives in [OnboardingViewModel]; this is a pure render of the state.
- * It shows no nutrition numbers.
+ * required): Welcome and the plan, sign in, two questions, the optional statement, the
+ * starting mode and its setup steps. All routing lives in [OnboardingViewModel]; this is a pure
+ * render of the state. The only numbers are the setup steps' goal and resting energy, which the
+ * state holds already resolved through the mode's policy.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -692,23 +700,30 @@ private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAc
         goalStep = true,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Dimension.D700)) {
-            NumberField(
-                value = answer.birthYear,
-                onValueChange = { onAction(OnboardingAction.BirthYearTyped(it)) },
-                label = stringResource(Res.string.settings_resting_birth_year),
-                allowDecimal = false,
-                enabled = !state.isFinishing,
-            )
-            HeightField(
-                input = answer.height,
-                onUnitPicked = { onAction(OnboardingAction.HeightUnitPicked(it)) },
-                onCmTyped = { onAction(OnboardingAction.HeightCmTyped(it)) },
-                onFeetTyped = { onAction(OnboardingAction.HeightFeetTyped(it)) },
-                onInchesTyped = { onAction(OnboardingAction.HeightInchesTyped(it)) },
-                enabled = !state.isFinishing,
-            )
+            HintedField(hint = Res.string.onboarding_body_year_hint.takeIf { view.birthYearInvalid }) {
+                NumberField(
+                    value = answer.birthYear,
+                    onValueChange = { onAction(OnboardingAction.BirthYearTyped(it)) },
+                    label = stringResource(Res.string.settings_resting_birth_year),
+                    allowDecimal = false,
+                    enabled = !state.isFinishing,
+                )
+            }
+            HintedField(
+                hint = (if (answer.height.unit == HeightUnit.FtIn) Res.string.onboarding_body_height_hint_ft_in else Res.string.onboarding_body_height_hint_cm)
+                    .takeIf { view.heightInvalid },
+            ) {
+                HeightField(
+                    input = answer.height,
+                    onUnitPicked = { onAction(OnboardingAction.HeightUnitPicked(it)) },
+                    onCmTyped = { onAction(OnboardingAction.HeightCmTyped(it)) },
+                    onFeetTyped = { onAction(OnboardingAction.HeightFeetTyped(it)) },
+                    onInchesTyped = { onAction(OnboardingAction.HeightInchesTyped(it)) },
+                    enabled = !state.isFinishing,
+                )
+            }
             if (view.weightShown) {
-                WeightField(answer, enabled = !state.isFinishing, onAction = onAction)
+                WeightField(answer, invalid = view.weightInvalid, enabled = !state.isFinishing, onAction = onAction)
             }
             Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
                 Text(
@@ -768,9 +783,9 @@ private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAc
     }
 }
 
-/** Weight, in kilograms or pounds, with the switch between them. */
+/** Weight, in kilograms or pounds, with the switch between them, and a hint when it is [invalid]. */
 @Composable
-private fun WeightField(answer: BodyAnswer, enabled: Boolean, onAction: (OnboardingAction) -> Unit) {
+private fun WeightField(answer: BodyAnswer, invalid: Boolean, enabled: Boolean, onAction: (OnboardingAction) -> Unit) {
     val pounds = answer.weightUnit == WeightUnit.Lb
     Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
         Text(
@@ -784,12 +799,30 @@ private fun WeightField(answer: BodyAnswer, enabled: Boolean, onAction: (Onboard
             onSelect = { if (enabled) onAction(OnboardingAction.WeightUnitPicked(it)) },
             label = { stringResource(if (it == WeightUnit.Lb) Res.string.settings_look_weight_lb else Res.string.settings_look_weight_kg) },
         )
-        NumberField(
-            value = answer.weight,
-            onValueChange = { onAction(OnboardingAction.WeightTyped(it)) },
-            unit = stringResource(if (pounds) Res.string.settings_look_weight_lb else Res.string.settings_look_weight_kg),
-            enabled = enabled,
-        )
+        HintedField(hint = (if (pounds) Res.string.onboarding_body_weight_hint_lb else Res.string.onboarding_body_weight_hint_kg).takeIf { invalid }) {
+            NumberField(
+                value = answer.weight,
+                onValueChange = { onAction(OnboardingAction.WeightTyped(it)) },
+                unit = stringResource(if (pounds) Res.string.settings_look_weight_lb else Res.string.settings_look_weight_kg),
+                enabled = enabled,
+            )
+        }
+    }
+}
+
+/** A field with, when [hint] is set, a line under it saying what the field wants. */
+@Composable
+private fun HintedField(hint: StringResource?, field: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
+        field()
+        if (hint != null) {
+            Text(
+                text = stringResource(hint),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
     }
 }
 

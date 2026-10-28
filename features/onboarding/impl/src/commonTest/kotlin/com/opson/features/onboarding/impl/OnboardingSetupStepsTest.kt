@@ -512,6 +512,106 @@ class OnboardingSetupStepsTest : CoroutineTest() {
     }
 
     @Test
+    fun switchingUnits_convertsWhatIsTyped_soTheWeighInIsStillTheirs() = runUnitTest {
+        val weights = FakeWeightRepository()
+        val vm = atBody(listOf(NumbersFeel.LoveThem), weights = weights, region = "GB")
+        vm.takeAction(OnboardingAction.BirthYearTyped("1992"))
+        vm.takeAction(OnboardingAction.HeightCmTyped("175"))
+        vm.takeAction(OnboardingAction.WeightTyped("70"))
+        vm.takeAction(OnboardingAction.SexPicked(BodySex.Female))
+        runCurrent()
+        val resting = vm.state.bodyView?.resting
+
+        vm.takeAction(OnboardingAction.HeightUnitPicked(HeightUnit.FtIn))
+        vm.takeAction(OnboardingAction.WeightUnitPicked(WeightUnit.Lb))
+        runCurrent()
+        assertEquals(HeightInput(HeightUnit.FtIn, feet = "5", inches = "9"), vm.state.body.height, "175 cm, not 175 in")
+        assertEquals("154.3", vm.state.body.weight, "70 kg, not 70 lb")
+        assertEquals(resting, vm.state.bodyView?.resting, "the same person, so the same resting energy")
+
+        vm.takeAction(OnboardingAction.HeightUnitPicked(HeightUnit.Cm))
+        vm.takeAction(OnboardingAction.WeightUnitPicked(WeightUnit.Kg))
+        runCurrent()
+        assertEquals("175", vm.state.body.height.cm)
+        assertEquals("70", vm.state.body.weight)
+
+        vm.takeAction(OnboardingAction.WeightUnitPicked(WeightUnit.Lb))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+        assertEquals(70.0, weights.added.single(), 0.05)
+    }
+
+    @Test
+    fun switchingUnitsAndBack_givesBackExactlyWhatWasTyped_andSavesIt() = runUnitTest {
+        val settings = FakeSettingsRepository()
+        val weights = FakeWeightRepository()
+        val vm = atBody(listOf(NumbersFeel.LoveThem), settings = settings, weights = weights, region = "GB")
+        vm.takeAction(OnboardingAction.HeightCmTyped("172"))
+        vm.takeAction(OnboardingAction.WeightUnitPicked(WeightUnit.Lb))
+        vm.takeAction(OnboardingAction.WeightTyped("160"))
+
+        vm.takeAction(OnboardingAction.HeightUnitPicked(HeightUnit.FtIn))
+        vm.takeAction(OnboardingAction.WeightUnitPicked(WeightUnit.Kg))
+        runCurrent()
+        assertEquals(HeightInput(HeightUnit.FtIn, feet = "5", inches = "7.5"), vm.state.body.height)
+        assertEquals("72.6", vm.state.body.weight)
+        vm.takeAction(OnboardingAction.HeightUnitPicked(HeightUnit.Cm))
+        vm.takeAction(OnboardingAction.WeightUnitPicked(WeightUnit.Lb))
+        runCurrent()
+        assertEquals("172", vm.state.body.height.cm, "a mis-tap on ft and in and back is not 171")
+        assertEquals("160", vm.state.body.weight, "a mis-tap on kg and back is not 160.1")
+
+        vm.takeAction(OnboardingAction.HeightUnitPicked(HeightUnit.FtIn))
+        vm.takeAction(OnboardingAction.WeightUnitPicked(WeightUnit.Kg))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+        assertEquals(172.0, settings.settings.value.heightCm!!, 1e-9, "the 172 typed, not 5 ft 7.5 in")
+        assertEquals(HeightUnit.FtIn, settings.settings.value.heightUnit, "the unit showing is still the one kept")
+        assertEquals(160 * 0.45359237, weights.added.single(), 1e-9, "the 160 lb typed, not 72.6 kg")
+    }
+
+    @Test
+    fun editingAConvertedField_isWhatCountsFromThen() = runUnitTest {
+        val vm = atBody(listOf(NumbersFeel.LoveThem), region = "GB")
+        vm.takeAction(OnboardingAction.HeightCmTyped("171"))
+        vm.takeAction(OnboardingAction.WeightTyped("72.5"))
+        vm.takeAction(OnboardingAction.HeightUnitPicked(HeightUnit.FtIn))
+        vm.takeAction(OnboardingAction.WeightUnitPicked(WeightUnit.Lb))
+        vm.takeAction(OnboardingAction.HeightInchesTyped("6"))
+        vm.takeAction(OnboardingAction.WeightTyped("150"))
+        vm.takeAction(OnboardingAction.HeightUnitPicked(HeightUnit.Cm))
+        vm.takeAction(OnboardingAction.WeightUnitPicked(WeightUnit.Kg))
+        runCurrent()
+
+        assertEquals("168", vm.state.body.height.cm, "the 5 ft 6 typed over the conversion, not the 171 before it")
+        assertEquals("68", vm.state.body.weight, "the 150 lb typed over the conversion, not the 72.5 before it")
+    }
+
+    @Test
+    fun aHeightThatIsNotOne_saysWhatTheFieldWants_inEitherUnit() = runUnitTest {
+        val vm = atBody(listOf(NumbersFeel.LoveThem), region = "US")
+        assertFalse(vm.state.bodyView!!.heightInvalid, "nothing typed yet, nothing to say")
+
+        vm.takeAction(OnboardingAction.HeightFeetTyped("5"))
+        vm.takeAction(OnboardingAction.HeightInchesTyped("13"))
+        runCurrent()
+        assertTrue(vm.state.bodyView!!.heightInvalid, "13 inches is not under a foot")
+        vm.takeAction(OnboardingAction.HeightInchesTyped("10"))
+        runCurrent()
+        assertFalse(vm.state.bodyView!!.heightInvalid)
+
+        vm.takeAction(OnboardingAction.HeightUnitPicked(HeightUnit.Cm))
+        vm.takeAction(OnboardingAction.HeightCmTyped("5.10"))
+        runCurrent()
+        assertTrue(vm.state.bodyView!!.heightInvalid, "5.10 cm is not 5 ft 10")
+        vm.takeAction(OnboardingAction.HeightCmTyped("178"))
+        runCurrent()
+        assertFalse(vm.state.bodyView!!.heightInvalid)
+    }
+
+    @Test
     fun aTypoInTheDetails_isNotSaved_inEitherUnit() = runUnitTest {
         listOf("GB", "US").forEach { region ->
             val settings = FakeSettingsRepository()
@@ -528,6 +628,8 @@ class OnboardingSetupStepsTest : CoroutineTest() {
             }
             runCurrent()
             assertEquals(Display.Hidden, vm.state.bodyView?.resting)
+            val view = vm.state.bodyView!!
+            assertTrue(view.birthYearInvalid && view.heightInvalid && view.weightInvalid, "$region: each field says what it wants")
             vm.takeAction(OnboardingAction.ContinueTapped)
             vm.takeAction(OnboardingAction.ContinueTapped)
             runCurrent()

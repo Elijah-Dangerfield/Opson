@@ -5,9 +5,9 @@ import com.opson.libraries.navigation.Route
 import kotlinx.serialization.Serializable
 
 /**
- * Email-password sign-in entry. Reachable from onboarding's "Sign in"
- * affordance. After a successful sign-in the onboarding flag flips and we
- * go to Today.
+ * Email-password sign-in, with Google and Apple beside it. Reachable from
+ * the sign-in step's "Continue with email" while email is on. A returning
+ * account goes to Today; a new one goes to onboarding's questions.
  */
 @Serializable
 class SignInRoute : Route(

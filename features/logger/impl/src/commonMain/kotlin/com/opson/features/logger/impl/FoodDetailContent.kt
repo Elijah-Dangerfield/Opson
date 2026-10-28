@@ -9,14 +9,16 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -27,14 +29,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.Hunger
@@ -54,7 +57,9 @@ import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.MenuItem
 import com.opson.libraries.ui.components.MenuPopover
 import com.opson.libraries.ui.components.PopoverMenu
-import com.opson.libraries.ui.components.SegmentedControl
+import com.opson.libraries.ui.components.RangeBar
+import com.opson.libraries.ui.components.RangeBarDefaults
+import com.opson.libraries.ui.components.RangeBarSegment
 import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.chip.PillChip
 import com.opson.libraries.ui.components.chip.PillChipStyle
@@ -64,24 +69,39 @@ import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconSize
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.described
+import com.opson.libraries.ui.components.text.BasicTextField
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.adding_detail_adds
 import opson.libraries.resources.generated.resources.adding_detail_all
 import opson.libraries.resources.generated.resources.adding_detail_all_cd
 import opson.libraries.resources.generated.resources.adding_detail_amount
 import opson.libraries.resources.generated.resources.adding_detail_amount_cd
 import opson.libraries.resources.generated.resources.adding_detail_back_cd
+import opson.libraries.resources.generated.resources.adding_detail_edit_copy
+import opson.libraries.resources.generated.resources.adding_detail_energy
+import opson.libraries.resources.generated.resources.adding_detail_from_off
+import opson.libraries.resources.generated.resources.adding_detail_from_usda
+import opson.libraries.resources.generated.resources.adding_detail_from_yours
 import opson.libraries.resources.generated.resources.adding_detail_label
 import opson.libraries.resources.generated.resources.adding_detail_meal
+import opson.libraries.resources.generated.resources.adding_detail_meal_cd
 import opson.libraries.resources.generated.resources.adding_detail_menu_cd
+import opson.libraries.resources.generated.resources.adding_detail_nutrient_count
+import opson.libraries.resources.generated.resources.adding_detail_remove_recent
+import opson.libraries.resources.generated.resources.adding_detail_report
 import opson.libraries.resources.generated.resources.adding_detail_sure
+import opson.libraries.resources.generated.resources.adding_detail_sure_cd
 import opson.libraries.resources.generated.resources.adding_detail_time
+import opson.libraries.resources.generated.resources.adding_detail_time_cd
 import opson.libraries.resources.generated.resources.adding_detail_time_now
 import opson.libraries.resources.generated.resources.adding_detail_today
 import opson.libraries.resources.generated.resources.adding_detail_today_plus_minus
+import opson.libraries.resources.generated.resources.adding_detail_weighs
 import opson.libraries.resources.generated.resources.logger_add_to
 import opson.libraries.resources.generated.resources.logger_amount_cancel
 import opson.libraries.resources.generated.resources.logger_amount_carbs
@@ -94,8 +114,6 @@ import opson.libraries.resources.generated.resources.logger_amount_loading_cd
 import opson.libraries.resources.generated.resources.logger_amount_missing
 import opson.libraries.resources.generated.resources.logger_amount_ok
 import opson.libraries.resources.generated.resources.logger_amount_open
-import opson.libraries.resources.generated.resources.logger_amount_per_only_source
-import opson.libraries.resources.generated.resources.logger_amount_per_source
 import opson.libraries.resources.generated.resources.logger_amount_protein
 import opson.libraries.resources.generated.resources.logger_amount_time_title
 import opson.libraries.resources.generated.resources.logger_amount_unfavorite_cd
@@ -126,15 +144,13 @@ import opson.libraries.resources.generated.resources.logger_micro_vitamin_k
 import opson.libraries.resources.generated.resources.logger_micro_zinc
 import opson.libraries.resources.generated.resources.logger_micros_minerals
 import opson.libraries.resources.generated.resources.logger_micros_vitamins
-import opson.libraries.resources.generated.resources.modes_hunger_question
 import opson.libraries.resources.generated.resources.logger_precision_estimate
 import opson.libraries.resources.generated.resources.logger_precision_named
 import opson.libraries.resources.generated.resources.logger_precision_weighed
 import opson.libraries.resources.generated.resources.logger_source_nevo
-import opson.libraries.resources.generated.resources.logger_source_off
-import opson.libraries.resources.generated.resources.logger_source_usda
-import opson.libraries.resources.generated.resources.logger_source_yours
+import opson.libraries.resources.generated.resources.modes_hunger_question
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 private val Precision.label: StringResource
@@ -145,19 +161,22 @@ private val Precision.label: StringResource
         Precision.Named -> Res.string.logger_precision_named
     }
 
+/** Which of the detail's menus is drawn in place, for previews: a real menu is a popup, which a screenshot cannot see. */
+enum class DetailMenu { None, Units, More }
+
 /**
- * The food detail's body (design sync 4, 13.4d): back, the food and ⋮; the amount with its unit
- * and serving chips, how sure; the energy card when the policy leaves anything in it, All
- * nutrients under it when open; and "Add to {meal}" pinned. Stateless apart from which menu or
- * dialog is open.
+ * The food detail's body: back, the food and ⋮; a list of rows (the amount with its unit, the
+ * meal, the time, how sure); what is in the amount; Today with this; where the numbers come from,
+ * with All nutrients under it when open; and "Add to {meal}" pinned. Stateless apart from which
+ * menu or dialog is open.
  */
 @Composable
 fun FoodDetailContent(
     state: FoodDetailState,
     onAction: (FoodDetailAction) -> Unit,
     modifier: Modifier = Modifier,
-    /** For the unit menu's preview: the menu drawn in place. The real menu is a popup, which a screenshot cannot see. */
-    unitMenuShown: Boolean = false,
+    /** For previews: a menu drawn in place. */
+    menuShown: DetailMenu = DetailMenu.None,
     /** Where the cards start. A preview passes one at the bottom so All nutrients is on screen. */
     scrollState: ScrollState = rememberScrollState(),
 ) {
@@ -175,26 +194,31 @@ fun FoodDetailContent(
                     state.missing -> Text(text = stringResource(Res.string.logger_amount_missing), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
                     state.loading -> DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_amount_loading_cd))
                     else -> {
-                        AmountCard(state, onAction)
+                        DetailsCard(state, onAction)
                         state.hunger?.let { HungerCard(it, onAction) }
-                        state.energy?.let { EnergySection(it, state.nutrients, onAction) }
+                        state.breakdown?.let { BreakdownCard(it) }
+                        state.targets?.let { TargetsCard(it) }
+                        state.source?.let { SourceRow(it, state.nutrients, onAction) }
                         state.nutrients?.takeIf { it.open }?.let { NutrientsSection(it) }
-                        state.source?.let { SourceCaption(it) }
                     }
                 }
             }
             if (!state.loading && !state.missing) AddButton(state, onAction)
         }
-        if (unitMenuShown) {
-            MenuPopover(modifier = Modifier.align(Alignment.TopEnd).padding(top = UNIT_MENU_TOP, end = AppTheme.spacing.page)) {
+        when (menuShown) {
+            DetailMenu.Units -> MenuPopover(modifier = Modifier.align(Alignment.TopEnd).padding(top = UNIT_MENU_TOP, end = AppTheme.spacing.page)) {
                 UnitMenuItems(state, onAction, close = {})
             }
+            DetailMenu.More -> MenuPopover(modifier = Modifier.align(Alignment.TopEnd).padding(top = MORE_MENU_TOP, end = AppTheme.spacing.page)) {
+                MoreMenuItems(state, onAction, close = {})
+            }
+            DetailMenu.None -> Unit
         }
     }
     state.customSize?.let { CustomSizeDialog(it, onAction) }
 }
 
-/** Back, the food and its tag, and ⋮ with the meal, the time and the favorite. */
+/** Back, the food and its tag, and ⋮. */
 @Composable
 private fun Header(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
     Row(
@@ -220,72 +244,41 @@ private fun Header(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit)
     }
 }
 
-private enum class MoreMenuPage { Closed, Main, Meals }
-
+/** ⋮: the favorite, Remove from recents while it is on Recent, Report a problem and Edit a copy. */
 @Composable
 private fun MoreMenu(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
-    var page by remember { mutableStateOf(MoreMenuPage.Closed) }
-    var pickingTime by remember { mutableStateOf(false) }
+    var open by remember { mutableStateOf(false) }
     Box {
         RoundIconButton(
             icon = AppIcons.MoreVert.described(stringResource(Res.string.adding_detail_menu_cd)),
-            onClick = { page = MoreMenuPage.Main },
+            onClick = { open = true },
             size = AppTheme.spacing.touchTarget,
             iconSize = IconSize.Medium.dp,
             containerColor = AppTheme.colors.bg,
             contentColor = AppTheme.colors.ink,
         )
-        PopoverMenu(expanded = page == MoreMenuPage.Main, onDismissRequest = { page = MoreMenuPage.Closed }, alignment = Alignment.TopEnd) {
-            val meal = stringResource(state.slot.label)
-            if (state.slots.size > 1) {
-                MenuItem(label = stringResource(Res.string.adding_detail_meal, meal), onClick = { page = MoreMenuPage.Meals }, icon = AppIcons.Restaurant)
-            }
-            val clock = DateCopy.time(state.time.hour, state.time.minute)
-            MenuItem(
-                label = stringResource(if (state.timeIsNow) Res.string.adding_detail_time_now else Res.string.adding_detail_time, clock),
-                onClick = {
-                    page = MoreMenuPage.Closed
-                    pickingTime = true
-                },
-                icon = AppIcons.Schedule,
-            )
-            MenuItem(
-                label = stringResource(if (state.favorite) Res.string.logger_amount_unfavorite_cd else Res.string.logger_amount_favorite_cd),
-                onClick = {
-                    page = MoreMenuPage.Closed
-                    onAction(FoodDetailAction.FavoriteTapped)
-                },
-                icon = if (state.favorite) AppIcons.Star else AppIcons.StarOutline,
-                showDivider = false,
-            )
-        }
-        PopoverMenu(expanded = page == MoreMenuPage.Meals, onDismissRequest = { page = MoreMenuPage.Closed }, alignment = Alignment.TopEnd) {
-            state.slots.forEachIndexed { index, slot ->
-                MenuItem(
-                    label = stringResource(slot.label),
-                    onClick = {
-                        page = MoreMenuPage.Closed
-                        onAction(FoodDetailAction.SlotPicked(slot))
-                    },
-                    icon = if (slot == state.slot) AppIcons.Check else null,
-                    showDivider = index < state.slots.lastIndex,
-                )
-            }
+        PopoverMenu(expanded = open, onDismissRequest = { open = false }, alignment = Alignment.TopEnd) {
+            MoreMenuItems(state, onAction, close = { open = false })
         }
     }
-    if (pickingTime) {
-        TimePickerDialog(
-            title = stringResource(Res.string.logger_amount_time_title),
-            initial = state.time,
-            okLabel = stringResource(Res.string.logger_amount_ok),
-            cancelLabel = stringResource(Res.string.logger_amount_cancel),
-            onPicked = {
-                pickingTime = false
-                onAction(FoodDetailAction.TimePicked(it))
-            },
-            onDismiss = { pickingTime = false },
-        )
+}
+
+@Composable
+private fun MoreMenuItems(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit, close: () -> Unit) {
+    fun tap(action: FoodDetailAction): () -> Unit = {
+        close()
+        onAction(action)
     }
+    MenuItem(
+        label = stringResource(if (state.favorite) Res.string.logger_amount_unfavorite_cd else Res.string.logger_amount_favorite_cd),
+        onClick = tap(FoodDetailAction.FavoriteTapped),
+        icon = if (state.favorite) AppIcons.Star else AppIcons.StarOutline,
+    )
+    if (state.inRecents) {
+        MenuItem(label = stringResource(Res.string.adding_detail_remove_recent), onClick = tap(FoodDetailAction.RemoveFromRecentsTapped), icon = AppIcons.History)
+    }
+    MenuItem(label = stringResource(Res.string.adding_detail_report), onClick = tap(FoodDetailAction.ReportTapped), icon = AppIcons.Support)
+    MenuItem(label = stringResource(Res.string.adding_detail_edit_copy), onClick = tap(FoodDetailAction.EditCopyTapped), icon = AppIcons.EditNote, showDivider = false)
 }
 
 @Composable
@@ -298,37 +291,165 @@ private fun CardLabel(text: String) {
     Text(text = text, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
 }
 
-/** The typed amount and its unit, the serving chips, and how sure. */
+/**
+ * The rows: Amount, then Meal (only when meal groups are on), Time and How sure (not in No
+ * numbers, where it would feed a number the mode never shows). Each is its label on the left and
+ * its value on the right, the way a settings list reads.
+ */
+@Composable
+private fun DetailsCard(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
+    EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.InsetPadding, verticalArrangement = Arrangement.Top) {
+        AmountRow(state, onAction)
+        if (state.slots.size > 1) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            MealRow(state, onAction)
+        }
+        HorizontalDivider(color = AppTheme.colors.line)
+        TimeRow(state, onAction)
+        if (!state.noNumbers) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            SureRow(state, onAction)
+        }
+    }
+}
+
+@Composable
+private fun DetailRow(label: String, content: @Composable RowScope.() -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = ROW_HEIGHT),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Text(text = label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+        content()
+    }
+}
+
+/** A value on the right that opens a menu or a picker: "Dinner ⌄". */
+@Composable
+private fun RowValue(text: String, description: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget)
+            .semantics(mergeDescendants = true) {
+                role = Role.DropdownList
+                contentDescription = description
+            }
+            .bounceClick(scaleDown = 0.97f, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(text = text, typography = AppTheme.type.body, color = AppTheme.colors.ink, maxLines = 1)
+        Icon(icon = AppIcons.ArrowDropDown, size = IconSize.Medium, color = AppTheme.colors.muted)
+    }
+}
+
+/** The number and its unit on one row, the quick amounts under it, and what the amount weighs. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AmountCard(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
-    Card {
-        CardLabel(stringResource(Res.string.adding_detail_amount))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            AmountField(state.amount, onTyped = { onAction(FoodDetailAction.AmountTyped(it)) }, modifier = Modifier.weight(1f))
-            UnitDropdown(state, onAction, modifier = Modifier.weight(1f))
+private fun AmountRow(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
+    Column(modifier = Modifier.padding(bottom = AppTheme.spacing.chip), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+        DetailRow(stringResource(Res.string.adding_detail_amount)) {
+            AmountField(state.amount, onTyped = { onAction(FoodDetailAction.AmountTyped(it)) }, modifier = Modifier.width(AMOUNT_WIDTH))
+            UnitDropdown(state, onAction, modifier = Modifier.width(UNIT_WIDTH))
         }
         if (state.servings.isNotEmpty()) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
                 state.servings.forEachIndexed { index, chip ->
-                    ServingChipView(chip) { onAction(FoodDetailAction.ServingPicked(index)) }
+                    PillChip(
+                        label = chip.label,
+                        selected = chip.selected,
+                        onClick = { onAction(FoodDetailAction.ServingPicked(index)) },
+                        style = PillChipStyle.Tint,
+                    )
                 }
             }
         }
-        // How sure feeds the day's ±, a number No numbers never shows, so it is not asked there.
-        if (!state.noNumbers) {
-            CardLabel(stringResource(Res.string.adding_detail_sure))
-            SegmentedControl(
-                options = FoodDetailStateBuilder.PRECISIONS,
-                selected = state.precision,
-                onSelect = { onAction(FoodDetailAction.PrecisionPicked(it)) },
-                label = { stringResource(it.label) },
+        state.weight?.let { grams ->
+            Text(
+                text = stringResource(Res.string.adding_detail_weighs, grams),
+                typography = AppTheme.type.secondary.Tabular,
+                color = AppTheme.colors.muted,
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
 }
 
-/** No numbers' optional "How hungry were you?" (13.5e): the Note's scale, Starving to Stuffed; the same answer again clears it. */
+@Composable
+private fun MealRow(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val meal = stringResource(state.slot.label)
+    DetailRow(stringResource(Res.string.adding_detail_meal)) {
+        Box {
+            RowValue(meal, stringResource(Res.string.adding_detail_meal_cd, meal)) { open = true }
+            PopoverMenu(expanded = open, onDismissRequest = { open = false }, alignment = Alignment.TopEnd) {
+                state.slots.forEachIndexed { index, slot ->
+                    MenuItem(
+                        label = stringResource(slot.label),
+                        onClick = {
+                            open = false
+                            onAction(FoodDetailAction.SlotPicked(slot))
+                        },
+                        icon = if (slot == state.slot) AppIcons.Check else null,
+                        showDivider = index < state.slots.lastIndex,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeRow(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
+    var picking by remember { mutableStateOf(false) }
+    val clock = DateCopy.time(state.time.hour, state.time.minute)
+    val text = if (state.timeIsNow) stringResource(Res.string.adding_detail_time_now, clock) else clock
+    DetailRow(stringResource(Res.string.adding_detail_time)) {
+        RowValue(text, stringResource(Res.string.adding_detail_time_cd, text)) { picking = true }
+    }
+    if (picking) {
+        TimePickerDialog(
+            title = stringResource(Res.string.logger_amount_time_title),
+            initial = state.time,
+            okLabel = stringResource(Res.string.logger_amount_ok),
+            cancelLabel = stringResource(Res.string.logger_amount_cancel),
+            onPicked = {
+                picking = false
+                onAction(FoodDetailAction.TimePicked(it))
+            },
+            onDismiss = { picking = false },
+        )
+    }
+}
+
+/** How sure, worked out until the person picks: it only widens or narrows the day's ±, so it sits quietly here. */
+@Composable
+private fun SureRow(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val sure = stringResource(state.precision.label)
+    DetailRow(stringResource(Res.string.adding_detail_sure)) {
+        Box {
+            RowValue(sure, stringResource(Res.string.adding_detail_sure_cd, sure)) { open = true }
+            PopoverMenu(expanded = open, onDismissRequest = { open = false }, alignment = Alignment.TopEnd) {
+                FoodDetailStateBuilder.PRECISIONS.forEachIndexed { index, precision ->
+                    MenuItem(
+                        label = stringResource(precision.label),
+                        onClick = {
+                            open = false
+                            onAction(FoodDetailAction.PrecisionPicked(precision))
+                        },
+                        icon = if (precision == state.precision) AppIcons.Check else null,
+                        showDivider = index < FoodDetailStateBuilder.PRECISIONS.lastIndex,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** No numbers' optional "How hungry were you?": the Note's scale, Starving to Stuffed; the same answer again clears it. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HungerCard(check: HungerCheck, onAction: (FoodDetailAction) -> Unit) {
@@ -348,55 +469,40 @@ private fun HungerCard(check: HungerCheck, onAction: (FoodDetailAction) -> Unit)
 }
 
 /**
- * The typed amount, big, in an accent outline (13.4d). A decimal keypad; what is typed goes to
- * the view model as is and comes back sanitized, so a stray character never shows.
+ * The typed amount, in an accent outline. A decimal keypad; what is typed goes to the view model
+ * as is. A character the view model drops shows until typing pauses, then the field settles back
+ * on the view model's value. The library field holds keystrokes until the view model's echo
+ * catches up: fed the state directly, a fast "150" rewound to "15" while the echo was a frame behind.
  */
 @Composable
 private fun AmountField(value: String, onTyped: (String) -> Unit, modifier: Modifier) {
     val description = stringResource(Res.string.adding_detail_amount_cd)
-    val shape = AppTheme.shapes.inputLarge
+    val shape = AppTheme.shapes.input
     BasicTextField(
         value = value,
         onValueChange = onTyped,
         modifier = modifier.semantics { contentDescription = description },
-        textStyle = AppTheme.type.figureMedium.style(AppTheme.colors.ink.color),
+        typographyToken = AppTheme.type.figureMedium,
+        color = AppTheme.colors.ink.color,
+        textAlign = TextAlign.End,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done, autoCorrectEnabled = false),
         cursorBrush = SolidColor(AppTheme.colors.accent.color),
         decorationBox = { inner ->
             Box(
                 modifier = Modifier
-                    .defaultMinSize(minHeight = UNIT_HEIGHT)
+                    .defaultMinSize(minHeight = FIELD_HEIGHT)
                     .clip(shape)
-                    .background(AppTheme.colors.surface)
+                    .background(AppTheme.colors.bg)
                     .border(2.dp, AppTheme.colors.accent.color, shape)
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart,
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.CenterEnd,
             ) { inner() }
         },
     )
 }
 
-/** "1 tbsp · 16 g": an outlined chip, tinted while the amount is exactly it. */
-@Composable
-private fun ServingChipView(chip: ServingChip, onClick: () -> Unit) {
-    val text = listOfNotNull(chip.label, chip.grams).joinToString(UNIT_SEPARATOR)
-    Box(
-        modifier = Modifier
-            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget)
-            .clip(AppTheme.shapes.input)
-            .background(if (chip.selected) AppTheme.colors.accentTint else AppTheme.colors.surface)
-            .border(1.dp, (if (chip.selected) AppTheme.colors.accentTint else AppTheme.colors.line).color, AppTheme.shapes.input)
-            .semantics { role = Role.Button }
-            .bounceClick(onClick = onClick)
-            .padding(horizontal = 14.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(text = text, typography = AppTheme.type.bodyBold.Tabular, color = if (chip.selected) AppTheme.colors.accent else AppTheme.colors.ink, maxLines = 1)
-    }
-}
-
-/** "grams ⌄": each unit with its weight in the menu, the one in use checked, then "Custom size…". */
+/** "tbsp ⌄": each unit with its weight in the menu, the one in use checked, then "Custom size…". */
 @Composable
 private fun UnitDropdown(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit, modifier: Modifier) {
     var open by remember { mutableStateOf(false) }
@@ -406,7 +512,7 @@ private fun UnitDropdown(state: FoodDetailState, onAction: (FoodDetailAction) ->
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = UNIT_HEIGHT)
+                .defaultMinSize(minHeight = FIELD_HEIGHT)
                 .clip(AppTheme.shapes.input)
                 .border(1.dp, AppTheme.colors.line.color, AppTheme.shapes.input)
                 .semantics(mergeDescendants = true) {
@@ -414,7 +520,7 @@ private fun UnitDropdown(state: FoodDetailState, onAction: (FoodDetailAction) ->
                     contentDescription = description
                 }
                 .bounceClick(scaleDown = 0.98f) { open = true }
-                .padding(horizontal = 14.dp),
+                .padding(start = 12.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -469,39 +575,91 @@ private fun MenuRow(label: String, detail: String?, selected: Boolean, onClick: 
     }
 }
 
-/** kcal and "All nutrients ›", a tile per macro in its colour, then the day with this food. */
+/** The calories big, the macros split end to end, then a line per macro: its grams and its share of the energy. */
 @Composable
-private fun EnergySection(energy: EnergyCard, nutrients: AllNutrients?, onAction: (FoodDetailAction) -> Unit) {
+private fun BreakdownCard(breakdown: Breakdown) {
     Card {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.Bottom) {
-                if (energy.energy is Display.Shown) {
-                    NutrientText(metric = Metric.Calories, display = energy.energy, typography = AppTheme.type.figureDisplay, color = AppTheme.colors.ink)
-                    Spacer(Modifier.width(4.dp))
-                    Text(text = stringResource(Res.string.logger_amount_kcal), typography = AppTheme.type.bodyBold, color = AppTheme.colors.muted, modifier = Modifier.padding(bottom = 4.dp))
-                }
-            }
-            nutrients?.let { AllNutrientsLink(it, onAction) }
-        }
-        if (energy.macros.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-                energy.macros.forEach { tile -> MacroTileView(tile, Modifier.weight(1f)) }
+        if (breakdown.energy is Display.Shown) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                NutrientText(metric = Metric.Calories, display = breakdown.energy, typography = AppTheme.type.figureDisplay, color = AppTheme.colors.ink)
+                Spacer(Modifier.width(4.dp))
+                Text(text = stringResource(Res.string.logger_amount_kcal), typography = AppTheme.type.bodyBold, color = AppTheme.colors.muted, modifier = Modifier.padding(bottom = 4.dp))
             }
         }
-        energy.today?.let { today ->
-            HorizontalDivider(color = AppTheme.colors.line)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = stringResource(Res.string.adding_detail_today), typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted, modifier = Modifier.weight(1f))
-                TodayTotal(today)
-            }
+        val split = breakdown.macros.filter { it.weight > 0f }
+        if (split.isNotEmpty()) {
+            RangeBar(
+                fill = 1f,
+                rangeStart = 0f,
+                rangeEnd = 0f,
+                colors = RangeBarDefaults.summary(),
+                segments = split.map { RangeBarSegment(it.weight, it.metric.tone()) },
+                height = 12.dp,
+            )
         }
+        breakdown.macros.forEach { macro -> MacroLine(macro) }
     }
 }
 
 @Composable
-private fun TodayTotal(today: TodayWithThis) {
-    val bare = today.bare
-    val plusMinus = today.plusMinus
+private fun MacroLine(macro: MacroRow) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+        Box(Modifier.size(10.dp).background(macro.metric.tone(), CircleShape))
+        Text(text = stringResource(macro.metric.amountLabel), typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+        NutrientText(metric = macro.metric, display = macro.amount, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.ink, maxLines = 1)
+        NutrientText(
+            metric = macro.metric,
+            display = macro.share,
+            typography = AppTheme.type.secondary.Tabular,
+            color = AppTheme.colors.muted,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            modifier = Modifier.width(SHARE_WIDTH),
+        )
+    }
+}
+
+/** Today with this: each number the day comes to with this food, the food's part of the bar in its colour. */
+@Composable
+private fun TargetsCard(targets: TodayTargets) {
+    Card {
+        CardLabel(stringResource(Res.string.adding_detail_today))
+        targets.rows.forEach { row -> TargetLine(row) }
+    }
+}
+
+@Composable
+private fun TargetLine(row: TargetRow) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+            Text(text = stringResource(row.metric.targetLabel), typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+            TargetTotal(row)
+            if (row.adds is Display.Shown) {
+                Text(
+                    text = stringResource(Res.string.adding_detail_adds, row.adds.text),
+                    typography = AppTheme.type.secondary.Tabular,
+                    color = AppTheme.colors.muted,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    modifier = Modifier.width(SHARE_WIDTH).testTag(row.metric.testTag()),
+                )
+            }
+        }
+        RangeBar(
+            fill = (row.soFar + row.food).coerceAtMost(1f),
+            rangeStart = 0f,
+            rangeEnd = 0f,
+            colors = RangeBarDefaults.summary(),
+            segments = listOf(RangeBarSegment(row.soFar, AppTheme.colors.muted), RangeBarSegment(row.food, row.metric.tone())),
+            height = 8.dp,
+        )
+    }
+}
+
+@Composable
+private fun TargetTotal(row: TargetRow) {
+    val bare = row.bare
+    val plusMinus = row.plusMinus
     if (bare is Display.Shown && plusMinus is Display.Shown) {
         Text(
             text = stringResource(Res.string.adding_detail_today_plus_minus, bare.text, plusMinus.text),
@@ -510,25 +668,27 @@ private fun TodayTotal(today: TodayWithThis) {
             modifier = Modifier.testTag(Metric.Calories.testTag()),
         )
     } else {
-        NutrientText(metric = Metric.Calories, display = today.total, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.ink, maxLines = 1)
+        NutrientText(metric = row.metric, display = row.total, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.ink, maxLines = 1)
     }
 }
 
+/** Where the numbers come from, how many it lists and All nutrients. Open Food Facts' licence asks for the credit. */
 @Composable
-private fun MacroTileView(tile: MacroTile, modifier: Modifier) {
-    val tone = when (tile.metric) {
-        Metric.Protein -> AppTheme.colors.nutrients.protein
-        Metric.Carbs -> AppTheme.colors.nutrients.carbs
-        else -> AppTheme.colors.nutrients.fat
-    }
-    Column(
-        modifier = modifier
-            .clip(AppTheme.shapes.input)
-            .background(tone.container)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+private fun SourceRow(source: SourceLine, nutrients: AllNutrients?, onAction: (FoodDetailAction) -> Unit) {
+    val origin = source.source?.let { stringResource(it.label) }
+    if (origin == null && nutrients == null) return
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
     ) {
-        Text(text = stringResource(tile.metric.amountLabel), typography = AppTheme.type.secondarySmallStrong, color = tone.content)
-        NutrientText(metric = tile.metric, display = tile.amount, typography = AppTheme.type.figureMedium, color = tone.content, maxLines = 1)
+        Column(modifier = Modifier.weight(1f)) {
+            origin?.let { Text(text = it, typography = AppTheme.type.caption, color = AppTheme.colors.muted) }
+            source.nutrientCount?.let { count ->
+                Text(text = pluralStringResource(Res.plurals.adding_detail_nutrient_count, count, count), typography = AppTheme.type.caption, color = AppTheme.colors.muted)
+            }
+        }
+        nutrients?.let { AllNutrientsLink(it, onAction) }
     }
 }
 
@@ -547,12 +707,12 @@ private fun AllNutrientsLink(nutrients: AllNutrients, onAction: (FoodDetailActio
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text(text = stringResource(Res.string.adding_detail_all), typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
-        Icon(icon = if (nutrients.open) AppIcons.ExpandMore else AppIcons.ChevronRight, size = IconSize.Medium, color = AppTheme.colors.ink)
+        Text(text = stringResource(Res.string.adding_detail_all), typography = AppTheme.type.bodyBold, color = AppTheme.colors.accent)
+        Icon(icon = if (nutrients.open) AppIcons.ExpandMore else AppIcons.ChevronRight, size = IconSize.Medium, color = AppTheme.colors.accent)
     }
 }
 
-/** All nutrients, opened from the energy card: vitamins, then minerals, as a percent of a day. */
+/** All nutrients, opened from the source row: vitamins, then minerals, as a percent of a day. */
 @Composable
 private fun NutrientsSection(nutrients: AllNutrients) {
     Card {
@@ -588,18 +748,6 @@ private fun NutrientLine(row: NutrientRow) {
     }
 }
 
-/** "Per 350 g plate · Source: USDA FoodData Central". Amounts of food, not nutrients; Open Food Facts' licence asks for the credit. */
-@Composable
-private fun SourceCaption(source: SourceLine) {
-    val origin = source.source?.let { stringResource(it.label) } ?: return
-    val text = source.per?.let { stringResource(Res.string.logger_amount_per_source, it, origin) }
-        ?: stringResource(Res.string.logger_amount_per_only_source, origin)
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-        Icon(icon = AppIcons.CheckCircleOutline, size = IconSize.Small, color = AppTheme.colors.accent)
-        Text(text = text, typography = AppTheme.type.caption, color = AppTheme.colors.muted)
-    }
-}
-
 /** "Add to {meal}", pinned. Its confirm haptic plays once the log is saved. */
 @Composable
 private fun AddButton(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
@@ -614,6 +762,14 @@ private fun AddButton(state: FoodDetailState, onAction: (FoodDetailAction) -> Un
     }
 }
 
+@Composable
+private fun Metric.tone(): ColorResource = when (this) {
+    Metric.Protein -> AppTheme.colors.nutrients.protein.content
+    Metric.Carbs -> AppTheme.colors.nutrients.carbs.content
+    Metric.Fat -> AppTheme.colors.nutrients.fat.content
+    else -> AppTheme.colors.accent
+}
+
 private val Metric.amountLabel: StringResource
     get() = when (this) {
         Metric.Protein -> Res.string.logger_amount_protein
@@ -621,12 +777,15 @@ private val Metric.amountLabel: StringResource
         else -> Res.string.logger_amount_fat
     }
 
+private val Metric.targetLabel: StringResource
+    get() = if (this == Metric.Calories) Res.string.adding_detail_energy else amountLabel
+
 private val FoodOrigin.label: StringResource
     get() = when (this) {
-        FoodOrigin.Usda -> Res.string.logger_source_usda
-        FoodOrigin.OpenFoodFacts -> Res.string.logger_source_off
+        FoodOrigin.Usda -> Res.string.adding_detail_from_usda
+        FoodOrigin.OpenFoodFacts -> Res.string.adding_detail_from_off
         FoodOrigin.Nevo -> Res.string.logger_source_nevo
-        FoodOrigin.Yours -> Res.string.logger_source_yours
+        FoodOrigin.Yours -> Res.string.adding_detail_from_yours
     }
 
 private val MicroGroup.label: StringResource
@@ -661,8 +820,14 @@ private val Micronutrient.label: StringResource
         Micronutrient.Selenium -> Res.string.logger_micro_selenium
     }
 
-private const val UNIT_SEPARATOR = " · "
-private val UNIT_MENU_TOP = 150.dp
+private val UNIT_MENU_TOP = 110.dp
+private val MORE_MENU_TOP = 56.dp
 
-/** The amount field and the unit dropdown beside it, the same height. */
-private val UNIT_HEIGHT = 64.dp
+/** The amount field and the unit dropdown beside it, the same height, on the Amount row. */
+private val FIELD_HEIGHT = 48.dp
+private val AMOUNT_WIDTH = 88.dp
+private val UNIT_WIDTH = 128.dp
+private val ROW_HEIGHT = 56.dp
+
+/** "17%", "+12%": right-aligned in a column so the bars and amounts line up. */
+private val SHARE_WIDTH = 44.dp

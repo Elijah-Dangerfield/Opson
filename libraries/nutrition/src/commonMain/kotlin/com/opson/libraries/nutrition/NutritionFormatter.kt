@@ -74,9 +74,6 @@ interface NutritionFormatter {
     /** The remaining ring above the range: `Past` over `range`. */
     fun ringAboveRange(): RingValue
 
-    /** The balance ring: `−950` or `+120` over `kcal`. */
-    fun ringBalance(kcal: Double): RingValue
-
     /** A glass or a daily goal, not an amount drunk: `250 ml`, `2,000 ml`, `8 fl oz`. */
     fun glassSize(amount: Double, unit: WaterUnit): String
 
@@ -158,13 +155,6 @@ object EnglishNutritionFormatter : NutritionFormatter {
     override fun ringOnTarget(): RingValue = RingValue("On", "target")
 
     override fun ringAboveRange(): RingValue = RingValue("Past", "range")
-
-    override fun ringBalance(kcal: Double): RingValue {
-        val rounded = kcal.roundToLong()
-        // A true minus sign, as the prototype, so it does not read as a hyphen.
-        val sign = if (rounded < 0) "\u2212" else "+"
-        return RingValue("$sign${groupThousands(abs(rounded))}", "kcal")
-    }
 
     override fun glassSize(amount: Double, unit: WaterUnit): String = when (unit) {
         WaterUnit.Ml -> "${wholeNumber(amount)} ml"

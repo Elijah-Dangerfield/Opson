@@ -73,9 +73,23 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "logger-saved", label = "Saved meals", showsCaloriesInFull = true) { policy ->
             LoggerSheetContent(state = LoggerFixtures.savedState(policy), onAction = {})
         },
-        // kcal, the macro tiles and Today with this: Blind removes the card.
+        // kcal, each macro's share of it, and Today with this against the targets.
         LeakSurface(id = "food-detail", label = "Food detail", showsCaloriesInFull = true) { policy ->
             FoodDetailContent(state = LoggerFixtures.detailState(policy), onAction = {})
+        },
+        // The ⋮ menu drawn in place: words only, over the same detail.
+        LeakSurface(id = "food-detail-more", label = "Food detail, more menu", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.detailState(policy), onAction = {}, menuShown = DetailMenu.More)
+        },
+        // ml typed, so "That is 258 g" under it: an amount of food, never a nutrient.
+        LeakSurface(id = "food-detail-liquid", label = "Food detail, a liquid in ml", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.liquidDetailState(policy), onAction = {})
+        },
+        LeakSurface(id = "food-detail-creamer", label = "Food detail, own food in tablespoons", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.creamerDetailState(policy), onAction = {})
+        },
+        LeakSurface(id = "food-detail-pounds", label = "Food detail, ounces first", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.detailPoundsState(policy), onAction = {}, menuShown = DetailMenu.Units)
         },
         // All nutrients open: every vitamin and mineral the food carries, as a percent of a day.
         LeakSurface(id = "food-detail-nutrients", label = "Food detail, all nutrients", showsCaloriesInFull = true) { policy ->
@@ -83,7 +97,7 @@ object LoggerLeakSurfaces {
         },
         // The unit menu's weights are amounts of food, not nutrients; the detail under it still follows the policy.
         LeakSurface(id = "food-detail-units", label = "Food detail, unit menu", showsCaloriesInFull = true) { policy ->
-            FoodDetailContent(state = LoggerFixtures.detailUnitsState(policy), onAction = {}, unitMenuShown = true)
+            FoodDetailContent(state = LoggerFixtures.detailUnitsState(policy), onAction = {}, menuShown = DetailMenu.Units)
         },
         // 13.5e: No numbers' own detail, the amount in measures and the hunger check.
         LeakSurface(id = "food-detail-no-numbers", label = "Food detail in No numbers", showsCaloriesInFull = false) { policy ->

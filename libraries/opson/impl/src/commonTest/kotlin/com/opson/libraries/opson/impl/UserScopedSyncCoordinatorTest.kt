@@ -69,7 +69,7 @@ class UserScopedSyncCoordinatorTest : CoroutineTest() {
     }
 
     @Test
-    fun freshInstallUnauthenticated_neverSyncs_untilGuestHealFlipsAuth() = runUnitTest {
+    fun freshInstallUnauthenticated_neverSyncs_untilSignInFlipsAuth() = runUnitTest {
         val f = fixture()
         f.auth.emit(AuthState.Unauthenticated())
         f.bus.dispatch(AppEvent.ColdBoot)
@@ -78,7 +78,7 @@ class UserScopedSyncCoordinatorTest : CoroutineTest() {
         runCurrent()
         assertEquals(0, f.a.syncs, "no session — nothing to reconcile, warm fg included")
 
-        f.auth.emit(authenticated("guest-1"))
+        f.auth.emit(authenticated("u-1"))
         runCurrent()
         assertEquals(1, f.a.syncs)
     }

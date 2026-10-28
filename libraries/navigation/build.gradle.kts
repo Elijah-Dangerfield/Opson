@@ -35,6 +35,8 @@ kotlin {
         // `commonTest` is the wrong home too: it also compiles for iOS, where none of this
         // resolves.
         androidUnitTest.dependencies {
+            // ObserveWithLifecycleTest drives flowroutines' composable here, the only composition tier.
+            implementation(projects.libraries.flowroutines)
             implementation(compose.foundation)
             implementation(libs.androidx.compose.uiTest.junit4)
             // Declares the `ComponentActivity` the rule launches; without it the merged manifest

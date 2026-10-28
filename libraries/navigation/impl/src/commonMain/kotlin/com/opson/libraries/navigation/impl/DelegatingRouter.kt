@@ -16,7 +16,6 @@ import com.opson.libraries.flowroutines.observeWithLifecycle
 import com.opson.libraries.navigation.BlockingErrorRoute
 import com.opson.libraries.navigation.NavigationOptions
 import com.opson.libraries.navigation.navigateUnlessShowing
-import com.opson.libraries.navigation.NavigationTracker
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.navigation.NavigationRecovery
 import com.opson.libraries.navigation.Router
@@ -28,7 +27,6 @@ import com.opson.libraries.navigation.switchTab
 import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.navigation.FileShareLauncher
 import com.opson.libraries.navigation.NavigableWhileBlocked
-import com.opson.libraries.navigation.TrackableRoute
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -54,7 +52,6 @@ class DelegatingRouter(
     private val appScope: AppCoroutineScope,
     private val webLinkLauncher: WebLinkLauncher,
     private val fileShareLauncher: FileShareLauncher,
-    private val navigationTracker: NavigationTracker,
 ) : Router, NavigationRecovery {
 
     private val logger = KLog.withTag("DelegatingRouter")
@@ -98,11 +95,6 @@ class DelegatingRouter(
     }
 
     override fun navigate(route: Route, options: NavigationOptions) {
-        // Track the navigation if the route is trackable
-        if (route is TrackableRoute) {
-            appScope.launch { navigationTracker.onNavigate(route) }
-        }
-        
         enqueueNavigation(
             description = "navigate to ${route.nameForLogs()}",
             route = route,
@@ -148,9 +140,6 @@ class DelegatingRouter(
             val scope = object : RouterBatch {
                 override fun navigate(route: Route, options: NavigationOptions) {
                     if (controller.shouldBlockNavigation(route)) return
-                    if (route is TrackableRoute) {
-                        appScope.launch { navigationTracker.onNavigate(route) }
-                    }
                     controller.executeNavigate(route, options)
                 }
 
@@ -230,11 +219,16 @@ class DelegatingRouter(
         }
     }
 
+    /**
+     * A link that will not open is expected, not a bug (no browser or store app on the device), so
+     * it is a warning and never crashes a debug build. It names the scheme and the exception type
+     * only. The link, and the platform's message, which quotes it, can be the eating disorder
+     * helpline Support opens, and that someone tried to reach it is health data.
+     */
     override fun openWebLink(url: String) {
-        webLinkLauncher
-            .open(url)
-            .logOnFailure("Failed to open web link: $url")
-            .throwIfDebug()
+        webLinkLauncher.open(url).onFailure { error ->
+            logger.w { "Couldn't open a ${url.substringBefore(":", missingDelimiterValue = "schemeless")} link (${error::class.simpleName})" }
+        }
     }
 
     override fun shareFile(name: String, mimeType: String, bytes: ByteArray) {
@@ -277,6 +271,10 @@ class DelegatingRouter(
         return true
     }
 
+    // TODO(review): nothing navigates to BlockingErrorRoute, so this gate never closes, while the
+    // screens that are meant to block (SessionExpiredRoute, AccessDeniedRoute) do not close it:
+    // a reminder tap still pushes the Logger over either. Covering them needs OnboardingRoute,
+    // SessionExpired's own way out, let through (docs/review/findings/core-libraries.md).
     private fun NavHostController.isBlockingErrorActive(): Boolean {
         val destination = currentBackStackEntry?.destination ?: return false
         return destination.hasRoute<BlockingErrorRoute>()

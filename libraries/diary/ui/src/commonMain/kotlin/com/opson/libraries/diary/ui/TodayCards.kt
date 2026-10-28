@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -276,7 +277,9 @@ fun TodayMealCard(
             trailing = headerTrailing,
         )
         Column(Modifier.padding(end = 6.dp)) {
-            items.forEach { item -> itemRow(item) }
+            // Keyed, so a row's remembered state (a swipe held open) stays with its food when
+            // an Undo or a pull puts another one above it.
+            items.forEach { item -> key(item.key) { itemRow(item) } }
         }
         if (note != null) MealNoteBlock(note, Modifier.padding(end = 6.dp))
         if (dropLabel != null) DropZone(dropLabel)

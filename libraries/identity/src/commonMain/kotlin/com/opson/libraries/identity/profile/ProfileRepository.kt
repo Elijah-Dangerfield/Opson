@@ -51,7 +51,8 @@ interface ProfileRepository {
      * it survives the profile hydrate racing the caller (the flag is one-shot
      * server-side). Returns false when unauthenticated or on error — treat "not
      * sure" as returning, so a real returning user is never trapped in
-     * onboarding. Consuming: reading it resets the latch. Default false for fakes.
+     * onboarding. Not consuming: the latch resets on sign-out or an account
+     * switch. Default false for fakes.
      */
     suspend fun resolveIsNewAccount(): Boolean = false
 
@@ -125,11 +126,11 @@ sealed interface Profile {
      * no cached server profile. `id` is a UUID generated client-side and
      * persisted across launches so any local-only state has a stable key.
      *
-     * May carry a **locally-chosen** identity — the name the user picked
-     * during an offline onboarding (or an offline Edit Profile) that hasn't
-     * reached the server yet. Surfaced so the app shows the user's choice
-     * instead of a generic placeholder while session-less; it syncs to the
-     * server once a session is established. Null = nothing chosen yet.
+     * May carry a **locally-chosen** name, held on this device while there is
+     * no session (an older build's offline onboarding left some). Surfaced so
+     * the app shows the user's choice instead of a generic placeholder. It
+     * never reaches the server: the account made at sign-in has a name of its
+     * own. Null = nothing chosen.
      *
      * `Fallback` still means "no confirmed server session," so callers that
      * hard-gate on a real account (server writes) keep checking
@@ -159,11 +160,10 @@ sealed interface UpdateProfileOutcome {
     data class Success(val profile: Profile.Authenticated) : UpdateProfileOutcome
 
     /**
-     * The edit was applied **locally** and queued to sync when a session is
-     * available — the offline / session-less case. The chosen name shows
-     * immediately (optimistically) and is carried until a session is minted,
-     * which applies it server-side. The caller treats this like a success: the
-     * user's change "stuck," it just hasn't reached the server yet.
+     * The edit was applied **locally** — the offline / session-less case. The
+     * chosen name shows immediately. For a cached account it is sent once a
+     * session is back; with no account (the Fallback) it stays on this device.
+     * The caller treats this like a success: the user's change "stuck".
      */
     data object Queued : UpdateProfileOutcome
     data object DisplayNameTaken : UpdateProfileOutcome

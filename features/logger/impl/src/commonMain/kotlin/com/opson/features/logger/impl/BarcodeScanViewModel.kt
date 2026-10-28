@@ -52,6 +52,12 @@ class BarcodeScanViewModel(
     private var model = ScanModel(canAddFood = submitFood())
     private var slowJob: Job? = null
 
+    /**
+     * The name is logged and the scanner is closing: a second Save queued behind the first would log it
+     * again. A closed day writes nothing, so it clears this.
+     */
+    private var saved = false
+
     init {
         viewModelScope.launch { takeAction(BarcodeScanAction.PermissionChecked(permissions.current())) }
     }
@@ -191,9 +197,16 @@ class BarcodeScanViewModel(
 
     private suspend fun saveName() {
         val name = model.name.trim()
-        if (model.lookup !is Lookup.Missed || name.isEmpty()) return
-        val logged = logger.log(day, slot, listOf(nameOnlyPick(name, customFoods.observeAll().first(), customFoods)))
-        sendEvent(if (logged is DayWrite.DayClosed) BarcodeScanEvent.DayClosed(logged.day) else BarcodeScanEvent.Close)
+        if (saved || model.lookup !is Lookup.Missed || name.isEmpty()) return
+        saved = true
+        when (val logged = logger.log(day, slot, listOf(nameOnlyPick(name, customFoods.observeAll().first(), customFoods)))) {
+            is DayWrite.DayClosed -> {
+                // Nothing was written and the scanner stays open, so Save works again once the day is reopened.
+                saved = false
+                sendEvent(BarcodeScanEvent.DayClosed(logged.day))
+            }
+            else -> sendEvent(BarcodeScanEvent.Close)
+        }
     }
 
     private fun isRunning(code: String): Boolean = (model.lookup as? Lookup.Running)?.code == code

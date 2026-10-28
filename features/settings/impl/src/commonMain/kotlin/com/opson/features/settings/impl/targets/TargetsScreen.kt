@@ -60,6 +60,7 @@ import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.withPreset
 import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SegmentedControl
@@ -85,6 +86,7 @@ import com.opson.system.thenIf
 import com.opson.system.typography.TypographyResource
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_back_more
+import opson.libraries.resources.generated.resources.settings_loading_cd
 import opson.libraries.resources.generated.resources.settings_targets_activity
 import opson.libraries.resources.generated.resources.settings_targets_activity_connect
 import opson.libraries.resources.generated.resources.everyday_activity_body
@@ -205,6 +207,11 @@ fun TargetsScreen(
             backLabel = stringResource(Res.string.settings_back_more),
             onBack = { onAction(TargetsAction.BackTapped) },
         )
+        if (!state.loaded) {
+            // Not the background card: until the inputs arrive, nobody knows whether calories show.
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
+            return@SettingsPage
+        }
         if (!state.visible) {
             BackgroundCard(onAction)
             if (state.macros.isNotEmpty()) MacroCard(state, onAction)

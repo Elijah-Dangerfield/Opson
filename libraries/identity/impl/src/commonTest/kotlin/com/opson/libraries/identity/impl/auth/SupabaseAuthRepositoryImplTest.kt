@@ -8,6 +8,7 @@ import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.identity.auth.AppleSignInCredential
 import com.opson.libraries.identity.auth.AuthState
+import com.opson.libraries.identity.auth.DeleteAccountOutcome
 import com.opson.libraries.identity.auth.LinkEmailIdentityOutcome
 import com.opson.libraries.identity.auth.OAuthProvider
 import com.opson.libraries.identity.auth.RefreshOutcome
@@ -16,18 +17,28 @@ import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.identity.impl.MeDto
 import com.opson.libraries.identity.impl.PatchMeRequest
 import com.opson.libraries.identity.impl.ProfileApi
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.HttpRequestTimeoutException
-import io.ktor.client.statement.HttpResponse
+import io.ktor.client.request.delete
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -112,6 +123,172 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
 
         assertIs<AuthState.Unauthenticated>(repo.current())
         assertEquals(1, gateway.signOutCalls, "a burst collapses to a single teardown")
+    }
+
+    @Test
+    fun aSessionExpiry_keepsTheAccountsLocalData_andTheSameAccountSigningBackInKeepsIt() = runUnitTest {
+        // Meals logged offline sit in the outbox. The session is then rejected
+        // and the screen says "sign in again to pick up where you left off".
+        val gateway = appleGateway().apply { advanceToAuthenticated(claimedSession()) }
+        val bus = FakeSessionRejectionBus()
+        val reset = RecordingUserScopedDataReset()
+        val expiredAccounts = ExpiredAccountStore(TestCacheFactory())
+        val repo = build(
+            gateway = gateway,
+            sessionRejectionBus = bus,
+            userScopedDataReset = reset,
+            expiredAccounts = expiredAccounts,
+        )
+        advanceUntilIdle()
+
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+        assertEquals(emptyList(), reset.clearedFor, "an expiry is not a change of user")
+
+        assertEquals(SignInOutcome.Success, repo.signInWithApple(appleCredential(authorizationCode = null)))
+
+        assertEquals(emptyList(), reset.clearedFor, "the same account came back: its outbox drains")
+        assertNull(expiredAccounts.read())
+    }
+
+    @Test
+    fun aSessionExpiry_thenADifferentAccount_wipesTheHeldDataBeforeItsFirstEmission() = runUnitTest {
+        val gateway = FakeSupabaseAuthGateway(
+            initialStatus = AuthGatewayStatus.Authenticated,
+            session = claimedSession(userId = "user-1"),
+            onSignInWithAppleIdToken = { _, _ -> advanceToAuthenticated(claimedSession(userId = "user-2")) },
+        )
+        val bus = FakeSessionRejectionBus()
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(gateway = gateway, sessionRejectionBus = bus, userScopedDataReset = reset)
+        advanceUntilIdle()
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+
+        repo.signInWithApple(appleCredential(authorizationCode = null))
+
+        assertEquals(listOf("user-1"), reset.clearedFor)
+        assertEquals("user-2", assertIs<AuthState.Authenticated>(repo.current()).userId)
+    }
+
+    @Test
+    fun aSessionExpiry_thenTheSignInAgainTap_thenTheSameAccount_keepsItsLocalData() = runUnitTest {
+        // The SessionExpired screen's only button signs out before routing to
+        // sign-in. That tap must not count as a log out of the held account.
+        val gateway = appleGateway().apply { advanceToAuthenticated(claimedSession()) }
+        val bus = FakeSessionRejectionBus()
+        val reset = RecordingUserScopedDataReset()
+        val expiredAccounts = ExpiredAccountStore(TestCacheFactory())
+        val repo = build(
+            gateway = gateway,
+            sessionRejectionBus = bus,
+            userScopedDataReset = reset,
+            expiredAccounts = expiredAccounts,
+        )
+        advanceUntilIdle()
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+
+        repo.signOut()
+        assertEquals(emptyList(), reset.clearedFor, "the tap only clears the dead session")
+        assertNotNull(expiredAccounts.read(), "still waiting for the person to sign in")
+
+        assertEquals(SignInOutcome.Success, repo.signInWithApple(appleCredential(authorizationCode = null)))
+
+        assertEquals(emptyList(), reset.clearedFor, "the same account came back: its outbox drains")
+        assertNull(expiredAccounts.read())
+    }
+
+    @Test
+    fun aSessionExpiry_thenTheSignInAgainTap_thenADifferentAccount_wipesTheHeldData() = runUnitTest {
+        val gateway = FakeSupabaseAuthGateway(
+            initialStatus = AuthGatewayStatus.Authenticated,
+            session = claimedSession(userId = "user-1"),
+            onSignInWithAppleIdToken = { _, _ -> advanceToAuthenticated(claimedSession(userId = "user-2")) },
+        )
+        val bus = FakeSessionRejectionBus()
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(gateway = gateway, sessionRejectionBus = bus, userScopedDataReset = reset)
+        advanceUntilIdle()
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+        repo.signOut()
+
+        repo.signInWithApple(appleCredential(authorizationCode = null))
+
+        assertEquals(listOf("user-1"), reset.clearedFor)
+    }
+
+    @Test
+    fun aSessionExpiry_thenASignInWhileTheHoldCantBeRead_wipesTheHeldData() = runUnitTest {
+        val cacheFactory = TestCacheFactory()
+        val gateway = FakeSupabaseAuthGateway(
+            initialStatus = AuthGatewayStatus.Authenticated,
+            session = claimedSession(userId = "user-1"),
+            onSignInWithAppleIdToken = { _, _ -> advanceToAuthenticated(claimedSession(userId = "user-2")) },
+        )
+        val bus = FakeSessionRejectionBus()
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(
+            gateway = gateway,
+            sessionRejectionBus = bus,
+            userScopedDataReset = reset,
+            expiredAccounts = ExpiredAccountStore(cacheFactory),
+        )
+        advanceUntilIdle()
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+        cacheFactory.readsFail = true
+
+        repo.signInWithApple(appleCredential(authorizationCode = null))
+
+        assertEquals(1, reset.clearedFor.size, "user-1's outbox must not drain under user-2's token")
+    }
+
+    @Test
+    fun aLaunchWithALiveSession_whileTheHoldCantBeRead_keepsItsData() = runUnitTest {
+        val cacheFactory = TestCacheFactory().apply { readsFail = true }
+        val reset = RecordingUserScopedDataReset()
+        build(
+            gateway = FakeSupabaseAuthGateway(AuthGatewayStatus.Authenticated, session = claimedSession()),
+            userScopedDataReset = reset,
+            expiredAccounts = ExpiredAccountStore(cacheFactory),
+        )
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), reset.clearedFor)
+    }
+
+    @Test
+    fun theHeldAccount_survivesARelaunch() = runUnitTest {
+        val cacheFactory = TestCacheFactory()
+        val bus = FakeSessionRejectionBus()
+        build(
+            gateway = FakeSupabaseAuthGateway(AuthGatewayStatus.Authenticated, session = claimedSession()),
+            sessionRejectionBus = bus,
+            expiredAccounts = ExpiredAccountStore(cacheFactory),
+        )
+        advanceUntilIdle()
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+
+        // Next launch: no session, and someone else signs in.
+        val reset = RecordingUserScopedDataReset()
+        val relaunched = build(
+            gateway = FakeSupabaseAuthGateway(
+                initialStatus = AuthGatewayStatus.NotAuthenticated,
+                session = null,
+                onSignInWithAppleIdToken = { _, _ -> advanceToAuthenticated(claimedSession(userId = "user-2")) },
+            ),
+            userScopedDataReset = reset,
+            expiredAccounts = ExpiredAccountStore(cacheFactory),
+        )
+        advanceUntilIdle()
+        assertEquals(emptyList(), reset.clearedFor, "still waiting for the person to sign in")
+
+        relaunched.signInWithApple(appleCredential(authorizationCode = null))
+
+        assertEquals(listOf("user-1"), reset.clearedFor)
     }
 
     @Test
@@ -777,7 +954,106 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         advanceUntilIdle()
 
         val outcome = repo.deleteAccount()
-        assertIs<com.opson.libraries.identity.auth.DeleteAccountOutcome.NotSignedIn>(outcome)
+        assertIs<DeleteAccountOutcome.NotSignedIn>(outcome)
+    }
+
+    @Test
+    fun deleteAccount_success_signsOutAndClearsTheAccount() = runUnitTest {
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(
+            gateway = signedInGateway(),
+            profileApi = DeletingProfileApi(failure = null),
+            userScopedDataReset = reset,
+        )
+        advanceUntilIdle()
+
+        assertEquals(DeleteAccountOutcome.Success, repo.deleteAccount())
+
+        val state = assertIs<AuthState.Unauthenticated>(repo.current())
+        assertEquals(AuthState.Unauthenticated.Reason.SignedOut, state.reason)
+        assertEquals(listOf("user-1"), reset.clearedFor)
+    }
+
+    @Test
+    fun deleteAccount_serverWithoutTheServiceRoleKey_isNotConfigured() = runUnitTest {
+        val refusal = serverRefusal(HttpStatusCode.ServiceUnavailable, code = "delete_not_configured")
+        val repo = build(gateway = signedInGateway(), profileApi = DeletingProfileApi(failure = refusal))
+        advanceUntilIdle()
+
+        assertEquals(DeleteAccountOutcome.NotConfigured, repo.deleteAccount())
+        assertIs<AuthState.Authenticated>(repo.current(), "a refused delete keeps the account signed in")
+    }
+
+    @Test
+    fun deleteAccount_supabaseAdminFailure_isATransientUnknown_notNotConfigured() = runUnitTest {
+        // Same 503 status, different problem: the admin call failed and a
+        // retry may work. Reading it as a deploy problem misled the logs.
+        val refusal = serverRefusal(HttpStatusCode.ServiceUnavailable, code = "delete_failed")
+        val repo = build(gateway = signedInGateway(), profileApi = DeletingProfileApi(failure = refusal))
+        advanceUntilIdle()
+
+        assertIs<DeleteAccountOutcome.Unknown>(repo.deleteAccount())
+    }
+
+    @Test
+    fun deleteAccount_sessionTheServerNoLongerAccepts_isNotSignedIn() = runUnitTest {
+        val refusal = serverRefusal(HttpStatusCode.Unauthorized, code = "unauthorized")
+        val repo = build(gateway = signedInGateway(), profileApi = DeletingProfileApi(failure = refusal))
+        advanceUntilIdle()
+
+        assertEquals(DeleteAccountOutcome.NotSignedIn, repo.deleteAccount())
+    }
+
+    @Test
+    fun deleteAccount_cancelledWhileSigningOut_stillSignsOut() = runUnitTest {
+        // The server already deleted the account; leaving the screen while the
+        // logout request hangs must not leave its data behind.
+        val gateway = hangingSignOutGateway()
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(gateway = gateway, profileApi = DeletingProfileApi(failure = null), userScopedDataReset = reset)
+        advanceUntilIdle()
+
+        val deleting = launch { repo.deleteAccount() }
+        gateway.awaitSignOutStarted()
+        deleting.cancelAndJoin()
+
+        val state = assertIs<AuthState.Unauthenticated>(repo.current())
+        assertEquals(AuthState.Unauthenticated.Reason.SignedOut, state.reason)
+        assertEquals(listOf("user-1"), reset.clearedFor)
+    }
+
+    private fun signedInGateway() = FakeSupabaseAuthGateway(
+        initialStatus = AuthGatewayStatus.Authenticated,
+        session = claimedSession(),
+    )
+
+    /** A gateway whose logout request never answers, and which clears the session when cancelled. */
+    private fun hangingSignOutGateway() = FakeSupabaseAuthGateway(
+        initialStatus = AuthGatewayStatus.Authenticated,
+        session = claimedSession(),
+        onSignOut = {
+            try {
+                signOutStarted.complete(Unit)
+                awaitCancellation()
+            } finally {
+                replaceSession(null)
+                setStatus(AuthGatewayStatus.NotAuthenticated)
+            }
+        },
+    )
+
+    /** The exception the app's `expectSuccess` client throws for this answer. */
+    private suspend fun serverRefusal(status: HttpStatusCode, code: String): Throwable {
+        val client = HttpClient(
+            MockEngine {
+                respond(
+                    content = """{"error":{"code":"$code","message":"Please try again."}}""",
+                    status = status,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        ) { expectSuccess = true }
+        return assertNotNull(runCatching { client.delete("https://api.test/v1/me") }.exceptionOrNull())
     }
 
     @Test
@@ -803,6 +1079,52 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
             AppEvent.UserChanged(previous = "user-1", current = null),
             events.dispatched.last(),
         )
+    }
+
+    @Test
+    fun signOut_offline_staysSignedOutAcrossALaterRetry() = runUnitTest {
+        // The gateway clears the session locally even when the logout request
+        // can't reach the server (RealSupabaseAuthGatewayTest), then throws.
+        val gateway = FakeSupabaseAuthGateway(
+            initialStatus = AuthGatewayStatus.Authenticated,
+            session = claimedSession(),
+            onSignOut = {
+                replaceSession(null)
+                setStatus(AuthGatewayStatus.NotAuthenticated)
+                throw RuntimeException("Unable to resolve host")
+            },
+        )
+        val repo = build(gateway = gateway)
+        advanceUntilIdle()
+
+        repo.signOut()
+        // The next foreground / connectivity edge re-resolves.
+        val afterRetry = assertIs<AuthState.Unauthenticated>(repo.retry())
+
+        assertNull(gateway.currentSession())
+        assertEquals(
+            AuthState.Unauthenticated.Reason.SignedOut,
+            afterRetry.reason,
+            "a re-resolve must not decay a sign-out into an ordinary missing session",
+        )
+    }
+
+    @Test
+    fun signOut_cancelledWhileTheLogoutRequestHangs_stillSignsOut() = runUnitTest {
+        // The gateway drops the stored session even when cancelled
+        // (RealSupabaseAuthGatewayTest), so the state has to follow it.
+        val gateway = hangingSignOutGateway()
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(gateway = gateway, userScopedDataReset = reset)
+        advanceUntilIdle()
+
+        val signingOut = launch { repo.signOut() }
+        gateway.awaitSignOutStarted()
+        signingOut.cancelAndJoin()
+
+        val state = assertIs<AuthState.Unauthenticated>(repo.current())
+        assertEquals(AuthState.Unauthenticated.Reason.SignedOut, state.reason)
+        assertEquals(listOf("user-1"), reset.clearedFor, "the account's data leaves with its session")
     }
 
     // ---------- signup already-registered obfuscation (AUTH-21) ----------
@@ -910,6 +1232,7 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         sessionRejectionBus: com.opson.libraries.networking.SessionRejectionBus =
             FakeSessionRejectionBus(),
         profileApi: ProfileApi = UnusedProfileApi,
+        expiredAccounts: ExpiredAccountStore = ExpiredAccountStore(TestCacheFactory()),
     ): SupabaseAuthRepositoryImpl = SupabaseAuthRepositoryImpl(
         gateway = gateway,
         profileApi = profileApi,
@@ -917,6 +1240,7 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         userScopedDataReset = userScopedDataReset,
         tokenInvalidator = NoOpTokenInvalidator,
         sessionRejectionBus = sessionRejectionBus,
+        expiredAccounts = expiredAccounts,
         appScope = AppCoroutineScope(dispatchers),
     )
 
@@ -978,17 +1302,26 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         override suspend fun me(): MeDto = error("ProfileApi not used by these tests")
         override suspend fun patchMe(request: PatchMeRequest): MeDto =
             error("ProfileApi not used by these tests")
-        override suspend fun deleteMe(): HttpResponse =
+        override suspend fun deleteMe() =
             error("ProfileApi not used by these tests")
         override suspend fun sendAppleAuthorization(authorizationCode: String) =
             error("ProfileApi not used by these tests")
+    }
+
+    private class DeletingProfileApi(private val failure: Throwable?) : ProfileApi {
+        override suspend fun me(): MeDto = error("unused")
+        override suspend fun patchMe(request: PatchMeRequest): MeDto = error("unused")
+        override suspend fun deleteMe() {
+            failure?.let { throw it }
+        }
+        override suspend fun sendAppleAuthorization(authorizationCode: String) = error("unused")
     }
 
     private class RecordingProfileApi(private val failSend: Boolean = false) : ProfileApi {
         val sentCodes = mutableListOf<String>()
         override suspend fun me(): MeDto = error("unused")
         override suspend fun patchMe(request: PatchMeRequest): MeDto = error("unused")
-        override suspend fun deleteMe(): HttpResponse = error("unused")
+        override suspend fun deleteMe() = error("unused")
         override suspend fun sendAppleAuthorization(authorizationCode: String) {
             sentCodes += authorizationCode
             if (failSend) throw RuntimeException("503 apple_not_configured")
@@ -1043,6 +1376,9 @@ internal class FakeSupabaseAuthGateway(
         private set
     var signOutCalls: Int = 0
         private set
+    val signOutStarted = CompletableDeferred<Unit>()
+
+    suspend fun awaitSignOutStarted() = signOutStarted.await()
     var signInWithOAuthCalls: Int = 0
         private set
     var linkOAuthIdentityCalls: Int = 0

@@ -81,7 +81,7 @@ fun RadioRow(
 
 /**
  * The handoff's radio mark: a ring, filled with the accent when selected, with a surface-colored
- * inset so the fill reads as a dot. 22dp in rows, 18dp in the per-metric matrix.
+ * inset so the fill reads as a dot. 22dp in rows, 20dp in the per-metric matrix.
  */
 @Composable
 fun RadioDot(

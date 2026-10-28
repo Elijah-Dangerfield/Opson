@@ -76,6 +76,8 @@ enum class ShapeKind {
 }
 
 data class TargetsState(
+    /** False until the settings, the policy and Burned have all arrived; the page shows a spinner, not the background card. */
+    val loaded: Boolean = false,
     /** Calories configured to Show. Otherwise the page is the "Targets work in the background" card. */
     val visible: Boolean = false,
     /** The style whose card is open: the saved one, or a range when the mode doesn't offer it. */
@@ -353,6 +355,7 @@ object TargetsStateBuilder {
         if (!percentsShown(policy)) {
             // No calorie goal, but macros on show (Macros with grams) keep their gram targets.
             return TargetsState(
+                loaded = true,
                 visible = false,
                 micros = microsShown(policy),
                 macroMode = settings.macroMode,
@@ -366,6 +369,7 @@ object TargetsStateBuilder {
         val groups = GroupInputs(policy, settings.weekStart, editingGroup, burnKcal, goalsAndEnergy, preset)
         val macroGoal = macroGoal(targets, style, preset, burnKcal, today)
         return TargetsState(
+            loaded = true,
             visible = true,
             micros = microsShown(policy),
             style = style,

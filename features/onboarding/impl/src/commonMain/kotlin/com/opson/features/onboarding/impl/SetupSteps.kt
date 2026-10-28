@@ -98,6 +98,10 @@ data class GoalAnswer(
  * year is not lost. Height is in centimetres or feet and inches, weight in kilograms or pounds,
  * each with its own switch and both starting in the phone region's units. Weight is the first
  * weigh-in rather than a setting, as everywhere else in the app.
+ *
+ * [height] and [weight] are what the fields show. After a switch they are a rounded conversion,
+ * and [heightAsTyped] and [weightAsTyped] keep what the person typed in the unit they typed it in,
+ * so switching back gives it back unchanged and what is saved is what they typed.
  */
 data class BodyAnswer(
     val birthYear: String = "",
@@ -106,37 +110,73 @@ data class BodyAnswer(
     val sex: BodySex? = null,
     val weightUnit: WeightUnit = WeightUnit.Kg,
     val activity: EverydayActivity = EverydayActivity.Default,
+    val heightAsTyped: HeightInput? = null,
+    val weightAsTyped: WeightAsTyped? = null,
 ) {
+    /** A weight's text in the unit it was typed in. */
+    data class WeightAsTyped(val text: String, val unit: WeightUnit)
+
     fun withBirthYear(text: String) = copy(birthYear = NumberInput.sanitize(text, allowDecimal = false).take(YEAR_DIGITS))
 
-    fun withHeightCm(text: String) = copy(height = height.copy(cm = NumberInput.sanitize(text, allowDecimal = true)))
+    // Typing into a field that shows a conversion makes what it now holds the typed height.
+    fun withHeightCm(text: String) = copy(height = height.copy(cm = NumberInput.sanitize(text, allowDecimal = true)), heightAsTyped = null)
 
-    fun withHeightFeet(text: String) = copy(height = height.copy(feet = NumberInput.sanitize(text, allowDecimal = false)))
+    fun withHeightFeet(text: String) = copy(height = height.copy(feet = NumberInput.sanitize(text, allowDecimal = false)), heightAsTyped = null)
 
-    fun withHeightInches(text: String) = copy(height = height.copy(inches = NumberInput.sanitize(text, allowDecimal = true)))
+    fun withHeightInches(text: String) = copy(height = height.copy(inches = NumberInput.sanitize(text, allowDecimal = true)), heightAsTyped = null)
 
-    /** Height in [unit], carrying over a height already typed. */
-    fun withHeightUnit(unit: HeightUnit) = copy(height = height.inUnit(unit))
+    /**
+     * Height in [unit], carrying over a height already typed. Each conversion starts from what was
+     * typed, never from an earlier conversion, so switching back to its unit restores it exactly:
+     * 172 cm shows as 5 ft 7.5 in and comes back as 172, not 171.
+     */
+    fun withHeightUnit(unit: HeightUnit): BodyAnswer {
+        if (unit == height.unit) return this
+        val typed = typedHeight()
+        return copy(height = typed.inUnit(unit), heightAsTyped = typed.takeIf { it.unit != unit && !it.isBlank })
+    }
 
-    fun withWeight(text: String) = copy(weight = NumberInput.sanitize(text, allowDecimal = true))
+    fun withWeight(text: String) = copy(weight = NumberInput.sanitize(text, allowDecimal = true), weightAsTyped = null)
 
-    /** Weight in [unit]. A weight already typed is converted, to a tenth, so switching never loses it. */
+    /**
+     * Weight in [unit]. A weight already typed is converted, to a tenth, so switching never loses
+     * it or relabels 70 kg as 70 lb. As with height, each conversion starts from what was typed and
+     * switching back restores it: 160 lb shows as 72.6 kg and comes back as 160, not 160.1.
+     */
     fun withWeightUnit(unit: WeightUnit): BodyAnswer {
         if (unit == weightUnit) return this
-        val kg = weightKgOrNull() ?: return copy(weightUnit = unit)
-        val shown = if (unit == WeightUnit.Lb) Units.kgToLb(kg) else kg
-        return copy(weightUnit = unit, weight = tenths(shown))
+        val typed = typedWeight()
+        val shown = if (typed.unit == unit) {
+            typed.text
+        } else {
+            typed.text.toDoubleOrNull()?.let { tenths(if (unit == WeightUnit.Lb) Units.kgToLb(it) else Units.lbToKg(it)) } ?: typed.text
+        }
+        return copy(weightUnit = unit, weight = shown, weightAsTyped = typed.takeIf { it.unit != unit && it.text.isNotEmpty() })
     }
+
+    private fun typedHeight(): HeightInput = heightAsTyped ?: height
+
+    private fun typedWeight(): WeightAsTyped = weightAsTyped ?: WeightAsTyped(weight, weightUnit)
 
     /** The year, when [currentYear] makes it someone 13 to 120. */
     fun birthYearOrNull(currentYear: Int): Int? =
         birthYear.toIntOrNull()?.takeIf { it in (currentYear - MAX_AGE)..(currentYear - MIN_AGE) }
 
-    fun heightCmOrNull(): Double? = height.cmOrNull()
+    fun heightCmOrNull(): Double? = typedHeight().cmOrNull()
 
-    fun weightKgOrNull(): Double? = weight.toDoubleOrNull()
-        ?.let { if (weightUnit == WeightUnit.Lb) Units.lbToKg(it) else it }
-        ?.takeIf { it in WEIGHT_KG }
+    fun weightKgOrNull(): Double? = typedWeight().let { typed ->
+        typed.text.toDoubleOrNull()
+            ?.let { if (typed.unit == WeightUnit.Lb) Units.lbToKg(it) else it }
+            ?.takeIf { it in WEIGHT_KG }
+    }
+
+    /** Something is typed in the year field, but not a year that makes someone 13 to 120. */
+    fun birthYearInvalid(currentYear: Int): Boolean = birthYear.isNotEmpty() && birthYearOrNull(currentYear) == null
+
+    /** Something is typed for height that isn't a height: centimetres typed as feet, or 13 inches. */
+    val heightInvalid: Boolean get() = !height.isBlank && heightCmOrNull() == null
+
+    val weightInvalid: Boolean get() = weight.isNotEmpty() && weightKgOrNull() == null
 
     fun profile(currentYear: Int): BodyProfile = BodyProfile(
         weightKg = weightKgOrNull(),
@@ -203,6 +243,13 @@ data class BodyView(
     val burned: Display = Display.Hidden,
     /** Whether the weight field shows: weight is a number like any other. */
     val weightShown: Boolean,
+    /**
+     * A field holding something that can't be used, which gets a line saying what it wants.
+     * Without one, a height in the wrong unit just leaves resting energy blank with no reason given.
+     */
+    val birthYearInvalid: Boolean = false,
+    val heightInvalid: Boolean = false,
+    val weightInvalid: Boolean = false,
 )
 
 /** What onboarding writes past the mode and the answers, for the steps the person saw. */
@@ -249,5 +296,8 @@ object SetupViews {
             ?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Settings, FormatContext()) }
             ?: Display.Hidden,
         weightShown = policy.effectiveLevel(Metric.Weight, Surface.Settings) == Visibility.Show,
+        birthYearInvalid = answer.birthYearInvalid(currentYear),
+        heightInvalid = answer.heightInvalid,
+        weightInvalid = answer.weightInvalid,
     )
 }
