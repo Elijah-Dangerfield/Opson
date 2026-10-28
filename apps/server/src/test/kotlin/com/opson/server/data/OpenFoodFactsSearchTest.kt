@@ -131,4 +131,11 @@ class OpenFoodFactsSearchTest {
         assertNull(OpenFoodFactsSearch.countryTag("USA"))
         assertNull(OpenFoodFactsSearch.countryTag("1!"))
     }
+
+    @Test
+    fun aHeaderWithNonAsciiLettersIsNoCountry() {
+        // X-Country-Code is read as Latin-1; Locale.Builder throws on a region that isn't A to Z.
+        assertNull(OpenFoodFactsSearch.countryTag("éé"))
+        assertNull(OpenFoodFactsSearch.countryTag("ßx"))
+    }
 }

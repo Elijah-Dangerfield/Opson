@@ -357,7 +357,8 @@ private fun AboutCard(onAction: (SupportAction) -> Unit) {
         )
         CardButton(
             text = stringResource(Res.string.settings_about_credits),
-            trailing = opens,
+            // A page in the app, so a chevron as on More, not the browser mark.
+            trailing = AppIcons.ChevronRight,
             onClick = { onAction(SupportAction.CreditsTapped) },
         )
     }

@@ -187,27 +187,25 @@ fun rememberTypography(): Typography {
 
     return remember(appFontFamily, brandFontFamily) {
         DefaultTypography(
-            serifFontFamily = appFontFamily,
-            sansSerifFontFamily = appFontFamily,
+            fontFamily = appFontFamily,
             brandFontFamily = brandFontFamily
         )
     }
 }
 
 class DefaultTypography(
-    serifFontFamily: FontFamily,
-    sansSerifFontFamily: FontFamily,
+    fontFamily: FontFamily,
     brandFontFamily: FontFamily
 ) : Typography {
-    override val Display: DisplayTypography = DisplayTypographyImpl(serifFontFamily)
+    override val Display: DisplayTypography = DisplayTypographyImpl(fontFamily)
 
     override val Brand: BrandTypography = BrandTypographyImpl(brandFontFamily)
 
-    override val Heading: HeadingTypography = HeadingTypographyImpl(sansSerifFontFamily)
+    override val Heading: HeadingTypography = HeadingTypographyImpl(fontFamily)
 
-    override val Body: BodyTypography = BodyTypographyImpl(sansSerifFontFamily)
-    override val Label: LabelTypography = LabelTypographyImpl(sansSerifFontFamily)
-    override val Caption: CaptionTypography = CaptionTypographyImpl(sansSerifFontFamily)
+    override val Body: BodyTypography = BodyTypographyImpl(fontFamily)
+    override val Label: LabelTypography = LabelTypographyImpl(fontFamily)
+    override val Caption: CaptionTypography = CaptionTypographyImpl(fontFamily)
 
     override val Default: TypographyResource = Body.B600
 }
@@ -665,7 +663,7 @@ private fun PreviewBrandTypography() {
                     modifier = Modifier.padding(bottom = Dimension.D500)
                 )
                 Text(
-                    text = "The wordmark face: Atkinson Hyperlegible Next ExtraBold",
+                    text = "The wordmark face: Young Serif",
                     fontSize = 14.sp,
                     color = Color(0xFF666666),
                     modifier = Modifier.padding(bottom = Dimension.D1000)

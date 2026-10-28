@@ -44,6 +44,13 @@ class SurfacesCoverageTest {
         assertTrue(missing.isEmpty(), "EnergyOutHiddenLeakTest names $missing, which no feature lists any more")
     }
 
+    /** A renamed micros surface would otherwise drop out of MicrosHiddenLeakTest without a word. */
+    @Test
+    fun everyMicrosSurfaceIsListed() {
+        val missing = MicrosHiddenLeakTest.MICROS_SURFACES - SURFACES.map { it.id }.toSet()
+        assertTrue(missing.isEmpty(), "MicrosHiddenLeakTest names $missing, which no feature lists any more")
+    }
+
     @Test
     fun idsAreUnique() {
         val duplicates = SURFACES.groupBy { it.id }.filterValues { it.size > 1 }.keys
@@ -116,12 +123,15 @@ class SurfacesCoverageTest {
                 "logger-describe", "logger-describe-voice", "logger-describe-edited", "logger-describe-quick-add", "logger-describe-find",
                 "logger-saved",
                 "food-detail", "food-detail-nutrients", "food-detail-units", "food-detail-scan", "food-detail-no-numbers",
+                "food-detail-more", "food-detail-liquid", "food-detail-creamer", "food-detail-pounds",
                 "logger-photo", "logger-photo-swap", "logger-photo-start", "logger-scan-miss",
                 "submit-food-photos", "submit-food-review", "submit-food-by-hand",
                 "exercise-sheet", "exercise-sheet-other", "exercise-sheet-pick",
                 "add-sheet-closed", "search-closed",
             ),
-            "FoodsLeakSurfaces" to listOf("foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind", "edit-a-copy"),
+            "FoodsLeakSurfaces" to listOf(
+                "foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind", "edit-a-copy", "edit-a-copy-label", "edit-a-copy-sizes",
+            ),
             "TrendsLeakSurfaces" to listOf(
                 "trends", "trends-blind", "trends-coast", "trends-settings", "nutrients", "nutrients-week",
                 "weight", "patterns", "patterns-blind", "progress-photos", "progress-photos-compare",
@@ -156,7 +166,8 @@ class SurfacesCoverageTest {
             "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "edit-a-copy",
             "logger-describe-voice", "search-tabs", "food-detail-units",
             "food-detail-scan", "food-detail-nutrients", "logger-describe-edited", "logger-describe-find", "logger-describe-quick-add",
-            "widget", "widgets",
+            "widget", "widgets", "food-detail-more", "food-detail-liquid", "food-detail-creamer", "food-detail-pounds",
+            "edit-a-copy-label", "edit-a-copy-sizes",
             "today-burned", "today-burned-health", "exercise-sheet", "exercise-sheet-other",
             "provider-summary", "provider-summary-warning", "provider-summary-custom",
             "today-closed", "day-close-closed", "food-actions-closed",

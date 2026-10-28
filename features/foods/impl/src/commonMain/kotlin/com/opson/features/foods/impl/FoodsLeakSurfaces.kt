@@ -29,5 +29,13 @@ object FoodsLeakSurfaces {
         LeakSurface(id = "edit-a-copy", label = "Edit a copy", showsCaloriesInFull = true) { policy ->
             EditCopyScreen(state = FoodsFixtures.editCopyState(policy), onAction = {})
         },
+        // From the food detail: the whole label per 100 g, the vitamins' shares of a day, and the 4/4/9 check's kcal.
+        LeakSurface(id = "edit-a-copy-label", label = "Edit a copy, the whole label", showsCaloriesInFull = true) { policy ->
+            EditCopyScreen(state = FoodsFixtures.catalogCopyState(policy), onAction = {})
+        },
+        // The serving sizes' grams are amounts of food; the numbers below them follow the mode.
+        LeakSurface(id = "edit-a-copy-sizes", label = "Edit a copy, serving sizes", showsCaloriesInFull = true) { policy ->
+            EditCopyScreen(state = FoodsFixtures.creamerCopyState(policy), onAction = {})
+        },
     )
 }

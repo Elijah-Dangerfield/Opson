@@ -47,7 +47,7 @@ include(":apps:server")
 
 if (!serverOnly) {
     include(":apps:compose")
-    // Note: iOS app is not a Gradle module - it's an Xcode project in apps/ios/
+    // The iOS app is not a Gradle module; it is the Xcode project in apps/ios/.
 
     // End-to-end integration harness: the real client stack (real view models)
     // driven against a real in-process Ktor server over a Testcontainers

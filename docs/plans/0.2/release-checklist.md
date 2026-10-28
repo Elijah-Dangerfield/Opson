@@ -260,6 +260,16 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
       `GET /v1/export.zip`: against an older server, 0.2's Export everything
       fails as offline).
 
+## App Review information (accounts are required since 908798dd)
+
+- [ ] App Store Connect, App Review Information: set "Sign-in required" to
+      yes and paste the reviewer notes from `docs/app-store/listing.md`. The
+      0.1 notes say no sign-in is needed, which contradicts a binary that
+      opens on sign-in (guideline 2.1).
+- [ ] App Store Connect, App Privacy: Email is now collected from every new
+      account, not only Sign in with Apple ones. Play Console Data safety:
+      the same.
+
 ## Today and Day close, design sync 2 (`release.todaySummary`, `release.todaySelect`, `release.checkIn`)
 
 - [ ] Deploy V18 (`day_records.check_in`) before flipping `release.checkIn`.

@@ -25,7 +25,14 @@ sealed interface LogOutStep {
     /** The dialog is up. A guest is told their log stays behind with no way back to it. */
     data class Confirming(val guest: Boolean) : LogOutStep
 
-    data class Working(val guest: Boolean) : LogOutStep
+    /** [unsynced]: "Log out anyway" was chosen, so the dialog keeps saying what is lost until it closes. */
+    data class Working(val guest: Boolean, val unsynced: Boolean = false) : LogOutStep
+
+    /**
+     * The sync before logging out didn't reach the account, so changes made since the last one
+     * may be only on this phone, and logging out deletes them. Stay is the safe choice.
+     */
+    data object Unsynced : LogOutStep
 }
 
 /**

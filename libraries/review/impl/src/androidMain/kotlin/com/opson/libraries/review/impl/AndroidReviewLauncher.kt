@@ -38,7 +38,7 @@ class AndroidReviewLauncher(
             val activity = activityProvider.currentActivity()
                 ?: error("No foreground Activity available for in-app review.")
             val manager = ReviewManagerFactory.create(context)
-            val info = manager.requestReviewFlow().asDeferredOrNull()
+            val info = manager.requestReviewFlow().awaitOrNull()
                 ?: error("Play returned a null ReviewInfo.")
             suspendCancellableCoroutine { cont ->
                 manager.launchReviewFlow(activity, info).addOnCompleteListener {
@@ -49,7 +49,7 @@ class AndroidReviewLauncher(
     }
 }
 
-private suspend fun <T> com.google.android.gms.tasks.Task<T>.asDeferredOrNull(): T? =
+private suspend fun <T> com.google.android.gms.tasks.Task<T>.awaitOrNull(): T? =
     suspendCancellableCoroutine { cont ->
         addOnSuccessListener { result -> if (cont.isActive) cont.resume(result) }
         addOnFailureListener { _ -> if (cont.isActive) cont.resume(null) }

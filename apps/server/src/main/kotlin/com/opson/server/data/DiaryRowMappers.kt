@@ -11,9 +11,11 @@ import com.opson.server.db.UserSettingsTable
 import com.opson.server.db.WeighInsTable
 import com.opson.server.db.toKotlinInstant
 import com.opson.server.domain.CustomFood
+import com.opson.server.domain.CustomFoodDetails
 import com.opson.server.domain.DayRecord
 import com.opson.server.domain.Exercise
 import com.opson.server.domain.Fast
+import com.opson.server.domain.FoodSize
 import com.opson.server.domain.LogEntry
 import com.opson.server.domain.LogMethod
 import com.opson.server.domain.MealFeeling
@@ -23,6 +25,8 @@ import com.opson.server.domain.Precision
 import com.opson.server.domain.SavedMeal
 import com.opson.server.domain.UserSettings
 import com.opson.server.domain.WeighIn
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -34,6 +38,11 @@ import org.jetbrains.exposed.sql.ResultRow
 private val JSON = Json { ignoreUnknownKeys = true }
 private val MICROS_SERIALIZER = MapSerializer(String.serializer(), Double.serializer())
 private val SLOT_FLAGS_SERIALIZER = MapSerializer(String.serializer(), Boolean.serializer())
+private val SIZES_SERIALIZER = ListSerializer(SizeJson.serializer())
+
+/** How `custom_foods.sizes` stores one size. */
+@Serializable
+internal data class SizeJson(val label: String, val grams: Double)
 
 internal fun ResultRow.toLogEntry(): LogEntry = LogEntry(
     id = this[LogEntriesTable.id],
@@ -111,6 +120,11 @@ internal fun ResultRow.toCustomFood(): CustomFood = CustomFood(
     ),
     clientUpdatedAt = this[CustomFoodsTable.clientUpdatedAt].toKotlinInstant(),
     deleted = this[CustomFoodsTable.deleted],
+    details = CustomFoodDetails(
+        servingGrams = this[CustomFoodsTable.servingGrams].clean(),
+        sizes = this[CustomFoodsTable.sizes]?.let { JSON.decodeFromString(SIZES_SERIALIZER, it) }.orEmpty().map { FoodSize(it.label, it.grams) },
+        micros = this[CustomFoodsTable.micros]?.let { JSON.decodeFromString(MICROS_SERIALIZER, it) }.orEmpty(),
+    ),
 )
 
 internal fun ResultRow.toSavedMeal(): SavedMeal = SavedMeal(

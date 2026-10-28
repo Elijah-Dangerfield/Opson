@@ -7,8 +7,9 @@ package com.opson.server.domain
  * name, then the settings document. Rows of one kind always arrive together, so a writer can
  * close one file before it opens the next.
  *
- * [sink] is called once per row inside one read transaction, so the export never holds the
- * whole history in memory.
+ * Rows are read a page at a time and [sink] runs between pages, outside any transaction, so the
+ * export never holds the whole history in memory or a connection while it writes. It is not one
+ * snapshot: a row edited mid-export comes out as its page read it.
  */
 interface ExportRepository {
     suspend fun export(userId: UserId, sink: suspend (DiaryRow) -> Unit)

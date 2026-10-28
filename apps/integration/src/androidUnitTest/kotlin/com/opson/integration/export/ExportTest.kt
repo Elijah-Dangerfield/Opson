@@ -87,6 +87,29 @@ class ExportTest : IntegrationTest() {
         assertTrue(files.values.none { "Alice" in it })
     }
 
+    /** The account's log, not the phone's: another phone's rows are in it, deleted ones are not. */
+    @Test
+    fun theZipHoldsWhatAnotherPhoneLogged_butNotWhatItDeleted() = integration {
+        val user = randomUserId()
+        val otherPhone = client(user)
+        otherPhone.log("Lentil soup", kcal = 420.0, slot = MealSlot.Dinner)
+        val removed = otherPhone.log("Biscuit", kcal = 90.0)
+        otherPhone.weights.addWeighIn(71.5)
+        otherPhone.syncNow().getOrThrow()
+        otherPhone.diary.removeItem(removed.id)
+        otherPhone.syncNow().getOrThrow()
+        client(randomUserId()).apply { log("Someone else's toast", kcal = 180.0) }.syncNow().getOrThrow()
+
+        val phone = client(user)
+        val files = unzip(phone.export.everything().getOrThrow())
+
+        val entries = files.getValue("entries.csv").rows()
+        assertTrue(entries.any { "Lentil soup" in it }, "the other phone's entry: $entries")
+        assertTrue(files.getValue("weigh_ins.csv").rows().single().endsWith(",71.5"), "the other phone's weigh-in")
+        assertTrue(entries.none { "Biscuit" in it }, "a deleted entry is not exported: $entries")
+        assertTrue(files.values.none { "Someone else" in it }, "another account's rows never are")
+    }
+
     private fun unzip(bytes: ByteArray): Map<String, String> = buildMap {
         ZipInputStream(bytes.inputStream()).use { zip ->
             generateSequence { zip.nextEntry }.forEach { put(it.name, zip.readBytes().decodeToString()) }

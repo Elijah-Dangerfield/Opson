@@ -23,7 +23,8 @@ import kotlin.test.BeforeTest
  *  - a REAL Main dispatcher (the view models drive init work on
  *    `viewModelScope`; the harness talks real TCP on real threads, so a real —
  *    not virtual — dispatcher is required);
- *  - the Docker-availability skip (no Docker → skipped, not red); and
+ *  - the Docker check (no Docker → skipped locally, but failed on CI, where
+ *    a skip would pass the suite without running it); and
  *  - a fresh in-process server per test, via [integration].
  *
  * Inside [integration], use [Harness.client] to spin up real clients and the
@@ -78,6 +79,7 @@ class Harness(val server: InProcessServer) {
         requestTimeoutMillis: Long = 30_000,
         wrapSync: (DiarySyncApi) -> DiarySyncApi = { it },
         device: (ClientHeaders) -> ClientHeaders = { it },
+        setUpSession: (StubSupabaseGateway) -> Unit = {},
     ): TestClient {
         userId?.let { server.seedAuthUser(it) }
         return TestClient(
@@ -88,6 +90,7 @@ class Harness(val server: InProcessServer) {
             requestTimeoutMillis = requestTimeoutMillis,
             wrapSync = wrapSync,
             device = device,
+            setUpSession = setUpSession,
         ).also { closeables += AutoCloseable(it::close) }
     }
 

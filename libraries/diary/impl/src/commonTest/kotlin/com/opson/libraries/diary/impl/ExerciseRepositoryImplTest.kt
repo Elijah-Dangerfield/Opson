@@ -45,6 +45,16 @@ class ExerciseRepositoryImplTest : CoroutineTest() {
     fun uproot() = KLog.uproot(events)
 
     @Test
+    fun add_thatCannotQueueLeavesNoEntryBehind() = runUnitTest {
+        db.failNextOutboxInsert = true
+
+        assertFailsWith<IllegalStateException> { repo.add(walk) }
+
+        assertTrue(repo.observeDay(day).first().isEmpty(), "an entry that would never sync is not kept")
+        assertTrue(db.outbox.rows.isEmpty())
+    }
+
+    @Test
     fun add_storesTheEntryAndQueuesItForTheDay() = runUnitTest {
         val entry = repo.add(walk).written()
 

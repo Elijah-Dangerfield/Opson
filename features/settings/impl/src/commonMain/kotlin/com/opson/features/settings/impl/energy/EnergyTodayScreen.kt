@@ -41,6 +41,7 @@ import com.opson.libraries.nutrition.RestingFrom
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.ListRowChevron
@@ -81,6 +82,7 @@ import opson.libraries.resources.generated.resources.settings_energy_title
 import opson.libraries.resources.generated.resources.settings_energy_to_goal
 import opson.libraries.resources.generated.resources.settings_energy_to_range
 import opson.libraries.resources.generated.resources.settings_energy_workouts
+import opson.libraries.resources.generated.resources.settings_loading_cd
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Instant
@@ -97,7 +99,11 @@ fun EnergyTodayScreen(
             backLabel = stringResource(Res.string.settings_back_today),
             onBack = { onAction(EnergyTodayAction.BackTapped) },
         )
-        if (!state.loaded) return@SettingsPage
+        if (!state.loaded) {
+            // Burned waits on the health store's reads, which can take a moment.
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
+            return@SettingsPage
+        }
         state.eaten?.let { EatenCard(it, onAction) }
         state.burned?.let { BurnedCardView(it, onAction) }
         if (state.balance != null || state.toGoal != null) BalanceCard(state.balance, state.toGoal)

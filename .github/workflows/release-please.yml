@@ -40,10 +40,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # If no tag matching v* exists, this repo has never shipped. The
-          # release.yml preflight will route to Play internal + TestFlight
-          # internal only, and the release-please PR body needs a banner
-          # telling the human to promote manually.
+          # No v* tag means release.yml has never shipped from this repo. That
+          # is not the same as the stores having nothing: 0.1.0 and the first
+          # 0.2 TestFlight build went up from a laptop. release.yml asks each
+          # store and goes to production wherever a release already exists, so
+          # the banner says that rather than promising an internal-only run.
           TAG_COUNT=$(git tag -l 'v*' | wc -l | tr -d ' ')
           if [ "$TAG_COUNT" = "0" ]; then
             echo "is_first_release=true" >> "$GITHUB_OUTPUT"
@@ -72,13 +73,13 @@ jobs:
           PR_NUMBER=$(printf '%s' "$PR_JSON" | jq -r .number)
           CURRENT=$(gh pr view "$PR_NUMBER" --json body -q .body || echo "")
           BANNER=$(cat <<'EOF'
-          > **!!! FIRST RELEASE — MANUAL ACTION REQUIRED !!!**
+          > **First release from this pipeline. Check both stores before merging.**
           >
-          > This is the first release for this project. The release workflow will upload to the **Play internal track** and **TestFlight internal group only**. You must:
-          > 1. Promote the build manually in Play Console (Internal → Production).
-          > 2. Submit for App Store review manually in App Store Connect.
+          > No `v*` tag exists yet, so release.yml has never run a real release here. It decides per store, not from tags:
+          > - **Play:** production if Play already has a production release, otherwise the internal track (promote it by hand in Play Console).
+          > - **App Store:** submitted for review if App Store Connect already has a build of this app, otherwise TestFlight only (submit by hand).
           >
-          > Subsequent releases will go directly to production. See `SETUP.md`.
+          > Builds uploaded from a laptop count, so this can go straight to production on both. See `SETUP.md`.
 
           EOF
           )

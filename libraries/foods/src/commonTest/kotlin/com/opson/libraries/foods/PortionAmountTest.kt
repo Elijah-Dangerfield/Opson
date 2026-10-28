@@ -161,4 +161,77 @@ class PortionAmountTest {
         assertEquals(420.0, draft.kcal!!, 0.5)
         assertEquals("1 scoop", draft.amountLabel)
     }
+
+    @Test
+    fun everyFoodWithAWeightOffersOuncesAndPounds_ouncesFirstForPounds() {
+        assertEquals(listOf("cup", "grams", "oz", "lb"), rice.detailUnits().map { it.chipLabel })
+        assertEquals(listOf("cup", "oz", "grams", "lb"), rice.detailUnits(prefersOunces = true).map { it.chipLabel })
+    }
+
+    @Test
+    fun ouncesAndPoundsConvertThroughGrams() {
+        val oz = AmountUnit.Measure(MeasureKind.Ounces)
+        val lb = AmountUnit.Measure(MeasureKind.Pounds)
+        assertEquals(113.0, PortionAmount.switch(4.0, oz, AmountUnit.Grams))
+        assertEquals(3.5, PortionAmount.switch(100.0, AmountUnit.Grams, oz))
+        assertEquals(0.25, PortionAmount.switch(4.0, oz, lb))
+        assertEquals(1.0, PortionAmount.switch(158.0, AmountUnit.Grams, cup))
+        assertEquals(5.6, PortionAmount.switch(1.0, cup, oz))
+
+        val draft = rice.draftFor(oz, 4.0)
+        assertEquals("4 oz", draft.amountText)
+        assertEquals(113.4, draft.grams!!, 0.05)
+        assertEquals(147.4, draft.kcal!!, 0.1)
+        assertEquals("oz", draft.unit)
+    }
+
+    @Test
+    fun aPortionThatStatesItsVolumeGivesMillilitresAndFluidOunces() {
+        val milk = rice.copy(id = "milk", name = "Milk", portions = listOf(Portion("1 cup (244 g)", 244.0), Portion("1 cup (8 fl oz)", 244.0)))
+        assertEquals(244.0 / (8 * 29.5735295625), milk.gramsPerMl!!, 0.0001)
+        assertEquals(listOf("cup", "cup", "grams", "oz", "lb", "ml", "fl oz"), milk.detailUnits().map { it.chipLabel })
+
+        val ml = milk.detailUnits().first { it.label == "ml" }
+        val flOz = milk.detailUnits().first { it.label == "fl oz" }
+        assertEquals(237.0, PortionAmount.switch(8.0, flOz, ml))
+        assertEquals("250 ml", milk.draftFor(ml, 250.0).amountText)
+        assertEquals(257.8, milk.draftFor(ml, 250.0).grams!!, 0.1)
+        assertNull(rice.gramsPerMl, "a cup of rice states no volume, so it gets none")
+        assertEquals(240.0, volumeInLabel("1 cup (240 ml)"))
+    }
+
+    @Test
+    fun aWeightPrintedInThePortionNameIsLeftOffTheChip() {
+        val tbsp = AmountUnit.OfPortion(Portion("2 Tbsp (31g)", 31.0))
+        assertEquals("2 Tbsp", tbsp.chipLabel)
+        assertEquals("4 Tbsp", tbsp.amountText(2.0))
+        assertEquals("31 g", tbsp.gramsLabel)
+        assertEquals("1 container", withoutPrintedWeight("1 container (150 g)"))
+    }
+
+    @Test
+    fun aCreamerInTablespoonsLogsInGramsOnceASpoonIsWeighed() {
+        val creamer = CustomFood(id = "cr", name = "Creamer", servingAmount = 1.0, servingUnit = "tbsp", kcal = 35.0, fat = 2.5)
+        assertEquals(listOf(AmountUnit.Serving("tbsp")), creamer.detailUnits())
+
+        val weighed = creamer.copy(servingGrams = 15.0, sizes = listOf(FoodUnit("cup", 240.0)))
+        assertEquals(listOf("tbsp", "cup", "grams", "oz", "lb"), weighed.detailUnits().map { it.chipLabel })
+
+        val grams = weighed.draftFor(AmountUnit.Grams, 30.0)
+        assertEquals(70.0, grams.kcal!!, 0.01)
+        assertEquals(30.0, grams.grams)
+        assertEquals("30 g", grams.amountText)
+        val spoons = weighed.draftFor(AmountUnit.Serving("tbsp", 15.0), 2.0)
+        assertEquals(70.0, spoons.kcal!!, 0.01)
+        assertEquals(30.0, spoons.grams)
+        assertEquals("2 tbsp", spoons.amountText)
+        assertEquals(560.0, weighed.draftFor(AmountUnit.Saved(FoodUnit("cup", 240.0)), 1.0).kcal!!, 0.01)
+        assertEquals(2.0, PortionAmount.switch(30.0, AmountUnit.Grams, AmountUnit.Serving("tbsp", 15.0)))
+    }
+
+    @Test
+    fun aCustomFoodsMicrosScaleWithTheAmount() {
+        val creamer = CustomFood(id = "cr", name = "Creamer", servingAmount = 1.0, servingUnit = "tbsp", servingGrams = 15.0, micros = mapOf("sugars_g" to 5.0))
+        assertEquals(mapOf("sugars_g" to 10.0), creamer.draftFor(AmountUnit.Grams, 30.0).micros)
+    }
 }

@@ -6,6 +6,46 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: How sure is worked out, and a custom food carries its weight, sizes and label
+
+**Decision:** the food detail no longer asks How sure up front. It works it
+out: an amount typed in grams or another weight or volume is Weighed, a scanned
+label's serving is From label, anything else (a count of spoons, a chip, the
+last amount again) is an Estimate. A quiet How sure row under Amount, Meal and
+Time shows the answer and can change it; a pick sticks. No numbers has no row,
+because the ± it feeds is a number that mode never shows.
+
+A custom food gains `servingGrams` (what one serving weighs), `sizes` (one of
+each unit with its weight) and `micros` (the rest of the label, keyed like a
+log entry's). That is what Edit a copy needs to turn a food listed only in
+tablespoons into one that logs by the gram. Server migration V25 and Room
+version 11 add the three, nullable. A row without `sizes` comes from a 0.1
+build, which knows nothing of them, so both the server and the client keep the
+stored three rather than wipe them; a 0.2 build always sends `sizes`, empty for
+none. Remove from recents is a top-level settings key, `hiddenRecentFoods`
+(food key to when), so the server's one-level merge keeps it through an older
+save, and a food logged again after that comes back.
+
+Report a problem opens the existing bug report with the food's ref key and
+nothing else. The food review queue (`SubmitFoodRoute`, the ops review board)
+takes new packs, not corrections to a food the catalog already has, so a
+report cannot go there yet; TODO(review-queue) in `LoggerFeatureEntryPoint`
+marks the hook.
+
+**Why:** the owner found the old detail odd next to Cronometer. The segmented
+How sure was the loudest thing on the screen for a setting that only moves the
+day's ±, and typing an amount already turned Estimate into Weighed even when
+the amount was "3 tbsp". The creamer they fixed in Cronometer could not be
+fixed in Opson at all: a custom food had one serving and five numbers.
+
+**Alternatives:** keeping How sure as a segmented control under the amount
+(rejected: it is what made the screen busy); dropping it entirely (rejected:
+a label or a scale is real information for the ±); storing the extra label
+lines as more columns (rejected: the catalog and log entries already keep them
+as a keyed map, and a column per nutrient is a migration per nutrient);
+overwriting the new columns from an old build's save (rejected: an old phone
+editing a food's name would erase what a new one weighed). Research in
+`docs/research/food-detail.md`.
 ## 2026-10-27: Onboarding offers goal numbers only to someone comfortable with them
 
 **Decision:** behind `release.onboardingSetup`, the goal step is shown when the

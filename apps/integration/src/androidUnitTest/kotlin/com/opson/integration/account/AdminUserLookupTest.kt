@@ -1,5 +1,6 @@
 package com.opson.integration.account
 
+import com.opson.integration.helpers.Harness
 import com.opson.integration.helpers.InProcessServer
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.awaitState
@@ -13,6 +14,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -46,15 +48,14 @@ class AdminUserLookupTest : IntegrationTest() {
         phone.syncNow().getOrThrow()
 
         // The build is recorded after the response, off the request.
-        val detail = run {
-            var found = JsonObject(emptyMap())
-            runCatching {
-                awaitUntil {
-                    found = adminGet("/v1/admin/users/$user")
-                    found["installs"]?.jsonArray?.isNotEmpty() == true
-                }
-            }.onFailure { throw AssertionError("no build recorded; last lookup: $found; rows: ${server.query("SELECT * FROM user_installs")}", it) }
-            found
+        var detail = JsonObject(emptyMap())
+        try {
+            awaitUntil {
+                detail = adminGet("/v1/admin/users/$user")
+                detail["installs"]?.jsonArray?.isNotEmpty() == true
+            }
+        } catch (timeout: TimeoutCancellationException) {
+            throw AssertionError("no build recorded; last lookup: $detail; rows: ${server.query("SELECT * FROM user_installs")}", timeout)
         }
 
         val account = detail.getValue("user").jsonObject
@@ -74,12 +75,12 @@ class AdminUserLookupTest : IntegrationTest() {
         assertTrue(adminSearch(user).isNotEmpty(), "found by id too")
     }
 
-    private suspend fun com.opson.integration.helpers.Harness.adminGet(path: String): JsonObject =
+    private suspend fun Harness.adminGet(path: String): JsonObject =
         Json.parseToJsonElement(
             http.get("${server.baseUrl}$path") { header("X-Admin-Token", InProcessServer.ADMIN_TOKEN) }.bodyAsText(),
         ).jsonObject
 
-    private suspend fun com.opson.integration.helpers.Harness.adminSearch(query: String) =
+    private suspend fun Harness.adminSearch(query: String) =
         Json.parseToJsonElement(
             http.post("${server.baseUrl}/v1/admin/users/search") {
                 header("X-Admin-Token", InProcessServer.ADMIN_TOKEN)

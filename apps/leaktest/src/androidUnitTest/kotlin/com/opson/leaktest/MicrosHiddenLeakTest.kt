@@ -1,7 +1,5 @@
 package com.opson.leaktest
 
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -25,7 +23,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 /**
- * Vitamins and minerals where they are hidden. Full and Sprint show them; every other preset
+ * Vitamins and minerals where they are hidden. All numbers shows them; every other preset
  * hides them, and so does Full with micros turned off by hand. In each of those, the surfaces
  * that draw micros must compose no node tagged `metric:micros`.
  *
@@ -61,7 +59,7 @@ class MicrosHiddenLeakTest(private val surface: LeakSurface, private val case: M
         )
 
         /** Every surface that draws micros. [LeakTestControlTest] fails on one missing from here. */
-        val MICROS_SURFACES = setOf("nutrients", "nutrients-week", "food-detail-nutrients") + TODAY_CARD_SURFACES
+        val MICROS_SURFACES = setOf("nutrients", "nutrients-week", "food-detail-nutrients", "edit-a-copy-label", "edit-a-copy-sizes") + TODAY_CARD_SURFACES
 
         /** Derived, so a preset added later is covered the day it hides micros. */
         private val PRESETS_HIDING_MICROS: List<PresetId> = Presets.all
@@ -91,4 +89,4 @@ class MicrosCase(private val name: String, val policy: VisibilityPolicy, val hid
 /** What every node tagged `metric:micros` shows, every window included, on the unmerged tree. */
 internal fun ComposeContentTestRule.microTexts(): List<String> =
     onAllNodes(hasTestTag(Metric.Micros.testTag()), useUnmergedTree = true).fetchSemanticsNodes()
-        .map { node -> node.config.getOrNull(SemanticsProperties.Text)?.joinToString(" ") { it.text }.orEmpty() }
+        .map { node -> node.texts().joinToString(" ") }

@@ -15,15 +15,11 @@
     <string name="onboarding_welcome_next">Next you'll sign in, so your log is saved to your account.</string>
 
     <!--
-      The plan. 0.1 has no in-app purchase and a price with no way to buy it is an App Review
-      rejection, so Plus is "Coming later" with no price (docs/design/v3/CHANGES.md). The design
-      lists "barcode scan, recipes" under Free; barcode is hidden in 0.1 and recipes are saved meals.
+      The plan. The design lists "barcode scan, recipes" under Free; barcode is hidden in 0.1 and
+      recipes are saved meals.
     -->
     <string name="onboarding_plan_free">Free</string>
     <string name="onboarding_plan_free_includes">Logging, saved meals and every mode</string>
-    <string name="onboarding_plan_plus">Plus</string>
-    <string name="onboarding_plan_plus_later">Coming later</string>
-    <string name="onboarding_plan_plus_includes">Photo estimates and watch quick-log</string>
 
     <!-- Questions. Two and the statement since onboarding v2 (docs/plans/onboarding-v2.md). -->
     <string name="onboarding_progress">%1$d of %2$d</string>
@@ -155,6 +151,5 @@
     <string name="onboarding_account_waiting_for_apple">Waiting for Apple…</string>
     <string name="onboarding_account_private">Private to you. No ad tracking.</string>
     <string name="onboarding_account_export">Export or delete it any time</string>
-    <string name="onboarding_account_coach">Needed later to share with a coach</string>
     <string name="onboarding_account_failed">That didn't go through. Please try again.</string>
 </resources>
