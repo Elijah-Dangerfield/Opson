@@ -7,6 +7,7 @@ import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.TestClient
 import com.opson.integration.helpers.TestClock
 import com.opson.integration.helpers.randomUserId
+import com.opson.integration.helpers.written
 import com.opson.libraries.core.Catching
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.SyncEntity
@@ -31,7 +32,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.net.SocketTimeoutException
 import kotlin.random.Random
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -132,14 +132,13 @@ class ErrorSurfacesTest : IntegrationTest() {
      * That is not the row being wrong, so the write stays on the phone and goes up once the server
      * knows it.
      */
-    @Ignore // TODO(review): DiarySyncer rolls back an unknown_entity like an invalid_row; deferred to libraries/diary/impl, see docs/review/findings/test-apps.md
     @Test
     fun sync_anEntityTheServerDoesNotKnowYet_keepsTheWrite() = integration {
         val user = randomUserId()
         val olderServer = OlderServer()
         val phone = client(user, wrapSync = olderServer::wrap)
         val day = phone.today()
-        val walk = phone.exercise.add(ExerciseDraft(day, phone.clock.now(), "yoga", minutes = 20, kcal = 60))
+        val walk = phone.exercise.add(ExerciseDraft(day, phone.clock.now(), "yoga", minutes = 20, kcal = 60)).written()
 
         phone.syncNow().getOrThrow()
         assertEquals(listOf(walk), phone.exercise.observeDay(day).first(), "still on the phone")

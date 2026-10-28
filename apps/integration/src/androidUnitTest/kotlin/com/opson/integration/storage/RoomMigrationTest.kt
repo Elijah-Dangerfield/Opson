@@ -121,7 +121,7 @@ class RoomMigrationTest {
         const val UNTRACKED_SINCE = 7
 
         /** The versions the `fromVersionN` tests above cover. */
-        val TESTED_VERSIONS = setOf(5, 6, 7, 8, 9)
+        val TESTED_VERSIONS = setOf(5, 6, 7, 8, 9, 10)
     }
 }
 

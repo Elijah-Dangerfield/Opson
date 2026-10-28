@@ -19,7 +19,6 @@ import com.opson.libraries.core.AuthRequirement
 import com.opson.libraries.core.AuthVerdict
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DataExport
-import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.ExerciseRepository
@@ -65,7 +64,8 @@ import com.opson.libraries.foods.impl.HttpMealPhotoEstimator
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.impl.HttpProfileApi
 import com.opson.libraries.identity.impl.auth.GatewayAuthTokenProvider
-import com.opson.libraries.identity.impl.auth.PendingGuestAccountStore
+import com.opson.libraries.identity.impl.auth.ExpiredAccountStore
+import com.opson.libraries.identity.impl.auth.FallbackDisplayNameStore
 import com.opson.libraries.identity.impl.auth.SupabaseAuthRepositoryImpl
 import com.opson.libraries.identity.impl.profile.PendingProfileEditStore
 import com.opson.libraries.identity.impl.profile.ProfileCache
@@ -242,14 +242,13 @@ class TestClient(
     private val calendar = SystemLocalCalendar(clock)
     private val settingsStore = SettingsStore(cacheFactory, tables.outbox, transactor, clock, activeUser, appScope)
     val syncApi: DiarySyncApi = wrapSync(HttpDiarySyncApi(networkClient))
-    val sync = DiarySyncer(syncApi, tables, settingsStore, activeUser, appScope, clock)
+    val sync = DiarySyncer(syncApi, tables, settingsStore, activeUser, appScope, clock, cacheFactory)
     private val writer = DiaryWriter(tables, clock, sync)
     val settings: SettingsRepository = SettingsRepositoryImpl(settingsStore, sync)
     private val fastingImpl = FastingRepositoryImpl(tables, writer, settings, fastingRelease, calendar, clock)
     val fasting: FastingRepository = fastingImpl
     private val diaryImpl = DiaryRepositoryImpl(tables, writer, settings, calendar, fastEnder = fastingImpl)
     val diary: DiaryRepository = diaryImpl
-    val checkIns: DayCheckIns = diaryImpl
     val weights: WeightRepository = WeightRepositoryImpl(tables, writer)
     val customFoods: CustomFoodRepository = CustomFoodRepositoryImpl(tables, writer)
     val savedMeals: SavedMealRepository = SavedMealRepositoryImpl(tables, writer)
@@ -287,6 +286,7 @@ class TestClient(
         ),
         tokenInvalidator = BearerTokenInvalidator(networkClient),
         sessionRejectionBus = sessionRejectionBus,
+        expiredAccounts = ExpiredAccountStore(cacheFactory),
         appScope = appScope,
     ).also { authReady.complete(it) }
 
@@ -298,7 +298,7 @@ class TestClient(
         authRepository = auth,
         profileApi = profileApi,
         profileCache = profileCache,
-        pendingGuestAccountStore = PendingGuestAccountStore(cacheFactory),
+        fallbackDisplayNameStore = FallbackDisplayNameStore(cacheFactory),
         pendingProfileEditStore = PendingProfileEditStore(cacheFactory),
         appScope = appScope,
     )

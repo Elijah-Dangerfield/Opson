@@ -5,6 +5,7 @@ import com.opson.integration.helpers.TestClient
 import com.opson.integration.helpers.awaitState
 import com.opson.integration.helpers.awaitUntil
 import com.opson.integration.helpers.randomUserId
+import com.opson.integration.helpers.written
 import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.Hunger
@@ -13,10 +14,16 @@ import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.foods.FoodSubmission
+import com.opson.libraries.foods.LabelParse
+import com.opson.libraries.foods.SubmissionOrigin
+import com.opson.libraries.foods.SubmitResult
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.identity.auth.DeleteAccountOutcome
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.flow.first
+import java.util.UUID
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -41,7 +48,27 @@ class DeleteEverythingTest : IntegrationTest() {
         weights.addWeighIn(80.0)
         customFoods.create(CustomFoodDraft(name = "Protein shake", servingAmount = 1.0, servingUnit = "scoop", kcal = 120.0))
         savedMeals.create("Lunch box", MealSlot.Lunch, listOf(LogDraft("Sandwich", Precision.Estimate, kcal = 400.0)))
-        exercise.add(ExerciseDraft(day, clock.now(), "yoga", minutes = 20, kcal = 60))
+        exercise.add(ExerciseDraft(day, clock.now(), "yoga", minutes = 20, kcal = 60)).written()
+        submitALabel()
+    }
+
+    /** A food pack sent for review, read by the server's stand-in label model. */
+    private suspend fun TestClient.submitALabel() {
+        // Enough of a JPEG for the server's type sniffing; the stand-in model never decodes it.
+        val front = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte()) + Random.nextBytes(64)
+        val label = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE1.toByte()) + Random.nextBytes(64)
+        val read = assertIs<LabelParse.Read>(foodLabels.parse(front, label))
+        val submission = FoodSubmission(
+            id = UUID.randomUUID().toString(),
+            parseId = read.parseId,
+            origin = SubmissionOrigin.Search,
+            barcode = null,
+            front = front,
+            label = label,
+            facts = read.facts,
+            acknowledged = emptyList(),
+        )
+        assertIs<SubmitResult.Submitted>(foodLabels.submit(submission))
     }
 
     @Test

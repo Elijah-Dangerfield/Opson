@@ -4,11 +4,8 @@ import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.randomUserId
 import com.opson.integration.helpers.rawSync
 import com.opson.integration.helpers.written
-import com.opson.libraries.core.Catching
 import com.opson.libraries.diary.ExerciseDraft
-import com.opson.libraries.diary.impl.DiarySyncApi
-import com.opson.libraries.diary.impl.wire.SyncRequestDto
-import com.opson.libraries.diary.impl.wire.SyncResponseDto
+import com.opson.libraries.diary.db.SyncStateEntity
 import com.opson.libraries.nutrition.ExerciseActivities
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.flow.first
@@ -20,7 +17,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import kotlin.test.Ignore
+import kotlinx.serialization.json.long
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -103,41 +100,29 @@ class ExerciseSyncTest : IntegrationTest() {
 
     /**
      * A phone on a build that did not accept `exercise` pulls past the exercise rows: the server
-     * leaves them out and the cursor moves on. When the phone updates, the cursor it kept is
-     * already past them, so the update has to pull them some other way.
+     * leaves them out and the cursor moves on. That build kept no record of what its cursor was
+     * pulled with, so the update starts the pull again from 0 and gets them.
      */
-    @Ignore // TODO(review): the client never re-pulls an entity it starts to accept; deferred to libraries/diary/impl, see docs/review/findings/test-apps.md
     @Test
     fun aPhoneThatUpdatesToAcceptExercise_pullsExerciseLoggedBeforeTheUpdate() = integration {
         val user = randomUserId()
         val watch = client(user)
         val day = watch.today()
         val at = LocalDateTime(day, LocalTime(7, 0)).toInstant(TimeZone.currentSystemDefault())
-        val run = watch.exercise.add(ExerciseDraft(day, at, "running_10", minutes = 30, kcal = 291))
+        val run = watch.exercise.add(ExerciseDraft(day, at, "running_10", minutes = 30, kcal = 291)).written()
         watch.syncNow().getOrThrow()
         // Anything synced after the run, so the earlier build's cursor moves past it.
         watch.log("Porridge", kcal = 300.0)
         watch.syncNow().getOrThrow()
 
-        val build = EarlierBuild()
-        val phone = client(user, wrapSync = build::wrap)
-        phone.syncNow().getOrThrow()
-        assertTrue(phone.exercise.observeDay(day).first().isEmpty(), "the earlier build never asked for exercise")
+        // The earlier build's pull asked for fasts only, and it kept the cursor that came back.
+        val earlier = Json.parseToJsonElement(rawSync(user, """{"cursor":0,"mutations":[],"accepts":["fast"]}""").bodyAsText()).jsonObject
+        assertFalse("exercises" in earlier.getValue("changes").jsonObject)
+        val phone = client(user)
+        phone.tables.syncState.upsert(SyncStateEntity(cursor = earlier.getValue("cursor").jsonPrimitive.long, lastSuccessAtEpochMs = 1))
 
-        build.acceptsExercise = true // the update
-        phone.syncNow().getOrThrow()
+        phone.syncNow().getOrThrow() // the first sync after the update
 
-        assertEquals(listOf(run), phone.exercise.observeDay(day).first())
-    }
-
-    /** The first 0.2 builds: `accepts` named fasts only, until the update this test makes. */
-    private class EarlierBuild {
-        @Volatile
-        var acceptsExercise = false
-
-        fun wrap(delegate: DiarySyncApi): DiarySyncApi = object : DiarySyncApi {
-            override suspend fun sync(request: SyncRequestDto): Catching<SyncResponseDto> =
-                delegate.sync(if (acceptsExercise) request else request.copy(accepts = request.accepts - "exercise"))
-        }
+        assertEquals(listOf(run), phone.exercise.observeDay(day).first(), "the update pulls what the old cursor skipped")
     }
 }

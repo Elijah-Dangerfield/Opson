@@ -2,6 +2,7 @@ package com.opson.integration.security
 
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.randomUserId
+import com.opson.integration.helpers.written
 import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.LogDraft
@@ -37,7 +38,7 @@ class SyncAuthorizationTest : IntegrationTest() {
         val food = alicePhone.customFoods.create(CustomFoodDraft("Alice's bar", 40.0, "g", kcal = 180.0))
         val meal = alicePhone.savedMeals.create("Alice's lunch", MealSlot.Lunch, listOf(LogDraft("Salad", Precision.Estimate)))
         alicePhone.diary.setDayNote(alicePhone.today(), "Alice's note")
-        val run = alicePhone.exercise.add(ExerciseDraft(alicePhone.today(), alicePhone.clock.now(), "yoga", minutes = 30, kcal = 90))
+        val run = alicePhone.exercise.add(ExerciseDraft(alicePhone.today(), alicePhone.clock.now(), "yoga", minutes = 30, kcal = 90)).written()
         alicePhone.syncNow().getOrThrow()
 
         // Bob pulls from the beginning: none of Alice's rows come.

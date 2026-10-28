@@ -15,7 +15,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlin.random.Random
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
@@ -115,7 +114,6 @@ class AppGuardJourneyTest : IntegrationTest() {
      * with no session at all, because the version floor and the kill switch are how such a build
      * is stopped. A token it cannot verify has to count as no token there, not as a 401.
      */
-    @Ignore // TODO(review): optional auth on /v1/app-config still 401s a token it cannot verify; deferred to apps/server, see docs/review/findings/test-apps.md
     @Test
     fun aPhoneWithAForeignToken_stillGetsTheVersionFloor() = integration {
         // An operator can't name a user the server can't identify, so the rule names the build.
