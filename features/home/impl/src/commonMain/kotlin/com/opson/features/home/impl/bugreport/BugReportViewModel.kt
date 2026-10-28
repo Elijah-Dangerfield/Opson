@@ -2,7 +2,6 @@ package com.opson.features.home.impl.bugreport
 
 import com.opson.features.home.impl.feedback.FeedbackRepository
 import com.opson.libraries.flowroutines.SEAViewModel
-import com.opson.libraries.opson.AppCache
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
@@ -16,7 +15,6 @@ import org.jetbrains.compose.resources.StringResource
 @Inject
 class BugReportViewModel(
     private val repository: FeedbackRepository,
-    private val appCache: AppCache,
     @Assisted logId: String? = null,
     @Assisted errorCode: Int? = null,
     @Assisted contextMessage: String? = null,
@@ -37,7 +35,7 @@ class BugReportViewModel(
     }
 
     /**
-     * Only a sent report counts and closes the page; a failed one stays, with a line saying so.
+     * Only a sent report closes the page; a failed one stays, with a line saying so.
      * A second tap queued behind the first send is dropped by [BugReportState.isSent].
      */
     private suspend fun BugReportAction.submitBugReport() {
@@ -59,7 +57,6 @@ class BugReportViewModel(
             updateState { it.copy(isSubmitting = false, errorMessage = Res.string.feedback_failed) }
             return
         }
-        appCache.update { it.copy(bugsReported = it.bugsReported + 1) }
         updateState { it.copy(isSubmitting = false, isSent = true) }
         sendEvent(BugReportEvent.Sent)
     }

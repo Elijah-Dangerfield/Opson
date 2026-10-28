@@ -9,7 +9,7 @@ android {
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            // FeedbackRoute is a TrackableRoute.
+            // FeedbackRoute is a Route.
             implementation(projects.libraries.navigation)
         }
     }

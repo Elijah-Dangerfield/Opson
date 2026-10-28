@@ -1,7 +1,6 @@
 package com.opson.features.home.impl.feedback
 
 import com.opson.libraries.flowroutines.SEAViewModel
-import com.opson.libraries.opson.AppCache
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.common_send
@@ -14,7 +13,6 @@ import org.jetbrains.compose.resources.StringResource
 @Inject
 class FeedbackViewModel(
     private val repository: FeedbackRepository,
-    private val appCache: AppCache,
 ) : SEAViewModel<FeedbackState, FeedbackEvent, FeedbackAction>(
     initialStateArg = FeedbackState()
 ) {
@@ -28,7 +26,7 @@ class FeedbackViewModel(
     }
 
     /**
-     * Only a sent message counts and closes the page; a failed one stays, with a line saying so.
+     * Only a sent message closes the page; a failed one stays, with a line saying so.
      * Actions run one at a time, so a second tap that landed before the button redrew arrives
      * after the first send has finished: [FeedbackState.isSent] is what stops it sending again.
      */
@@ -45,7 +43,6 @@ class FeedbackViewModel(
             updateState { it.copy(isSubmitting = false, errorMessage = Res.string.feedback_failed) }
             return
         }
-        appCache.update { it.copy(feedbacksGiven = it.feedbacksGiven + 1) }
         updateState { it.copy(isSubmitting = false, isSent = true) }
         sendEvent(FeedbackEvent.Sent)
     }

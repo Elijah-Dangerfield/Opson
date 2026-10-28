@@ -212,7 +212,7 @@ navigation<MyGraph>(startDestination = MyRoute()) { screen<...>; bottomSheet<...
 
 - Onboarding flags (`hasUserOnboarded`)
 - User-facing setting toggles
-- Counters / lightweight telemetry (`feedbacksGiven`, `bugsReported`)
+- Small device-local timestamps (`reviewInstallAt`, `lastReviewPromptAt`)
 
 Don't roll a new persistent cache for a single boolean, extend `AppData`. Round-trip is automatic via `versionedJsonSerializer` (missing fields fall back to defaults, so adding a field is non-breaking). For an example wrapper that exposes `StateFlow<Boolean>` for Compose, see how a feature-level store reads `AppCache.updates` and writes via `appCache.update { it.copy(...) }`.
 

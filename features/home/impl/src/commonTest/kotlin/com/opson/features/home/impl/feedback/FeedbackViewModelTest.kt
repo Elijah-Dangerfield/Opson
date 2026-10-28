@@ -5,10 +5,6 @@ import com.opson.features.home.impl.bugreport.BugReportEvent
 import com.opson.features.home.impl.bugreport.BugReportViewModel
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.testing.CoroutineTest
-import com.opson.libraries.opson.AppCache
-import com.opson.libraries.opson.AppData
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import opson.libraries.resources.generated.resources.Res
@@ -21,36 +17,33 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 /**
- * Feedback and bug reports: only a message that actually went out counts, thanks the person and
+ * Feedback and bug reports: only a message that actually went out thanks the person and
  * closes the page. One that failed stays on the page with its text and a line saying so.
  */
 class FeedbackViewModelTest : CoroutineTest() {
 
     @Test
-    fun aSentMessage_countsThanksAndCloses() = runUnitTest {
+    fun aSentMessage_thanksAndCloses() = runUnitTest {
         val repository = FakeFeedbackRepository()
-        val cache = FakeAppCache()
-        val vm = FeedbackViewModel(repository, cache)
+        val vm = FeedbackViewModel(repository)
         val events = eventsOf(vm)
 
         vm.takeAction(FeedbackAction.MessageChanged("  Love the water card  "))
         vm.takeAction(FeedbackAction.Submit)
 
         assertEquals(listOf("Love the water card"), repository.sent)
-        assertEquals(1, cache.get().feedbacksGiven)
         assertEquals(listOf<FeedbackEvent>(FeedbackEvent.Sent), events)
     }
 
     /**
      * Two taps inside one frame both reach the view model before the button
      * redraws as disabled. Actions run one after another, so the second must
-     * not send again, count again, or close a second screen.
+     * not send again or close a second screen.
      */
     @Test
     fun aDoubleTapOnSend_sendsOnceAndClosesOnce() = runUnitTest {
         val repository = FakeFeedbackRepository()
-        val cache = FakeAppCache()
-        val vm = FeedbackViewModel(repository, cache)
+        val vm = FeedbackViewModel(repository)
         val events = eventsOf(vm)
 
         vm.takeAction(FeedbackAction.MessageChanged("Love the water card"))
@@ -58,7 +51,6 @@ class FeedbackViewModelTest : CoroutineTest() {
         vm.takeAction(FeedbackAction.Submit)
 
         assertEquals(listOf("Love the water card"), repository.sent)
-        assertEquals(1, cache.get().feedbacksGiven)
         assertEquals(listOf<FeedbackEvent>(FeedbackEvent.Sent), events)
     }
 
@@ -68,7 +60,7 @@ class FeedbackViewModelTest : CoroutineTest() {
      */
     @Test
     fun aSentPage_saysSentOnItsDisabledButton() = runUnitTest {
-        val vm = FeedbackViewModel(FakeFeedbackRepository(), FakeAppCache())
+        val vm = FeedbackViewModel(FakeFeedbackRepository())
 
         vm.takeAction(FeedbackAction.MessageChanged("Love the water card"))
         vm.takeAction(FeedbackAction.Submit)
@@ -80,7 +72,7 @@ class FeedbackViewModelTest : CoroutineTest() {
     @Test
     fun aBlankMessage_isNotSent_andSaysWhy() = runUnitTest {
         val repository = FakeFeedbackRepository()
-        val vm = FeedbackViewModel(repository, FakeAppCache())
+        val vm = FeedbackViewModel(repository)
 
         vm.takeAction(FeedbackAction.MessageChanged("   "))
         vm.takeAction(FeedbackAction.Submit)
@@ -90,9 +82,8 @@ class FeedbackViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun aFailedSend_keepsTheMessage_saysSo_andCountsNothing() = runUnitTest {
-        val cache = FakeAppCache()
-        val vm = FeedbackViewModel(FakeFeedbackRepository(fails = true), cache)
+    fun aFailedSend_keepsTheMessage_andSaysSo() = runUnitTest {
+        val vm = FeedbackViewModel(FakeFeedbackRepository(fails = true))
         val events = eventsOf(vm)
 
         vm.takeAction(FeedbackAction.MessageChanged("Love the water card"))
@@ -101,13 +92,12 @@ class FeedbackViewModelTest : CoroutineTest() {
         assertEquals("Love the water card", vm.state.message)
         assertEquals(Res.string.feedback_failed, vm.state.errorMessage)
         assertFalse(vm.state.isSubmitting)
-        assertEquals(0, cache.get().feedbacksGiven)
         assertEquals(emptyList(), events)
     }
 
     @Test
     fun typingAgain_clearsTheFailure() = runUnitTest {
-        val vm = FeedbackViewModel(FakeFeedbackRepository(fails = true), FakeAppCache())
+        val vm = FeedbackViewModel(FakeFeedbackRepository(fails = true))
         vm.takeAction(FeedbackAction.MessageChanged("Hi"))
         vm.takeAction(FeedbackAction.Submit)
 
@@ -117,12 +107,10 @@ class FeedbackViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun aSentBugReport_carriesItsIdsAndContext_countsThanksAndCloses() = runUnitTest {
+    fun aSentBugReport_carriesItsIdsAndContext_thanksAndCloses() = runUnitTest {
         val repository = FakeFeedbackRepository()
-        val cache = FakeAppCache()
         val vm = BugReportViewModel(
             repository,
-            cache,
             logId = "log-1",
             errorCode = 1200,
             contextMessage = "We couldn't load your day.",
@@ -134,15 +122,13 @@ class FeedbackViewModelTest : CoroutineTest() {
 
         assertEquals(listOf<Pair<String?, Int?>>("log-1" to 1200), repository.ids)
         assertEquals(listOf<String?>("We couldn't load your day."), repository.contexts)
-        assertEquals(1, cache.get().bugsReported)
         assertEquals(listOf<BugReportEvent>(BugReportEvent.Sent), events)
     }
 
     @Test
     fun aDoubleTapOnSend_sendsTheBugReportOnceAndClosesOnce() = runUnitTest {
         val repository = FakeFeedbackRepository()
-        val cache = FakeAppCache()
-        val vm = BugReportViewModel(repository, cache)
+        val vm = BugReportViewModel(repository)
         val events = eventsOf(vm)
 
         vm.takeAction(BugReportAction.MessageChanged("The sheet would not open"))
@@ -150,13 +136,12 @@ class FeedbackViewModelTest : CoroutineTest() {
         vm.takeAction(BugReportAction.Submit)
 
         assertEquals(listOf("The sheet would not open"), repository.sent)
-        assertEquals(1, cache.get().bugsReported)
         assertEquals(listOf<BugReportEvent>(BugReportEvent.Sent), events)
     }
 
     @Test
     fun aSentBugReport_saysSentOnItsDisabledButton() = runUnitTest {
-        val vm = BugReportViewModel(FakeFeedbackRepository(), FakeAppCache())
+        val vm = BugReportViewModel(FakeFeedbackRepository())
 
         vm.takeAction(BugReportAction.MessageChanged("The sheet would not open"))
         vm.takeAction(BugReportAction.Submit)
@@ -167,15 +152,13 @@ class FeedbackViewModelTest : CoroutineTest() {
 
     @Test
     fun aFailedBugReport_staysOnThePage() = runUnitTest {
-        val cache = FakeAppCache()
-        val vm = BugReportViewModel(FakeFeedbackRepository(fails = true), cache)
+        val vm = BugReportViewModel(FakeFeedbackRepository(fails = true))
         val events = eventsOf(vm)
 
         vm.takeAction(BugReportAction.MessageChanged("The sheet would not open"))
         vm.takeAction(BugReportAction.Submit)
 
         assertEquals(Res.string.feedback_failed, vm.state.errorMessage)
-        assertEquals(0, cache.get().bugsReported)
         assertEquals(emptyList(), events)
     }
 
@@ -203,17 +186,5 @@ private class FakeFeedbackRepository(private val fails: Boolean = false) : Feedb
         ids += logId to errorCode
         contexts += contextMessage
         return Result.success(Unit)
-    }
-}
-
-private class FakeAppCache : AppCache {
-    private val state = MutableStateFlow(AppData())
-    override val updates: Flow<AppData> = state
-    override suspend fun get(): AppData = state.value
-    override suspend fun set(value: AppData) {
-        state.value = value
-    }
-    override suspend fun clear() {
-        state.value = AppData()
     }
 }

@@ -13,7 +13,7 @@ import kotlin.test.assertTrue
 class AppDataReadTest {
 
     @Test
-    fun aFileFromBeforeScreenVisitsWereDropped_stillReads() = runTest {
+    fun aFileWithFieldsSinceDropped_stillReads() = runTest {
         val written = """
             {"v":1,"d":{"hasUserOnboarded":true,"installId":"abc","screenVisits":{"feedbackScreenOpens":2},"feedbacksGiven":1}}
         """.trimIndent()
@@ -22,6 +22,5 @@ class AppDataReadTest {
 
         assertTrue(read.hasUserOnboarded)
         assertEquals("abc", read.installId)
-        assertEquals(1, read.feedbacksGiven)
     }
 }

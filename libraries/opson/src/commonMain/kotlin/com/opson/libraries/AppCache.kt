@@ -27,10 +27,6 @@ data class AppData(
      */
     val installId: String? = null,
 
-    // User actions
-    val feedbacksGiven: Int = 0,
-    val bugsReported: Int = 0,
-
     /** Epoch-ms — first observed by the review coordinator. 0 = uncaptured. */
     val reviewInstallAt: Long = 0L,
 
