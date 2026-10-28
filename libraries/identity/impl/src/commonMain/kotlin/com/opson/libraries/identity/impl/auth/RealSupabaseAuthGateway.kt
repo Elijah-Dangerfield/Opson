@@ -13,6 +13,8 @@ import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.status.SessionSource
 import io.github.jan.supabase.auth.status.SessionStatus
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -107,7 +109,9 @@ class RealSupabaseAuthGateway(
             // succeeds, and catches nothing but RestException. Offline, the
             // request throws first, the session stays in memory and in the
             // Keychain, and the next retry() signs the person straight back in.
-            supabase.auth.clearSession()
+            // NonCancellable: a sign-out cancelled while that request hangs
+            // must still delete the stored copy.
+            withContext(NonCancellable) { supabase.auth.clearSession() }
         }
     }
 
