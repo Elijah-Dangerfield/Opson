@@ -270,6 +270,73 @@ class DiarySyncerTest : CoroutineTest() {
     }
 
     @Test
+    fun anEntityTheServerDoesNotKnowYet_keepsTheWriteAndSendsItLater() = runUnitTest {
+        val rejections = mutableListOf<SyncRejection>()
+        backgroundScope.launch { syncer.rejections.toList(rejections) }
+        val json = com.opson.libraries.diary.impl.wire.WireJson
+        val run = ExerciseRowDto(
+            id = "00000000-0000-4000-8000-000000000004",
+            day = "2026-10-25",
+            startedAtEpochMs = 1_000,
+            activity = "running",
+            minutes = 20,
+            kcal = 200,
+            clientUpdatedAtEpochMs = 1_000,
+        )
+        db.exercises.put(run.id, run.toEntity())
+        db.outboxDao.enqueue(SyncEntity.Exercise, run.id, json.encodeToString(ExerciseRowDto.serializer(), run), base = null, nowEpochMs = 1_000)
+        repo.addItems(today, MealSlot.Lunch, listOf(draft("Rice")), LogMethod.Search)
+        // A server from before exercise: it applies the food and has no table for the run.
+        api.respond = { request ->
+            val (unknown, known) = request.mutations.partition { it.entity == "exercise" }
+            ackEverything(request).copy(
+                applied = known.map { it.id },
+                rejected = unknown.map { SyncRejectionDto(it.id, "unknown_entity", "Unknown entity 'exercise'") },
+            )
+        }
+
+        syncer.sync()
+
+        assertEquals(run.toEntity(), db.exercises.state.value[run.id], "the run stays on the phone")
+        assertEquals(listOf("exercise"), db.outbox.rows.map { it.entity }, "and its change stays queued")
+        assertTrue(rejections.isEmpty(), "nothing to tell the person: nothing was lost")
+
+        api.respond = { ackEverything(it) }
+        syncer.sync()
+
+        assertEquals(run.id, api.requests.last().mutations.single().row.getValue("id").toString().trim('"'))
+        assertTrue(db.outbox.rows.isEmpty())
+    }
+
+    @Test
+    fun anEntityTheServerDoesNotKnowYet_doesNotHoldUpThePull() = runUnitTest {
+        val json = com.opson.libraries.diary.impl.wire.WireJson
+        val swim = ExerciseRowDto(
+            id = "00000000-0000-4000-8000-000000000005",
+            day = "2026-10-25",
+            startedAtEpochMs = 1_000,
+            activity = "swimming",
+            minutes = 40,
+            kcal = 300,
+            clientUpdatedAtEpochMs = 1_000,
+        )
+        db.exercises.put(swim.id, swim.toEntity())
+        db.outboxDao.enqueue(SyncEntity.Exercise, swim.id, json.encodeToString(ExerciseRowDto.serializer(), swim), base = null, nowEpochMs = 1_000)
+        api.respond = { request ->
+            ackEverything(request).copy(
+                applied = emptyList(),
+                rejected = request.mutations.map { SyncRejectionDto(it.id, "unknown_entity", "Unknown entity 'exercise'") },
+                hasMore = request.cursor < 3,
+            )
+        }
+
+        syncer.sync()
+
+        assertEquals(listOf(0L, 1L, 2L, 3L), api.requests.map { it.cursor }, "the pull goes on past the held row")
+        assertEquals(1, db.outbox.rows.size)
+    }
+
+    @Test
     fun aPulledFastIsStoredUnlessALocalChangeIsWaiting() = runUnitTest {
         val pulled = FastRowDto(day = "2026-10-24", startedAtEpochMs = 1_000, goalHours = 14, clientUpdatedAtEpochMs = 1_000)
         api.respond = { ackEverything(it).copy(changes = SyncChangesDto(fasts = listOf(pulled))) }

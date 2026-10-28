@@ -77,6 +77,9 @@ internal val SYNC_DEBOUNCE: Duration = 2.seconds
 /** The server refuses a row dated more than this many days past today, in UTC. */
 internal const val SERVER_MAX_DAYS_AHEAD = 8
 
+/** What a server older than this build answers for an entity it has no table for. */
+internal const val UNKNOWN_ENTITY = "unknown_entity"
+
 /**
  * The `accepts` the stored cursor was pulled with. `sync_seq` is one sequence
  * across every table, so a pull that did not ask for an entity still moved the
@@ -126,6 +129,9 @@ internal enum class DrainOutcome {
  *
  * **Merge.** Acknowledged rows leave the outbox. A refused row leaves it too,
  * the device goes back to the row as it was before, and [rejections] says so.
+ * The exception is [UNKNOWN_ENTITY]: the server is older than the app, not the
+ * row wrong, so the row and its change stay, and that entity sits out the rest
+ * of the drain. It goes up once the server knows it.
  * A pulled row replaces the local one unless the local one has a change still
  * waiting, in which case the local one wins and goes up next time. All of it,
  * and the cursor, commit in one transaction.
@@ -247,9 +253,10 @@ class DiarySyncer(
         var outcome = DrainOutcome.BudgetSpent
         var pullComplete = false
         var pulledSettings = false
+        val held = mutableSetOf<String>()
 
         for (request in 0 until MAX_REQUESTS_PER_SYNC) {
-            val page = tables.outbox.page(OUTBOX_PAGE_SIZE, maxSendableDay())
+            val page = nextPage(held)
             val keys = page.map { it.id }
             if (page.isNotEmpty() && keys == previousKeys) {
                 outcome = DrainOutcome.Stalled
@@ -260,7 +267,7 @@ class DiarySyncer(
             val request = SyncRequestDto(cursor = cursor, mutations = page.mapNotNull { it.toMutation() }, accepts = SYNC_ACCEPTS)
             val response = api.sync(request).getOrThrow()
             pulledSettings = pulledSettings || response.changes.settings != null
-            apply(response)
+            held += apply(response)
             cursor = response.cursor
             pullComplete = !response.hasMore
             // A short page means nothing sendable was left behind it. Done,
@@ -281,7 +288,7 @@ class DiarySyncer(
         if (pullComplete && user is ActiveUser.SignedIn && settingsStore.markPulled(user.userId, pulledSettings)) {
             requestSync()
         }
-        warnIfIncomplete(outcome)
+        warnIfIncomplete(outcome, held)
     }
 
     /** The stored cursor, or 0 when it was pulled without an entity this build reads. */
@@ -293,11 +300,19 @@ class DiarySyncer(
         return 0L
     }
 
-    private suspend fun warnIfIncomplete(outcome: DrainOutcome) {
+    /** The oldest sendable changes, leaving out entities the server said it does not know. */
+    private suspend fun nextPage(held: Set<String>): List<OutboxEntity> =
+        if (held.isEmpty()) tables.outbox.page(OUTBOX_PAGE_SIZE, maxSendableDay())
+        else tables.outbox.pageExcept(OUTBOX_PAGE_SIZE, maxSendableDay(), held.toList())
+
+    private suspend fun warnIfIncomplete(outcome: DrainOutcome, held: Set<String>) {
         val remaining = tables.outbox.count()
         if (remaining == 0) return
-        val sendable = tables.outbox.page(OUTBOX_PAGE_SIZE, maxSendableDay()).size
+        val sendable = nextPage(held).size
         when {
+            held.isNotEmpty() -> logger.w {
+                "The server does not know $held yet; $remaining change(s) stay queued"
+            }
             outcome == DrainOutcome.Stalled -> logger.w {
                 "Diary outbox stalled: the same page came back unresolved; $remaining change(s) queued"
             }
@@ -324,18 +339,22 @@ class DiarySyncer(
         return SyncMutationDto(id = id, entity = entity, row = row)
     }
 
-    private suspend fun apply(response: SyncResponseDto) {
+    /** Commits one response. Returns the entities the server refused as [UNKNOWN_ENTITY]. */
+    private suspend fun apply(response: SyncResponseDto): Set<String> {
         val settingsReverts = mutableListOf<String?>()
         val rejected = mutableListOf<SyncRejection>()
+        val held = mutableSetOf<String>()
         tables.transactor.inTransaction {
             if (response.applied.isNotEmpty()) tables.outbox.deleteByIds(response.applied)
             if (response.rejected.isNotEmpty()) {
                 val codes = response.rejected.associate { it.id to it.code }
                 // A refused row that is no longer here was superseded by a
                 // newer change, which gets its own verdict. Nothing to undo.
-                val rows = tables.outbox.getByIds(codes.keys.toList())
-                if (rows.isNotEmpty()) tables.outbox.deleteByIds(rows.map { it.id })
-                rows.forEach { row ->
+                val (unknown, refused) = tables.outbox.getByIds(codes.keys.toList())
+                    .partition { codes.getValue(it.id) == UNKNOWN_ENTITY }
+                unknown.mapTo(held) { it.entity }
+                if (refused.isNotEmpty()) tables.outbox.deleteByIds(refused.map { it.id })
+                refused.forEach { row ->
                     val entity = SyncEntity.fromWire(row.entity) ?: return@forEach
                     if (entity == SyncEntity.Settings) settingsReverts += row.basePayload else revert(entity, row)
                     rejected += SyncRejection(entity, row.entityId, codes.getValue(row.id))
@@ -355,6 +374,7 @@ class DiarySyncer(
             logger.w { "Server refused ${rejected.size} diary change(s), rolled back: ${rejected.groupingBy { it.entity.wire }.eachCount()}" }
             rejected.forEach { rejectionEvents.tryEmit(it) }
         }
+        return held
     }
 
     /** The merge rule: a pulled row replaces the local one unless the local one has a change waiting. */

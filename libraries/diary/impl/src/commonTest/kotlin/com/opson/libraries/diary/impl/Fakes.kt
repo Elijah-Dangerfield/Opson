@@ -342,6 +342,9 @@ class FakeDiaryDb {
             .sortedWith(compareBy<OutboxEntity> { it.createdAtEpochMs }.thenBy { it.id })
             .take(limit)
 
+        override suspend fun pageExcept(limit: Int, maxDay: String, entities: List<String>) =
+            page(Int.MAX_VALUE, maxDay).filter { it.entity !in entities }.take(limit)
+
         override suspend fun getByIds(ids: List<String>) = ids.mapNotNull { outbox.state.value[it] }
 
         override suspend fun deleteByIds(ids: List<String>) {
