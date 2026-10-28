@@ -144,6 +144,39 @@ the double pause sheet, still deferred to the router.
 - **The log out dialog says "Your log stays in your account" while the sync runs.** True of
   everything that has synced; the Unsynced step covers the rest.
 
+## Second review
+
+A second reviewer read finding 1's fix and flagged two regressions in it. Both were real.
+
+### S1. A back press during the sync wait hid the "Couldn't reach your account" warning: fixed
+
+- **Where:** `more/MoreViewModel.kt` `logOut`, which waited up to ten seconds for the sync
+  inside the action queue, and `more/MoreScreen.kt` `LogOutDialog`, whose `onDismissRequest`
+  sent `LogOutCancelled` even while working.
+- **Rule:** §2 (work that blocks the action queue), §10 "the error state tells the person what
+  they can do".
+- **Failure:** offline, confirm log out, then press back or tap outside the dialog during the
+  wait. The cancel queued behind `logOut`, and by its turn the step was already `Unsynced`, so
+  the `Working` guard didn't apply and it reset to `Idle`. The warning never showed and nothing
+  said why the person was still signed in. Nothing was wiped.
+- **Fix:** `fix(settings): a back press while log out syncs no longer hides the warning`. The
+  wait runs beside the queue and reports back as `LogOutSyncFinished`, so a dismiss meanwhile
+  meets `Working` and is ignored, and the dialog no longer sends one while working, like
+  Support's delete. `MoreTest.logOut_backPressedWhileItSends_stillShowsTheWarning` failed
+  before (ended `Idle`).
+
+### S2. After "Log out anyway" the dialog said "Your log stays in your account": fixed
+
+- **Where:** `more/MoreScreen.kt`, which drew `LogOutStep.Working` with the signed-in copy, and
+  `more/MoreViewModel.kt`, which set `Working(guest = false)` from the Unsynced step.
+- **Rule:** §1 "code that reads true", applied to the words on screen.
+- **Failure:** the person accepts that unsynced changes will be lost, and for as long as
+  `auth.signOut()` takes (it goes to the network) the dialog tells them the opposite.
+- **Fix:** `fix(settings): Log out anyway keeps saying what is lost while it signs out`.
+  `Working` carries `unsynced`, and `LogOutCopy.of(step)` keeps the Unsynced copy for it.
+  `MoreTest.logOut_anyway_keepsSayingWhatIsLost_whileItSignsOut` failed before (got
+  `SignedIn`).
+
 ## Product notes
 
 - **Log out could show what hasn't synced before asking.** Once `DiarySync` can count pending
