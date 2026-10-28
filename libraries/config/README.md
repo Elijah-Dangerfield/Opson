@@ -17,28 +17,28 @@ fill in `resolveValue` for scalars, so a concrete flag only declares
 @Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = QaConfigValue::class, multibinding = true)
-class GoogleSignInEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap) {
-    override val name = "Google sign-in enabled"
-    override val path = "identity.googleSignInEnabled"
+class BarcodeScanEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap) {
+    override val name = "Barcode scan"
+    override val path = "release.barcode"
     override val default = false
 }
 
 @Inject
-class SignInViewModel(googleSignInEnabled: GoogleSignInEnabled) {
-    val showGoogle = googleSignInEnabled()   // invoke() resolves the current value
+class LoggerViewModel(barcodeScanEnabled: BarcodeScanEnabled) {
+    val showScanner = barcodeScanEnabled()   // invoke() resolves the current value
 }
 ```
 
 Metadata on `ConfiguredValue` drives the QA menu: `group` (defaults to the
 first path segment), `allowedValues` (renders a chip selector for enum-like
-strings), `showInQADashboard` (default true), `description`, and a
-debug-build-only `debugOverride`.
+strings), `showInQADashboard` (default true) and `description`.
 
-For structured payloads (a level ladder, a reward table) subclass
+For structured payloads (a list of reminder times, say) subclass
 `JsonConfigValue<T>` with a `@Serializable` model and a serializer. It resolves
 one path to a JSON subtree and falls back to the bundled `default` on any
 decode failure, so a bad remote value can never brick the client. JSON values
-hide from the QA dashboard by default.
+hide from the QA dashboard by default. Nothing in the app uses one yet;
+`JsonConfigValueTest` shows the shape.
 
 ## Resolution order
 
@@ -46,10 +46,9 @@ hide from the QA dashboard by default.
 
 1. QA override (`ConfigOverrideRepository`, persisted locally, editable from
    the QA menu)
-2. `debugOverride` (debug builds only)
-3. Server value from `GET /v1/app-config` (a sparse tree keyed by dotted
+2. Server value from `GET /v1/app-config` (a sparse tree keyed by dotted
    `ConfiguredValue.path`)
-4. The in-code `default`
+3. The in-code `default`
 
 An empty server response is legitimate: the client always works on defaults
 alone.
