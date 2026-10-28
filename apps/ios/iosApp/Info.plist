@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>com.opson.maintenance</string>
-	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<!--
@@ -152,10 +148,6 @@
 		<key>UIImageName</key>
 		<string>LaunchMark</string>
 	</dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>processing</string>
-	</array>
 	<!--
 	  Custom-scheme deep links. `opson://login-callback` is the browser
 	  OAuth return trip and `opson://auth/confirmed` the verify-email

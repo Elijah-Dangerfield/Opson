@@ -13,9 +13,6 @@ import com.opson.libraries.identity.auth.ResendOutcome
 import com.opson.libraries.identity.auth.SendResetOutcome
 import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.SignUpOutcome
-import com.opson.libraries.identity.profile.Profile
-import com.opson.libraries.identity.profile.ProfileRepository
-import com.opson.libraries.identity.profile.UpdateProfileOutcome
 import com.opson.libraries.networking.AccessDeniedBus
 import com.opson.libraries.opson.AppCache
 import com.opson.libraries.opson.AppData
@@ -29,7 +26,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 
@@ -37,22 +33,31 @@ import kotlinx.coroutines.test.runCurrent
 class AppViewModelTest : CoroutineTest() {
 
     @Test
-    fun aReturningUserWhoseProfileNeverResolves_stillGetsPastTheBootScreen() = runUnitTest {
+    fun aReturningUser_opensOnTodayAsSoonAsTheConfigIsIn() = runUnitTest {
+        // The profile is a /v1/me round trip and nothing on Today reads it. On one bar of signal,
+        // waiting for it held every cold start on the loading screen for up to the full cap.
+        val vm = vm(onboarded = true, auth = FakeAuthRepository(AuthState.Unauthenticated()))
+        runCurrent()
+
+        assertIs<TodayRoute>(vm.startDestination.value)
+        assertTrue(vm.isBootComplete.value)
+    }
+
+    @Test
+    fun aConfigLoadThatNeverFinishes_stillLetsTheUserPastTheBootScreen() = runUnitTest {
         val vm = AppViewModel(
             appCache = FakeAppCache(AppData(hasUserOnboarded = true)),
-            profileRepository = SilentProfileRepository,
             authRepository = FakeAuthRepository(AuthState.Unauthenticated()),
-            ensureAppConfigLoaded = { Result.success(Unit) },
+            ensureAppConfigLoaded = { awaitCancellation() },
             accessDeniedBus = QuietAccessDeniedBus,
         )
         runCurrent()
 
-        assertIs<TodayRoute>(vm.startDestination.value)
-        assertFalse(vm.isBootComplete.value, "the gate waits for the profile first")
+        assertFalse(vm.isBootComplete.value, "the gate waits for the config first")
 
         advanceTimeBy(BootWaitTimeoutMillis + 1)
 
-        assertTrue(vm.isBootComplete.value, "a profile that never arrives must not strand the user")
+        assertTrue(vm.isBootComplete.value, "a config that never arrives must not strand the user")
     }
 
     @Test
@@ -88,7 +93,6 @@ class AppViewModelTest : CoroutineTest() {
 
     private fun vm(onboarded: Boolean, auth: AuthRepository) = AppViewModel(
         appCache = FakeAppCache(AppData(hasUserOnboarded = onboarded)),
-        profileRepository = SilentProfileRepository,
         authRepository = auth,
         ensureAppConfigLoaded = { Result.success(Unit) },
         accessDeniedBus = QuietAccessDeniedBus,
@@ -105,13 +109,6 @@ private class FakeAppCache(initial: AppData) : AppCache {
     override suspend fun clear() {
         state.value = AppData()
     }
-}
-
-/** A resolve that threw, so nothing was ever emitted. */
-private object SilentProfileRepository : ProfileRepository {
-    override suspend fun current(): Profile = error("never resolves")
-    override fun observe(): Flow<Profile> = flow { awaitCancellation() }
-    override suspend fun update(displayName: String?): UpdateProfileOutcome = error("unused")
 }
 
 private object QuietAccessDeniedBus : AccessDeniedBus {
