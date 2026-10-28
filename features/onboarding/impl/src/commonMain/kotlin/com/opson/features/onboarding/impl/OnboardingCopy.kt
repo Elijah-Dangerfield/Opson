@@ -10,6 +10,7 @@ import opson.libraries.resources.generated.resources.modes_preset_macros_only
 import opson.libraries.resources.generated.resources.modes_preset_macros_only_line
 import opson.libraries.resources.generated.resources.modes_preset_no_numbers
 import opson.libraries.resources.generated.resources.modes_preset_no_numbers_line
+import opson.libraries.resources.generated.resources.onboarding_feel_intro
 import opson.libraries.resources.generated.resources.onboarding_feel_love_them
 import opson.libraries.resources.generated.resources.onboarding_feel_not_sure
 import opson.libraries.resources.generated.resources.onboarding_feel_rather_not
@@ -73,7 +74,8 @@ internal val SetupQuestion.title: StringResource
 internal val SetupQuestion.subtitle: StringResource?
     get() = when (this) {
         SetupQuestion.Reason -> Res.string.onboarding_pick_any
-        SetupQuestion.Feeling, SetupQuestion.Statement -> null
+        SetupQuestion.Feeling -> Res.string.onboarding_feel_intro
+        SetupQuestion.Statement -> null
     }
 
 internal val SetupOption.label: StringResource

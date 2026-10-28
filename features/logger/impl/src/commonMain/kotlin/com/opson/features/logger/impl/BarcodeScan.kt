@@ -109,6 +109,9 @@ sealed interface BarcodeScanEvent {
 
     /** Back to where the scanner was opened from. A name saved on a miss is logged by then. */
     data object Close : BarcodeScanEvent
+
+    /** The day is closed (Close the day, maybe on another phone): the name saved on a miss was not logged. */
+    data class DayClosed(val day: LocalDate) : BarcodeScanEvent
 }
 
 /** Where a scan stands, as the view model tracks it. */

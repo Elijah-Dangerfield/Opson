@@ -15,7 +15,7 @@ enum class SetupQuestion(val number: Int, val multiSelect: Boolean, val eventNam
     /** Why are you tracking? */
     Reason(1, multiSelect = true, eventName = "question_1"),
 
-    /** How do you feel about seeing numbers? */
+    /** How do numbers sit with you? */
     Feeling(2, multiSelect = false, eventName = "question_2"),
 
     /**
@@ -130,6 +130,7 @@ fun Settings.startingWith(preset: PresetId, answers: SetupAnswers, setup: Starti
     heightCm = setup.heightCm ?: heightCm,
     bodySex = setup.sex ?: bodySex,
     weightUnit = setup.weightUnit ?: weightUnit,
+    heightUnit = setup.heightUnit ?: heightUnit,
     mealTimes = setup.mealTimes ?: mealTimes,
     everydayActivity = setup.everydayActivity ?: everydayActivity,
 )

@@ -25,7 +25,8 @@ data class LoggerChoices(
     val describeStatus: DescribeStatus = DescribeStatus.Idle,
     /** Describe's lines as the person has corrected them. */
     val review: DescribeReview = DescribeReview(),
-    val number: String = "",
+    /** Describe's "Or just the numbers" as typed. */
+    val quickAdd: QuickAddForm = QuickAddForm(),
     /** `release.barcode`, read once when the sheet opens. */
     val scanAvailable: Boolean = false,
     /** `release.photo`, read once when the sheet opens. */
@@ -60,24 +61,24 @@ object LoggerStateBuilder {
         val slot = effectiveSlot(inputs, choices.slot)
         val context = inputs.day.formatContext(inputs.today)
         val bare = inputs.day.formatContext(inputs.today, bare = true)
-        val canNumber = policy.level(Metric.Calories) != Visibility.Hide
+        val closed = inputs.day.closedByUser
         return LoggerState(
             loading = false,
             day = RelativeDay.of(inputs.day.date, inputs.today),
             slot = slot,
             slots = if (groupsOn) MealSlot.entries else listOf(MealSlot.Uncategorized),
-            pane = choices.pane,
+            // Describe and Saved only add; what was typed waits in the choices for a Reopen.
+            pane = if (closed) LoggerPane.Actions else choices.pane,
             height = choices.height,
-            actions = actions(inputs, policy, slot, choices),
-            recent = recentRows(inputs, policy, slot, choices, bare),
+            actions = actions(inputs, policy, slot, choices).filter { !closed || it in NOT_PART_OF_THE_DAY },
+            recent = if (closed) emptyList() else recentRows(inputs, policy, slot, choices, bare),
             describe = DescribeUi(
                 text = choices.describeText,
                 status = choices.describeStatus,
                 lines = describedLines(choices.review, policy, bare),
                 total = describeTotal(choices.review, policy, context),
                 find = choices.review.find?.let { describeFind(it, choices.review, policy, bare) },
-                canNumber = canNumber,
-                number = if (canNumber) choices.number else "",
+                quickAdd = QuickAdd.build(choices.quickAdd, policy, context),
                 // A spoken description becomes the same text and the same lines as a typed one.
                 voice = VoiceStateBuilder.build(choices.voiceEnabled, choices.voice),
             ),
@@ -91,8 +92,12 @@ object LoggerStateBuilder {
                     )
                 },
             ),
+            closed = closed,
         )
     }
+
+    /** What a closed day still offers: a weigh-in and the fasting timer are not part of its log. */
+    private val NOT_PART_OF_THE_DAY = setOf(AddAction.WeighIn, AddAction.Fasting)
 
     /** The slot a log lands in: [slot], or Uncategorized when the day has meal groups off. */
     fun effectiveSlot(inputs: LoggerInputs, slot: MealSlot): MealSlot =

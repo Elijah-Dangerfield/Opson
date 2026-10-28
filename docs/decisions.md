@@ -31,6 +31,120 @@ higher of the two for most nutrients, so the percent would read low).
 total says when it rests on partial data. Details and sources in
 `docs/research/nutrient-targets.md`; the table is `TODO(dietitian)`.
 
+## 2026-10-27: Onboarding offers goal numbers only to someone comfortable with them
+
+**Decision:** behind `release.onboardingSetup`, the goal step is shown when the
+starting mode shows calorie amounts (Full numbers) and the person did not agree
+that numbers have been hard. Full numbers is never offered after that
+statement, so the second condition is a guard rather than a second rule, and it
+is spelled out in `OnboardingState.showsGoal` so a future mode cannot slip past
+it. Everyone else gets no goal number in onboarding at all: Macros with grams,
+Macros only and No numbers go straight to the meal times step where it applies,
+or to Today, and their goal stays the app's starting range in the background.
+Someone who said "I'd rather not see them" and then picked Full numbers from
+All modes does get the goal: they chose every number.
+
+With `release.goalsAndEnergy` on as well, the resting energy step comes first
+and the goal starts from the ordinary day it gives (resting energy plus
+everyday activity, as Burned works it out with no health app), rounded to the
+nearest 50 kcal, with "Based on about 2,450 burned on an ordinary day" under the
+stepper. `GoalAnswer.startingFrom` goes through `Targets.withEnergy`, so the
+start never goes under the floor: while `GOAL_FLOOR_KCAL` is unset, an estimate
+below the app's starting range (2,100) starts there and says nothing about the
+burn, and the floor stays where Targets puts it. Macros scale with it, as ratio
+mode does. Once the person moves the amount, a changed estimate no longer moves
+it. A deficit or surplus picked straight away starts at zero, because the aim
+already is the burn; that is the existing rule ("A deficit can be chosen without a
+health app", below), not a new one.
+
+Both goal steps trade Skip for "Set this later", which goes past both and
+writes neither. Start on the recommendation offers them again.
+
+With `release.goalsAndEnergy` off the goal step is the range alone, from the
+app's starting range, as before. With `release.onboardingSetup` off there are
+no setup steps and nothing changes.
+
+**Alternatives:** asking for the goal from everyone and hiding the amount
+(rejected: a goal without a number is still a goal to hit, which is what the
+numbers answer asked us not to set up); a "macros only" goal step that picks a
+split such as Higher protein or Lower carb (rejected for now: the named splits
+are engineer-picked, `TODO(dietitian)`, and "Lower carb" is diet language this
+audience does not need on day one); starting from the raw burn with no floor
+(rejected: a typo or a small person's estimate would set a low floor that only a
+dietitian should set); keeping the goal before resting energy (rejected: the
+goal could not start from the estimate the person had just given).
+
+**Units.** Height is typed in centimetres or feet and inches wherever it is
+entered (onboarding and Resting energy, through the shared `HeightField`) and
+stored in centimetres. Weight in onboarding has its own kilograms or pounds
+switch instead of one switch for both. Both start in the phone region's units
+(`RegionUnits`: the US, Liberia and Myanmar get feet and pounds), read through
+`DeviceRegion`, which moved to `:libraries:core` for it. The height unit is a
+new top-level `heightUnit` key; until it is picked, someone in pounds keeps
+inches, as height followed weight before.
+
+## 2026-10-27: A closed day takes nothing until it is reopened
+
+**Decision:** once a day is closed with Close the day (`Day.closedByUser`,
+`closed_at` set), nothing can be added to it or changed on it until it is
+reopened. The diary enforces it, not the screens: every write that would add
+food, water, exercise, a meal's note or the day's note, or change or remove
+what is there, answers `DayWrite.DayClosed(day)` and writes nothing, checked
+inside the same transaction as the write. That covers `addItems`, the copies
+into the day (`copyDay`, `copySlot`, `copyItems`), `updateItem`,
+`removeItem(s)`, `restoreItems`, `moveItem(s)`, `clearDay`, the three water
+writes, `setDayNote`, `setAteNoDetails`, `setFeeling` and
+`ExerciseRepository.add/update/delete`. A batch that touches a closed day
+writes none of it. Food a closed day refuses does not end a running fast.
+
+Edits and deletes are blocked too, not only adds. Closing says the day is done,
+and a day whose food can still change under its close is not done. Reopening is
+one tap from wherever the block shows, so nothing is lost by asking for it.
+
+Still allowed on a closed day: closing it again (Day close's Save updates the
+note, the feeling and the check-in in the same write as the close, which is why
+`closeDay` takes them as a `DayReflection` and `setDayFeeling` and
+`DayCheckIns.setCheckIn` are gone), reopening it, marking it untracked, its
+meal groups, copying its food out to an open day, and starring a food.
+
+A past day nobody closed stays open, as before: "closed" here means Close the
+day, not the date. `Day.isClosed(today)`, which reveals delayed numbers for
+past days too, is unchanged; the header check is filled only for a day the
+person closed.
+
+Where it shows: on a closed day Today has no + on meals, water or Burned, no
+select, drag or swipe, and its menu drops Copy yesterday, Add a note and Clear
+this day, with Reopen in Close the day's place. A line under the card says
+"Today is closed. Reopen it to add more." with Reopen. The + sheet and search
+show the same line in place of what would log (a weigh-in and the fasting timer
+stay, since they are not part of the day). A food's sheet offers only Copy and
+the star, with the line under them. A write refused anyway (the day closed on
+another phone a moment ago, or from a sheet already open) lands on the
+`DayClosedRoute` sheet with Reopen and Not now. Day close on a closed day says
+Save and Reopen this day, and its caption no longer promises the day can be
+edited after closing. Reminders stop for a closed day and its delivered ones
+are cleared.
+
+**Sync:** `closed_at` already travels on the day record, so a second phone
+holds the block once it has pulled the close
+(`apps/integration/.../ClosedDaySyncTest`). The server does not check it: a
+phone that wrote offline before it saw the close still lands its write, which
+was made while the day was open on that phone. Refusing it would roll the
+person's food back with no way to tell them why.
+
+**Left open:** starting a fast at the window's close (fasts are not part of a
+day's log, and closing the evening is when one usually starts); a weigh-in,
+which belongs to no day; Edit a copy's "use it for this entry" when the day
+closes while that screen is open, where the copy is saved and the entry keeps
+its food.
+
+**Alternatives:** blocking only adds and leaving edits and deletes open.
+Rejected for the reason above. Enforcing it in the screens only. Rejected: the
+widget, a reminder's Already ate and a second phone all reach the diary without
+Today's screens. A thrown exception instead of a typed result. Rejected: an
+expected outcome is a value here (`docs/review/PRACTICES.md`, Errors at the
+edges).
+
 ## 2026-10-27: One everyday activity setting for exercise and goals
 
 **Decision:** the exercise work and the goals work each added a "how active is

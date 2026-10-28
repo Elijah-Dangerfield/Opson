@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewModelScope
 import com.opson.features.today.impl.Toast
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.ui.SectionLabel
@@ -46,6 +47,9 @@ sealed interface DayNoteAction {
 
 sealed interface DayNoteEvent {
     data class ShowToast(val toast: Toast) : DayNoteEvent
+
+    /** The day is closed (Close the day, maybe on another phone): the note was not saved. */
+    data class DayClosed(val day: LocalDate) : DayNoteEvent
     data object Dismiss : DayNoteEvent
 }
 
@@ -73,7 +77,10 @@ class DayNoteViewModel(
             is DayNoteAction.NoteTyped -> action.updateState { it.copy(draft = action.text) }
             DayNoteAction.SaveTapped -> {
                 val note = state.draft.trim()
-                diary.setDayNote(day, note.ifEmpty { null })
+                if (diary.setDayNote(day, note.ifEmpty { null }) is DayWrite.DayClosed) {
+                    sendEvent(DayNoteEvent.DayClosed(day))
+                    return
+                }
                 if (note.isNotEmpty()) sendEvent(DayNoteEvent.ShowToast(Toast(Res.string.today_toast_daynote_saved)))
                 sendEvent(DayNoteEvent.Dismiss)
             }

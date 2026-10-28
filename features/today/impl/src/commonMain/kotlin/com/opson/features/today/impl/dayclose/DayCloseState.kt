@@ -63,6 +63,11 @@ data class DayCloseState(
     val expended: Display = Display.Hidden,
     val isToday: Boolean = true,
     val note: String = "",
+    /**
+     * Closed already: the button saves the note and the check-in and keeps it closed, and Reopen
+     * opens it to food again.
+     */
+    val closed: Boolean = false,
 )
 
 data class FeelingChoice(val options: List<DayFeeling>, val picked: DayFeeling?)
@@ -109,6 +114,9 @@ sealed interface DayCloseAction {
     data object SupportTapped : DayCloseAction
     data object CommitmentTapped : DayCloseAction
     data object DoneTapped : DayCloseAction
+
+    /** Reopen this day: it takes food again, and the screen closes back to Today. */
+    data object ReopenTapped : DayCloseAction
     data object BackTapped : DayCloseAction
 }
 
@@ -215,6 +223,7 @@ object DayCloseStateBuilder {
             },
             isToday = isToday,
             note = note,
+            closed = day.closedByUser,
         )
     }
 

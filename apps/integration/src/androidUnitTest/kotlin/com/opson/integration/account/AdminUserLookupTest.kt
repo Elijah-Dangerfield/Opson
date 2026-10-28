@@ -14,13 +14,15 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -63,7 +65,9 @@ class AdminUserLookupTest : IntegrationTest() {
         assertEquals("ios", install.getValue("platform").jsonPrimitive.content)
         assertEquals("0.2.0", install.getValue("appVersion").jsonPrimitive.content)
         assertEquals("52", install.getValue("buildNumber").jsonPrimitive.content)
-        assertFalse("soup" in detail.toString() || "640" in detail.toString(), "a food reached the lookup: $detail")
+        // Compare values, not the raw text: a random install id or timestamp can contain "640".
+        val leaked = detail.leaves().filter { it.contains("soup", ignoreCase = true) || it.toDoubleOrNull() == 640.0 }
+        assertTrue(leaked.isEmpty(), "a food reached the lookup: $leaked in $detail")
 
         val byEmail = adminSearch("sam.lee@")
         assertEquals(listOf(user), byEmail.map { it.jsonObject.getValue("userId").jsonPrimitive.content })
@@ -83,4 +87,11 @@ class AdminUserLookupTest : IntegrationTest() {
                 setBody("""{"query":"$query"}""")
             }.bodyAsText(),
         ).jsonObject.getValue("users").jsonArray
+}
+
+/** Every primitive value in [this], as text, however deep. */
+private fun JsonElement.leaves(): List<String> = when (this) {
+    is JsonObject -> values.flatMap { it.leaves() }
+    is JsonArray -> flatMap { it.leaves() }
+    is JsonPrimitive -> listOf(content)
 }

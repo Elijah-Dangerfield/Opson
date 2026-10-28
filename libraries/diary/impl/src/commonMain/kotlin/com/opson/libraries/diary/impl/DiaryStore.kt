@@ -1,5 +1,6 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.db.CustomFoodDao
@@ -55,6 +56,13 @@ class SystemLocalCalendar(private val clock: Clock) : LocalCalendar {
 
     override fun today(): LocalDate = clock.now().toLocalDateTime(timeZone()).date
 }
+
+/**
+ * [day] (an ISO date) as a refusal when it was closed with Close the day, else null. Read inside
+ * the write that depends on it, so a close cannot land between the check and the rows.
+ */
+internal suspend fun DiaryTables.closedDay(day: String): DayWrite.DayClosed? =
+    if (days.get(day)?.takeUnless { it.deleted }?.closedAtEpochMs != null) DayWrite.DayClosed(LocalDate.parse(day)) else null
 
 /** Client ids are lowercase UUIDs, which is the only spelling the server accepts. */
 internal fun newId(): String = Uuid.random().toString()

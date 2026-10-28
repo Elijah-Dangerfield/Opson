@@ -23,6 +23,7 @@ import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
 import com.opson.features.today.DayCloseRoute
+import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
 import com.opson.features.today.NotesRoute
 import com.opson.features.today.TodayRoute
@@ -38,6 +39,9 @@ import com.opson.features.today.impl.calendar.CalendarViewModel
 import com.opson.features.today.impl.dayclose.DayCloseEvent
 import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.dayclose.DayCloseViewModel
+import com.opson.features.today.impl.dayclose.DayClosedEvent
+import com.opson.features.today.impl.dayclose.DayClosedSheetContent
+import com.opson.features.today.impl.dayclose.DayClosedViewModel
 import com.opson.features.today.impl.dayclose.WhyNotCutBackSheetContent
 import com.opson.features.today.impl.daynote.DayNoteEvent
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
@@ -97,6 +101,7 @@ import kotlin.reflect.typeOf
 class TodayFeatureEntryPoint(
     private val todayViewModelFactory: () -> TodayViewModel,
     private val dayCloseViewModelFactory: (LocalDate) -> DayCloseViewModel,
+    private val dayClosedViewModelFactory: (LocalDate) -> DayClosedViewModel,
     private val calendarViewModelFactory: (LocalDate) -> CalendarViewModel,
     private val mealSheetViewModelFactory: (LocalDate, MealSlot) -> MealSheetViewModel,
     private val mealNoteViewModelFactory: (LocalDate, MealSlot) -> MealNoteViewModel,
@@ -157,6 +162,18 @@ class TodayFeatureEntryPoint(
             DayCloseScreen(state = state, onAction = viewModel::takeAction)
         }
 
+        bottomSheet<DayClosedRoute> { backStackEntry, sheetState ->
+            val route = backStackEntry.toRoute<DayClosedRoute>()
+            val viewModel: DayClosedViewModel = viewModel { dayClosedViewModelFactory(LocalDate.parse(route.dayIso)) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    DayClosedEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            TodaySheet(router, sheetState) { DayClosedSheetContent(state = state, onAction = viewModel::takeAction) }
+        }
+
         dialog<CalendarRoute> { backStackEntry, dialogState ->
             val route = backStackEntry.toRoute<CalendarRoute>()
             val viewModel: CalendarViewModel = viewModel { calendarViewModelFactory(LocalDate.parse(route.selectedIso)) }
@@ -191,6 +208,7 @@ class TodayFeatureEntryPoint(
                         navigate(CreateMealRoute(fromDayIso = event.day.toString(), fromSlot = event.slot))
                     }
                     is MealSheetEvent.ShowToast -> showToast(event.toast)
+                    is MealSheetEvent.DayClosed -> router.showDayClosed(event.day)
                     MealSheetEvent.Dismiss -> sheetState.dismiss()
                 }
             }
@@ -204,6 +222,7 @@ class TodayFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is MealNoteEvent.ShowToast -> showToast(event.toast)
+                    is MealNoteEvent.DayClosed -> router.showDayClosed(event.day)
                     MealNoteEvent.Dismiss -> sheetState.dismiss()
                 }
             }
@@ -221,6 +240,7 @@ class TodayFeatureEntryPoint(
                         navigate(WaterSettingsRoute(fromMore = false))
                     }
                     is WaterSheetEvent.ShowToast -> showToast(event.toast)
+                    is WaterSheetEvent.DayClosed -> router.showDayClosed(event.day)
                     WaterSheetEvent.Dismiss -> sheetState.dismiss()
                 }
             }
@@ -238,6 +258,7 @@ class TodayFeatureEntryPoint(
                         goBack()
                         navigate(EditCopyRoute(dayIso = event.day.toString(), entryId = event.entryId))
                     }
+                    is ItemSheetEvent.DayClosed -> router.showDayClosed(event.day)
                     ItemSheetEvent.Dismiss -> sheetState.dismiss()
                 }
             }
@@ -272,6 +293,7 @@ class TodayFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is DayNoteEvent.ShowToast -> showToast(event.toast)
+                    is DayNoteEvent.DayClosed -> router.showDayClosed(event.day)
                     DayNoteEvent.Dismiss -> sheetState.dismiss()
                 }
             }
@@ -310,6 +332,7 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenMealSheet -> router.navigate(MealSheetRoute(event.day.toString(), event.slot))
             is TodayEvent.OpenItemSheet -> router.navigate(ItemSheetRoute(event.day.toString(), event.entryId))
             is TodayEvent.OpenWaterSheet -> router.navigate(WaterSheetRoute(event.day.toString()))
+            is TodayEvent.OpenDayClosed -> router.navigate(DayClosedRoute(event.day.toString()))
             is TodayEvent.OpenPause -> router.navigate(event.change.toRoute())
             is TodayEvent.ShowToast -> showToast(event.toast)
         }
@@ -317,6 +340,12 @@ class TodayFeatureEntryPoint(
 }
 
 private const val TAB_BAR_OWNER = "today-select"
+
+/** A Today sheet whose write the closed day refused gives way to the closed sheet, so Back lands on Today. */
+private fun Router.showDayClosed(day: LocalDate) = batch {
+    goBack()
+    navigate(DayClosedRoute(day.toString()))
+}
 
 /** Every Today sheet: the page colour, a grab handle, its own scroll. */
 @Composable

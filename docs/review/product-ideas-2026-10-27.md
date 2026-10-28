@@ -10,7 +10,7 @@ Sizes are S, M or L.
 
 | # | Idea | Size | Status |
 |---|---|---|---|
-| 1 | Quick add in every mode: kcal plus protein, carbs, fat and fiber in the Describe pane, grams only in Macros with grams | S | Building |
+| 1 | Quick add in every mode: kcal plus protein, carbs, fat and fiber in the Describe pane, grams only in Macros with grams | S | Built |
 | 2 | Edit, rename and delete saved meals and Your foods (Foods has no edit or delete today) | S/M | After the food detail work lands |
 | 3 | Tap a nutrient to see which foods gave it (Cronometer's core report) | M | Built |
 | 4 | Micronutrient targets by sex and age, an override per nutrient, and you pick the four on Today | M | Built; the table awaits a dietitian's review |

@@ -165,7 +165,7 @@ fun WaterCard(
     filled: Int,
     total: Int,
     showSegments: Boolean,
-    onAdd: () -> Unit,
+    onAdd: (() -> Unit)?,
     addIcon: IconResource,
     modifier: Modifier = Modifier,
 ) {
@@ -179,7 +179,8 @@ fun WaterCard(
                 }
                 if (showSegments) SegmentedBar(filled = filled, total = total)
             }
-            RoundIconButton(icon = addIcon, onClick = onAdd, size = MinTouchTarget)
+            // No + on a day closed with Close the day: it takes nothing until it is reopened.
+            onAdd?.let { RoundIconButton(icon = addIcon, onClick = it, size = MinTouchTarget) }
         }
     }
 }
