@@ -8,8 +8,8 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.user.UserSession
 import io.github.jan.supabase.createSupabaseClient
 import io.ktor.client.engine.mock.MockEngine
-import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
