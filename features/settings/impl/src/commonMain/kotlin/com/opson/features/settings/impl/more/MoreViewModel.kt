@@ -2,6 +2,7 @@ package com.opson.features.settings.impl.more
 
 import androidx.lifecycle.viewModelScope
 import com.opson.features.settings.MoreRowContribution
+import com.opson.libraries.diary.DiarySync
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -23,7 +24,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import me.tatarka.inject.annotations.Inject
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * [contributions] are the rows other modules add ([MoreRowContribution]). Empty by default, so a
@@ -40,6 +43,7 @@ class MoreViewModel(
     private val widgetsEnabled: WidgetsEnabled,
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val auth: AuthRepository,
+    private val diarySync: DiarySync,
     private val contributions: Set<MoreRowContribution> = emptySet(),
 ) : SEAViewModel<MoreState, MoreEvent, MoreAction>(initialStateArg = MoreState()) {
 
@@ -84,6 +88,7 @@ class MoreViewModel(
                 if (it.logOut is LogOutStep.Working) it else it.copy(logOut = LogOutStep.Idle)
             }
             MoreAction.LogOutConfirmed -> logOut(action)
+            is MoreAction.LogOutSyncFinished -> logOutSynced(action)
         }
     }
 
@@ -109,15 +114,61 @@ class MoreViewModel(
     }
 
     /**
-     * Ends the session through the auth layer, which wipes this account's data from the phone and
-     * resets onboarding before it reports the signed-out state, then starts over at onboarding.
+     * Ends the session through the auth layer, which wipes this account's data from the phone,
+     * the outbox included, and resets onboarding before it reports the signed-out state, then
+     * starts over at onboarding. Signed in, it pushes what is queued first, and if the account
+     * can't be reached it asks again ([LogOutStep.Unsynced]) rather than wipe changes that never
+     * left the phone.
      */
     private suspend fun logOut(action: MoreAction) {
-        val step = state.logOut as? LogOutStep.Confirming ?: return
-        action.updateState { it.copy(logOut = LogOutStep.Working(guest = step.guest)) }
+        when (val step = state.logOut) {
+            is LogOutStep.Confirming -> {
+                action.updateState { it.copy(logOut = LogOutStep.Working(guest = step.guest)) }
+                // A guest's log can't be reached again once they leave, so there is nothing to send it for.
+                if (step.guest) {
+                    signOut(action)
+                } else {
+                    // Off the action queue, so a dismiss sent meanwhile meets Working and is ignored
+                    // instead of waiting its turn and closing the warning before it is read.
+                    viewModelScope.launch { takeAction(MoreAction.LogOutSyncFinished(reachedAccount())) }
+                }
+            }
+            // "Log out anyway", having been told what stays behind.
+            LogOutStep.Unsynced -> {
+                action.updateState { it.copy(logOut = LogOutStep.Working(guest = false, unsynced = true)) }
+                signOut(action)
+            }
+            LogOutStep.Idle, is LogOutStep.Working -> Unit
+        }
+    }
+
+    private suspend fun logOutSynced(action: MoreAction.LogOutSyncFinished) {
+        if (state.logOut !is LogOutStep.Working) return
+        if (action.reachedAccount) {
+            signOut(action)
+        } else {
+            action.updateState { it.copy(logOut = LogOutStep.Unsynced) }
+        }
+    }
+
+    private suspend fun signOut(action: MoreAction) {
         auth.signOut()
         action.updateState { it.copy(logOut = LogOutStep.Idle) }
         sendEvent(MoreEvent.GoToOnboarding)
+    }
+
+    /**
+     * Whether a sync reached the account. The wait is capped so a server that hangs can't hold
+     * the dialog; the sync itself runs on in the app scope.
+     */
+    private suspend fun reachedAccount(): Boolean {
+        // TODO(review): a sync that succeeds can still leave rows queued (days ahead the server
+        // won't take yet). Ask DiarySync how many are left once it can say (findings/settings.md).
+        return withTimeoutOrNull(LOG_OUT_SYNC_WAIT) { diarySync.syncNow() }?.isSuccess == true
+    }
+
+    private companion object {
+        val LOG_OUT_SYNC_WAIT = 10.seconds
     }
 }
 
@@ -154,4 +205,7 @@ sealed interface MoreAction {
     data class RowTapped(val row: MoreRow) : MoreAction
     data object LogOutConfirmed : MoreAction
     data object LogOutCancelled : MoreAction
+
+    /** The sync before a signed-in log out came back, or ran out of time. */
+    data class LogOutSyncFinished(val reachedAccount: Boolean) : MoreAction
 }

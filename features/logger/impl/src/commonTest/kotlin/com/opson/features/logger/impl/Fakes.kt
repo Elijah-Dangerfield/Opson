@@ -3,11 +3,12 @@ package com.opson.features.logger.impl
 import com.opson.libraries.core.AppState
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.fixed
+import com.opson.libraries.diary.DayWrite
+import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.LocalCalendar
@@ -73,7 +74,8 @@ fun policy(preset: PresetId, at: Instant = NOON): VisibilityPolicy =
 
 /**
  * An in-memory diary that remembers every write. Only what the logger reads
- * and writes does anything; the rest is inert.
+ * and writes does anything; the rest is inert. A day with [Day.closedAt] set
+ * refuses food and water, as the real diary does, and records nothing.
  */
 class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
     private val daysState = MutableStateFlow(days.associateBy { it.date })
@@ -97,7 +99,8 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
 
     override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = flowOf(emptySet())
 
-    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): List<LogItem> {
+    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>> {
+        closed(day)?.let { return it }
         added += Added(day, slot, items, method)
         val written = items.map { draft ->
             LogItem(
@@ -117,61 +120,95 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
             )
         }
         // Written to the day too, so a screen reading it sees what it just logged.
-        daysState.value = daysState.value + (day to (daysState.value[day] ?: Day.empty(day)).let { d ->
-            d.copy(itemsBySlot = d.itemsBySlot + (slot to d.items(slot) + written))
-        })
-        return written
+        val next = (unshown ?: daysState.value).let { days ->
+            days + (day to (days[day] ?: Day.empty(day)).let { d -> d.copy(itemsBySlot = d.itemsBySlot + (slot to d.items(slot) + written)) })
+        }
+        if (holdWrites) unshown = next else daysState.value = next
+        return DayWrite.Written(written)
+    }
+
+    /**
+     * On, a write is not read back until [showWrites]: a second tap that Room's next read has not
+     * caught up with yet. The test dispatcher otherwise shows every write before the next action.
+     */
+    var holdWrites = false
+    private var unshown: Map<LocalDate, Day>? = null
+
+    fun showWrites() {
+        unshown?.let { daysState.value = it }
+        unshown = null
     }
 
     val updated = mutableListOf<LogItem>()
 
-    override suspend fun updateItem(item: LogItem) {
+    override suspend fun updateItem(item: LogItem): DayWrite<Unit> {
+        closed(item.day)?.let { return it }
         updated += item
+        return DayWrite.Written(Unit)
     }
 
     val removed = mutableListOf<String>()
 
-    override suspend fun removeItem(id: String) {
+    override suspend fun removeItem(id: String): DayWrite<Unit> {
+        daysState.value.values.firstOrNull { d -> d.allItems.any { it.id == id } }?.let { d -> closed(d.date)?.let { return it } }
         removed += id
         daysState.value = daysState.value.mapValues { (_, d) -> d.copy(itemsBySlot = d.itemsBySlot.mapValues { (_, items) -> items.filterNot { it.id == id } }) }
+        return DayWrite.Written(Unit)
     }
 
-    override suspend fun moveItem(id: String, slot: MealSlot) = Unit
+    override suspend fun moveItem(id: String, slot: MealSlot): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun copyDay(from: LocalDate, to: LocalDate): List<LogItem> = emptyList()
+    override suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>> = DayWrite.Written(emptyList())
 
-    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): List<LogItem> {
+    override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> {
+        closed(toDay)?.let { return it }
         copied += Triple(fromDay, toDay, slot)
-        return daysState.value[fromDay]?.items(slot).orEmpty()
+        return DayWrite.Written(daysState.value[fromDay]?.items(slot).orEmpty())
     }
 
-    override suspend fun clearDay(day: LocalDate) = Unit
+    override suspend fun clearDay(day: LocalDate): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun addWater(day: LocalDate, ml: Int) {
+    override suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit> {
+        closed(day)?.let { return it }
         water += day to ml
+        return DayWrite.Written(Unit)
     }
 
-    override suspend fun removeWater(day: LocalDate, ml: Int) = Unit
+    override suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun setWater(day: LocalDate, ml: Int) = Unit
+    override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = DayWrite.Written(Unit)
 
-    override suspend fun closeDay(day: LocalDate) = Unit
+    override suspend fun closeDay(day: LocalDate, reflection: DayReflection) = Unit
 
-    override suspend fun reopenDay(day: LocalDate) = Unit
+    val reopened = mutableListOf<LocalDate>()
 
-    override suspend fun setDayNote(day: LocalDate, note: String?) = Unit
+    override suspend fun reopenDay(day: LocalDate) {
+        reopened += day
+        daysState.value[day]?.let { daysState.value += day to it.copy(closedAt = null) }
+    }
+
+    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = DayWrite.Written(Unit)
 
     override suspend fun setUntracked(day: LocalDate, untracked: Boolean) = Unit
 
-    override suspend fun setDayFeeling(day: LocalDate, feeling: DayFeeling?) = Unit
-
-    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean) {
+    override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean): DayWrite<Unit> {
+        closed(day)?.let { return it }
         if (ate) ateNoDetails += day to slot
+        return DayWrite.Written(Unit)
     }
 
-    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?) {
+    override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?): DayWrite<Unit> {
+        closed(day)?.let { return it }
         feelings += Triple(day, slot, feeling)
+        return DayWrite.Written(Unit)
     }
+
+    /** Closes [day] as another device would: from now on it refuses writes. */
+    fun close(day: LocalDate) {
+        daysState.value += day to (daysState.value[day] ?: Day.empty(day)).copy(closedAt = NOON)
+    }
+
+    private fun closed(day: LocalDate): DayWrite.DayClosed? = if (daysState.value[day]?.closedByUser == true) DayWrite.DayClosed(day) else null
 
     override suspend fun setMealGroups(day: LocalDate, on: Boolean?) = Unit
 
@@ -190,7 +227,18 @@ class FakeCustomFoodRepository(foods: List<CustomFood> = emptyList()) : CustomFo
     override suspend fun get(id: String): CustomFood? = foods.value.firstOrNull { it.id == id }
 
     override suspend fun create(draft: CustomFoodDraft): CustomFood {
-        val food = CustomFood(id = "made-${foods.value.size}", name = draft.name, servingAmount = draft.servingAmount, servingUnit = draft.servingUnit)
+        val food = CustomFood(
+            id = "made-${foods.value.size}",
+            name = draft.name,
+            servingAmount = draft.servingAmount,
+            servingUnit = draft.servingUnit,
+            brand = draft.brand,
+            kcal = draft.kcal,
+            protein = draft.protein,
+            carbs = draft.carbs,
+            fat = draft.fat,
+            fiber = draft.fiber,
+        )
         foods.value = foods.value + food
         return food
     }
@@ -438,6 +486,13 @@ class FakeAppState(offline: Boolean = false) : AppState {
 fun photoFlag(on: Boolean): PhotoEstimateEnabled = PhotoEstimateEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("photo" to on))
+    },
+)
+
+/** `release.submitFood` as the remote config would set it. */
+fun submitFoodFlag(on: Boolean): SubmitFoodEnabled = SubmitFoodEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("submitFood" to on))
     },
 )
 

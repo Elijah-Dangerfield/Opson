@@ -3,16 +3,13 @@ agp = "8.13.1"
 androidx-activity = "1.12.0"
 androidx-camera = "1.5.3"
 mlkit-barcode = "17.3.0"
-androidx-appcompat = "1.7.1"
 androidx-core = "1.17.0"
 androidx-core-splashscreen = "1.0.1"
 androidx-metricsPerformance = "1.0.0"
 androidx-benchmark = "1.4.1"
 androidx-uiautomator = "2.4.0"
 androidx-security-crypto = "1.1.0"
-androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.9.6"
-android-lifecycle-etx = "2.2.0"
 androidx-testExt = "1.3.0"
 androidx-work = "2.9.1"
 # Health Connect. 1.1.0 needs minSdk 26; libraries/health/impl's manifest overrides it (Health Connect only exists from Android 9).
@@ -30,7 +27,6 @@ kotlin = "2.3.21"
 kotlinxSerializationJson = "1.9.0"
 ksp = "2.3.0"
 kotlinInject = "0.8.0"
-kotlinx-serialization = "1.9.0"
 kotlinxCoroutinesCore = "1.10.2"
 kotlinxDatetime = "0.7.1"
 ktor = "3.3.3"
@@ -54,7 +50,6 @@ opentelemetryKotlin = "0.5.0"
 okio = "3.9.1"
 jetbrainsNavigationCompose = "2.9.1"
 kotlinInjectAnvil = "0.1.6"
-composeIcons = "1.1.1"
 room = "2.8.4"
 sqlite = "2.6.2"
 datastore = "1.2.0"
@@ -120,8 +115,6 @@ androidx-testExt-junit = { module = "androidx.test.ext:junit", version.ref = "an
 # Baseline Profile generation + the minified-release smoke test (:apps:baselineprofile).
 androidx-benchmark-macroJunit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark" }
 androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "androidx-uiautomator" }
-androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "androidx-espresso" }
-androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
 # The composition test tier: a real composition driven on the host JVM under
 # Robolectric, the same host-JVM-Android path :apps:integration already uses.
 # `ui-test-manifest` supplies the `ComponentActivity` the rule inflates.
@@ -167,7 +160,6 @@ ktor-serverCallId = { module = "io.ktor:ktor-server-call-id-jvm", version.ref = 
 ktor-serverAuth = { module = "io.ktor:ktor-server-auth-jvm", version.ref = "ktor" }
 ktor-serverAuthJwt = { module = "io.ktor:ktor-server-auth-jwt-jvm", version.ref = "ktor" }
 ktor-serverRateLimit = { module = "io.ktor:ktor-server-rate-limit", version.ref = "ktor" }
-ktor-serverWebsockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 
 # Observability (server): Sentry error reporting + OpenTelemetry traces/logs/metrics.
@@ -183,7 +175,6 @@ otel-kotlin-api = { module = "io.opentelemetry.kotlin:api", version.ref = "opent
 otel-kotlin-sdk-api = { module = "io.opentelemetry.kotlin:sdk-api", version.ref = "opentelemetryKotlin" }
 otel-kotlin-implementation = { module = "io.opentelemetry.kotlin:implementation", version.ref = "opentelemetryKotlin" }
 otel-kotlin-exporters-core = { module = "io.opentelemetry.kotlin:exporters-core", version.ref = "opentelemetryKotlin" }
-otel-kotlin-exporters-otlp = { module = "io.opentelemetry.kotlin:exporters-otlp", version.ref = "opentelemetryKotlin" }
 otel-kotlin-exporters-persistence = { module = "io.opentelemetry.kotlin:exporters-persistence", version.ref = "opentelemetryKotlin" }
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 opentelemetry-extension-kotlin = { module = "io.opentelemetry:opentelemetry-extension-kotlin", version.ref = "opentelemetry" }
@@ -210,13 +201,10 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 
-coil = { module = "io.coil-kt.coil3:coil-compose", version = "3.3.0" }
-coil-ktor = { module = "io.coil-kt.coil3:coil-network-ktor3", version = "3.3.0" }
 
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
-ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-js = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
@@ -232,7 +220,6 @@ wiretap-ktor = { module = "dev.skymansandy:wiretap-ktor", version.ref = "wiretap
 wiretap-ktor-noop = { module = "dev.skymansandy:wiretap-ktor-noop", version.ref = "wiretap" }
 ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = "ktor" }
 ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
-ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
 # Supabase auth (client). The server does NOT use this — it verifies JWTs via
@@ -246,7 +233,6 @@ google-play-review-ktx = { module = "com.google.android.play:review-ktx", versio
 androidx-datastore-core = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 androidx-datastore-core-okio = { module = "androidx.datastore:datastore-core-okio", version.ref = "datastore" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
-androidx-datastore-preferences-core = { module = "androidx.datastore:datastore-preferences-core", version.ref = "datastore" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 androidx-room-gradlePlugin = { group = "androidx.room", name = "room-gradle-plugin", version.ref = "roomGradlePlugin" }

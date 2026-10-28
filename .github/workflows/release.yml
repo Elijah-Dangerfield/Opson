@@ -7,15 +7,18 @@
 #
 # Jobs (in order):
 #   resolve-tag           — normalizes tag + version from trigger input.
-#   android               — signs AAB, renders release notes, uploads to
-#                           Play Console production track (full rollout),
-#                           creates Sentry release + uploads mappings.
-#                           Uploads AAB/APK artifacts to the GitHub Release.
+#   build-number          — the commit count both platforms bake in, and the
+#                           release-config guard (Sentry DSN, prod Supabase).
 #   ios                   — builds IPA, uploads to the TestFlight external
 #                           group named by TESTFLIGHT_EXTERNAL_GROUP below,
-#                           submits to App Store review with Apple's
-#                           phased release enabled, creates Sentry release +
-#                           uploads dSYMs. Uploads IPA artifact.
+#                           creates the Sentry release + uploads dSYMs.
+#                           Uploads IPA artifact.
+#   android               — waits for the iOS upload, then signs the AAB,
+#                           uploads to Play Console production (full
+#                           rollout) and creates the Sentry release.
+#                           Uploads AAB/APK artifacts.
+#   ios-submit            — submits the uploaded build to App Store review,
+#                           phased when a released version already exists.
 #   attach-artifacts      — attaches all platform binaries to the GH Release.
 #
 # Side effects: HUGE. Real builds go to TestFlight external testers and into
@@ -110,27 +113,19 @@ jobs:
 
       - name: Guard — a store build must not ship dark
         # A blank Sentry DSN is a SUPPORTED value meaning "reporting is off",
-        # so shipping without one produces no warning, no failed build and no
-        # odd log line. That silence is exactly how an app reaches the App
-        # Store with no crash reporting and nothing to debug a rejection with.
-        # Fail here instead, before either platform builds.
+        # and a missing prod Supabase project builds fine and fails every
+        # sign-in on the phone. Neither produces a warning anywhere, so fail
+        # here instead, before either platform builds. beta.yml and
+        # scripts/beta_ios.sh run the same script.
         #
         # This job is a dependency of both `android` and `ios`, and both gate
         # on it succeeding, so one check covers the whole ship.
-        #
-        # Fix: run ./scripts/setup_sentry.main.kts and commit telemetry.properties.
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-        run: |
-          COMMITTED=""
-          if [ -f telemetry.properties ]; then
-            COMMITTED=$(grep -E '^sentry\.dsn=' telemetry.properties | cut -d= -f2- | tr -d '[:space:]')
-          fi
-          if [ -z "$SENTRY_DSN" ] && [ -z "$COMMITTED" ]; then
-            echo "::error::No Sentry DSN. A release build with crash reporting disabled ships blind. Run ./scripts/setup_sentry.main.kts and commit telemetry.properties (or set the SENTRY_DSN secret)."
-            exit 1
-          fi
-          echo "Sentry DSN present — crash reporting will be live in this build."
+          GRAFANA_OTLP_BASE_URL: ${{ secrets.GRAFANA_OTLP_BASE_URL }}
+          GRAFANA_OTLP_INSTANCE_ID: ${{ secrets.GRAFANA_OTLP_INSTANCE_ID }}
+          GRAFANA_LOGS_WRITE_TOKEN: ${{ secrets.GRAFANA_LOGS_WRITE_TOKEN }}
+        run: python3 -I scripts/verify_release_config.py
 
   android:
     name: Android AAB + Play submit
@@ -209,10 +204,19 @@ jobs:
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
       - name: Bundle release AAB
-        run: ./gradlew :apps:compose:bundleRelease -Prelease.signing=true
+        # An unset secret arrives as an empty SENTRY_AUTH_TOKEN, which Gradle
+        # counts as present, so the Sentry plugin would try the mapping upload
+        # with no token and fail the build. Unset, the plugin skips the upload
+        # and the missing token gets its warning further down.
+        run: |
+          [ -n "$SENTRY_AUTH_TOKEN" ] || unset SENTRY_AUTH_TOKEN
+          ./gradlew :apps:compose:bundleRelease -Prelease.signing=true
 
       - name: Build release APK (for sideload verification)
-        run: ./gradlew :apps:compose:assembleRelease -Prelease.signing=true
+        # Same empty-token unset as the AAB step above.
+        run: |
+          [ -n "$SENTRY_AUTH_TOKEN" ] || unset SENTRY_AUTH_TOKEN
+          ./gradlew :apps:compose:assembleRelease -Prelease.signing=true
 
       - name: Locate AAB
         id: aab
@@ -292,33 +296,21 @@ jobs:
           fi
 
       - name: Render release notes for Play
-        run: |
-          # Never the GitHub release body. That is release-please's changelog:
-          # markdown headings the stores do not render, bullet syntax, commit
-          # shas, repo links, and subjects written for whoever maintains the
-          # app rather than for a player. Moving Eyes shipped it verbatim to
-          # the App Store on 2026-09-25 and the listing showed literal "##".
-          #
-          # release-notes/<version>.txt is the override, written by a human for
-          # the releases that deserve real notes. Keyed by version so a
-          # forgotten file ships the generic line rather than the previous
-          # release's text.
-          mkdir -p apps/compose/build/play-release-notes/en-US
-          NOTES_FILE="release-notes/${{ needs.resolve-tag.outputs.version }}.txt"
-          if [ -f "$NOTES_FILE" ]; then
-            head -c 500 "$NOTES_FILE" > apps/compose/build/play-release-notes/en-US/default.txt
-          else
-            echo "Small fixes." > apps/compose/build/play-release-notes/en-US/default.txt
-          fi
+        # release-notes/<version>.txt or "Small fixes.", never the GitHub
+        # release body. scripts/store_release_notes.py says why; both iOS jobs
+        # read the same script.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.resolve-tag.outputs.version }}
+        run: |
+          mkdir -p apps/compose/build/play-release-notes/en-US
+          python3 -I scripts/store_release_notes.py "$VERSION" --max-chars 500 \
+            > apps/compose/build/play-release-notes/en-US/default.txt
 
       - name: Resolve R8 mapping (upload only if minify produced one)
-        # Release builds ship with minify off (see ApplicationConventionPlugin),
-        # so no mapping.txt exists and there is nothing to de-obfuscate. Pass the
-        # path only when the file is actually there; otherwise leave it empty so
-        # the Play upload skips the mapping instead of failing with ENOENT. When
-        # R8 is enabled later this starts uploading the mapping automatically.
+        # Release builds run R8 (ApplicationConventionPlugin), so mapping.txt
+        # should exist and Play gets it for its own crash reports. The path is
+        # passed only when the file is there, so a build with minify turned off
+        # skips the mapping instead of failing the upload with ENOENT.
         id: mapping
         run: |
           MF=apps/compose/build/outputs/mapping/release/mapping.txt
@@ -362,25 +354,29 @@ jobs:
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
 
-      - name: Create Sentry release + upload mapping/debug files
-        # Post-upload metadata only (Sentry release + mappings/dSYMs). By the
-        # time this runs the AAB is already committed to Play, so a Sentry
-        # hiccup (bad org/project, API blip) must NOT mark a shipped release as
-        # failed. continue-on-error surfaces it as a warning instead.
+      - name: Create Sentry release
+        # The release and its commits only. The R8 mapping went up during the
+        # Gradle build: the Sentry plugin uploads it with the ProGuard UUID it
+        # stamps into the APK, which a hand-run upload-proguard can't match
+        # (apps/compose/build.gradle.kts). No native libraries ship, so there
+        # are no debug files.
+        #
+        # By the time this runs the AAB is already committed to Play, so a
+        # Sentry hiccup (bad org/project, API blip) must NOT mark a shipped
+        # release as failed. continue-on-error surfaces it as a warning instead.
         if: env.SENTRY_AUTH_TOKEN != ''
         continue-on-error: true
+        env:
+          RELEASE: opson@${{ needs.resolve-tag.outputs.version }}+${{ needs.build-number.outputs.value }}
         run: |
           set -e
-          RELEASE="opson@${{ needs.resolve-tag.outputs.version }}+${{ needs.build-number.outputs.value }}"
           npx --yes @sentry/cli@3.8.2 releases new "$RELEASE"
           npx --yes @sentry/cli@3.8.2 releases set-commits "$RELEASE" --auto || true
-          if [ -f apps/compose/build/outputs/mapping/release/mapping.txt ]; then
-            npx --yes @sentry/cli@3.8.2 upload-proguard \
-              --android-manifest apps/compose/build/intermediates/merged_manifests/release/AndroidManifest.xml \
-              apps/compose/build/outputs/mapping/release/mapping.txt || true
-          fi
-          npx --yes @sentry/cli@3.8.2 debug-files upload apps/compose/build/intermediates/merged_native_libs/release/out/lib || true
           npx --yes @sentry/cli@3.8.2 releases finalize "$RELEASE"
+
+      - name: Warn on missing Sentry token
+        if: env.SENTRY_AUTH_TOKEN == ''
+        run: echo "::warning::SENTRY_AUTH_TOKEN is not set, so this build has no Sentry release, R8 mapping or commits. Android crashes from it arrive obfuscated."
 
       - name: Upload AAB artifact
         if: always()
@@ -688,23 +684,13 @@ jobs:
 
       - name: Fetch release notes for TestFlight changelog
         id: notes
+        # Same text as Play and the App Store submission.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.resolve-tag.outputs.version }}
         run: |
-          # Same rule as the Play step above: the release body is developer
-          # changelog markdown and goes nowhere near a store listing. This
-          # feeds both the TestFlight changelog and the App Store "What's New",
-          # and neither can be edited once a version reaches review.
-          NOTES_FILE="release-notes/${{ needs.resolve-tag.outputs.version }}.txt"
-          if [ -f "$NOTES_FILE" ]; then
-            BODY=$(cat "$NOTES_FILE")
-          else
-            BODY="Small fixes."
-          fi
           {
             echo "notes<<EOF"
-            printf "%s\n" "$BODY" | head -c 3000
-            echo
+            python3 -I scripts/store_release_notes.py "$VERSION" --max-chars 3000
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -784,23 +770,21 @@ jobs:
       - name: Set up Ruby / Bundler
         uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
-          ruby-version: '3.2'
+          # Same as the ios job: Gemfile.lock's excon needs >= 3.3.
+          ruby-version: "3.4"
           bundler-cache: true
           working-directory: apps/ios
 
       - name: Fetch release notes for the submission
         id: notes
+        # The App Store "What's New", which can't be edited once the version
+        # is in review. Same text the ios job gave TestFlight.
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.resolve-tag.outputs.version }}
         run: |
-          BODY=$(gh release view "${{ needs.resolve-tag.outputs.tag }}" --json body -q .body 2>/dev/null || true)
-          if [ -z "$BODY" ]; then
-            BODY="v${{ needs.resolve-tag.outputs.version }}"
-          fi
           {
             echo "notes<<EOF"
-            printf "%s\n" "$BODY" | head -c 3000
-            echo
+            python3 -I scripts/store_release_notes.py "$VERSION" --max-chars 3000
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 

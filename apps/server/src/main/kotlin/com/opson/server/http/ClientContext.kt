@@ -39,7 +39,18 @@ data class ClientContext(
     /** Per-install UUID from `X-Install-Id`, or null. Stable across sessions. */
     val installId: String? = null,
 ) {
-    enum class Platform { Android, iOS, Other }
+    /** [wire] is the `X-Platform` value and what rows, rules and admin requests store. */
+    enum class Platform(val wire: String) {
+        Android("android"),
+        iOS("ios"),
+        Other("other"),
+        ;
+
+        companion object {
+            /** Any casing; anything unknown or missing is [Other]. */
+            fun fromWire(raw: String?): Platform = entries.firstOrNull { it.wire == raw?.lowercase() } ?: Other
+        }
+    }
 
     companion object {
         const val HEADER_PLATFORM: String = "X-Platform"
@@ -53,11 +64,7 @@ data class ClientContext(
 
 /** Parse the calling request's headers into a [ClientContext]. */
 fun ApplicationCall.clientContext(): ClientContext {
-    val platform = when (request.header(ClientContext.HEADER_PLATFORM)?.lowercase()) {
-        "ios" -> ClientContext.Platform.iOS
-        "android" -> ClientContext.Platform.Android
-        else -> ClientContext.Platform.Other
-    }
+    val platform = ClientContext.Platform.fromWire(request.header(ClientContext.HEADER_PLATFORM))
     // `Accept-Language` ranked items: ktor parses q-values and returns them
     // pre-sorted by quality descending. We strip down to just the language
     // tags (the catalog matcher does its own RFC 4647 lookup).

@@ -3,6 +3,7 @@ package com.opson.features.logger.impl
 import androidx.lifecycle.viewModelScope
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.Hunger
@@ -21,11 +22,14 @@ import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.PortionAmount
 import com.opson.libraries.foods.foodRef
+import com.opson.libraries.foods.isMeasure
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.ui.components.text.NumberInput
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -44,6 +48,9 @@ sealed interface FoodDetailAction {
     data class InputsArrived(val settings: Settings, val policy: VisibilityPolicy, val day: Day) : FoodDetailAction
     data class HistoryArrived(val days: List<Day>) : FoodDetailAction
 
+    /** Whether the food is on the Recent row now. */
+    data class RecentsArrived(val inRecents: Boolean) : FoodDetailAction
+
     /** The meal this person logs around now, for a detail opened with no meal. */
     data class SlotSuggested(val slot: MealSlot) : FoodDetailAction
     data class AmountTyped(val text: String) : FoodDetailAction
@@ -58,6 +65,9 @@ sealed interface FoodDetailAction {
     data class SlotPicked(val slot: MealSlot) : FoodDetailAction
     data class TimePicked(val time: LocalTime) : FoodDetailAction
     data object AllNutrientsTapped : FoodDetailAction
+    data object RemoveFromRecentsTapped : FoodDetailAction
+    data object ReportTapped : FoodDetailAction
+    data object EditCopyTapped : FoodDetailAction
 
     /** No numbers: a hunger answer, or the same one again to clear it. */
     data class HungerPicked(val hunger: Hunger) : FoodDetailAction
@@ -71,14 +81,23 @@ sealed interface FoodDetailEvent {
 
     /** Logged: the detail closes. Search draws ✓, Today takes it from `RecentLogEvents`. */
     data class Logged(val committed: Committed) : FoodDetailEvent
+
+    /** The day is closed (Close the day, maybe on another phone): nothing was logged. */
+    data class DayClosed(val day: LocalDate) : FoodDetailEvent
+
+    /** Report a problem with this food. [context] names it by id only, never by its name or numbers. */
+    data class OpenReport(val context: String) : FoodDetailEvent
+
+    /** Edit a copy of this food, which logs to [day] and [slot] once it is saved. */
+    data class OpenEditCopy(val ref: FoodRef, val day: LocalDate, val slot: MealSlot) : FoodDetailEvent
 }
 
 /**
- * The food detail (design sync 4, 13.4d): a typed amount and its unit, how sure, what it holds
- * and what the day comes to with it. Typing an amount turns Estimate into Weighed; the serving
- * chips and the unit menu don't, and a how-sure the person picked stays. "Add to {meal}" logs
- * this one food. The favorite and a custom size are the person's own settings, so they save as
- * they are tapped.
+ * The food detail: a typed amount and its unit, the meal and the time, what it holds and what the
+ * day comes to with it. How sure is worked out from how the amount was given (typed in a weight
+ * is Weighed) until the person picks one. "Add to {meal}" logs this one food. The favorite, a
+ * custom size and taking it off Recent are the person's own settings, so they save as they are
+ * tapped.
  */
 @Inject
 @Suppress("TooManyFunctions", "LongParameterList")
@@ -121,6 +140,7 @@ class FoodDetailViewModel(
         val food: AmountFood? = null,
         val day: Day? = null,
         val history: List<Day> = emptyList(),
+        val inRecents: Boolean = false,
     )
 
     init {
@@ -132,6 +152,11 @@ class FoodDetailViewModel(
             // The person's last amount of it, as search's + would log it.
             val last = diary.recentFoods(limit = LAST_USED_LIMIT).first().firstOrNull { it.foodRef() == ref }
             takeAction(if (food == null) FoodDetailAction.FoodMissing else FoodDetailAction.FoodArrived(food, last))
+        }
+        viewModelScope.launch {
+            diary.recentFoods(limit = RECENT_SHOWN).map { recent -> recent.any { it.foodRef() == ref } }.distinctUntilChanged().collect {
+                takeAction(FoodDetailAction.RecentsArrived(it))
+            }
         }
         viewModelScope.launch {
             combine(settingsRepository.settings, policySource.policy, diary.observeDay(day), ::Triple).collect { (settings, policy, today) ->
@@ -157,27 +182,28 @@ class FoodDetailViewModel(
             is FoodDetailAction.FoodArrived -> {
                 val saved = saved()
                 val slot = model.choice.slot
-                val initial = DetailChoice.initial(action.food, slot, saved)
+                val ounces = FoodDetailStateBuilder.prefersOunces(model.settings)
+                val shown = FoodDetailStateBuilder.shownUnits(action.food, model.settings, ref, noNumbers())
+                val initial = DetailChoice.initial(action.food, slot, saved, ounces).let { first ->
+                    first.takeIf { it.unit in shown } ?: DetailChoice(unit = shown.first(), quantity = action.food.initialQuantity(shown.first()), slot = slot)
+                }
                 // A last amount in a unit No numbers does not offer (grams) starts from a household measure instead.
-                val shown = FoodDetailStateBuilder.shownUnits(action.food, saved, noNumbers())
-                val choice = action.last?.let { DetailChoice.lastUsed(action.food, it, slot, saved) }?.takeIf { it.unit in shown } ?: initial
+                val choice = action.last?.let { DetailChoice.lastUsed(action.food, it, slot, saved, ounces) }?.takeIf { it.unit in shown } ?: initial
                 action.rebuild { copy(food = action.food, choice = choice.copy(slot = model.choice.slot)) }
             }
             FoodDetailAction.FoodMissing -> action.updateState { it.copy(loading = false, missing = true) }
             is FoodDetailAction.InputsArrived -> action.rebuild { copy(settings = action.settings, policy = action.policy, day = action.day) }
             is FoodDetailAction.HistoryArrived -> action.rebuild { copy(history = action.days) }
+            is FoodDetailAction.RecentsArrived -> action.rebuild { copy(inRecents = action.inRecents) }
             is FoodDetailAction.SlotSuggested -> action.choose { copy(slot = action.slot) }
-            is FoodDetailAction.AmountTyped -> {
-                val weighs = !noNumbers()
-                action.choose { typed(NumberInput.sanitize(action.text, allowDecimal = true), weighs) }
-            }
+            is FoodDetailAction.AmountTyped -> action.choose { typed(NumberInput.sanitize(action.text, allowDecimal = true)) }
             is FoodDetailAction.HungerPicked -> action.choose { copy(hunger = action.hunger.takeUnless { it == hunger }) }
             is FoodDetailAction.ServingPicked -> {
                 val (unit, count) = FoodDetailStateBuilder.servingAmounts(units()).getOrNull(action.index) ?: return
                 action.choose { copy(unit = unit, quantity = count, typed = null) }
             }
             is FoodDetailAction.UnitPicked -> unitPicked(action)
-            is FoodDetailAction.PrecisionPicked -> action.choose { copy(precision = action.precision, precisionPicked = true) }
+            is FoodDetailAction.PrecisionPicked -> action.choose { copy(picked = action.precision) }
             FoodDetailAction.CustomSizeTapped -> if (model.food?.takesSizes == true) action.choose { copy(customSize = CustomSizeUi()) }
             is FoodDetailAction.CustomSizeTyped -> if (model.choice.customSize != null) {
                 action.choose { copy(customSize = CustomSizeUi(action.name, action.grams.filter { it.isDigit() || it == '.' })) }
@@ -188,6 +214,10 @@ class FoodDetailViewModel(
             is FoodDetailAction.SlotPicked -> action.choose { copy(slot = action.slot) }
             is FoodDetailAction.TimePicked -> action.choose { copy(time = action.time) }
             FoodDetailAction.AllNutrientsTapped -> action.choose { copy(nutrientsOpen = !nutrientsOpen) }
+            FoodDetailAction.RemoveFromRecentsTapped -> settingsRepository.update { it.hideFromRecent(ref.key, clock.now().toEpochMilliseconds()) }
+            // Ids only: a report is read by people, and the food's name or numbers are this person's log.
+            FoodDetailAction.ReportTapped -> sendEvent(FoodDetailEvent.OpenReport("Food detail: ${ref.key}"))
+            FoodDetailAction.EditCopyTapped -> if (model.food != null) sendEvent(FoodDetailEvent.OpenEditCopy(ref, day, logSlot()))
             FoodDetailAction.AddToMealTapped -> addToMeal()
             FoodDetailAction.BackTapped -> sendEvent(FoodDetailEvent.Dismiss)
         }
@@ -198,15 +228,28 @@ class FoodDetailViewModel(
     private fun noNumbers(): Boolean = FoodDetailStateBuilder.isNoNumbers(model.policy)
 
     /** The units as the menu lists them, so a picked index means the same unit here. */
-    private fun units(): List<AmountUnit> = model.food?.let { FoodDetailStateBuilder.shownUnits(it, saved(), noNumbers()) }.orEmpty()
+    private fun units(): List<AmountUnit> = model.food?.let { FoodDetailStateBuilder.shownUnits(it, model.settings, ref, noNumbers()) }.orEmpty()
+
+    /** With meal groups off for the day, everything goes to Uncategorized, as the detail shows. */
+    private fun logSlot(): MealSlot {
+        val groupsOn = model.day?.mealGroupsOn(model.settings) ?: model.settings.mealGroups
+        return if (groupsOn) model.choice.slot else MealSlot.Uncategorized
+    }
 
     private fun unit(): AmountUnit = units().takeIf { it.isNotEmpty() }?.let(model.choice::unitIn) ?: AmountUnit.Grams
 
-    /** The amount converts to the new unit when both have a weight; a menu pick is not typing, so how sure stays. */
+    /**
+     * The amount converts to the new unit when both have a weight. A typed weight stays typed in
+     * another weight or volume (32 g weighed is still weighed in ounces); a household unit is not.
+     */
     private suspend fun unitPicked(action: FoodDetailAction.UnitPicked) {
         val to = units().getOrNull(action.index) ?: return
         val from = unit()
-        action.choose { copy(unit = to, quantity = PortionAmount.switch(quantity, from, to), typed = null) }
+        action.choose {
+            val converted = PortionAmount.switch(quantity, from, to)
+            val stillTyped = typed != null && from.isMeasure && to.isMeasure
+            copy(unit = to, quantity = converted, typed = if (stillTyped) FoodDetailStateBuilder.number(converted) else null)
+        }
     }
 
     /** Saves the size to this food in settings, then counts in it at the same count. */
@@ -225,18 +268,23 @@ class FoodDetailViewModel(
         val choice = model.choice
         if (done || choice.quantity <= 0.0) return
         done = true
-        // With meal groups off for the day, everything goes to Uncategorized, as the detail shows.
-        val groupsOn = model.day?.mealGroupsOn(model.settings) ?: model.settings.mealGroups
-        val slot = if (groupsOn) choice.slot else MealSlot.Uncategorized
+        val slot = logSlot()
         val pick = LogPick(
             key = ref.key,
             ref = ref,
-            draft = food.draftFor(choice, source, ref, saved()),
+            draft = food.draftFor(choice, unit(), source, ref),
             source = source,
             food = (food as? AmountFood.Catalog)?.food,
             loggedAt = choice.time?.let { LocalDateTime(day, it).toInstant(calendar.timeZone()) },
         )
-        val committed = logger.log(day, slot, listOf(pick)) ?: return
+        val committed = when (val result = logger.log(day, slot, listOf(pick)) ?: return) {
+            is DayWrite.Written -> result.value
+            is DayWrite.DayClosed -> {
+                done = false
+                sendEvent(FoodDetailEvent.DayClosed(result.day))
+                return
+            }
+        }
         // No numbers' hunger answer goes to the meal, beside whatever else the meal's feeling holds.
         choice.hunger?.let { hunger ->
             val feeling = model.day?.feelings?.get(slot) ?: MealFeeling()
@@ -256,6 +304,7 @@ class FoodDetailViewModel(
             policy = current.policy,
             day = current.day,
             history = current.history,
+            inRecents = current.inRecents,
             today = calendar.today(),
             now = clock.now().toLocalDateTime(calendar.timeZone()).time,
         )
@@ -265,5 +314,8 @@ class FoodDetailViewModel(
     private companion object {
         /** How far back the person's last amount of a food is looked for, as search's + does. */
         const val LAST_USED_LIMIT = 100
+
+        /** As many as the Recent rows show (the add sheet, search and Foods all show six). */
+        const val RECENT_SHOWN = 6
     }
 }

@@ -122,8 +122,10 @@ fun SwipePages(
 /**
  * Which page of a [SwipePages] is showing: a plain row of small dots, the current one filled in
  * [selectedColor] and the rest in [unselectedColor], all the same size. Each dot is a tab that
- * opens its page, which is how a screen reader moves between pages; the visible dot is small, the
- * tap area around it is not.
+ * opens its page, which is how a screen reader moves between pages. Each dot's tap area is 18 by
+ * 28 dp, bigger than the dot but under the 48 dp target; swiping the pages is the main way across.
+ * TODO(review): design v3 asks 48 dp for every target. Growing these spreads the dots or adds
+ * height under Today's card, so it is the owner's call (docs/review/findings/ui-library.md).
  */
 @Composable
 fun PageIndicator(

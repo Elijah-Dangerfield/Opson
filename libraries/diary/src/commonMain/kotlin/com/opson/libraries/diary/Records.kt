@@ -12,6 +12,12 @@ data class WeighIn(
 /**
  * A food the user made up. Nutrients are per serving, where one serving is
  * [servingAmount] [servingUnit] ("1 bar", "30 g"). Any nutrient can be unknown.
+ *
+ * [servingGrams] is what one serving weighs, once someone has weighed it: with
+ * it the food can be counted in grams and in its [sizes]. A serving counted in
+ * grams weighs its own amount and needs none. Each of [sizes] is one of a unit
+ * with its weight ("tbsp" is 15 g). [micros] are per serving, keyed the way a
+ * log entry's are (`sodium_mg`, `saturated_fat_g`).
  */
 data class CustomFood(
     val id: String,
@@ -24,10 +30,17 @@ data class CustomFood(
     val carbs: Double? = null,
     val fat: Double? = null,
     val fiber: Double? = null,
+    val servingGrams: Double? = null,
+    val sizes: List<FoodUnit> = emptyList(),
+    val micros: Map<String, Double> = emptyMap(),
 ) {
+    /** What one serving weighs: its own amount when it is counted in grams, else [servingGrams]. */
+    val gramsPerServing: Double?
+        get() = if (servingUnit.equals(GRAMS, ignoreCase = true)) servingAmount else servingGrams?.takeIf { it > 0.0 }
+
     /**
      * [servings] of this food as an item to log. Unknown nutrients stay
-     * unknown. Grams are only filled in when the serving unit is grams.
+     * unknown. Grams are filled in whenever a serving's weight is known.
      */
     fun toDraft(servings: Double = 1.0, precision: Precision = Precision.Estimate): LogDraft {
         val amount = servingAmount * servings
@@ -38,18 +51,23 @@ data class CustomFood(
             amountText = HouseholdAmount.of(amount, servingUnit),
             quantity = amount,
             unit = servingUnit,
-            grams = if (servingUnit.equals("g", ignoreCase = true)) amount else null,
+            grams = gramsPerServing?.times(servings),
             kcal = kcal?.times(servings),
             protein = protein?.times(servings),
             carbs = carbs?.times(servings),
             fat = fat?.times(servings),
             fiber = fiber?.times(servings),
+            micros = micros.takeIf { it.isNotEmpty() }?.mapValues { it.value * servings },
             method = LogMethod.Custom,
         )
     }
+
+    private companion object {
+        const val GRAMS = "g"
+    }
 }
 
-/** The fields the Add a custom food screen collects. */
+/** The fields Add a food and Edit a copy collect. [CustomFood] says what each one means. */
 data class CustomFoodDraft(
     val name: String,
     val servingAmount: Double,
@@ -60,6 +78,9 @@ data class CustomFoodDraft(
     val carbs: Double? = null,
     val fat: Double? = null,
     val fiber: Double? = null,
+    val servingGrams: Double? = null,
+    val sizes: List<FoodUnit> = emptyList(),
+    val micros: Map<String, Double> = emptyMap(),
 )
 
 /**

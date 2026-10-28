@@ -21,6 +21,7 @@
     <string name="common_back">Back</string>
     <string name="common_send">Send</string>
     <string name="common_sending">Sending…</string>
+    <string name="common_sent">Sent</string>
     <string name="common_message_label">Message</string>
     <string name="common_message_placeholder">Describe what happened…</string>
     <string name="common_error_code">Error code: %1$s</string>

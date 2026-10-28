@@ -3,6 +3,7 @@ package com.opson.features.foods.impl
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -15,13 +16,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -50,6 +55,7 @@ import opson.libraries.resources.generated.resources.foods_search
 import opson.libraries.resources.generated.resources.foods_title
 import opson.libraries.resources.generated.resources.foods_yours
 import opson.libraries.resources.generated.resources.foods_yours_empty
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -94,25 +100,9 @@ private fun LazyListScope.foodsContent(state: FoodsState, onAction: (FoodsAction
     // sticky search belongs to the search and stays page-coloured while rows scroll under it.
     item(key = "tiles") { Tiles(onAction, Modifier.padding(bottom = FoodsDefaults.CardGap)) }
     if (state.loading) return
-    if (state.savedMeals.isNotEmpty()) {
-        item(key = "saved") {
-            RowsCard(stringResource(Res.string.foods_saved), state.savedMeals, onAction, Modifier.padding(bottom = FoodsDefaults.CardGap))
-        }
-    }
-    item(key = "yours") {
-        RowsCard(
-            stringResource(Res.string.foods_yours),
-            state.yourFoods,
-            onAction,
-            Modifier.padding(bottom = FoodsDefaults.CardGap),
-            empty = stringResource(Res.string.foods_yours_empty),
-        )
-    }
-    if (state.recent.isNotEmpty()) {
-        item(key = "recent") {
-            RowsCard(stringResource(Res.string.foods_recent), state.recent, onAction, Modifier.padding(bottom = FoodsDefaults.CardGap))
-        }
-    }
+    if (state.savedMeals.isNotEmpty()) rowsCard("saved", Res.string.foods_saved, state.savedMeals, onAction)
+    rowsCard("yours", Res.string.foods_yours, state.yourFoods, onAction, empty = Res.string.foods_yours_empty)
+    if (state.recent.isNotEmpty()) rowsCard("recent", Res.string.foods_recent, state.recent, onAction)
     // Open Food Facts rows are ODbL data, which asks for this credit wherever they show.
     item(key = "credit") {
         Text(
@@ -193,17 +183,27 @@ private fun RowScope.Tile(icon: IconResource, tone: ToneColors, title: String, s
     }
 }
 
-@Composable
-private fun RowsCard(
-    label: String,
+/**
+ * A Foods card whose rows are lazy items of their own, so a long Your foods composes only the rows
+ * on screen and an edit to one row recomposes that row. The card is drawn a slice per item: the
+ * label carries its top corners, the last row its bottom corners and the gap below.
+ */
+private fun LazyListScope.rowsCard(
+    section: String,
+    label: StringResource,
     rows: List<FoodsRowUi>,
     onAction: (FoodsAction) -> Unit,
-    modifier: Modifier = Modifier,
-    empty: String? = null,
+    empty: StringResource? = null,
 ) {
-    FoodsCard(modifier = modifier, label = label) {
-        if (rows.isEmpty() && empty != null) FoodsCardNote(empty)
-        rows.forEachIndexed { index, row ->
+    item(key = "$section:label", contentType = "foods-card-label") {
+        CardSlice(top = true, bottom = rows.isEmpty() && empty == null) { FoodsCardLabel(stringResource(label)) }
+    }
+    if (rows.isEmpty()) {
+        if (empty != null) item(key = "$section:empty", contentType = "foods-card-note") { CardSlice(bottom = true) { FoodsCardNote(stringResource(empty)) } }
+        return
+    }
+    itemsIndexed(rows, key = { _, row -> "$section:${row.key}" }, contentType = { _, _ -> "foods-row" }) { index, row ->
+        CardSlice(bottom = index == rows.lastIndex) {
             FoodsRow(
                 name = row.name,
                 sub = row.sub,
@@ -216,4 +216,29 @@ private fun RowsCard(
             )
         }
     }
+}
+
+/** One slice of a [rowsCard]: the card's surface and row inset, with its top or bottom corners when it ends the card. */
+@Composable
+private fun CardSlice(top: Boolean = false, bottom: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    val card = AppTheme.shapes.card
+    val shape = when {
+        top && bottom -> card
+        card !is CornerBasedShape -> RectangleShape
+        else -> card.copy(
+            topStart = if (top) card.topStart else ZeroCornerSize,
+            topEnd = if (top) card.topEnd else ZeroCornerSize,
+            bottomEnd = if (bottom) card.bottomEnd else ZeroCornerSize,
+            bottomStart = if (bottom) card.bottomStart else ZeroCornerSize,
+        )
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = if (bottom) FoodsDefaults.CardGap else 0.dp)
+            .clip(shape)
+            .background(AppTheme.colors.surface)
+            .padding(horizontal = FoodsDefaults.CardRowInset),
+        content = content,
+    )
 }

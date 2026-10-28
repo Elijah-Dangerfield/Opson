@@ -18,6 +18,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -88,7 +89,9 @@ class HttpSupabaseAdminClient(
                 404 -> DeleteUserResult.AlreadyGone
                 else -> DeleteUserResult.Failure(response.status.value, null)
             }
-        } catch (e: Throwable) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
             DeleteUserResult.Failure(statusCode = null, cause = e)
         }
     }
@@ -114,7 +117,9 @@ class HttpSupabaseAdminClient(
                 in 200..299 -> UpdateDisplayNameResult.Success
                 else -> UpdateDisplayNameResult.Failure(response.status.value, null)
             }
-        } catch (e: Throwable) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
             UpdateDisplayNameResult.Failure(statusCode = null, cause = e)
         }
     }

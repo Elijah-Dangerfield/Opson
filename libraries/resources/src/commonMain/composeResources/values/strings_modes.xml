@@ -51,15 +51,13 @@
     <!-- Today in No numbers (13.5d) -->
     <string name="modes_timeline_title">Meals today</string>
     <string name="modes_timeline_usual">~%1$s</string>
-    <string name="modes_timeline_done_cd">%1$s, done</string>
-    <string name="modes_timeline_open_cd">%1$s, not yet</string>
+    <!-- What a screen reader says for a meal's circle: the meal, then when. -->
+    <string name="modes_timeline_done_at_cd">%1$s, done at %2$s</string>
+    <string name="modes_timeline_done_around_cd">%1$s, done, around %2$s</string>
+    <string name="modes_timeline_open_cd">%1$s, not yet, usually around %2$s</string>
 
     <!-- Food detail in No numbers (13.5e) -->
     <string name="modes_hunger_question">How hungry were you? Optional</string>
-    <string name="modes_hunger_not_really">Not really</string>
-    <string name="modes_hunger_a_little">A little</string>
-    <string name="modes_hunger_hungry">Hungry</string>
-    <string name="modes_hunger_very">Very</string>
 
     <!-- Today, when End after a set time runs out -->
     <string name="modes_timer_ended">Your time on %1$s is up. You're on %2$s now.</string>

@@ -1,5 +1,10 @@
 # Onboarding plan
 
+**Superseded for the account flow by 908798dd:** there is no guest, no Skip all
+and no account step. Sign-in is required and comes straight after Welcome; see
+`docs/plans/onboarding-v2.md` for the flow as built. Guest creation
+(`GuestAccountCreator`) and `DisplayNameSuggester` below describe 0.1.
+
 Welcome with the plan, three skippable questions, an optional statement, a
 starting mode that lists what you'll see and what stays out of view, and an
 optional account step last. Built to design v3. Read `shared.md` first.
@@ -255,8 +260,8 @@ Verbatim from the v3 images except where noted. `strings_onboarding.xml`.
 | `onboarding_skip`, `onboarding_continue` | Skip, Continue |
 | `onboarding_q_why`, `onboarding_pick_any` | Why are you tracking? / Pick any that fit. |
 | why options | Curious what I eat / Training or performance / Eating enough / Eating regularly / A medical need / Changing my weight / Working with a provider |
-| `onboarding_q_feel`, `onboarding_feel_footnote` | How do you feel about seeing numbers? / This only picks a starting point. Later you can change any single number. |
-| feel options | I love them / Some are fine / I'd rather not see them / Not sure yet |
+| `onboarding_q_feel`, `onboarding_feel_intro`, `onboarding_feel_footnote` | How do numbers sit with you? / Not everyone does well seeing calories, or thinking about them much. / This only picks where you start. You can change any number later. |
+| feel options | I like seeing them / Some are fine, just not calories / I'd rather not see them / I'm not sure yet |
 | `onboarding_q_notice` | What do you want to notice? (options unchanged) |
 | `onboarding_q_statement` | Does this sound like you? |
 | `onboarding_statement_quote` | "Numbers or tracking have been hard for me before." |

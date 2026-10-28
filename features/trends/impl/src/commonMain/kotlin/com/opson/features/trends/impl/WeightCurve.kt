@@ -15,6 +15,9 @@ import kotlin.time.Duration.Companion.days
  * (the trend as the large number at Show, the slope as a word at Trend only);
  * nothing here is formatted. Both are `null` with no reading in the window, and
  * the slope also under two readings.
+ *
+ * [points] are the same weigh-ins raw, one per reading in order, for a chart
+ * point's label to resolve.
  */
 data class WeightCurve(
     val trend: List<Float>,
@@ -23,7 +26,11 @@ data class WeightCurve(
     val kgPerWeek: Double? = null,
     val from: LocalDate? = null,
     val to: LocalDate? = null,
+    val points: List<WeightPoint> = emptyList(),
 )
+
+/** One weigh-in in the window: its day, what it read, and the smoothed trend there. */
+data class WeightPoint(val day: LocalDate, val kg: Double, val trendKg: Double)
 
 /**
  * Turns weigh-ins into chart heights. The heights carry no scale and the chart
@@ -68,6 +75,9 @@ object WeightCurves {
             kgPerWeek = if (readings.size < 2 || span <= 0.days) null else (trend.last() - trend.first()) / (span / 1.days) * DAYS_PER_WEEK,
             from = from,
             to = today,
+            points = inWindow.map { (index, weighIn) ->
+                WeightPoint(weighIn.measuredAt.toLocalDateTime(timeZone).date, weighIn.kg, ema[index])
+            },
         )
     }
 }

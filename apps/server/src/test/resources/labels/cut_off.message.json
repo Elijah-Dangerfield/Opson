@@ -1,0 +1,18 @@
+{
+  "id": "msg_fixture",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-fable-5-1",
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"label_found\": true, \"name\": {\"value\": \"Oats & honey granola bar\", \"confidence\": 0.95}, \"brand\": {\"value\": \"Hillside\", \"confidence\": 0.95}, \"barcode\": {\"value\": \"012345678905\", \"confidence\": 0.9}, \"serving\": {\"amount\": 40, \"unit\": \"g\", \"household\": \"1 bar\", \"confidence\": 0.97}, \"servings_per_container\": {\"value\": 6, \"confidence\": 0.95}, \"basis\": \"us\", \"nutrients\": [{\"nutrient\": \"energy\", \"per_serving\": 190, \"per_100\": null, \"unit\": \"kcal\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"fat\", \"per_serving\": 7, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"saturated_fat\", \"per_serving\": 1, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"trans_fat\", \"per_serving\": 0, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"cholesterol\", \"per_serving\": 0, \"per_100\": null, \"unit\": \"mg\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"sodium\", \"per_serving\": 150, \"per_100\": null, \"unit\": \"mg\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"carbohydrate\", \"per_serving\": 29, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"fiber\", \"per_serving\": 3, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"sugars\", \"per_serving\": 12, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"added_sugars\", \"per_serving\": 10, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"protein\", \"per_serving\": 4, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.6}, {\"nutrient\": \"vitamin_d\", \"per_serving\": 0, \"per_100\": null, \"unit\": \"mcg\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"calcium\", \"per_serving\": 20, \"per_100\": null, \"unit\": \"mg\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"iron\", \"per_serving\": 1.1, \"per_100\": null, \"unit\": \"mg\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"potassium\", \"per_serving\": 120, \"per_100\": null, \"unit\": \"mg\", \"less_than\": false, \"confidence\": 0.95}, {\"nutrient\": \"vitamin_a\", \"per_serving\": 10, \"per_100\": null, \"unit\": \"percent_dv\", \"less_than\": false, \"confidence\": 0.8}, {\"nutrient\": \"frosting\", \"per_serving\": 3, \"per_100\": null, \"unit\": \"g\", \"less_than\": false, \"confidence\": 0.95}]}"
+    }
+  ],
+  "stop_reason": "max_tokens",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 5200,
+    "output_tokens": 900
+  }
+}

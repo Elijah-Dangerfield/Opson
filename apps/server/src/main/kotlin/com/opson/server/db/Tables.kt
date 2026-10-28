@@ -275,6 +275,12 @@ object CustomFoodsTable : SyncedTable("custom_foods") {
     val carbs = float("carbs").nullable()
     val fat = float("fat").nullable()
     val fiber = float("fiber").nullable()
+
+    /** V25: the serving's weight, the other sizes (`[{label, grams}]`) and the rest of the label. */
+    val servingGrams = float("serving_grams").nullable()
+    val sizes = jsonb("sizes").nullable()
+    val micros = jsonb("micros").nullable()
+    val detailColumns get() = listOf(servingGrams, sizes, micros)
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -316,7 +322,7 @@ object UserSettingsTable : SyncedTable("user_settings") {
     override val primaryKey = PrimaryKey(userId)
 }
 
-/** The Sign in with Apple refresh token per account, kept so deletion can revoke it (V21). */
+/** The Sign in with Apple refresh token per account, kept so deletion can revoke it (V23). */
 object AppleRefreshTokensTable : Table("apple_refresh_tokens") {
     val userId = uuid("user_id")
     val refreshToken = text("refresh_token")

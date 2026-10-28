@@ -84,6 +84,7 @@ import opson.libraries.resources.generated.resources.photo_privacy
 import opson.libraries.resources.generated.resources.photo_remove_cd
 import opson.libraries.resources.generated.resources.photo_start_body
 import opson.libraries.resources.generated.resources.photo_swap_none
+import opson.libraries.resources.generated.resources.photo_swap_offline
 import opson.libraries.resources.generated.resources.photo_swap_placeholder
 import opson.libraries.resources.generated.resources.photo_swap_searching
 import opson.libraries.resources.generated.resources.photo_swap_title
@@ -167,6 +168,8 @@ private fun StageBody(state: PhotoEstimateState, stage: PhotoStage, onAction: (P
             secondary = stringResource(Res.string.photo_describe_instead) to PhotoEstimateAction.DescribeInsteadTapped,
             onAction = onAction,
         )
+        // TODO(review): "Back to search" only dismisses; opened from the + sheet's Photo, that lands on
+        //  Today. Needs design copy, or a real route to search (docs/review/findings/logger.md 12).
         PhotoStage.Unavailable -> Calm(
             state,
             stringResource(Res.string.photo_unavailable_title),
@@ -447,7 +450,9 @@ private fun SwapPane(swap: PhotoStage.Swap, onAction: (PhotoEstimateAction) -> U
             val results = swap.results
             when {
                 results == null -> item { FoodRowsNote(stringResource(Res.string.photo_swap_searching)) }
-                results.isEmpty() && swap.query.isNotBlank() -> item { FoodRowsNote(stringResource(Res.string.photo_swap_none)) }
+                results.isEmpty() && swap.query.isNotBlank() -> item {
+                    FoodRowsNote(stringResource(if (swap.offline) Res.string.photo_swap_offline else Res.string.photo_swap_none))
+                }
                 else -> itemsIndexed(results, key = { _, result -> result.id }) { index, result ->
                     ListRow(
                         title = result.name,

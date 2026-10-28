@@ -15,7 +15,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.opson.system.AppTheme
 import com.opson.system.typography.TypographyResource
@@ -39,6 +41,7 @@ fun BasicTextField(
         ?: AppTheme.typography.Default,
     color: Color = AppTheme.colors.text.color,
     disabledColor: Color = AppTheme.colors.textDisabled.color,
+    textAlign: TextAlign = TextAlign.Unspecified,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
@@ -66,7 +69,7 @@ fun BasicTextField(
                 modifier = modifier.then(ime.modifier),
                 enabled = enabled,
                 readOnly = readOnly,
-                textStyle = typographyToken.style(if (enabled) color else disabledColor),
+                textStyle = typographyToken.style(if (enabled) color else disabledColor).merge(TextStyle(textAlign = textAlign)),
                 keyboardOptions = keyboardOptions,
                 keyboardActions = ime.actions,
                 singleLine = singleLine,

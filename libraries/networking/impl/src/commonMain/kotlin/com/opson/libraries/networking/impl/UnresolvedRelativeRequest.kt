@@ -11,7 +11,7 @@ import io.ktor.http.Url
 class UnresolvedRelativeRequestException internal constructor(path: String) : IllegalStateException(
     "No API base URL is configured, so `$path` has nothing to resolve against.\n" +
         "Bind a NetworkConfig with `replaces = [DefaultNetworkConfig::class]` and set baseUrl " +
-        "(see libraries/networking/README or SETUP.md → Networking).\n" +
+        "(see SETUP.md, Networking).\n" +
         "If you meant to call http://localhost:80, set that as your baseUrl explicitly."
 )
 

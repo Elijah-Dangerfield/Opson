@@ -32,7 +32,7 @@ produces a specific bug, and the bug is named next to it. Read
   sheets: every preview is also a design-sync screenshot at 390 dp, and two
   themes side by side squeeze each to half width. Components may pair them.
 - [ ] **A `@Preview` for each meaningful state**: empty, populated, and at
-  least one gentle mode (Blind or Nutrient focus). Uses
+  least one mode that hides amounts (Macros only or No numbers). Uses
   `org.jetbrains.compose.ui.tooling.preview.Preview`, never the androidx one
   (fails the iOS link).
 - [ ] **Components come from `:libraries:ui`.** No raw Material components in
@@ -49,17 +49,18 @@ produces a specific bug, and the bug is named next to it. Read
 ### Visibility (the rule this app exists for)
 - [ ] **No nutrition number is formatted outside `VisibilityPolicy`.** Every
   amount reaches the screen as a `Display` (or `RingValue` / `MacroPart`) and
-  renders through `NutrientValue` / `NutrientText` / `NutrientRingLabel` /
-  `MacroLine`. Grep the diff for `kcal`, `" g"` and `toString()` on a
+  renders through `NutrientValue` / `NutrientText` / `MacroLine`. Grep the diff for `kcal`, `" g"` and `toString()` on a
   nutrient. Building one of those by hand outside `:libraries:nutrition` fails
   detekt `HardcodedDisplay`.
 - [ ] **`HIDE` removes the label too**, not just the digits.
 - [ ] **Every rendered number carries `Modifier.testTag("metric:<metric>")`**,
   which `NutrientValue` does for you.
-- [ ] **The screen is listed in `BlindModeLeakTest.SURFACES`** and the test
-  passes.
+- [ ] **The screen's surfaces are in its feature's `XLeakSurfaces.all`**
+  (`TodayLeakSurfaces`, `FoodsLeakSurfaces`, ...) and registered in
+  `apps/leaktest/.../Surfaces.kt` (`SurfacesCoverageTest` fails otherwise),
+  and the leak test passes.
 - [ ] **No screen checks which mode is active.** Layout choices come from
-  `ModePreset.today` and per-metric levels, never `if (mode == "blind")`.
+  `ModePreset.today` and per-metric levels, never `if (preset == PresetId.NoNumbers)`.
 
 ### Copy
 - [ ] Copy matches the handoff word for word where the handoff has it.

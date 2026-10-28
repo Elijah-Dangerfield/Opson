@@ -14,9 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
+import com.opson.libraries.diary.ui.HeightField
 import com.opson.libraries.diary.ui.detail
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.ui.components.ChoiceRow
 import androidx.compose.ui.unit.dp
 import com.opson.features.settings.impl.SectionLabel
@@ -40,6 +42,7 @@ import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.AppSwitch
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SegmentedControl
@@ -57,12 +60,9 @@ import opson.libraries.resources.generated.resources.settings_resting_add_activi
 import opson.libraries.resources.generated.resources.settings_resting_birth_year
 import opson.libraries.resources.generated.resources.settings_resting_calculate
 import opson.libraries.resources.generated.resources.settings_resting_calculate_line
-import opson.libraries.resources.generated.resources.settings_resting_cm
 import opson.libraries.resources.generated.resources.settings_resting_details
 import opson.libraries.resources.generated.resources.settings_resting_health
 import opson.libraries.resources.generated.resources.settings_resting_health_line
-import opson.libraries.resources.generated.resources.settings_resting_height
-import opson.libraries.resources.generated.resources.settings_resting_in
 import opson.libraries.resources.generated.resources.settings_resting_intro
 import opson.libraries.resources.generated.resources.settings_resting_kcal_a_day
 import opson.libraries.resources.generated.resources.settings_resting_own
@@ -74,6 +74,7 @@ import opson.libraries.resources.generated.resources.settings_resting_sex_unsaid
 import opson.libraries.resources.generated.resources.settings_resting_steps_workouts
 import opson.libraries.resources.generated.resources.settings_resting_title
 import opson.libraries.resources.generated.resources.settings_resting_weight_missing
+import opson.libraries.resources.generated.resources.settings_loading_cd
 import opson.libraries.resources.generated.resources.everyday_activity_body
 import opson.libraries.resources.generated.resources.everyday_activity_title
 import org.jetbrains.compose.resources.stringResource
@@ -98,7 +99,11 @@ fun RestingEnergyScreen(
             color = AppTheme.colors.ink,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
-        if (!state.loaded) return@SettingsPage
+        if (!state.loaded) {
+            // The health app's resting energy is read before the choices can draw.
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
+            return@SettingsPage
+        }
         Sources(state, onAction)
         SectionLabel(stringResource(Res.string.settings_resting_activity))
         SettingsCard {
@@ -224,23 +229,20 @@ private fun Details(details: BodyDetails, onAction: (RestingEnergyAction) -> Uni
             typography = AppTheme.type.secondarySmallStrong,
             color = AppTheme.colors.muted,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-            NumberField(
-                value = details.birthYearText,
-                onValueChange = { onAction(RestingEnergyAction.BirthYearTyped(it)) },
-                label = stringResource(Res.string.settings_resting_birth_year),
-                allowDecimal = false,
-                imeAction = ImeAction.Next,
-                modifier = Modifier.weight(1f),
-            )
-            NumberField(
-                value = details.heightText,
-                onValueChange = { onAction(RestingEnergyAction.HeightTyped(it)) },
-                label = stringResource(Res.string.settings_resting_height),
-                unit = stringResource(if (details.heightUnit == HeightUnit.In) Res.string.settings_resting_in else Res.string.settings_resting_cm),
-                modifier = Modifier.weight(1f),
-            )
-        }
+        NumberField(
+            value = details.birthYearText,
+            onValueChange = { onAction(RestingEnergyAction.BirthYearTyped(it)) },
+            label = stringResource(Res.string.settings_resting_birth_year),
+            allowDecimal = false,
+            imeAction = ImeAction.Next,
+        )
+        HeightField(
+            input = details.height,
+            onUnitPicked = { onAction(RestingEnergyAction.HeightUnitPicked(it)) },
+            onCmTyped = { onAction(RestingEnergyAction.HeightCmTyped(it)) },
+            onFeetTyped = { onAction(RestingEnergyAction.HeightFeetTyped(it)) },
+            onInchesTyped = { onAction(RestingEnergyAction.HeightInchesTyped(it)) },
+        )
         Text(
             text = stringResource(Res.string.settings_resting_sex),
             typography = AppTheme.type.secondarySmallStrong,
@@ -292,6 +294,24 @@ private fun RestingEnergyPreview() {
 private fun RestingEnergyNeedsDetailsPreview() {
     val choices = RestingChoices(null, setOf(BodyDetail.Height, BodyDetail.Age, BodyDetail.Sex), null, null, 72.0)
     SettingsPreview { RestingEnergyScreen(previewState(choices = choices).copy(activitySource = null), onAction = {}) }
+}
+
+/** Height in feet and inches, as a US phone opens it. */
+@Preview
+@Composable
+private fun RestingEnergyFeetAndInchesPreview() {
+    val choices = RestingChoices(null, setOf(BodyDetail.Height), null, null, 72.0)
+    SettingsPreview {
+        RestingEnergyScreen(
+            RestingEnergyStateBuilder.build(
+                Settings(birthYear = 1990, bodySex = BodySex.Female),
+                choices,
+                SettingsFixtures.policy(NumbersSettings(preset = PresetId.Full)),
+                regionHeight = HeightUnit.FtIn,
+            ),
+            onAction = {},
+        )
+    }
 }
 
 @Preview

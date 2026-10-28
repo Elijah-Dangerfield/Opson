@@ -44,12 +44,11 @@ A 3-column grid, in this order, each shown only when it can run:
 | Say or type it | always ("Describe it" with `release.voice` off) | The Describe pane |
 | Saved meals | always | The Saved pane; Add logs the meal at once |
 | Copy a meal | yesterday has this meal | Copies yesterday's {meal} |
-| Quick add | calories not hidden | Describe's "Or just a number", focused |
 | Water | always | One glass, with Undo |
 | Weigh-in | always | `WeightRoute` |
 | Note | always | `MealNoteRoute` |
-| Ate, no details | a real meal (not Uncategorized) | Marks it, closes |
 | Fasting | `release.fasting`, offered in this mode and the timer on | `FastingRoute` |
+| Exercise | `release.exercise`, energy out not hidden | `ExerciseRoute` |
 
 Fasting reads "Fasting", not "Start a fast": fasts start on their schedule and
 there is no manual start to advertise.
@@ -78,18 +77,21 @@ the app scope so it outlives the screen), and stays. Rows logged to this meal
 since the screen opened draw ✓; tapping ✓ takes those items out again.
 
 Tapping the name opens the food detail. "Not finding it?" closes the results
-with Photograph it (`release.photo`, the meal photo estimate), Describe it
-(the sheet's Describe pane, with the term) and Save the name (a name-only
-custom food, logged at once with Undo). With no results the 3.6 empty state
-offers the same.
+with Describe it (the sheet's Describe pane, with the term) and Save the name
+(a name-only custom food, logged at once with Undo). With no results the 3.6
+empty state offers the same, and with `release.submitFood` also Add this
+food: photos of the pack's front and label, read and checked, logged as the
+person's own food and sent for review (`submit-food.md`). The meal photo
+estimate is not offered from search: it is the + sheet's Photo tile alone
+(docs/decisions.md, 2026-10-27).
 
 Kept from the speed work: the catalog's five-minute client cache answers with
 no debounce, otherwise 250 ms; the spinner only after a delay.
 
 Pick for a meal (Create a meal): + and the name toggle a pick (✓), "Add to
 this meal" pinned at the bottom hands the picks back through `MealPicks`.
-No meal chip, no Saved meals chip, no scanner or photo, and a miss offers only
-Save the name.
+No meal chip, no Saved meals chip, no scanner or Add this food, and a miss
+offers only Save the name.
 
 ## Food detail (13.4d)
 
@@ -123,8 +125,7 @@ shows its word and no ±; `loggedAs` reads From label as a label.
 | All nutrients | percents | words | hidden | link and card gone |
 | Grams on units and chips | amounts of food | shown | shown | shown |
 
-Quick add is not offered when calories are hidden. The grid itself shows no
-number. Leak surfaces: `add-sheet`, `add-sheet-expanded`, `search-full`,
+The grid itself shows no number. Leak surfaces: `add-sheet`, `add-sheet-expanded`, `search-full`,
 `search-empty`, `search-saved-meals`, `search-tabs`, `search-options`,
 `food-detail`, `food-detail-nutrients`, `food-detail-units`,
 `food-detail-scan`; Describe, Saved, photo and scanner keep theirs.

@@ -27,7 +27,7 @@ fun main() {
     renderComposable(rootElementId = "root") { App() }
 }
 
-private enum class Tab(val label: String) { Flags("Flags"), Versions("Versions"), Audit("Audit"), Diff("Dev ↔ Prod"), Users("Users"), Waitlist("Waitlist") }
+private enum class Tab(val label: String) { Flags("Flags"), Versions("Versions"), Audit("Audit"), Diff("Dev ↔ Prod"), Users("Users"), Review("Review"), Waitlist("Waitlist") }
 
 /** The env whose server is serving this console, when hosted at `/admin`. */
 private fun hostedEnv(): AdminEnv? =
@@ -42,7 +42,9 @@ private fun App() {
     var tokenDraft by remember { mutableStateOf("") }
     var api by remember { mutableStateOf<AdminApi?>(null) }
     var status by remember { mutableStateOf<Status?>(null) }
-    var tab by remember { mutableStateOf(Tab.Flags) }
+    // Grafana's review board links to `#review/<id>`: open on that submission.
+    val reviewId = remember { reviewIdFromHash() }
+    var tab by remember { mutableStateOf(if (reviewId != null) Tab.Review else Tab.Flags) }
     var pendingConfirm by remember { mutableStateOf<PendingWrite?>(null) }
     var errorLog by remember { mutableStateOf<List<ErrorEntry>>(emptyList()) }
 
@@ -297,6 +299,8 @@ private fun App() {
                 Tab.Diff -> DiffView(ctx = ctx, connectedEnv = env)
 
                 Tab.Users -> UsersView(ctx = ctx)
+
+                Tab.Review -> ReviewView(ctx = ctx, openId = reviewId)
 
                 Tab.Waitlist -> WaitlistView(ctx = ctx)
             }

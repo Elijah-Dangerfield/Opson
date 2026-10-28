@@ -63,17 +63,21 @@ internal fun FoodsCard(
         contentPadding = PaddingValues(horizontal = FoodsDefaults.CardRowInset),
         verticalArrangement = Arrangement.Top,
     ) {
-        if (label != null) {
-            Text(
-                text = label,
-                typography = AppTheme.type.sectionLabel,
-                color = AppTheme.colors.muted,
-                modifier = Modifier.padding(top = 16.dp, bottom = 10.dp),
-            )
-            HorizontalDivider(color = AppTheme.colors.line)
-        }
+        if (label != null) FoodsCardLabel(label)
         content()
     }
+}
+
+/** A Foods card's section label and the hairline under it. */
+@Composable
+internal fun FoodsCardLabel(label: String) {
+    Text(
+        text = label,
+        typography = AppTheme.type.sectionLabel,
+        color = AppTheme.colors.muted,
+        modifier = Modifier.padding(top = 16.dp, bottom = 10.dp),
+    )
+    HorizontalDivider(color = AppTheme.colors.line)
 }
 
 /**

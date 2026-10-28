@@ -94,6 +94,7 @@ object TodayStateBuilder {
         ui: TodayUi = TodayUi(),
     ): TodayState {
         val day = inputs.day
+        val closed = day.closedByUser
         val date = day.date
         val today = inputs.today
         val layout = policy.preset.today
@@ -107,7 +108,7 @@ object TodayStateBuilder {
         val summaryOn = inputs.summaryOn
         val compact = if (summaryOn && !future && !untracked) compact(summary, inputs, policy, context) else null
         val pageCount = (summary as? TodaySummary.Energy)?.pages?.size ?: 1
-        val selecting = ui.selected?.takeIf { inputs.selectOn }
+        val selecting = ui.selected?.takeIf { inputs.selectTools }
 
         return TodayState(
             loading = false,
@@ -125,24 +126,32 @@ object TodayStateBuilder {
             water = if (future || !listRow(inputs) { it.todayWater }) null else water(day, inputs.settings, policy, context),
             meals = if (future) planned(inputs, policy, context, groupsOn) else meals(inputs, policy, context, layout, groupsOn),
             // Nothing logged, nothing to close yet (design sync 2, 2.2); the ⋮ menu still offers it.
-            closeDay = if (future || untracked || !day.hasLogged || !listRow(inputs) { it.todayCloseDay }) null else CloseDayButton(closed = day.isClosed(today)),
+            closeDay = if (future || untracked || !day.hasLogged || !listRow(inputs) { it.todayCloseDay }) null else CloseDayButton(closed = closed),
+            closed = closed,
             highlight = highlight,
             added = added?.takeIf { it.day == date }?.let { AddedNotice(it.slot, it.itemIds.size) },
             untracked = untracked,
             menu = if (menuOpen) menu(inputs, clearArmed) else null,
             summaryTools = summaryOn,
-            summaryPage = settings.todaySummaryPage.coerceIn(0, pageCount - 1),
-            collapsed = compact != null && settings.todaySummaryCollapsed,
+            // Settings held these before they moved to the phone; a phone that never set them keeps that choice.
+            summaryPage = (inputs.cardView.page ?: settings.todaySummaryPage).coerceIn(0, pageCount - 1),
+            collapsed = compact != null && (inputs.cardView.collapsed ?: settings.todaySummaryCollapsed),
             compact = compact,
             weight = if (summaryOn && !future && listRow(inputs) { it.todayWeight }) weightRow(inputs, policy, context) else null,
-            selectTools = inputs.selectOn,
+            selectTools = inputs.selectTools,
             foodMenus = inputs.foodActionsOn,
             selection = selecting?.let { selection(it, day, ui.step) },
-            swipe = if (inputs.selectOn && selecting == null) ui.swipe else SwipeState(),
-            removed = ui.removed?.takeIf { inputs.selectOn },
-            moved = ui.moved?.takeIf { inputs.selectOn },
+            swipe = if (inputs.selectTools && selecting == null) ui.swipe else SwipeState(),
+            removed = ui.removed?.takeIf { inputs.selectTools },
+            moved = ui.moved?.takeIf { inputs.selectTools },
         )
     }
+
+    /**
+     * Select, drag, swipe to delete and "Move to…" (`release.todaySelect`). Each of them changes the
+     * day, so a day closed with Close the day has none of them.
+     */
+    private val TodayInputs.selectTools: Boolean get() = selectOn && !day.closedByUser
 
     /** A list row More › Today screen can turn off on Today alone (design sync 4, 13.6a). */
     private fun listRow(inputs: TodayInputs, on: (Settings) -> Boolean): Boolean = !inputs.goalsAndEnergyOn || on(inputs.settings)
@@ -162,7 +171,7 @@ object TodayStateBuilder {
 
         return when {
             // Later, once open: the All numbers card for the rest of the day (13.5c).
-            shown -> energy(inputs, policy, context, eaten)
+            shown -> energy(inputs, policy, context, eaten, range)
             delayed -> locked(day, policy)
             soft is Display.Soft -> softCard(inputs, policy, context, soft)
             else -> macroTiles(day, settings, policy, context, GoalStyle.Default).takeIf { it.isNotEmpty() }?.let(TodaySummary::Focus)
@@ -171,16 +180,16 @@ object TodayStateBuilder {
         }
     }
 
-    private fun energy(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext, eaten: Double): TodaySummary.Energy {
+    private fun energy(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext, eaten: Double, range: EnergyRange): TodaySummary.Energy {
         val day = inputs.day
         val settings = inputs.settings
-        val range = todayRange(settings, day, inputs.today, inputs.expended, inputs.burned)
         val scaleMax = range.maxKcal * BAR_HEADROOM
         val empty = day.allItems.isEmpty() && day.ateNoDetails.isEmpty()
         val summaryOn = inputs.summaryOn
         // Every macro the levels show, in grams, under the bar. The stats row and design sync 4's
         // card once took this row's place, so All numbers showed one macro at most (2026-10-27).
         val macros = if (empty) emptyList() else macroTiles(day, settings, policy, context, GoalStyle.None)
+        val bar = if (empty) emptyList() else barParts(day, policy, context, eaten)
         return TodaySummary.Energy(
             eaten = policy.resolve(Metric.Calories, eaten, Surface.Today, context.copy(of = scaleMax, bare = true)),
             empty = empty,
@@ -189,7 +198,7 @@ object TodayStateBuilder {
             rangeEnd = (range.maxKcal / scaleMax).toFloat(),
             macros = macros,
             expended = expended(inputs, policy, context),
-            bar = if (empty) emptyList() else barParts(day, policy, context, eaten),
+            bar = bar,
             stats = if (summaryOn && !empty) stats(inputs, policy, context, eaten, range, macros.map { it.metric }.toSet()) else emptyList(),
             macrosPage = if (summaryOn && !empty && settings.todayMacrosPage) macrosPage(day, settings, policy, context, eaten) else null,
             // More › Today screen's Nutrients switch, which turned the card's link off, turns this page off.
@@ -197,7 +206,7 @@ object TodayStateBuilder {
             singleGoal = range.single,
             // Only All numbers' card: outside it (Later after its reveal, too) the mode sets the layout.
             card = if (inputs.goalsAndEnergyOn && policy.preset.today == TodayLayout.Full && policy.level(Metric.Calories) == Visibility.Show) {
-                EnergyCardBuilder.build(inputs, policy, context, eaten, range, if (empty) emptyList() else barParts(day, policy, context, eaten))
+                EnergyCardBuilder.build(inputs, policy, context, eaten, range, bar)
             } else {
                 null
             },
@@ -575,26 +584,34 @@ object TodayStateBuilder {
             },
             ateNoDetails = items.isEmpty() && slot in day.ateNoDetails,
             note = noteOf(day, slot),
-            fileable = inputs.selectOn && slot == MealSlot.Uncategorized && items.isNotEmpty() && groupsOn(inputs),
+            fileable = inputs.selectTools && slot == MealSlot.Uncategorized && items.isNotEmpty() && groupsOn(inputs),
         )
     }
 
     private fun groupsOn(inputs: TodayInputs): Boolean = inputs.day.mealGroupsOn(inputs.settings)
 
+    /** On a closed day Reopen takes Close the day's place, and what would add to or clear the day goes. */
     private fun menu(inputs: TodayInputs, clearArmed: Boolean): DayMenu {
         val date = inputs.day.date
         val today = inputs.today
         val past = date <= today
         val untracked = inputs.day.untracked
+        val closed = inputs.day.closedByUser
+        val isToday = date == today
+        val close = when {
+            closed -> DayMenuItem.Reopen(isToday)
+            past && !untracked -> DayMenuItem.CloseDay(isToday)
+            else -> null
+        }
         val groups = listOf(
-            listOfNotNull(if (past && !untracked) DayMenuItem.CloseDay(isToday = date == today) else null, DayMenuItem.Nutrients, DayMenuItem.Notes),
+            listOfNotNull(close, DayMenuItem.Nutrients, DayMenuItem.Notes),
             listOfNotNull(
-                DayMenuItem.CopyYesterday,
+                DayMenuItem.CopyYesterday.takeUnless { closed },
                 if (past) DayMenuItem.CopyToTomorrow else null,
-                DayMenuItem.AddNote,
+                DayMenuItem.AddNote.takeUnless { closed },
                 DayMenuItem.Untracked(marked = untracked),
             ),
-            listOf(DayMenuItem.EditCards, DayMenuItem.ClearDay),
+            listOfNotNull(DayMenuItem.EditCards, DayMenuItem.ClearDay.takeUnless { closed }),
         )
         return DayMenu(groups = groups, clearArmed = clearArmed)
     }
@@ -602,9 +619,8 @@ object TodayStateBuilder {
     /** "Oat porridge with milk, banana, coffee with milk": names in a sentence, the first capitalised. */
     fun foods(items: List<LogItem>): String = items.mapIndexed { index, item ->
         val name = item.name.trim()
-        if (index == 0 || name.length < 2 || name[1].isUpperCase()) name else name.replaceFirstChar { it.lowercaseChar() }
+        if (index == 0) name else inSentence(name)
     }.joinToString(", ")
-
 
     private fun LogItem.localTime(timeZone: TimeZone): LocalTime = loggedAt.toLocalDateTime(timeZone).time
 }

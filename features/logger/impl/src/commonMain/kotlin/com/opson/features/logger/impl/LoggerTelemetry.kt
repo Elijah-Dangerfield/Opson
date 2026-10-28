@@ -20,6 +20,7 @@ enum class LogVia(val wire: String) {
     NameOnly("name_only"),
     Barcode("barcode"),
     Photo("photo"),
+    Label("label"),
     Note("note"),
     ;
 
@@ -35,6 +36,7 @@ enum class LogVia(val wire: String) {
             PickSource.Name -> NameOnly
             PickSource.Barcode -> Barcode
             PickSource.Photo -> Photo
+            PickSource.Label -> Label
         }
     }
 }

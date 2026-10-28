@@ -3,6 +3,9 @@ package com.opson.features.onboarding.impl
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.HeightInput
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -23,7 +26,7 @@ object OnboardingFixtures {
     /**
      * The answers design v3 draws (1.2 to 1.5): eating enough and eating
      * regularly, some numbers are fine, and yes to the statement. Recommends
-     * Nutrients first, with No numbers and Later beside it.
+     * Macros only, with No numbers and Macros with grams beside it.
      */
     val DesignAnswers = SetupAnswers(
         why = setOf(Why.EatingEnough, Why.EatingRegularly),
@@ -41,8 +44,30 @@ object OnboardingFixtures {
     /** Someone who loves numbers and is training: Full numbers, so the goal step. */
     val NumbersAnswers = SetupAnswers(why = setOf(Why.Performance), feel = NumbersFeel.LoveThem)
 
-    /** Resting energy's details filled in, in kilograms: about 1,360 kcal a day at rest. */
-    val Body = BodyAnswer(birthYear = "1992", height = "168", weight = "64", sex = BodySex.Female, unit = WeightUnit.Kg)
+    /**
+     * Resting energy's details filled in, in centimetres and kilograms: about 1,360 kcal a day at
+     * rest and 1,630 on an ordinary day, under the app's starting range.
+     */
+    val Body = BodyAnswer(
+        birthYear = "1992",
+        height = HeightInput(HeightUnit.Cm, cm = "168"),
+        weight = "64",
+        sex = BodySex.Female,
+        weightUnit = WeightUnit.Kg,
+    )
+
+    /**
+     * The same details as a US phone types them, 5'11.5" and 180 lb, with some walking: about
+     * 1,780 kcal at rest and 2,450 on an ordinary day, so the goal starts above the starting range.
+     */
+    val ImperialBody = BodyAnswer(
+        birthYear = "1990",
+        height = HeightInput(HeightUnit.FtIn, feet = "5", inches = "11.5"),
+        weight = "180",
+        sex = BodySex.Male,
+        weightUnit = WeightUnit.Lb,
+        activity = EverydayActivity.SomeWalking,
+    )
 
     /** Noon on the fixtures' day, so Later is still closed. */
     private val NOW = Instant.parse("2026-10-25T12:00:00Z")
@@ -78,12 +103,21 @@ object OnboardingFixtures {
         policy: VisibilityPolicy = policy(PresetId.Full),
     ): OnboardingState = setup(OnboardingStep.Goal, NumbersAnswers, goalsAndEnergy, policy).copy(goal = goal).withViews(policy)
 
-    /** The resting energy step, after picking a set deficit. Empty fields unless [body] says otherwise. */
+    /** The resting energy step, before the goal. Empty fields unless [body] says otherwise. */
     fun body(
         body: BodyAnswer = BodyAnswer(),
         policy: VisibilityPolicy = policy(PresetId.Full),
     ): OnboardingState = setup(OnboardingStep.Body, NumbersAnswers, goalsAndEnergy = true, policy)
-        .copy(goal = GoalAnswer(style = GoalChoice.Deficit), body = body)
+        .copy(body = body)
+        .withViews(policy)
+
+    /** The goal step after the resting energy step was filled in with [body]: the range starts from its burn. */
+    fun goalFromBurn(
+        body: BodyAnswer = ImperialBody,
+        policy: VisibilityPolicy = policy(PresetId.Full),
+    ): OnboardingState = setup(OnboardingStep.Goal, NumbersAnswers, goalsAndEnergy = true, policy)
+        .copy(body = body)
+        .withStartingGoal()
         .withViews(policy)
 
     /** The meal times step after the design's answers (eating regularly), with a later breakfast. */

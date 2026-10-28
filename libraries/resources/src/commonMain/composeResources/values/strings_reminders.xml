@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Reminders and celebrations, the reminder notifications, and the Rhythm card that links to
-  them (0.2, behind release.reminders). Verbatim from design v3 (reminders.png,
-  reminder-notification.png, today-rhythm.png) where it has the copy, then the handoff, new
-  lines per docs/plans/screens/reminders.md.
+  Reminders and celebrations and the reminder notifications (0.2, behind release.reminders).
+  Verbatim from design v3 (reminders.png, reminder-notification.png) where it has the copy, then
+  the handoff, new lines per docs/plans/screens/reminders.md.
   Same rules as strings.xml: no backslash escapes, positional format specifiers.
 
   The notification strings take no format arguments on purpose: a notification is a
@@ -49,8 +48,6 @@
     <!-- Water settings -->
     <string name="reminders_water_row">Reminders</string>
     <string name="reminders_water_row_body">One mid-morning, one mid-afternoon.</string>
-
-    <!-- Today, Rhythm -->
 
     <!-- The notification. Plain is v3's; warm keys end in _warm. -->
     <string name="reminders_note_breakfast">Breakfast isn't logged yet</string>

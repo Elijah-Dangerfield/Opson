@@ -28,6 +28,26 @@ data class ServerConfig(
     val foodSources: FoodSourcesConfig = FoodSourcesConfig(),
     val waitlist: WaitlistConfig = WaitlistConfig(),
 ) {
+    /**
+     * Every optional feature, on or off, in one line for the boot log, named by
+     * what it does rather than the variable behind it. A feature that is off on
+     * prod by accident (no Apple key, so deletion can't revoke the Apple token;
+     * no Sentry DSN) shows up here instead of only when someone needs it.
+     */
+    fun featureSummary(): String = listOf(
+        "database" to (database != null),
+        "auth" to (supabase != null),
+        "accountDeletion" to (supabase?.serviceRoleKey != null),
+        "appleRevoke" to (supabase?.appleSignIn != null),
+        "sentry" to (sentry.dsn != null),
+        "otlp" to (observability.otlpEndpoint != null),
+        "admin" to !admin.apiToken.isNullOrBlank(),
+        "configWebhook" to (configChange.webhookUrl != null),
+        "photo" to (foodSources.anthropic != null),
+        "nutritionix" to (foodSources.nutritionix != null),
+        "offSearch" to foodSources.searchOpenFoodFacts,
+    ).joinToString(" ") { (name, on) -> "$name=${if (on) "on" else "off"}" }
+
     companion object {
         fun fromEnv(env: Env = Env()): ServerConfig = ServerConfig(
             http = HttpConfig.fromEnv(env),
@@ -131,30 +151,39 @@ data class FoodSourcesConfig(
 }
 
 /**
- * The Anthropic API, for photo estimates (`POST /v1/describe/photo`). Null
- * until `ANTHROPIC_API_KEY` is set, and the route then answers 503
- * `photo_estimate_unavailable`, which the app shows as a calm "not available
- * right now". [photoModel] is `ANTHROPIC_PHOTO_MODEL`, so the model can change
- * without a release (see `AnthropicEstimateProvider` for the default and why).
- * Treat the key like a password: never log it.
+ * The Anthropic API, for photo estimates (`POST /v1/describe/photo`) and
+ * reading pack labels (`POST /v1/foods/labels/parse`). Null until
+ * `ANTHROPIC_API_KEY` is set, and both routes then answer 503, which the app
+ * shows as a calm "not available right now". [photoModel] is
+ * `ANTHROPIC_PHOTO_MODEL` and [labelModel] `ANTHROPIC_LABEL_MODEL`, so either
+ * model can change without a release (see `AnthropicEstimateProvider` and
+ * `AnthropicLabelParser` for the defaults and why). Treat the key like a
+ * password: never log it.
  */
 data class AnthropicConfig(
     val apiKey: String,
     val photoModel: String = DEFAULT_PHOTO_MODEL,
+    val labelModel: String = DEFAULT_LABEL_MODEL,
     /**
      * Null for Anthropic's own API. Never set from the environment; the
      * end-to-end tests point it at a stand-in that answers like the Messages API.
      */
     val baseUrl: String? = null,
 ) {
-    override fun toString(): String = "AnthropicConfig(apiKey=***, photoModel=$photoModel, baseUrl=$baseUrl)"
+    override fun toString(): String =
+        "AnthropicConfig(apiKey=***, photoModel=$photoModel, labelModel=$labelModel, baseUrl=$baseUrl)"
 
     companion object {
         const val DEFAULT_PHOTO_MODEL = "claude-opus-5-5"
+        const val DEFAULT_LABEL_MODEL = "claude-fable-5-1"
 
         fun fromEnv(env: Env): AnthropicConfig? {
             val key = env["ANTHROPIC_API_KEY"] ?: return null
-            return AnthropicConfig(apiKey = key, photoModel = env["ANTHROPIC_PHOTO_MODEL"]?.trim() ?: DEFAULT_PHOTO_MODEL)
+            return AnthropicConfig(
+                apiKey = key,
+                photoModel = env["ANTHROPIC_PHOTO_MODEL"]?.trim() ?: DEFAULT_PHOTO_MODEL,
+                labelModel = env["ANTHROPIC_LABEL_MODEL"]?.trim()?.ifEmpty { null } ?: DEFAULT_LABEL_MODEL,
+            )
         }
     }
 }
@@ -305,7 +334,7 @@ data class ObservabilityConfig(
  * verifies signatures against them — no shared secret lives on the server.
  *
  * Nullable: with no `SUPABASE_URL` the server boots without authenticated routes
- * (the `/v1/me` endpoint isn't mounted). Set it to enable auth.
+ * (`/v1/me`, sync, foods, photo and export aren't mounted). Set it to enable auth.
  *
  * [serviceRoleKey] is the project's service_role JWT, required for Admin API
  * calls (e.g. `DELETE /auth/v1/admin/users/<id>` for account deletion).
@@ -346,8 +375,9 @@ data class SupabaseConfig(
  * exchange can produce.
  *
  * Null unless all three of `APPLE_TEAM_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY` are
- * set; then the app's authorization codes are refused and deletion skips revocation,
- * with a warning. [privateKeyPem] is the `.p8` file's contents: treat it as a password.
+ * set. While it is null the app's authorization codes are refused (503
+ * `apple_not_configured`) and deletion skips revocation with a warning, which App Review
+ * does not accept: set all three on prod before a release that offers Sign in with Apple. [privateKeyPem] is the `.p8` file's contents: treat it as a password.
  */
 data class AppleSignInConfig(
     val teamId: String,
@@ -436,7 +466,8 @@ data class DatabaseConfig(
  *   - jdbcUrl: `jdbc:postgresql://host:port/db?params` (no credentials)
  *   - username, password: extracted and URL-decoded
  *
- * Internal helper, public only for tests.
+ * A malformed value fails boot with a message that never quotes it: the
+ * credentials sit near the front, and the message reaches the logs and Sentry.
  */
 internal data class ParsedPostgresUrl(
     val jdbcUrl: String,
@@ -446,7 +477,8 @@ internal data class ParsedPostgresUrl(
     companion object {
         fun parse(raw: String): ParsedPostgresUrl {
             require(raw.startsWith("postgresql://") || raw.startsWith("postgres://")) {
-                "DATABASE_URL must start with postgresql:// (got: ${raw.take(20)}…)"
+                val scheme = raw.substringBefore("://", missingDelimiterValue = "").takeIf { SCHEME.matches(it) } ?: "none"
+                "DATABASE_URL must start with postgresql:// (got scheme: $scheme)"
             }
             val noScheme = raw.substringAfter("://")
             val atIndex = noScheme.lastIndexOf('@')
@@ -464,7 +496,13 @@ internal data class ParsedPostgresUrl(
             )
         }
 
-        private fun urlDecode(s: String): String =
+        private val SCHEME = Regex("[a-z][a-z0-9+.-]{0,20}")
+
+        /** URLDecoder's own message quotes the bad escape, which is part of the password. */
+        private fun urlDecode(s: String): String = try {
             java.net.URLDecoder.decode(s, Charsets.UTF_8)
+        } catch (_: IllegalArgumentException) {
+            throw IllegalArgumentException("DATABASE_URL credentials have a malformed %-escape")
+        }
     }
 }

@@ -111,16 +111,20 @@ interface AuthRepository {
      * (storage lost it) and [retry] couldn't revive one, but local state says a
      * real account exists. Tears down like a server rejection — emits
      * [AuthState.Unauthenticated] with [AuthState.Unauthenticated.Reason.SessionExpired]
-     * so the app routes to the recovery screen instead of anything minting a
-     * fresh guest over the stranded account (AUTH-19). [wasAnonymous] routes the
-     * guest copy (unrecoverable, start fresh) vs claimed copy (sign in again).
+     * so the app routes to the recovery screen and from there to sign-in
+     * (AUTH-19). [wasAnonymous] picks the copy: a claimed account signs in
+     * again; a guest signs in too, losing this phone's guest log.
      *
      * Default no-op so test fakes that don't drive recovery needn't implement
      * it; the production impl overrides.
      */
     suspend fun markSessionUnrecoverable(wasAnonymous: Boolean) {}
 
-    /** Tear down the current Supabase session. The person signs in again to come back. */
+    /**
+     * Tear down the current Supabase session. The person signs in again to come back.
+     * Called after a session expiry it only clears the dead session: the expired
+     * account's data stays until someone signs in.
+     */
     suspend fun signOut()
 
     /**
@@ -236,8 +240,8 @@ sealed interface AuthState {
         val reason: Reason = Reason.None,
         /**
          * Whether the session we lost was anonymous (guest). Only meaningful for
-         * [Reason.SessionExpired]; lets the app route a guest (unrecoverable —
-         * start fresh) differently from a claimed account (sign in again).
+         * [Reason.SessionExpired], where it picks the copy: a claimed account
+         * signs in again; a guest signs in too, losing this phone's guest log.
          */
         val wasAnonymous: Boolean = false,
     ) : AuthState {
@@ -246,21 +250,19 @@ sealed interface AuthState {
          * Why we're unauthenticated.
          *
          * - [None] — no session / not-yet-resolved / offline. No forced routing;
-         *   the auth gate handles navigation as usual. This is also the reason a
-         *   never-signed-in-but-onboarded guest (the stranding case) carries, so
-         *   identity self-heal mints a session for it.
+         *   the auth gate handles navigation as usual. For an onboarded person,
+         *   identity self-heal tries a refresh, then sends them to sign in.
          * - [SessionExpired] — the session is genuinely dead: either the auth
          *   server **rejected** our token and a refresh failed, or the client
          *   declared it unrecoverable ([AuthRepository.markSessionUnrecoverable] —
-         *   storage lost the token while a cached account exists). The app boots
-         *   the user to re-authenticate (claimed) or start fresh (guest). Sticky
-         *   within the run: a re-resolve that still finds no session keeps this
-         *   reason instead of decaying to [None], so identity self-heal never
-         *   mints over a dead-but-declared session.
-         * - [SignedOut] — a **deliberate** sign-out / account delete this run. The
-         *   distinction from [None] is load-bearing for identity self-heal: it must
-         *   NOT resurrect a user who just chose to sign out as a fresh anonymous
-         *   guest. (After a relaunch this collapses back to [None]; the
+         *   storage lost the token while a cached account exists). The app sends
+         *   the person to sign in again; the account's data stays on the device
+         *   until someone does. Sticky within the run: a re-resolve that still
+         *   finds no session keeps this reason instead of decaying to [None], so
+         *   identity self-heal never reads it as an ordinary stranding.
+         * - [SignedOut] — a **deliberate** sign-out / account delete this run.
+         *   Keeps identity self-heal from re-resolving or routing it, and is
+         *   sticky like [SessionExpired]. (After a relaunch this is [None]; the
          *   `hasUserOnboarded` guard — cleared on sign-out — covers that case.)
          */
         enum class Reason { None, SessionExpired, SignedOut }

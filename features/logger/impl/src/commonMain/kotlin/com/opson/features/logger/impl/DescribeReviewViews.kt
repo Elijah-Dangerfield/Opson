@@ -51,6 +51,7 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.describe_add_missed
 import opson.libraries.resources.generated.resources.describe_find_add_title
 import opson.libraries.resources.generated.resources.describe_find_none
+import opson.libraries.resources.generated.resources.describe_find_offline
 import opson.libraries.resources.generated.resources.describe_find_placeholder
 import opson.libraries.resources.generated.resources.describe_find_searching
 import opson.libraries.resources.generated.resources.describe_find_swap_title
@@ -289,7 +290,9 @@ internal fun DescribeFindPane(find: DescribeFindUi, onAction: (LoggerAction) -> 
             val results = find.results
             when {
                 results == null -> item { FoodRowsNote(stringResource(Res.string.describe_find_searching)) }
-                results.isEmpty() && find.query.isNotBlank() -> item { FoodRowsNote(stringResource(Res.string.describe_find_none)) }
+                results.isEmpty() && find.query.isNotBlank() -> item {
+                    FoodRowsNote(stringResource(if (find.offline) Res.string.describe_find_offline else Res.string.describe_find_none))
+                }
                 else -> itemsIndexed(results, key = { _, result -> result.id }) { index, result ->
                     ListRow(
                         title = result.name,

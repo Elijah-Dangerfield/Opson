@@ -29,6 +29,7 @@ import com.opson.libraries.diary.MealTimes
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -400,5 +401,22 @@ class TodayStateBuilderTest {
     fun hiddenWaterHasNoCard() {
         assertNull(build(PresetId.Full, overrides = mapOf(Metric.Water to Visibility.Hide)).water)
         assertNull(build(PresetId.NoNumbers, overrides = mapOf(Metric.Water to Visibility.Hide)).water)
+    }
+
+    /**
+     * Meal cards skip by equality when the rest of Today moves (an Undo bar, the menu, the fasting
+     * minute): the cards and what their rows read come out equal from two such states.
+     */
+    @Test
+    fun theMenuOrAnUndoBarLeavesTheMealsAndWhatTheirRowsReadEqual() {
+        val inputs = TodayFixtures.inputs(TodayFixtures.day(), Settings())
+        val quiet = TodayStateBuilder.build(inputs, policy(PresetId.Full))
+        val busy = TodayStateBuilder.build(inputs, policy(PresetId.Full), menuOpen = true, ui = TodayUi(removed = RemovedNotice(1, "Banana", MealSlot.Breakfast)))
+
+        assertEquals(quiet.meals, busy.meals)
+        assertEquals(FoodRowContext.of(quiet), FoodRowContext.of(busy))
+        assertNotEquals(FoodRowContext.of(quiet), FoodRowContext.of(quiet.copy(highlight = MealSlot.Lunch)))
+        // Closing the day takes every meal's +, so a card must not skip it.
+        assertNotEquals(FoodRowContext.of(quiet), FoodRowContext.of(quiet.copy(closed = true)))
     }
 }

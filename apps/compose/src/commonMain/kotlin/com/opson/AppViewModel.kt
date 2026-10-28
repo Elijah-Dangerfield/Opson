@@ -8,17 +8,14 @@ import com.opson.libraries.config.EnsureAppConfigLoaded
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.AuthState
-import com.opson.libraries.identity.profile.ProfileRepository
 import com.opson.libraries.opson.AppCache
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.networking.AccessDeniedBus
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -27,11 +24,10 @@ import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
- * Hard cap on each wait behind the Compose boot gate: the unauthed app-config
- * and, for a returning user, the first profile. The config repository times
- * its own refresh out and the profile falls back to its cache, so this is a
- * backstop: a wedged fetch, or a resolve that throws and never emits, must not
- * strand the user on the loading screen.
+ * Hard cap on the boot gate's wait for the unauthed app-config. The config
+ * repository answers from its cached or bundled copy and times its own refresh
+ * out, so this is a backstop: a wedged load must not strand the user on the
+ * loading screen.
  */
 internal const val BootWaitTimeoutMillis = 8_000L
 
@@ -51,16 +47,15 @@ internal const val BootWaitTimeoutMillis = 8_000L
  *  - [isReady] flips as soon as the start destination is resolved. It
  *    releases the platform splash (Android's native splash API / iOS's
  *    splash overlay) so it hands off to the Compose boot gate.
- *  - [isBootComplete] flips once the remaining boot work finishes: the
- *    unauthed app-config has resolved (or timed out) and — for returning
- *    users — the first [ProfileRepository.observe] emission has landed.
- *    The Compose boot gate shows the cycling loading caption until this is
- *    true, then renders the real nav graph.
+ *  - [isBootComplete] flips once the unauthed app-config has resolved (or
+ *    timed out). The Compose boot gate shows the cycling loading caption
+ *    until this is true, then renders the real nav graph.
  *
  * Holding the gate on app-config means the first screen renders real
  * config-driven values on frame one instead of the "server hasn't told us
- * yet" sentinel; holding it on the profile resolve means a returning user's
- * home renders authoritative state on frame one, not a stale cache flash.
+ * yet" sentinel. It does not wait on the profile: nothing on Today or the
+ * Logger reads it, and the first profile is a `/v1/me` round trip, so on a
+ * weak connection every cold start sat on the loading screen for it.
  *
  * The iOS splash-overlay state lives inside the [App] composable itself, not
  * here — keeping it out of the reactive app state means flipping it cannot
@@ -71,7 +66,6 @@ internal const val BootWaitTimeoutMillis = 8_000L
 @Inject
 class AppViewModel(
     private val appCache: AppCache,
-    private val profileRepository: ProfileRepository,
     private val authRepository: AuthRepository,
     private val ensureAppConfigLoaded: EnsureAppConfigLoaded,
     private val accessDeniedBus: AccessDeniedBus,
@@ -130,10 +124,9 @@ class AppViewModel(
     private val _isBootComplete = MutableStateFlow(false)
 
     /**
-     * True once the boot gate's remaining work has finished — app-config
-     * resolved (or timed out) and, for returning users, the first profile
-     * emission landed. The App composable holds the cycling boot-loading
-     * screen until this flips, then renders the nav graph.
+     * True once app-config has resolved (or timed out). The App composable
+     * holds the cycling boot-loading screen until this flips, then renders
+     * the nav graph.
      */
     val isBootComplete: StateFlow<Boolean> = _isBootComplete.asStateFlow()
 
@@ -146,24 +139,9 @@ class AppViewModel(
             // Compose boot gate now covers the rest of the wait.
             _isReady.value = true
 
-            coroutineScope {
-                // Hold the boot gate until the unauthed app-config resolves so
-                // the first screen renders real config values on frame one.
-                // Capped so a wedged fetch can't strand the user — the config
-                // repo falls back to bundled defaults.
-                val config = launch {
-                    withTimeoutOrNull(BootWaitTimeoutMillis) { ensureAppConfigLoaded() }
-                }
-                if (onboarded) {
-                    // Returning users: also wait for the profile resolve so
-                    // home renders authoritative data on the first frame
-                    // instead of flashing stale cache values. Capped like the
-                    // config: the resolve is a network call, and one that
-                    // throws emits nothing at all.
-                    withTimeoutOrNull(BootWaitTimeoutMillis) { profileRepository.observe().first() }
-                }
-                config.join()
-            }
+            // Capped so a wedged load can't strand the user; the config repo
+            // falls back to bundled defaults.
+            withTimeoutOrNull(BootWaitTimeoutMillis) { ensureAppConfigLoaded() }
             _isBootComplete.value = true
         }
 

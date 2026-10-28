@@ -37,6 +37,16 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import com.opson.server.domain.Food
+import com.opson.server.domain.FoodSubmissionRepository
+import com.opson.server.domain.ImageType
+import com.opson.server.domain.LabelFacts
+import com.opson.server.domain.NewFoodSubmission
+import com.opson.server.domain.PackPhotos
+import com.opson.server.domain.SubmissionOrigin
+import com.opson.server.domain.SubmitOutcome
+import com.opson.server.testing.FakeFoodSubmissionRepository
+import com.opson.server.testing.TestImages
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import java.util.UUID
@@ -76,6 +86,7 @@ class FoodRoutesTest {
         catalog: FakeFoodCatalog = FakeFoodCatalog(listOf(banana, bread)),
         lookup: BarcodeLookup = FakeBarcodeLookup(BarcodeLookupResult.NotFound),
         describer: FoodDescriber = FakeDescriber(),
+        submissions: FoodSubmissionRepository = FakeFoodSubmissionRepository(),
         block: suspend (HttpClient) -> Unit,
     ) {
         testApplication {
@@ -84,13 +95,44 @@ class FoodRoutesTest {
                 installRateLimits()
                 installStatusPages()
                 installAuthentication(TestJwt.verification)
-                routing { foodRoutes(catalog, lookup, describer) }
+                routing { foodRoutes(catalog, lookup, describer, submissions) }
             }
             block(createClient { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } })
         }
     }
 
-    private fun HttpRequestBuilder.auth() = header(HttpHeaders.Authorization, TestJwt.bearer(userId))
+    private fun HttpRequestBuilder.auth(user: UserId = userId) = header(HttpHeaders.Authorization, TestJwt.bearer(user))
+
+    /** A food [userId] submitted, still waiting for review, with its scanned code. */
+    private suspend fun pendingSubmission(submissions: FakeFoodSubmissionRepository, food: Food) {
+        val stored = (
+            submissions.submit(
+                NewFoodSubmission(
+                    id = UUID.randomUUID(), userId = userId, barcode = "012345678905", origin = SubmissionOrigin.Barcode,
+                    facts = LabelFacts(name = food.name), checks = emptyList(), acknowledged = emptyList(), parsed = null, model = null,
+                    photos = PackPhotos(TestImages.jpeg, ImageType.Jpeg, TestImages.jpeg, ImageType.Jpeg),
+                ),
+            ) as SubmitOutcome.Created
+            ).submission
+        submissions.submissions[stored.id] = stored.copy(foodId = food.id)
+    }
+
+    @Test
+    fun aPendingSubmissionIsOnlyItsSubmittersToSeeOrScan() = runTest {
+        val pending = food("granola bar", source = CatalogSource.UserSubmitted)
+        val submissions = FakeFoodSubmissionRepository()
+        pendingSubmission(submissions, pending)
+        val other = UserId(UUID.fromString("99999999-9999-9999-9999-999999999999"))
+        withApp(catalog = FakeFoodCatalog(listOf(pending)), submissions = submissions) { client ->
+            assertEquals(HttpStatusCode.OK, client.get("/v1/foods/${pending.id}") { auth() }.status)
+            assertEquals(HttpStatusCode.NotFound, client.get("/v1/foods/${pending.id}") { auth(other) }.status)
+
+            val mine = client.get("/v1/foods/barcode/0012345678905") { auth() }
+            assertEquals(HttpStatusCode.OK, mine.status)
+            assertEquals(pending.id.toString(), mine.body<FoodResponse>().id)
+            assertEquals(HttpStatusCode.NotFound, client.get("/v1/foods/barcode/012345678905") { auth(other) }.status)
+        }
+    }
 
     @Test
     fun everyRouteRequiresAuth() = runTest {

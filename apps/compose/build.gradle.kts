@@ -257,3 +257,11 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink>()
     .configureEach { enabled = false }
 tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest>()
     .configureEach { enabled = false }
+
+// WidgetFallbackColorsTest reads the iOS widget's Swift fallback colours, so a Swift edit must
+// rerun it rather than leave the test task up to date.
+tasks.withType<Test>().configureEach {
+    inputs.file(rootProject.file("apps/ios/OpsonWidgets/TodayWidgetView.swift"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("iosWidgetFallbackColors")
+}

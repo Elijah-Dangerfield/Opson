@@ -19,6 +19,7 @@ import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.foods.FoodTier
 import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.ParsedItem
@@ -206,8 +207,9 @@ object LoggerFixtures {
         slot: MealSlot = MealSlot.Dinner,
         added: Boolean = false,
         exercise: Boolean = false,
+        closed: Boolean = false,
     ): LoggerState {
-        val inputs = inputs(settings = settings, date = date, firstRun = firstRun)
+        val inputs = inputs(settings = settings, date = date, firstRun = firstRun).let { if (closed) it.copy(day = it.day.closed()) else it }
         // Jasmine rice went in from Recent's + since the sheet opened: its row draws ✓.
         val logged = if (added) inputs.copy(day = inputs.day.with(item(rice, slot, date, minutesAgo = 1))) else inputs
         return LoggerStateBuilder.build(
@@ -228,6 +230,9 @@ object LoggerFixtures {
 
     /** [this] with [item] logged to its slot. */
     private fun Day.with(item: LogItem): Day = copy(itemsBySlot = itemsBySlot + (item.slot to items(item.slot) + item))
+
+    /** [this] closed with Close the day at 9 pm. */
+    private fun Day.closed(): Day = copy(closedAt = LocalDateTime(date, LocalTime(21, 0)).toInstant(TimeZone.UTC))
 
     /** 10:40 on [today]: a time this person has no regular meal at (3.1b). */
     val midMorning: LocalDateTime = LocalDateTime(today, LocalTime(10, 40))
@@ -304,8 +309,9 @@ object LoggerFixtures {
         flags: Boolean = true,
         firstRun: Boolean = false,
         settings: Settings = Settings(),
+        closed: Boolean = false,
     ): FoodSearchState {
-        val inputs = searchInputs(settings = settings, firstRun = firstRun)
+        val inputs = searchInputs(settings = settings, firstRun = firstRun).let { if (closed) it.copy(day = it.day.closed()) else it }
         val logged = if (added && !pickingForMeal) inputs.copy(day = inputs.day.with(item(rice, MealSlot.Dinner, minutesAgo = 1))) else inputs
         val choices = SearchChoices(
             slot = MealSlot.Dinner,
@@ -313,7 +319,7 @@ object LoggerFixtures {
             search = search,
             scope = scope,
             scanAvailable = flags,
-            photoAvailable = flags,
+            addFoodAvailable = flags,
             pickingForMeal = pickingForMeal,
             seen = inputs.day.allItems.mapTo(HashSet()) { it.id },
         )
@@ -386,6 +392,7 @@ object LoggerFixtures {
         parsedLines: Boolean = true,
         review: DescribeReview = if (parsedLines) describeReview(policy) else DescribeReview(),
         text: String = if (parsedLines) "2 eggs and toast" else "",
+        quickAdd: QuickAddForm = QuickAddForm(),
     ): LoggerState = LoggerStateBuilder.build(
         inputs = inputs(),
         policy = policy,
@@ -396,8 +403,22 @@ object LoggerFixtures {
             describeText = text,
             describeStatus = if (review.rows.isNotEmpty()) DescribeStatus.Parsed else DescribeStatus.Idle,
             review = review,
+            quickAdd = quickAdd,
         ),
     )
+
+    /**
+     * A protein bar's label copied into quick add. Its macros come to 500 kcal at 4/4/9 and the
+     * energy typed is 400, so All numbers spells out the gap.
+     */
+    val proteinBar = QuickAddForm(
+        name = "Protein bar",
+        numbers = mapOf(Metric.Calories to "400", Metric.Protein to "30", Metric.Carbs to "50", Metric.Fat to "20", Metric.Fiber to "4"),
+    )
+
+    /** Describe with nothing typed in the box and [proteinBar] in "Or just the numbers". */
+    fun quickAddState(policy: VisibilityPolicy, form: QuickAddForm = proteinBar): LoggerState =
+        describeState(policy, parsedLines = false, quickAdd = form)
 
     /**
      * After fixing the read: the eggs swapped to scrambled and stepped to three,
@@ -450,21 +471,28 @@ object LoggerFixtures {
         .withUnit("f:arroz", FoodUnit("oz", 28.0))
         .toggleFavorite("f:arroz")
 
-    fun detailInputs(policy: VisibilityPolicy, settings: Settings = Settings()): DetailInputs =
-        DetailInputs(settings = settings, policy = policy, day = day(), today = today, now = evening)
+    fun detailInputs(policy: VisibilityPolicy, settings: Settings = Settings(), inRecents: Boolean = true): DetailInputs =
+        DetailInputs(settings = settings, policy = policy, day = day(), today = today, now = evening, inRecents = inRecents)
 
     /**
-     * 13.4d: peanut butter, 32 typed into the field in grams, which made the estimate weighed.
+     * Peanut butter, 32 typed into the field in grams, which made it weighed.
      * [nutrientsOpen]: All nutrients tapped open.
      */
     fun detailState(policy: VisibilityPolicy, nutrientsOpen: Boolean = false): FoodDetailState {
         val food = AmountFood.Catalog(peanutButter)
         val ref = FoodRef.Catalog(peanutButter.id)
-        val grams = food.units(emptyList()).indexOf(AmountUnit.Grams)
         val choice = DetailChoice.initial(food, MealSlot.Dinner)
-            .copy(unit = food.units(emptyList())[grams], nutrientsOpen = nutrientsOpen)
+            .copy(unit = AmountUnit.Grams, nutrientsOpen = nutrientsOpen)
             .typed("32")
         return FoodDetailStateBuilder.build(food, choice, detailInputs(policy), ref, PickSource.Search)
+    }
+
+    /** Peanut butter as it opens for someone who weighs themselves in pounds: two tablespoons, ounces before grams in the menu. */
+    fun detailPoundsState(policy: VisibilityPolicy): FoodDetailState {
+        val food = AmountFood.Catalog(peanutButter)
+        val settings = Settings(weightUnit = WeightUnit.Lb)
+        val choice = DetailChoice.initial(food, MealSlot.Snack, prefersOunces = true).copy(quantity = 2.0)
+        return FoodDetailStateBuilder.build(food, choice, detailInputs(policy, settings, inRecents = false), FoodRef.Catalog(peanutButter.id), PickSource.Search)
     }
 
     /** Arroz con pollo as it opens, one plate, with the person's own sizes in the unit menu. */
@@ -475,13 +503,37 @@ object LoggerFixtures {
         return FoodDetailStateBuilder.build(food, choice, detailInputs(policy, arrozSizes), ref, PickSource.Usual)
     }
 
+    /** Oat milk from a carton that states its volume, so the menu offers ml and fl oz. */
+    val oatMilk = food(
+        "oat-milk", "Oat milk", "1 cup (240 ml)", 240.0, 50.0, 0.4, 6.6, 2.1,
+        micros = mapOf("calcium_mg" to 120.0, "vitamin_d_ug" to 1.0, "potassium_mg" to 160.0, "sugars_g" to 3.3),
+    ).copy(source = FoodSource.OpenFoodFacts, brand = "Oatly")
+
+    /** Oat milk at 250 ml, typed, so it is weighed. */
+    fun liquidDetailState(policy: VisibilityPolicy): FoodDetailState {
+        val food = AmountFood.Catalog(oatMilk)
+        val ref = FoodRef.Catalog(oatMilk.id)
+        val ml = food.units(emptyList()).first { it.label == "ml" }
+        val choice = DetailChoice.initial(food, MealSlot.Breakfast).copy(unit = ml).typed("250")
+        return FoodDetailStateBuilder.build(food, choice, detailInputs(policy), ref, PickSource.Search)
+    }
+
+    /** A creamer the person made, counted in tablespoons and never weighed: no grams to offer yet. */
+    val creamer = CustomFood(id = "creamer", name = "Hazelnut creamer", servingAmount = 1.0, servingUnit = "tbsp", kcal = 35.0, carbs = 5.0, fat = 1.5)
+
+    fun creamerDetailState(policy: VisibilityPolicy): FoodDetailState {
+        val food = AmountFood.Custom(creamer)
+        val choice = DetailChoice.initial(food, MealSlot.Breakfast).copy(quantity = 2.0)
+        return FoodDetailStateBuilder.build(food, choice, detailInputs(policy), FoodRef.Custom(creamer.id), PickSource.Recent)
+    }
+
     /**
-     * 13.5e: peanut butter in No numbers, two tablespoons typed for a snack and "A little" picked,
+     * No numbers, peanut butter, two tablespoons typed for a snack and "A little" picked,
      * the hunger questions on.
      */
     fun noNumbersDetailState(policy: VisibilityPolicy): FoodDetailState {
         val food = AmountFood.Catalog(peanutButter)
-        val choice = DetailChoice.initial(food, MealSlot.Snack).typed("2", weighs = false).copy(hunger = Hunger.Neutral)
+        val choice = DetailChoice.initial(food, MealSlot.Snack).typed("2").copy(hunger = Hunger.Neutral)
         return FoodDetailStateBuilder.build(food, choice, detailInputs(policy, Settings(askTags = true)), FoodRef.Catalog(peanutButter.id), PickSource.Search)
     }
 
@@ -525,6 +577,9 @@ object LoggerFixtures {
     val lookingUpSlow: ScanModel = scanning.copy(lookup = Lookup.Running(MISSED_CODE, slow = true))
     val missed: ScanModel = scanning.copy(lookup = Lookup.Missed(MISSED_CODE))
     val missedNamed: ScanModel = missed.copy(name = "Rye crispbread")
+
+    /** With `release.submitFood`: Add this food comes first. */
+    val missedAddFood: ScanModel = missed.copy(canAddFood = true)
     val unavailable: ScanModel = scanning.copy(lookup = Lookup.Failed(MISSED_CODE))
     val cameraOff: ScanModel = ScanModel(permission = CameraPermission.Denied(canAskAgain = false))
     val cameraAskAgain: ScanModel = ScanModel(permission = CameraPermission.Denied(canAskAgain = true))
