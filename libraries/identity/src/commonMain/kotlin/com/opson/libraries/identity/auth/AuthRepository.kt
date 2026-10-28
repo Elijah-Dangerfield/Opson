@@ -146,11 +146,10 @@ interface AuthRepository {
      * session is replaced; any guest progress tied to the previous
      * session is orphaned by design.
      *
-     * Note: for the browser OAuth flow this only *launches* the system browser.
-     * The session is established later, when the provider redirects back to
-     * `opson://login-callback` and the app forwards that URL to
-     * [completeOAuthRedirect]. A `SignInOutcome.Success` here means "browser
-     * opened", not "signed in".
+     * For the browser OAuth flow the call returns once the provider's redirect
+     * back to `opson://login-callback` has been handled (the app forwards that
+     * URL to [completeOAuthRedirect]), so a `SignInOutcome.Success` here means
+     * signed in.
      */
     suspend fun signInWithOAuth(provider: OAuthProvider): SignInOutcome
 

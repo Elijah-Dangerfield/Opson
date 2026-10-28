@@ -146,8 +146,8 @@ class AppViewModel(
         }
 
         // Boot the user to re-auth when the auth server rejects our session
-        // mid-run. The teardown (clear caches / session / account-scoped data)
-        // already happened in AuthRepository — this only handles the
+        // mid-run. The session teardown already happened in AuthRepository;
+        // the account's data is kept until someone signs in. This only handles the
         // *navigation* + the "why" message, which an ambient network-triggered
         // event can't do from a feature screen.
         viewModelScope.launch {
@@ -166,7 +166,7 @@ class AppViewModel(
                 // Fire only on the edge into SessionExpired, never repeatedly.
                 if (expired && !previousExpired) {
                     // Route to the blocking session-expired screen; that screen
-                    // owns "sign in again" (claimed) vs "start fresh" (guest).
+                    // owns the copy: sign in again (claimed), or sign in losing this phone's guest log (guest).
                     _sessionExpired.trySend(SessionExpired(wasAnonymous = auth.wasAnonymous))
                 }
                 previousExpired = expired

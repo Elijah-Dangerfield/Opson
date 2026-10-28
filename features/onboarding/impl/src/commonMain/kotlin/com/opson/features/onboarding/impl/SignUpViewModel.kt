@@ -10,10 +10,9 @@ import me.tatarka.inject.annotations.Inject
 /**
  * Drives sign-up. On submit:
  *  - validate locally (basic email shape, password ≥ 6 chars)
- *  - if the current session is anonymous (the typical guest-claim path),
- *    call `authRepository.linkEmailIdentity(...)` so the user's progress
- *    stays on the same userId; otherwise fall back to
- *    `authRepository.signUpWithEmail(...)`.
+ *  - if the session is a guest from an older build, link the email onto it
+ *    (`linkEmailIdentity`) so its log stays; otherwise sign up
+ *    (`signUpWithEmail`).
  *  - on success: emit [SignUpEvent.NavigateToVerifyEmail] (we do NOT
  *    set `hasUserOnboarded = true` yet — that happens after the user
  *    actually confirms their email).
