@@ -92,7 +92,6 @@ import opson.libraries.resources.generated.resources.settings_targets_activity
 import opson.libraries.resources.generated.resources.settings_targets_activity_connect
 import opson.libraries.resources.generated.resources.everyday_activity_body
 import opson.libraries.resources.generated.resources.everyday_activity_title
-import opson.libraries.resources.generated.resources.settings_targets_activity_none
 import opson.libraries.resources.generated.resources.settings_targets_add_details
 import opson.libraries.resources.generated.resources.settings_targets_burn_based
 import opson.libraries.resources.generated.resources.settings_targets_burn_estimated

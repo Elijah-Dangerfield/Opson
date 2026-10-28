@@ -41,7 +41,7 @@ object FindSupportStateBuilder {
 /**
  * Starts from the phone's region and lets the person pick another country, which lasts only
  * while the page is open. Taps go straight to the dialer, messages or the browser through
- * [WebLinkLauncher], never the router: the router logs a link it fails to open, and nothing
+ * [WebLinkLauncher], never the router: the router logs a warning when a link fails to open, and nothing
  * about this page is ever logged, synced or shared. A failure only shows the number.
  */
 @Inject

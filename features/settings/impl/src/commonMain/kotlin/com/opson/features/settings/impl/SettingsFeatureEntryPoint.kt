@@ -190,8 +190,6 @@ class SettingsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is ModesEvent.ShowToast -> show(event.toast)
-                    // TODO(review): two quick taps on a cell with the pause on push two pause sheets.
-                    // Fix it once for every caller in the router (docs/review/findings/settings.md).
                     is ModesEvent.OpenPause -> router.navigate(event.change.toRoute())
                     ModesEvent.OpenEachNumber -> router.navigate(EachNumberRoute())
                     ModesEvent.Close -> router.goBack()
