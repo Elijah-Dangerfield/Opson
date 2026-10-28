@@ -219,11 +219,16 @@ class DelegatingRouter(
         }
     }
 
+    /**
+     * A link that will not open is expected, not a bug (no browser or store app on the device), so
+     * it is a warning and never crashes a debug build. It names the scheme and the exception type
+     * only. The link, and the platform's message, which quotes it, can be the eating disorder
+     * helpline Support opens, and that someone tried to reach it is health data.
+     */
     override fun openWebLink(url: String) {
-        webLinkLauncher
-            .open(url)
-            .logOnFailure("Failed to open web link: $url")
-            .throwIfDebug()
+        webLinkLauncher.open(url).onFailure { error ->
+            logger.w { "Couldn't open a ${url.substringBefore(":", missingDelimiterValue = "schemeless")} link (${error::class.simpleName})" }
+        }
     }
 
     override fun shareFile(name: String, mimeType: String, bytes: ByteArray) {

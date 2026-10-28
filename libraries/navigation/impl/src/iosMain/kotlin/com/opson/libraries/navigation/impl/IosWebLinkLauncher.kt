@@ -14,11 +14,10 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 class IosWebLinkLauncher @Inject constructor() : WebLinkLauncher {
 
     override fun open(url: String): Catching<Unit> = Catching {
-        val targetUrl = requireNotNull(NSURL.URLWithString(url)) {
-            "Invalid url: $url"
-        }
+        // The messages leave the link out: it can be a helpline, and failures get logged.
+        val targetUrl = requireNotNull(NSURL.URLWithString(url)) { "Not a URL" }
         val application = UIApplication.sharedApplication
-        check(application.canOpenURL(targetUrl)) { "No handler available for $url" }
+        check(application.canOpenURL(targetUrl)) { "No app can open this link" }
         application.openURL(
             url = targetUrl,
             options = emptyMap<Any?, Any?>(),
