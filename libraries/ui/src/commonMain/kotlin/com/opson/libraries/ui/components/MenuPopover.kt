@@ -8,11 +8,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -21,17 +25,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
@@ -145,6 +155,10 @@ fun MenuGroupDivider(modifier: Modifier = Modifier) {
  * closes: an outside tap, back, or a row that sets [expanded] false. The popup stays composed
  * until that exit has played, so [content] must still draw once [expanded] is false; a menu whose
  * rows come from nullable state wants the other overload.
+ *
+ * The outside tap is caught by a window-sized layer of its own under the menu, not by the
+ * popup's dismiss-on-outside-click. On iOS that event never arrives for a popup opened inside a
+ * bottom sheet, which left the logger's meal dropdown open whatever was tapped around it.
  */
 @Composable
 fun PopoverMenu(
@@ -165,12 +179,17 @@ fun PopoverMenu(
     val currentOnDismissRequest by rememberUpdatedState(onDismissRequest)
     val layoutDirection = LocalLayoutDirection.current
     val origin = remember(alignment, layoutDirection) { alignment.transformOrigin(layoutDirection) }
+    // Gone as soon as the menu is on its way out, so the next tap reaches the screen again.
+    // Composed first, so it sits under the menu and only gets the taps that miss it.
+    if (visibility.targetState && !inPreview) {
+        OutsideTapCatcher(onDismiss = { if (visibility.targetState) currentOnDismissRequest() })
+    }
     Popup(
         alignment = alignment,
         offset = offset,
-        // Once it is on its way out, a second tap outside has nothing left to dismiss.
-        onDismissRequest = { if (visibility.targetState) currentOnDismissRequest() },
-        properties = PopupProperties(focusable = true),
+        // Not focusable: a focusable popup takes every touch outside it as well, on iOS, and
+        // the catcher underneath would never see one. Back and outside taps are the catcher's.
+        properties = PopupProperties(focusable = false, dismissOnBackPress = false, dismissOnClickOutside = false),
     ) {
         AnimatedVisibility(
             visibleState = visibility,
@@ -182,6 +201,55 @@ fun PopoverMenu(
         }
     }
 }
+
+/**
+ * A transparent popup over the whole window that closes the menu on the first press anywhere
+ * outside it, or on back. The press goes no further, as with any menu: tapping outside closes
+ * the menu and does nothing else.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun OutsideTapCatcher(onDismiss: () -> Unit) {
+    val dismiss by rememberUpdatedState(onDismiss)
+    Popup(
+        popupPositionProvider = WindowOrigin,
+        onDismissRequest = { dismiss() },
+        properties = windowCoveringPopupProperties(),
+    ) {
+        // iOS's back swipe reaches the layer on top, this one, and a popup has no back handling of
+        // its own there. Android's back goes to the focused popup window, which is also this one.
+        BackHandler { dismiss() }
+        Box(
+            Modifier
+                .fillMaxSize()
+                .testTag(POPOVER_OUTSIDE_TAG)
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
+                        dismiss()
+                    }
+                },
+        )
+    }
+}
+
+private object WindowOrigin : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset = IntOffset.Zero
+}
+
+/** What a composition test taps to land outside an open [PopoverMenu]. */
+internal const val POPOVER_OUTSIDE_TAG = "popover-outside"
+
+/**
+ * Focusable, so it takes back and the outside taps, and as large as the window, safe areas
+ * included, so a tap anywhere around the menu lands on it.
+ */
+internal expect fun windowCoveringPopupProperties(): PopupProperties
 
 /**
  * [PopoverMenu] for a menu whose rows come from state that is null while it is closed, as
