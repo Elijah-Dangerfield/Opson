@@ -71,13 +71,13 @@ import kotlinx.serialization.json.jsonObject
  * have done anyway.
  *
  * **Why `:apps:integration` and not `:libraries:config`.** The declared key set
- * spans two impl modules that cannot see each other: `config.refreshThrottleMs`
- * is declared in `:libraries:config:impl` next to the repository whose refresh it
- * throttles, and the `telemetry.*` three live in `:libraries:telemetry:impl`.
- * Only an `:apps:*` module may depend on an impl, so this is the only test module
- * that can hold both halves. A test in `:libraries:config` would have had to pin
- * the telemetry paths and defaults as literals, which is the hand-maintenance it
- * exists to remove.
+ * spans impl modules that cannot see each other: `config.refreshThrottleMs` is
+ * declared in `:libraries:config:impl` next to the repository whose refresh it
+ * throttles, the `telemetry.*` three live in `:libraries:telemetry:impl`, and the
+ * logger, Today and onboarding impls declare their own release flags. Only an
+ * `:apps:*` module may depend on an impl, so this is the only test module that can
+ * hold all of them. A test in `:libraries:config` would have had to pin those
+ * paths and defaults as literals, which is the hand-maintenance it exists to remove.
  *
  * **The residual seam.** [declaredConfigValues] is itself a hand-written list;
  * nothing here comes from the DI graph's `Set<QaConfigValue>`, because no unit

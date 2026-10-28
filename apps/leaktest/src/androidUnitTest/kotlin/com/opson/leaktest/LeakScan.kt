@@ -40,7 +40,7 @@ internal val LEAK = Regex("""\d[\d,.]*\s*(kcal|cal\b|calories)|\d[\d,]*\s*left\b
 private const val SETTLE_MILLIS = 1_000L
 
 /**
- * Renders [surface] in [policy] the way the app would: Pine, light, normal text, the policy
+ * Renders [surface] in [policy] the way the app would: Slate, light, normal text, the policy
  * provided at the root. `LocalInspectionMode` is on because that is what freezes loops and lays
  * sheets out expanded. `PreviewContextConfigurationEffect` hands Compose resources the Android
  * context the way a preview does; today's surfaces resolve their strings without it, but a
@@ -123,7 +123,7 @@ internal fun ComposeContentTestRule.segments(): List<String> =
 
 private fun SemanticsNode.depthFirst(): List<SemanticsNode> = listOf(this) + children.flatMap { it.depthFirst() }
 
-private fun SemanticsNode.texts(): List<String> = buildList {
+internal fun SemanticsNode.texts(): List<String> = buildList {
     config.getOrNull(SemanticsProperties.Text)?.forEach { add(it.text) }
     config.getOrNull(SemanticsProperties.EditableText)?.let { add(it.text) }
     config.getOrNull(SemanticsProperties.ContentDescription)?.forEach { add(it) }

@@ -69,6 +69,25 @@ class DescribeAndPhotoTest : IntegrationTest() {
         assertEquals(PhotoEstimate.Unavailable, phone.photoEstimator.estimate(jpeg, note = null))
     }
 
+    /**
+     * Every photo is a paid model call, so the server allows a burst of ten per person and then
+     * answers 429; the phone turns that into "too many", which the sheet words as a wait, not an
+     * error.
+     */
+    @Test
+    fun photo_pastTheLimit_saysTooMany() = integration {
+        val phone = client()
+
+        repeat(PHOTO_BURST) { assertIs<PhotoEstimate.Items>(phone.photoEstimator.estimate(jpeg, note = null), "photo ${it + 1}") }
+
+        assertEquals(PhotoEstimate.TooMany, phone.photoEstimator.estimate(jpeg, note = null))
+    }
+
     /** What a row means, leaving out the words it was asked with. */
     private fun ParsedItem.shape() = listOf(foodId, name, quantity, unit, portionLabel, grams, kcal, protein)
+
+    private companion object {
+        /** The server's `PhotoEstimateLimiter.BURST`. */
+        const val PHOTO_BURST = 10
+    }
 }

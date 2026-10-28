@@ -192,53 +192,62 @@ keeps existing ticks.
 
 ## test-apps (47 files)
 
-- [ ] `apps/integration/build.gradle.kts`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/android/database/SQLException.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/AdminUserLookupTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/AppleRevocationTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/DeleteEverythingTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/AppGuardJourneyTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/ConfigManifestRegistryDriftTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/FlagTargetingTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/RemoteFlagTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/errors/ErrorSurfacesTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/exercise/ExerciseSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/fasting/FastingSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/DescribeAndPhotoTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/FoodSearchAndBarcodeTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/DeviceSeams.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FakeUpstreams.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FaultProxy.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/InProcessServer.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationAuth.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/ServerCalls.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/TestClient.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/onboarding/SignInOnboardingSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/security/SyncAuthorizationTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/setup/HarnessSmokeTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/storage/RoomMigrationTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/AppearanceAcrossVersionsTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/OfflineOutboxTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/SettingsMergeAcrossVersionsTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/TwoDeviceSyncTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/telemetry/DashboardQueryContractTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/waitlist/WaitlistTest.kt`
-- [ ] `apps/integration/src/androidUnitTest/resources/init-auth.sql`
-- [ ] `apps/leaktest/build.gradle.kts`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindMealGapsTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindModeLeakTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/EnergyOutHiddenLeakTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakScan.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakTestControlTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/MicrosHiddenLeakTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/NoNumbersLeakTest.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/Surfaces.kt`
-- [ ] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/SurfacesCoverageTest.kt`
-- [ ] `apps/screenshots/build.gradle.kts`
-- [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/PreviewScreenshotTest.kt`
-- [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenIds.kt`
-- [ ] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenResult.kt`
+- [x] `apps/integration/build.gradle.kts`
+- [x] `apps/integration/src/androidUnitTest/kotlin/android/database/SQLException.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/AdminUserLookupTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/AppleRevocationTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/DeleteEverythingTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/AppGuardJourneyTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/ConfigManifestRegistryDriftTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/FlagTargetingTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/config/RemoteFlagTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/errors/ErrorSurfacesTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/exercise/ExerciseSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/fasting/FastingSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/DescribeAndPhotoTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/foods/FoodSearchAndBarcodeTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/DeviceSeams.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FakeUpstreams.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/FaultProxy.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/InProcessServer.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationAuth.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/IntegrationTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/ServerCalls.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/helpers/TestClient.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/onboarding/SignInOnboardingSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/security/SyncAuthorizationTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/setup/HarnessSmokeTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/storage/RoomMigrationTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/AppearanceAcrossVersionsTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/OfflineOutboxTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/SettingsMergeAcrossVersionsTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/TwoDeviceSyncTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/telemetry/DashboardQueryContractTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/waitlist/WaitlistTest.kt`
+- [x] `apps/integration/src/androidUnitTest/resources/init-auth.sql`
+- [x] `apps/leaktest/build.gradle.kts`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindMealGapsTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindModeLeakTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/EnergyOutHiddenLeakTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakScan.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakTestControlTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/MicrosHiddenLeakTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/NoNumbersLeakTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/Surfaces.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/SurfacesCoverageTest.kt`
+- [x] `apps/screenshots/build.gradle.kts`
+- [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/PreviewScreenshotTest.kt`
+- [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenIds.kt`
+- [x] `apps/screenshots/src/androidUnitTest/kotlin/com/opson/apps/screenshots/ScreenResult.kt`
+
+Added in round two (reviewed as written):
+
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/BanTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/DisplayNameTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/ExportTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/account/SessionTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/DayRecordAcrossVersionsTest.kt`
+- [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/sync/PagingTest.kt`
 
 ## server-data (90 files)
 

@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap
  *    structured output, so the real `AnthropicEstimateProvider` and SDK parse it;
  *    a request with the label schema gets [labelOutput] instead, for
  *    `AnthropicLabelParser`, and is counted in [labelReads].
- *  - **Open Food Facts** (`/api/v2/product/{code}.json`): knows the products in
+ *  - **Open Food Facts** (`/api/v2/product/{code}.json`): down when [openFoodFactsDown], otherwise knows the products in
  *    [openFoodFactsProducts] and nothing else, so any other code the catalog
  *    lacks is a clean miss.
  *
@@ -60,6 +60,10 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
 
     /** What Open Food Facts knows, by the code as asked. */
     val openFoodFactsProducts: MutableMap<String, OffProduct> = ConcurrentHashMap()
+
+    /** Open Food Facts answers every lookup with a 500, as during an outage. */
+    @Volatile
+    var openFoodFactsDown = false
 
     /** Codes Open Food Facts was asked about, in order. */
     val openFoodFactsLookups: MutableList<String> = Collections.synchronizedList(mutableListOf())
@@ -112,7 +116,9 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
                     val code = call.parameters["file"].orEmpty().removeSuffix(".json")
                     openFoodFactsLookups += code
                     val product = openFoodFactsProducts[code]
-                    if (product == null) {
+                    if (openFoodFactsDown) {
+                        call.respondText("upstream error", ContentType.Text.Plain, HttpStatusCode.InternalServerError)
+                    } else if (product == null) {
                         call.respondText(
                             """{"status":0,"status_verbose":"product not found"}""",
                             ContentType.Application.Json,

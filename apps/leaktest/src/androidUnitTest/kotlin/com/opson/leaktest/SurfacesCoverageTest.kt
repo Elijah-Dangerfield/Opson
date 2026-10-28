@@ -44,6 +44,13 @@ class SurfacesCoverageTest {
         assertTrue(missing.isEmpty(), "EnergyOutHiddenLeakTest names $missing, which no feature lists any more")
     }
 
+    /** A renamed micros surface would otherwise drop out of MicrosHiddenLeakTest without a word. */
+    @Test
+    fun everyMicrosSurfaceIsListed() {
+        val missing = MicrosHiddenLeakTest.MICROS_SURFACES - SURFACES.map { it.id }.toSet()
+        assertTrue(missing.isEmpty(), "MicrosHiddenLeakTest names $missing, which no feature lists any more")
+    }
+
     @Test
     fun idsAreUnique() {
         val duplicates = SURFACES.groupBy { it.id }.filterValues { it.size > 1 }.keys
