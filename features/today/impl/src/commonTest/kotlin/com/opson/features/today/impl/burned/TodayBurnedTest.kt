@@ -2,12 +2,15 @@ package com.opson.features.today.impl.burned
 
 import com.opson.features.today.impl.FakeBurnedRepository
 import com.opson.features.today.impl.FakeCalendar
+import com.opson.features.today.impl.FakeDiaryRepository
 import com.opson.features.today.impl.FakePolicySource
 import com.opson.features.today.impl.FakeSelectedDay
 import com.opson.features.today.impl.FakeSettingsRepository
 import com.opson.features.today.impl.TodayFixtures
 import com.opson.features.today.impl.policy
 import com.opson.features.today.impl.text
+import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.ExerciseRepository
@@ -127,12 +130,15 @@ class TodayBurnedTest : CoroutineTest() {
 
     // --- view model ---
 
+    private val diary = FakeDiaryRepository()
+
     private fun TestScope.vm(released: Boolean = true, selected: FakeSelectedDay = FakeSelectedDay()) = TodayBurnedViewModel(
         selectedDay = selected,
         settingsRepository = FakeSettingsRepository(),
         policySource = FakePolicySource(),
         burnedRepository = FakeBurnedRepository(burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals(340, 0), true)),
         exercise = FakeExercise(listOf(run, run.copy(id = "tomorrow", day = day.plusDays(1)))),
+        diary = diary,
         release = ExerciseRelease { released },
         calendar = FakeCalendar(),
     )
@@ -170,6 +176,21 @@ class TodayBurnedTest : CoroutineTest() {
     }
 
     @Test
+    fun aClosedDayHasNoPlus_andReopeningBringsItBack() = runUnitTest {
+        val vm = vm()
+        settle()
+        assertEquals(false, vm.state.card?.closed)
+
+        diary.days.value = mapOf(day to Day.empty(day).copy(closedAt = TodayFixtures.noon))
+        settle()
+        assertEquals(true, vm.state.card?.closed)
+
+        diary.reopenDay(day)
+        settle()
+        assertEquals(false, vm.state.card?.closed)
+    }
+
+    @Test
     fun withTheReleaseOff_theViewModelReadsNothing() = runUnitTest {
         val vm = vm(released = false)
         settle()
@@ -180,9 +201,9 @@ class TodayBurnedTest : CoroutineTest() {
         private val all = MutableStateFlow(entries)
         override fun observeDay(day: LocalDate): Flow<List<ExerciseEntry>> = all.map { list -> list.filter { it.day == day } }
         override suspend fun get(id: String): ExerciseEntry? = all.value.firstOrNull { it.id == id }
-        override suspend fun add(draft: ExerciseDraft): ExerciseEntry = error("not used")
-        override suspend fun update(id: String, draft: ExerciseDraft) = Unit
-        override suspend fun delete(id: String) = Unit
+        override suspend fun add(draft: ExerciseDraft): DayWrite<ExerciseEntry> = error("not used")
+        override suspend fun update(id: String, draft: ExerciseDraft): DayWrite<Unit> = error("not used")
+        override suspend fun delete(id: String): DayWrite<Unit> = error("not used")
     }
 }
 

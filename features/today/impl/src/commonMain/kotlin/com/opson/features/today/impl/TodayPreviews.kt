@@ -2,6 +2,8 @@ package com.opson.features.today.impl
 
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import com.opson.features.today.impl.dayclose.DayClosedSheetContent
+import com.opson.features.today.impl.dayclose.DayClosedState
 import com.opson.features.today.impl.item.ItemSheetStateBuilder
 import com.opson.features.today.impl.item.ItemStep
 import com.opson.features.today.impl.cards.TodayCardsSheetContent
@@ -560,6 +562,42 @@ private fun DayClosePastDayPreview() = Phone {
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun DayCloseWarmPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(full, settings = Settings(tone = Tone.Warm)), onAction = {}) }
+
+// A day closed with Close the day: no + anywhere, the closed line with Reopen
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayClosedPreview() = Phone { Today(full, day = TodayFixtures.closedDay(), expended = TodayFixtures.expended) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayClosedDarkPreview() = Phone(dark = true) { Today(full, day = TodayFixtures.closedDay()) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayClosedBlindPreview() = Phone { Today(policy(PresetId.NoNumbers), day = TodayFixtures.closedDay()) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun DayCloseClosedPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(full, note = "Dinner at Lola's", closed = true), onAction = {}) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun DayCloseClosedBlindPreview() = Phone(dark = true) {
+    DayCloseScreen(TodayFixtures.dayCloseState(policy(PresetId.NoNumbers), feeling = DayFeeling.Steady, closed = true), onAction = {})
+}
+
+@Preview(widthDp = 390)
+@Composable
+private fun DayClosedSheetPreview() = Phone { DayClosedSheetContent(DayClosedState(isToday = true), onAction = {}) }
+
+@Preview(widthDp = 390)
+@Composable
+private fun DayClosedSheetOtherDayDarkPreview() = Phone(dark = true) { DayClosedSheetContent(DayClosedState(isToday = false), onAction = {}) }
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun FoodActionsClosedPreview() = Phone(dark = true) { ItemSheetContent(TodayFixtures.foodActionsState(full, closed = true), onAction = {}) }
 
 /** Rows of [TodayFull]'s list: the card, water, weight, then breakfast and lunch. */
 private const val BREAKFAST_ROW = 3
