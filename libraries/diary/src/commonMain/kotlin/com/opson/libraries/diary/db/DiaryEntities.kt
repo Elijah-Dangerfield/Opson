@@ -159,8 +159,9 @@ data class ExerciseEntity(
  * did not exist; a rejection restores it.
  *
  * [day] is the diary day the row belongs to, when it has one. The server
- * refuses a day more than two days ahead while Today lets the user plan six
- * ahead, so a change to a later day waits here until its day comes into range.
+ * refuses a day more than eight days past its own today, in UTC
+ * (`SERVER_MAX_DAYS_AHEAD`), so a change to a later day, from a phone whose
+ * date runs ahead, waits here until its day comes into range.
  */
 @Entity(
     tableName = "outbox",

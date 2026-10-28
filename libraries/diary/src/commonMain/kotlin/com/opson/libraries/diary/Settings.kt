@@ -61,6 +61,7 @@ data class Settings(
      */
     @Serializable(with = ExerciseAdjustmentSerializer::class)
     val exercise: ExerciseAdjustment = ExerciseAdjustment.Default,
+    /** Synced since 0.1 and never read by any build: Today's rings draw without it. Kept so old JSON round-trips. */
     val ringMode: RingMode = RingMode.Target,
     val trendsRange: TrendsRange = TrendsRange.Week,
     val trendsCards: TrendsCards = TrendsCards(),
@@ -261,7 +262,7 @@ enum class MacroMode {
     Grams,
 }
 
-/** The third ring on Today's summary card. */
+/** [Settings.ringMode]'s values. */
 @Serializable
 enum class RingMode {
     @SerialName("target")

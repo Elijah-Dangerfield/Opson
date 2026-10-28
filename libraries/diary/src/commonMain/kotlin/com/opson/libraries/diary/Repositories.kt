@@ -218,7 +218,11 @@ interface DiarySync {
 data class SyncRejection(
     val entity: SyncEntity,
     val entityId: String,
-    /** `invalid_row` or `unknown_entity`. */
+    /**
+     * The server's refusal code, usually `invalid_row`. Never `unknown_entity`:
+     * a server that does not know the entity yet is not reported, and the row
+     * stays queued until it does.
+     */
     val code: String,
 )
 
