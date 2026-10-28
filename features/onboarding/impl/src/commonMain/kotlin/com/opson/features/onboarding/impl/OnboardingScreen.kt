@@ -42,6 +42,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealTimes
@@ -680,6 +681,7 @@ private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAc
                 label = stringResource(Res.string.settings_resting_birth_year),
                 allowDecimal = false,
                 enabled = !state.isFinishing,
+                imeAction = ImeAction.Next,
             )
             NumberField(
                 value = answer.height,
@@ -687,6 +689,7 @@ private fun ColumnScope.BodyStep(state: OnboardingState, onAction: (OnboardingAc
                 label = stringResource(Res.string.settings_resting_height),
                 unit = stringResource(if (imperial) Res.string.settings_resting_in else Res.string.settings_resting_cm),
                 enabled = !state.isFinishing,
+                imeAction = if (view.weightShown) ImeAction.Next else ImeAction.Done,
             )
             if (view.weightShown) {
                 NumberField(
