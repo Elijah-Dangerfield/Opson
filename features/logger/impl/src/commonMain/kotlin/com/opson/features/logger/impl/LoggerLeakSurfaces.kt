@@ -94,7 +94,18 @@ object LoggerLeakSurfaces {
         },
         // The scanner draws no food data in any stage; the miss is its fullest screen.
         LeakSurface(id = "logger-scan-miss", label = "Barcode not found", showsCaloriesInFull = false) { _ ->
-            BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.missedNamed), onAction = {}, viewfinder = { _, _ -> })
+            BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.missedNamed.copy(canAddFood = true)), onAction = {}, viewfinder = { _, _ -> })
+        },
+        // Add this food (release.submitFood): the photos name no number in any mode.
+        LeakSurface(id = "submit-food-photos", label = "Add this food, photos", showsCaloriesInFull = false) { policy ->
+            SubmitFoodScreen(state = SubmitFoodFixtures.photosState(policy, photos = 2), onAction = {})
+        },
+        // The label as read: energy and the check that names its difference in Full; words only elsewhere.
+        LeakSurface(id = "submit-food-review", label = "Add this food, check what we read", showsCaloriesInFull = true) { policy ->
+            SubmitFoodScreen(state = SubmitFoodFixtures.reviewState(policy), onAction = {})
+        },
+        LeakSurface(id = "submit-food-by-hand", label = "Add this food, typed in", showsCaloriesInFull = false) { policy ->
+            SubmitFoodScreen(state = SubmitFoodFixtures.byHandState(policy), onAction = {})
         },
         LeakSurface(id = "logger-photo", label = "Photo estimate", showsCaloriesInFull = true) { policy ->
             PhotoEstimateSheetContent(state = PhotoFixtures.reviewState(policy, editing = true), onAction = {})

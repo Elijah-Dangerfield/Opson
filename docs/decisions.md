@@ -119,6 +119,48 @@ widget, a reminder's Already ate and a second phone all reach the diary without
 Today's screens. A thrown exception instead of a typed result. Rejected: an
 expected outcome is a value here (`docs/review/PRACTICES.md`, Errors at the
 edges).
+## 2026-10-27: Packaged foods come in through their label; the meal photo estimate is quick actions only
+
+**Decision:** a barcode miss and a search with no results offer Add this food
+(`release.submitFood`): photos of the pack's front and nutrition label, read
+by `claude-fable-5-1`, converted and checked in code, corrected by the person,
+logged at once as their own custom food, and sent to a review queue. An
+approved food joins search and barcode lookup for everyone. The meal photo
+estimate (`release.photo`) is offered from the + sheet's Photo tile and nowhere
+else: search's "Photograph it" is gone, and the scanner, Describe and the
+empty search never offer it. Its behaviour is otherwise unchanged, and it
+stays out of 0.2.
+
+The submitted food is a `foods` row (source `user_submitted`, tier 4,
+`review_status = 'pending'`) from the first moment, not a separate table that
+approval copies from, so the submitter's own scan and the reviewer's edits work
+on the row everyone will later see. Search filters on `review_status`; the
+row's barcode stays null until approval so a pending submission can never take
+a code from another product. The photos live in Postgres
+(`food_submission_photos`), not Supabase Storage: they are read only by the
+token-gated admin API, a cascade removes them with the account, Testcontainers
+covers them, and there is no bucket or service-role key to configure. At about
+300 KB a photo and deletion 30 days after review, the table stays small; if
+volume grows, Storage behind the same `photo()` call is the move.
+
+A barcode missed and then found by searching within ten minutes is reported
+as a pairing (`barcode_link_suggestions`: barcode, food, count, first and last
+time, no account, no search text) for a reviewer to attach. Nothing attaches a
+barcode on its own.
+
+**Alternatives:** the meal estimate as the fallback for packaged foods (it
+guesses portions from a plate; a label states them, so the label is the better
+source every time there is one); a `food_submissions` table that approval
+copies into `foods` (two copies of every food to keep in step, and the
+submitter's own lookups would need their own path); Supabase Storage for the
+photos (a second store, a secret and a bucket per environment for a few
+hundred KB per submission); attaching a paired barcode automatically (one
+person's mistaken pick would rename a product for everyone).
+
+**Why:** a label read with arithmetic checks is the most accurate food data
+the app can get from a person, and review keeps one person's typo out of
+everyone's diary. Keeping the estimate to one entry point stops it competing
+with the label for a food that has one.
 
 ## 2026-10-27: One everyday activity setting for exercise and goals
 

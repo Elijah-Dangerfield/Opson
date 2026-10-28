@@ -38,7 +38,7 @@ Boot modes (graceful degradation is a deliberate standard):
 |---|---|---|
 | unset | unset | `/_health`, `/v1/example` |
 | set   | unset | + DB connected (no auth routes) |
-| set   | set   | + `/v1/me`, `/v1/sync`, `/v1/foods/*`, `/v1/describe`, `/v1/export.csv` (full) |
+| set   | set   | + `/v1/me`, `/v1/sync`, `/v1/foods/*` (labels and submissions included), `/v1/describe`, `/v1/export.csv` (full) |
 
 ## Layout
 
@@ -164,6 +164,9 @@ the usual `ProblemResponse`.
 | GET | `/v1/foods/{id}` | 400 `invalid_id`, 404 `not_found`. |
 | GET | `/v1/foods/barcode/{code}` | Catalog (any of the code's UPC-A / EAN-13 / GTIN-14 / UPC-E forms), then each enabled outside source in tier order (5 s timeout each). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable` when no source could answer. 60/min per IP. |
 | POST | `/v1/foods/barcode-misses` `{id, barcode}` | The app reports a code the barcode route answered 404. 204, idempotent on `id`. Region, platform and app version come from the `X-*` headers; no user id is stored. 400 `invalid_id`, `invalid_barcode`. 60/min per IP. Feeds `barcode_misses` (V13). |
+| POST | `/v1/foods/labels/parse` `{front, label}` | Reads a pack's two photos (base64) into a label, field by field, with the model's confidence and the checks it fails. Stores no photo. See "Foods people add" below. |
+| POST | `/v1/foods/submissions` `{id, parseId?, origin, barcode?, front, label, food}` | Stores a food someone corrected, pending review, with its photos. 201, or 200 for the same id again. |
+| POST | `/v1/foods/barcode-links` `{barcode, foodId}` | A barcode missed, then found by searching. 204. No account stored. |
 | POST | `/v1/describe` `{text}` | Heuristic parse into items. 400 `invalid_text` (empty or > 1000 chars). |
 | GET | `/v1/export.csv` | Streams the caller's entries, weigh-ins and water. |
 
@@ -204,7 +207,7 @@ from four tiers of source, best first (`foods.tier`, V10):
 | 1 reference | `usda_foundation`, `usda_sr`, `usda_fndds`, `nevo` | committed seed, `import_usda_foods.py`; NEVO by `import_nevo_foods.py` | true |
 | 2 label | `usda_branded` | `import_usda_foods.py --branded`, monthly workflow | true |
 | 3 licensed | `nutritionix` (later NCCDB) | barcode miss, only with keys and caching on | true |
-| 4 community | `off` (later user submissions) | barcode miss, cached; the full export goes in its own table, `off_foods` | false |
+| 4 community | `off`, `user_submitted` | barcode miss, cached; the full export goes in its own table, `off_foods`. People's foods from pack photos, pending until reviewed (V25) | false; true once a reviewer approves |
 
 A trigger fills `tier` and `verified` from `source`, so loaders never write
 them; `food_source_tier()` is the one mapping, and `DatabaseSchemaTest`
@@ -396,6 +399,53 @@ stty -echo; printf "Anthropic API key: "; read -r AK; stty echo; printf "\n"
 [ -n "$AK" ] && fly secrets set ANTHROPIC_API_KEY="$AK" -a opson-server-prod; unset AK
 ```
 
+**Foods people add (`V25__food_submissions.sql`, 0.2, behind `release.submitFood`).**
+When a scan or a search finds nothing, the app photographs the pack's front
+and its nutrition label. `POST /v1/foods/labels/parse` sends both to
+`AnthropicLabelParser`: `claude-fable-5-1` (`ANTHROPIC_LABEL_MODEL`) at effort
+`high`, structured output, one request with both images. The model only
+transcribes, in the units printed; `LabelOutputReader` converts (kJ to kcal,
+salt to sodium, ounces to grams, %DV and IU to amounts on US panels) and
+`LabelChecks` runs the arithmetic: energy against 4/4/9 Atwater (fiber at 2
+and sugar alcohols at 2.4 kcal/g, US and EU carbohydrate both understood, the
+nearest method wins, within 15 kcal or 12%), per serving against per 100,
+sodium a thousand times off, and amounts no food can hold. The app runs the
+same checks as the person edits (`LabelChecks` in `:libraries:foods`).
+
+`POST /v1/foods/submissions` stores the corrected food in `foods` as source
+`user_submitted` (tier 4) with `review_status = 'pending'`, and the photos in
+`food_submission_photos` (Postgres, never a URL). A pending food is the
+submitter's alone: search filters on `review_status = 'approved'`,
+`GET /v1/foods/{id}` is 404 to anyone else, and its barcode waits on the
+submission row, so only its submitter's scan finds it. Approval (admin
+console, `/v1/admin/food-submissions`) writes the reviewer's version, sets
+the barcode and `verified`, and from then on everyone's search and scan find
+it. Photos are deleted 30 days after the decision; deleting the account
+deletes the submission, its photos and any food not yet approved. Limits:
+body 12 MB, each image 4 MB, 10 reads per 10 minutes and 40 a day, 5
+submissions per 10 minutes and 20 a day, per user (`FoodLabelLimiter`).
+
+A barcode miss followed within ten minutes by logging a catalog food from
+search is reported to `POST /v1/foods/barcode-links` and counted in
+`barcode_link_suggestions` (barcode, food, count, first and last time; no
+account, no search text). The same queue lets a reviewer attach the barcode
+to the food or dismiss it. Nothing is attached without a reviewer.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/v1/admin/food-submissions?status=pending&limit=50` | Admin token. The queue, pending oldest first. Each call deletes photos past retention. |
+| GET | `/v1/admin/food-submissions/{id}` | The model's reading, what was sent, a reviewer's edits, the checks on each. |
+| GET | `/v1/admin/food-submissions/{id}/photos/{front\|label}` | The image bytes, `Cache-Control: no-store`. |
+| PUT | `/v1/admin/food-submissions/{id}` `{food}` | A reviewer's corrections; checks re-run. |
+| POST | `/v1/admin/food-submissions/{id}/approve` `{food?}` | 409 `incomplete` (name, serving, energy, protein, carbs, fat), `barcode_taken`, `already_decided`. |
+| POST | `/v1/admin/food-submissions/{id}/reject` `{reason}` | The food stays its submitter's. |
+| GET | `/v1/admin/barcode-links?status=pending` | Suggested links, most paired first. |
+| POST | `/v1/admin/barcode-links/attach` / `dismiss` `{gtin, foodId}` | 409 `barcode_taken`, `food_has_barcode`. |
+
+`analytics.food_submissions_daily`, `food_submission_queue` and
+`barcode_link_queue` feed `ops/grafana/food-review.json`: ids, counts and
+ages only.
+
 **NCCDB (a slot, not code).** The Nutrition Coordinating Center Food and
 Nutrient Database from the University of Minnesota is licensed and delivered
 as files, not an API, so it is not a `FoodSource`. When there is a licence,
@@ -498,6 +548,7 @@ through these routes:
 | `NUTRITIONIX_CACHE_RESULTS` | no | `false` | `true` stores Nutritionix answers in `foods`. Only if the contract allows it. |
 | `ANTHROPIC_API_KEY` | no |, | Secret. Turns on photo estimates. Unset → `/v1/describe/photo` answers 503. |
 | `ANTHROPIC_PHOTO_MODEL` | no | `claude-opus-5-5` | The model that reads meal photos (effort `low`). A cheaper model is a config change, not a release. |
+| `ANTHROPIC_LABEL_MODEL` | no | `claude-fable-5-1` | The model that reads pack labels (effort `high`). A request it refuses outright (a 400, such as an organisation's data retention it does not accept) is retried on `ANTHROPIC_PHOTO_MODEL`. |
 | `WAITLIST_ALLOWED_ORIGINS` | no | dev: `http://localhost:4321,https://elijah-dangerfield.github.io`; prod: none | Comma-separated exact origins (`scheme://host[:port]`) allowed to call `POST /v1/waitlist` from a browser. Only that route uses it. |
 
 ## Roadmap (planned, not yet wired)

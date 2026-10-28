@@ -53,8 +53,11 @@ sealed interface ScanStage {
     /** Allowed, but the camera cannot run: none on the device, a failed start, or another app has it. */
     data object CameraUnavailable : ScanStage
 
-    /** Found nowhere. [code] is shown so the person can see what was read. */
-    data class Miss(val code: String, val name: String, val canSave: Boolean) : ScanStage
+    /**
+     * Found nowhere. [code] is shown so the person can see what was read.
+     * [canAddFood] offers photographing the pack (`release.submitFood`).
+     */
+    data class Miss(val code: String, val name: String, val canSave: Boolean, val canAddFood: Boolean = false) : ScanStage
 
     /** Offline with nothing cached, or no source could answer. Not a miss. */
     data object Unavailable : ScanStage
@@ -75,6 +78,9 @@ sealed interface BarcodeScanAction {
     data class LookupFailed(val code: String) : BarcodeScanAction
     data class MissNameTyped(val text: String) : BarcodeScanAction
     data object SaveNameTapped : BarcodeScanAction
+
+    /** "Add this food" on a miss: photograph the pack. */
+    data object AddFoodTapped : BarcodeScanAction
     data object SearchInsteadTapped : BarcodeScanAction
     data object ScanAgainTapped : BarcodeScanAction
     data object AllowCameraTapped : BarcodeScanAction
@@ -110,6 +116,9 @@ sealed interface BarcodeScanEvent {
     /** Back to where the scanner was opened from. A name saved on a miss is logged by then. */
     data object Close : BarcodeScanEvent
 
+    /** "Add this food": the pack's photos, in this screen's place, for the code that missed. */
+    data class OpenSubmitFood(val day: LocalDate, val slot: MealSlot, val code: String) : BarcodeScanEvent
+
     /** The day is closed (Close the day, maybe on another phone): the name saved on a miss was not logged. */
     data class DayClosed(val day: LocalDate) : BarcodeScanEvent
 }
@@ -134,6 +143,8 @@ data class ScanModel(
     val hasTorch: Boolean = false,
     /** Kept through a lookup and "Scan again", so a dim kitchen stays lit until it is turned off. */
     val torchOn: Boolean = false,
+    /** `release.submitFood`, read once when the scanner opens. */
+    val canAddFood: Boolean = false,
 )
 
 /** The scanner's state as a pure function of [ScanModel], like the logger's [LoggerStateBuilder]. */
@@ -151,7 +162,12 @@ object BarcodeScanStateBuilder {
         val typed = model.typed
         val stage = when (val lookup = model.lookup) {
             is Lookup.Running -> ScanStage.LookingUp(slow = lookup.slow, camera = cameraLive)
-            is Lookup.Missed -> ScanStage.Miss(code = lookup.code, name = model.name, canSave = model.name.isNotBlank())
+            is Lookup.Missed -> ScanStage.Miss(
+                code = lookup.code,
+                name = model.name,
+                canSave = model.name.isNotBlank(),
+                canAddFood = model.canAddFood,
+            )
             is Lookup.Failed -> ScanStage.Unavailable
             Lookup.Idle -> when {
                 typed != null -> ScanStage.Typing(typed, canLookUp = typed.length in TYPED_LENGTHS, misread = model.typedMisread)

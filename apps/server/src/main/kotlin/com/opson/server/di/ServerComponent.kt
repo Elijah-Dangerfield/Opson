@@ -2,6 +2,7 @@ package com.opson.server.di
 
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.config.SupabaseConfig
+import com.opson.server.data.LabelParseCache
 import com.opson.server.data.PhotoDescriber
 import com.opson.server.db.Database
 import com.opson.server.domain.AppConfigAdminRepository
@@ -9,11 +10,15 @@ import com.opson.server.domain.AppConfigManifestRepository
 import com.opson.server.domain.AppConfigSource
 import com.opson.server.domain.AppleSignInClient
 import com.opson.server.domain.AppleTokenRepository
+import com.opson.server.domain.BarcodeLinkRepository
 import com.opson.server.domain.BarcodeMissRepository
 import com.opson.server.domain.BarcodeLookup
 import com.opson.server.domain.ExportRepository
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodDescriber
+import com.opson.server.domain.FoodLabelLimiter
+import com.opson.server.domain.FoodSubmissionRepository
+import com.opson.server.domain.LabelParser
 import com.opson.server.domain.ExampleSource
 import com.opson.server.domain.ModerationRepository
 import com.opson.server.domain.PhotoEstimateLimiter
@@ -92,6 +97,11 @@ abstract class ServerComponent(
     abstract val waitlistLimiter: WaitlistLimiter
     abstract val userInstallRepository: UserInstallRepository
     abstract val userLookupRepository: UserLookupRepository
+    abstract val labelParser: LabelParser
+    abstract val labelParseCache: LabelParseCache
+    abstract val foodLabelLimiter: FoodLabelLimiter
+    abstract val foodSubmissionRepository: FoodSubmissionRepository
+    abstract val barcodeLinkRepository: BarcodeLinkRepository
 
     /**
      * Long-lived application scope for server-owned background work (e.g. the
