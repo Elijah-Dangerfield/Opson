@@ -10,6 +10,7 @@ call, so the mistake shows up on the PR instead.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -178,6 +179,59 @@ class AndroidSentryTest(unittest.TestCase):
         # A hand-run upload-proguard has no ProGuard UUID to match against, so
         # it associates with nothing and still reports success.
         self.assertNotRegex(workflow("release.yml"), r"sentry/cli@\S+ upload-proguard")
+
+
+# Every step's `run` script, by workflow, as JSON from Ruby's YAML parser.
+STEP_SCRIPTS = """
+require "yaml"; require "json"
+puts JSON.generate(ARGV.to_h { |path|
+  steps = YAML.load_file(path).fetch("jobs").values.flat_map { |job| job.fetch("steps", []) }
+  [File.basename(path), steps.filter_map { |step| step["run"] }]
+})
+"""
+
+
+@unittest.skipUnless(shutil.which("ruby"), "needs ruby for its YAML parser")
+class SentryTokenReachesGradleTest(unittest.TestCase):
+    # An unset secret reaches the job env as an empty string. Gradle's
+    # environmentVariable(...).isPresent is true for that, so the Sentry plugin
+    # would try the mapping upload with no token and fail the build before the
+    # "Warn on missing Sentry token" step could say why.
+    def gradle_release_steps(self) -> list[tuple[str, str]]:
+        result = subprocess.run(
+            ["ruby", "-e", STEP_SCRIPTS, str(WORKFLOWS / "release.yml"), str(WORKFLOWS / "beta.yml")],
+            capture_output=True, text=True, timeout=60,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        steps = [
+            (name, script)
+            for name, scripts in json.loads(result.stdout).items()
+            for script in scripts
+            if re.search(r"\./gradlew \S*:(bundle|assemble)Release", script)
+        ]
+        self.assertGreaterEqual(len(steps), 3, "release.yml's AAB and APK and beta.yml's AAB")
+        return steps
+
+    def token_gradle_sees(self, script: str, token: str) -> str:
+        with tempfile.TemporaryDirectory() as tmp:
+            gradlew = Path(tmp) / "gradlew"
+            gradlew.write_text('#!/bin/sh\nprintf "%s" "${SENTRY_AUTH_TOKEN-<unset>}" > seen\n')
+            gradlew.chmod(0o755)
+            result = subprocess.run(
+                ["bash", "-e", "-c", script],
+                cwd=tmp, env={"PATH": os.environ["PATH"], "SENTRY_AUTH_TOKEN": token},
+                capture_output=True, text=True, timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return (Path(tmp) / "seen").read_text()
+
+    def test_an_empty_token_is_unset_before_gradle_runs(self):
+        for name, script in self.gradle_release_steps():
+            self.assertEqual(self.token_gradle_sees(script, ""), "<unset>", f"{name}: {script}")
+
+    def test_a_real_token_still_reaches_gradle(self):
+        for name, script in self.gradle_release_steps():
+            self.assertEqual(self.token_gradle_sees(script, "sntrys_x"), "sntrys_x", f"{name}: {script}")
 
 
 class LegalSyncTest(unittest.TestCase):

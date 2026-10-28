@@ -134,7 +134,15 @@ jobs:
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
       - name: Bundle release AAB
-        run: ./gradlew :apps:compose:bundleRelease -Prelease.signing=true
+        # An unset secret arrives as an empty SENTRY_AUTH_TOKEN, which Gradle
+        # counts as present, so the Sentry plugin would try the mapping upload
+        # with no token and fail the build. Unset, the plugin skips the upload.
+        run: |
+          if [ -z "$SENTRY_AUTH_TOKEN" ]; then
+            echo "::warning::SENTRY_AUTH_TOKEN is not set, so this beta uploads no R8 mapping and its Android crashes arrive obfuscated."
+            unset SENTRY_AUTH_TOKEN
+          fi
+          ./gradlew :apps:compose:bundleRelease -Prelease.signing=true
 
       - name: Locate AAB
         id: aab

@@ -204,10 +204,19 @@ jobs:
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
 
       - name: Bundle release AAB
-        run: ./gradlew :apps:compose:bundleRelease -Prelease.signing=true
+        # An unset secret arrives as an empty SENTRY_AUTH_TOKEN, which Gradle
+        # counts as present, so the Sentry plugin would try the mapping upload
+        # with no token and fail the build. Unset, the plugin skips the upload
+        # and the missing token gets its warning further down.
+        run: |
+          [ -n "$SENTRY_AUTH_TOKEN" ] || unset SENTRY_AUTH_TOKEN
+          ./gradlew :apps:compose:bundleRelease -Prelease.signing=true
 
       - name: Build release APK (for sideload verification)
-        run: ./gradlew :apps:compose:assembleRelease -Prelease.signing=true
+        # Same empty-token unset as the AAB step above.
+        run: |
+          [ -n "$SENTRY_AUTH_TOKEN" ] || unset SENTRY_AUTH_TOKEN
+          ./gradlew :apps:compose:assembleRelease -Prelease.signing=true
 
       - name: Locate AAB
         id: aab
