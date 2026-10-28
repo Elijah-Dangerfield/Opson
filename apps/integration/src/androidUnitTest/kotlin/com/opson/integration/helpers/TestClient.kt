@@ -61,6 +61,7 @@ import com.opson.libraries.foods.impl.HttpBarcodeMissReporter
 import com.opson.libraries.foods.impl.HttpFoodLabels
 import com.opson.libraries.foods.impl.HttpFoodApi
 import com.opson.libraries.foods.impl.HttpMealPhotoEstimator
+import com.opson.libraries.foods.impl.SubmittedFoodsStore
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.impl.HttpProfileApi
 import com.opson.libraries.identity.impl.auth.GatewayAuthTokenProvider
@@ -260,6 +261,7 @@ class TestClient(
     val photoEstimator: MealPhotoEstimator = HttpMealPhotoEstimator(networkClient)
     val barcodeMisses: BarcodeMissReporter = HttpBarcodeMissReporter(networkClient, appScope)
     val foodLabels: FoodLabels = HttpFoodLabels(networkClient)
+    val submittedFoods = SubmittedFoodsStore(cacheFactory, networkClient, appScope)
     val barcodeLinks: BarcodeLinkReporter = HttpBarcodeLinkReporter(networkClient, appScope)
 
     // ── Account ──────────────────────────────────────────────────────────────

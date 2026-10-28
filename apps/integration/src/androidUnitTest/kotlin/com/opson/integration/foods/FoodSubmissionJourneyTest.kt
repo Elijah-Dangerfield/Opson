@@ -7,13 +7,16 @@ import com.opson.integration.helpers.Harness
 import com.opson.integration.helpers.InProcessServer
 import com.opson.integration.helpers.IntegrationTest
 import com.opson.integration.helpers.awaitUntil
+import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.foods.FoodRef
+import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.FoodSubmission
 import com.opson.libraries.foods.LabelCheckCode
 import com.opson.libraries.foods.LabelNutrient
 import com.opson.libraries.foods.LabelParse
+import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.SubmissionOrigin
 import com.opson.libraries.foods.SubmitResult
 import io.ktor.client.request.get
@@ -74,7 +77,9 @@ class FoodSubmissionJourneyTest : IntegrationTest() {
         assertEquals(emptyList(), read.checks, "the stand-in's label adds up")
 
         // The person changes the calories, which then no longer add up, and keeps their figure through the check.
+        // Their own copy is saved first, as the app does, and named on the submission.
         val corrected = read.facts.copy(perServing = read.facts.perServing + (LabelNutrient.Energy to 240.0))
+        val own = alice.customFoods.create(CustomFoodDraft(name = "Oats & honey granola bar", servingAmount = 40.0, servingUnit = "g", kcal = 240.0))
         val submitted = assertIs<SubmitResult.Submitted>(
             alice.foodLabels.submit(
                 FoodSubmission(
@@ -86,12 +91,23 @@ class FoodSubmissionJourneyTest : IntegrationTest() {
                     label = label,
                     facts = corrected,
                     acknowledged = listOf(LabelCheckCode.EnergyMacrosMismatch),
+                    customFoodId = own.id,
                 ),
             ),
         )
 
-        // Theirs at once: their own scan finds it, and only theirs.
-        assertEquals(submitted.foodId, alice.foods.barcode(code).getOrThrow()?.id)
+        // Their copy reads unverified from the server's list alone: this store was never told it was sent,
+        // as on their other phone or after a reinstall.
+        assertTrue(alice.submittedFoods.sync().isSuccess)
+        awaitUntil { alice.submittedFoods.reviews.value == mapOf(own.id to ReviewStatus.Pending) }
+        assertTrue(bob.submittedFoods.sync().isSuccess)
+        assertEquals(emptyMap(), bob.submittedFoods.reviews.value, "nobody else's")
+
+        // Theirs at once: their own scan finds it, and only theirs, and it says it is not checked yet.
+        val pending = assertNotNull(alice.foods.barcode(code).getOrThrow())
+        assertEquals(submitted.foodId, pending.id)
+        assertEquals(ReviewStatus.Pending, pending.reviewStatus)
+        assertEquals(FoodSource.UserSubmitted, pending.source)
         assertNull(bob.foods.barcode(code).getOrThrow(), "pending is the submitter's alone")
         assertTrue(bob.foods.detail(submitted.foodId).isFailure)
         assertTrue(bob.foods.search("honey granola bar").getOrThrow().foods.none { it.id == submitted.foodId })
@@ -116,6 +132,10 @@ class FoodSubmissionJourneyTest : IntegrationTest() {
         assertEquals(475.0, found.per100g.kcal, "190 kcal in 40 g")
         assertEquals(11.25, found.per100g.protein, "the reviewer's protein")
         assertTrue(found.verified)
+        assertEquals(ReviewStatus.Approved, found.reviewStatus)
+        assertTrue(alice.submittedFoods.sync().isSuccess)
+        // The mark goes once it is checked.
+        awaitUntil { alice.submittedFoods.reviews.value == mapOf(own.id to ReviewStatus.Approved) }
         // A fresh phone: Bob's own search above is still in his five-minute cache.
         assertTrue(client().foods.search("honey granola bar").getOrThrow().foods.any { it.id == submitted.foodId })
     }
