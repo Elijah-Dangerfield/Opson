@@ -13,7 +13,7 @@ import com.opson.system.AppTheme
 import com.opson.system.background
 
 /**
- * The grouped card a list of [FoodPickRow]s or [DiaryItemRow]s sits in inside a
+ * The grouped card a list of [DiaryItemRow]s or similar rows sits in inside a
  * sheet: surface, radius 20, rows inset 14 from its sides.
  */
 @Composable

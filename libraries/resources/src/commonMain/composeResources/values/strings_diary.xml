@@ -37,10 +37,6 @@
     <string name="diary_hunger_full">Full</string>
     <string name="diary_hunger_stuffed">Stuffed</string>
 
-    <!-- Food rows -->
-    <string name="diary_pick_cd">Pick %1$s</string>
-    <string name="diary_remove_cd">Remove %1$s</string>
-
     <!-- A day closed with Close the day, wherever someone tries to add to it -->
     <string name="diary_closed_today">Today is closed. Reopen it to add more.</string>
     <string name="diary_closed_other_day">This day is closed. Reopen it to add more.</string>
