@@ -267,6 +267,60 @@ finding 12 (its deletion half, deferred cross-slice).
 6. **settings (finding 18):** delete the two `TODO(review)` comment lines at
    `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/SettingsFeatureEntryPoint.kt:187-188`.
 
+7. **identity-networking (second review, R1):** independent of item 1, in
+   `libraries/networking/src/commonMain/kotlin/com/opson/libraries/networking/NetworkCall.kt:26-28`
+   replace "Callers surface it with `mapAuthFailure { reason -> ... }`, ignore it with
+   `getOrNull()`, or route on it with `onAuthFailure { ... }`; a call that does
+   nothing special is already correct by default." with "`getOrNull()` already
+   ignores it; a caller that needs the reason reads
+   `(exceptionOrNull() as? AuthUnready)?.reason`; a call that does nothing
+   special is already correct by default." If item 1 lands, its wording wins.
+8. **settings (second review, R3):** in
+   `features/settings/impl/src/commonMain/kotlin/com/opson/features/settings/impl/support/FindSupportViewModel.kt:43`
+   change "the router logs a link it fails to open" to "the router logs a
+   warning when a link fails to open".
+
+## Second review
+
+A second reviewer flagged three regressions on this branch. Each was checked
+against the code.
+
+### R1. NetworkCall's KDoc still points at `mapAuthFailure` and `onAuthFailure`: real, deferred (cross-slice, identity-networking)
+
+- **Where:** `libraries/networking/.../NetworkCall.kt:26-27`. Finding 2 deleted
+  both helpers from `AuthGate.kt`; a repo-wide search finds no other mention
+  of them outside `docs/review`.
+- **Rule:** §1 stale comments are bugs.
+- **Failure:** a caller who follows the KDoc gets a compile error.
+- **Fate:** real, but `NetworkCall.kt` belongs to identity-networking. The
+  rewording was already part of deferred item 1, tied to deleting
+  `ClaimedAccount`. Item 7 now carries it on its own, so the comment gets
+  fixed even if the `ClaimedAccount` deletion waits.
+
+### R2. The config README still documents `debugOverride` and the template examples: fixed
+
+- **Where:** `libraries/config/README.md:20-29` (`GoogleSignInEnabled`),
+  `:35` (`debugOverride` in the metadata list), `:37` (level ladder, reward
+  table), `:49` (`debugOverride` as step 2 of the resolution order).
+- **Rule:** §1 stale comments are bugs.
+- **Failure:** finding 7 deleted `ConfiguredValue.debugOverride` and the
+  `AppConfigMap` branch that read it, so the documented resolution order was
+  wrong and the example flag was one the app never had.
+- **Fix:** "docs(config): the README drops debugOverride and the template's
+  examples". The example is now `BarcodeScanEnabled` / `release.barcode`, the
+  structured example is reminder times, and the order is QA override, server
+  value, in-code default. No test: documentation only, no behaviour changes.
+
+### R3. FindSupportViewModel says the router logs the link: real, deferred (cross-slice, settings)
+
+- **Where:** `features/settings/impl/.../support/FindSupportViewModel.kt:43`.
+- **Rule:** §1 stale comments are bugs.
+- **Failure:** after finding 4, `DelegatingRouter.openWebLink` logs only the
+  scheme and the exception type, never the link. The reasoning still holds
+  (a failed `tel:` still logs a line, and this page must log nothing), so
+  only the stated fact is stale. Low severity.
+- **Fate:** the file is in the settings slice; item 8 carries the wording.
+
 ## Product notes
 
 - **A suspended or signed-out phone still opens the Logger from a reminder or
