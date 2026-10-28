@@ -119,6 +119,8 @@ private class StillCaptureSession(
 ) {
     private val session = AVCaptureSession()
     private val output = AVCapturePhotoOutput()
+
+    /** Main thread only: set once the session is configured and running. */
     private var usable = false
     private var stopped = false
     private var reportedUnavailable = false
@@ -131,34 +133,8 @@ private class StillCaptureSession(
     }
     val view: UIView = StillPreviewView(previewLayer)
 
-    init {
-        val position = if (facing == CameraFacing.Front) AVCaptureDevicePositionFront else AVCaptureDevicePositionBack
-        val device = AVCaptureDeviceDiscoverySession.discoverySessionWithDeviceTypes(
-            listOf(AVCaptureDeviceTypeBuiltInWideAngleCamera),
-            mediaType = AVMediaTypeVideo,
-            position = position,
-        ).devices.firstOrNull() as? AVCaptureDevice
-        val input = device?.let { AVCaptureDeviceInput.deviceInputWithDevice(it, error = null) }
-        if (input != null && session.canAddInput(input) && session.canAddOutput(output)) {
-            session.sessionPreset = AVCaptureSessionPresetPhoto
-            session.addInput(input)
-            session.addOutput(output)
-            output.connectionWithMediaType(AVMediaTypeVideo)?.let { connection ->
-                if (connection.isVideoOrientationSupported()) connection.videoOrientation = AVCaptureVideoOrientationPortrait
-                if (facing == CameraFacing.Front && connection.isVideoMirroringSupported()) {
-                    connection.automaticallyAdjustsVideoMirroring = false
-                    connection.videoMirrored = true
-                }
-            }
-            usable = true
-        }
-    }
-
+    /** Main thread. */
     fun start() {
-        if (!usable) {
-            dispatch_async(dispatch_get_main_queue()) { unavailable() }
-            return
-        }
         listOf(AVCaptureSessionRuntimeErrorNotification, AVCaptureSessionWasInterruptedNotification).forEach { name ->
             observers += NSNotificationCenter.defaultCenter.addObserverForName(
                 name = name,
@@ -166,10 +142,41 @@ private class StillCaptureSession(
                 queue = NSOperationQueue.mainQueue,
             ) { _ -> unavailable() }
         }
+        // Adding the camera and starting it both block until it answers, so never on the main thread,
+        // as in the barcode camera: built in composition, this held up opening the camera and every flip.
         dispatch_async(captureQueue) {
-            if (!session.running) session.startRunning()
-            if (!session.running) dispatch_async(dispatch_get_main_queue()) { unavailable() }
+            val configured = configure()
+            if (configured && !session.running) session.startRunning()
+            val running = session.running
+            dispatch_async(dispatch_get_main_queue()) {
+                if (running) usable = true else unavailable()
+            }
         }
+    }
+
+    /** Adds the camera for [facing] and the photo output. False when there is no camera to use. On [captureQueue]. */
+    private fun configure(): Boolean {
+        val position = if (facing == CameraFacing.Front) AVCaptureDevicePositionFront else AVCaptureDevicePositionBack
+        val device = AVCaptureDeviceDiscoverySession.discoverySessionWithDeviceTypes(
+            listOf(AVCaptureDeviceTypeBuiltInWideAngleCamera),
+            mediaType = AVMediaTypeVideo,
+            position = position,
+        ).devices.firstOrNull() as? AVCaptureDevice
+        val input = device?.let { AVCaptureDeviceInput.deviceInputWithDevice(it, error = null) } ?: return false
+        if (!session.canAddInput(input) || !session.canAddOutput(output)) return false
+        session.beginConfiguration()
+        session.sessionPreset = AVCaptureSessionPresetPhoto
+        session.addInput(input)
+        session.addOutput(output)
+        output.connectionWithMediaType(AVMediaTypeVideo)?.let { connection ->
+            if (connection.isVideoOrientationSupported()) connection.videoOrientation = AVCaptureVideoOrientationPortrait
+            if (facing == CameraFacing.Front && connection.isVideoMirroringSupported()) {
+                connection.automaticallyAdjustsVideoMirroring = false
+                connection.videoMirrored = true
+            }
+        }
+        session.commitConfiguration()
+        return true
     }
 
     /** Main thread. */

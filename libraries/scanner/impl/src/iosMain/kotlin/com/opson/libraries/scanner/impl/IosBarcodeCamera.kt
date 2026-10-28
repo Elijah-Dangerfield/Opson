@@ -177,8 +177,9 @@ private class CaptureSession(
     private var reportedUnavailable = false
     private val observers = mutableListOf<NSObjectProtocol>()
 
-    // AVCaptureMetadataOutput holds its delegate weakly, so this is the strong reference.
-    private val delegate = MetadataDelegate(onCode)
+    // AVCaptureMetadataOutput holds its delegate weakly, so this is the strong reference. A read
+    // already on its way to main when the screen closes is dropped, as on Android.
+    private val delegate = MetadataDelegate { code -> if (!stopped) onCode(code) }
     private val previewLayer = AVCaptureVideoPreviewLayer(session = session).apply {
         videoGravity = AVLayerVideoGravityResizeAspectFill
     }
