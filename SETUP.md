@@ -340,13 +340,14 @@ replaces `DefaultNetworkConfig`:
 @ContributesBinding(AppScope::class, replaces = [DefaultNetworkConfig::class])
 @Inject
 class OpsonNetworkConfig : NetworkConfig {
-    override val baseUrl: String = apiBaseUrl(BuildInfo.isDebug)
+    override val baseUrl: String = BackendEnvironment.forBuild().apiBaseUrl
 }
 ```
 
-`apiBaseUrl` sends debug builds to `https://opson-server-dev.fly.dev` and
-release builds to `https://opson-server-prod.fly.dev`. `SupabaseInfo` keys on
-the same `BuildInfo.isDebug`, so the session and the server always belong to
+`BackendEnvironment` (`:libraries:core`) sends debug builds to
+`https://opson-server-dev.fly.dev` and the dev Supabase project, and release
+builds to `https://opson-server-prod.fly.dev` and prod. One switch,
+`BuildInfo.isDebug`, picks both, so the session and the server always belong to
 the same environment.
 
 **Authenticated calls.** Inject `NetworkClient` and use
@@ -391,7 +392,7 @@ or something failed:
    ```
    Release builds read the prod project from the committed
    `supabase.properties` (`supabase.prod.projectId` / `supabase.prod.anonKey`)
-   and nothing else. `SupabaseInfo` picks between them by `BuildInfo.isDebug`,
+   and nothing else. `BackendEnvironment` picks between them by `BuildInfo.isDebug`,
    and `verifyReleaseEnvironment` fails a release build whose prod values are
    missing, malformed or the dev project.
 3. Enable providers in the Supabase dashboard (Authentication → Providers).
