@@ -3,7 +3,6 @@ package com.opson.server.routes
 import com.opson.server.domain.BarcodeLookup
 import com.opson.server.domain.BarcodeMiss
 import com.opson.server.domain.BarcodeMissRepository
-import com.opson.server.http.ClientContext
 import com.opson.server.http.clientContext
 import com.opson.server.plugins.BARCODE_MISS_LIMIT
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
@@ -59,10 +58,3 @@ fun Route.barcodeMissRoutes(misses: BarcodeMissRepository) {
         }
     }
 }
-
-private val ClientContext.Platform.wire: String
-    get() = when (this) {
-        ClientContext.Platform.Android -> "android"
-        ClientContext.Platform.iOS -> "ios"
-        ClientContext.Platform.Other -> "other"
-    }

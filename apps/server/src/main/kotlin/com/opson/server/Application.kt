@@ -10,8 +10,8 @@ import com.opson.server.di.ServerComponent
 import com.opson.server.di.create
 import com.opson.server.domain.ConfigChangeNotifier
 import com.opson.server.plugins.BanGate
+import com.opson.server.plugins.BearerVerifier
 import com.opson.server.plugins.JwtVerification
-import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.installAdminWeb
 import com.opson.server.plugins.installAuthentication
 import com.opson.server.plugins.installBodyLimit
@@ -40,7 +40,6 @@ import com.opson.server.routes.userAdminRoutes
 import com.opson.server.routes.waitlistAdminRoutes
 import com.opson.server.routes.waitlistRoutes
 import io.ktor.server.application.Application
-import io.ktor.server.auth.authenticate
 import io.ktor.server.routing.routing
 import kotlin.time.Clock
 import org.slf4j.LoggerFactory
@@ -59,8 +58,9 @@ import org.slf4j.LoggerFactory
  *    verifier to exercise the real plugins + routes + DB.
  *
  * Graceful degradation: with no `DATABASE_URL` the server runs in limited mode
- * (health + example); with no `SUPABASE_URL` the authenticated `/v1/me` route
- * isn't mounted. Either way it boots — so you can clone and run with zero config.
+ * (health + example); with no `SUPABASE_URL` the authenticated routes (`/v1/me`,
+ * sync, foods and barcode misses, photo, export) aren't mounted and app config serves everyone
+ * anonymously. Either way it boots — so you can clone and run with zero config.
  *
  * Order matters: serialization before status pages (so error envelopes encode),
  * auth after serialization (the 401 challenge writes a JSON body). CORS is
@@ -87,17 +87,17 @@ fun Application.module(config: ServerConfig) {
 
     val verification = config.supabase?.let { JwtVerification.Jwks(it.jwksUrl, it.expectedIssuer) }
     if (verification == null) {
-        logger.warn("SUPABASE_URL not set — authenticated routes (/v1/me) are disabled.")
+        logger.warn(
+            "SUPABASE_URL not set — authenticated routes (/v1/me, sync, foods and barcode misses, photo, export) are disabled.",
+        )
     }
 
+    logger.info("Features ({}): {}", config.observability.environment, config.featureSummary())
     config.foodSources.nutritionix?.let {
-        logger.info("Nutritionix barcode lookups on, caching ${if (it.cacheResults) "on" else "off"}")
+        logger.info("Nutritionix caching ${if (it.cacheResults) "on" else "off"}")
     }
-    val anthropic = config.foodSources.anthropic
-    if (anthropic != null) {
-        logger.info("Photo estimates on, model ${anthropic.photoModel}; label reading on, model ${anthropic.labelModel}")
-    } else {
-        logger.info("ANTHROPIC_API_KEY not set — photo estimates and label reading answer 503 unavailable.")
+    config.foodSources.anthropic?.let {
+        logger.info("Photo estimates use ${it.photoModel}; label reading uses ${it.labelModel}")
     }
     val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources, Clock.System) }
     // Ban gate needs the DB (moderation reads live in auth.users), so limited
@@ -144,7 +144,8 @@ fun Application.installApp(
     installBodyLimit()
     installRateLimits()
     installStatusPages()
-    if (verification != null) installAuthentication(verification, banGate)
+    val bearer = verification?.let(::BearerVerifier)
+    if (bearer != null) installAuthentication(bearer, banGate)
 
     routing {
         installCors()
@@ -152,19 +153,8 @@ fun Application.installApp(
         exampleRoutes(component?.exampleSource ?: InMemoryExampleSource())
         if (component != null) {
             recordInstallSightings(component.userInstallRepository, component.clock)
-            // Optional auth: the config fetch must work pre-session (it carries
-            // the kill-switch / forced-upgrade flags), but when the client does
-            // present a Supabase JWT we resolve the user id so per-user targeting
-            // + rollout bucketing key off it. No token → principal null → still
-            // served. Without Supabase configured there's no JWT plugin at all,
-            // so the route mounts bare and every caller resolves anonymously.
-            if (verification != null) {
-                authenticate(SUPABASE_JWT_AUTH, optional = true) {
-                    appConfigRoutes(component.appConfigSource)
-                }
-            } else {
-                appConfigRoutes(component.appConfigSource)
-            }
+            // Pre-session too: it carries the kill switch and the version floor.
+            appConfigRoutes(component.appConfigSource, bearer)
             // Admin API is inert without a token: requireAdmin 401s every call
             // when ADMIN_API_TOKEN is unset, so mounting is gated for clarity,
             // not security.

@@ -536,13 +536,32 @@ through these routes:
 | `DATABASE_URL` | no |, | `postgresql://user:pass@host:port/db`. Unset → limited mode. URL-encode `$`→`%24`. |
 | `DATABASE_POOL_MAX_SIZE` | no | 10 | |
 | `DATABASE_POOL_MIN_IDLE` | no | 2 | |
-| `SUPABASE_URL` | no |, | `https://<project>.supabase.co`. Unset → `/v1/me` not mounted. |
+| `DATABASE_POOL_TIMEOUT_MS` | no | 3000 | How long a request waits for a pooled connection before a 503 `busy`. |
+| `DATABASE_STATEMENT_TIMEOUT_MS` | no | 5000 | Postgres `statement_timeout` on every pooled connection. Migrations are exempt. |
+| `SUPABASE_URL` | no |, | `https://<project>.supabase.co`. Unset → the authenticated routes aren't mounted. |
+| `SUPABASE_SERVICE_ROLE_KEY` | no |, | Secret. Unset → `DELETE /v1/me` answers 503 `delete_not_configured`. |
 | `APPLE_TEAM_ID` | no |, | With `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY`, lets `DELETE /v1/me` revoke the person's Sign in with Apple token, which App Review requires. Unset → `POST /v1/me/apple-authorization` answers 503 and deletion skips revocation with a warning. |
 | `APPLE_KEY_ID` | no |, | The id of a Sign in with Apple key (Certificates, Identifiers & Profiles › Keys). |
 | `APPLE_PRIVATE_KEY` | no |, | Secret. That key's `.p8` file contents; `\n` may stand for the newlines. |
 | `APPLE_CLIENT_ID` | no | `com.opson.Opson` | The app's bundle id. |
 | `SERVER_HOST` | no | `0.0.0.0` | |
 | `SERVER_PORT` | no | 8080 | |
+| `LOG_LEVEL` | no | `INFO` | Root log level. `Exposed` stays at `ERROR` (its warnings quote diary rows) and `io.netty` at `WARN`. |
+| `APPEAL_URL` | no |, | Sent to a banned client in the 403 body. |
+| `ADMIN_API_TOKEN` | no |, | Secret. Unset → the `/v1/admin` routes aren't mounted. |
+| `ADMIN_WEB_DIR` | no | `apps/server/admin-web` | The admin console bundle served at `/admin`. The Docker image sets it. |
+| `CONFIG_CHANGE_WEBHOOK_URL` | no |, | Slack-compatible webhook told about every config change made through the admin API. |
+| `SENTRY_DSN` | no |, | Unset → server errors go only to the logs. |
+| `SENTRY_ENVIRONMENT` | no | `prod` when `FLY_APP_NAME` ends in `-prod`, else `dev` | |
+| `SENTRY_RELEASE` | no |, | |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | no |, | Unset → traces, logs and metrics go to stdout, not Grafana. |
+| `OTEL_EXPORTER_OTLP_HEADERS` | no |, | Secret. `Key=Value,…`, values percent-encoded (`Authorization=Basic%20…`). |
+| `OTEL_SERVICE_NAME` | no | `opson-server` | |
+| `OTEL_DEPLOYMENT_ENVIRONMENT` | no | as `SENTRY_ENVIRONMENT` | |
+| `OTEL_SERVICE_VERSION` | no | `SENTRY_RELEASE` | |
+| `FOOD_SEARCH_OFF_ENABLED` | no | `false` | Adds the Open Food Facts table to name search. |
+| `FOOD_SEARCH_CACHE_ENTRIES` | no | 256 | Search answers kept in memory; 0 turns the cache off. |
+| `FOOD_SEARCH_CACHE_SECONDS` | no | 300 | |
 | `NUTRITIONIX_APP_ID` | no |, | With `NUTRITIONIX_APP_KEY`, turns on Nutritionix barcode lookups (tier 3, asked before Open Food Facts). |
 | `NUTRITIONIX_APP_KEY` | no |, | Secret. Both keys or neither. |
 | `NUTRITIONIX_CACHE_RESULTS` | no | `false` | `true` stores Nutritionix answers in `foods`. Only if the contract allows it. |
@@ -551,9 +570,6 @@ through these routes:
 | `ANTHROPIC_LABEL_MODEL` | no | `claude-fable-5-1` | The model that reads pack labels (effort `high`). A request it refuses outright (a 400, such as an organisation's data retention it does not accept) is retried on `ANTHROPIC_PHOTO_MODEL`. |
 | `WAITLIST_ALLOWED_ORIGINS` | no | dev: `http://localhost:4321,https://elijah-dangerfield.github.io`; prod: none | Comma-separated exact origins (`scheme://host[:port]`) allowed to call `POST /v1/waitlist` from a browser. Only that route uses it. |
 
-## Roadmap (planned, not yet wired)
-
-- Env-gated observability (Sentry + OpenTelemetry), no-op until configured.
-- Containerized deploy (Dockerfile + Fly.io + `DEPLOY.md`).
-
-See `docs/backend-and-supabase-auth-plan.md` for the full plan.
+At boot the server logs one `Features (<env>): database=on auth=on …` line
+naming every optional feature and whether it is on, so a missing secret shows
+in `fly logs` rather than when someone needs the feature.
