@@ -356,6 +356,13 @@ data class SupabaseConfig(
     /** Discovery endpoint for the project's public signing keys. */
     val jwksUrl: String get() = "$projectUrl/auth/v1/.well-known/jwks.json"
 
+    /**
+     * The project ref, the first label of [projectUrl]'s host (`abcdefgh` above). Public: the JWKS
+     * URL and every client binary carry it. `/_health` reports it so a release can check that the
+     * app signs in to the project this server verifies.
+     */
+    val projectRef: String get() = projectUrl.substringAfter("://").substringBefore('/').substringBefore('.')
+
     companion object {
         fun fromEnv(env: Env): SupabaseConfig? =
             env["SUPABASE_URL"]?.trimEnd('/')?.let {

@@ -117,6 +117,7 @@ fun Application.module(config: ServerConfig) {
             )
         } ?: ConfigChangeNotifier {},
         waitlistConfig = config.waitlist,
+        supabaseProject = config.supabase?.projectRef,
     )
 
     // The hosted admin console (static bundle at /admin). Outside installApp so
@@ -139,6 +140,7 @@ fun Application.installApp(
     adminConfig: AdminConfig = AdminConfig(apiToken = null),
     configChangeNotifier: ConfigChangeNotifier = ConfigChangeNotifier {},
     waitlistConfig: WaitlistConfig = WaitlistConfig(),
+    supabaseProject: String? = null,
 ) {
     installSerialization()
     installBodyLimit()
@@ -149,7 +151,7 @@ fun Application.installApp(
 
     routing {
         installCors()
-        healthRoutes()
+        healthRoutes(supabaseProject)
         exampleRoutes(component?.exampleSource ?: InMemoryExampleSource())
         if (component != null) {
             recordInstallSightings(component.userInstallRepository, component.clock)
