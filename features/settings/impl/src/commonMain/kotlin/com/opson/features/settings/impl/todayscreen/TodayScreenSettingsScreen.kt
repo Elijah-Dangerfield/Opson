@@ -64,6 +64,7 @@ import opson.libraries.resources.generated.resources.settings_today_main_number
 import opson.libraries.resources.generated.resources.settings_today_meals_count
 import opson.libraries.resources.generated.resources.settings_today_needs_single
 import opson.libraries.resources.generated.resources.settings_today_nutrients_link
+import opson.libraries.resources.generated.resources.settings_today_nutrients_pick
 import opson.libraries.resources.generated.resources.settings_today_on_card
 import opson.libraries.resources.generated.resources.settings_today_pages_energy
 import opson.libraries.resources.generated.resources.settings_today_pages_energy_macros
@@ -75,6 +76,7 @@ import opson.libraries.resources.generated.resources.settings_today_summary_card
 import opson.libraries.resources.generated.resources.settings_today_title
 import opson.libraries.resources.generated.resources.settings_today_water
 import opson.libraries.resources.generated.resources.settings_today_weight
+import com.opson.libraries.diary.ui.label
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -121,7 +123,16 @@ fun TodayScreenSettingsScreen(
             SettingsCard {
                 Switch(Res.string.settings_today_burned_breakdown, state.burnedBreakdown, TodaySwitch.BurnedBreakdown, onAction, Res.string.settings_today_burned_breakdown_line)
                 Switch(Res.string.settings_today_meals_count, state.mealsCount, TodaySwitch.MealsCount, onAction)
-                Switch(Res.string.settings_today_nutrients_link, state.nutrientsLink, TodaySwitch.NutrientsLink, onAction, last = true)
+                Switch(Res.string.settings_today_nutrients_link, state.nutrientsLink, TodaySwitch.NutrientsLink, onAction, last = state.nutrientsOnPage.isEmpty())
+                if (state.nutrientsOnPage.isNotEmpty()) {
+                    SettingsRow(
+                        title = stringResource(Res.string.settings_today_nutrients_pick),
+                        subtitle = state.nutrientsOnPage.map { stringResource(it.label) }.joinToString(", "),
+                        icon = null,
+                        chevron = true,
+                        onClick = { onAction(TodayScreenSettingsAction.NutrientsPickTapped) },
+                    )
+                }
             }
         } else {
             Text(

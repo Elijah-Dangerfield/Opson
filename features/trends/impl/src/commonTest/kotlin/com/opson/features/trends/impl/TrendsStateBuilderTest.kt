@@ -11,6 +11,7 @@ import com.opson.libraries.diary.TrendsCards
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.DayGoal
+import com.opson.libraries.nutrition.MicroReferences
 import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
@@ -201,7 +202,7 @@ class TrendsStateBuilderTest {
         assertEquals("1,850 kcal", assertIs<Display.Shown>(intake.average).text)
         assertEquals(RecapRow.DaysLogged(5, 6), assertNotNull(state.recap).rows.first())
         assertEquals(RecapRow.Breakfast(5, 6), assertNotNull(state.recap).rows[1])
-        assertNull(WeekAverages.of(days.filter { it.date == tuesday }))
+        assertNull(WeekAverages.of(days.filter { it.date == tuesday }, MicroReferences.DailyValues))
 
         val blind = TrendsStateBuilder.build(TrendsFixtures.trendsInputs(days = days), TrendsFixtures.policy(PresetId.NoNumbers))
         assertEquals(List(4) { null }, assertNotNull(blind.week).days[1].meals, "no dots for an untracked day")

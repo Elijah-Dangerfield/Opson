@@ -39,6 +39,17 @@ class FoodAmountTest {
         assertNull(rice.nutrientsFor(FoodAmount.Grams(500.0)).fiber)
     }
 
+    /** "Not listed" and "none" reach the logged item apart: a listed 0 is kept, a missing key stays missing. */
+    @Test
+    fun aListedZeroMicro_reachesTheItemAsZero_andAMissingOneStaysMissing() {
+        val water = rice.copy(micros = mapOf("sodium_mg" to 0.0, "calcium_mg" to 2.0))
+        val micros = water.toLogDraft(FoodAmount.Grams(250.0)).micros.orEmpty()
+        assertEquals(0.0, micros["sodium_mg"])
+        assertClose(5.0, micros["calcium_mg"])
+        assertNull(micros["vitamin_d_ug"])
+        assertNull(rice.copy(micros = emptyMap()).toLogDraft(FoodAmount.Grams(100.0)).micros, "a food with none listed logs none, not zeros")
+    }
+
     @Test
     fun aPortionCountMultipliesThePortionsWeight() {
         val n = rice.nutrientsFor(FoodAmount.OfPortion(Portion("1 cup", 158.0), count = 2.0))

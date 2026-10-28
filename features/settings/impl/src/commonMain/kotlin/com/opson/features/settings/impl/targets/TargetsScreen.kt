@@ -186,6 +186,8 @@ import opson.libraries.resources.generated.resources.settings_targets_surplus_lo
 import opson.libraries.resources.generated.resources.settings_targets_surplus_more
 import opson.libraries.resources.generated.resources.settings_targets_surplus_title
 import opson.libraries.resources.generated.resources.settings_targets_title
+import opson.libraries.resources.generated.resources.settings_micros_row_line
+import opson.libraries.resources.generated.resources.settings_micros_title
 import opson.libraries.resources.generated.resources.settings_targets_unit_g
 import opson.libraries.resources.generated.resources.settings_targets_unit_percent
 import opson.libraries.resources.generated.resources.settings_targets_week
@@ -213,6 +215,7 @@ fun TargetsScreen(
         if (!state.visible) {
             BackgroundCard(onAction)
             if (state.macros.isNotEmpty()) MacroCard(state, onAction)
+            if (state.micros) MicrosRow(onAction)
             return@SettingsPage
         }
         SectionLabel(stringResource(Res.string.settings_targets_goal_style))
@@ -221,6 +224,21 @@ fun TargetsScreen(
         state.burned?.let { BurnedSourceCard(it, onAction) }
         if (state.macros.isNotEmpty()) MacroCard(state, onAction)
         state.exercise?.let { ExerciseAdjustmentCard(it, onAction) }
+        if (state.micros) MicrosRow(onAction)
+    }
+}
+
+/** Vitamins and minerals: their own page, as their references are set one by one. */
+@Composable
+private fun MicrosRow(onAction: (TargetsAction) -> Unit) {
+    SettingsCard {
+        SettingsRow(
+            title = stringResource(Res.string.settings_micros_title),
+            subtitle = stringResource(Res.string.settings_micros_row_line),
+            icon = null,
+            chevron = true,
+            onClick = { onAction(TargetsAction.MicrosTapped) },
+        )
     }
 }
 

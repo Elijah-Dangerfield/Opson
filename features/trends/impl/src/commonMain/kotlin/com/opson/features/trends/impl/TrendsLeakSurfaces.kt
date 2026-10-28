@@ -6,6 +6,9 @@ import com.opson.features.trends.impl.photos.ProgressPhotosContent
 import com.opson.features.trends.impl.photos.ProgressPhotosFixtures
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Micronutrient
+import com.opson.libraries.nutrition.Nutrient
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 
 /**
@@ -42,6 +45,24 @@ object TrendsLeakSurfaces {
                 NutrientsStateBuilder.build(TrendsFixtures.nutrientsInputs(NutrientsRange.WeekAverage), policy),
                 onAction = {},
             )
+        },
+        // Which foods gave a nutrient. Never energy, so no calories in any mode; iron is a micro,
+        // so it must vanish where micros do, and protein's grams where macros soften.
+        LeakSurface(id = "nutrient-foods", label = "Which foods gave iron", showsCaloriesInFull = false) { policy ->
+            val nutrient = Nutrient.Micro(Micronutrient.Iron)
+            NutrientFoodsSheetContent(NutrientFoodsStateBuilder.build(TrendsFixtures.nutrientFoodsInputs(nutrient), policy), nutrient, onAction = {})
+        },
+        LeakSurface(id = "nutrient-foods-week", label = "Which foods gave sodium, over the week", showsCaloriesInFull = false) { policy ->
+            val nutrient = Nutrient.Micro(Micronutrient.Sodium)
+            NutrientFoodsSheetContent(
+                NutrientFoodsStateBuilder.build(TrendsFixtures.nutrientFoodsInputs(nutrient, NutrientsRange.WeekAverage), policy),
+                nutrient,
+                onAction = {},
+            )
+        },
+        LeakSurface(id = "nutrient-foods-protein", label = "Which foods gave protein", showsCaloriesInFull = false) { policy ->
+            val nutrient = Nutrient.Macro(Metric.Protein)
+            NutrientFoodsSheetContent(NutrientFoodsStateBuilder.build(TrendsFixtures.nutrientFoodsInputs(nutrient), policy), nutrient, onAction = {})
         },
         LeakSurface(id = "weight", label = "Weight", showsCaloriesInFull = false) { policy ->
             WeightContent(WeightStateBuilder.build(TrendsFixtures.weightInputs(), WeightUi(input = "72.4", saved = true), policy), onAction = {})

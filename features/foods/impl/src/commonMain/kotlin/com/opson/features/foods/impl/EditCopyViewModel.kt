@@ -55,7 +55,8 @@ class EditCopyViewModel(
                 sendEvent(EditCopyEvent.Close)
                 return@launch
             }
-            takeAction(EditCopyAction.SeedArrived(found, policySource.policy.value))
+            val references = settingsRepository.settings.value.microReferences(calendar.today())
+            takeAction(EditCopyAction.SeedArrived(found.copy(references = references), policySource.policy.value))
         }
     }
 

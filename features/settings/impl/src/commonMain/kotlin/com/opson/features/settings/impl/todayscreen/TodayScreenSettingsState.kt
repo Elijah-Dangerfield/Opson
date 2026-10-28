@@ -4,6 +4,7 @@ import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.nutrition.TargetStyle
@@ -27,6 +28,8 @@ data class TodayScreenSettingsState(
     val burnedBreakdown: Boolean = true,
     val mealsCount: Boolean = false,
     val nutrientsLink: Boolean = true,
+    /** What the nutrients page lists, while it is on and vitamins and minerals show; empty hides the row. */
+    val nutrientsOnPage: List<Micronutrient> = emptyList(),
     val water: Boolean = true,
     val weight: Boolean = true,
     /** Close the day's button in Today's header, not a row in the list. */
@@ -60,6 +63,9 @@ object TodayScreenSettingsStateBuilder {
             burnedBreakdown = settings.todayBurnedBreakdown,
             mealsCount = settings.todayMealsCount,
             nutrientsLink = settings.todayNutrientsLink,
+            nutrientsOnPage = settings.todayMicronutrients.takeIf {
+                settings.todayNutrientsLink && settings.numbers.level(Metric.Micros) != Visibility.Hide
+            }.orEmpty(),
             water = settings.todayWater,
             weight = settings.todayWeight,
             closeDay = settings.todayCloseDay,

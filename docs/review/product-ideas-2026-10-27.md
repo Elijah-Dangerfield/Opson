@@ -12,9 +12,9 @@ Sizes are S, M or L.
 |---|---|---|---|
 | 1 | Quick add in every mode: kcal plus protein, carbs, fat and fiber in the Describe pane, grams only in Macros with grams | S | Built |
 | 2 | Edit, rename and delete saved meals and Your foods (Foods has no edit or delete today) | S/M | After the food detail work lands |
-| 3 | Tap a nutrient to see which foods gave it (Cronometer's core report) | M | Building |
-| 4 | Micronutrient targets by sex and age, an override per nutrient, and you pick the four on Today | M | Building |
-| 5 | Say when a nutrient % rests on partial data ("9 of 12 foods list vitamin D"), and show "not listed" instead of 0 | S/M | Building |
+| 3 | Tap a nutrient to see which foods gave it (Cronometer's core report) | M | Built |
+| 4 | Micronutrient targets by sex and age, an override per nutrient, and you pick the four on Today | M | Built; the table awaits a dietitian's review |
+| 5 | Say when a nutrient % rests on partial data ("9 of 12 foods list vitamin D"), and show "not listed" instead of 0 | S/M | Built |
 | 6 | A summary the person makes for their provider: pick a range and contents, preview it, share a PDF; offered to people who said they work with a provider | M | Built, behind `release.providerSummary` |
 | 7 | An export with everything: notes, check-ins, fasts, water, weight, custom foods, meals, settings, a daily summary | S/M | Built: `opson-export.zip` |
 | 8 | oz, lb and ml for any food with a known weight or volume | S | Added to the food detail work |

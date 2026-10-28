@@ -15,6 +15,7 @@ import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.MacroEnergyCheck
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.MicroGroup
+import com.opson.libraries.nutrition.MicroReferences
 import com.opson.libraries.nutrition.MicroUnit
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.Surface
@@ -130,9 +131,15 @@ data class CopyNutrient(
 
 /**
  * What a copy starts as: one food of the person's own, its serving, sizes and every number per
- * serving. [entry] is the logged entry it came from, if it came from one.
+ * serving. [entry] is the logged entry it came from, if it came from one. [references] are the
+ * person's own daily references, so a field's percent matches the food detail's.
  */
-data class CopySeed(val food: CustomFoodDraft, val entry: LogItem? = null, val isToday: Boolean = true)
+data class CopySeed(
+    val food: CustomFoodDraft,
+    val entry: LogItem? = null,
+    val isToday: Boolean = true,
+    val references: MicroReferences = MicroReferences.DailyValues,
+)
 
 /** What the person has typed. The view model holds it; [EditCopyStateBuilder] draws it. */
 data class CopyForm(
@@ -317,7 +324,7 @@ object EditCopyStateBuilder {
             null
         }
         val daily = nutrient.micro?.let { micro ->
-            typedValue?.let { policy.resolve(Metric.Micros, micro.percentOf(it), Surface.Foods, FormatContext(of = PERCENT)) }
+            typedValue?.let { policy.resolve(Metric.Micros, seed.references.percentOf(micro, it), Surface.Foods, FormatContext(of = PERCENT)) }
         } ?: Display.Hidden
         return CopyField(nutrient, text, was, daily)
     }

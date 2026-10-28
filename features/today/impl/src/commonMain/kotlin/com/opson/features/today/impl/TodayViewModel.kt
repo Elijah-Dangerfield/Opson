@@ -158,6 +158,7 @@ class TodayViewModel(
             TodayAction.NextDayTapped -> if (canGoForward()) selectedDay.select(day().plus(DatePeriod(days = 1)))
             TodayAction.DayLabelTapped -> sendEvent(TodayEvent.OpenCalendar(day()))
             TodayAction.NutrientsTapped -> sendEvent(TodayEvent.OpenNutrients(day()))
+            is TodayAction.KeyNutrientTapped -> sendEvent(TodayEvent.OpenNutrientFoods(day(), action.micro))
             TodayAction.EnergyTapped -> sendEvent(TodayEvent.OpenEnergyToday)
             TodayAction.MainNumberToggled -> {
                 val next = ((state.summary as? TodaySummary.Energy)?.card?.next) ?: return

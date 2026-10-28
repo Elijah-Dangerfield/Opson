@@ -1,6 +1,7 @@
 package com.opson.features.trends.impl
 
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -10,6 +11,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.trends.NotesListLink
+import com.opson.features.trends.NutrientFoodsRoute
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
 import com.opson.features.trends.PatternsRoute
@@ -47,6 +49,7 @@ import com.opson.libraries.scanner.BarcodeCamera
 import com.opson.libraries.scanner.StillCamera
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheet
 import com.opson.system.AppTheme
+import com.opson.libraries.nutrition.Nutrient
 import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
@@ -61,6 +64,7 @@ class TrendsFeatureEntryPoint(
     private val trendsViewModelFactory: () -> TrendsViewModel,
     private val trendsSettingsViewModelFactory: () -> TrendsSettingsViewModel,
     private val nutrientsViewModelFactory: (day: LocalDate, range: NutrientsRange, fromTrends: Boolean) -> NutrientsViewModel,
+    private val nutrientFoodsViewModelFactory: (day: LocalDate, nutrient: Nutrient, range: NutrientsRange) -> NutrientFoodsViewModel,
     private val weightViewModelFactory: () -> WeightViewModel,
     private val patternsViewModelFactory: () -> PatternsViewModel,
     private val progressPhotosViewModelFactory: () -> ProgressPhotosViewModel,
@@ -122,9 +126,39 @@ class TrendsFeatureEntryPoint(
                 when (event) {
                     NutrientsEvent.Close -> router.goBack()
                     NutrientsEvent.OpenModes -> router.navigate(ModesRoute())
+                    is NutrientsEvent.OpenFoods -> router.navigate(NutrientFoodsRoute(route.dayIso, event.nutrient.key, event.range))
                 }
             }
             NutrientsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        bottomSheet<NutrientFoodsRoute>(
+            typeMap = mapOf(typeOf<NutrientsRange>() to serializableType<NutrientsRange>()),
+        ) { entry, sheetState ->
+            val route = entry.toRoute<NutrientFoodsRoute>()
+            // A key this build does not know (a link from a newer one) has nothing to list.
+            val nutrient = Nutrient.fromKey(route.nutrient)
+            if (nutrient == null) {
+                LaunchedEffect(route) { router.goBack() }
+                return@bottomSheet
+            }
+            val viewModel: NutrientFoodsViewModel = viewModel {
+                nutrientFoodsViewModelFactory(LocalDate.parse(route.dayIso), nutrient, route.range)
+            }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    NutrientFoodsEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            BottomSheet(
+                onDismissRequest = { router.goBack() },
+                state = sheetState,
+                backgroundColor = AppTheme.colors.bg,
+                scrollableContent = true,
+            ) {
+                NutrientFoodsSheetContent(state = state, nutrient = nutrient, onAction = viewModel::takeAction)
+            }
         }
 
         screen<WeightRoute> {

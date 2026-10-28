@@ -72,8 +72,18 @@ class MicroWireKeysTest {
     }
 
     @Test
-    fun microReference_usesThePolicyFormatter() {
-        assertEquals("2,300 mg limit", policy().microReference(Micronutrient.Sodium))
-        assertEquals("700 µg", policy(PresetId.NoNumbers).microReference(Micronutrient.VitaminA))
+    fun microReference_usesThePolicyFormatter_andThePersonsReference() {
+        val references = MicroReferences.forPerson(BodySex.Female, ageYears = 30)
+        assertEquals("2,300 mg limit", policy().microReference(Micronutrient.Sodium, references))
+        assertEquals("700 µg", policy(PresetId.NoNumbers).microReference(Micronutrient.VitaminA, references))
+        assertEquals("900 µg", policy().microReference(Micronutrient.VitaminA, MicroReferences.DailyValues))
+    }
+
+    /** A zero is something the food says; a key it leaves out is not. Both survive the mapping as they came. */
+    @Test
+    fun aListedZero_staysAZero_andAMissingKeyStaysMissing() {
+        val micros = mapOf("vitamin_d_ug" to 0.0, "iron_mg" to 1.2).toMicronutrients()
+        assertEquals(mapOf(Micronutrient.VitaminD to 0.0, Micronutrient.Iron to 1.2), micros)
+        assertNull(micros[Micronutrient.Calcium])
     }
 }

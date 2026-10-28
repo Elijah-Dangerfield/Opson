@@ -70,6 +70,8 @@ import opson.libraries.resources.generated.resources.today_summary_goal
 import opson.libraries.resources.generated.resources.today_summary_range
 import opson.libraries.resources.generated.resources.trends_micro_of
 import opson.libraries.resources.generated.resources.trends_micro_of_limit
+import opson.libraries.resources.generated.resources.trends_micro_not_listed
+import opson.libraries.resources.generated.resources.trends_nutrient_open_foods
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -212,6 +214,9 @@ private fun NutrientsPageContent(page: NutrientsPage, onAction: (TodayAction) ->
                 label = stringResource(row.label),
                 reference = stringResource(if (row.isLimit) Res.string.trends_micro_of_limit else Res.string.trends_micro_of, row.reference),
                 display = row.display,
+                notListed = if (row.notListed) stringResource(Res.string.trends_micro_not_listed) else null,
+                onClickLabel = stringResource(Res.string.trends_nutrient_open_foods),
+                onClick = if (row.opensFoods) ({ onAction(TodayAction.KeyNutrientTapped(row.micro)) }) else null,
             )
         },
     )

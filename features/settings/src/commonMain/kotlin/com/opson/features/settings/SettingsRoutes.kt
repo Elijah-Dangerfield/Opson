@@ -31,6 +31,18 @@ class RestingEnergyRoute(val fromEnergyToday: Boolean = false) : Route()
 @Serializable
 class EnergyTodayRoute : Route()
 
+/**
+ * Vitamins and minerals: each one's daily reference (by age and sex, or the person's own) and
+ * the four on Today's nutrients page. Opened from Targets, and from Today screen's Nutrients page
+ * row with [fromTodayScreen], which picks the back label.
+ */
+@Serializable
+class MicroTargetsRoute(val fromTodayScreen: Boolean = false) : Route()
+
+/** One vitamin or mineral's sheet over [MicroTargetsRoute]: its own number and its place on Today. [micro] is `Micronutrient.key`. */
+@Serializable
+class MicroTargetRoute(val micro: String = "") : Route()
+
 /** More › Today screen (design sync 4, 13.6): the summary card's preset, main number and pages, the list's rows and the header's Close the day. */
 @Serializable
 class TodayScreenSettingsRoute : Route()

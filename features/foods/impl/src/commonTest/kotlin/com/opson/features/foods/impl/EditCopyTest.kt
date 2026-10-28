@@ -13,6 +13,7 @@ import com.opson.libraries.foods.amountUnits
 import com.opson.libraries.foods.draftFor
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
@@ -195,6 +196,16 @@ class EditCopyTest : CoroutineTest() {
         assertEquals("19%", (state.field("vitamin_e_mg").daily as? Display.Shown)?.text, "2.9 mg of 15")
         assertFalse(state.fromEntry)
         assertEquals(listOf(CopySectionKind.Label, CopySectionKind.Vitamins, CopySectionKind.Minerals), state.sections.map { it.kind })
+    }
+
+    /** The percent beside a field is of the person's own reference, as the food detail's is. */
+    @Test
+    fun aFieldsDailyShare_isOfThePersonsOwnReference() = runUnitTest {
+        settings.state.value = Settings().withMicroTarget(Micronutrient.VitaminE, 29.0)
+
+        val state = fromFood("peanut-butter", custom = false).state
+
+        assertEquals("10%", (state.field("vitamin_e_mg").daily as? Display.Shown)?.text, "2.9 mg of their own 29")
     }
 
     @Test

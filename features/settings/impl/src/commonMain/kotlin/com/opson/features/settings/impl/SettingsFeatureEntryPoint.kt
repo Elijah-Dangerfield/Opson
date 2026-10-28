@@ -24,6 +24,8 @@ import com.opson.features.settings.ProviderSummaryRoute
 import com.opson.features.settings.MoreRoute
 import com.opson.features.settings.PauseBeforeMoreRoute
 import com.opson.features.settings.RemindersRoute
+import com.opson.features.settings.MicroTargetRoute
+import com.opson.features.settings.MicroTargetsRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.TargetsRoute
@@ -58,6 +60,12 @@ import com.opson.features.settings.impl.more.MoreAction
 import com.opson.features.settings.impl.more.MoreEvent
 import com.opson.features.settings.impl.more.MoreScreen
 import com.opson.features.settings.impl.more.MoreVersion
+import com.opson.features.settings.impl.micros.MicroTargetEvent
+import com.opson.features.settings.impl.micros.MicroTargetSheetContent
+import com.opson.features.settings.impl.micros.MicroTargetViewModel
+import com.opson.features.settings.impl.micros.MicroTargetsEvent
+import com.opson.features.settings.impl.micros.MicroTargetsScreen
+import com.opson.features.settings.impl.micros.MicroTargetsViewModel
 import com.opson.features.settings.impl.more.MoreViewModel
 import com.opson.features.settings.impl.support.PRIVACY_URL
 import com.opson.features.settings.impl.support.TERMS_URL
@@ -110,6 +118,7 @@ import com.opson.libraries.navigation.OnTabReselected
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.bottomSheet
 import com.opson.libraries.navigation.screen
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheet
 import com.opson.libraries.ui.snackbar.showSnackBar
@@ -142,6 +151,8 @@ class SettingsFeatureEntryPoint(
     private val widgetsViewModel: () -> WidgetsViewModel,
     private val findSupportViewModel: () -> FindSupportViewModel,
     private val creditsViewModel: () -> CreditsViewModel,
+    private val microTargetsViewModel: (backToTodayScreen: Boolean) -> MicroTargetsViewModel,
+    private val microTargetViewModel: (Micronutrient) -> MicroTargetViewModel,
     private val providerSummaryViewModel: () -> ProviderSummaryViewModel,
 ) : FeatureEntryPoint {
 
@@ -249,10 +260,45 @@ class SettingsFeatureEntryPoint(
                     TargetsEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute())
                     TargetsEvent.OpenModes -> router.navigate(ModesRoute())
                     TargetsEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
+                    TargetsEvent.OpenMicroTargets -> router.navigate(MicroTargetsRoute())
                     TargetsEvent.Close -> router.goBack()
                 }
             }
             TargetsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        screen<MicroTargetsRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<MicroTargetsRoute>()
+            val viewModel: MicroTargetsViewModel = viewModel { microTargetsViewModel(route.fromTodayScreen) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is MicroTargetsEvent.OpenNutrient -> router.navigate(MicroTargetRoute(event.micro.key))
+                    MicroTargetsEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute())
+                    MicroTargetsEvent.OpenModes -> router.navigate(ModesRoute())
+                    MicroTargetsEvent.Close -> router.goBack()
+                }
+            }
+            MicroTargetsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        bottomSheet<MicroTargetRoute> { backStackEntry, sheetState ->
+            val micro = Micronutrient.fromKey(backStackEntry.toRoute<MicroTargetRoute>().micro)
+            if (micro == null) {
+                // A key this build does not track has nothing to set.
+                LaunchedEffect(Unit) { router.goBack() }
+                return@bottomSheet
+            }
+            val viewModel: MicroTargetViewModel = viewModel { microTargetViewModel(micro) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    MicroTargetEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            BottomSheet(onDismissRequest = { router.goBack() }, state = sheetState, backgroundColor = AppTheme.colors.bg, scrollableContent = true) {
+                MicroTargetSheetContent(state = state, onAction = viewModel::takeAction)
+            }
         }
 
         // Registered whatever release.goalsAndEnergy says: nothing links here while it is off,
@@ -277,6 +323,7 @@ class SettingsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is TodayScreenSettingsEvent.OpenChoice -> router.navigate(TodayScreenChoiceRoute(event.choice.wire))
+                    TodayScreenSettingsEvent.OpenMicroTargets -> router.navigate(MicroTargetsRoute(fromTodayScreen = true))
                     TodayScreenSettingsEvent.Close -> router.goBack()
                 }
             }

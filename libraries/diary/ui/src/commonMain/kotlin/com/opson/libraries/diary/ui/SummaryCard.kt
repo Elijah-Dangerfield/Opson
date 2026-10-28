@@ -288,8 +288,19 @@ fun MacrosPage(
     }
 }
 
-/** One row of [KeyNutrientsPage]: "Sodium", "of a 2,300 mg limit", its percent through the micros level. */
-data class KeyNutrientCell(val label: String, val reference: String, val display: Display)
+/**
+ * One row of [KeyNutrientsPage]: "Sodium", "of a 2,300 mg limit", its percent through the micros
+ * level. [notListed] ("Not listed") stands in for the bar and percent when no food lists it.
+ * [onClick] lists the foods behind it; null when there are none.
+ */
+data class KeyNutrientCell(
+    val label: String,
+    val reference: String,
+    val display: Display,
+    val notListed: String? = null,
+    val onClickLabel: String? = null,
+    val onClick: (() -> Unit)? = null,
+)
 
 /**
  * The last page: "Nutrients" with [seeAllLabel] on the right, which opens the Nutrients screen, then
@@ -309,10 +320,24 @@ fun KeyNutrientsPage(
             SummaryLink(text = seeAllLabel, onClick = onSeeAll)
         }
         rows.forEach { row ->
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            val onClick = row.onClick
+            val tap = if (onClick == null) {
+                Modifier
+            } else {
+                Modifier.semantics { onClick(label = row.onClickLabel) { onClick(); true } }.bounceClick(scaleDown = 0.98f, onClick = onClick)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().then(tap),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+            ) {
                 Column(Modifier.weight(1f)) {
                     Text(text = row.label, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, maxLines = 1)
                     Text(text = row.reference, typography = AppTheme.type.secondary, color = AppTheme.colors.muted, maxLines = 1)
+                }
+                if (row.notListed != null) {
+                    Text(text = row.notListed, typography = AppTheme.type.secondary, color = AppTheme.colors.muted, maxLines = 1)
+                    return@Row
                 }
                 NutrientBar(
                     metric = Metric.Micros,

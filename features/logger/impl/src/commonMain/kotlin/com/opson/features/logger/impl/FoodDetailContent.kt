@@ -127,6 +127,7 @@ import opson.libraries.resources.generated.resources.logger_micro_magnesium
 import opson.libraries.resources.generated.resources.logger_micro_manganese
 import opson.libraries.resources.generated.resources.logger_micro_niacin
 import opson.libraries.resources.generated.resources.logger_micro_of_daily
+import opson.libraries.resources.generated.resources.logger_micro_not_listed
 import opson.libraries.resources.generated.resources.logger_micro_phosphorus
 import opson.libraries.resources.generated.resources.logger_micro_potassium
 import opson.libraries.resources.generated.resources.logger_micro_riboflavin
@@ -731,6 +732,10 @@ private fun NutrientsSection(nutrients: AllNutrients) {
 private fun NutrientLine(row: NutrientRow) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(text = stringResource(row.micro.label), typography = AppTheme.type.body, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+        if (row.notListed) {
+            Text(text = stringResource(Res.string.logger_micro_not_listed), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            return@Row
+        }
         when (val shown = row.display) {
             is Display.Shown -> Text(
                 text = stringResource(Res.string.logger_micro_of_daily, shown.text),

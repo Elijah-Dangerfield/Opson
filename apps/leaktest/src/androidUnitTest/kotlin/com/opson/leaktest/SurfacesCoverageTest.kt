@@ -134,13 +134,14 @@ class SurfacesCoverageTest {
             ),
             "TrendsLeakSurfaces" to listOf(
                 "trends", "trends-blind", "trends-coast", "trends-settings", "nutrients", "nutrients-week",
+                "nutrient-foods", "nutrient-foods-week", "nutrient-foods-protein",
                 "weight", "patterns", "patterns-blind", "progress-photos", "progress-photos-compare",
             ),
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "modes-end-after", "modes-each-number", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
                 "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
                 "targets-deficit-estimated", "targets-macros",
-                "resting-energy", "energy-today", "today-screen-settings",
+                "resting-energy", "energy-today", "today-screen-settings", "micro-targets", "micro-target-sheet",
                 "water-settings", "support", "support-delete", "support-export-numbers", "support-provider-first", "support-find", "look-and-feel",
                 "provider-summary", "provider-summary-warning", "provider-summary-custom",
                 "reminders", "reminder-notification",

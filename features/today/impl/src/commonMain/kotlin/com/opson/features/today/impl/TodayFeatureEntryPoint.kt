@@ -61,6 +61,7 @@ import com.opson.features.today.impl.notes.NotesViewModel
 import com.opson.features.today.impl.water.WaterSheetContent
 import com.opson.features.today.impl.water.WaterSheetEvent
 import com.opson.features.today.impl.water.WaterSheetViewModel
+import com.opson.features.trends.NutrientFoodsRoute
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
 import com.opson.features.trends.WeightRoute
@@ -320,6 +321,7 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenCalendar -> router.navigate(CalendarRoute(event.day.toString()))
             is TodayEvent.OpenDayClose -> router.navigate(DayCloseRoute(event.day.toString()))
             is TodayEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
+            is TodayEvent.OpenNutrientFoods -> router.navigate(NutrientFoodsRoute(event.day.toString(), event.micro.key))
             TodayEvent.OpenNotes -> router.navigate(NotesRoute())
             TodayEvent.OpenEnergyToday -> router.navigate(EnergyTodayRoute())
             is TodayEvent.OpenLogger -> router.navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString()))

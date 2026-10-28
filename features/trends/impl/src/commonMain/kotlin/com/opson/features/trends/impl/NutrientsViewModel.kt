@@ -9,6 +9,7 @@ import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.GoalsAndEnergyEnabled
+import com.opson.libraries.nutrition.Nutrient
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -65,6 +66,7 @@ class NutrientsViewModel(
             // Showing more only ever happens in Modes and numbers, behind the pause (design v3).
             NutrientsAction.ModesTapped -> sendEvent(NutrientsEvent.OpenModes)
             NutrientsAction.BackTapped -> sendEvent(NutrientsEvent.Close)
+            is NutrientsAction.NutrientTapped -> sendEvent(NutrientsEvent.OpenFoods(action.nutrient, state.range))
         }
     }
 
@@ -95,6 +97,9 @@ sealed interface NutrientsAction {
     data class RangePicked(val range: NutrientsRange) : NutrientsAction
     data object ModesTapped : NutrientsAction
     data object BackTapped : NutrientsAction
+
+    /** A row a food gave something to: list those foods. */
+    data class NutrientTapped(val nutrient: Nutrient) : NutrientsAction
 }
 
 sealed interface NutrientsEvent {
@@ -102,4 +107,7 @@ sealed interface NutrientsEvent {
 
     /** Modes and numbers, where vitamins and minerals are turned on. */
     data object OpenModes : NutrientsEvent
+
+    /** Which foods gave [nutrient] over [range]: the day shown, or the week. */
+    data class OpenFoods(val nutrient: Nutrient, val range: NutrientsRange) : NutrientsEvent
 }

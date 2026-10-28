@@ -349,7 +349,27 @@ class FoodDetailTest : CoroutineTest() {
         val shown = assertNotNull(build(withLevel(Metric.Micros, Visibility.Show)).nutrients)
         assertFalse(shown.open)
         assertEquals(listOf(MicroGroup.Vitamins, MicroGroup.Minerals), shown.groups.map { it.group })
-        assertFalse(shown.groups.flatMap { it.rows }.any { it.micro == Micronutrient.VitaminD }, "unknown is not 0%")
+        val vitaminD = shown.groups.flatMap { it.rows }.single { it.micro == Micronutrient.VitaminD }
+        assertTrue(vitaminD.notListed, "unknown is not 0%")
+        assertEquals(Display.Hidden, vitaminD.display)
+        assertEquals(Micronutrient.entries.size, shown.groups.sumOf { it.rows.size }, "every one, listed or not")
+    }
+
+    /** A food that lists a nutrient as 0 has none of it: that is a 0%, not "Not listed". */
+    @Test
+    fun aListedZero_isZero_notNotListed() {
+        val food = AmountFood.Catalog(LoggerFixtures.food("test", "Test", "1 cup", 100.0, 100.0, 1.0, 1.0, 1.0, micros = mapOf("vitamin_d_ug" to 0.0, "iron_mg" to 1.8)))
+        val state = FoodDetailStateBuilder.build(
+            food,
+            DetailChoice.initial(food, MealSlot.Dinner),
+            LoggerFixtures.detailInputs(policy(PresetId.Full)),
+            FoodRef.Catalog("test"),
+            PickSource.Search,
+        )
+        val rows = assertNotNull(state.nutrients).groups.flatMap { it.rows }.associateBy { it.micro }
+        assertEquals("0%", assertIs<Display.Shown>(rows.getValue(Micronutrient.VitaminD).display).text)
+        assertFalse(rows.getValue(Micronutrient.VitaminD).notListed)
+        assertTrue(rows.getValue(Micronutrient.Zinc).notListed)
     }
 
     @Test

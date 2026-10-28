@@ -77,8 +77,11 @@ interface NutritionFormatter {
     /** A glass or a daily goal, not an amount drunk: `250 ml`, `2,000 ml`, `8 fl oz`. */
     fun glassSize(amount: Double, unit: WaterUnit): String
 
-    /** A micronutrient's daily reference: `700 µg`, `2.4 µg`, `1,000 mg`, `2,300 mg limit`. */
-    fun microReference(micro: Micronutrient): String
+    /** A micronutrient's daily reference, [amount] in its unit: `700 µg`, `2.4 µg`, `1,000 mg`, `2,300 mg limit`. */
+    fun microReference(micro: Micronutrient, amount: Double): String
+
+    /** An amount of a micronutrient in its unit: `2.1 mg`, `0.89 mg`, `350 µg`, `<0.01 mg`. */
+    fun microAmount(micro: Micronutrient, amount: Double): String
 }
 
 /** The prototype's strings, word for word. */
@@ -158,14 +161,22 @@ object EnglishNutritionFormatter : NutritionFormatter {
         WaterUnit.FlOz -> "${wholeNumber(amount)} fl oz"
     }
 
-    override fun microReference(micro: Micronutrient): String {
+    override fun microReference(micro: Micronutrient, amount: Double): String {
+        val text = microAmount(micro, amount)
+        return if (micro.isLimit) "$text limit" else text
+    }
+
+    override fun microAmount(micro: Micronutrient, amount: Double): String {
         val unit = when (micro.unit) {
             MicroUnit.Mg -> "mg"
             MicroUnit.Ug -> "\u00B5g"
         }
-        val amount = "${trimmedDecimal(micro.reference)} $unit"
-        return if (micro.isLimit) "$amount limit" else amount
+        // A trace that rounds to nothing is still something the food lists, so it is not "0".
+        val number = if (amount > 0.0 && (amount * HUNDREDTHS).roundToLong() == 0L) "<0.01" else upToTwoDecimals(amount)
+        return "$number $unit"
     }
+
+    private const val HUNDREDTHS = 100.0
 
     private fun macroWord(metric: Metric): String = when (metric) {
         Metric.Protein -> "protein"
@@ -199,10 +210,18 @@ internal fun oneDecimal(value: Double): String {
     return "$sign${groupThousands(magnitude / 10)}.${magnitude % 10}"
 }
 
-/** A whole number when there is no fraction, else one decimal place: `700`, `2.4`, `1,000`. */
-internal fun trimmedDecimal(value: Double): String {
-    val tenths = (value * 10).roundToLong()
-    return if (tenths % 10 == 0L) groupThousands(tenths / 10) else oneDecimal(value)
+/**
+ * Up to two decimal places, trailing zeros dropped: `700`, `2.4`, `0.89`, `1,000`. Micronutrient
+ * amounts need the second place: copper for a teenager is 0.89 mg, and a food's share of it
+ * smaller still.
+ */
+internal fun upToTwoDecimals(value: Double): String {
+    val hundredths = (value * 100).roundToLong()
+    val sign = if (hundredths < 0) "-" else ""
+    val magnitude = abs(hundredths)
+    val fraction = (magnitude % 100).toString().padStart(2, '0').trimEnd('0')
+    val whole = groupThousands(magnitude / 100)
+    return if (fraction.isEmpty()) "$sign$whole" else "$sign$whole.$fraction"
 }
 
 internal fun groupThousands(value: Long): String {

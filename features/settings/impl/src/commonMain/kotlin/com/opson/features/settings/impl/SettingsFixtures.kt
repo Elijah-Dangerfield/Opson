@@ -41,6 +41,9 @@ object SettingsFixtures {
 
     val timeZone: TimeZone = TimeZone.UTC
 
+    /** The day [clock] reads. */
+    val today: LocalDate = LocalDate(2026, 10, 25)
+
     /**
      * Design sync 4's Burned (`energy-today`): 1,610 resting, calculated, plus 390 of movement
      * and a 180 kcal workout from the health app, 2,180 in all.

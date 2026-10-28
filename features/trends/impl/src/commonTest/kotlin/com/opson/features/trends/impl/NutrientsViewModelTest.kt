@@ -2,6 +2,8 @@ package com.opson.features.trends.impl
 
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.nutrition.Micronutrient
+import com.opson.libraries.nutrition.Nutrient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
@@ -107,6 +109,14 @@ class NutrientsViewModelTest : CoroutineTest() {
         vm.takeAction(NutrientsAction.ModesTapped)
         assertEquals(listOf<NutrientsEvent>(NutrientsEvent.OpenModes), events)
         assertEquals(0, settings.updates, "showing more only happens in Modes and numbers, behind the pause")
+    }
+
+    @Test
+    fun aNutrientTapped_opensItsFoods_forTheRangeShown() = runUnitTest {
+        val vm = vm(range = NutrientsRange.WeekAverage)
+        val events = backgroundScope.events(vm)
+        vm.takeAction(NutrientsAction.NutrientTapped(Nutrient.Micro(Micronutrient.Iron)))
+        assertEquals(listOf<NutrientsEvent>(NutrientsEvent.OpenFoods(Nutrient.Micro(Micronutrient.Iron), NutrientsRange.WeekAverage)), events)
     }
 
     @Test

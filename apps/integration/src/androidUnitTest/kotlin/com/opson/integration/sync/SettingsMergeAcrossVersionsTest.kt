@@ -16,6 +16,7 @@ import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.ModeTiming
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.Presets
@@ -109,6 +110,37 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         assertEquals(earlyBreakfast, settings.mealTimes)
         assertEquals(ExerciseAdjustment.Some, settings.exerciseRange)
         assertFalse(newPhone.pendingChanges() > 0)
+    }
+
+    /** Vitamins and minerals: their own references and Today's four are top-level keys a 0.1 save leaves alone. */
+    @Test
+    fun aV01Save_keepsOwnMicroReferencesAndTodaysNutrients() = integration {
+        val user = randomUserId()
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        newPhone.settings.update { it.withMicroTarget(Micronutrient.VitaminD, 25.0).withTodayNutrient(Micronutrient.Sodium, false) }
+        newPhone.syncNow().getOrThrow()
+
+        val oldPhone = client(user, wrapSync = ::OldClientWire)
+        oldPhone.syncNow().getOrThrow()
+        oldPhone.settings.isKnown.awaitState { it }
+        oldPhone.settings.update { it.copy(waterGlasses = 7) }
+        oldPhone.syncNow().getOrThrow()
+
+        val stored = server.query(
+            "SELECT (settings->'microTargets'->>'vitamin_d')::float8 AS vitamin_d, settings->>'todayNutrients' AS today, " +
+                "(settings->>'waterGlasses')::int AS glasses FROM user_settings WHERE user_id = ?::uuid",
+            user,
+        ).single()
+        assertEquals(7, stored["glasses"], "the 0.1 save landed")
+        assertEquals(25.0, stored["vitamin_d"], "the merge kept microTargets")
+        assertEquals("""["potassium", "calcium", "iron"]""", stored["today"], "the merge kept todayNutrients")
+
+        newPhone.syncNow().getOrThrow()
+        val settings = newPhone.settings.settings.awaitState { it.waterGlasses == 7 }
+        assertEquals(mapOf("vitamin_d" to 25.0), settings.microTargets)
+        assertEquals(listOf(Micronutrient.Potassium, Micronutrient.Calcium, Micronutrient.Iron), settings.todayMicronutrients)
     }
 
     @Test
@@ -409,7 +441,7 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
             "restingSource", "restingOwnKcal", "activityInBurned", "everydayActivity", "birthYear", "heightCm", "bodySex",
             "todayCard", "todayMainNumber", "todayMainNumberByStyle", "todayBurnedBreakdown", "todayMealsCount",
             "todayNutrientsLink", "todayWater", "todayWeight", "todayCloseDay",
-            "mode", "modeTimerEnded",
+            "mode", "modeTimerEnded", "microTargets", "todayNutrients",
         )
 
         /** What Coast hid that Later on its own would only delay. */

@@ -6,6 +6,31 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-27: Vitamin and mineral references fit the person, and "not listed" is not 0
+
+**Decision:** each vitamin and mineral's reference comes from `MicroReferences`:
+the DRI for the person's age band and sex (Resting energy's birth year and sex),
+halfway between the sexes for "Prefer not to say", the 31 to 50 band without a
+birth year, and the FDA Daily Value when nothing is known, with a number of
+their own over any of them (`microTargets`). Today's nutrients page lists four
+the person picks (`todayNutrients`). Both are top-level settings keys, and both
+default to empty rather than null, because the server's shallow merge keeps a
+key a write leaves out and `explicitNulls = false` leaves a null out: going
+back to the defaults would never reach the other phone.
+
+A micronutrient no logged food lists has no percent at all (`MicroPercents.of`
+leaves it out) and reads "Not listed"; a food that lists 0 is 0. Rows say how
+many foods list a nutrient when only some do. The catalog, the wire, Room and
+sync already kept the two apart; only the sum and food detail collapsed them.
+
+**Alternatives:** keep one adult table for everyone (wrong by 10 mg of iron
+for half of adults); use the Daily Values for "Prefer not to say" (they are the
+higher of the two for most nutrients, so the percent would read low).
+
+**Why:** the percent is only honest if the reference is the person's and the
+total says when it rests on partial data. Details and sources in
+`docs/research/nutrient-targets.md`; the table is `TODO(dietitian)`.
+
 ## 2026-10-27: How sure is worked out, and a custom food carries its weight, sizes and label
 
 **Decision:** the food detail no longer asks How sure up front. It works it
@@ -46,6 +71,7 @@ as a keyed map, and a column per nutrient is a migration per nutrient);
 overwriting the new columns from an old build's save (rejected: an old phone
 editing a food's name would erase what a new one weighed). Research in
 `docs/research/food-detail.md`.
+
 ## 2026-10-27: Onboarding offers goal numbers only to someone comfortable with them
 
 **Decision:** behind `release.onboardingSetup`, the goal step is shown when the
