@@ -3,10 +3,12 @@ package com.opson.libraries.ui.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
@@ -30,12 +32,17 @@ import kotlin.math.max
  * spaced across the width in order. The builder normalises them, so the chart
  * carries no scale and no axis, and "Trend only" really is only a trend.
  * Size it with [modifier]; the default is the handoff's 310 by 130.
+ *
+ * [readouts], one per point, make it inspectable ([InspectableChart]): the picked point gets a ring
+ * on the line and, with [dots], its reading drawn solid.
  */
 @Composable
 fun TrendLine(
     points: List<Float>,
     dots: List<Float>?,
     modifier: Modifier = Modifier.fillMaxWidth().aspectRatio(DEFAULT_ASPECT),
+    readouts: List<ChartReadout?> = emptyList(),
+    selection: ChartSelection = rememberChartSelection(readouts),
     lineColor: ColorResource = AppTheme.colors.accent,
     dotColor: ColorResource = AppTheme.colors.muted,
     lineWidth: Dp = 3.5.dp,
@@ -43,25 +50,33 @@ fun TrendLine(
 ) {
     if (points.isEmpty() && dots.isNullOrEmpty()) return
     val line = lineColor.color
-    val dot = dotColor.color.copy(alpha = DOT_ALPHA)
-    Canvas(modifier) {
-        val inset = max(lineWidth.toPx() / 2, dotRadius.toPx())
-        dots?.let { values ->
-            positions(values, inset).forEach { drawCircle(dot, radius = dotRadius.toPx(), center = it) }
+    val dotSolid = dotColor.color
+    val dot = dotSolid.copy(alpha = DOT_ALPHA)
+    val ring = AppTheme.colors.surface.color
+    InspectableChart(readouts, ChartAxis.Points(maxOf(lineWidth / 2, dotRadius)), selection, modifier) {
+        Canvas(Modifier.matchParentSize()) {
+            val inset = max(lineWidth.toPx() / 2, dotRadius.toPx())
+            val dotCenters = dots?.let { positions(it, inset) }.orEmpty()
+            dotCenters.forEach { drawCircle(dot, radius = dotRadius.toPx(), center = it) }
+            val lineCenters = positions(points, inset)
+            val path = smoothPath(lineCenters)
+            if (path != null) {
+                drawPath(path, line, style = Stroke(width = lineWidth.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            }
+            val picked = selection.index
+            dotCenters.getOrNull(picked)?.let { drawCircle(dotSolid, radius = dotRadius.toPx() * PICKED_DOT_SCALE, center = it) }
+            lineCenters.getOrNull(picked)?.let {
+                drawCircle(line, radius = lineWidth.toPx() * PICKED_RING_SCALE, center = it)
+                drawCircle(ring, radius = lineWidth.toPx() * PICKED_CORE_SCALE, center = it)
+            }
         }
-        val path = smoothPath(positions(points, inset)) ?: return@Canvas
-        drawPath(path, line, style = Stroke(width = lineWidth.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }
 
 private fun DrawScope.positions(values: List<Float>, inset: Float): List<Offset> {
-    if (values.isEmpty()) return emptyList()
-    val width = size.width - inset * 2
     val height = size.height - inset * 2
-    val step = if (values.size > 1) width / (values.size - 1) else 0f
     return values.mapIndexed { index, value ->
-        val x = if (values.size > 1) inset + step * index else size.width / 2
-        Offset(x, inset + height * (1f - value.coerceIn(0f, 1f)))
+        Offset(ChartPicking.pointX(index, values.size, size.width, inset), inset + height * (1f - value.coerceIn(0f, 1f)))
     }
 }
 
@@ -91,17 +106,40 @@ private fun smoothPath(points: List<Offset>): Path? {
 
 private const val DEFAULT_ASPECT = 310f / 130f
 private const val DOT_ALPHA = 0.45f
+private const val PICKED_DOT_SCALE = 1.6f
+private const val PICKED_RING_SCALE = 1.5f
+private const val PICKED_CORE_SCALE = 0.75f
+
+/** The prototype's WEIGHTS shape, normalised: a slow drift with daily noise around it. */
+private fun previewReadings() = List(28) { i -> 0.55f - i * 0.006f + kotlin.math.sin(i * 1.7f) * 0.18f + kotlin.math.cos(i * 0.9f) * 0.1f }
 
 @Preview(widthDp = 390)
 @Composable
 private fun TrendLinePreview() {
-    // The prototype's WEIGHTS shape, normalised: a slow drift with daily noise around it.
-    val readings = List(28) { i -> 0.55f - i * 0.006f + kotlin.math.sin(i * 1.7f) * 0.18f + kotlin.math.cos(i * 0.9f) * 0.1f }
+    val readings = previewReadings()
     val trend = readings.runningReduce { average, reading -> average * 0.8f + reading * 0.2f }
     PreviewLightDark {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             TrendLine(points = trend, dots = readings)
             TrendLine(points = trend, dots = null, modifier = Modifier.fillMaxWidth().height(56.dp))
         }
+    }
+}
+
+/** A weigh-in picked: the ring on the line, the reading solid, the label with both. */
+@Preview(widthDp = 390)
+@Composable
+private fun TrendLinePickedPreview() {
+    val readings = previewReadings()
+    val trend = readings.runningReduce { average, reading -> average * 0.8f + reading * 0.2f }
+    PreviewLightDark(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 64.dp, bottom = 20.dp)) {
+        TrendLine(
+            points = trend,
+            dots = readings,
+            readouts = trend.indices.map { day ->
+                ChartReadout("Oct ${day + 1}", listOf(ChartReading(value = "72.${day % 10} kg"), ChartReading(value = "73.0 kg")))
+            },
+            selection = remember { ChartSelection(initial = 17) },
+        )
     }
 }
