@@ -123,10 +123,10 @@ object TodayStateBuilder {
             } else {
                 null
             },
-            water = if (future || !listRow(inputs) { it.todayWater }) null else water(day, inputs.settings, policy, context),
+            water = if (future || !shownOnToday(inputs) { it.todayWater }) null else water(day, inputs.settings, policy, context),
             meals = if (future) planned(inputs, policy, context, groupsOn) else meals(inputs, policy, context, layout, groupsOn),
             // Nothing logged, nothing to close yet (design sync 2, 2.2); the ⋮ menu still offers it.
-            closeDay = if (future || untracked || !day.hasLogged || !listRow(inputs) { it.todayCloseDay }) null else CloseDayButton(closed = closed),
+            closeDay = if (future || untracked || !day.hasLogged || !shownOnToday(inputs) { it.todayCloseDay }) null else CloseDayButton(closed = closed),
             closed = closed,
             highlight = highlight,
             added = added?.takeIf { it.day == date }?.let { AddedNotice(it.slot, it.itemIds.size) },
@@ -137,7 +137,7 @@ object TodayStateBuilder {
             summaryPage = (inputs.cardView.page ?: settings.todaySummaryPage).coerceIn(0, pageCount - 1),
             collapsed = compact != null && (inputs.cardView.collapsed ?: settings.todaySummaryCollapsed),
             compact = compact,
-            weight = if (summaryOn && !future && listRow(inputs) { it.todayWeight }) weightRow(inputs, policy, context) else null,
+            weight = if (summaryOn && !future && shownOnToday(inputs) { it.todayWeight }) weightRow(inputs, policy, context) else null,
             selectTools = inputs.selectTools,
             foodMenus = inputs.foodActionsOn,
             selection = selecting?.let { selection(it, day, ui.step) },
@@ -153,8 +153,11 @@ object TodayStateBuilder {
      */
     private val TodayInputs.selectTools: Boolean get() = selectOn && !day.closedByUser
 
-    /** A list row More › Today screen can turn off on Today alone (design sync 4, 13.6a). */
-    private fun listRow(inputs: TodayInputs, on: (Settings) -> Boolean): Boolean = !inputs.goalsAndEnergyOn || on(inputs.settings)
+    /**
+     * A list row, the card's Nutrients link or the header's Close the day: each one More › Today
+     * screen can turn off on Today alone (design sync 4, 13.6a).
+     */
+    private fun shownOnToday(inputs: TodayInputs, on: (Settings) -> Boolean): Boolean = !inputs.goalsAndEnergyOn || on(inputs.settings)
 
     /** "Rice pudding" reads "rice pudding" mid-sentence; "BBQ chips" stays as it is. */
     internal fun inSentence(name: String): String =
@@ -202,7 +205,7 @@ object TodayStateBuilder {
             stats = if (summaryOn && !empty) stats(inputs, policy, context, eaten, range, macros.map { it.metric }.toSet()) else emptyList(),
             macrosPage = if (summaryOn && !empty && settings.todayMacrosPage) macrosPage(day, settings, policy, context, eaten) else null,
             // More › Today screen's Nutrients switch, which turned the card's link off, turns this page off.
-            nutrientsPage = if (!empty && listRow(inputs) { it.todayNutrientsLink }) TodayNutrientsPage.build(day, settings, inputs.today, policy, context) else null,
+            nutrientsPage = if (!empty && shownOnToday(inputs) { it.todayNutrientsLink }) TodayNutrientsPage.build(day, settings, inputs.today, policy, context) else null,
             singleGoal = range.single,
             // Only All numbers' card: outside it (Later after its reveal, too) the mode sets the layout.
             card = if (inputs.goalsAndEnergyOn && policy.preset.today == TodayLayout.Full && policy.level(Metric.Calories) == Visibility.Show) {

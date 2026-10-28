@@ -195,9 +195,9 @@ dots, collapse and sticky bar are unchanged. Off, page 1 is design sync 2's.
   the day's activity. Trends draws one goal for the span on today's Burned.
 - **More › Today screen** (`TodayScreenSettingsRoute`, `features/settings`):
   the presets, Main number and Card pages (sheets), On the card (Burned
-  breakdown, Meals count, Nutrients link) and In the list (Water, Weight on days
-  you weigh in, Close the day). Outside Full numbers only the list's rows can be
-  changed. Every setting is a top-level key; `SettingsMergeAcrossVersionsTest`
+  breakdown, Meals count, Nutrients link), In the list (Water, Weight on days
+  you weigh in) and In the header (Close the day). Outside All numbers only those
+  can be changed. Every setting is a top-level key; `SettingsMergeAcrossVersionsTest`
   proves a 0.1 save keeps them.
 - The eaten ± shows on Energy today (13.2c), the only screen that draws it.
 

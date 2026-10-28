@@ -456,6 +456,11 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
 - [ ] **Lawyer:** read `legal/privacy.md`, `legal/terms.md` and
       `legal/health-data.md` once before they go live. The items marked
       "lawyer" in the review are the ones that matter.
+- [ ] **With the 0.2 release, after you read its "Your account" paragraph:**
+      re-apply 02c9e84f (`git cherry-pick 02c9e84f`: accounts are required,
+      carry an email, and can come from Google). Keep a sentence for pre-0.2
+      accounts with no email in the rights section and in `health-data.md`,
+      pointing them to the in-app export and delete buttons.
 - [ ] **You:** on the Nightjar homepage (the `nightjar` repo), link
       `/opson/health-data` from the footer. Washington wants the link on the
       regulated entity's homepage; the Opson site's footer has it already.
