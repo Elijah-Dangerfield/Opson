@@ -220,8 +220,8 @@ keeps existing ticks.
 - [x] `apps/integration/src/androidUnitTest/kotlin/com/opson/integration/waitlist/WaitlistTest.kt`
 - [x] `apps/integration/src/androidUnitTest/resources/init-auth.sql`
 - [x] `apps/leaktest/build.gradle.kts`
-- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindMealGapsTest.kt` (now `NoNumbersMealGapsTest.kt`)
-- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindModeLeakTest.kt` (now `CaloriesHiddenLeakTest.kt`)
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindMealGapsTest.kt`
+- [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/BlindModeLeakTest.kt`
 - [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/EnergyOutHiddenLeakTest.kt`
 - [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakScan.kt`
 - [x] `apps/leaktest/src/androidUnitTest/kotlin/com/opson/leaktest/LeakTestControlTest.kt`

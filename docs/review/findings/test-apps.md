@@ -196,15 +196,20 @@ merges** and the test proves it.
   With `CI=true` (GitHub Actions sets it) a missing Docker fails; a laptop still skips. No test:
   the only way to run it is a CI runner without Docker.
 
-## 16. The leak test is named for a mode that no longer exists: fixed in slice, rest deferred (audit: truth)
+## 16. The leak test is named for a mode that no longer exists: comments fixed, rename deferred (cross-slice, audit: truth)
 
 - **Where:** `apps/leaktest/.../BlindModeLeakTest.kt`, `BlindMealGapsTest.kt`, `LeakScan.kt:43`
   ("Pine"), `MicrosHiddenLeakTest.kt:28` ("Sprint"), `LeakTestControlTest.kt:18`.
 - **Rule:** §1 names do the documenting.
 - **Fix:** `test(leaktest): the leak tests are named for what they check, and No numbers reads what a screen reader says`.
-  `CaloriesHiddenLeakTest` and `NoNumbersMealGapsTest`; Slate; no Sprint.
+  Slate; no Sprint. That commit also renamed the classes to `CaloriesHiddenLeakTest` and
+  `NoNumbersMealGapsTest`; the second review put the old names back (see below), so the class
+  rename travels with the sweep that renames everything pointing at it.
 - **Deferred (cross-slice):**
-  - every other file that names the old class, a mechanical rename:
+  - the class rename itself, in one commit with every file that names the classes:
+    `git mv` `BlindModeLeakTest.kt` to `CaloriesHiddenLeakTest.kt` and `BlindMealGapsTest.kt` to
+    `NoNumbersMealGapsTest.kt` in `apps/leaktest` (plus the six KDocs and `build.gradle.kts` there),
+    `docs/plans/design-polish.md:66` for the gaps test, and for the main one:
     `grep -rl BlindModeLeakTest --exclude-dir=build --exclude-dir=.claude features libraries settings.gradle.kts docs/system-design.md docs/practices | xargs sed -i '' 's/BlindModeLeakTest/CaloriesHiddenLeakTest/g'`
     (about 30 KDocs in `features/*/impl`, `libraries/ui`, `libraries/nutrition`, `libraries/reminders`,
     `libraries/widgets`, plus `settings.gradle.kts:68` and `docs/system-design.md:552`). Leave
@@ -245,6 +250,24 @@ merges** and the test proves it.
   and in `docs/practices/design-sync.md`.
 - **The ban commit does not compile on its own** (`BanTest` reads `TestClient.accessDenied`,
   added one commit later). The branch compiles at its tip; noted so nobody bisects into it.
+
+## Second review
+
+A skeptical second reviewer flagged two regressions on this branch.
+
+1. **`IntegrationTest`'s KDoc still promised "no Docker → skipped, not red".** Real: since
+   finding 15, `assumeDockerAvailable()` fails when `CI=true`. Fixed in
+   `docs(integration): the base class says a missing Docker fails on CI, not that it is never red`.
+   Comment only, so no test; the behaviour and its own KDoc in `InProcessServer` were already
+   right.
+2. **The leak test rename left about 40 files outside the slice naming classes that no longer
+   existed** (`settings.gradle.kts:68`, `HardcodedDisplay.kt:19`, `review-checklist.md:59`,
+   every `*LeakSurfaces.kt` and `*Fixtures.kt` KDoc). Real. Those files belong to other slices,
+   so the fix here is the reviewer's alternative: keep the old names. Fixed in
+   `test(leaktest): keep the leak tests' old names until every file that names them moves too`.
+   Every reference resolves again, and finding 16's deferred entry now carries the class rename
+   with the sweep so both land in one commit. No test: it is a rename, and the suite runs the
+   same cases under the old names.
 
 ## Product notes
 
