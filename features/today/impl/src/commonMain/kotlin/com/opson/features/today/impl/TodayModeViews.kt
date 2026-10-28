@@ -65,6 +65,7 @@ import opson.libraries.resources.generated.resources.today_compact_meals
 import opson.libraries.resources.generated.resources.today_counts_meals_one
 import opson.libraries.resources.generated.resources.today_counts_meals_other
 import opson.libraries.resources.generated.resources.today_locked_week_title
+import opson.libraries.resources.generated.resources.today_meal_around
 import opson.libraries.resources.generated.resources.today_soft_energy
 import opson.libraries.resources.generated.resources.today_summary_nutrients
 import org.jetbrains.compose.resources.StringResource
@@ -195,7 +196,15 @@ private fun TimelineMeal(tile: MealTile, onAction: (TodayAction) -> Unit, modifi
     val status = tile.status
     val done = status !is TileStatus.Empty
     val name = stringResource(slot.label)
-    val description = stringResource(if (done) Res.string.modes_timeline_done_cd else Res.string.modes_timeline_open_cd, name)
+    val (time, spokenTime) = when (status) {
+        is TileStatus.Logged -> status.time.clock().let { it to it }
+        is TileStatus.AteNoDetails -> stringResource(Res.string.modes_timeline_usual, status.around.clock()) to
+            stringResource(Res.string.today_meal_around, status.around.clock())
+        is TileStatus.Empty -> stringResource(Res.string.modes_timeline_usual, status.around.clock()) to
+            stringResource(Res.string.today_meal_around, status.around.clock())
+    }
+    // The description stands in for the merged texts, so it says the time too ("Around 7:00 PM", not "~").
+    val description = stringResource(if (done) Res.string.modes_timeline_done_cd else Res.string.modes_timeline_open_cd, name) + ", " + spokenTime
     Column(
         modifier = modifier
             .semantics(mergeDescendants = true) {
@@ -209,11 +218,7 @@ private fun TimelineMeal(tile: MealTile, onAction: (TodayAction) -> Unit, modifi
         MealCircle(slot, done)
         Text(text = name, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, maxLines = 1)
         Text(
-            text = when (status) {
-                is TileStatus.Logged -> status.time.clock()
-                is TileStatus.AteNoDetails -> stringResource(Res.string.modes_timeline_usual, status.around.clock())
-                is TileStatus.Empty -> stringResource(Res.string.modes_timeline_usual, status.around.clock())
-            },
+            text = time,
             typography = AppTheme.type.secondary.Tabular,
             color = AppTheme.colors.muted,
             textAlign = TextAlign.Center,
