@@ -33,7 +33,9 @@ import java.util.concurrent.ConcurrentHashMap
  *    refresh token `apple-refresh-<code>`, and revocations are recorded in
  *    [revokedAppleTokens].
  *  - **Anthropic Messages** (`/v1/messages`): answers [photoFoods] as the model's
- *    structured output, so the real `AnthropicEstimateProvider` and SDK parse it.
+ *    structured output, so the real `AnthropicEstimateProvider` and SDK parse it;
+ *    a request with the label schema gets [labelOutput] instead, for
+ *    `AnthropicLabelParser`, and is counted in [labelReads].
  *  - **Open Food Facts** (`/api/v2/product/{code}.json`): knows the products in
  *    [openFoodFactsProducts] and nothing else, so any other code the catalog
  *    lacks is a clean miss.
@@ -45,6 +47,16 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
     /** What the photo model "sees": name, quantity, unit, grams. */
     @Volatile
     var photoFoods: List<PhotoFood> = listOf(PhotoFood("Broccoli, steamed", 1.0, "cup", 150.0))
+
+    /**
+     * What the label model "reads" off a pack: its structured output, in the
+     * transcription schema (`LabelOutput` on the server). Units as printed.
+     */
+    @Volatile
+    var labelOutput: String = GRANOLA_LABEL
+
+    /** How many label reads reached the model. */
+    val labelReads = java.util.concurrent.atomic.AtomicInteger()
 
     /** What Open Food Facts knows, by the code as asked. */
     val openFoodFactsProducts: MutableMap<String, OffProduct> = ConcurrentHashMap()
@@ -87,7 +99,14 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
                     call.respondText("", ContentType.Text.Plain)
                 }
                 post("/v1/messages") {
-                    call.respondText(messagesReply(photoFoods), ContentType.Application.Json)
+                    // The label parser's schema is the only one with this key.
+                    val body = call.receiveText()
+                    if (body.contains("servings_per_container")) {
+                        labelReads.incrementAndGet()
+                        call.respondText(message(labelOutput), ContentType.Application.Json)
+                    } else {
+                        call.respondText(messagesReply(photoFoods), ContentType.Application.Json)
+                    }
                 }
                 get("/api/v2/product/{file}") {
                     val code = call.parameters["file"].orEmpty().removeSuffix(".json")
@@ -126,6 +145,17 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
         )
     }.toString()
 
+    private fun message(text: String): String = buildJsonObject {
+        put("id", "msg_integration")
+        put("type", "message")
+        put("role", "assistant")
+        put("model", "claude-fable-5-1")
+        put("content", buildJsonArray { add(buildJsonObject { put("type", "text"); put("text", text) }) })
+        put("stop_reason", "end_turn")
+        put("stop_sequence", JsonPrimitive(null as String?))
+        put("usage", buildJsonObject { put("input_tokens", 1); put("output_tokens", 1) })
+    }.toString()
+
     private fun messagesReply(foods: List<PhotoFood>): String {
         val output = buildJsonObject {
             put(
@@ -154,5 +184,25 @@ class FakeUpstreams(private val deleteAuthUser: (String) -> Unit) : AutoCloseabl
             put("stop_sequence", JsonPrimitive(null as String?))
             put("usage", buildJsonObject { put("input_tokens", 1); put("output_tokens", 1) })
         }.toString()
+    }
+
+    companion object {
+        /** A US granola bar, 40 g: 190 kcal on 4 g protein, 29 g carbs and 7 g fat, which add up. */
+        val GRANOLA_LABEL: String = """
+            {"label_found":true,
+             "name":{"value":"Oats & honey granola bar","confidence":0.95},
+             "brand":{"value":"Hillside","confidence":0.9},
+             "barcode":{"value":null,"confidence":0},
+             "serving":{"amount":40,"unit":"g","household":"1 bar","confidence":0.95},
+             "servings_per_container":{"value":6,"confidence":0.9},
+             "basis":"us",
+             "nutrients":[
+               {"nutrient":"energy","per_serving":190,"per_100":null,"unit":"kcal","less_than":false,"confidence":0.95},
+               {"nutrient":"protein","per_serving":4,"per_100":null,"unit":"g","less_than":false,"confidence":0.6},
+               {"nutrient":"carbohydrate","per_serving":29,"per_100":null,"unit":"g","less_than":false,"confidence":0.95},
+               {"nutrient":"fat","per_serving":7,"per_100":null,"unit":"g","less_than":false,"confidence":0.95},
+               {"nutrient":"sodium","per_serving":150,"per_100":null,"unit":"mg","less_than":false,"confidence":0.9}
+             ]}
+        """.trimIndent()
     }
 }
