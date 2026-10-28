@@ -199,6 +199,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `logger-search-tabs` | logger | 0.2, `search-options.md`; tabs, the options button and source badges over results | yes |
 | new | | `logger-search-options` | logger | 0.2, `search-options.md`; the options sheet: sort, database, tabs | no |
 | new | | `support-export-numbers`, `support-provider-first` | settings | the export's warning that the file has every number; `release.providerSummary` first in Support | no |
+| new | | `provider-summary`, `provider-summary-warning`, `provider-summary-custom` | settings | `release.providerSummary`; the preview follows the mode, so a number the mode hides is only in the PDF | yes |
 | new | | `targets-exact` | settings | 0.2, `release.goalsAndEnergy`; one number and its stepper | yes |
 | new | | `targets-surplus` | settings | 0.2, `release.goalsAndEnergy`; the surplus, the burn and the goal it comes to | yes |
 | new | | `targets-by-day-shapes` | settings | 0.2, `release.goalsAndEnergy`; a day group as one number, as a surplus, and as a deficit | yes |

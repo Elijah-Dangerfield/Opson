@@ -125,6 +125,22 @@ is held back: the only platform change is `LSApplicationQueriesSchemes`
       "couldn't open" line on an iPad or a phone with no SIM.
 - [ ] Flip `release.findSupport` on.
 
+## Provider summary (`release.providerSummary`)
+
+Support's "Make a summary for your provider": a range, what goes in, a
+preview that follows the mode, and a PDF the person shares themselves. Made on
+the phone from the local log; nothing is sent to the server, and there is no
+link anyone else can open. Someone who picked "Working with a provider" in
+setup sees it in its own card at the top of Support.
+
+- [ ] Open a summary PDF from an iPhone and an Android phone in Files, Mail
+      and a printer preview: fonts, wrapping, page breaks and the footer.
+- [ ] Look at the preview in No numbers and Macros only with numbers switched
+      in: the question comes once, and no amount shows on screen.
+- [ ] Add a line to `legal/privacy.md` under "Getting a copy" saying the
+      summary is made on the phone and goes only where the person sends it.
+- [ ] Flip `release.providerSummary` on.
+
 ## Widgets (`release.widgets`)
 
 The iOS extension (`OpsonWidgetsExtension`, `com.opson.Opson.Widgets`) ships in

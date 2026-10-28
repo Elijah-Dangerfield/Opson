@@ -70,6 +70,10 @@ import com.opson.features.settings.impl.reminders.RemindersAction
 import com.opson.features.settings.impl.reminders.RemindersEvent
 import com.opson.features.settings.impl.reminders.RemindersScreen
 import com.opson.features.settings.impl.reminders.RemindersViewModel
+import com.opson.features.settings.impl.summary.ProviderSummaryEvent
+import com.opson.features.settings.impl.summary.ProviderSummaryScreen
+import com.opson.features.settings.impl.summary.ProviderSummaryViewModel
+import com.opson.features.settings.impl.summary.SUMMARY_MIME_TYPE
 import com.opson.features.settings.impl.support.CreditsEvent
 import com.opson.features.settings.impl.support.CreditsScreen
 import com.opson.features.settings.impl.support.CreditsViewModel
@@ -138,6 +142,7 @@ class SettingsFeatureEntryPoint(
     private val widgetsViewModel: () -> WidgetsViewModel,
     private val findSupportViewModel: () -> FindSupportViewModel,
     private val creditsViewModel: () -> CreditsViewModel,
+    private val providerSummaryViewModel: () -> ProviderSummaryViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -447,6 +452,19 @@ class SettingsFeatureEntryPoint(
                 }
             }
             FindSupportScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        // Registered whatever release.providerSummary says: only Support links here, and only with it on.
+        screen<ProviderSummaryRoute> {
+            val viewModel: ProviderSummaryViewModel = viewModel { providerSummaryViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is ProviderSummaryEvent.SharePdf -> router.shareFile(event.name, SUMMARY_MIME_TYPE, event.bytes)
+                    ProviderSummaryEvent.Close -> router.goBack()
+                }
+            }
+            ProviderSummaryScreen(state = state, onAction = viewModel::takeAction)
         }
 
         screen<CreditsRoute> {

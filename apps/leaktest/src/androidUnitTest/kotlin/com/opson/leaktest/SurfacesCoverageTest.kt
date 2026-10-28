@@ -128,6 +128,7 @@ class SurfacesCoverageTest {
                 "targets-deficit-estimated", "targets-macros",
                 "resting-energy", "energy-today", "today-screen-settings",
                 "water-settings", "support", "support-delete", "support-export-numbers", "support-provider-first", "support-find", "look-and-feel",
+                "provider-summary", "provider-summary-warning", "provider-summary-custom",
                 "reminders", "reminder-notification",
                 "integrations", "integrations-leave-out", "fasting",
                 "widget", "widgets",
@@ -153,6 +154,7 @@ class SurfacesCoverageTest {
             "food-detail-scan", "food-detail-nutrients", "logger-describe-edited", "logger-describe-find",
             "widget", "widgets",
             "today-burned", "today-burned-health", "exercise-sheet", "exercise-sheet-other",
+            "provider-summary", "provider-summary-warning", "provider-summary-custom",
         )
     }
 }

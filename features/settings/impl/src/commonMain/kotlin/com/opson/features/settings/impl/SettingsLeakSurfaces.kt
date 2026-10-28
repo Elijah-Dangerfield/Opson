@@ -24,6 +24,8 @@ import com.opson.features.settings.impl.pause.PauseSubject
 import com.opson.features.settings.impl.reminders.ReminderNotifications
 import com.opson.features.settings.impl.reminders.RemindersScreen
 import com.opson.features.settings.impl.reminders.RemindersStateBuilder
+import com.opson.features.settings.impl.summary.ProviderSummaryFixtures
+import com.opson.features.settings.impl.summary.ProviderSummaryScreen
 import com.opson.features.settings.impl.support.DeleteStep
 import com.opson.features.settings.impl.support.ExportStatus
 import com.opson.features.settings.impl.support.FindSupportScreen
@@ -174,6 +176,17 @@ object SettingsLeakSurfaces {
         // release.providerSummary, first for someone working with a provider.
         LeakSurface(id = "support-provider-first", label = "Support, a summary for your provider", showsCaloriesInFull = false) { _ ->
             SupportScreen(SupportStateBuilder.build(findSupport = true, SupportCountry.UnitedStates, true, true), onAction = {})
+        },
+        // release.providerSummary. Every part switched in, numbers and weight too: the preview
+        // keeps any number the mode does not show outright for the PDF alone.
+        LeakSurface(id = "provider-summary", label = "A summary for your provider", showsCaloriesInFull = true) { policy ->
+            ProviderSummaryScreen(ProviderSummaryFixtures.state(policy), onAction = {})
+        },
+        LeakSurface(id = "provider-summary-warning", label = "Provider summary, numbers your mode hides", showsCaloriesInFull = true) { policy ->
+            ProviderSummaryScreen(ProviderSummaryFixtures.warningState(policy), onAction = {})
+        },
+        LeakSurface(id = "provider-summary-custom", label = "Provider summary, pick dates", showsCaloriesInFull = true) { policy ->
+            ProviderSummaryScreen(ProviderSummaryFixtures.customState(policy), onAction = {})
         },
         // Design sync 2, release.findSupport. Phone numbers and no amounts: listed so a later
         // line that ever carries a number of the person's own is caught.

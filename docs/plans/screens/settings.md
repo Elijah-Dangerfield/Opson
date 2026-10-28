@@ -631,6 +631,37 @@ formula starts with `'`. 0.1 phones keep calling `export.csv`, unchanged.
 
 ---
 
+## A summary for your provider (`release.providerSummary`)
+
+`ProviderSummaryRoute()`. `ProviderSummaryViewModel`, opened from Support.
+
+The person picks a range (Last 7 days, Last 2 weeks, the default, Last 4
+weeks, or Pick dates: a month grid, first tap then last, up to 90 days and a
+year back) and what goes in: Meals and times, Notes, Hunger, Check-ins,
+Weight, and Calories, macros and water. Weight and the numbers start on only
+when the mode shows them outright (`SummaryChoices.defaultsFor`).
+
+Everything is read from the phone (`DiaryRepository.observeDays`,
+`WeightRepository`), so it works offline. `SummaryContentBuilder` picks what
+goes in; `SummaryLines` turns it into lines the preview draws and the PDF is
+written from (`:libraries:pdf`'s `PdfWriter`, shared through
+`router.shareFile(…, "application/pdf", …)` as
+`opson-summary-<start>-to-<end>.pdf`).
+
+**Mode rules.** The PDF holds every number picked, spelled by an All numbers
+policy. The preview shows only the picked numbers whose level is Show, so a
+hidden, softened or Later number is never on screen, and says "Some numbers
+you picked stay out of this preview…" when any is left out. Switching in a
+part whose numbers the mode keeps out of sight asks first ("These numbers
+will be in the PDF", Include them / Leave them out), once a visit.
+
+Tests: `ProviderSummaryContentTest` (each part, the starting choices, the
+preview's numbers by mode, the PDF's), `ProviderSummaryViewModelTest` (ask
+once, share, a failed PDF, nothing picked, ranges). Previews and `SURFACES`:
+`provider-summary`, `provider-summary-warning`, `provider-summary-custom`.
+
+---
+
 ## Look and feel (new, 0.1)
 
 `LookAndFeelRoute()`. Not in the handoff as a page. It exists because system
