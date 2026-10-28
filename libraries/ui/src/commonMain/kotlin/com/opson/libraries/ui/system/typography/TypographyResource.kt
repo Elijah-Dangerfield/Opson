@@ -665,7 +665,7 @@ private fun PreviewBrandTypography() {
                     modifier = Modifier.padding(bottom = Dimension.D500)
                 )
                 Text(
-                    text = "The wordmark face: Atkinson Hyperlegible Next ExtraBold",
+                    text = "The wordmark face: Young Serif",
                     fontSize = 14.sp,
                     color = Color(0xFF666666),
                     modifier = Modifier.padding(bottom = Dimension.D1000)

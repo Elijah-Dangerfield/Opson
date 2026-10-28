@@ -32,9 +32,9 @@ import com.opson.system.background
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /*
- * The hero-coloured cards at the top of Today and on Day close (design v3, 2.1 to 2.8 and 4.2):
- * the summary, the locked card, the big-day reset. They sit inside the
- * page padding with all four corners rounded. White content; secondary text at 72 to 78%.
+ * The hero-coloured cards (design v3, 2.1 to 2.8 and 4.2): the locked card on Trends' weekly
+ * check, the big-day reset on Today, the fasting card and Find support. They sit inside the page
+ * padding with all four corners rounded. White content; secondary text at 72 to 78%.
  */
 
 /** A hero-coloured card: radius 22 (`AppTheme.shapes.card`), padding 20, white content. */
