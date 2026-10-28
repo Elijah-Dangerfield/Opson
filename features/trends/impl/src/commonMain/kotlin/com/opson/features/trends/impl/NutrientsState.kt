@@ -60,8 +60,8 @@ data class NutrientsState(
 /**
  * Energy on a bar with the range as a dashed box. [eaten] carries the fill as its
  * fraction of the bar; [range] is Shown only when calories are, and the box with it.
+ * [singleGoal]: the goal is one number, so the row says "· goal" and the bar marks it with a line.
  */
-/** [singleGoal]: the goal is one number, so the row says "· goal" and the bar marks it with a line. */
 data class EnergyRow(val eaten: Display, val range: Display, val rangeStart: Float, val rangeEnd: Float, val singleGoal: Boolean = false)
 
 sealed interface BackLabel {

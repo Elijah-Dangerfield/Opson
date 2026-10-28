@@ -102,6 +102,8 @@ class MealNoteViewModel(
             is MealNoteAction.HungerTapped -> action.updateState { it.copy(hunger = action.hunger.takeIf { h -> h != it.hunger }) }
             is MealNoteAction.NoteTyped -> action.updateState { it.copy(draft = action.text) }
             MealNoteAction.SaveTapped -> {
+                // Before the day is read the sheet is blank, and saving it would wipe the Note.
+                if (!state.loaded) return
                 val current = state
                 val note = current.draft.trim()
                 val write = diary.setFeeling(day, slot, (feeling ?: MealFeeling()).copy(hunger = current.hunger, note = note.ifEmpty { null }))

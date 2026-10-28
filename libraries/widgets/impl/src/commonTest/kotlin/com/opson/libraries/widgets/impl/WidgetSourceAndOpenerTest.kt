@@ -4,8 +4,10 @@ import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.opson.AppData
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEvents
 import com.opson.libraries.widgets.WidgetFixtures
@@ -16,6 +18,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -56,7 +59,11 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
         goalsAndEnergy = goalsAndEnergyFlag(),
     )
 
-    private fun opener(): WidgetOpener = WidgetOpener(diary, settings, calendar, clock, appScope)
+    private val auth = FakeAuth()
+
+    private val appCache = FakeAppCache(AppData(hasUserOnboarded = true))
+
+    private fun opener(): WidgetOpener = WidgetOpener(diary, settings, calendar, clock, appCache, { auth }, appScope)
 
     private fun test(block: suspend TestScope.() -> Unit) = runUnitTest {
         appScope = AppCoroutineScope(dispatchers)
@@ -168,5 +175,44 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
         opener.opened(WidgetLinks.LOG)
 
         assertEquals(WidgetLogOpen(null, today), opener.requests.first())
+    }
+
+    /** The + is on the "Open Opson" card too. Signed out, it opens the app, never a Logger nobody owns. */
+    @Test
+    fun theLogLink_signedOut_opensNothing() = test {
+        auth.state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
+        val opener = opener()
+        val asked = mutableListOf<WidgetLogOpen>()
+        appScope.launch { opener.requests.collect { asked += it } }
+
+        assertTrue(opener.opened(WidgetLinks.LOG), "still the widget's link, so it goes no further")
+        runCurrent()
+
+        assertTrue(asked.isEmpty())
+    }
+
+    /** Offline on an hour-old token, the app still shows Today, and the + still lands on the Logger. */
+    @Test
+    fun theLogLink_onASessionThatCannotRefreshOffline_stillOpensTheLogger() = test {
+        auth.state.value = AuthState.Unauthenticated()
+        val opener = opener()
+
+        opener.opened(WidgetLinks.LOG)
+
+        assertEquals(today, opener.requests.first().day)
+    }
+
+    @Test
+    fun theLogLink_onAFreshInstall_opensNothing() = test {
+        appCache.state.value = AppData(hasUserOnboarded = false)
+        auth.state.value = AuthState.Unauthenticated()
+        val opener = opener()
+        val asked = mutableListOf<WidgetLogOpen>()
+        appScope.launch { opener.requests.collect { asked += it } }
+
+        opener.opened(WidgetLinks.LOG)
+        runCurrent()
+
+        assertTrue(asked.isEmpty())
     }
 }

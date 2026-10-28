@@ -76,6 +76,7 @@ import opson.libraries.resources.generated.resources.trends_weight_range_1m
 import opson.libraries.resources.generated.resources.trends_weight_range_1w
 import opson.libraries.resources.generated.resources.trends_weight_range_3m
 import opson.libraries.resources.generated.resources.trends_weight_save
+import opson.libraries.resources.generated.resources.trends_weight_not_a_weight
 import opson.libraries.resources.generated.resources.trends_weight_save_failed
 import opson.libraries.resources.generated.resources.trends_weight_saved
 import opson.libraries.resources.generated.resources.trends_weight_saved_hidden
@@ -146,9 +147,14 @@ internal fun WeightContent(
         if (state.hiddenCard) HiddenCard()
         LogCard(state, onAction, Modifier.focusRequester(weightField))
         state.saved?.let { SavedBanner(it) }
-        if (state.saveFailed) {
+        val refused = when {
+            state.saveFailed -> Res.string.trends_weight_save_failed
+            state.notAWeight -> Res.string.trends_weight_not_a_weight
+            else -> null
+        }
+        if (refused != null) {
             Text(
-                text = stringResource(Res.string.trends_weight_save_failed),
+                text = stringResource(refused),
                 typography = AppTheme.type.body,
                 color = AppTheme.colors.muted,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },

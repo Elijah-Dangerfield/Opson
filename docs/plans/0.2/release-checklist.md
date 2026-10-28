@@ -161,6 +161,22 @@ is held back: the only platform change is `LSApplicationQueriesSchemes`
       "couldn't open" line on an iPad or a phone with no SIM.
 - [ ] Flip `release.findSupport` on.
 
+## Provider summary (`release.providerSummary`)
+
+Support's "Make a summary for your provider": a range, what goes in, a
+preview that follows the mode, and a PDF the person shares themselves. Made on
+the phone from the local log; nothing is sent to the server, and there is no
+link anyone else can open. Someone who picked "Working with a provider" in
+setup sees it in its own card at the top of Support.
+
+- [ ] Open a summary PDF from an iPhone and an Android phone in Files, Mail
+      and a printer preview: fonts, wrapping, page breaks and the footer.
+- [ ] Look at the preview in No numbers and Macros only with numbers switched
+      in: the question comes once, and no amount shows on screen.
+- [ ] Add a line to `legal/privacy.md` under "Getting a copy" saying the
+      summary is made on the phone and goes only where the person sends it.
+- [ ] Flip `release.providerSummary` on.
+
 ## Widgets (`release.widgets`)
 
 The iOS extension (`OpsonWidgetsExtension`, `com.opson.Opson.Widgets`) ships in
@@ -240,7 +256,9 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
 - [ ] Deploy the server to prod once 0.1 is through review. It carries the
       settings merge (a 0.1 phone saving settings must not erase what a 0.2
       phone added), V12 to V14, and the new routes (including
-      `POST /v1/describe/photo`, which needs `ANTHROPIC_API_KEY`).
+      `POST /v1/describe/photo`, which needs `ANTHROPIC_API_KEY`, and
+      `GET /v1/export.zip`: against an older server, 0.2's Export everything
+      fails as offline).
 
 ## App Review information (accounts are required since 908798dd)
 
@@ -502,8 +520,11 @@ lawyer, or a change outside this review's lane. None of it is legal advice.
       text. After changing dependencies, run
       `./gradlew :apps:compose:exportLibraryDefinitions` and commit
       `libraries/resources/.../files/licenses.json`.
-- [ ] Export: include notes, feelings, settings, custom foods, saved meals
-      and fasts in the CSV, or keep the policy's "email us for the rest".
+- [x] Export: Export everything shares `opson-export.zip` (`GET
+      /v1/export.zip`): entries, notes and hunger, check-ins, fasts, water,
+      weigh-ins, exercise, custom foods, saved meals, settings and a daily
+      summary, with a README. The policy says so, and still offers email for
+      the 0.1 app's CSV, which is unchanged.
 
 ### Accounts and settings at providers
 

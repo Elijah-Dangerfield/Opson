@@ -532,4 +532,12 @@ data class OnboardingAnswers(
     val notice: List<String> = emptyList(),
     /** "Numbers or tracking have been hard for me before". Hides the Full option. */
     val hard: Boolean = false,
-)
+) {
+    /** "Working with a provider" was one of the reasons for tracking. Support offers the provider summary first. */
+    val workingWithProvider: Boolean get() = WORKING_WITH_PROVIDER in why
+
+    companion object {
+        /** Onboarding's `Why.WorkingWithProvider` key, as [why] stores it. */
+        const val WORKING_WITH_PROVIDER = "working_with_provider"
+    }
+}

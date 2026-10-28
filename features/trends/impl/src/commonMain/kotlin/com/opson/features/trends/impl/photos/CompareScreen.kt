@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HeaderIconButton
@@ -67,6 +68,7 @@ import opson.libraries.resources.generated.resources.photos_side_by_side
 import opson.libraries.resources.generated.resources.photos_slider
 import opson.libraries.resources.generated.resources.photos_slider_handle
 import opson.libraries.resources.generated.resources.photos_title
+import opson.libraries.resources.generated.resources.trends_loading_cd
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -132,6 +134,10 @@ internal fun CompareContent(
         }
         if (state.lock != PhotoLockState.Unlocked) {
             LockPanel(state.lock, onUnlock = { onAction(CompareAction.UnlockTapped) })
+            return@Column
+        }
+        if (state.loading) {
+            DelayedLoadingIndicator(contentDescription = stringResource(Res.string.trends_loading_cd))
             return@Column
         }
         when (state.mode) {

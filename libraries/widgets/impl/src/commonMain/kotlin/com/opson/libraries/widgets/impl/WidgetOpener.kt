@@ -7,6 +7,8 @@ import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.AppCoroutineScope
+import com.opson.libraries.identity.auth.AuthRepository
+import com.opson.libraries.opson.AppCache
 import com.opson.libraries.widgets.NextMeal
 import com.opson.libraries.widgets.WidgetEvents
 import com.opson.libraries.widgets.WidgetLinks
@@ -31,7 +33,10 @@ import kotlin.time.Clock
  * router, which holds them until the NavHost is bound, so a tap that cold-starts the app lands.
  *
  * Not gated on `release.widgets`: only a widget sends this link, and if one is on the home screen
- * its + should work.
+ * its + should work. Gated on the app being someone's ([isSomeones]), though: the + is drawn on the
+ * "Open Opson" card too, and a Logger opened over sign-in would put what is logged in an outbox
+ * nobody owns, which the next account to sign in then pushes as its own. Then the tap only opens
+ * the app. [AuthRepository] is reached through a provider, only at a tap, as in `WidgetRefresher`.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = WidgetOpens::class)
@@ -41,6 +46,8 @@ class WidgetOpener(
     private val settingsRepository: SettingsRepository,
     private val calendar: LocalCalendar,
     private val clock: Clock,
+    private val appCache: AppCache,
+    private val authRepositoryProvider: () -> AuthRepository,
     private val appScope: AppCoroutineScope,
 ) : WidgetOpens {
 
@@ -51,6 +58,9 @@ class WidgetOpener(
     override fun opened(url: String): Boolean {
         if (!WidgetLinks.isLog(url)) return false
         appScope.launch {
+            // The first answer, so a tap that cold-starts the app waits for auth rather than guessing.
+            val onboarded = Catching { appCache.get().hasUserOnboarded }.getOrNull() == true
+            if (!authRepositoryProvider().current().isSomeones(onboarded)) return@launch
             val today = calendar.today()
             val day = Catching { diary.observeDay(today).first() }
                 .logOnFailure { "Reading today for a widget tap failed" }

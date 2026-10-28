@@ -89,6 +89,7 @@ class TodayViewModel(
     private val foodActionsEnabled: TodayFoodActionsEnabled,
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val burnedRepository: BurnedRepository,
+    private val cardView: TodayCardViewStore,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value, dayLabel = RelativeDay.of(selectedDay.date.value, calendar.today())),
 ) {
@@ -217,9 +218,10 @@ class TodayViewModel(
             }
             TodayAction.EditCardsTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenTodayCards) }
             TodayAction.ClearDayTapped -> clearDay(action)
-            is TodayAction.SummaryPageShown -> settingsRepository.update { it.copy(todaySummaryPage = action.page) }
-            TodayAction.CollapseTapped -> settingsRepository.update { it.copy(todaySummaryCollapsed = true) }
-            TodayAction.ExpandTapped -> settingsRepository.update { it.copy(todaySummaryCollapsed = false) }
+            // Kept on this phone, not in synced Settings: see TodayCardViewStore.
+            is TodayAction.SummaryPageShown -> cardView.update { it.copy(page = action.page) }
+            TodayAction.CollapseTapped -> cardView.update { it.copy(collapsed = true) }
+            TodayAction.ExpandTapped -> cardView.update { it.copy(collapsed = false) }
             TodayAction.SummaryLongPressed -> if (state.summaryTools) sendEvent(TodayEvent.OpenTodayCards)
             TodayAction.WeightTapped -> sendEvent(TodayEvent.OpenWeight)
             else -> selectAction(action)
@@ -486,7 +488,7 @@ class TodayViewModel(
             combine(diary.observeDay(date), diary.observeDay(date.minus(DatePeriod(days = 1)))) { d, before -> d to before }
         }
         val energy = combine(expended(), burned()) { expended, burned -> expended to burned }
-        return combine(days, settingsRepository.settings, energy, weighIns()) { (d, before), settings, (expended, burned), weighIns ->
+        return combine(days, settingsRepository.settings, energy, weighIns(), cardView()) { (d, before), settings, (expended, burned), weighIns, view ->
             TodayInputs(
                 today = calendar.today(),
                 timeZone = calendar.timeZone(),
@@ -500,8 +502,15 @@ class TodayViewModel(
                 weighIns = weighIns,
                 goalsAndEnergyOn = goalsAndEnergy(),
                 burned = burned,
+                cardView = view,
             )
         }
+    }
+
+    /** How the card was left on this phone. With `release.todaySummary` off there is no page or collapse to read. */
+    private fun cardView(): Flow<TodayCardView> {
+        if (!summaryEnabled()) return flowOf(TodayCardView())
+        return cardView.view
     }
 
     /** The shown day's Burned (design sync 4). With `release.goalsAndEnergy` off nothing reads it. */

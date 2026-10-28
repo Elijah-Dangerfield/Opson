@@ -249,9 +249,8 @@ class ItemSheetViewModel(
                 arrived = action
                 action.rebuild()
             }
-            ItemSheetAction.DeleteTapped -> {
-                val slot = state.slot
-                done(Toast(Res.string.today_toast_removed, listOf(slot.sentenceName))) { diary.removeItem(entryId) }
+            ItemSheetAction.DeleteTapped -> done(Toast(Res.string.today_toast_removed, listOf(state.slot.sentenceName))) {
+                diary.removeItem(entryId)
             }
             ItemSheetAction.ReopenTapped -> diary.reopenDay(day)
             ItemSheetAction.CloseTapped -> dismissOnce()
@@ -291,12 +290,13 @@ class ItemSheetViewModel(
                 val to = calendar.today().plus(DatePeriod(days = copy.day.offset))
                 done(Toast(Res.string.today_toast_copied_foods_one)) { editor.copyItems(listOf(entryId), to, slot) }
             }
-            ItemSheetAction.EditCopyTapped -> {
+            ItemSheetAction.EditCopyTapped -> if (!dismissed) {
                 dismissed = true
                 sendEvent(ItemSheetEvent.OpenEditCopy(day, entryId))
             }
             ItemSheetAction.FavoriteTapped -> {
                 val key = item.foodRef()?.key ?: return
+                if (dismissed) return
                 val starred = settingsRepository.update { it.toggleFavorite(key) }.isFavorite(key)
                 done(Toast(if (starred) Res.string.today_toast_favorited else Res.string.today_toast_unfavorited)) { DayWrite.Written(Unit) }
             }
@@ -305,10 +305,13 @@ class ItemSheetViewModel(
     }
 
     /**
-     * Writes, says so, and closes; the entry changing under the sheet must not close it twice. A
-     * write the day refused, closed since the sheet opened, gives way to the closed sheet.
+     * Writes, says so, and closes; the entry changing under the sheet must not close it twice. The
+     * sheet takes a moment to slide away, and a second tap in that time does nothing: it would copy
+     * the food again, or star it and unstar it. A write the day refused, closed since the sheet
+     * opened, gives way to the closed sheet.
      */
     private suspend fun done(toast: Toast, write: suspend () -> DayWrite<*>) {
+        if (dismissed) return
         dismissed = true
         when (val result = write()) {
             is DayWrite.Written -> {

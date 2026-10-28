@@ -26,9 +26,4 @@ class WidgetsEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap)
     override val path = "release.widgets"
     override val default = false
     override val description = "0.2: the Widgets row on More. The snapshot for the widget is written whatever this says"
-
-    companion object {
-        /** The flag in one config snapshot. */
-        fun isOn(config: AppConfigMap): Boolean = WidgetsEnabled(config).value
-    }
 }

@@ -20,7 +20,7 @@ also applies to you.
   never sell your data.
 - Your log is kept on your phone and copied to our server so it survives a lost
   phone.
-- You can export your log or delete everything from inside the app.
+- You can export everything or delete everything from inside the app.
 - Anything the app reads from Apple Health or Health Connect stays on your
   phone.
 
@@ -194,9 +194,12 @@ company that takes over Opson, which would stay bound by this policy.
 
 ## Getting a copy, or deleting it
 
-**More → Support and sharing → Export everything** gives you a CSV of your food
-log, weigh-ins and water. For a copy of everything else we hold (notes,
-feelings, settings, custom foods, saved meals and fasts), email us.
+**More → Support and sharing → Export everything** gives you a zip of
+spreadsheets with everything we hold for your account: your food log, notes,
+hunger and feelings, check-ins, fasts, water, weigh-ins, exercise, the foods
+and meals you saved, your settings and a summary of each day. A README in the
+zip says what each file holds. Older versions of the app export a CSV of the
+food log, weigh-ins and water only; update the app for the rest, or email us.
 
 **More → Support and sharing → Delete everything** deletes your account and
 every row we hold about you, on the phone and on our server. It cannot be

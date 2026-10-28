@@ -28,6 +28,7 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Targets
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
@@ -251,6 +252,66 @@ class DayCloseTest : CoroutineTest() {
         assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
     }
 
+    /**
+     * Done shows while the day loads (with a health store, until it answers). Tapped then, it once
+     * saved the empty field over the day's note.
+     */
+    @Test
+    fun doneBeforeTheDayIsRead_keepsTheNoteAndStays() = runUnitTest {
+        val open = MutableStateFlow(false)
+        val vm = DayCloseViewModel(
+            day = TodayFixtures.today,
+            diary = diary.heldUntil(open),
+            settingsRepository = FakeSettingsRepository(),
+            policySource = FakePolicySource(),
+            calendar = FakeCalendar(),
+            health = FakeHealthRepository(),
+            healthFlag = healthFlag(false),
+            checkInEnabled = checkInFlag(false),
+            goalsAndEnergy = goalsAndEnergyFlag(),
+            burnedRepository = FakeBurnedRepository(),
+        )
+        val events = mutableListOf<DayCloseEvent>()
+        backgroundScope.launch { vm.eventFlow.toList(events) }
+
+        vm.takeAction(DayCloseAction.DoneTapped)
+
+        assertEquals(0, diary.writes)
+        assertTrue(events.isEmpty())
+        open.value = true
+        assertEquals("Dinner at Lola's", vm.state.note)
+    }
+
+    @Test
+    fun aSecondDoneWhileLeavingWritesAndLeavesOnce() = runUnitTest {
+        val vm = vm()
+        val events = mutableListOf<DayCloseEvent>()
+        backgroundScope.launch { vm.eventFlow.toList(events) }
+
+        vm.takeAction(DayCloseAction.DoneTapped)
+        vm.takeAction(DayCloseAction.DoneTapped)
+
+        assertEquals(listOf(TodayFixtures.today), diary.closed.map { it.first })
+        assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
+    }
+
+    /** Reopen and Save sit side by side on a closed day; a tap on either while leaving undoes nothing. */
+    @Test
+    fun onAClosedDay_aTapWhileLeavingAfterReopenNeitherClosesItAgainNorLeavesTwice() = runUnitTest {
+        diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(closedAt = TodayFixtures.noon))
+        val vm = vm()
+        val events = mutableListOf<DayCloseEvent>()
+        backgroundScope.launch { vm.eventFlow.toList(events) }
+
+        vm.takeAction(DayCloseAction.ReopenTapped)
+        vm.takeAction(DayCloseAction.DoneTapped)
+        vm.takeAction(DayCloseAction.ReopenTapped)
+
+        assertEquals(listOf(TodayFixtures.today), diary.reopened)
+        assertTrue(diary.closed.isEmpty())
+        assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
+    }
+
     @Test
     fun onAClosedDay_saveKeepsItClosed_andReopenOpensItAndLeaves() = runUnitTest {
         diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(closedAt = TodayFixtures.noon, note = "Lola's"))
@@ -263,11 +324,17 @@ class DayCloseTest : CoroutineTest() {
         vm.takeAction(DayCloseAction.DoneTapped)
         assertEquals(listOf(TodayFixtures.today to DayReflection(note = "Lola's birthday")), diary.closed)
         assertTrue(diary.reopened.isEmpty())
+        assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), events)
 
-        vm.takeAction(DayCloseAction.ReopenTapped)
+        // Opened again; Save left the first one.
+        val again = vm()
+        val againEvents = mutableListOf<DayCloseEvent>()
+        backgroundScope.launch { again.eventFlow.toList(againEvents) }
+        assertTrue(again.state.closed)
+        again.takeAction(DayCloseAction.ReopenTapped)
         assertEquals(listOf(TodayFixtures.today), diary.reopened)
-        assertEquals(false, vm.state.closed)
-        assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close, DayCloseEvent.Close), events)
+        assertEquals(false, again.state.closed)
+        assertEquals(listOf<DayCloseEvent>(DayCloseEvent.Close), againEvents)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import androidx.compose.runtime.Immutable
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FastingStatus
 import com.opson.libraries.diary.LoggedToMeal
@@ -64,7 +65,7 @@ data class TodayState(
     val fasting: FastingStatus? = null,
     /** `release.todaySummary`: the dots, the chevron, long-press to customise, the sticky bar. */
     val summaryTools: Boolean = false,
-    /** The summary page left open, by its place in [TodaySummary.Energy.pages]. Remembered across days and restarts. */
+    /** The summary page left open, by its place in [TodaySummary.Energy.pages]. Remembered on this phone across days and restarts. */
     val summaryPage: Int = 0,
     /** The summary shrunk to one pinned line by choice. */
     val collapsed: Boolean = false,
@@ -89,8 +90,10 @@ data class TodayState(
 /** One piece of the eaten bar: a macro's share of the energy, or ([metric] null) the rest in one neutral piece. */
 data class BarPart(val metric: Metric?, val weight: Float)
 
-/** A stat on page 1 of the summary: its value is an amount through the policy, or a count. */
-/** [label] is the stat's own, but "To your goal" for [SummaryStat.ToRange] when the day's goal is one number. */
+/**
+ * A stat on page 1 of the summary: its value is an amount through the policy, or a count. [label] is
+ * the stat's own, but "To your goal" for [SummaryStat.ToRange] when the day's goal is one number.
+ */
 data class StatTile(val stat: SummaryStat, val value: StatValue, val label: StringResource = stat.label)
 
 sealed interface StatValue {
@@ -267,6 +270,7 @@ sealed interface TileStatus {
 data class WaterRow(val display: Display, val filled: Int, val total: Int, val showSegments: Boolean)
 
 /** How one meal shows, chosen by the layout and whether it has anything in it. */
+@Immutable
 sealed interface MealEntry {
     val slot: MealSlot
 
@@ -294,6 +298,7 @@ sealed interface MealEntry {
     data class NotPlanned(override val slot: MealSlot) : MealEntry
 }
 
+@Immutable
 data class MealCard(
     val slot: MealSlot,
     /** The slot's name, or "All food" when meal groups are off. */
@@ -314,11 +319,13 @@ data class MealCard(
 
 /**
  * A meal's Note as Today shows it: the hunger level and the words, either one alone. Read from the
- * "How it felt" record the Note sheet writes; null when it holds neither.
+ * meal's MealFeeling, which the Note sheet writes; null when it holds neither.
  */
+@Immutable
 data class MealNoteUi(val hunger: StringResource?, val text: String?)
 
 /** A food on a meal card. [precision] is null where only the household amount shows (No numbers). */
+@Immutable
 data class ItemRowUi(val entryId: String, val name: String, val amount: String, val precision: Precision?, val calories: Display)
 
 /** [closed]: the day was closed with Close the day, so the button opens it to look back or reopen it. */
@@ -506,6 +513,8 @@ data class TodayInputs(
     val goalsAndEnergyOn: Boolean = false,
     /** The day's Burned, with [goalsAndEnergyOn]; null while no resting source can say. */
     val burned: Burned? = null,
+    /** The card's page and collapse as left on this phone, with [summaryOn]. */
+    val cardView: TodayCardView = TodayCardView(),
 )
 
 /**

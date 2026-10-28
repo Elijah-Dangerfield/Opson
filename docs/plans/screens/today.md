@@ -216,7 +216,7 @@ Previews (`TodayPreviews.kt`): `today-summary-in-out`, `-in-out-light`,
 | Was | Now |
 |---|---|
 | Sticky hero with header, 3-page pager, rings, ring-mode toggle, scores page | A plain header on the page colour, then **one** hero card chosen by layout and calorie level. No pager, no rings, no Remaining/Balance, no scores (cut in v3), no "Turn on". |
-| Header check button and + (Add menu) | Neither. Close the day is a labelled card after the meals and a ⋮ item. Adding is the nav + or a meal's +. |
+| Header check button and + (Add menu) | Neither. Close the day is a labelled card after the meals and a ⋮ item. Adding is the nav + or a meal's +. (2026-10-27: Close the day is a check button in the header again, filled once the day is closed, and the Nutrients link is the summary card's last page.) |
 | Meal cards with "Nothing logged" | Empty meals collapse to one row; the next one offers yesterday's version (Copy) or Saved meals. |
 | Mindful and Coast banners | Gone (Coast's moved to Trends). Sprint's stays. |
 | Up to six days ahead | One day ahead: "Plan, then hide". |

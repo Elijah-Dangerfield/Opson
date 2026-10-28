@@ -1,6 +1,7 @@
 package com.opson.features.trends.impl.photos
 
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.test.Test
@@ -32,6 +33,21 @@ class PhotoViewModelTest : CoroutineTest() {
         assertEquals("oct25-front", vm.state.photo?.id)
         assertNotNull(vm.state.photo?.image)
         assertEquals("Lifting three times a week since September", vm.state.note)
+    }
+
+    @Test
+    fun whileThePhotoIsRead_thePageIsUnlocked_withItsDate_neverTheLockPanel() = runUnitTest {
+        val disk = CompletableDeferred<Unit>()
+        photos.imagesWaitFor = disk
+        val vm = vm()
+
+        assertEquals(PhotoLockState.Unlocked, vm.state.lock, "already unlocked by the grid, so it never says locked")
+        assertEquals("oct25-front", vm.state.photo?.id)
+        assertNull(vm.state.photo?.image)
+
+        disk.complete(Unit)
+
+        assertNotNull(vm.state.photo?.image)
     }
 
     @Test
@@ -74,6 +90,21 @@ class PhotoViewModelTest : CoroutineTest() {
         vm.takeAction(PhotoAction.DeleteConfirmed)
 
         assertTrue(photos.photos.value.none { it.id == "oct25-front" })
+        assertEquals(listOf<PhotoEvent>(PhotoEvent.Close), events)
+    }
+
+    @Test
+    fun aDeleteThatFails_keepsThePhoto_andThePageWorking() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        photos.failWrites = true
+
+        vm.takeAction(PhotoAction.DeleteTapped)
+        vm.takeAction(PhotoAction.DeleteConfirmed)
+        vm.takeAction(PhotoAction.BackTapped)
+
+        assertEquals("oct25-front", vm.state.photo?.id)
+        assertFalse(vm.state.confirmDelete)
         assertEquals(listOf<PhotoEvent>(PhotoEvent.Close), events)
     }
 

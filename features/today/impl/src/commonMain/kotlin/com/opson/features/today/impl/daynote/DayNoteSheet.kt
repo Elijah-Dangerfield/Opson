@@ -76,6 +76,8 @@ class DayNoteViewModel(
             }
             is DayNoteAction.NoteTyped -> action.updateState { it.copy(draft = action.text) }
             DayNoteAction.SaveTapped -> {
+                // Before the day is read the draft is empty, and saving it would wipe the note.
+                if (!state.loaded) return
                 val note = state.draft.trim()
                 if (diary.setDayNote(day, note.ifEmpty { null }) is DayWrite.DayClosed) {
                     sendEvent(DayNoteEvent.DayClosed(day))

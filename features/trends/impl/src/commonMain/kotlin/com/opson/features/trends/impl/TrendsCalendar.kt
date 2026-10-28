@@ -94,7 +94,6 @@ object TrendsCalendar {
     /** "Mon", "Tue": the weekday as the v3 chart and dot grid label it. */
     fun weekdayLabel(date: LocalDate): String = DateCopy.shortWeekday(date.dayOfWeek)
 
-
     // weekStart - 1, in 0..6 before the +1: (iso + 5) % 7 + 1 steps back one day and wraps Monday to Sunday.
     private const val LAST_DAY_OFFSET = 5
 }

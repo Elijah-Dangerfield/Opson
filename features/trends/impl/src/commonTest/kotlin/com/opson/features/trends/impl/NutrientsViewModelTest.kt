@@ -7,8 +7,14 @@ import com.opson.libraries.nutrition.Nutrient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.toInstant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * The Nutrients detail view model: the range switch re-subscribes, vitamins
@@ -57,6 +63,35 @@ class NutrientsViewModelTest : CoroutineTest() {
         vm.takeAction(NutrientsAction.RangePicked(NutrientsRange.Day))
         assertEquals(2, diary.dayRequests.size)
         assertEquals(NutrientsRange.Day, vm.state.range)
+    }
+
+    @Test
+    fun weekAverage_openOverTheMidnightThatStartsAWeek_readsTheNewWeek() = runUnitTest {
+        var now = LocalDateTime(LocalDate(2026, 10, 31), LocalTime(23, 50))
+        val clock = object : Clock {
+            override fun now(): Instant = now.toInstant(TrendsFixtures.timeZone)
+        }
+        val policy = FakePolicySource(TrendsFixtures.policy(clock = clock))
+        val vm = NutrientsViewModel(
+            day = LocalDate(2026, 10, 31),
+            initialRange = NutrientsRange.WeekAverage,
+            fromTrends = true,
+            diary = diary,
+            settingsRepository = FakeSettingsRepository(),
+            policySource = policy,
+            clock = clock,
+            goalsAndEnergy = goalsAndEnergyFlag(),
+            burnedRepository = FakeBurnedRepository(),
+            timeZone = TrendsFixtures.timeZone,
+        )
+        assertEquals(LocalDate(2026, 10, 19) to LocalDate(2026, 10, 25), diary.rangeRequests.last())
+
+        // Sunday: the week it ends is the new window, and the policy source says the day moved.
+        now = LocalDateTime(LocalDate(2026, 11, 1), LocalTime(0, 5))
+        policy.policy.value = TrendsFixtures.policy(clock = clock)
+
+        assertEquals(LocalDate(2026, 10, 26) to LocalDate(2026, 11, 1), diary.rangeRequests.last())
+        assertEquals(NutrientsSubtitle.WeekAverage("Oct 26 to Nov 1"), vm.state.subtitle)
     }
 
     @Test

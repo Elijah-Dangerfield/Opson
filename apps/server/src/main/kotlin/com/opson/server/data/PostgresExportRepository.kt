@@ -1,33 +1,37 @@
 package com.opson.server.data
 
+import com.opson.server.db.CustomFoodsTable
 import com.opson.server.db.Database
 import com.opson.server.db.DayRecordsTable
+import com.opson.server.db.ExercisesTable
+import com.opson.server.db.FastsTable
 import com.opson.server.db.LogEntriesTable
+import com.opson.server.db.MealFeelingsTable
+import com.opson.server.db.SavedMealsTable
+import com.opson.server.db.SyncedTable
+import com.opson.server.db.UserSettingsTable
 import com.opson.server.db.WeighInsTable
-import com.opson.server.db.toKotlinInstant
 import com.opson.server.di.ServerScope
-import com.opson.server.domain.ExportRecord
+import com.opson.server.domain.DiaryRow
 import com.opson.server.domain.ExportRepository
-import com.opson.server.domain.LogMethod
-import com.opson.server.domain.MealSlot
-import com.opson.server.domain.Nutrients
-import com.opson.server.domain.Precision
 import com.opson.server.domain.UserId
 import me.tatarka.inject.annotations.Inject
+import org.jetbrains.exposed.sql.Column
+import org.jetbrains.exposed.sql.EqOp
+import org.jetbrains.exposed.sql.Expression
+import org.jetbrains.exposed.sql.GreaterEqOp
+import org.jetbrains.exposed.sql.GreaterOp
+import org.jetbrains.exposed.sql.IColumnType
 import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.QueryParameter
+import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNotNull
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
-import java.time.Instant
-import java.time.LocalDate
-import java.util.UUID
 
 /**
  * Postgres-backed [ExportRepository]. Rows are read [PAGE_SIZE] at a time, each
@@ -35,7 +39,8 @@ import java.util.UUID
  * sink writes the response, so a client that reads slowly holds no pooled
  * connection while it does: an open transaction waiting on the network has no
  * statement timeout to end it. Pages follow the sort key rather than an offset,
- * so the last page of a long history costs what the first does.
+ * so the last page of a long history costs what the first does. Rows go
+ * through the same mappers sync's pull uses.
  *
  * The export is not one snapshot. A row edited between two pages comes out as
  * its page read it, which for a file someone downloads is fine.
@@ -47,105 +52,68 @@ class PostgresExportRepository(
     private val database: Database,
 ) : ExportRepository {
 
-    override suspend fun export(userId: UserId, sink: suspend (ExportRecord) -> Unit) {
-        drain(sink) { after: EntryKey? -> entriesAfter(userId, after) }
-        drain(sink) { after: WeighInKey? -> weighInsAfter(userId, after) }
-        drain(sink) { after: LocalDate? -> waterAfter(userId, after) }
+    override suspend fun export(userId: UserId, sink: suspend (DiaryRow) -> Unit) {
+        for (kind in KINDS) drain(kind, userId, sink)
     }
 
-    private suspend fun <K : Any> drain(
-        sink: suspend (ExportRecord) -> Unit,
-        page: (after: K?) -> List<Pair<K, ExportRecord>>,
-    ) {
-        var after: K? = null
+    private suspend fun drain(kind: Kind, userId: UserId, sink: suspend (DiaryRow) -> Unit) {
+        var after: List<Any>? = null
         do {
             val from = after
-            val rows = database.transaction { page(from) }
-            for ((_, record) in rows) sink(record)
+            val rows = database.transaction { kind.page(userId, from) }
+            for ((_, row) in rows) sink(row)
             after = rows.lastOrNull()?.first
         } while (rows.size == PAGE_SIZE)
     }
 
-    private data class EntryKey(val day: LocalDate, val loggedAt: Instant, val id: UUID)
+    /**
+     * One kind of row and the order it comes out in. The last column of [key] is unique among a
+     * user's rows, so the key names exactly one row and a page can start right after it.
+     */
+    private class Kind(val table: SyncedTable, val key: List<Column<*>>, val map: (ResultRow) -> DiaryRow) {
 
-    private fun entriesAfter(userId: UserId, after: EntryKey?): List<Pair<EntryKey, ExportRecord>> {
-        val t = LogEntriesTable
-        return t.selectAll()
-            .where {
-                val live = (t.userId eq userId.value) and (t.deleted eq false)
-                if (after == null) {
-                    live
-                } else {
-                    // (day, logged_at, id) > after, with `day >=` so the (user_id, day) index bounds the read.
-                    live and (t.day greaterEq after.day) and (
-                        (t.day greater after.day) or
-                            ((t.day eq after.day) and ((t.loggedAt greater after.loggedAt) or ((t.loggedAt eq after.loggedAt) and (t.id greater after.id))))
-                        )
-                }
-            }
-            .orderBy(t.day to SortOrder.ASC, t.loggedAt to SortOrder.ASC, t.id to SortOrder.ASC)
-            .limit(PAGE_SIZE)
-            .map { row ->
-                EntryKey(row[t.day], row[t.loggedAt], row[t.id]) to ExportRecord.Entry(
-                    day = row[t.day],
-                    loggedAt = row[t.loggedAt].toKotlinInstant(),
-                    slot = MealSlot.fromWire(row[t.slot]) ?: MealSlot.Uncategorized,
-                    name = row[t.name],
-                    amountText = row[t.amountText],
-                    grams = row[t.grams].clean(),
-                    nutrients = Nutrients(
-                        kcal = row[t.kcal].clean(),
-                        protein = row[t.protein].clean(),
-                        carbs = row[t.carbs].clean(),
-                        fat = row[t.fat].clean(),
-                        fiber = row[t.fiber].clean(),
-                    ),
-                    precision = Precision.fromWire(row[t.precision]) ?: Precision.Estimate,
-                    method = LogMethod.fromWire(row[t.method]) ?: LogMethod.Search,
-                )
-            }
-    }
+        fun page(userId: UserId, after: List<Any>?): List<Pair<List<Any>, DiaryRow>> {
+            val live = (table.userId eq userId.value) and (table.deleted eq false)
+            return table.selectAll()
+                .where { if (after == null) live else live and keyAfter(after) }
+                .orderBy(*key.map { it to SortOrder.ASC }.toTypedArray())
+                .limit(PAGE_SIZE)
+                .map { row -> key.map { column -> checkNotNull(row[column]) { "${column.name} is part of a key" } } to map(row) }
+        }
 
-    private data class WeighInKey(val measuredAt: Instant, val id: UUID)
+        /**
+         * `key > after`, compared column by column. With more than one column it also says
+         * `first >= after.first`, so an index on `(user_id, first)` bounds a late page.
+         */
+        private fun keyAfter(after: List<Any>): Op<Boolean> {
+            fun from(i: Int): Op<Boolean> {
+                val column = key[i]
+                val value = column.param(after[i])
+                val greater = GreaterOp(column, value)
+                return if (i == key.lastIndex) greater else greater or (EqOp(column, value) and from(i + 1))
+            }
+            val first = key.first()
+            return if (key.size == 1) from(0) else GreaterEqOp(first, first.param(after.first())) and from(0)
+        }
 
-    private fun weighInsAfter(userId: UserId, after: WeighInKey?): List<Pair<WeighInKey, ExportRecord>> {
-        val t = WeighInsTable
-        return t.selectAll()
-            .where {
-                val live = (t.userId eq userId.value) and (t.deleted eq false)
-                if (after == null) {
-                    live
-                } else {
-                    live and ((t.measuredAt greater after.measuredAt) or ((t.measuredAt eq after.measuredAt) and (t.id greater after.id)))
-                }
-            }
-            .orderBy(t.measuredAt to SortOrder.ASC, t.id to SortOrder.ASC)
-            .limit(PAGE_SIZE)
-            .map { row ->
-                WeighInKey(row[t.measuredAt], row[t.id]) to ExportRecord.Weight(
-                    measuredAt = row[t.measuredAt].toKotlinInstant(),
-                    kg = row[t.kg].clean() ?: 0.0,
-                )
-            }
-    }
-
-    /** A day's water; `day` is unique per user, so it is the whole key. */
-    private fun waterAfter(userId: UserId, after: LocalDate?): List<Pair<LocalDate, ExportRecord>> {
-        val t = DayRecordsTable
-        return t.selectAll()
-            .where {
-                val withWater: Op<Boolean> = (t.userId eq userId.value) and (t.deleted eq false) and t.waterMl.isNotNull()
-                if (after == null) withWater else withWater and (t.day greater after)
-            }
-            .orderBy(t.day to SortOrder.ASC)
-            .limit(PAGE_SIZE)
-            .map { row ->
-                val water = checkNotNull(row[t.waterMl]) { "the query reads only days with water" }
-                row[t.day] to ExportRecord.Water(day = row[t.day], waterMl = water)
-            }
+        @Suppress("UNCHECKED_CAST")
+        private fun Column<*>.param(value: Any): Expression<Any> = QueryParameter(value, columnType as IColumnType<Any>)
     }
 
     internal companion object {
         const val PAGE_SIZE = 500
+
+        /** In the order [ExportRepository] promises. */
+        private val KINDS = listOf(
+            Kind(LogEntriesTable, listOf(LogEntriesTable.day, LogEntriesTable.loggedAt, LogEntriesTable.id)) { it.toLogEntry() },
+            Kind(WeighInsTable, listOf(WeighInsTable.measuredAt, WeighInsTable.id)) { it.toWeighIn() },
+            Kind(DayRecordsTable, listOf(DayRecordsTable.day)) { it.toDayRecord() },
+            Kind(MealFeelingsTable, listOf(MealFeelingsTable.day, MealFeelingsTable.slot)) { it.toMealFeeling() },
+            Kind(ExercisesTable, listOf(ExercisesTable.startedAt, ExercisesTable.id)) { it.toExercise() },
+            Kind(FastsTable, listOf(FastsTable.day)) { it.toFast() },
+            Kind(CustomFoodsTable, listOf(CustomFoodsTable.name, CustomFoodsTable.id)) { it.toCustomFood() },
+            Kind(SavedMealsTable, listOf(SavedMealsTable.name, SavedMealsTable.id)) { it.toSavedMeal() },
+            Kind(UserSettingsTable, listOf(UserSettingsTable.userId)) { it.toUserSettings() },
+        )
     }
 }

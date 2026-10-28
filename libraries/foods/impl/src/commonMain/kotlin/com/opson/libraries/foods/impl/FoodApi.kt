@@ -125,7 +125,7 @@ interface FoodApi {
 class HttpFoodApi(private val networkClient: NetworkClient) : FoodApi {
 
     override suspend fun search(query: String, limit: Int, filter: FoodSearchFilter): Catching<FoodSearchResponse> =
-        networkClient.authedCall("foods.search", retry = SEARCH_RETRY) { client ->
+        networkClient.authedCall("foods.search", retry = WAITED_ON_RETRY) { client ->
             client.get("/v1/foods/search") {
                 timeout { requestTimeoutMillis = SEARCH_TIMEOUT_MS }
                 parameter("q", query)
@@ -151,7 +151,7 @@ class HttpFoodApi(private val networkClient: NetworkClient) : FoodApi {
         }
 
     override suspend fun barcode(code: String): Catching<FoodResponse?> =
-        networkClient.authedCall("foods.barcode", retry = RetryPolicy.idempotent()) { client ->
+        networkClient.authedCall("foods.barcode", retry = WAITED_ON_RETRY) { client ->
             try {
                 client.get("/v1/foods/barcode/${code.encodeURLPathPart()}").body<FoodResponse>()
             } catch (e: ClientRequestException) {
@@ -160,7 +160,7 @@ class HttpFoodApi(private val networkClient: NetworkClient) : FoodApi {
         }
 
     override suspend fun describe(text: String): Catching<DescribeResponse> =
-        networkClient.authedCall("foods.describe", retry = RetryPolicy.idempotent()) { client ->
+        networkClient.authedCall("foods.describe", retry = WAITED_ON_RETRY) { client ->
             client.post("/v1/describe") {
                 contentType(ContentType.Application.Json)
                 setBody(DescribeRequest(text))
@@ -169,13 +169,15 @@ class HttpFoodApi(private val networkClient: NetworkClient) : FoodApi {
 
     internal companion object {
         /**
-         * Search is typed: someone is waiting, and the next keystroke asks
-         * again anyway. A 503 busy or a timeout means the database is behind,
-         * and three more tries (up to 23 s with backoff) only added to its
-         * load while the person watched a spinner; offline results show
-         * instead. A dropped connection is retried once, quickly.
+         * For the calls someone watches a spinner for: search and describe
+         * (typed, and the next pause asks again anyway) and a barcode scan.
+         * A 503 or a timeout means the server, or the outside sources a
+         * barcode goes to, is behind, and three more tries (up to 23 s of
+         * backoff on top of each wait) only added to its load, and to a
+         * barcode's per-IP limit, before the cached answer or the error
+         * showed. A dropped connection is retried once, quickly.
          */
-        val SEARCH_RETRY: RetryPolicy = RetryPolicy.exponential(initial = 200.milliseconds, retries = 1)
+        val WAITED_ON_RETRY: RetryPolicy = RetryPolicy.exponential(initial = 200.milliseconds, retries = 1)
             .retryIf { it !is ResponseException && it !is HttpRequestTimeoutException && isTransientNetworkFailure(it) }
 
         /** The server gives a search 5 s and the pool 3 s before it answers busy. */

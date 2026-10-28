@@ -17,9 +17,10 @@ import io.ktor.utils.io.errors.IOException
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** How a search goes over the wire: what it sends, and when it asks twice. */
+/** How a search, a scan and a description go over the wire: what a search sends, and when each asks twice. */
 @OptIn(InternalNetworkingApi::class)
 class HttpFoodApiSearchTest : CoroutineTest() {
 
@@ -73,5 +74,26 @@ class HttpFoodApiSearchTest : CoroutineTest() {
         val result = api({ throw IOException("reset") }).search("rice", 25)
         assertTrue(result.isFailure)
         assertEquals(2, urls.size)
+    }
+
+    @Test
+    fun aBarcodeLookupWithNoSourceInReachIsNotAskedAgain() = runUnitTest {
+        val result = api({ HttpStatusCode.ServiceUnavailable }).barcode("4006381333931")
+        assertTrue(result.isFailure)
+        assertEquals(1, urls.size, "the scanner shows the cached food or the error now, not after four tries")
+    }
+
+    @Test
+    fun aScanOnADroppedConnectionIsRetriedOnce() = runUnitTest {
+        val result = api({ throw IOException("reset") }, { HttpStatusCode.NotFound }).barcode("4006381333931")
+        assertNull(result.getOrThrow(), "the retry's 404 is a definite miss")
+        assertEquals(2, urls.size)
+    }
+
+    @Test
+    fun aBusyDescribeIsNotAskedAgain() = runUnitTest {
+        val result = api({ HttpStatusCode.ServiceUnavailable }).describe("2 eggs")
+        assertTrue(result.isFailure)
+        assertEquals(1, urls.size, "the next typing pause asks again anyway")
     }
 }

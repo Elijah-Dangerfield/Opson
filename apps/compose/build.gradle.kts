@@ -144,6 +144,8 @@ kotlin {
             implementation(projects.libraries.health.impl)
             implementation(projects.libraries.progressphotos)
             implementation(projects.libraries.progressphotos.impl)
+            implementation(projects.libraries.pdf)
+            implementation(projects.libraries.pdf.impl)
 
             implementation(projects.features.foods)
             implementation(projects.features.foods.impl)

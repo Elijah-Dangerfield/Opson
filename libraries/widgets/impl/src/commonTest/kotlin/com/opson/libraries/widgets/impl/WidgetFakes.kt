@@ -12,8 +12,21 @@ import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.identity.auth.AuthRepository
+import com.opson.libraries.identity.auth.AuthState
+import com.opson.libraries.identity.auth.DeleteAccountOutcome
+import com.opson.libraries.identity.auth.LinkEmailIdentityOutcome
+import com.opson.libraries.identity.auth.LinkIdentityOutcome
+import com.opson.libraries.identity.auth.OAuthProvider
+import com.opson.libraries.identity.auth.RefreshOutcome
+import com.opson.libraries.identity.auth.ResendOutcome
+import com.opson.libraries.identity.auth.SendResetOutcome
+import com.opson.libraries.identity.auth.SignInOutcome
+import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.opson.AppCache
+import com.opson.libraries.opson.AppData
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEventBus
 import com.opson.libraries.widgets.WidgetPublisher
@@ -64,6 +77,45 @@ class FakeSettingsRepository(initial: Settings, initiallyKnown: Boolean = true) 
 
     override suspend fun update(stampNumbersChange: Boolean, transform: (Settings) -> Settings): Settings =
         transform(state.value).also { state.value = it }
+}
+
+/** Who is signed in; only [observe] is real. Starts signed in, as most tests want. */
+class FakeAuth(initial: AuthState = AuthState.Authenticated(userId = "u1", isAnonymous = false, email = null)) : AuthRepository {
+    val state = MutableStateFlow(initial)
+
+    override suspend fun current(): AuthState = state.value
+    override fun observe(): Flow<AuthState> = state
+    override suspend fun retry(): AuthState = state.value
+    override suspend fun signInWithEmail(email: String, password: String): SignInOutcome = unused()
+    override suspend fun signUpWithEmail(email: String, password: String): SignUpOutcome = unused()
+    override suspend fun refreshSession(): RefreshOutcome = unused()
+    override suspend fun resendVerificationEmail(email: String): ResendOutcome = unused()
+    override suspend fun sendPasswordResetEmail(email: String): SendResetOutcome = unused()
+    override suspend fun signOut() = unused()
+    override suspend fun deleteAccount(): DeleteAccountOutcome = unused()
+    override suspend fun linkOAuthIdentity(provider: OAuthProvider): LinkIdentityOutcome = unused()
+    override suspend fun signInWithOAuth(provider: OAuthProvider): SignInOutcome = unused()
+    override suspend fun linkEmailIdentity(email: String, password: String): LinkEmailIdentityOutcome = unused()
+
+    private fun unused(): Nothing = error("Widgets only observe auth")
+}
+
+/** The app's own record; only whether someone finished onboarding matters here. */
+class FakeAppCache(initial: AppData = AppData()) : AppCache {
+    val state = MutableStateFlow(initial)
+    override val updates: Flow<AppData> = state
+
+    override suspend fun get(): AppData = state.value
+
+    override suspend fun set(value: AppData) {
+        state.value = value
+    }
+
+    override suspend fun clear() {
+        state.value = AppData()
+    }
+
+    override suspend fun update(transform: (AppData) -> AppData): AppData = transform(state.value).also { state.value = it }
 }
 
 class FakePolicySource(initial: VisibilityPolicy) : VisibilityPolicySource {

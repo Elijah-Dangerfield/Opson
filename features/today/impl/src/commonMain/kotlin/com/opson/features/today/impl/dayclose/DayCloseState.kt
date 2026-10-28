@@ -72,8 +72,10 @@ data class DayCloseState(
 
 data class FeelingChoice(val options: List<DayFeeling>, val picked: DayFeeling?)
 
-/** [macros] are left out on a big day, where the reset card is the message. */
-/** [singleGoal]: the day's goal is one number, so the sentence says "goal" rather than "range". */
+/**
+ * [macros] are left out on a big day, where the reset card is the message. [singleGoal]: the day's
+ * goal is one number, so the sentence says "goal" rather than "range".
+ */
 data class DayTotals(val eaten: Display, val rangeLine: RangeLine, val macros: List<MacroTile>, val singleGoal: Boolean = false)
 
 /**

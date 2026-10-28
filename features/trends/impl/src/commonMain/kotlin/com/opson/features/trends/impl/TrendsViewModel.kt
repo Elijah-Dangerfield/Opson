@@ -47,7 +47,7 @@ class TrendsViewModel(
     goalsAndEnergy: GoalsAndEnergyEnabled,
     burnedRepository: BurnedRepository,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
-    /** Unbound until the Notes list's module binds it; the Notes card leaves its link off until then. */
+    /** Today binds it (the Notes list); with nothing bound, the Notes card leaves its link off. */
     notesListLink: NotesListLink? = null,
 ) : SEAViewModel<TrendsState, TrendsEvent, TrendsAction>(initialStateArg = TrendsState()) {
 

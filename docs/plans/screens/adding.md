@@ -44,12 +44,11 @@ A 3-column grid, in this order, each shown only when it can run:
 | Say or type it | always ("Describe it" with `release.voice` off) | The Describe pane |
 | Saved meals | always | The Saved pane; Add logs the meal at once |
 | Copy a meal | yesterday has this meal | Copies yesterday's {meal} |
-| Quick add | calories not hidden | Describe's "Or just a number", focused |
 | Water | always | One glass, with Undo |
 | Weigh-in | always | `WeightRoute` |
 | Note | always | `MealNoteRoute` |
-| Ate, no details | a real meal (not Uncategorized) | Marks it, closes |
 | Fasting | `release.fasting`, offered in this mode and the timer on | `FastingRoute` |
+| Exercise | `release.exercise`, energy out not hidden | `ExerciseRoute` |
 
 Fasting reads "Fasting", not "Start a fast": fasts start on their schedule and
 there is no manual start to advertise.
@@ -126,8 +125,7 @@ shows its word and no ±; `loggedAs` reads From label as a label.
 | All nutrients | percents | words | hidden | link and card gone |
 | Grams on units and chips | amounts of food | shown | shown | shown |
 
-Quick add is not offered when calories are hidden. The grid itself shows no
-number. Leak surfaces: `add-sheet`, `add-sheet-expanded`, `search-full`,
+The grid itself shows no number. Leak surfaces: `add-sheet`, `add-sheet-expanded`, `search-full`,
 `search-empty`, `search-saved-meals`, `search-tabs`, `search-options`,
 `food-detail`, `food-detail-nutrients`, `food-detail-units`,
 `food-detail-scan`; Describe, Saved, photo and scanner keep theirs.

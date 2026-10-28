@@ -69,6 +69,7 @@ class ClosedDayTest : CoroutineTest() {
         foodActionsEnabled = foodActionsFlag(true),
         goalsAndEnergy = goalsAndEnergyFlag(false),
         burnedRepository = FakeBurnedRepository(),
+        cardView = TodayCardViewStore(FakeCacheFactory()),
     )
 
     private fun <E> TestScope.collect(flow: Flow<E>): List<E> {

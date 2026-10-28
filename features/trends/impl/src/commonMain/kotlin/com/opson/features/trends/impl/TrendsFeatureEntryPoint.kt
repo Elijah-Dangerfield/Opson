@@ -73,7 +73,7 @@ class TrendsFeatureEntryPoint(
     private val captureViewModelFactory: () -> CaptureViewModel,
     private val stillCamera: StillCamera,
     private val cameraPrompt: BarcodeCamera,
-    /** The Notes list's route, once its module binds one (see [NotesListLink]). */
+    /** The Notes list's route, which Today binds (see [NotesListLink]). */
     private val notesListLink: NotesListLink? = null,
 ) : FeatureEntryPoint {
 

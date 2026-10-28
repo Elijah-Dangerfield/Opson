@@ -91,8 +91,8 @@ import kotlin.reflect.typeOf
 
 /**
  * Today and everything that opens from it: the tab root, Day close, the calendar that drops from
- * the title, the Notes list, and the meal, meal note, how it felt, water, food actions, day note
- * and Today's cards sheets.
+ * the title, the Notes list, and the meal, meal Note (hunger and words), water, food actions, day
+ * note, Today's cards and day closed sheets.
  * View models send events; only this class navigates.
  */
 @SingleIn(AppScope::class)

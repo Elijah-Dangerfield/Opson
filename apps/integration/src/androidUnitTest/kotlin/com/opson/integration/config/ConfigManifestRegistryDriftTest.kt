@@ -11,6 +11,7 @@ import com.opson.features.logger.impl.SearchOptionsEnabled
 import com.opson.features.logger.impl.VoiceLogEnabled
 import com.opson.features.onboarding.impl.OnboardingSetupEnabled
 import com.opson.features.settings.FindSupportEnabled
+import com.opson.features.settings.ProviderSummaryEnabled
 import com.opson.features.today.impl.TodayFoodActionsEnabled
 import com.opson.features.today.impl.TodaySelectEnabled
 import com.opson.features.today.impl.TodaySummaryEnabled
@@ -317,6 +318,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     SearchOptionsEnabled(appConfigMap),
     OnboardingSetupEnabled(appConfigMap),
     FindSupportEnabled(appConfigMap),
+    ProviderSummaryEnabled(appConfigMap),
     ProgressPhotosEnabled(appConfigMap),
     TodaySummaryEnabled(appConfigMap),
     TodaySelectEnabled(appConfigMap),

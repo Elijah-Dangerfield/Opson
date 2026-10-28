@@ -34,8 +34,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -103,8 +103,7 @@ class ReminderCoordinator(
     /** The user's own settings: the defaults a store holds before its first read would cancel everything. */
     private val knownSettings: Flow<Settings> =
         combine(settingsRepository.settings, settingsRepository.isKnown) { settings, known -> settings.takeIf { known } }
-            .filter { it != null }
-            .map { it!! }
+            .filterNotNull()
 
     /** Re-read today on every foreground, at midnight, and on a nudge. */
     private val today: Flow<LocalDate> =

@@ -108,6 +108,14 @@ class WidgetsRoute : Route()
 class FindSupportRoute : Route()
 
 /**
+ * A summary for your provider (`release.providerSummary`): pick a range and what goes in, look it
+ * over, share a PDF. One-off and made by the person; there is no link anyone else can open.
+ * Opened from Support. Check [ProviderSummaryEnabled] before linking here.
+ */
+@Serializable
+class ProviderSummaryRoute : Route()
+
+/**
  * Credits and licenses: food data, the typeface and the open-source licences in the shipped
  * builds. Opened from Support's About card and More.
  */

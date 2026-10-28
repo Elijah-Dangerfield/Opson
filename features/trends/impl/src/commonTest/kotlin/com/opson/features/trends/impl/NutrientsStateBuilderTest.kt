@@ -79,7 +79,7 @@ class NutrientsStateBuilderTest {
         val state = build(NutrientsRange.WeekAverage)
         assertEquals(BackLabel.Trends, state.backLabel)
         assertEquals(NutrientsSubtitle.WeekAverage("Oct 19 to 25"), state.subtitle)
-        // The same five days as the Trends average: Thursday untracked, Sunday still in progress.
+        // The same five days as the Trends average: nothing on Thursday, Sunday still in progress.
         assertEquals("1,818 kcal", assertIs<Display.Shown>(state.energy?.eaten).text)
     }
 
