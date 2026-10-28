@@ -68,7 +68,8 @@ Use **More → Support and sharing** in the app to export or delete your data, o
 email [contact@nightjarlabs.llc](mailto:contact@nightjarlabs.llc) for anything
 else. We answer within 45 days. If we need longer, we'll tell you within those
 45 days, and take no more than 45 more. Requests are free up to twice a year.
-Tell us the email you sign in with so we can find your account.
+Because most Opson accounts have no name or email attached, we may ask you for
+details from the app so we can find yours.
 
 Deleting your account removes your data from our database straight away and
 from backups within 30 days.
