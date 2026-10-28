@@ -116,9 +116,9 @@ class ExerciseSheetViewModel(
         }
     }
 
-    /** A listed activity, or Other where its number can be typed. */
+    /** A listed activity, or Other where the sheet offers it. */
     private fun offered(key: String): Boolean = when (key) {
-        ExerciseActivities.OTHER -> inputs?.let { ExerciseSheetStateBuilder.canNumber(it, policy) } == true
+        ExerciseActivities.OTHER -> inputs?.let { ExerciseSheetStateBuilder.offersOther(form, it, policy) } == true
         else -> ExerciseActivities[key] != null
     }
 

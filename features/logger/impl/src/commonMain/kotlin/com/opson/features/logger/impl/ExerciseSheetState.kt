@@ -46,7 +46,8 @@ data class ExerciseSheetState(
     val canNumber: Boolean = false,
     /**
      * Other in the activity list. Other has no estimate, so it is only offered where the number
-     * can be typed; on Later or a softened energy out it would leave Save off for good.
+     * can be typed; on Later or a softened energy out it would leave Save off for good. An Other
+     * entry being edited keeps it, since its saved number comes with it.
      */
     val offersOther: Boolean = false,
     /** "My watch didn't record this", only with a health app connected. */
@@ -143,7 +144,7 @@ object ExerciseSheetStateBuilder {
             numberNeeded = form.activity != null && estimate == null,
             typed = form.typed.takeIf { canNumber }.orEmpty(),
             canNumber = canNumber,
-            offersOther = canNumber,
+            offersOther = offersOther(form, inputs, policy),
             notOnWatch = form.notOnWatch.takeIf { inputs.healthConnected },
             canSave = draft(form, inputs) != null,
             query = form.query,
@@ -151,8 +152,11 @@ object ExerciseSheetStateBuilder {
     }
 
     /** Typed, the number is an amount like any other, so only where energy out shows right now. */
-    fun canNumber(inputs: ExerciseInputs, policy: VisibilityPolicy): Boolean =
+    private fun canNumber(inputs: ExerciseInputs, policy: VisibilityPolicy): Boolean =
         policy.effectiveLevel(Metric.EnergyOut, Surface.Logger, inputs.context()) == Visibility.Show
+
+    fun offersOther(form: ExerciseForm, inputs: ExerciseInputs, policy: VisibilityPolicy): Boolean =
+        canNumber(inputs, policy) || form.activity == ExerciseActivities.OTHER || inputs.entry?.isOther == true
 
     /**
      * What Save writes, or null while something is missing. A typed number wins; otherwise the

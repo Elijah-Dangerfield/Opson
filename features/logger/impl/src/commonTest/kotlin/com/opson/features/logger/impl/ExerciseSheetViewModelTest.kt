@@ -200,6 +200,30 @@ class ExerciseSheetViewModelTest : CoroutineTest() {
         assertFalse(repo.added.single().kcalTyped)
     }
 
+    /** An Other entry made before energy out went to Later still lists, and re-picks, the activity it is. */
+    @Test
+    fun withEnergyOutOnLater_anOtherEntryBeingEdited_keepsOtherInTheList() = runUnitTest {
+        policySource.policy.value = laterEnergyOut()
+        repo.entries += ExerciseEntry(
+            "e1", today, Instant.parse("2026-10-25T07:00:00Z"), ExerciseActivities.OTHER,
+            name = "Climbing", minutes = 60, kcal = 500, kcalTyped = true,
+        )
+        val vm = vm(route = ExerciseRoute(entryId = "e1"))
+        settle()
+        assertTrue(vm.state.offersOther)
+        assertTrue(vm.state.canSave)
+
+        vm.takeAction(ExerciseSheetAction.ActivityTapped)
+        vm.takeAction(ExerciseSheetAction.ActivityPicked(ExerciseActivities.OTHER))
+        settle()
+
+        assertEquals(ExerciseActivities.OTHER, vm.state.activity)
+        assertEquals(ExercisePane.Form, vm.state.pane)
+        vm.takeAction(ExerciseSheetAction.SaveTapped)
+        settle()
+        assertEquals(500, repo.updated.single().second.kcal)
+    }
+
     @Test
     fun withEnergyOutShowing_otherIsOffered() = runUnitTest {
         val vm = vm()
