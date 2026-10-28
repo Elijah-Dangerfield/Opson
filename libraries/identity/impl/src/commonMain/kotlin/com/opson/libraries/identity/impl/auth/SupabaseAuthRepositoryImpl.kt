@@ -29,6 +29,7 @@ import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ResponseException
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlin.time.Duration.Companion.minutes
 import me.tatarka.inject.annotations.Inject
@@ -597,18 +599,33 @@ class SupabaseAuthRepositoryImpl(
 
     override suspend fun signOut(): Unit = mutex.withLock {
         logger.i { "signOut: tearing down session" }
-        Catching { gateway.signOut() }
-            .logOnFailure { "Supabase signOut failed; clearing local state anyway" }
         // No session is created in its place: the user lands on onboarding's
         // sign-in step. A later retry() just re-resolves (still Unauthenticated).
-        // emitUnauthenticatedLocked → emitLocked dumps the prior user's local
-        // data and dispatches UserChanged(prev, null); no explicit dispatch here.
-        // Reason.SignedOut so identity self-heal doesn't treat this deliberate
-        // sign-out as a lost session.
-        emitUnauthenticatedLocked(
-            cause = null,
-            reason = AuthState.Unauthenticated.Reason.SignedOut,
-        )
+        signOutLocked(failureMessage = "Supabase signOut failed; clearing local state anyway")
+    }
+
+    /**
+     * Clear the session, then emit [AuthState.Unauthenticated.Reason.SignedOut],
+     * so identity self-heal doesn't treat a deliberate sign-out as a lost
+     * session. emitLocked dumps the prior user's local data and dispatches
+     * UserChanged(prev, null).
+     *
+     * The emit runs even when the caller is cancelled (the person left the
+     * screen while the logout request hung): the gateway drops the local
+     * session regardless, and a state left at Authenticated would keep the
+     * account's data on the phone with no session behind it.
+     */
+    private suspend fun signOutLocked(failureMessage: String) {
+        try {
+            Catching { gateway.signOut() }.logOnFailure { failureMessage }
+        } finally {
+            withContext(NonCancellable) {
+                emitUnauthenticatedLocked(
+                    cause = null,
+                    reason = AuthState.Unauthenticated.Reason.SignedOut,
+                )
+            }
+        }
     }
 
     override suspend fun deleteAccount(): DeleteAccountOutcome = mutex.withLock {
@@ -628,15 +645,8 @@ class SupabaseAuthRepositoryImpl(
 
         if (outcome is DeleteAccountOutcome.Success) {
             logger.i { "deleteAccount: Success — signing out + clearing user-scoped data" }
-            Catching { gateway.signOut() }
-                .logOnFailure { "Supabase signOut after delete failed; clearing local state anyway" }
-            // emitUnauthenticatedLocked → emitLocked dumps this user's local
-            // data and dispatches UserChanged(prev, null). Reason.SignedOut so
-            // identity self-heal treats a delete like a sign-out.
-            emitUnauthenticatedLocked(
-                cause = null,
-                reason = AuthState.Unauthenticated.Reason.SignedOut,
-            )
+            // Identity self-heal treats a delete like a sign-out.
+            signOutLocked(failureMessage = "Supabase signOut after delete failed; clearing local state anyway")
         } else {
             logger.w { "deleteAccount: ${outcome::class.simpleName}" }
         }

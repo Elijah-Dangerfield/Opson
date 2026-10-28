@@ -28,8 +28,11 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlin.test.Test
@@ -1001,9 +1004,42 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         assertEquals(DeleteAccountOutcome.NotSignedIn, repo.deleteAccount())
     }
 
+    @Test
+    fun deleteAccount_cancelledWhileSigningOut_stillSignsOut() = runUnitTest {
+        // The server already deleted the account; leaving the screen while the
+        // logout request hangs must not leave its data behind.
+        val gateway = hangingSignOutGateway()
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(gateway = gateway, profileApi = DeletingProfileApi(failure = null), userScopedDataReset = reset)
+        advanceUntilIdle()
+
+        val deleting = launch { repo.deleteAccount() }
+        gateway.awaitSignOutStarted()
+        deleting.cancelAndJoin()
+
+        val state = assertIs<AuthState.Unauthenticated>(repo.current())
+        assertEquals(AuthState.Unauthenticated.Reason.SignedOut, state.reason)
+        assertEquals(listOf("user-1"), reset.clearedFor)
+    }
+
     private fun signedInGateway() = FakeSupabaseAuthGateway(
         initialStatus = AuthGatewayStatus.Authenticated,
         session = claimedSession(),
+    )
+
+    /** A gateway whose logout request never answers, and which clears the session when cancelled. */
+    private fun hangingSignOutGateway() = FakeSupabaseAuthGateway(
+        initialStatus = AuthGatewayStatus.Authenticated,
+        session = claimedSession(),
+        onSignOut = {
+            try {
+                signOutStarted.complete(Unit)
+                awaitCancellation()
+            } finally {
+                replaceSession(null)
+                setStatus(AuthGatewayStatus.NotAuthenticated)
+            }
+        },
     )
 
     /** The exception the app's `expectSuccess` client throws for this answer. */
@@ -1071,6 +1107,24 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
             afterRetry.reason,
             "a re-resolve must not decay a sign-out into an ordinary missing session",
         )
+    }
+
+    @Test
+    fun signOut_cancelledWhileTheLogoutRequestHangs_stillSignsOut() = runUnitTest {
+        // The gateway drops the stored session even when cancelled
+        // (RealSupabaseAuthGatewayTest), so the state has to follow it.
+        val gateway = hangingSignOutGateway()
+        val reset = RecordingUserScopedDataReset()
+        val repo = build(gateway = gateway, userScopedDataReset = reset)
+        advanceUntilIdle()
+
+        val signingOut = launch { repo.signOut() }
+        gateway.awaitSignOutStarted()
+        signingOut.cancelAndJoin()
+
+        val state = assertIs<AuthState.Unauthenticated>(repo.current())
+        assertEquals(AuthState.Unauthenticated.Reason.SignedOut, state.reason)
+        assertEquals(listOf("user-1"), reset.clearedFor, "the account's data leaves with its session")
     }
 
     // ---------- signup already-registered obfuscation (AUTH-21) ----------
@@ -1322,6 +1376,9 @@ internal class FakeSupabaseAuthGateway(
         private set
     var signOutCalls: Int = 0
         private set
+    val signOutStarted = CompletableDeferred<Unit>()
+
+    suspend fun awaitSignOutStarted() = signOutStarted.await()
     var signInWithOAuthCalls: Int = 0
         private set
     var linkOAuthIdentityCalls: Int = 0
