@@ -82,11 +82,6 @@ import opson.libraries.resources.generated.resources.today_checkin_energy_good
 import opson.libraries.resources.generated.resources.today_checkin_energy_low
 import opson.libraries.resources.generated.resources.today_checkin_energy_ok
 import opson.libraries.resources.generated.resources.today_checkin_hunger
-import opson.libraries.resources.generated.resources.today_checkin_hunger_often
-import opson.libraries.resources.generated.resources.today_checkin_hunger_rarely
-import opson.libraries.resources.generated.resources.today_checkin_hunger_some
-import opson.libraries.resources.generated.resources.today_checkin_hunger_steady
-import opson.libraries.resources.generated.resources.today_checkin_hunger_very
 import opson.libraries.resources.generated.resources.today_checkin_mood
 import opson.libraries.resources.generated.resources.today_checkin_mood_calm
 import opson.libraries.resources.generated.resources.today_checkin_mood_happy
@@ -433,15 +428,6 @@ private fun <T : Any> CheckInRow(title: StringResource, options: List<T>, picked
         )
     }
 }
-
-private val DayHunger.label: StringResource
-    get() = when (this) {
-        DayHunger.Rarely -> Res.string.today_checkin_hunger_rarely
-        DayHunger.Some -> Res.string.today_checkin_hunger_some
-        DayHunger.Steady -> Res.string.today_checkin_hunger_steady
-        DayHunger.Often -> Res.string.today_checkin_hunger_often
-        DayHunger.Very -> Res.string.today_checkin_hunger_very
-    }
 
 private val Energy.label: StringResource
     get() = when (this) {
