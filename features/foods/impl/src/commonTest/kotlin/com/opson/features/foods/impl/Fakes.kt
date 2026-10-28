@@ -1,5 +1,15 @@
 package com.opson.features.foods.impl
 
+import com.opson.libraries.core.Catching
+import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.foods.Food
+import com.opson.libraries.foods.FoodCatalog
+import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.FoodSearchResult
+import com.opson.libraries.foods.ParsedItem
+import com.opson.libraries.foods.SearchOptions
+import kotlinx.coroutines.flow.StateFlow
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.CustomFoodDraft
@@ -129,6 +139,9 @@ class FakeCustomFoodRepository(foods: List<CustomFood> = emptyList()) : CustomFo
             carbs = draft.carbs,
             fat = draft.fat,
             fiber = draft.fiber,
+            servingGrams = draft.servingGrams,
+            sizes = draft.sizes,
+            micros = draft.micros,
         )
         foods.value = foods.value + food
         return food
@@ -182,4 +195,36 @@ class FakeCalendar(private val today: LocalDate = FoodsFixtures.today) : LocalCa
     override fun timeZone(): TimeZone = TimeZone.UTC
 
     override fun today(): LocalDate = today
+}
+
+/** A catalog that knows [foods] and nothing else; offline for anything it does not hold. */
+class FakeFoodCatalog(private val foods: List<Food> = emptyList()) : FoodCatalog {
+    override suspend fun search(query: String, limit: Int, filter: FoodSearchFilter): Catching<FoodSearchResult> =
+        Catching.success(FoodSearchResult(query, foods.filter { it.name.contains(query, ignoreCase = true) }, fromCache = false))
+
+    override suspend fun searchOptions(): Catching<SearchOptions> = Catching.success(SearchOptions(openFoodFacts = false))
+
+    override suspend fun detail(id: String): Catching<Food> =
+        foods.firstOrNull { it.id == id }?.let { Catching.success(it) } ?: Catching.failure(IllegalStateException("offline"))
+
+    override suspend fun barcode(code: String): Catching<Food?> = Catching.success(null)
+
+    override suspend fun describe(text: String): Catching<List<ParsedItem>> = Catching.success(emptyList())
+
+    override fun observeFavorites(): Flow<List<Food>> = flowOf(emptyList())
+
+    override fun observeRecent(limit: Int): Flow<List<Food>> = flowOf(emptyList())
+
+    override suspend fun markUsed(food: Food) = Unit
+
+    override suspend fun setFavorite(food: Food, favorite: Boolean) = Unit
+}
+
+class FakeSettingsRepository(initial: Settings = Settings()) : SettingsRepository {
+    val state = MutableStateFlow(initial)
+    override val settings: StateFlow<Settings> = state
+    override val isKnown: StateFlow<Boolean> = MutableStateFlow(true)
+
+    override suspend fun update(stampNumbersChange: Boolean, transform: (Settings) -> Settings): Settings =
+        transform(state.value).also { state.value = it }
 }
