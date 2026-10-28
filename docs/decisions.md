@@ -27,8 +27,10 @@ none. Remove from recents is a top-level settings key, `hiddenRecentFoods`
 save, and a food logged again after that comes back.
 
 Report a problem opens the existing bug report with the food's ref key and
-nothing else. TODO(review-queue): file it into the `user_submitted` foods
-review queue once that lands on main.
+nothing else. The food review queue (`SubmitFoodRoute`, the ops review board)
+takes new packs, not corrections to a food the catalog already has, so a
+report cannot go there yet; TODO(review-queue) in `LoggerFeatureEntryPoint`
+marks the hook.
 
 **Why:** the owner found the old detail odd next to Cronometer. The segmented
 How sure was the loudest thing on the screen for a setting that only moves the

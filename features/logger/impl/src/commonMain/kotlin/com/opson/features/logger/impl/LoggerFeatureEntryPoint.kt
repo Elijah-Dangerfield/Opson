@@ -335,7 +335,8 @@ class LoggerFeatureEntryPoint(
                     haptics.confirm()
                     router.goBack()
                 }
-                // TODO(review-queue): file into the user_submitted foods review queue once it is on main; the bug report carries the food's ref until then.
+                // TODO(review-queue): the review queue takes new packs (SubmitFoodRoute) but has no kind for a correction to a food it
+                // already holds; once it does, file this there. Until then the bug report carries the food's ref.
                 is FoodDetailEvent.OpenReport -> router.navigate(BugReportRoute(contextMessage = event.context))
                 is FoodDetailEvent.OpenEditCopy -> router.navigate(
                     EditCopyRoute(
