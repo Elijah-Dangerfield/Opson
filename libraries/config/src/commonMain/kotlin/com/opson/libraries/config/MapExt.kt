@@ -23,7 +23,7 @@ fun <T : Any> Map<String, *>.getValueRecursive(path: List<String>, clazz: KClass
                 // to `false`, so a string typed into a boolean key in the admin
                 // console would turn that feature off on every device that
                 // fetched the config — silently, and without falling back to
-                // the declared default. A kill switch or a monetization flag is
+                // the declared default. A kill switch is
                 // meant to fail open, and this is the one path that could
                 // quietly make one fail closed. The general rule: a parse that
                 // invents an answer is worse than no answer. The default was
