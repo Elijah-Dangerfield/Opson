@@ -359,8 +359,9 @@ class SupabaseAuthRepositoryImpl(
      * A **session expiry** defers the dump. The person is sent to sign in again,
      * and meals logged offline are still in the outbox, so the departing account
      * is held in [expiredAccounts] instead. When that account signs back in the
-     * hold is released and the outbox drains; anyone else signing in, or a log
-     * out, wipes the held data first.
+     * hold is released and the outbox drains; anyone else signing in wipes the
+     * held data first. The SessionExpired screen's sign-out is not a log out of
+     * the held account (its session is already gone), so the hold survives it.
      */
     private suspend fun emitLocked(next: AuthState) {
         val previous = lastEmittedOrNull()
@@ -386,7 +387,7 @@ class SupabaseAuthRepositoryImpl(
                 dumped = true
             }
         }
-        if (expiry == null && (userChanged || next.isLogOut())) {
+        if (expiry == null && userChanged) {
             settleExpiredAccountLocked(next, alreadyDumped = dumped)
         }
 
@@ -398,9 +399,10 @@ class SupabaseAuthRepositoryImpl(
     }
 
     /**
-     * Release or wipe the account held since a session expiry, once the person
-     * decides: the same account back keeps its data, a different one or a log
-     * out wipes it. Any other state (still no session) keeps waiting.
+     * Release or wipe the account held since a session expiry, once someone
+     * signs in: the same account back keeps its data, a different one wipes it.
+     * Logging out of a live session already dumped everything, so the hold is
+     * just released. Any other state (still no session) keeps waiting.
      */
     private suspend fun settleExpiredAccountLocked(next: AuthState, alreadyDumped: Boolean) {
         val held = Catching { expiredAccounts.read() }

@@ -120,7 +120,11 @@ interface AuthRepository {
      */
     suspend fun markSessionUnrecoverable(wasAnonymous: Boolean) {}
 
-    /** Tear down the current Supabase session. The person signs in again to come back. */
+    /**
+     * Tear down the current Supabase session. The person signs in again to come back.
+     * Called after a session expiry it only clears the dead session: the expired
+     * account's data stays until someone signs in.
+     */
     suspend fun signOut()
 
     /**

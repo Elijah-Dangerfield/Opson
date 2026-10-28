@@ -169,10 +169,39 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
     }
 
     @Test
-    fun aSessionExpiry_thenALogOut_wipesTheHeldData() = runUnitTest {
+    fun aSessionExpiry_thenTheSignInAgainTap_thenTheSameAccount_keepsItsLocalData() = runUnitTest {
+        // The SessionExpired screen's only button signs out before routing to
+        // sign-in. That tap must not count as a log out of the held account.
+        val gateway = appleGateway().apply { advanceToAuthenticated(claimedSession()) }
+        val bus = FakeSessionRejectionBus()
+        val reset = RecordingUserScopedDataReset()
+        val expiredAccounts = ExpiredAccountStore(TestCacheFactory())
+        val repo = build(
+            gateway = gateway,
+            sessionRejectionBus = bus,
+            userScopedDataReset = reset,
+            expiredAccounts = expiredAccounts,
+        )
+        advanceUntilIdle()
+        bus.signalRejected(wasAnonymous = false)
+        advanceUntilIdle()
+
+        repo.signOut()
+        assertEquals(emptyList(), reset.clearedFor, "the tap only clears the dead session")
+        assertNotNull(expiredAccounts.read(), "still waiting for the person to sign in")
+
+        assertEquals(SignInOutcome.Success, repo.signInWithApple(appleCredential(authorizationCode = null)))
+
+        assertEquals(emptyList(), reset.clearedFor, "the same account came back: its outbox drains")
+        assertNull(expiredAccounts.read())
+    }
+
+    @Test
+    fun aSessionExpiry_thenTheSignInAgainTap_thenADifferentAccount_wipesTheHeldData() = runUnitTest {
         val gateway = FakeSupabaseAuthGateway(
             initialStatus = AuthGatewayStatus.Authenticated,
-            session = claimedSession(),
+            session = claimedSession(userId = "user-1"),
+            onSignInWithAppleIdToken = { _, _ -> advanceToAuthenticated(claimedSession(userId = "user-2")) },
         )
         val bus = FakeSessionRejectionBus()
         val reset = RecordingUserScopedDataReset()
@@ -180,8 +209,9 @@ class SupabaseAuthRepositoryImplTest : CoroutineTest() {
         advanceUntilIdle()
         bus.signalRejected(wasAnonymous = false)
         advanceUntilIdle()
-
         repo.signOut()
+
+        repo.signInWithApple(appleCredential(authorizationCode = null))
 
         assertEquals(listOf("user-1"), reset.clearedFor)
     }
