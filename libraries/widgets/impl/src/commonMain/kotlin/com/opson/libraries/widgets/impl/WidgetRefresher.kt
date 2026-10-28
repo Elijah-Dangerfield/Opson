@@ -97,10 +97,12 @@ class WidgetRefresher(
 }
 
 /**
- * Whether the app is someone's right now, for the widget: signed in, or holding a session that
- * can't refresh offline for someone past onboarding (logging in a basement on an hour-old token
- * still counts). Not after a sign-out or an expired session, and not on a fresh install: a sign-out
- * clears the onboarding flag, so a relaunch afterwards with no session is nobody's either.
+ * Whether the app is someone's right now, for the widget: signed in, or unauthenticated with no
+ * reason for someone past onboarding. That is a session that can't refresh offline (logging in a
+ * basement on an hour-old token still counts), and also an onboarded device whose session is gone,
+ * which still opens on Today until `SessionHealer` revives the session or sends it to sign in. Not
+ * after a sign-out or an expired session, and not on a fresh install: a user change clears the
+ * onboarding flag, so a relaunch afterwards with no session is nobody's either.
  */
 internal fun AuthState.isSomeones(onboarded: Boolean): Boolean = when (this) {
     is AuthState.Authenticated -> true
