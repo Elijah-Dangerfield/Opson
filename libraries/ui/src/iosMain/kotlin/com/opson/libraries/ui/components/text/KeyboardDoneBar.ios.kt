@@ -69,6 +69,9 @@ private object IosDoneBar {
     private var owner: DoneBarOwner? = null
     private var refreshScheduled = false
 
+    /** The text input view last given the bar, so [refresh] can tell it from the next one. */
+    private var holder: UIResponder? = null
+
     /** The getters [install] replaced, by the class they belong to. */
     private val replaced = mutableMapOf<Long, CPointer<AccessoryGetter>>()
 
@@ -122,9 +125,16 @@ private object IosDoneBar {
     }
 
     private fun refresh() {
+        val outgoing = holder
+        holder = null
         val responder = firstResponder() ?: return
         if (responder !is UITextInputProtocol) return
+        // Each input session gets a new view, so the view that held the bar being first responder
+        // with no owner means its field let go of focus and the view is on its way out. Reloading
+        // it would swap the closing number pad for its emptied, default traits: a letter keyboard.
+        if (owner == null && responder === outgoing) return
         install(responder)
+        if (owner != null) holder = responder
         responder.reloadInputViews()
     }
 
