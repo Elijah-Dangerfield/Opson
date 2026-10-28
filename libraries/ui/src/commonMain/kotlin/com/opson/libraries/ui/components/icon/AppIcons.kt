@@ -101,6 +101,8 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.Compare
 import androidx.compose.material.icons.rounded.Cameraswitch
+import androidx.compose.material.icons.rounded.FlashlightOff
+import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.rounded.Tune
@@ -305,6 +307,12 @@ object AppIcons {
     /** The front and back camera: the capture screen's switch. */
     val Cameraswitch get() = icon("cameraswitch", MaterialIcons.Rounded.Cameraswitch)
 
+    /** The barcode scanner's light, while it is on (the button turns it off). */
+    val FlashlightOn get() = icon("flashlight_on", MaterialIcons.Rounded.FlashlightOn)
+
+    /** The barcode scanner's light, while it is off. */
+    val FlashlightOff get() = icon("flashlight_off", MaterialIcons.Rounded.FlashlightOff)
+
     /** A filled down triangle: Compare's date pickers. */
     val ArrowDropDown get() = icon("arrow_drop_down", MaterialIcons.Rounded.ArrowDropDown)
 
@@ -336,6 +344,7 @@ object AppIcons {
             EventRepeat, EventAvailable, Star, Favorite, Science,
             FormatListBulleted, BeachAccess, Watch, Widgets, Call, Sms, Public, SupportAgent,
             DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove, FitnessCenter,
+            FlashlightOn, FlashlightOff,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

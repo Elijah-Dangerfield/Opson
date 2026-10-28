@@ -20,9 +20,6 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons as MaterialIcons
-import androidx.compose.material.icons.rounded.FlashlightOff
-import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,7 +51,6 @@ import com.opson.libraries.ui.components.button.ButtonStyle
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconButton
-import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.libraries.ui.components.icon.described
@@ -253,9 +249,9 @@ private fun ReadConfirmation() {
 @Composable
 private fun TorchButton(on: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val icon = if (on) {
-        LightOn.described(stringResource(Res.string.barcode_light_off))
+        AppIcons.FlashlightOn.described(stringResource(Res.string.barcode_light_off))
     } else {
-        LightOff.described(stringResource(Res.string.barcode_light_on))
+        AppIcons.FlashlightOff.described(stringResource(Res.string.barcode_light_on))
     }
     IconButton(
         icon = icon,
@@ -496,8 +492,3 @@ private const val RING_FADE_FROM = 0.6f
 /** The read confirmation: the frame closes in from a little wider, around a tick. */
 private const val FRAME_SNAP_FROM = 1.08f
 private val CheckSize = 56.dp
-
-// TODO(review): move these to AppIcons with the rest. libraries/ui was being changed by another
-//  agent when the torch arrived, so they wait here for that to land.
-private val LightOn = IconResource(MaterialIcons.Rounded.FlashlightOn, contentDescription = null, identifier = "flashlight_on")
-private val LightOff = IconResource(MaterialIcons.Rounded.FlashlightOff, contentDescription = null, identifier = "flashlight_off")
