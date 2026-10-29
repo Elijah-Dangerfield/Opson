@@ -57,6 +57,9 @@ object DateCopy {
     /** `October 25`, the calendar cell's spoken label. */
     fun longMonthDay(date: LocalDate): String = "${longMonth(date.month)} ${date.day}"
 
+    /** `May 11, 1998`: a birthday, or the day a goal is forecast for. */
+    fun monthDayYear(date: LocalDate): String = "${longMonth(date.month)} ${date.day}, ${date.year}"
+
     /** `October 2026`, the calendar title. */
     fun monthYear(date: LocalDate): String = "${longMonth(date.month)} ${date.year}"
 

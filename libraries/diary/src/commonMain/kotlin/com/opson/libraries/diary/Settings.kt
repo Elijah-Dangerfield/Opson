@@ -3,6 +3,7 @@ package com.opson.libraries.diary
 import com.opson.libraries.nutrition.BodyFat
 import com.opson.libraries.nutrition.BodyProfile
 import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
@@ -15,10 +16,12 @@ import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.WaterDefaults
 import com.opson.libraries.nutrition.WaterUnit
+import com.opson.libraries.nutrition.WeightGoal
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.Month
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KeepGeneratedSerializer
 import kotlinx.serialization.SerialName
@@ -185,7 +188,17 @@ data class Settings(
      * (`THERMIC_EFFECT_OF_FOOD_SHARE`), added to Burned. Off by default, as Cronometer has it.
      */
     val thermicEffectInBurned: Boolean = false,
+    /**
+     * The year of birth, which every calculation reads (age is the year's). Still written whenever
+     * [birthDate] is, so a build that only knows the year keeps working; read the date through
+     * [knownBirthDate], which drops it once an older build moved the year on its own.
+     */
     val birthYear: Int? = null,
+    /**
+     * The full date of birth, from Profile or onboarding. Only Today's birthday line reads the day;
+     * set it through [withBirthDate] so [birthYear] follows. A top-level key, like the rest.
+     */
+    val birthDate: LocalDate? = null,
     val heightCm: Double? = null,
     /**
      * How the person types their height, centimetres or feet and inches. Null until they pick
@@ -195,6 +208,13 @@ data class Settings(
     val heightUnit: HeightUnit? = null,
     @Serializable(with = BodySexSerializer::class)
     val bodySex: BodySex? = null,
+    /**
+     * Pregnant or breastfeeding, picked with sex. It adds that stage's energy to the estimate and
+     * keeps weight change out of the plan ([BodyStage]). Never null, so going back to none reaches
+     * the server rather than the merge keeping the old answer.
+     */
+    @Serializable(with = BodyStageSerializer::class)
+    val bodyStage: BodyStage = BodyStage.None,
     /**
      * Body fat as a percentage, optional, typed on More › Profile; read it through [bodyFat]. Zero is
      * "not given" rather than null, because a null is left out of the write and the server's merge
@@ -209,6 +229,20 @@ data class Settings(
      */
     @Serializable(with = EverydayActivitySerializer::class)
     val everydayActivity: EverydayActivity = EverydayActivity.Default,
+
+    /**
+     * The weight goal, set in onboarding or the goal flow Today offers: which way, the target and
+     * pace, where it started, and the aim it last wrote to [targets] ([WeightGoal.drives]). One
+     * top-level object, so the server's one-level merge replaces it whole, and never null, so
+     * clearing it reaches the server.
+     */
+    @Serializable(with = WeightGoalSerializer::class)
+    val weightGoal: WeightGoal = WeightGoal.None,
+    /**
+     * The last step of setting a goal: "I'm committed", or "Not now", and when. Nothing changes
+     * with the answer; Close the day and celebrations may mention it. Null until that step is reached.
+     */
+    val planCommitment: PlanCommitment? = null,
 
     // More › Today screen (design sync 4, 13.6, `release.goalsAndEnergy`). Top-level keys, because
     // the server merges settings one level deep. Card pages are [todayMacrosPage].
@@ -242,6 +276,23 @@ data class Settings(
     /** The nutrients page on Today, as `Micronutrient.key`s in order; empty is [DEFAULT_TODAY_NUTRIENTS]. */
     val todayNutrients: List<String> = emptyList(),
 ) {
+    /** [birthDate] while it agrees with [birthYear]: an older build that changed only the year leaves the day unknown. */
+    val knownBirthDate: LocalDate? get() = birthDate?.takeIf { it.year == birthYear }
+
+    /** The date of birth, and the year every calculation reads with it. */
+    fun withBirthDate(date: LocalDate): Settings = copy(birthDate = date, birthYear = date.year)
+
+    /**
+     * Whether [today] is their birthday. Someone born on 29 February has it on the 28th in a year
+     * without one.
+     */
+    fun isBirthday(today: LocalDate): Boolean {
+        val born = knownBirthDate ?: return false
+        if (born.month == today.month && born.day == today.day) return true
+        val leapDay = born.month == Month.FEBRUARY && born.day == LEAP_DAY
+        return leapDay && today.month == Month.FEBRUARY && today.day == LEAP_DAY - 1 && !isLeapYear(today.year)
+    }
+
     /** [bodyFatPercent] when one was given and makes sense. */
     val bodyFat: Double? get() = BodyFat.inRange(bodyFatPercent)
 
@@ -328,6 +379,10 @@ data class Settings(
     fun withNumbers(next: NumbersSettings): Settings = copy(numbers = next)
 
     companion object {
+        private const val LEAP_DAY = 29
+
+        private fun isLeapYear(year: Int): Boolean = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
+
         /** How many nutrients Today's page has room for. */
         const val TODAY_NUTRIENTS_MAX = 4
 
@@ -340,6 +395,10 @@ data class Settings(
             listOf(Micronutrient.Sodium, Micronutrient.Potassium, Micronutrient.Calcium, Micronutrient.Iron)
     }
 }
+
+/** The commitment step's answer: [committed] for "I'm committed", false for "Not now", [on] that day. */
+@Serializable
+data class PlanCommitment(val on: LocalDate, val committed: Boolean)
 
 /** End after a set time switched from [from] [on] that day. */
 @Serializable

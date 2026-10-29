@@ -1,10 +1,12 @@
 package com.opson.libraries.diary
 
 import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.DayGroup
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
+import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.LegacyPreset
@@ -22,6 +24,7 @@ import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WaterUnit
+import com.opson.libraries.nutrition.WeightGoal
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -135,6 +138,46 @@ internal object EverydayActivitySerializer : KeyedEnumSerializer<EverydayActivit
 /** [Settings.bodySex]: anything unreadable is unsaid, the midpoint of the equation's two constants. */
 internal object BodySexSerializer :
     KeyedEnumSerializer<BodySex>("opson.BodySex", BodySex.entries, { it.name.lowercase() }, BodySex.Unsaid)
+
+/** [Settings.bodyStage]: anything unreadable is none, so no stage's extra energy is added on a guess. */
+internal object BodyStageSerializer :
+    KeyedEnumSerializer<BodyStage>("opson.BodyStage", BodyStage.entries, BodyStage::key, BodyStage.None)
+
+@Serializable
+private class WeightGoalWire(
+    val direction: String = "none",
+    val targetKg: Double? = null,
+    val kgPerWeek: Double = 0.0,
+    val startKg: Double? = null,
+    val startDate: LocalDate? = null,
+    val targetsKcal: Int? = null,
+)
+
+/**
+ * [Settings.weightGoal] as one object. A direction this build doesn't know reads as no goal, and
+ * a pace that is not a positive number as none, so nothing is planned from a value it can't read.
+ */
+internal object WeightGoalSerializer : KSerializer<WeightGoal> {
+    override val descriptor: SerialDescriptor = WeightGoalWire.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: WeightGoal) = encoder.encodeSerializableValue(
+        WeightGoalWire.serializer(),
+        WeightGoalWire(value.direction.key, value.targetKg, value.kgPerWeek, value.startKg, value.startDate, value.targetsKcal),
+    )
+
+    override fun deserialize(decoder: Decoder): WeightGoal {
+        val wire = decoder.decodeSerializableValue(WeightGoalWire.serializer())
+        val direction = GoalDirection.fromKey(wire.direction) ?: return WeightGoal.None
+        return WeightGoal(
+            direction = direction,
+            targetKg = wire.targetKg,
+            kgPerWeek = wire.kgPerWeek.takeIf { it.isFinite() && it > 0 } ?: 0.0,
+            startKg = wire.startKg,
+            startDate = wire.startDate,
+            targetsKcal = wire.targetsKcal,
+        )
+    }
+}
 
 internal object WaterUnitSerializer : KeyedEnumSerializer<WaterUnit>(
     "opson.WaterUnit",
