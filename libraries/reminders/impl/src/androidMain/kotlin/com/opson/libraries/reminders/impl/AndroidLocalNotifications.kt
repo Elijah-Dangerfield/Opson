@@ -122,8 +122,16 @@ class AndroidLocalNotifications(
 
     override suspend fun dismissAll() {
         val manager = context.getSystemService(NotificationManager::class.java)
+        // Below Android 8 there are no channels to tell ours apart, but every reminder is posted
+        // with the same notification id, so that id is what finds them.
         manager.activeNotifications
-            .filter { it.notification.channelId in ReminderChannels.ids }
+            .filter {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    it.notification.channelId in ReminderChannels.ids
+                } else {
+                    it.id == ReminderPosting.NOTIFICATION_ID
+                }
+            }
             .forEach { manager.cancel(it.tag, it.id) }
     }
 

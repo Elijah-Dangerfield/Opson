@@ -2,6 +2,7 @@ package com.opson.libraries.pdf
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class PaginateTest {
 
@@ -34,7 +35,7 @@ class PaginateTest {
         assertEquals(2, pages.size)
         assertEquals(blocks.indices.toList(), pages.flatten().map { it.index }, "every block once, in order")
         assertEquals(PdfPage.MARGIN, pages[1].first().top)
-        pages.flatten().forEach { assert(it.top + line <= PdfPage.TEXT_BOTTOM) { "block ${it.index} runs into the footer" } }
+        pages.flatten().forEach { assertTrue(it.top + line <= PdfPage.TEXT_BOTTOM, "block ${it.index} runs into the footer") }
     }
 
     @Test

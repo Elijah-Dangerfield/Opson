@@ -1,5 +1,6 @@
 package com.opson.libraries.health.impl
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -47,6 +48,9 @@ import java.time.Period
  * Total energy is Health Connect's own aggregate, which fills hours with no data from the basal
  * rate, so resting is total minus active rather than a separate read.
  */
+// java.time is API 26, and lint can't see that nothing here reads before `availability()` has
+// said Android 9 or later (Health Connect doesn't exist below it), so the check is waived here.
+@SuppressLint("NewApi")
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 @Inject
