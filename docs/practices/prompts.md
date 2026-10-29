@@ -112,8 +112,8 @@ closes after `accept()` did the work itself (a join call, say).
 
 **Emitting a moment.** Inject `PromptEvents` and call `emit(PromptEvent.X)` where the moment
 happens, after it succeeded. `FeedbackRepositoryImpl` emits `ReportSent` for bug reports and
-feedback, and Close the day's Done emits `DayClosed`. A new kind of report (a food report, say)
-emits `ReportSent` too; a new kind of moment is a new `PromptEvent` value. A constructor that must
+feedback, `FoodReportViewModel` for a food's "Report a problem", and Close the day's Done emits
+`DayClosed`. A new kind of report emits `ReportSent` too; a new kind of moment is a new `PromptEvent` value. A constructor that must
 not grow a required argument can default it to `PromptEvents.None`.
 
 ## Testing a prompt

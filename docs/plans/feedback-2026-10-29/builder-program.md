@@ -37,7 +37,7 @@ repeat them.
 | Review | Admin console ReviewView behind `X-Admin-Token`; one reviewer |
 | Limits | `FoodLabelLimiter`: 10 reads per 10 min and 40 a day; 5 submissions per 10 min and 20 a day; in memory, per machine |
 | Bans | `auth.users.banned_until`, read by `PostgresModerationRepository`; every authed call then answers 403 (`BanTest`). No reason, no appeal, no UI in the admin console |
-| Report a problem | Opens the bug report with the food's ref key. `TODO(review-queue)` marks where it should reach the queue (`docs/decisions.md`) |
+| Report a problem | A sheet on a catalog food's detail (`release.foodReports`) sends what is wrong, the right numbers, a label photo and a note to the admin console's Review area (`POST /v1/foods/{id}/reports`, V29). Accepting writes a correction laid over the source's data, reversible. A sent report emits `PromptEvent.ReportSent` |
 | Accounts | Supabase, including guest (anonymous) accounts (`support.users.is_guest`) |
 | Pro | Not built. `pricing-and-pro.md` designs `entitlements` |
 | Device attestation | None |

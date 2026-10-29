@@ -172,7 +172,11 @@ alone.
   the closed sheet, as Add does.
 - **Remove from log** under it tombstones that entry (`removeItem`); the page
   closes and the snackbar's Undo restores that id (`DiaryItemEditor.restoreItems`).
-- **⋮**: the favorite and Report a problem (only with a food behind it),
+- **⋮**: the favorite and Report a problem (only with a food behind it; for a
+  catalog food with `release.foodReports` on, the report sheet: what is wrong,
+  the right numbers for the amount on screen, a label photo and a note, sent
+  to Opson's reviewers; for the person's own food, or with the flag off, the
+  bug report),
   Repeat this or Edit repeat (`release.repeats`), and Edit a copy, which opens
   `EditCopyRoute(dayIso, entryId)` with its "Use for this entry" switch; the
   page gives way to it, so the entry is never saved back from a stale page.

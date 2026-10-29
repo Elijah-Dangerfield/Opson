@@ -24,6 +24,7 @@ import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.PortionAmount
 import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.SubmittedFoods
+import com.opson.libraries.foods.draftFor
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.foods.isMeasure
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -112,8 +113,12 @@ sealed interface FoodDetailEvent {
     /** The day is closed (Close the day, maybe on another phone): nothing was logged. */
     data class DayClosed(val day: LocalDate) : FoodDetailEvent
 
-    /** Report a problem with this food. [context] names it by id only, never by its name or numbers. */
-    data class OpenReport(val context: String) : FoodDetailEvent
+    /**
+     * Report a problem with this food. [context] names it by id only, never by its name or
+     * numbers, for the bug report. [target] is a catalog food and the amount on screen, for
+     * "Report a problem" itself (`release.foodReports`); null for the person's own food.
+     */
+    data class OpenReport(val context: String, val target: ReportTarget? = null) : FoodDetailEvent
 
     /** Edit a copy of this food, which logs to [day] and [slot] once it is saved. */
     data class OpenEditCopy(val ref: FoodRef, val day: LocalDate, val slot: MealSlot) : FoodDetailEvent
@@ -325,7 +330,7 @@ class FoodDetailViewModel(
                 settingsRepository.update { it.hideFromRecent(food.key, clock.now().toEpochMilliseconds()) }
             }
             // Ids only: a report is read by people, and the food's name or numbers are this person's log.
-            FoodDetailAction.ReportTapped -> ref?.let { sendEvent(FoodDetailEvent.OpenReport("Food detail: ${it.key}")) }
+            FoodDetailAction.ReportTapped -> ref?.let { sendEvent(FoodDetailEvent.OpenReport("Food detail: ${it.key}", reportTarget())) }
             FoodDetailAction.EditCopyTapped -> editCopy()
             FoodDetailAction.AddToMealTapped -> if (entryId != null) saveChanges() else addToMeal()
             FoodDetailAction.RemoveTapped -> remove()
@@ -408,6 +413,13 @@ class FoodDetailViewModel(
         val to = AmountUnit.Saved(size)
         model = model.copy(settings = settings)
         action.choose { copy(unit = to, quantity = PortionAmount.switch(quantity, from, to), customSize = null, typed = null) }
+    }
+
+    /** A catalog food and the amount on screen, which suggested numbers are read for. */
+    private fun reportTarget(): ReportTarget? {
+        val food = (model.food as? AmountFood.Catalog)?.food ?: return null
+        val draft = food.draftFor(unit(), model.choice.quantity)
+        return ReportTarget(food.id, food.name, draft.amountText, draft.grams?.takeIf { it > 0.0 })
     }
 
     private suspend fun addToMeal() {

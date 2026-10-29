@@ -14,6 +14,7 @@
   { "path": "release.voice", "type": "boolean", "default": false, "description": "0.2: the mic in the Logger's Describe pane, speech to text on the device" },
   { "path": "release.photo", "type": "boolean", "default": false, "description": "Not in 0.2, keep off on prod: the Photo chip in the logger, and the photo estimate sheet it opens" },
   { "path": "release.submitFood", "type": "boolean", "default": false, "description": "Add a packaged food from photos of the pack (barcode miss, search, + sheet, Foods), read, checked and sent for review" },
+  { "path": "release.foodReports", "type": "boolean", "default": false, "description": "Report a problem on a food's detail: what is wrong, the right numbers, a label photo, sent for review" },
   { "path": "release.widgets", "type": "boolean", "default": false, "description": "0.2: the Widgets row on More. The snapshot for the widget is written whatever this says" },
   { "path": "release.searchOptions", "type": "boolean", "default": false, "description": "0.2: the Logger's search options sheet, category tabs and source badges" },
   { "path": "release.onboardingSetup", "type": "boolean", "default": false, "description": "Onboarding: the goal, resting energy details and meal times after the starting mode" },

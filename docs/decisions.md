@@ -6,6 +6,34 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: Food data is guarded on the way out, and corrections are an overlay
+
+**Decision:** Every food the catalog serves goes through `ServedFood`: a
+reviewer's correction from `food_corrections` (V29) laid over the stored row,
+then an energy guard that serves a 0 kcal the macros contradict as an estimate
+held under 5 kcal a serving. Anyone signed in can report a catalog food from
+its detail (`release.foodReports`); reports go to the admin console's Review
+area and never change a food until a reviewer accepts one. Owners and admins
+(`food.edit.direct`) have their suggested values applied at once, recorded
+and reversible like any other correction.
+
+**Alternatives:** fixing the zero in the importers (a monthly reload away
+from reaching prod, and the raw row would no longer say what USDA said);
+writing corrections into `foods` with a `corrected_at` the importers respect
+(Open Food Facts' reload swaps the whole `off_foods` table, so it cannot keep
+a column, and every importer would have to know about review); an outbox for
+reports (they can carry a photo, and adding a pack is online only too, so the
+sheet keeps everything and says so when offline).
+
+**Why:** the owner scanned Monster Energy Zero Ultra and got 0 kcal where the
+can says 10. USDA Branded, which a scan prefers, stores the label's rounded
+"Calories 0" for 8 fl oz, and its ml serving had no grams, so the app could
+only offer 100 g. Doing it on the way out fixed every row already loaded, and
+it found the same zero on every Monster Ultra flavour and on erythritol sodas,
+which is why the estimate is capped at what the label allows rather than
+taken from the macros alone (`docs/food-data-sources.md`, "Zero-calorie
+labels").
+
 ## 2026-10-29: Roles and entitlements, with Pro as a bundle in config
 
 **Decision:** Paid features are entitlements, named capabilities
@@ -406,8 +434,9 @@ save, and a food logged again after that comes back.
 Report a problem opens the existing bug report with the food's ref key and
 nothing else. The food review queue (`SubmitFoodRoute`, the ops review board)
 takes new packs, not corrections to a food the catalog already has, so a
-report cannot go there yet; TODO(review-queue) in `LoggerFeatureEntryPoint`
-marks the hook.
+report cannot go there yet. (Superseded 2026-10-29: with `release.foodReports`
+on, a catalog food's report goes to the review queue; see "Food data is
+guarded on the way out".)
 
 **Why:** the owner found the old detail odd next to Cronometer. The segmented
 How sure was the loudest thing on the screen for a setting that only moves the

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for "Report a problem" on a food's detail (the ⋮ menu, release.foodReports).
+  Same rules as strings.xml: no backslash escapes, positional %1$s arguments. The
+  photo buttons reuse submit_take, submit_retake and submit_choose.
+-->
+<resources>
+    <string name="food_report_title">Report a problem</string>
+    <string name="food_report_intro">Tell us what looks off. Someone at Opson checks every report, and the food stays as it is until they do.</string>
+    <string name="food_report_what">What's wrong?</string>
+    <string name="food_report_reason_calories">Wrong calories</string>
+    <string name="food_report_reason_nutrients">Wrong nutrients</string>
+    <string name="food_report_reason_serving">Wrong serving size</string>
+    <string name="food_report_reason_name">Wrong name or brand</string>
+    <string name="food_report_reason_duplicate">It's a duplicate</string>
+    <string name="food_report_reason_not_food">It isn't a food</string>
+    <string name="food_report_reason_other">Something else</string>
+    <string name="food_report_values_title">The right numbers (optional)</string>
+    <!-- The amount the detail had on screen: "1 can (473 g)". -->
+    <string name="food_report_values_for">As the pack gives them for %1$s.</string>
+    <string name="food_report_values_for_100">As the pack gives them for 100 g.</string>
+    <string name="food_report_calories">Calories</string>
+    <string name="food_report_protein">Protein</string>
+    <string name="food_report_carbs">Carbs</string>
+    <string name="food_report_fat">Fat</string>
+    <string name="food_report_serving">Serving size on the pack</string>
+    <string name="food_report_serving_hint">1 can, 473 ml</string>
+    <string name="food_report_photo_title">A photo of the label (optional)</string>
+    <string name="food_report_photo_hint">The nutrition panel, so the numbers can be checked against it.</string>
+    <string name="food_report_photo_cd">Photo of the label</string>
+    <string name="food_report_photo_remove">Remove</string>
+    <string name="food_report_note">Anything else (optional)</string>
+    <string name="food_report_note_hint">What the pack says, in your own words</string>
+    <string name="food_report_send">Send report</string>
+    <string name="food_report_sending">Sending…</string>
+    <string name="food_report_offline">You're offline. Your report is still here, so send it when you're back online.</string>
+    <string name="food_report_failed">That didn't go through. Try again in a moment.</string>
+    <string name="food_report_too_many">That's a lot of reports for now. Try again later.</string>
+    <string name="food_report_gone">This food isn't in Opson's food database any more, so there's nothing to report.</string>
+    <string name="food_report_camera_off">The camera is off. Choose a photo from your library, or turn the camera on in Settings.</string>
+    <!-- The snackbar once it is sent. %1$s is the food's name. -->
+    <string name="food_report_sent">Thanks. Someone will check %1$s.</string>
+    <string name="food_report_applied">Thanks. %1$s is corrected.</string>
+</resources>

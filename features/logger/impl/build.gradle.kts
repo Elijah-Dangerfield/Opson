@@ -32,6 +32,8 @@ kotlin {
             implementation(projects.libraries.speech)
             // release.exercise, and whether a health app is connected, for the exercise sheet.
             implementation(projects.libraries.health)
+            // PromptEvents: a food report that went through is a moment a prompt can follow.
+            implementation(projects.libraries.prompts)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -58,6 +60,7 @@ kotlin {
             implementation(projects.libraries.scanner)
             implementation(projects.libraries.speech)
             implementation(projects.libraries.health)
+            implementation(projects.libraries.prompts)
         }
     }
 }

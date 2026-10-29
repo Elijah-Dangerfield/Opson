@@ -101,6 +101,8 @@ class LoggerFeatureEntryPoint(
     private val recentLogEvents: () -> RecentLogEvents,
     private val diary: () -> DiaryRepository,
     private val editor: () -> DiaryItemEditor,
+    // "Report a problem" on a catalog food; off, the ⋮ item opens the bug report.
+    private val foodReports: FoodReportEnabled,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -396,9 +398,11 @@ class LoggerFeatureEntryPoint(
                     )
                 }
                 FoodDetailEvent.OpenCredits -> router.navigate(CreditsRoute())
-                // TODO(review-queue): the review queue takes new packs (SubmitFoodRoute) but has no kind for a correction to a food it
-                // already holds; once it does, file this there. Until then the bug report carries the food's ref.
-                is FoodDetailEvent.OpenReport -> router.navigate(BugReportRoute(contextMessage = event.context))
+                // A catalog food goes to Opson's reviewers as a food report; the person's own food, or any food with
+                // release.foodReports off, to the bug report with its ref.
+                is FoodDetailEvent.OpenReport -> router.navigate(
+                    event.target?.takeIf { foodReports() }?.route() ?: BugReportRoute(contextMessage = event.context),
+                )
                 is FoodDetailEvent.OpenEditCopy -> router.navigate(
                     EditCopyRoute(
                         dayIso = event.day.toString(),

@@ -744,6 +744,23 @@ class FoodDetailTest : CoroutineTest() {
         val report = assertIs<FoodDetailEvent.OpenReport>(events.single())
         assertEquals("Food detail: f:peanut-butter", report.context)
         assertFalse("Peanut" in report.context)
+        // For "Report a problem" itself: the catalog food and the amount on screen, which suggested numbers are read for.
+        val target = assertNotNull(report.target)
+        assertEquals("peanut-butter", target.foodId)
+        assertTrue((target.amountGrams ?: 0.0) > 0.0)
+        assertNotNull(target.amountText)
+    }
+
+    @Test
+    fun aFoodOfTheirOwnHasNoFoodReport() = runUnitTest {
+        customFoods.foods.value = listOf(LoggerFixtures.creamer)
+        val vm = vm("creamer", custom = true)
+        val events = events(vm)
+
+        vm.takeAction(FoodDetailAction.ReportTapped)
+        runCurrent()
+
+        assertNull(assertIs<FoodDetailEvent.OpenReport>(events.single()).target, "their own food goes to the bug report")
     }
 
     @Test

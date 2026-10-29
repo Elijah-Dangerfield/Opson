@@ -154,6 +154,24 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "submit-food-photo-failed", label = "Add a packaged food, a photo that would not open", showsCaloriesInFull = false) { policy ->
             SubmitFoodScreen(state = SubmitFoodFixtures.photoFailedState(policy), onAction = {})
         },
+        // Report a problem (release.foodReports): the right numbers are asked only where calories and macros show.
+        LeakSurface(id = "food-report-values", label = "Report a problem, the right numbers", showsCaloriesInFull = true) { policy ->
+            FoodReportSheetContent(
+                state = FoodReportStateBuilder.build(
+                    FoodReportModel(
+                        name = "Energy drink",
+                        amountText = "8.0 fl oz (240 ml)",
+                        amountGrams = 240.0,
+                        canTakePhoto = true,
+                        reason = com.opson.libraries.foods.FoodReportReason.WrongCalories,
+                        fields = mapOf(FoodReportStateBuilder.KCAL to "5", FoodReportStateBuilder.CARBS to "2"),
+                    ),
+                    policy,
+                ),
+                onAction = {},
+                onClose = {},
+            )
+        },
         LeakSurface(id = "logger-photo", label = "Photo estimate", showsCaloriesInFull = true) { policy ->
             PhotoEstimateSheetContent(state = PhotoFixtures.reviewState(policy, editing = true), onAction = {})
         },
