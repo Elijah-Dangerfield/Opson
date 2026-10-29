@@ -40,8 +40,8 @@
     <!-- RIVM's NEVO table; the full citation is logger_source_nevo. Its version moves with CITED_VERSION in scripts/import_nevo_foods.py. -->
     <string name="search_badge_nevo">NEVO 2025/9.0, RIVM</string>
     <string name="search_badge_yours">Your food</string>
-    <!-- A food someone added from its pack and a reviewer approved. -->
-    <string name="search_badge_opson">Opson</string>
+    <!-- A food someone added from its pack and a reviewer approved: OPDB, Opson's own food database. -->
+    <string name="search_badge_opson">OPDB</string>
     <string name="search_badge_verified_cd">Verified</string>
     <string name="search_off_credit">Contains data from Open Food Facts, available under the Open Database License.</string>
 </resources>
