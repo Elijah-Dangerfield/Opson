@@ -100,7 +100,8 @@ data class ViewfinderRequest(val scanArea: ScanArea, val torchOn: Boolean, val f
  * the scan has come to. [viewfinder] is the live camera in the app and a plain
  * placeholder in previews and tests, so nothing here touches a device. The
  * only state held here is where the preview was last tapped. Shows no
- * nutrition number in any stage.
+ * nutrition number in any stage but "Pick a match", whose rows follow the
+ * person's mode and take the camera window's place.
  */
 @Composable
 fun BarcodeScanScreen(
@@ -124,7 +125,8 @@ fun BarcodeScanScreen(
             verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
         ) {
             SheetHeader(title = stringResource(Res.string.barcode_title), onClose = { onAction(BarcodeScanAction.CloseTapped) })
-            CameraWindow(state, onAction, viewfinder)
+            // The list is the answer, so it sits right under the title where the camera was.
+            if (state.stage !is ScanStage.Matches) CameraWindow(state, onAction, viewfinder)
             StageContent(state.stage, onAction)
         }
     }
@@ -278,6 +280,7 @@ private fun StageContent(stage: ScanStage, onAction: (BarcodeScanAction) -> Unit
         )
         is ScanStage.LookingUp -> if (stage.slow) Caption(stringResource(Res.string.barcode_looking_up))
         is ScanStage.Miss -> Miss(stage, onAction)
+        is ScanStage.Matches -> MatchList(stage, onAction)
         ScanStage.Unavailable -> Options(
             body = stringResource(Res.string.barcode_unavailable),
             primary = stringResource(Res.string.barcode_scan_again),

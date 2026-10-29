@@ -5,6 +5,9 @@ import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.foods.BarcodeMatch
+import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.scanner.BarcodeFormat
 import com.opson.libraries.scanner.CameraPermission
 import com.opson.libraries.scanner.ScannedCode
@@ -31,6 +34,7 @@ class BarcodeScanViewModelTest : CoroutineTest() {
     private val telemetry = RecordingBarcodeTelemetry()
 
     private val pairing = RecordingPairing()
+    private val policySource = FakePolicySource()
 
     private fun vm(overSearch: Boolean = false, addFood: Boolean = false) = BarcodeScanViewModel(
         route = BarcodeScanRoute(dayIso = LoggerFixtures.today.toString(), slot = MealSlot.Dinner, overSearch = overSearch),
@@ -42,6 +46,7 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         telemetry = telemetry,
         pairing = pairing,
         submitFood = submitFoodFlag(addFood),
+        policySource = policySource,
     )
 
     private fun TestScope.events(vm: BarcodeScanViewModel): List<BarcodeScanEvent> {
@@ -358,7 +363,7 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         val vm = missedVm()
         val events = events(vm)
 
-        vm.takeAction(BarcodeScanAction.FoodFound(LoggerFixtures.MISSED_CODE, LoggerFixtures.scannedYogurt))
+        vm.takeAction(BarcodeScanAction.FoodFound(LoggerFixtures.MISSED_CODE, listOf(BarcodeMatch(LoggerFixtures.scannedYogurt))))
         settle()
 
         assertTrue(events.isEmpty())
@@ -626,6 +631,80 @@ class BarcodeScanViewModelTest : CoroutineTest() {
             "a typed code was not caught by the camera, so no buzz",
         )
         assertEquals("hit usda_branded slow=false typed", telemetry.events.last())
+    }
+
+    /** A code in several databases whose numbers differ: listed, the server's answer first, nothing opened yet. */
+    @Test
+    fun matchesThatDifferAreListedAndThePickedOneOpens() = runUnitTest {
+        catalog.matchesResult = Catching.success(LoggerFixtures.barMatches)
+        val vm = vm()
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(ean13(LoggerFixtures.BAR_CODE))
+        settle()
+
+        val matches = assertIs<ScanStage.Matches>(vm.state.stage)
+        assertEquals(listOf(LoggerFixtures.opdbBar.id, LoggerFixtures.brandedBar.id), matches.rows.map { it.foodId })
+        assertEquals(listOf<BarcodeScanEvent>(BarcodeScanEvent.Scanned), events, "nothing opens until one is picked")
+        assertEquals(listOf("scan_started asked=false", "hit user_submitted slow=false", "matches_shown count=2"), telemetry.events)
+
+        vm.takeAction(BarcodeScanAction.MatchTapped(LoggerFixtures.brandedBar.id))
+        vm.takeAction(BarcodeScanAction.MatchTapped(LoggerFixtures.offBar.id))
+        settle()
+
+        assertEquals(BarcodeScanEvent.OpenFoodDetail(LoggerFixtures.brandedBar.id, LoggerFixtures.today, MealSlot.Dinner), events.last())
+        assertEquals(2, events.size, "a food folded into another row is not a row to open")
+        assertEquals("match_picked 1 of 2", telemetry.events.last())
+    }
+
+    @Test
+    fun matchesThatAgreeOpenTheAnswerAsASingleHitDoes() = runUnitTest {
+        catalog.matchesResult = Catching.success(listOf(BarcodeMatch(LoggerFixtures.opdbBar), BarcodeMatch(LoggerFixtures.offBar)))
+        val vm = vm()
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(ean13(LoggerFixtures.BAR_CODE))
+        settle()
+
+        assertEquals(BarcodeScanEvent.OpenFoodDetail(LoggerFixtures.opdbBar.id, LoggerFixtures.today, MealSlot.Dinner), events.last())
+        assertEquals("hit user_submitted slow=false", telemetry.events.last())
+    }
+
+    @Test
+    fun aTypedCodeListsItsMatchesToo() = runUnitTest {
+        catalog.matchesResult = Catching.success(LoggerFixtures.barMatches)
+        permissions.permission = CameraPermission.Denied(canAskAgain = false)
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.TypeCodeTapped)
+        vm.takeAction(BarcodeScanAction.CodeTyped(LoggerFixtures.BAR_CODE))
+
+        vm.takeAction(BarcodeScanAction.LookUpTypedTapped)
+        settle()
+
+        assertIs<ScanStage.Matches>(vm.state.stage)
+        assertEquals("matches_shown count=2 typed", telemetry.events.last())
+
+        vm.takeAction(BarcodeScanAction.ScanAgainTapped)
+        settle()
+        assertIs<ScanStage.NoCamera>(vm.state.stage, "Scan again leaves the list")
+    }
+
+    @Test
+    fun theListFollowsTheModeAsItChanges() = runUnitTest {
+        catalog.matchesResult = Catching.success(LoggerFixtures.barMatches)
+        val vm = vm()
+        settle()
+        vm.takeAction(ean13(LoggerFixtures.BAR_CODE))
+        settle()
+        assertTrue(assertIs<ScanStage.Matches>(vm.state.stage).rows.all { it.calories != Display.Hidden })
+
+        policySource.policy.value = policy(PresetId.NoNumbers)
+        settle()
+
+        assertTrue(assertIs<ScanStage.Matches>(vm.state.stage).rows.all { it.calories == Display.Hidden })
     }
 
     @Test

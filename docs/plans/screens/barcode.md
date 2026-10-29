@@ -126,6 +126,30 @@ navigation.
   `PickSource.Name`, then back to the logger, which shows it in the footer.
 - A hit picks with `PickSource.Barcode`, logged with `LogMethod.Barcode`.
 
+## Pick a match (2026-10-29)
+A code can be in more than one database: USDA Branded, the Open Food Facts
+export, OPDB. The scanner asks for every match
+(`FoodCatalog.barcodeMatches`, `GET /v1/foods/barcode/{code}?matches=all`)
+and gets the server's single answer first, then the other catalog rows. A
+server without the list ignores the param, and offline the cached food
+answers alone, so both read as one match. Typed codes go the same way.
+
+- One match, or several the same within rounding (energy within 1 kcal or 2%
+  per 100 g, protein, carbs and fat within 0.5 g or 2%): the detail opens as
+  before (`BarcodeMatches.groups`).
+- Several that differ: "Pick a match" in place of the camera window. One row
+  per group, the suggested one first, outlined and labelled. Each row has the
+  name, brand, one serving, its energy and macros through the person's mode,
+  the databases it stands for ("OPDB · Open Food Facts"), and "Verified",
+  "Corrected" (a reviewer's fix) or "Numbers look off" (the server's energy
+  check doubts the source). The last two only where calories show. Search
+  instead and Scan again under the list, and Open Food Facts' credit when a
+  row is theirs.
+- A tap opens that food's detail, replacing the scanner as a single hit
+  does. Only the suggested food is kept on the device.
+- Live Open Food Facts and Nutritionix are still only asked on a catalog
+  miss, so a list only ever holds catalog rows.
+
 ## Miss
 Calm, and offers in this order:
 1. A name field ("What is it?") and **Save the name only** (primary, enabled

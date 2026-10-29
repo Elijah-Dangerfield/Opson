@@ -15,6 +15,7 @@ import com.opson.libraries.diary.SearchDatabase
 import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.foods.AmountUnit
+import com.opson.libraries.foods.BarcodeMatch
 import com.opson.libraries.foods.Confidence
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
@@ -27,12 +28,15 @@ import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
 import com.opson.libraries.foods.SearchSource
+import com.opson.libraries.foods.EnergyCheck
 import com.opson.libraries.foods.draftFor
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.foods.toLogDraft
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.nutrition.ui.previewVisibilityPolicy
 import com.opson.libraries.scanner.CameraPermission
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -669,7 +673,8 @@ object LoggerFixtures {
         return FoodDetailStateBuilder.build(food, choice, detailInputs(policy), FoodRef.Catalog(offRice.id), PickSource.Search)
     }
 
-    fun scanState(model: ScanModel): BarcodeScanState = BarcodeScanStateBuilder.build(MealSlot.Dinner, model)
+    fun scanState(model: ScanModel, policy: VisibilityPolicy = previewVisibilityPolicy(PresetId.Full)): BarcodeScanState =
+        BarcodeScanStateBuilder.build(MealSlot.Dinner, model, policy, today)
 
     /** Almost every phone's back camera has a torch, so the button shows. */
     val scanning: ScanModel = ScanModel(permission = CameraPermission.Granted, hasTorch = true)
@@ -687,6 +692,42 @@ object LoggerFixtures {
     val cameraUnavailable: ScanModel = scanning.copy(cameraUnavailable = true)
     val typing: ScanModel = cameraUnavailable.copy(typed = "40063813")
     val typingMisread: ScanModel = cameraUnavailable.copy(typed = "4006381333932", typedMisread = true)
+
+    // ── A code in several databases ("Pick a match") ─────────────────────────
+
+    /** The code on a protein bar's wrapper. */
+    const val BAR_CODE = "0850000123458"
+
+    /** Opson's own copy, read from the wrapper and approved: the server's answer. */
+    val opdbBar: Food = food("bar-opdb", "Peanut butter protein bar", "1 bar (55 g)", 55.0, 200.0, 20.0, 18.0, 8.0, "Trailhead")
+        .copy(source = FoodSource.UserSubmitted, barcode = "0$BAR_CODE", tier = FoodTier.Community, verified = true)
+
+    /** Open Food Facts: the same label, so it folds into OPDB's row. */
+    val offBar: Food = food("bar-off", "Protein bar peanut butter", "1 bar (55 g)", 55.0, 200.0, 20.0, 18.0, 8.0, "Trailhead")
+        .copy(source = FoodSource.OpenFoodFacts, barcode = BAR_CODE, tier = FoodTier.Community)
+
+    /** USDA Branded: an older recipe, which a reviewer has since corrected. */
+    val brandedBar: Food = food("bar-branded", "Protein bar, peanut butter", "1 bar (55 g)", 55.0, 210.0, 19.0, 22.0, 8.0, "Trailhead")
+        .copy(source = FoodSource.UsdaBranded, barcode = "00$BAR_CODE", tier = FoodTier.Label, verified = true)
+
+    /** Another Open Food Facts copy whose label said 0, served as the energy check's estimate. */
+    val zeroBar: Food = food("bar-off-zero", "Protein bar", "1 bar (55 g)", 55.0, 5.0, 20.0, 18.0, 8.0)
+        .copy(source = FoodSource.OpenFoodFacts, barcode = BAR_CODE, tier = FoodTier.Community)
+
+    /** As the server lists them: its answer first. */
+    val barMatches: List<BarcodeMatch> = listOf(
+        BarcodeMatch(opdbBar),
+        BarcodeMatch(brandedBar, corrected = true),
+        BarcodeMatch(offBar),
+    )
+
+    /** "Pick a match", two rows: OPDB with Open Food Facts folded in, then Branded, corrected. */
+    val matched: ScanModel = scanning.copy(lookup = Lookup.Matched(BAR_CODE, BarcodeMatches.groups(barMatches)))
+
+    /** Three rows: the third's numbers look off. */
+    val matchedThree: ScanModel = scanning.copy(
+        lookup = Lookup.Matched(BAR_CODE, BarcodeMatches.groups(barMatches + BarcodeMatch(zeroBar, energyCheck = setOf(EnergyCheck.ZeroWithMacros)))),
+    )
 
     // ── Search options (release.searchOptions) ──────────────────────────────
 

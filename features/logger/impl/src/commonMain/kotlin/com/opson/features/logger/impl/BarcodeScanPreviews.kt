@@ -3,19 +3,21 @@ package com.opson.features.logger.impl
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.ui.previewVisibilityPolicy
 import com.opson.libraries.ui.PreviewContent
 import com.opson.system.AppTheme
 import com.opson.system.background
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 // The scanner in each stage, from the real builder over LoggerFixtures. The camera is a hero-coloured
-// box: previews and screenshots never touch a device. No stage shows a number, so there is no Blind
-// variant here; the food detail a hit opens has its own in FoodDetailPreview.kt.
+// box: previews and screenshots never touch a device. Only "Pick a match" shows numbers, so only it
+// has mode variants; the food detail a hit opens has its own in FoodDetailPreview.kt.
 
 @Composable
-private fun Scanner(model: ScanModel, dark: Boolean = false) = PreviewContent(darkTheme = dark) {
+private fun Scanner(model: ScanModel, dark: Boolean = false, preset: PresetId = PresetId.Full) = PreviewContent(darkTheme = dark) {
     BarcodeScanScreen(
-        state = LoggerFixtures.scanState(model),
+        state = LoggerFixtures.scanState(model, previewVisibilityPolicy(preset)),
         onAction = {},
         viewfinder = { _, modifier -> Box(modifier = modifier.background(AppTheme.colors.hero)) },
     )
@@ -95,3 +97,27 @@ private fun LoggerScanTypingPreview() = Scanner(LoggerFixtures.typing)
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun LoggerScanTypingMisreadPreview() = Scanner(LoggerFixtures.typingMisread)
+
+/** The code is in OPDB, Open Food Facts and USDA Branded: OPDB's row stands for Open Food Facts too, and leads. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanMatchesPreview() = Scanner(LoggerFixtures.matched)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanMatchesDarkPreview() = Scanner(LoggerFixtures.matched, dark = true)
+
+/** Three that differ, one of them with numbers the energy check doubts. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanMatchesThreePreview() = Scanner(LoggerFixtures.matchedThree)
+
+/** Macros only: no calories, so nothing said about them either. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanMatchesMacrosOnlyPreview() = Scanner(LoggerFixtures.matchedThree, preset = PresetId.MacrosOnly)
+
+/** No numbers: names, servings and databases only. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanMatchesNoNumbersPreview() = Scanner(LoggerFixtures.matchedThree, preset = PresetId.NoNumbers)

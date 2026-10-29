@@ -1,7 +1,9 @@
 package com.opson.features.logger.impl
 
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.foods.Food
+import com.opson.libraries.foods.BarcodeMatch
+import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.scanner.CameraPermission
 import com.opson.libraries.scanner.ScannedCode
@@ -18,8 +20,10 @@ import kotlinx.serialization.Serializable
 data class BarcodeScanRoute(val dayIso: String, val slot: MealSlot, val overSearch: Boolean = false) : Route()
 
 /**
- * What the scanner draws. No nutrition number is ever in it: a found food
- * leaves for the food detail before anything about it is shown.
+ * What the scanner draws. A found food leaves for the food detail before
+ * anything about it is shown, unless the code matched several foods that
+ * differ: then "Pick a match" lists them, with their numbers as the person's
+ * mode shows them ([ScanStage.Matches]). No other stage names a number.
  */
 data class BarcodeScanState(
     val slot: MealSlot = MealSlot.Dinner,
@@ -62,6 +66,13 @@ sealed interface ScanStage {
     /** Offline with nothing cached, or no source could answer. Not a miss. */
     data object Unavailable : ScanStage
 
+    /**
+     * The code is in more than one database and they differ: "Pick a match". [rows] are in the
+     * server's order, the suggested match first; foods that are the same within rounding are one
+     * row. [openFoodFacts] when a row is Open Food Facts', so its licence's credit goes under them.
+     */
+    data class Matches(val code: String, val rows: List<MatchRowUi>, val openFoodFacts: Boolean) : ScanStage
+
     data class NoCamera(val canAskAgain: Boolean) : ScanStage
 }
 
@@ -73,7 +84,14 @@ sealed interface BarcodeScanAction {
     data object Resumed : BarcodeScanAction
     data class CodeRead(val code: ScannedCode) : BarcodeScanAction
     data class LookupSlow(val code: String) : BarcodeScanAction
-    data class FoodFound(val code: String, val food: Food) : BarcodeScanAction
+    /** Everything the code matched, the server's answer first; never empty. */
+    data class FoodFound(val code: String, val matches: List<BarcodeMatch>) : BarcodeScanAction
+
+    /** A row of "Pick a match". */
+    data class MatchTapped(val foodId: String) : BarcodeScanAction
+
+    /** The person's mode changed, or was read for the first time. */
+    data class PolicyArrived(val policy: VisibilityPolicy) : BarcodeScanAction
     data class FoodNotFound(val code: String) : BarcodeScanAction
     data class LookupFailed(val code: String) : BarcodeScanAction
     data class MissNameTyped(val text: String) : BarcodeScanAction
@@ -107,7 +125,7 @@ sealed interface BarcodeScanEvent {
     /** The camera's read was taken and is being looked up: say so with a haptic, once per scan. */
     data object Scanned : BarcodeScanEvent
 
-    /** A hit: this screen gives way to the food detail for [foodId]. */
+    /** A hit, or a match picked: this screen gives way to the food detail for [foodId]. */
     data class OpenFoodDetail(val foodId: String, val day: LocalDate, val slot: MealSlot) : BarcodeScanEvent
 
     /** Search, in this screen's place: "Search instead" when the + sheet opened the scanner. */
@@ -128,6 +146,9 @@ sealed interface Lookup {
     data object Idle : Lookup
     data class Running(val code: String, val slow: Boolean = false, val typed: Boolean = false) : Lookup
     data class Missed(val code: String) : Lookup
+
+    /** Found in more than one database, with numbers that differ. [groups] as [BarcodeMatches.groups] folds them. */
+    data class Matched(val code: String, val groups: List<List<BarcodeMatch>>) : Lookup
     data class Failed(val code: String) : Lookup
 }
 
@@ -157,11 +178,17 @@ object BarcodeScanStateBuilder {
      * A lookup in progress or answered wins, since a typed code can be looked
      * up with no camera at all; then typing; then the camera's own state.
      */
-    fun build(slot: MealSlot, model: ScanModel): BarcodeScanState {
+    fun build(slot: MealSlot, model: ScanModel, policy: VisibilityPolicy, day: LocalDate? = null): BarcodeScanState {
         val cameraLive = model.permission == CameraPermission.Granted && !model.cameraUnavailable
         val typed = model.typed
         val stage = when (val lookup = model.lookup) {
             is Lookup.Running -> ScanStage.LookingUp(slow = lookup.slow, camera = cameraLive)
+            is Lookup.Matched -> {
+                // Bare, as search's rows, for the day the food would go on. Whether that day is closed is not
+                // read here, so a delayed number opens no sooner than it does on search.
+                val rows = BarcodeMatches.rows(lookup.groups, policy, FormatContext(bare = true, day = day))
+                ScanStage.Matches(lookup.code, rows, openFoodFacts = rows.any { SourceBadge.OpenFoodFacts in it.sources })
+            }
             is Lookup.Missed -> ScanStage.Miss(
                 code = lookup.code,
                 name = model.name,

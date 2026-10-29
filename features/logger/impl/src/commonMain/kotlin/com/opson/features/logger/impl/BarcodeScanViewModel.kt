@@ -8,6 +8,8 @@ import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.BarcodeMissReporter
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.Gtin
+import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.scanner.BarcodeFormat
 import com.opson.libraries.scanner.CameraPermission
 import com.opson.libraries.scanner.CameraPermissions
@@ -23,7 +25,10 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The scanner: camera permission, one lookup per read, and what a miss
- * offers. A hit hands the food to the food detail; a miss is reported once
+ * offers. A hit hands the food to the food detail. A code in several
+ * databases whose numbers differ lists them instead ("Pick a match"), the
+ * server's answer first, and the one picked goes to the food detail the same
+ * way. A typed code is looked up the same way. A miss is reported once
  * so the catalog's gaps show up on a dashboard, then offers "Add this food"
  * (photos of the pack, with `release.submitFood`) and "Save the name only".
  * The miss is also held for [MissedBarcodePairing], in case search finds it.
@@ -43,6 +48,7 @@ class BarcodeScanViewModel(
     private val telemetry: BarcodeTelemetry,
     private val pairing: MissedBarcodePairing,
     submitFood: SubmitFoodEnabled,
+    policySource: VisibilityPolicySource,
 ) : SEAViewModel<BarcodeScanState, BarcodeScanEvent, BarcodeScanAction>(
     initialStateArg = BarcodeScanState(slot = route.slot),
 ) {
@@ -50,6 +56,7 @@ class BarcodeScanViewModel(
     private val slot: MealSlot = route.slot
     private val overSearch: Boolean = route.overSearch
     private var model = ScanModel(canAddFood = submitFood())
+    private var policy: VisibilityPolicy = policySource.policy.value
     private var slowJob: Job? = null
 
     /**
@@ -60,6 +67,7 @@ class BarcodeScanViewModel(
 
     init {
         viewModelScope.launch { takeAction(BarcodeScanAction.PermissionChecked(permissions.current())) }
+        viewModelScope.launch { policySource.policy.collect { takeAction(BarcodeScanAction.PolicyArrived(it)) } }
     }
 
     override suspend fun handleAction(action: BarcodeScanAction) {
@@ -79,12 +87,16 @@ class BarcodeScanViewModel(
                 val lookup = model.lookup
                 if (lookup is Lookup.Running && lookup.code == action.code) action.rebuild { copy(lookup = lookup.copy(slow = true)) }
             }
-            is BarcodeScanAction.FoodFound -> {
-                val lookup = model.lookup
-                if (lookup !is Lookup.Running || lookup.code != action.code) return
-                slowJob?.cancel()
-                telemetry.hit(action.food.source, slow = lookup.slow, typed = lookup.typed)
-                sendEvent(BarcodeScanEvent.OpenFoodDetail(action.food.id, day, slot))
+            is BarcodeScanAction.FoodFound -> foodFound(action)
+            is BarcodeScanAction.MatchTapped -> (model.lookup as? Lookup.Matched)?.let { matched ->
+                val position = matched.groups.indexOfFirst { group -> group.first().food.id == action.foodId }
+                if (position < 0) return
+                telemetry.matchPicked(position = position, of = matched.groups.size)
+                sendEvent(BarcodeScanEvent.OpenFoodDetail(action.foodId, day, slot))
+            }
+            is BarcodeScanAction.PolicyArrived -> {
+                policy = action.policy
+                action.rebuild { this }
             }
             is BarcodeScanAction.FoodNotFound -> {
                 val lookup = model.lookup
@@ -129,6 +141,25 @@ class BarcodeScanViewModel(
             }
             BarcodeScanAction.LookUpTypedTapped -> lookUpTyped(action)
             BarcodeScanAction.TypingCancelled -> action.rebuild { copy(typed = null, typedMisread = false) }
+        }
+    }
+
+    /**
+     * One food, or several that come to the same numbers, opens at once, as a scan always did.
+     * Several that differ are listed for the person to pick from, the server's answer first.
+     */
+    private suspend fun foodFound(action: BarcodeScanAction.FoodFound) {
+        val lookup = model.lookup
+        if (lookup !is Lookup.Running || lookup.code != action.code) return
+        slowJob?.cancel()
+        val groups = BarcodeMatches.groups(action.matches)
+        val answer = groups.firstOrNull()?.first()?.food ?: return
+        telemetry.hit(answer.source, slow = lookup.slow, typed = lookup.typed)
+        if (groups.size == 1) {
+            sendEvent(BarcodeScanEvent.OpenFoodDetail(answer.id, day, slot))
+        } else {
+            action.rebuild { copy(lookup = Lookup.Matched(action.code, groups)) }
+            telemetry.matchesShown(count = groups.size, typed = lookup.typed)
         }
     }
 
@@ -183,11 +214,11 @@ class BarcodeScanViewModel(
         }
         viewModelScope.launch {
             // The code as read: the server matches every equivalent form, and an outside source gets it as printed.
-            val result = foodCatalog.barcode(code)
-            val food = result.getOrNull()
+            val result = foodCatalog.barcodeMatches(code)
+            val matches = result.getOrNull().orEmpty()
             takeAction(
                 when {
-                    food != null -> BarcodeScanAction.FoodFound(code, food)
+                    matches.isNotEmpty() -> BarcodeScanAction.FoodFound(code, matches)
                     result.isSuccess -> BarcodeScanAction.FoodNotFound(code)
                     else -> BarcodeScanAction.LookupFailed(code)
                 },
@@ -214,7 +245,8 @@ class BarcodeScanViewModel(
     private suspend fun BarcodeScanAction.rebuild(change: ScanModel.() -> ScanModel) {
         model = model.change()
         val current = model
-        updateState { BarcodeScanStateBuilder.build(slot, current) }
+        val policy = policy
+        updateState { BarcodeScanStateBuilder.build(slot, current, policy, day) }
     }
 
     companion object {

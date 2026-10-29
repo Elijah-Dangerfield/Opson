@@ -34,6 +34,7 @@ import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.entitlements.Entitlement
 import com.opson.libraries.entitlements.EntitlementRepository
+import com.opson.libraries.foods.BarcodeMatch
 import com.opson.libraries.foods.BarcodeMissReporter
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
@@ -337,6 +338,16 @@ class FakeFoodCatalog(
         return barcodeResult
     }
 
+    /** What [barcodeMatches] answers when set; otherwise [barcodeResult] alone, as a server without the list. */
+    var matchesResult: Catching<List<BarcodeMatch>>? = null
+
+    override suspend fun barcodeMatches(code: String): Catching<List<BarcodeMatch>> {
+        val matches = matchesResult ?: return super.barcodeMatches(code)
+        barcodes += code
+        delay(barcodeDelay)
+        return matches
+    }
+
     override suspend fun describe(text: String): Catching<List<ParsedItem>> {
         described += text
         return describeResult
@@ -486,6 +497,14 @@ class RecordingBarcodeTelemetry : BarcodeTelemetry {
 
     override fun miss(typed: Boolean) {
         events += "miss" + if (typed) " typed" else ""
+    }
+
+    override fun matchesShown(count: Int, typed: Boolean) {
+        events += "matches_shown count=$count" + if (typed) " typed" else ""
+    }
+
+    override fun matchPicked(position: Int, of: Int) {
+        events += "match_picked $position of $of"
     }
 
     override fun cameraUnavailable() {
