@@ -152,8 +152,20 @@ data class HealthActivity(val movementKcal: Int?, val workoutKcal: Int?)
  * calories, but the [everyday] baseline stays: an ordinary day is still an ordinary day. Dropping
  * it too would aim a deficit at resting energy alone, several hundred calories lower, which is
  * the unsafe direction (the owner's call, 2026-10-27).
+ *
+ * [foodKcal], the thermic effect of food, is not activity and adds whichever side the day takes.
+ * Null leaves it out ("Count digesting food" off, the default).
  */
 fun burnedFor(
+    resting: RestingEnergy,
+    health: HealthActivity?,
+    everyday: EverydayActivity?,
+    exercise: ExerciseTotals?,
+    activityCounted: Boolean,
+    foodKcal: Int? = null,
+): Burned = activitySideFor(resting, health, everyday, exercise, activityCounted).copy(foodKcal = foodKcal)
+
+private fun activitySideFor(
     resting: RestingEnergy,
     health: HealthActivity?,
     everyday: EverydayActivity?,

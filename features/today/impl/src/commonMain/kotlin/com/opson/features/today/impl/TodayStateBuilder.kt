@@ -27,6 +27,7 @@ import com.opson.libraries.nutrition.macroEnergyShares
 import com.opson.libraries.nutrition.macroLine
 import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.nutrition.share
+import com.opson.libraries.nutrition.thermicEffectKcal
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -135,7 +136,6 @@ object TodayStateBuilder {
             summaryTools = summaryOn,
             // Settings held these before they moved to the phone; a phone that never set them keeps that choice.
             summaryPage = (inputs.cardView.page ?: settings.todaySummaryPage).coerceIn(0, pageCount - 1),
-            collapsed = compact != null && (inputs.cardView.collapsed ?: settings.todaySummaryCollapsed),
             compact = compact,
             weight = if (summaryOn && !future && shownOnToday(inputs) { it.todayWeight }) weightRow(inputs, policy, context) else null,
             selectTools = inputs.selectTools,
@@ -265,7 +265,7 @@ object TodayStateBuilder {
         val value: StatValue = when (stat) {
             SummaryStat.Expended -> StatValue.Amount(Metric.EnergyOut, expended(inputs, policy, context))
             SummaryStat.DeficitSoFar -> {
-                val out = inputs.expended?.totalKcal?.takeIf { day.date == inputs.today } ?: return null
+                val out = expendedKcal(inputs)?.takeIf { day.date == inputs.today } ?: return null
                 StatValue.Amount(Metric.EnergyOut, policy.resolve(Metric.EnergyOut, (out - eaten).coerceAtLeast(0.0), Surface.Today, energy))
             }
             SummaryStat.ToRange -> {
@@ -342,7 +342,7 @@ object TodayStateBuilder {
             is TodaySummary.Locked -> CompactLine(listOf(CompactPart.Logged(day.doneMealCount)))
             else -> meals
         }
-        return CompactSummary(pages = listOf(single), collapsed = single)
+        return CompactSummary(pages = listOf(single))
     }
 
     private fun energyCompact(summary: TodaySummary.Energy, inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext): CompactSummary {
@@ -366,10 +366,7 @@ object TodayStateBuilder {
                 else -> energyLine
             }
         }
-        return CompactSummary(
-            pages = pages,
-            collapsed = CompactLine(listOfNotNull(lead, macrosLine?.parts?.first()), bar),
-        )
+        return CompactSummary(pages = pages)
     }
 
     /** The day's latest weigh-in through the weight level, with the two weeks' slope for the soft word. */
@@ -416,8 +413,18 @@ object TodayStateBuilder {
         if (inputs.day.date != inputs.today) {
             Display.Hidden
         } else {
-            policy.resolve(Metric.EnergyOut, inputs.expended?.totalKcal, Surface.Today, context.copy(of = null, bare = false))
+            policy.resolve(Metric.EnergyOut, expendedKcal(inputs), Surface.Today, context.copy(of = null, bare = false))
         }
+
+    /**
+     * The health app's energy so far, plus digesting the day's food with "Count digesting food" on:
+     * neither store counts it, so it is added here as it is to Burned. Null without a reading.
+     */
+    private fun expendedKcal(inputs: TodayInputs): Double? {
+        val read = inputs.expended?.totalKcal ?: return null
+        if (!inputs.settings.thermicEffectInBurned) return read
+        return read + thermicEffectKcal(inputs.day.totals().kcal.known)
+    }
 
     private fun softCard(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext, energy: Display): TodaySummary.Soft =
         TodaySummary.Soft(

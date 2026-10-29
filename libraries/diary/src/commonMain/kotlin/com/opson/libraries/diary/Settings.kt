@@ -171,6 +171,11 @@ data class Settings(
     val restingOwnKcal: Int? = null,
     /** "Add activity to Burned". Off, Burned is resting energy only. */
     val activityInBurned: Boolean = true,
+    /**
+     * "Count digesting food": the thermic effect of food, about a tenth of what is eaten
+     * (`THERMIC_EFFECT_OF_FOOD_SHARE`), added to Burned. Off by default, as Cronometer has it.
+     */
+    val thermicEffectInBurned: Boolean = false,
     val birthYear: Int? = null,
     val heightCm: Double? = null,
     /**

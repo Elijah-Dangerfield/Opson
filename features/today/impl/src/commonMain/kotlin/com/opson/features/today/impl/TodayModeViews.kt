@@ -39,7 +39,6 @@ import com.opson.libraries.ui.components.StripedBar
 import com.opson.libraries.ui.components.PillAction
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
-import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.system.AppTheme
@@ -62,7 +61,6 @@ import opson.libraries.resources.generated.resources.modes_timeline_usual
 import opson.libraries.resources.generated.resources.modes_timer_ended
 import opson.libraries.resources.generated.resources.modes_timer_switch
 import opson.libraries.resources.generated.resources.modes_timer_waiting
-import opson.libraries.resources.generated.resources.today_collapse_cd
 import opson.libraries.resources.generated.resources.today_compact_meals
 import opson.libraries.resources.generated.resources.today_counts_meals_one
 import opson.libraries.resources.generated.resources.today_counts_meals_other
@@ -83,7 +81,7 @@ import org.jetbrains.compose.resources.stringResource
  * bar in its own colour, then energy as a word over a neutral bar. Words and bars, no amounts.
  */
 @Composable
-internal fun SoftSummaryCard(summary: TodaySummary.Soft, state: TodayState, onAction: (TodayAction) -> Unit) {
+internal fun SoftSummaryCard(summary: TodaySummary.Soft, onAction: (TodayAction) -> Unit) {
     SummaryCard {
         Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -110,8 +108,6 @@ internal fun SoftSummaryCard(summary: TodaySummary.Soft, state: TodayState, onAc
         SummaryFooter(
             nutrientsLabel = stringResource(Res.string.today_summary_nutrients),
             onNutrients = { onAction(TodayAction.NutrientsTapped) },
-            collapseIcon = if (state.summaryTools) AppIcons.ExpandLess.described(stringResource(Res.string.today_collapse_cd)) else null,
-            onCollapse = { onAction(TodayAction.CollapseTapped) },
             modifier = Modifier.padding(top = AppTheme.spacing.row),
         )
     }

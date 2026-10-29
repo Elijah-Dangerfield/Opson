@@ -39,6 +39,8 @@ data class RestingEnergyState(
     /** The connected store for "Steps and workouts", null when none. */
     val activitySource: HealthSource? = null,
     val activityInBurned: Boolean = true,
+    /** "Count digesting food": about a tenth of what is eaten added to Burned. */
+    val thermicEffectInBurned: Boolean = false,
     /** Everyday activity's pick, the same setting Targets and onboarding edit. */
     val everyday: EverydayActivity = EverydayActivity.Default,
 )
@@ -95,6 +97,7 @@ object RestingEnergyStateBuilder {
             },
             activitySource = activitySource,
             activityInBurned = settings.activityInBurned,
+            thermicEffectInBurned = settings.thermicEffectInBurned,
             everyday = settings.everydayActivity,
         )
     }

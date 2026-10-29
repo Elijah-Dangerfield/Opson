@@ -102,6 +102,15 @@ class TodayStateBuilderTest {
         assertTrue(TodayRow.Loading !in todayRows(build(PresetId.Full)))
     }
 
+    /** Activity sits under the meals: food first, then what was burned. */
+    @Test
+    fun theActivityCard_isTheLastRow_belowTheMeals() {
+        val rows = todayRows(build(PresetId.Full), activity = true)
+        assertEquals(TodayRow.Activity, rows.last())
+        assertTrue(rows.dropLast(1).last() is TodayRow.Meal)
+        assertTrue(TodayRow.Activity !in todayRows(build(PresetId.Full)))
+    }
+
     /** "Different by day": a training day's range is the one Today draws, not the base. */
     @Test
     fun aTrainingDayShowsItsOwnRange() {

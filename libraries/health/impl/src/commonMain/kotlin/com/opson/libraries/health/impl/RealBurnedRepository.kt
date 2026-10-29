@@ -1,5 +1,6 @@
 package com.opson.libraries.health.impl
 
+import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.Settings
@@ -17,6 +18,7 @@ import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.HealthActivity
 import com.opson.libraries.nutrition.RestingEnergies
 import com.opson.libraries.nutrition.burnedFor
+import com.opson.libraries.nutrition.thermicEffectKcal
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -38,8 +40,9 @@ import kotlin.math.roundToInt
  * connected, the health app. Everyday activity, and with `release.exercise` on the day's logged
  * exercise, are taken or left by [burnedFor]'s rule so the health app's activity and the manual
  * side never add up: with no health app reading activity, everyday activity is the day's
- * movement whatever `release.exercise` says. Holds nothing: every value is read while a flow is
- * collected.
+ * movement whatever `release.exercise` says. With "Count digesting food" on, a tenth of the
+ * day's eaten joins it (`thermicEffectKcal`), and only then is the diary read. Holds nothing:
+ * every value is read while a flow is collected.
  *
  * The health app's resting energy is a whole day's, so it is the most recent full day the store
  * has, within the last week, never today's so far.
@@ -55,12 +58,14 @@ class RealBurnedRepository(
     private val calendar: LocalCalendar,
     private val exercise: ExerciseRepository,
     private val exerciseRelease: ExerciseRelease,
+    private val diary: DiaryRepository,
 ) : BurnedRepository {
 
     override fun burned(day: LocalDate): Flow<Burned?> {
         val manual = exerciseRelease.isOn()
         val logged = if (manual) exercise.observeDay(day).map { it.totals() } else flowOf(null)
-        return combine(settingsRepository.settings, latestWeightKg(), healthResting(), activity(day), logged) { settings, kg, healthKcal, activity, totals ->
+        val manualSide = combine(logged, digesting(day)) { totals, food -> totals to food }
+        return combine(settingsRepository.settings, latestWeightKg(), healthResting(), activity(day), manualSide) { settings, kg, healthKcal, activity, (totals, food) ->
             val resting = resting(settings, kg, healthKcal) ?: return@combine null
             burnedFor(
                 resting = resting,
@@ -68,6 +73,7 @@ class RealBurnedRepository(
                 everyday = settings.everydayActivity,
                 exercise = totals,
                 activityCounted = settings.activityInBurned,
+                foodKcal = food,
             )
         }.distinctUntilChanged()
     }
@@ -90,6 +96,12 @@ class RealBurnedRepository(
         healthKcal = healthKcal,
         ownKcal = settings.restingOwnKcal,
     )
+
+    /** The thermic effect of [day]'s food while "Count digesting food" is on; null, and the diary unread, while it is off. */
+    private fun digesting(day: LocalDate): Flow<Int?> =
+        settingsRepository.settings.map { it.thermicEffectInBurned }.distinctUntilChanged().flatMapLatest { on ->
+            if (on) diary.observeDay(day).map { thermicEffectKcal(it.totals().kcal.known) }.distinctUntilChanged() else flowOf(null)
+        }
 
     private fun latestWeightKg(): Flow<Double?> =
         weights.observeWeighIns().map { weighIns -> weighIns.maxByOrNull { it.measuredAt }?.kg }.distinctUntilChanged()

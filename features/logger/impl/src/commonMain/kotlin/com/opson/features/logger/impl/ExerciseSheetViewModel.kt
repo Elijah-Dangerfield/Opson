@@ -51,6 +51,7 @@ class ExerciseSheetViewModel(
 ) : SEAViewModel<ExerciseSheetState, ExerciseSheetEvent, ExerciseSheetAction>(initialStateArg = ExerciseSheetState()) {
 
     private val entryId = route.entryId
+    private val startsNotOnWatch = route.notOnWatch
     private var form = ExerciseForm()
     private var inputs: ExerciseInputs? = null
     private var policy: VisibilityPolicy = policySource.policy.value
@@ -88,7 +89,7 @@ class ExerciseSheetViewModel(
                 inputs = action.inputs
                 // The entry is read once; after that the form is the person's.
                 if (first) action.inputs.entry?.let { form = ExerciseForm.from(it, action.inputs.timeZone) }
-                if (first && action.inputs.entry == null) form = form.copy(pane = ExercisePane.Pick)
+                if (first && action.inputs.entry == null) form = form.copy(pane = ExercisePane.Pick, notOnWatch = startsNotOnWatch)
                 action.rebuild()
             }
             is ExerciseSheetAction.PolicyArrived -> {

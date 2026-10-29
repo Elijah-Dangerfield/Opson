@@ -17,8 +17,8 @@ import kotlinx.datetime.LocalDate
 /**
  * The summary card's last page: the four vitamins and minerals the person picked
  * ([Settings.todayMicronutrients], sodium, potassium, calcium and iron unless they changed it),
- * each against their own reference, then See all for the Nutrients screen. A row opens the foods
- * that gave it; one no food lists says "Not listed" rather than 0%.
+ * each against their own reference, then See all for the Nutrients screen, which a tap anywhere on
+ * the page also opens. One no food lists says "Not listed" rather than 0%.
  */
 internal object TodayNutrientsPage {
     private const val PERCENT = 100.0
@@ -39,7 +39,6 @@ internal object TodayNutrientsPage {
                 isLimit = micro.isLimit,
                 display = policy.resolve(Metric.Micros, percent, Surface.Today, context.copy(of = PERCENT)),
                 notListed = coverage.getValue(micro).isNone,
-                opensFoods = (percent ?: 0.0) > 0.0,
             )
         }.filter { it.notListed || it.display !is Display.Hidden }
         return rows.takeIf { it.isNotEmpty() }?.let(::NutrientsPage)

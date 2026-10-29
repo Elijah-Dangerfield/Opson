@@ -263,6 +263,12 @@
     <string name="settings_resting_activity_none">Not connected</string>
     <string name="settings_resting_add_activity">Add activity to Burned</string>
     <string name="settings_resting_add_activity_line">Off counts resting energy only</string>
+    <!-- THERMIC_EFFECT_OF_FOOD_SHARE in libraries/nutrition's Burned.kt; change both together. -->
+    <string name="settings_resting_thermic">Count digesting food</string>
+    <string name="settings_resting_thermic_line">Adds about 10% of what you eat, the energy your body uses to digest it.</string>
+    <!-- Its line on Today's Activity card and Energy today. -->
+    <string name="energy_digesting">Digesting food</string>
+    <string name="energy_digesting_line">About 10% of what you ate</string>
 
     <!-- Energy today (design sync 4, 13.2c) -->
     <string name="settings_energy_title">Energy today</string>

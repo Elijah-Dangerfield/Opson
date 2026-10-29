@@ -53,8 +53,6 @@ import com.opson.libraries.ui.components.RangeBarSegment
 import com.opson.libraries.ui.components.SwipePages
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
-import com.opson.libraries.ui.components.icon.IconResource
-import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
@@ -65,28 +63,41 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 /*
  * Today's summary card in design sync 2 (2.1 to 2.1e): one neutral surface in every palette,
  * colour only on the macros. The energy page and the macros page swipe inside the same card
- * ([SwipePages]), with the dots, Nutrients and the collapse chevron under both. When the card
- * scrolls away it shrinks into [CompactSummaryBar], which is also the collapsed card.
+ * ([SwipePages]), each at its own height, with the dots under the card. When the card scrolls away
+ * it shrinks into [CompactSummaryBar], the sticky bar.
  */
 
 /**
  * The card around the summary: the surface colour, 22 radius, and a long press that opens the
- * customise sheet ([onLongClick], read out as [longClickLabel]). Null leaves the press alone.
+ * customise sheet ([onLongClick], read out as [longClickLabel]). [onClick] makes a tap anywhere on
+ * the card do something (read out as [clickLabel]); a link or row inside that handles its own tap
+ * keeps it. Null leaves either press alone. Both go through one gesture detector, so a long press
+ * is never also a tap.
  */
 @Composable
 fun SummaryCard(
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
     longClickLabel: String? = null,
+    onClick: (() -> Unit)? = null,
+    clickLabel: String? = null,
     contentPadding: PaddingValues = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val press = if (onLongClick == null) {
+    val press = if (onLongClick == null && onClick == null) {
         Modifier
     } else {
         Modifier
-            .pointerInput(onLongClick) { detectTapGestures(onLongPress = { onLongClick() }) }
-            .semantics { onLongClick(label = longClickLabel) { onLongClick(); true } }
+            .pointerInput(onLongClick, onClick) {
+                detectTapGestures(
+                    onTap = onClick?.let { tap -> { tap() } },
+                    onLongPress = onLongClick?.let { press -> { press() } },
+                )
+            }
+            .semantics {
+                if (onLongClick != null) onLongClick(label = longClickLabel) { onLongClick(); true }
+                if (onClick != null) onClick(label = clickLabel) { onClick(); true }
+            }
     }
     TodayCard(modifier = modifier.then(press), contentPadding = contentPadding, verticalArrangement = Arrangement.Top, content = content)
 }
@@ -369,34 +380,21 @@ private fun SplitBar(segments: List<RangeBarSegment>, tag: Metric) {
 }
 
 /**
- * Under every page: [leading], a Nutrients link when there is a [nutrientsLabel], and the collapse
- * chevron ([collapseIcon]; null leaves it out). The page dots sit centred under the card, not here.
- * The calories card has no link: its last page opens the Nutrients screen.
+ * Under every page: [leading], then a Nutrients link when there is a [nutrientsLabel]. The page
+ * dots sit centred under the card, not here. The calories card has no link: its last page opens
+ * the Nutrients screen. There is no collapse chevron any more: the card shrinks to the sticky bar
+ * as it scrolls away, which is the only collapsing it does (owner feedback, 2026-10-29).
  */
 @Composable
 fun SummaryFooter(
     modifier: Modifier = Modifier,
     nutrientsLabel: String? = null,
     onNutrients: () -> Unit = {},
-    collapseIcon: IconResource? = null,
-    onCollapse: () -> Unit = {},
     leading: @Composable RowScope.() -> Unit = {},
 ) {
     Row(modifier = modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { leading() }
         if (nutrientsLabel != null) SummaryLink(text = nutrientsLabel, onClick = onNutrients)
-        if (collapseIcon != null) {
-            // Quiet, not an action colour: the chevron changes the view, it does not do anything.
-            RoundIconButton(
-                icon = collapseIcon,
-                onClick = onCollapse,
-                size = 40.dp,
-                touchTarget = MinTouchTarget,
-                iconSize = 24.dp,
-                containerColor = AppTheme.colors.soft,
-                contentColor = AppTheme.colors.ink,
-            )
-        }
     }
 }
 
@@ -432,7 +430,7 @@ fun ExpendedSoFarLine(label: String, expended: Display, modifier: Modifier = Mod
 /**
  * The summary as one line (2.1c, 2.1d): [line] (the feature's parts, joined by " · "), the eaten
  * bar under it when there is one ([eaten] with the range box), and [trailing] (the dots while
- * sticky, the expand chevron when collapsed). [onClick] scrolls to the top or expands.
+ * sticky). [onClick] scrolls to the top.
  */
 @Composable
 fun CompactSummaryBar(
@@ -539,7 +537,7 @@ private fun SummaryCardPreview() {
                         )
                     }
                 }
-                SummaryFooter(collapseIcon = AppIcons.ExpandLess)
+                SummaryFooter()
             }
             CompactSummaryBar(
                 line = { CompactAmount(Metric.Calories, policy.resolve(Metric.Calories, 1245.0, Surface.Today)) },

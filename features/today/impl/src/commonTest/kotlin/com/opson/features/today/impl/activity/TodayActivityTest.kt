@@ -1,8 +1,9 @@
-package com.opson.features.today.impl.burned
+package com.opson.features.today.impl.activity
 
 import com.opson.features.today.impl.FakeBurnedRepository
 import com.opson.features.today.impl.FakeCalendar
 import com.opson.features.today.impl.FakeDiaryRepository
+import com.opson.features.today.impl.FakeHealthRepository
 import com.opson.features.today.impl.FakePolicySource
 import com.opson.features.today.impl.FakeSelectedDay
 import com.opson.features.today.impl.FakeSettingsRepository
@@ -18,6 +19,7 @@ import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.health.ExerciseRelease
+import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
@@ -43,20 +45,23 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
- * Today's Burned section: where Burned came from, the day's entries, an entry the health app
- * already counts, the modes that leave the section out, and the taps that open the sheet.
+ * Today's Activity card: the lines that add up to Burned, an entry the health app already
+ * counts, which health app is counting, digesting food as its own line, the modes that leave the
+ * card out, and the taps that open the sheet.
  */
-class TodayBurnedTest : CoroutineTest() {
+class TodayActivityTest : CoroutineTest() {
     private val day = TodayFixtures.today
     private val resting = RestingEnergy(1600, RestingFrom.Calculated)
     private val run = ExerciseEntry("run", day, Instant.parse("${day}T07:10:00Z"), "running_10", minutes = 35, kcal = 340)
     private val polo = ExerciseEntry("polo", day, Instant.parse("${day}T17:30:00Z"), "other", name = "Canoe polo", minutes = 60, kcal = 420, notOnWatch = true)
+    private val watch = HealthActivity(380, 330)
 
     private fun build(
         burned: Burned? = burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals(760, 420), true),
@@ -65,32 +70,57 @@ class TodayBurnedTest : CoroutineTest() {
         preset: PresetId = PresetId.Full,
         numbers: NumbersSettings = NumbersSettings(preset = preset),
         released: Boolean = true,
-    ) = TodayBurnedStateBuilder.build(TodayBurnedInputs(day, settings, burned, entries, policy(numbers), released, TimeZone.UTC)).card
+        health: HealthSource? = HealthSource.AppleHealth,
+    ) = TodayActivityStateBuilder.build(TodayActivityInputs(day, settings, burned, entries, policy(numbers), released, TimeZone.UTC, healthSource = health)).card
+
+    private fun TodayActivityCard.sum(): List<Pair<String, String?>> = lines.map { it::class.simpleName.orEmpty() to it.amount.text() }
 
     @Test
-    fun withoutAHealthApp_partsAreRestingEverydayAndExercise() {
+    fun withoutAHealthApp_theLinesAreRestingEverydayAndExercise_andAddUpToTheTotal() {
         val card = assertNotNull(build())
 
         assertEquals("2,680 kcal", card.total.text())
-        assertEquals(
-            listOf(BurnedPartKind.Resting to "1,600 kcal", BurnedPartKind.Everyday to "320 kcal", BurnedPartKind.Exercise to "760 kcal"),
-            card.parts.map { it.kind to it.amount.text() },
-        )
+        assertEquals(listOf("Resting" to "1,600 kcal", "Everyday" to "320 kcal", "Exercise" to "760 kcal"), card.sum())
+        assertNull(card.healthSource, "the manual side counts, so no health app is named")
+        assertEquals(EverydayActivity.MostlySitting, assertIs<ActivityLine.Everyday>(card.lines[1]).level)
         assertEquals(listOf("run", "polo"), card.entries.map { it.id })
         assertEquals(LocalTime(7, 10), card.entries.first().startedAt)
         assertEquals("340 kcal", card.entries.first().amount.text())
     }
 
     @Test
-    fun withAHealthApp_anEntryTheWatchSaw_countsNothingHere() {
-        val card = assertNotNull(build(burned = burnedFor(resting, HealthActivity(380, 330), EverydayActivity.MostlySitting, ExerciseTotals(760, 420), true)))
+    fun withAHealthApp_itIsNamed_itsWorkoutsAreInActiveEnergy_andAnEntryTheWatchSawCountsNothing() {
+        val card = assertNotNull(build(burned = burnedFor(resting, watch, EverydayActivity.MostlySitting, ExerciseTotals(760, 420), true)))
 
-        assertEquals(listOf(BurnedPartKind.Resting, BurnedPartKind.Health, BurnedPartKind.Exercise), card.parts.map { it.kind })
-        assertEquals("710 kcal", card.parts[1].amount.text())
+        assertEquals(HealthSource.AppleHealth, card.healthSource)
+        assertEquals(listOf("Resting" to "1,600 kcal", "Active" to "710 kcal", "Exercise" to "420 kcal"), card.sum())
+        assertEquals("330 kcal", assertIs<ActivityLine.Active>(card.lines[1]).workouts.text())
+        assertTrue(assertIs<ActivityLine.Exercise>(card.lines[2]).missedByWatch)
+        assertEquals("2,730 kcal", card.total.text())
         val (watched, missed) = card.entries
         assertTrue(watched.watchHasIt)
         assertEquals(Display.Hidden, watched.amount)
         assertEquals("420 kcal", missed.amount.text())
+    }
+
+    @Test
+    fun aHealthAppConnected_butWithActivitySwitchedOff_isNotNamedAsTheSource() {
+        val card = assertNotNull(build(burned = burnedFor(resting, watch, EverydayActivity.MostlySitting, ExerciseTotals(760, 0), activityCounted = false)))
+        assertNull(card.healthSource)
+    }
+
+    @Test
+    fun restingEnergyFromTheHealthApp_namesIt() {
+        val card = assertNotNull(build(burned = burnedFor(RestingEnergy(1560, RestingFrom.Health), watch, null, null, true)))
+        assertEquals(HealthSource.AppleHealth, assertIs<ActivityLine.Resting>(card.lines.first()).source)
+    }
+
+    @Test
+    fun digestingFood_isItsOwnLine_andInTheTotal() {
+        val card = assertNotNull(build(burned = burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals(760, 0), true, foodKcal = 125)))
+
+        assertEquals(listOf("Resting" to "1,600 kcal", "Everyday" to "320 kcal", "Exercise" to "760 kcal", "Digesting" to "125 kcal"), card.sum())
+        assertEquals("2,805 kcal", card.total.text())
     }
 
     @Test
@@ -99,7 +129,7 @@ class TodayBurnedTest : CoroutineTest() {
 
         assertEquals(false, card.known)
         assertEquals(Display.Hidden, card.total)
-        assertTrue(card.parts.isEmpty())
+        assertTrue(card.lines.isEmpty())
         assertEquals(2, card.entries.size)
     }
 
@@ -108,11 +138,11 @@ class TodayBurnedTest : CoroutineTest() {
         val card = assertNotNull(build(burned = burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals(760, 0), activityCounted = false)))
 
         assertEquals("1,920 kcal", card.total.text(), "logged exercise stops counting; the ordinary day doesn't")
-        assertEquals(listOf(BurnedPartKind.Resting, BurnedPartKind.Everyday), card.parts.map { it.kind })
+        assertEquals(listOf("Resting", "Everyday"), card.sum().map { it.first })
     }
 
     @Test
-    fun theSection_isLeftOut_withTheReleaseOff_inModesThatHideEnergyOut_andForSomeoneNumbersHaveBeenHardFor() {
+    fun theCard_isLeftOut_withTheReleaseOff_inModesThatHideEnergyOut_andForSomeoneNumbersHaveBeenHardFor() {
         assertNull(build(released = false))
         PresetId.entries.filter { it != PresetId.Full }.forEach { preset -> assertNull(build(preset = preset), "$preset hides energy out") }
         assertNull(build(settings = Settings(onboarding = OnboardingAnswers(hard = true))))
@@ -123,7 +153,7 @@ class TodayBurnedTest : CoroutineTest() {
         val card = assertNotNull(build(numbers = NumbersSettings.later()))
 
         assertEquals(Display.Hidden, card.total)
-        assertTrue(card.parts.all { it.amount == Display.Hidden })
+        assertTrue(card.lines.all { it.amount == Display.Hidden })
         assertTrue(card.entries.all { it.amount == Display.Hidden })
         assertEquals(2, card.entries.size)
     }
@@ -132,7 +162,7 @@ class TodayBurnedTest : CoroutineTest() {
 
     private val diary = FakeDiaryRepository()
 
-    private fun TestScope.vm(released: Boolean = true, selected: FakeSelectedDay = FakeSelectedDay()) = TodayBurnedViewModel(
+    private fun TestScope.vm(released: Boolean = true, selected: FakeSelectedDay = FakeSelectedDay()) = TodayActivityViewModel(
         selectedDay = selected,
         settingsRepository = FakeSettingsRepository(),
         policySource = FakePolicySource(),
@@ -141,6 +171,7 @@ class TodayBurnedTest : CoroutineTest() {
         diary = diary,
         release = ExerciseRelease { released },
         calendar = FakeCalendar(),
+        health = FakeHealthRepository(),
     )
 
     private fun TestScope.settle() {
@@ -152,7 +183,7 @@ class TodayBurnedTest : CoroutineTest() {
     fun theViewModel_followsTheSelectedDay_andOpensTheSheet() = runUnitTest {
         val selected = FakeSelectedDay()
         val vm = vm(selected = selected)
-        val events = mutableListOf<TodayBurnedEvent>()
+        val events = mutableListOf<TodayActivityEvent>()
         backgroundScope.launch { vm.eventFlow.toList(events) }
         settle()
         assertEquals(listOf("run"), vm.state.card?.entries?.map { it.id })
@@ -161,15 +192,17 @@ class TodayBurnedTest : CoroutineTest() {
         settle()
         assertEquals(listOf("tomorrow"), vm.state.card?.entries?.map { it.id })
 
-        vm.takeAction(TodayBurnedAction.AddTapped)
-        vm.takeAction(TodayBurnedAction.EntryTapped("tomorrow"))
-        vm.takeAction(TodayBurnedAction.RestingEnergyTapped)
+        vm.takeAction(TodayActivityAction.AddTapped)
+        vm.takeAction(TodayActivityAction.AddMissedTapped)
+        vm.takeAction(TodayActivityAction.EntryTapped("tomorrow"))
+        vm.takeAction(TodayActivityAction.RestingEnergyTapped)
         settle()
         assertEquals(
             listOf(
-                TodayBurnedEvent.OpenExercise(day.plusDays(1)),
-                TodayBurnedEvent.OpenExercise(day.plusDays(1), "tomorrow"),
-                TodayBurnedEvent.OpenRestingEnergy,
+                TodayActivityEvent.OpenExercise(day.plusDays(1)),
+                TodayActivityEvent.OpenExercise(day.plusDays(1), notOnWatch = true),
+                TodayActivityEvent.OpenExercise(day.plusDays(1), "tomorrow"),
+                TodayActivityEvent.OpenRestingEnergy,
             ),
             events,
         )

@@ -6,6 +6,23 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: Digesting food counts in Burned, if the person asks
+
+**Decision:** "Count digesting food" on Resting energy, off by default, adds 10%
+of the day's eaten (`THERMIC_EFFECT_OF_FOOD_SHARE`) to Burned as its own part.
+It is not activity: it adds whichever source the day's activity comes from, and
+"Add activity to Burned" off keeps it. Today's Activity card shows it as its own
+line; Energy today has a row for it.
+
+**Why:** the owner asked for it. The objection in the 2026-10-27 entry (a deficit
+aimed at Burned moves as food is logged) still holds, so it stays off until
+someone turns it on. Neither health store includes it, so it never double counts.
+
+**Alternatives:** a percentage the person sets (more to explain for a number
+whose error bars are wider than the choice); weighting by macro (protein costs
+more to digest), which is closer to the truth but makes the line jump as foods
+are edited.
+
 ## 2026-10-28: A packaged food is added from its label wherever a food is added, and says when it is unverified
 
 **Decision:** "Add this food" is now "Add a packaged food", and it opens from
@@ -387,7 +404,8 @@ and workouts when one does. An entry marked "My watch didn't record this" adds
 on top in the second case. Exercise energy is (MET − 1) × latest weigh-in ×
 hours from the 2024 Compendium, or a typed number, stored with the entry when
 it is saved. Everyday activity is a share of resting energy, Mostly sitting
-(0.2) by default. No thermic effect of food. Goals keep reading
+(0.2) by default. No thermic effect of food (since 2026-10-29, an opt-in; see
+below). Goals keep reading
 `BurnedRepository`, so a deficit or surplus works without a health app.
 
 **Alternatives:** MyFitnessPal's running "calorie adjustment" between its

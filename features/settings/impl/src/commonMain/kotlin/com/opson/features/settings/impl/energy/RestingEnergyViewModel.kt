@@ -91,6 +91,7 @@ class RestingEnergyViewModel(
             is RestingEnergyAction.HeightInchesTyped -> heightTyped(action) { it.copy(inches = NumberInput.sanitize(action.text, allowDecimal = true)) }
             is RestingEnergyAction.SexPicked -> settingsRepository.update { it.copy(bodySex = action.sex) }
             is RestingEnergyAction.ActivityInBurnedToggled -> settingsRepository.update { it.copy(activityInBurned = action.on) }
+            is RestingEnergyAction.ThermicEffectToggled -> settingsRepository.update { it.copy(thermicEffectInBurned = action.on) }
             is RestingEnergyAction.EverydayPicked -> settingsRepository.update { it.copy(everydayActivity = action.activity) }
             RestingEnergyAction.ActivityTapped -> sendEvent(RestingEnergyEvent.OpenIntegrations)
             RestingEnergyAction.BackTapped -> sendEvent(RestingEnergyEvent.Close)
@@ -153,6 +154,7 @@ sealed interface RestingEnergyAction {
     data class HeightInchesTyped(val text: String) : RestingEnergyAction
     data class SexPicked(val sex: BodySex) : RestingEnergyAction
     data class ActivityInBurnedToggled(val on: Boolean) : RestingEnergyAction
+    data class ThermicEffectToggled(val on: Boolean) : RestingEnergyAction
     data class EverydayPicked(val activity: EverydayActivity) : RestingEnergyAction
     data object ActivityTapped : RestingEnergyAction
     data object BackTapped : RestingEnergyAction

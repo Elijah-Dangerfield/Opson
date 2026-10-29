@@ -255,6 +255,15 @@ class SettingsTest {
         assertEquals(EverydayActivity.MostlySitting, SettingsJson.decodeFromString(Settings.serializer(), "{}").everydayActivity)
     }
 
+    @Test
+    fun countingDigestingFood_isOffUnlessSet_andTravelsAsATopLevelKey() {
+        assertFalse(SettingsJson.decodeFromString(Settings.serializer(), "{}").thermicEffectInBurned)
+        val s = Settings(thermicEffectInBurned = true)
+        val json = SettingsJson.encodeToJsonElement(Settings.serializer(), s).jsonObject
+        assertEquals("true", json.getValue("thermicEffectInBurned").jsonPrimitive.content)
+        assertEquals(s, SettingsJson.decodeFromJsonElement(Settings.serializer(), json))
+    }
+
     /**
      * A deficit day goes up inside `targetStyle` with its range kept beside it. A build from
      * before deficit days reads an unknown shape as a range, so that day reads as its own range:

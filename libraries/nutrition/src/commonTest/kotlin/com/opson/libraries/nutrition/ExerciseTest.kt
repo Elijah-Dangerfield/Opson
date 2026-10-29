@@ -107,4 +107,34 @@ class ExerciseTest {
             deficit.rangeFor(kotlinx.datetime.LocalDate(2026, 10, 27), PresetId.Full, burned.totalKcal),
         )
     }
+
+    @Test
+    fun digestingFood_isATenthOfWhatWasEaten_inWholeKcal() {
+        assertEquals(0.10, THERMIC_EFFECT_OF_FOOD_SHARE)
+        assertEquals(125, thermicEffectKcal(1245.0))
+        assertEquals(0, thermicEffectKcal(0.0))
+        assertEquals(0, thermicEffectKcal(-40.0))
+        assertEquals(0, thermicEffectKcal(Double.NaN))
+    }
+
+    @Test
+    fun digestingFood_addsToBurnedOnEitherSide_andIsNotActivity() {
+        val manual = burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals(250, 0), activityCounted = true, foodKcal = 125)
+        assertEquals(1600 + 320 + 250 + 125, manual.totalKcal)
+        assertEquals(320 + 250, manual.activityKcal, "activity is the same with or without it")
+        assertEquals(320 + 250 + 125, manual.aboveRestingKcal)
+
+        val health = burnedFor(resting, HealthActivity(400, 200), EverydayActivity.MostlySitting, ExerciseTotals.None, activityCounted = true, foodKcal = 125)
+        assertEquals(1600 + 400 + 200 + 125, health.totalKcal, "the health app's energy never includes it, so nothing counts twice")
+
+        val off = burnedFor(resting, HealthActivity(400, 200), null, null, activityCounted = false, foodKcal = 125)
+        assertEquals(1600 + 125, off.totalKcal, "switching activity off doesn't switch digestion off")
+    }
+
+    @Test
+    fun digestingFood_off_leavesBurnedAsItWas() {
+        val burned = burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals.None, activityCounted = true)
+        assertNull(burned.foodKcal)
+        assertEquals(1600 + 320, burned.totalKcal)
+    }
 }
