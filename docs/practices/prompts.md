@@ -63,6 +63,27 @@ tap outside and Back count as Not now). Counts live on the phone, per account, i
 | `meal_reminders` | dialog | no reminder level was ever chosen and notifications were not refused; not after numbers have been hard | Reminders and celebrations | `release.reminders` |
 | `try_check_in` | card, up to 3 times, 3 days apart | 3 logged days in the last 14 and no check-in in them | Today's check-in | `release.checkIn` |
 | `join_builder` | sheet, once ever | right after a food report is sent (`FoodReportSent`), or as Today opens once a food they added was approved; never to a Builder or someone who can't join | More › Builders | `release.builders` |
+| `set_up_goal` | card, up to 3 times, 3 days apart | the account never answered the weight goal, the mode shows weight, not pregnant or breastfeeding; not after numbers have been hard | the goal flow (`GoalSetupRoute`) | `release.onboardingSetup` |
+
+## First-run tips
+
+A tip is not a prompt: it offers nothing, it points at something already on screen ("Tap a
+number with the arrows to see it another way"). They have their own, smaller rules, in
+`TipMemory` (`:libraries:prompts:impl`): at most one a screen visit, never before onboarding is
+done, and each once per account on this phone. When a screen has several on it, the first in
+`Tips.all` not yet seen wins, so the registry's order is the priority.
+
+To add one: a `Tip` in `Tips.kt` with its line in `strings_tips.xml`, then wrap what it points at
+in `CoachMarkAnchor` (Today has `TipAnchor`) inside the screen's `CoachMarkScreen`. Previews and
+tests never show a tip: `LocalCoachMarks` defaults to none and nothing is asked in inspection
+mode. QA menu › Prompts › Reset tips forgets them for the signed-in account.
+
+| id | Where | Points at |
+|---|---|---|
+| `today_flip_figure` | Today | the main number's ⇄ |
+| `today_food_details` | Today | the first plain food row |
+| `today_pull_refresh` | Today | the header, while pull to refresh is on |
+| `targets_weight_goal` | Targets | "Set from your weight goal" |
 | `celebration` | screen, once per milestone | a milestone for showing up was reached in the last 7 days and not celebrated on this phone; right after wrapping up the day (`DayClosed`) or as Today opens; offered after numbers have been hard, gently | A milestone's celebration (`CelebrationRoute`) | `release.celebrations` |
 
 A **screen** prompt (`PromptPresentation.Screen`) draws itself: the host opens the route its

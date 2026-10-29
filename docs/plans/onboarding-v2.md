@@ -22,16 +22,60 @@ surplus, and meal times for No numbers or someone eating regularly.
 | 2 of 3: How do numbers sit with you? | everyone, skippable | `onboarding.feel` | |
 | 3 of 3: Does this sound like you? (optional) | everyone, skippable | `onboarding.hard` | |
 | Your starting point | everyone | `numbers` (the mode), unstamped | |
-| What you burn in a day | the goal step is shown, before it | `birthYear`, `heightCm`, `heightUnit`, `bodySex`, `weightUnit`, `everydayActivity`, and a first weigh-in | also `release.goalsAndEnergy` |
-| Your daily goal | the mode shows calories (Full numbers) and numbers have not been hard | `targets` (style and range), starting from the step above | `release.onboardingSetup` |
 | When do you usually eat? | No numbers, or "Eating regularly" | `mealTimes` | `release.onboardingSetup` |
+| A little about you | everyone in setup | `bodySex`, `bodyStage`, `birthDate` (and `birthYear` with it), `heightCm`, `heightUnit`, `weightUnit` and `weightUnitChosen`, and a first weigh-in. No weight field where weight is hidden or after numbers have been hard | `release.onboardingSetup` |
+| How active is a usual day? | everyone in setup; nothing to pick once a health app is connected, with Connect offered here | `everydayActivity` | `release.onboardingSetup` |
+| What would you like to aim for? | weight on show in the mode, numbers not hard, not pregnant or breastfeeding | `weightGoal` (lose, keep, gain, just track; a goal weight to lose or gain) | `release.onboardingSetup` |
+| Pick a pace | losing or gaining | `weightGoal.kgPerWeek`, capped at GoalSafety's gentle pace | `release.onboardingSetup` |
+| Your plan | everyone in setup; "You're all set" after numbers have been hard | `targets`, a range on the aim, when a goal sets it | `release.onboardingSetup` |
+| Ready to start? | everyone in setup | `planCommitment` ("I'm committed" or "Not now", and the day) | `release.onboardingSetup` |
 
 Every key is a top-level setting, so the shallow `||` merge on the server
-keeps them. Skip moves on and keeps whatever is there; on the two goal steps
-"Set this later" takes Skip's place and goes past both, writing neither (the
-2026-10-27 entry in `docs/decisions.md`). Nothing asks
-again later. Only the steps a person saw write anything: someone in No numbers
-never gets a goal written for them.
+keeps them. Skip moves on and keeps whatever is there; Skip on the goal step
+means no goal. Only the steps a person saw write anything: someone in No
+numbers, or who said numbers have been hard, never gets a goal or targets
+written for them. The goal flow replaced the resting energy and goal style
+steps on 2026-10-29; see "The goal flow" below.
+
+## The goal flow (2026-10-29)
+
+Owner feedback: a normal onboarding helps people set a goal, with Cronometer's
+profile, activity, weight goal, pace and overview as the model, and a
+commitment at the end. The steps live in `PlanFlow.kt` (pure) and
+`PlanSteps.kt` (drawn), and onboarding and the goal flow from Today
+(`GoalSetupRoute`) walk the same ones.
+
+- **Sex for the estimate** lists Female, Male, Pregnant, Breastfeeding and
+  Rather not say, each with a line saying it only changes the estimate, and a
+  note for trans and non-binary people. Pregnant and breastfeeding use the
+  female constant, add that stage's energy (`BodyStage.extraKcal`,
+  `TODO(clinician)`) and keep weight change out of the plan.
+- **Birthday** is a full date (`birthDate`); `birthYear` is written with it,
+  and every calculation still reads the year.
+- **The goal drives Targets.** A goal to lose, keep or gain sets a range of
+  the same width on the aim: a typical day's burn (resting energy plus
+  everyday activity), plus a pregnancy or breastfeeding extra, plus the pace's
+  energy by the 7,700 kcal a kilogram rule (3,500 a pound). A fixed range, not
+  a set deficit, so the day's target is the same in every mode and all day.
+  The goal stamps the aim it wrote (`WeightGoal.targetsKcal`); Targets says
+  "Set from your weight goal" while they match, and once the person moves the
+  target by hand, that the goal no longer sets it, with Use my goal.
+- **Pace limits.** The stepper stops at the gentler of 1,000 kcal a day and 1%
+  of body weight a week for a loss, 0.5% for a gain, and never plans an aim
+  under the low-goal line. A goal weight under a BMI of 18.5 for their height
+  gets a soft note and Find support, never a block (the owner's brief; the
+  energy and goals design brief proposed a block).
+- **The overview** shows the goal weight, a rough date, the day's target and
+  how it compares with a typical day's total burned (TDEE), with the working
+  in the energy words, each only where the mode shows it. In Macros with
+  grams it says the target is kept in the background.
+- **The commitment** records `planCommitment`; nothing changes with the
+  answer, and a celebration can mention it later.
+- **Existing accounts** that never answered get Today's "Set up your goal in a
+  minute" card (`set_up_goal`, docs/practices/prompts.md).
+- Telemetry carries the new step names (`profile`, `activity`, `weight_goal`,
+  `goal_rate`, `goal_overview`, `commitment`) and one boolean,
+  `onboarding.commitment`'s `committed`. `goal` and `resting_energy` are gone.
 
 ## What each question buys
 
@@ -145,31 +189,32 @@ for this audience.
 
 ## Safety
 
-- **No weight-loss pressure.** No goal weight, no rate, no dates, no BMI. Range
-  is the default style and the first row. "Changing my weight" never picks a
-  deficit: the answer can mean gaining.
-- **No target below the floor.** The goal step starts at `Targets.Default`, or
-  at an ordinary day's burn through `Targets.withEnergy`, and moves through
-  `Targets.raise` and `Targets.lower`, so with `GOAL_FLOOR_KCAL` unset nobody
-  can start lower than the app's starting range. A deficit or
-  surplus starts at what the aim already implies against an ordinary day's
-  burn (resting energy plus the everyday activity asked on the same step, as
-  Burned works it out with no health app), as Targets does, so it never asks
-  for more than the person had. Tests hold both.
+- **No weight-loss pressure.** (Changed 2026-10-29, the goal flow.) A goal
+  weight, a pace and a rough date are offered only where the mode shows
+  weight, never after numbers have been hard and never while pregnant or
+  breastfeeding. The pace starts slow (half a pound, 0.2 kg, a week), stops at
+  GoalSafety's gentle line, and the copy never praises eating less. A goal
+  weight under a healthy BMI gets a soft note and Find support, never a block.
+- **No target below the low-goal line.** A goal's aim never goes under
+  `GoalSafety.lowGoalKcal` for their sex; the pace stepper simply has no step
+  that would. With no goal, a new account starts from a typical day's burn but
+  never under the app's starting range. Tests hold both (`WeightGoalTest`,
+  `PlanFlowTest`).
 - **A statement, not a diagnosis.** Optional, phrased as something to agree
   with. The body now says what a yes does, because "the answer is used for
   nothing else" was not true: it also keeps fasting and exercise adjustments
   off. Clinician review is still open (`TODO(clinician)` in the strings).
 - **The crisis link.** "Talk to someone" sits on the statement step whatever is
   picked. It opens Find support with `release.findSupport` on, Support otherwise.
-- **Nothing that triggers.** Calorie amounts appear only in Full numbers, and
-  only on the goal and resting energy steps. Someone who agreed with the
-  statement can't reach either: Full numbers is never on offer, and
-  `showsGoal` checks the statement as well. Both steps, and the goal started
-  from a burn, are in the leak test and resolve every number through
-  `VisibilityPolicy`.
-- **Telemetry** carries step names only, as before. New names: `goal`,
-  `resting_energy`, `meal_times`. A test checks no setup value reaches an event.
+- **Nothing that triggers.** Calorie amounts appear only where calories show,
+  and a deficit or the working of a typical day only where energy out does
+  too. Someone who agreed with the statement sees no weight, no goal weight,
+  no pace and no deficit. The profile, goal, pace, plan and commitment steps
+  are in the leak test (`onboarding-profile`, `onboarding-weight-goal`,
+  `onboarding-goal-rate`, `onboarding-goal-overview`, `onboarding-commitment`)
+  and resolve every number through `VisibilityPolicy`.
+- **Telemetry** carries step names and the commitment's one boolean, never an
+  answer. A test checks no setup value reaches an event.
 
 ## Data and consent
 

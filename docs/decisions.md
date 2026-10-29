@@ -6,6 +6,35 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: A weight goal sets Targets as a fixed range, and says when it no longer does
+
+**Decision:** onboarding's setup (behind `release.onboardingSetup`) and a new
+goal flow from Today ask for a profile, a usual day's activity, a weight goal
+and pace, show the plan, and end on "I'm committed". The goal is stored as one
+top-level `weightGoal` object; it writes Targets as a range of the same width
+centred on the aim (a typical day's burn, plus pregnancy or breastfeeding's
+extra, plus the pace's energy by 7,700 kcal a kilogram) and stamps that aim.
+While Targets' aim matches the stamp, Targets says "Set from your weight
+goal"; a hand edit makes it the person's, and Targets offers Use my goal.
+Paces stop at GoalSafety's gentle lines and never aim under the low-goal line;
+a goal weight under a healthy BMI is a soft note with Find support, not a block.
+Nothing about a goal is offered after numbers have been hard, where weight is
+hidden, or while pregnant or breastfeeding. The full birth date is a new key,
+`birthDate`, with `birthYear` still written for older builds and every
+calculation.
+
+**Alternatives:** a set deficit style aimed at Burned, which moves through the
+day as activity syncs and only works in All numbers; rejected for a first
+goal because a fixed number is easier to plan meals around and works the same
+in every mode (the owner's open question in the energy and goals brief, still
+open for the Plan hub). Blocking a goal weight under BMI 18.5, as the energy
+and goals brief proposed; rejected because the owner asked for a soft note
+that never blocks. Keeping the goal in sync automatically after a hand edit;
+rejected as a silent conflict.
+
+**Why:** people asked for help setting a goal on day one, and a goal that
+quietly fought a target someone set by hand would be worse than none.
+
 ## 2026-10-29: A meal's + opens the add sheet on that meal
 
 **Decision:** the meal sheet (Add food, Note, Copy yesterday's, Save as a meal)

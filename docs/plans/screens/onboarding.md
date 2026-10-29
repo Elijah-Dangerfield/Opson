@@ -11,7 +11,7 @@ optional account step last. Built to design v3. Read `shared.md` first.
 
 **Superseded in part by `docs/plans/onboarding-v2.md`** (2026-10-27): "What do
 you want to notice?" is cut, the starting point says why it was picked, a new
-Apple account runs setup, and the goal, resting energy and meal times steps
+Apple account runs setup, and meal times and the goal flow (2026-10-29: profile, activity, weight goal, pace, plan and commitment)
 follow the mode behind `release.onboardingSetup`. Where the two disagree, v2
 wins.
 
