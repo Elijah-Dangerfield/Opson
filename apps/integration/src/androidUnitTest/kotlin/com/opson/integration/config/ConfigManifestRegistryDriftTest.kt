@@ -1,6 +1,7 @@
 package com.opson.integration.config
 
 import com.opson.features.logger.impl.BarcodeScanEnabled
+import com.opson.features.logger.impl.FoodReportEnabled
 import com.opson.features.upgrade.LatestVersionCode
 import com.opson.features.upgrade.MaintenanceMessage
 import com.opson.features.upgrade.MaintenanceMode
@@ -316,6 +317,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     VoiceLogEnabled(appConfigMap),
     PhotoEstimateEnabled(appConfigMap),
     SubmitFoodEnabled(appConfigMap),
+    FoodReportEnabled(appConfigMap),
     WidgetsEnabled(appConfigMap),
     SearchOptionsEnabled(appConfigMap),
     OnboardingSetupEnabled(appConfigMap),

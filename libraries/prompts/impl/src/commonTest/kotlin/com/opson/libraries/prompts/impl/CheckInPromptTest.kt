@@ -25,7 +25,7 @@ class CheckInPromptTest {
     }
 
     @Test
-    fun `not before a few days of logging, and untracked days do not count`() {
+    fun `not before a few days of logging and untracked days do not count`() {
         assertFalse(CheckInPrompt.worthOffering(listOf(day(1), day(2), day(3, logged = false))))
         assertFalse(CheckInPrompt.worthOffering(listOf(day(1), day(2), day(3, untracked = true))))
     }

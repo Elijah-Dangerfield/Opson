@@ -15,7 +15,7 @@ class WidgetFallbackColorsTest {
 
     @Test
     fun theSwiftFallbackIsTheAppsOwnTheme() {
-        val swift = File("../ios/OpsonWidgets/TodayWidgetView.swift").readText()
+        val swift = File("../ios/OpsonWidgets/WidgetParts.swift").readText()
         val fallback = swift.substringAfter("static let fallback = WidgetColors(").substringBefore("\n    )\n")
 
         assertEquals(WidgetPalette.colors.light.tokens(), swiftSwatch(fallback, "light"))

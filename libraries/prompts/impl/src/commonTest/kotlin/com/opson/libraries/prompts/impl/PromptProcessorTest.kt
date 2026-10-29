@@ -52,7 +52,7 @@ class PromptProcessorTest : CoroutineTest() {
     }
 
     @Test
-    fun `a tie goes by id, whatever order the set gives`() = runUnitTest {
+    fun `a tie goes by id whatever order the set gives`() = runUnitTest {
         val processor = processor(FakeCandidate("b"), FakeCandidate("a"))
 
         assertEquals("a", processor.next()?.id)
@@ -102,7 +102,7 @@ class PromptProcessorTest : CoroutineTest() {
     }
 
     @Test
-    fun `shown once by default, whatever happened to it`() = runUnitTest {
+    fun `shown once by default whatever happened to it`() = runUnitTest {
         val once = FakeCandidate("once")
         val processor = processor(once)
         processor.next()
@@ -172,7 +172,7 @@ class PromptProcessorTest : CoroutineTest() {
     }
 
     @Test
-    fun `nothing before onboarding is done, or signed out`() = runUnitTest {
+    fun `nothing before onboarding is done or signed out`() = runUnitTest {
         val processor = processor(FakeCandidate("a"))
 
         audience.audience = audience.audience.copy(onboarded = false)
@@ -212,7 +212,7 @@ class PromptProcessorTest : CoroutineTest() {
     }
 
     @Test
-    fun `numbers have been hard means opted-in prompts only, three days apart`() = runUnitTest {
+    fun `numbers have been hard means opted-in prompts only three days apart`() = runUnitTest {
         audience.audience = audience.audience.copy(numbersHard = true)
         val gentle1 = FakeCandidate("gentle1", priority = 200, offerWhenNumbersHard = true)
         val gentle2 = FakeCandidate("gentle2", priority = 100, offerWhenNumbersHard = true)
@@ -298,7 +298,7 @@ class PromptProcessorTest : CoroutineTest() {
     }
 
     @Test
-    fun `inspect names the rule holding each prompt back, and reset clears it`() = runUnitTest {
+    fun `inspect names the rule holding each prompt back and reset clears it`() = runUnitTest {
         val processor = processor(FakeCandidate("a", priority = 300), FakeCandidate("b", eligible = false))
         processor.next()
 
@@ -315,7 +315,7 @@ class PromptProcessorTest : CoroutineTest() {
     }
 
     @Test
-    fun `a reset keeps the quiet start over, so testing can begin at once`() = runUnitTest {
+    fun `a reset keeps the quiet start over so testing can begin at once`() = runUnitTest {
         val processor = processor(FakeCandidate("a"), settled = false)
         assertNull(processor.next())
 
