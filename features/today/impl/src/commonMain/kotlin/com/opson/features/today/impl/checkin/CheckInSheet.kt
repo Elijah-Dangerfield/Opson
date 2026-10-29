@@ -12,6 +12,10 @@ import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.MoodLevel
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.medication.Symptom
+import com.opson.libraries.medication.SymptomLog
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -35,6 +39,11 @@ data class CheckInState(
     val sleepFirst: Boolean = false,
     val sleepShown: Boolean = false,
     val checkIn: CheckIn = CheckIn(),
+    /**
+     * Today's side effects, for the "Side effects" row (`release.medication`, while medication is
+     * tracked). Null leaves the row out; they are logged on the Medication page it opens.
+     */
+    val sideEffects: List<Symptom>? = null,
 )
 
 sealed interface CheckInAction {
@@ -54,6 +63,12 @@ sealed interface CheckInAction {
 
     /** "Add last night's sleep", after the morning. */
     data object AddSleepTapped : CheckInAction
+
+    /** Today's side effects from [SymptomLog]; null while medication isn't tracked. */
+    data class SideEffectsArrived(val symptoms: List<Symptom>?) : CheckInAction
+
+    /** The "Side effects" row: what is picked is saved, then the Medication page opens. */
+    data object SideEffectsTapped : CheckInAction
     data object SaveTapped : CheckInAction
     data object CloseTapped : CheckInAction
 }
@@ -61,6 +76,9 @@ sealed interface CheckInAction {
 sealed interface CheckInEvent {
     data class ShowToast(val toast: Toast) : CheckInEvent
     data object Dismiss : CheckInEvent
+
+    /** The check-in gives way to the Medication page, where side effects are logged. */
+    data object OpenSideEffects : CheckInEvent
 }
 
 /** The sheet as a pure function of the day, the time and what is picked, so previews run the same rules. */
@@ -69,7 +87,7 @@ object CheckInStateBuilder {
     /** Until noon a check-in is the morning's, and asks how last night went. */
     val MORNING_ENDS: LocalTime = LocalTime(12, 0)
 
-    fun build(day: LocalDate, today: LocalDate, now: LocalTime, checkIn: CheckIn, sleepAsked: Boolean): CheckInState {
+    fun build(day: LocalDate, today: LocalDate, now: LocalTime, checkIn: CheckIn, sleepAsked: Boolean, sideEffects: List<Symptom>? = null): CheckInState {
         val isToday = day == today
         val morning = isToday && now < MORNING_ENDS
         return CheckInState(
@@ -78,6 +96,7 @@ object CheckInStateBuilder {
             sleepFirst = morning,
             sleepShown = !isToday || morning || sleepAsked || checkIn.sleep != null,
             checkIn = checkIn,
+            sideEffects = sideEffects.takeIf { isToday },
         )
     }
 }
@@ -94,6 +113,7 @@ class CheckInViewModel(
     private val checkIns: DayCheckIns,
     private val calendar: LocalCalendar,
     private val clock: Clock,
+    private val symptoms: SymptomLog = SymptomLog.None,
 ) : SEAViewModel<CheckInState, CheckInEvent, CheckInAction>(initialStateArg = CheckInState()) {
 
     private val day: LocalDate = requestedDay ?: calendar.today()
@@ -105,6 +125,7 @@ class CheckInViewModel(
         val now: LocalTime = LocalTime(0, 0),
         val checkIn: CheckIn = CheckIn(),
         val sleepAsked: Boolean = false,
+        val sideEffects: List<Symptom>? = null,
     )
 
     init {
@@ -112,6 +133,14 @@ class CheckInViewModel(
             val stored = diary.observeDay(day).first().checkIn
             val now = clock.now().toLocalDateTime(calendar.timeZone())
             takeAction(CheckInAction.Loaded(stored, now.date, now.time))
+        }
+        // Side effects are today's: the Medication page logs today's.
+        if (day == calendar.today()) {
+            viewModelScope.launch {
+                combine(symptoms.asking, symptoms.observeDay(day)) { asking, felt -> felt.keys.sortedBy { it.ordinal }.takeIf { asking } }
+                    .distinctUntilChanged()
+                    .collect { takeAction(CheckInAction.SideEffectsArrived(it)) }
+            }
         }
     }
 
@@ -127,17 +156,21 @@ class CheckInViewModel(
                 it.copy(moods = if (action.mood in it.moods) it.moods - action.mood else it.moods + action.mood)
             }
             CheckInAction.AddSleepTapped -> action.rebuild { copy(sleepAsked = true) }
-            CheckInAction.SaveTapped -> {
-                // Before the day is read the picks are empty, and saving them would clear what is stored.
-                if (!state.loaded || saving) return
-                saving = true
-                val checkIn = model.checkIn.takeUnless { it.isEmpty }
-                checkIns.setCheckIn(day, checkIn)
-                if (checkIn != null) sendEvent(CheckInEvent.ShowToast(Toast(Res.string.today_checkin_saved)))
-                sendEvent(CheckInEvent.Dismiss)
-            }
+            is CheckInAction.SideEffectsArrived -> action.rebuild { copy(sideEffects = action.symptoms) }
+            CheckInAction.SaveTapped -> if (save()) sendEvent(CheckInEvent.Dismiss)
+            CheckInAction.SideEffectsTapped -> if (state.sideEffects != null && save()) sendEvent(CheckInEvent.OpenSideEffects)
             CheckInAction.CloseTapped -> sendEvent(CheckInEvent.Dismiss)
         }
+    }
+
+    /** Writes the picks, once. False before the day is read: the picks are empty then, and saving them would clear what is stored. */
+    private suspend fun save(): Boolean {
+        if (!state.loaded || saving) return false
+        saving = true
+        val checkIn = model.checkIn.takeUnless { it.isEmpty }
+        checkIns.setCheckIn(day, checkIn)
+        if (checkIn != null) sendEvent(CheckInEvent.ShowToast(Toast(Res.string.today_checkin_saved)))
+        return true
     }
 
     private suspend fun CheckInAction.answer(change: (CheckIn) -> CheckIn) = rebuild { copy(checkIn = change(checkIn)) }
@@ -146,6 +179,6 @@ class CheckInViewModel(
         model = model.change()
         val current = model
         val today = current.today ?: return
-        updateState { CheckInStateBuilder.build(day, today, current.now, current.checkIn, current.sleepAsked) }
+        updateState { CheckInStateBuilder.build(day, today, current.now, current.checkIn, current.sleepAsked, current.sideEffects) }
     }
 }

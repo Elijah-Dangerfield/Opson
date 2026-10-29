@@ -33,7 +33,9 @@ menu). Where the build differs from the spec below, this section wins.
 - **Side effects are not on Close the day.** Check-ins are being rebuilt separately, so they
   are asked on the Medication page ("How are you feeling today?", the spec's symptom list,
   Mild / Moderate / Severe, the care line for severe vomiting or stomach pain). `SymptomLog`
-  is the read and write API a check-in can use to ask the same question: `asking` says when.
+  is the read and write API: `asking` says when. Today's check-in sheet uses it for a "Side
+  effects" row (today only, while tracking), listing today's and opening the Medication page
+  after saving the check-in's picks.
 - **More.** One row through `MoreRowContribution`, in a "Health" card. Its subtitle is fixed
   ("Doses, sites and how you feel"), never the schedule or a dose.
 - **Today.** The card comes in through a new `TodayCardContribution` (Today draws whatever

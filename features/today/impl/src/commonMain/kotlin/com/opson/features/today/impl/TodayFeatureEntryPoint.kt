@@ -23,6 +23,7 @@ import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
+import com.opson.features.medication.MedicationRoute
 import com.opson.features.today.CheckInRoute
 import com.opson.features.today.DayCloseRoute
 import com.opson.features.today.DayClosedRoute
@@ -199,6 +200,11 @@ class TodayFeatureEntryPoint(
                 when (event) {
                     is CheckInEvent.ShowToast -> showToast(event.toast)
                     CheckInEvent.Dismiss -> sheetState.dismiss()
+                    // The sheet gives way to the page, so Back from there lands where the check-in was opened.
+                    CheckInEvent.OpenSideEffects -> router.batch {
+                        goBack()
+                        navigate(MedicationRoute())
+                    }
                 }
             }
             TodaySheet(router, sheetState) { CheckInSheetContent(state = state, onAction = viewModel::takeAction) }

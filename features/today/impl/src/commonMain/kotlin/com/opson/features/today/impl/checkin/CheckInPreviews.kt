@@ -5,6 +5,7 @@ import com.opson.features.today.impl.TodayFixtures
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.HungerLevel
+import com.opson.libraries.medication.Symptom
 import com.opson.libraries.ui.PreviewContent
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalTime
@@ -49,4 +50,12 @@ private fun CheckInPastDayPreview() = PreviewContent { CheckInSheetContent(state
 @Composable
 private fun CheckInLargeTextPreview() = PreviewContent(largeText = true) {
     CheckInSheetContent(state(morning, TodayFixtures.checkIn), onAction = {})
+}
+
+/** On a tracked medication (`release.medication`): the Side effects row, with today's. */
+@Preview(widthDp = 390, heightDp = 1100)
+@Composable
+private fun CheckInSideEffectsPreview() = PreviewContent {
+    val base = state(evening, CheckIn(energy = Energy.Ok))
+    CheckInSheetContent(base.copy(sideEffects = listOf(Symptom.Nausea, Symptom.Fatigue)), onAction = {})
 }

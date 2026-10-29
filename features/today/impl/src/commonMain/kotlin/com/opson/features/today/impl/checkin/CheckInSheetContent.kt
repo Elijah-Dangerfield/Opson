@@ -24,6 +24,8 @@ import com.opson.libraries.diary.MoodLevel
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.ui.SectionLabel
 import com.opson.libraries.diary.ui.label
+import com.opson.libraries.medication.Symptom
+import com.opson.libraries.medication.label
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.ChevronLink
 import com.opson.libraries.ui.components.SegmentedControl
@@ -36,6 +38,8 @@ import com.opson.libraries.ui.components.chip.ChoiceChip
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.medication_checkin_side_effects
+import opson.libraries.resources.generated.resources.medication_checkin_side_effects_none
 import opson.libraries.resources.generated.resources.today_checkin_clear
 import opson.libraries.resources.generated.resources.today_checkin_clear_cd
 import opson.libraries.resources.generated.resources.today_checkin_energy
@@ -96,6 +100,7 @@ fun CheckInSheetContent(
             else -> ChevronLink(text = stringResource(Res.string.today_checkin_sleep_add), onClick = { onAction(CheckInAction.AddSleepTapped) })
         }
         MoodTags(checkIn.moods, onAction)
+        state.sideEffects?.let { SideEffectsRow(it, onAction) }
         FlatButton(
             text = stringResource(Res.string.today_checkin_save),
             onClick = { onAction(CheckInAction.SaveTapped) },
@@ -173,6 +178,19 @@ private fun <T : Any> ScaleRow(title: StringResource, options: List<T>, picked: 
             selected = picked,
             onSelect = { it?.let(onTap) },
             label = { option -> option?.let { stringResource(label(it)) }.orEmpty() },
+        )
+    }
+}
+
+/** "Side effects" and today's, or "None logged today", opening the Medication page to log them. */
+@Composable
+private fun SideEffectsRow(symptoms: List<Symptom>, onAction: (CheckInAction) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+        SectionLabel(stringResource(Res.string.medication_checkin_side_effects))
+        val names = symptoms.map { stringResource(it.label) }
+        ChevronLink(
+            text = if (names.isEmpty()) stringResource(Res.string.medication_checkin_side_effects_none) else names.joinToString(", "),
+            onClick = { onAction(CheckInAction.SideEffectsTapped) },
         )
     }
 }

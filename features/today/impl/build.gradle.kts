@@ -16,6 +16,10 @@ kotlin {
             implementation(projects.features.trends)
             implementation(projects.features.settings)
             implementation(projects.features.foods)
+            // MedicationRoute, which the check-in's Side effects row opens.
+            implementation(projects.features.medication)
+            // SymptomLog, for the check-in's Side effects row (release.medication).
+            implementation(projects.libraries.medication)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
@@ -45,6 +49,7 @@ kotlin {
 
         commonTest.dependencies {
             implementation(projects.libraries.flowroutines.testing)
+            implementation(projects.libraries.medication)
             implementation(projects.features.today)
             implementation(projects.features.logger)
             implementation(projects.features.settings)

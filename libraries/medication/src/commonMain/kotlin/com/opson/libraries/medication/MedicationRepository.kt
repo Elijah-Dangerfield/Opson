@@ -56,6 +56,14 @@ interface SymptomLog {
 
     /** Replaces the day's side effects; empty clears them. */
     suspend fun set(day: LocalDate, symptoms: Map<Symptom, Severity>)
+
+    /** For a build or a test with no medication: never asks. */
+    object None : SymptomLog {
+        override val asking: Flow<Boolean> = flowOf(false)
+        override fun observeDay(day: LocalDate): Flow<Map<Symptom, Severity>> = flowOf(emptyMap())
+        override fun observeRange(from: LocalDate, to: LocalDate): Flow<List<SymptomDay>> = flowOf(emptyList())
+        override suspend fun set(day: LocalDate, symptoms: Map<Symptom, Severity>) = Unit
+    }
 }
 
 /**

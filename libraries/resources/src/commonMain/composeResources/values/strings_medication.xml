@@ -118,6 +118,10 @@
     <string name="medication_reminder_already">Already did</string>
     <string name="medication_reminder_log">Log it</string>
 
+    <!-- The check-in's row, which opens the Medication page -->
+    <string name="medication_checkin_side_effects">Side effects</string>
+    <string name="medication_checkin_side_effects_none">None logged today</string>
+
     <!-- Weight chart -->
     <string name="medication_mark_started">Started</string>
 
