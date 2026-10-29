@@ -19,6 +19,7 @@ import opson.libraries.resources.generated.resources.qa_fire_dinner
 import opson.libraries.resources.generated.resources.qa_fire_lunch
 import opson.libraries.resources.generated.resources.qa_fire_snack
 import opson.libraries.resources.generated.resources.qa_fire_water
+import opson.libraries.resources.generated.resources.qa_commit_on_branch
 import opson.libraries.resources.generated.resources.qa_label_channel
 import opson.libraries.resources.generated.resources.qa_label_commit
 import opson.libraries.resources.generated.resources.qa_label_email
@@ -46,8 +47,14 @@ data class QaState(
  * One label and value. A [value] of null reads "None"; [valueText] says it in words instead
  * (the provider), and then there is nothing worth copying.
  */
-data class QaInfo(val label: StringResource, val value: String?, val valueText: StringResource? = null) {
-    val copyable: Boolean get() = value != null && valueText == null
+data class QaInfo(
+    val label: StringResource,
+    val value: String?,
+    val valueText: StringResource? = null,
+    val valueArgs: List<String> = emptyList(),
+) {
+    /** A worded value with arguments ("4a8b4639 on main") is still a fact to copy, as it reads. */
+    val copyable: Boolean get() = value != null && (valueText == null || valueArgs.isNotEmpty())
 }
 
 /** The reminders the menu can fire, the missed-meal nudges first. */
@@ -90,7 +97,7 @@ object QaStateBuilder {
     fun build(facts: BuildFacts): List<QaInfo> = listOf(
         QaInfo(Res.string.qa_label_version, "${facts.versionName} (${facts.buildNumber})"),
         QaInfo(Res.string.qa_label_channel, facts.channel),
-        QaInfo(Res.string.qa_label_commit, "${facts.commitSha} on ${facts.branch}"),
+        QaInfo(Res.string.qa_label_commit, facts.commitSha, Res.string.qa_commit_on_branch, listOf(facts.commitSha, facts.branch)),
         QaInfo(Res.string.qa_label_platform, facts.platform),
     )
 

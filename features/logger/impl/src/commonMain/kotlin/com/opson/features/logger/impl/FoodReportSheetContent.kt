@@ -30,6 +30,7 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.components.text.TextArea
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.food_report_basis_weight
 import opson.libraries.resources.generated.resources.food_report_calories
 import opson.libraries.resources.generated.resources.food_report_camera_off
 import opson.libraries.resources.generated.resources.food_report_carbs
@@ -57,6 +58,7 @@ import opson.libraries.resources.generated.resources.food_report_sending
 import opson.libraries.resources.generated.resources.food_report_serving
 import opson.libraries.resources.generated.resources.food_report_serving_hint
 import opson.libraries.resources.generated.resources.food_report_title
+import opson.libraries.resources.generated.resources.food_report_unit_g
 import opson.libraries.resources.generated.resources.food_report_too_many
 import opson.libraries.resources.generated.resources.food_report_values_for
 import opson.libraries.resources.generated.resources.food_report_values_for_100
@@ -128,18 +130,19 @@ private fun Values(values: ReportValues, onAction: (FoodReportAction) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
         SectionLabel(stringResource(Res.string.food_report_values_title))
         if (values.numbers) {
+            val grams = stringResource(Res.string.food_report_unit_g)
             Text(
-                values.basis?.let { stringResource(Res.string.food_report_values_for, it) } ?: stringResource(Res.string.food_report_values_for_100),
+                values.basis?.let { stringResource(Res.string.food_report_values_for, it.text()) } ?: stringResource(Res.string.food_report_values_for_100),
                 typography = AppTheme.type.secondary,
                 color = AppTheme.colors.muted,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                 Number(Res.string.food_report_calories, values.kcal, FoodReportStateBuilder.KCAL, stringResource(Res.string.logger_amount_kcal), onAction, Modifier.weight(1f))
-                Number(Res.string.food_report_protein, values.protein, FoodReportStateBuilder.PROTEIN, GRAMS, onAction, Modifier.weight(1f))
+                Number(Res.string.food_report_protein, values.protein, FoodReportStateBuilder.PROTEIN, grams, onAction, Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-                Number(Res.string.food_report_carbs, values.carbs, FoodReportStateBuilder.CARBS, GRAMS, onAction, Modifier.weight(1f))
-                Number(Res.string.food_report_fat, values.fat, FoodReportStateBuilder.FAT, GRAMS, onAction, Modifier.weight(1f))
+                Number(Res.string.food_report_carbs, values.carbs, FoodReportStateBuilder.CARBS, grams, onAction, Modifier.weight(1f))
+                Number(Res.string.food_report_fat, values.fat, FoodReportStateBuilder.FAT, grams, onAction, Modifier.weight(1f))
             }
         }
         Text(stringResource(Res.string.food_report_serving), typography = AppTheme.type.secondarySmallStrong, color = AppTheme.colors.muted)
@@ -212,7 +215,9 @@ private fun PhotoCard(state: FoodReportState, onAction: (FoodReportAction) -> Un
     }
 }
 
-private const val GRAMS = "g"
+/** "1 cup (81 g)", or the amount alone when it already says its weight. */
+@Composable
+private fun ReportBasis.text(): String = grams?.let { stringResource(Res.string.food_report_basis_weight, amount, it) } ?: amount
 
 private val FoodReportReason.label: StringResource
     get() = when (this) {

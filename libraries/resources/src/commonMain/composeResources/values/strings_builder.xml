@@ -72,6 +72,8 @@
     <string name="builder_stats_foods">Foods added</string>
     <string name="builder_stats_checks">Checks</string>
     <string name="builder_stats_accepted">Accepted</string>
+    <!-- The share of what they sent that was accepted: "92%". -->
+    <string name="builder_stats_percent">%1$d%</string>
     <string name="builder_retention_on">Keep my label photos for 2 years</string>
     <string name="builder_retention_on_sub">So Opson can test how well it reads labels</string>
     <string name="builder_leave">Leave Builders</string>

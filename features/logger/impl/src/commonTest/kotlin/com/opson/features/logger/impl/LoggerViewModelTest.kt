@@ -71,6 +71,7 @@ class LoggerViewModelTest : CoroutineTest() {
         diaryRepo: FakeDiaryRepository = diary,
     ) = LoggerViewModel(
         route = route,
+        quickAddName = "Quick add",
         diary = diaryRepo,
         customFoods = customFoods,
         savedMeals = savedMeals,
@@ -599,7 +600,7 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(LogMethod.QuickNumber, added.method)
         val item = added.items.single()
         assertEquals(450.0, item.kcal)
-        assertEquals(QuickAdd.DEFAULT_NAME, item.name)
+        assertEquals("Quick add", item.name, "a quick add nobody named is logged under the entry point's name for it")
         assertNull(item.protein, "a macro nobody typed is unknown, not 0")
         assertEquals(1, recentLogEvents.logged.single().itemIds.size)
         assertEquals(listOf(LogVia.QuickNumber to 1), telemetry.events)

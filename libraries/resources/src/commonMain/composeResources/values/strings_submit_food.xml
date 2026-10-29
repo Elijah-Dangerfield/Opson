@@ -91,6 +91,15 @@
     <string name="submit_n_vitamin_b12_ug">Vitamin B12</string>
     <string name="submit_n_choline_mg">Choline</string>
 
+    <!-- Units beside a figure: the nutrient fields, the serving unit picker, the check lines and Check against the pack's rows. -->
+    <string name="submit_unit_kcal">kcal</string>
+    <string name="submit_unit_g">g</string>
+    <string name="submit_unit_mg">mg</string>
+    <string name="submit_unit_mcg">mcg</string>
+    <string name="submit_unit_ml">ml</string>
+    <!-- A figure and its unit: "234 kcal". -->
+    <string name="submit_amount_unit">%1$s %2$s</string>
+
     <!-- Checks. Only drawn where the mode shows calories. -->
     <string name="submit_check_energy">Calories don't match the macros by %1$s</string>
     <string name="submit_check_kj">That looks like kJ, not kcal</string>

@@ -18,6 +18,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.submit_unit_kcal
 
 class CheckFoodViewModelTest : CoroutineTest() {
 
@@ -88,7 +90,7 @@ class CheckFoodViewModelTest : CoroutineTest() {
         val differs = assertIs<CheckStage.Differs>(vm.state.stage)
         assertTrue(differs.perServing)
         val energy = differs.rows.first()
-        assertEquals("230 kcal", energy.pack)
+        assertEquals(UnitAmount("230", Res.string.submit_unit_kcal), energy.pack)
         assertTrue(energy.differs)
         assertEquals(listOf(true, false, false, false), differs.rows.map { it.differs })
 

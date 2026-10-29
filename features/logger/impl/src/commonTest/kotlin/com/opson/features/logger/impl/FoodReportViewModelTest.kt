@@ -59,7 +59,7 @@ class FoodReportViewModelTest : CoroutineTest() {
     fun wrongCaloriesSendsTheNumbersForTheAmountOnScreen_photoAndNote() = runUnitTest {
         val vm = vm()
         vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.WrongCalories))
-        assertEquals("8.0 fl oz (240 ml)", vm.stateFlow.value.values?.basis)
+        assertEquals(ReportBasis("8.0 fl oz (240 ml)"), vm.stateFlow.value.values?.basis)
         vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.KCAL, "5"))
         vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.CARBS, "2,0x"))
         vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.SERVING, "1 can, 473 ml"))
@@ -146,8 +146,8 @@ class FoodReportViewModelTest : CoroutineTest() {
     fun withoutAKnownWeightTheNumbersAreFor100Grams() {
         val model = FoodReportModel(name = "Oats", amountText = null, amountGrams = null, canTakePhoto = true, reason = FoodReportReason.WrongNutrients)
         assertNull(FoodReportStateBuilder.basis(model))
-        assertEquals("1 cup (81 g)", FoodReportStateBuilder.basis(model.copy(amountText = "1 cup", amountGrams = 81.0)))
-        assertEquals("150 g", FoodReportStateBuilder.basis(model.copy(amountText = "150 g", amountGrams = 150.0)))
+        assertEquals(ReportBasis("1 cup", grams = 81), FoodReportStateBuilder.basis(model.copy(amountText = "1 cup", amountGrams = 81.0)))
+        assertEquals(ReportBasis("150 g"), FoodReportStateBuilder.basis(model.copy(amountText = "150 g", amountGrams = 150.0)))
     }
 
     @Test

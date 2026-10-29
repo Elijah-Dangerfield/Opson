@@ -39,6 +39,7 @@ class DescribeReviewViewModelTest : CoroutineTest() {
 
     private fun vm() = LoggerViewModel(
         route = LoggerRoute(slot = MealSlot.Breakfast, start = LoggerStart.Describe),
+        quickAddName = "Quick add",
         diary = diary,
         customFoods = FakeCustomFoodRepository(emptyList()),
         savedMeals = FakeSavedMealRepository(emptyList()),

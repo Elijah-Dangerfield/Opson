@@ -297,7 +297,7 @@ class LoggerStateBuilderTest {
         val quick = assertNotNull(quick(policy(PresetId.MacrosWithGrams)))
         assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), quick.fields.map { it.metric })
         assertNull(quick.mismatch, "no energy field, so nothing to compare and no calorie amount to show")
-        val draft = assertNotNull(QuickAdd.draft(LoggerFixtures.proteinBar, policy(PresetId.MacrosWithGrams)))
+        val draft = assertNotNull(QuickAdd.draft(LoggerFixtures.proteinBar, policy(PresetId.MacrosWithGrams), unnamed = "Quick add"))
         assertEquals(500.0, draft.kcal, "stored at 4/4/9 so the totals agree with the macros")
     }
 
@@ -305,8 +305,8 @@ class LoggerStateBuilderTest {
     fun macrosOnlyAndNoNumbers_offerNoNumbers_soJustSaveTheNameRemains() {
         assertNull(quick(policy(PresetId.MacrosOnly)))
         assertNull(quick(policy(PresetId.NoNumbers)))
-        assertNull(QuickAdd.draft(LoggerFixtures.proteinBar, policy(PresetId.MacrosOnly)))
-        assertNull(QuickAdd.draft(LoggerFixtures.proteinBar, policy(PresetId.NoNumbers)))
+        assertNull(QuickAdd.draft(LoggerFixtures.proteinBar, policy(PresetId.MacrosOnly), unnamed = "Quick add"))
+        assertNull(QuickAdd.draft(LoggerFixtures.proteinBar, policy(PresetId.NoNumbers), unnamed = "Quick add"))
     }
 
     @Test

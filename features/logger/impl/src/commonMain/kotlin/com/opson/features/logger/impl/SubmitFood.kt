@@ -13,6 +13,7 @@ import com.opson.libraries.scanner.CameraPermission
 import com.opson.libraries.scanner.MealPhoto
 import com.opson.libraries.scanner.PhotoPickResult
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.StringResource
 
 /** Which photo: the front (name, brand), the nutrition label, or in Builder mode the ingredients list. */
 enum class PackSide { Front, Label, Ingredients }
@@ -99,7 +100,10 @@ data class FormField(
 
 data class FormNumbers(val main: List<NutrientField>, val more: List<NutrientField>)
 
-data class NutrientField(val nutrient: LabelNutrient, val field: FormField, val unit: String)
+data class NutrientField(val nutrient: LabelNutrient, val field: FormField, val unit: StringResource)
+
+/** A figure and the unit it is in ("234" and kcal), worded together on screen. [unit] is null for a bare figure. */
+data class UnitAmount(val number: String, val unit: StringResource? = null)
 
 /** In a mode that hides calories: whether the numbers add up, said without them. */
 data class HiddenNumbers(val addsUp: Boolean, val incomplete: Boolean)
@@ -113,9 +117,9 @@ data class HiddenNumbers(val addsUp: Boolean, val incomplete: Boolean)
 data class CheckRow(
     val code: LabelCheckCode,
     val fields: List<String>,
-    val difference: String?,
-    val fix: String?,
-    val keep: String?,
+    val difference: UnitAmount?,
+    val fix: UnitAmount?,
+    val keep: UnitAmount?,
     val kept: Boolean,
 )
 

@@ -135,12 +135,13 @@ private fun InfoCard(rows: List<QaInfo>, onAction: (QaAction) -> Unit) {
     val none = stringResource(Res.string.qa_none)
     QaCard {
         rows.forEachIndexed { index, info ->
+            val shown = info.valueText?.let { stringResource(it, *info.valueArgs.toTypedArray()) } ?: info.value
             QaRow(
                 title = stringResource(info.label),
                 icon = null,
-                subtitle = info.valueText?.let { stringResource(it) } ?: info.value ?: none,
+                subtitle = shown ?: none,
                 showDivider = index < rows.lastIndex,
-                onClick = info.value?.takeIf { info.copyable }?.let { value ->
+                onClick = shown?.takeIf { info.copyable }?.let { value ->
                     {
                         clipboard.setText(AnnotatedString(value))
                         onAction(QaAction.Copied(info.label))

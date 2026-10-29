@@ -56,12 +56,6 @@ sealed interface QuickAddAction : LoggerAction {
  * the macros) and No numbers none, which leaves Describe's "Just save the name".
  */
 object QuickAdd {
-    /**
-     * The stored name of a quick add nobody named, as the prototype logs it. It is the item's name
-     * in the diary (and on the server), not screen copy, so it is a constant rather than a resource.
-     */
-    const val DEFAULT_NAME = "Quick add"
-
     val FIELD_ORDER: List<Metric> = listOf(Metric.Calories, Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber)
 
     fun offered(policy: VisibilityPolicy): List<Metric> =
@@ -75,7 +69,7 @@ object QuickAdd {
             name = form.name,
             fields = offered.map { QuickAddField(it, form.numbers[it].orEmpty()) },
             mismatch = mismatch(form, policy, context),
-            canAdd = draft(form, policy) != null,
+            canAdd = values(form, policy).values.any { it > 0.0 },
         )
     }
 
@@ -83,13 +77,15 @@ object QuickAdd {
      * What Add writes, or null with no number above 0. A field the mode does not offer is unknown,
      * never 0. The energy is the one typed; without one (or in a mode with calories hidden) it is
      * what the macros come to at 4/4/9, so the day's totals add up the same as for any other food.
+     * [unnamed] is the name it is stored under when nobody typed one, "Quick add" in English: the
+     * item's name in the diary and on the server, so it is worded once, when it is logged.
      */
-    fun draft(form: QuickAddForm, policy: VisibilityPolicy): LogDraft? {
+    fun draft(form: QuickAddForm, policy: VisibilityPolicy, unnamed: String): LogDraft? {
         val values = values(form, policy)
         if (values.values.none { it > 0.0 }) return null
         val grams = values - Metric.Calories
         return LogDraft(
-            name = form.name.trim().ifEmpty { DEFAULT_NAME },
+            name = form.name.trim().ifEmpty { unnamed },
             precision = Precision.Named,
             kcal = values[Metric.Calories]?.takeIf { it > 0.0 } ?: MacroEnergyCheck.macroKcal(grams),
             protein = grams[Metric.Protein],

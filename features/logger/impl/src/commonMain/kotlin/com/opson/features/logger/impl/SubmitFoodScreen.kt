@@ -408,7 +408,7 @@ private fun ReviewBody(state: SubmitFoodState, form: SubmitForm, onAction: (Subm
                         options = ServingUnit.entries,
                         selected = form.servingUnit,
                         onSelect = { onAction(SubmitFoodAction.ServingUnitPicked(it)) },
-                        label = { it.wire },
+                        label = { stringResource(it.label) },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -477,7 +477,7 @@ private fun Numbers(numbers: FormNumbers, checks: List<CheckRow>, onAction: (Sub
 private fun CheckLine(row: CheckRow, onAction: (SubmitFoodAction) -> Unit) {
     val field = row.fields.first()
     val text = when (row.code) {
-        LabelCheckCode.EnergyMacrosMismatch -> stringResource(Res.string.submit_check_energy, row.difference.orEmpty())
+        LabelCheckCode.EnergyMacrosMismatch -> stringResource(Res.string.submit_check_energy, row.difference?.text().orEmpty())
         LabelCheckCode.EnergyLooksLikeKj -> stringResource(Res.string.submit_check_kj)
         LabelCheckCode.ServingMismatch -> if (field == SubmitFoodForm.SERVING_SIZE) {
             stringResource(Res.string.submit_check_serving_size)
@@ -497,10 +497,10 @@ private fun CheckLine(row: CheckRow, onAction: (SubmitFoodAction) -> Unit) {
                 onClick = { onAction(SubmitFoodAction.FixTapped(row.code, field)) },
                 size = ButtonSize.Small,
                 style = ButtonStyle.Tonal,
-            ) { Text(stringResource(Res.string.submit_use, row.fix)) }
+            ) { Text(stringResource(Res.string.submit_use, row.fix.text())) }
             row.keep?.let { keep ->
                 ButtonGhost(onClick = { onAction(SubmitFoodAction.KeepTapped(row.code, field)) }, size = ButtonSize.Small) {
-                    Text(stringResource(Res.string.submit_keep, keep))
+                    Text(stringResource(Res.string.submit_keep, keep.text()))
                 }
             }
         }
@@ -542,7 +542,7 @@ private fun NutrientEntry(entry: NutrientField, onAction: (SubmitFoodAction) -> 
         NumberField(
             value = entry.field.text,
             onValueChange = { onAction(SubmitFoodAction.FieldTyped(entry.field.key, it)) },
-            unit = entry.unit,
+            unit = stringResource(entry.unit),
             imeAction = ImeAction.Next,
         )
     }

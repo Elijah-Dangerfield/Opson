@@ -48,8 +48,8 @@ sealed interface CheckStage {
     data class Done(val outcome: CheckDone) : CheckStage
 }
 
-/** One headline number, formatted with its unit. [differs] marks the rows that don't match. */
-data class CheckRowUi(val nutrient: LabelNutrient, val pack: String, val opson: String, val differs: Boolean)
+/** One headline number with its unit, null where a side has none. [differs] marks the rows that don't match. */
+data class CheckRowUi(val nutrient: LabelNutrient, val pack: UnitAmount?, val opson: UnitAmount?, val differs: Boolean)
 
 enum class CheckDone { Confirmed, Unconfirmed, Corrected }
 
@@ -174,7 +174,7 @@ object CheckFoodStateBuilder {
     fun rows(comparison: PackComparison): List<CheckRowUi> {
         val scale = comparison.servingGrams?.let { it / 100.0 } ?: 1.0
         return CheckFoodCompare.HEADLINE.map { key ->
-            fun shown(value: Double?) = value?.let { SubmitFoodForm.amount(it * scale, key.unit) + " " + key.unit.symbol } ?: "–"
+            fun shown(value: Double?) = value?.let { UnitAmount(SubmitFoodForm.amount(it * scale, key.unit), key.unit.label) }
             CheckRowUi(key, shown(comparison.pack[key]), shown(comparison.opson[key]), key in comparison.differing)
         }
     }

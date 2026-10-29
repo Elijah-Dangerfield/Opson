@@ -266,8 +266,8 @@ object EditCopyStateBuilder {
 
     // ── The form ────────────────────────────────────────────────────────────
 
-    /** The form as it opens: "Peanut butter (mine)", the brand, the serving and sizes, the numbers that show. */
-    fun form(seed: CopySeed, mine: String, policy: VisibilityPolicy): CopyForm {
+    /** The form as it opens: [name] ("Peanut butter (mine)"), the brand, the serving and sizes, the numbers that show. */
+    fun form(seed: CopySeed, name: String, policy: VisibilityPolicy): CopyForm {
         val food = seed.food
         val serving = ServingRow(
             name = HouseholdAmount.of(food.servingAmount, food.servingUnit),
@@ -275,7 +275,7 @@ object EditCopyStateBuilder {
             removable = false,
         )
         return CopyForm(
-            name = "${food.name} $mine",
+            name = name,
             brand = food.brand.orEmpty(),
             servings = listOf(serving) + food.sizes.map { ServingRow(HouseholdAmount.of(1.0, it.label), typed(it.grams), removable = true) },
             values = shown(policy).associate { it.key to original(food, it)?.let(::typed).orEmpty() },

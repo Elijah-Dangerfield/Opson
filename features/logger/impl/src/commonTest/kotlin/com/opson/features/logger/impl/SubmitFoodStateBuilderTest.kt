@@ -13,6 +13,9 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.submit_unit_g
+import opson.libraries.resources.generated.resources.submit_unit_kcal
 
 class SubmitFoodStateBuilderTest {
 
@@ -55,9 +58,9 @@ class SubmitFoodStateBuilderTest {
 
         val row = form.checks.single()
         assertEquals(LabelCheckCode.EnergyMacrosMismatch, row.code)
-        assertEquals("46 kcal", row.difference)
-        assertEquals("234 kcal", row.fix)
-        assertEquals("280 kcal", row.keep)
+        assertEquals(UnitAmount("46", Res.string.submit_unit_kcal), row.difference)
+        assertEquals(UnitAmount("234", Res.string.submit_unit_kcal), row.fix)
+        assertEquals(UnitAmount("280", Res.string.submit_unit_kcal), row.keep)
         assertTrue(form.nutrient(LabelNutrient.Energy).flagged)
         assertTrue(form.canSubmit, "a mismatch is the person's call, not a block")
     }
@@ -158,7 +161,7 @@ class SubmitFoodStateBuilderTest {
         )
         val model = SubmitFoodFixtures.reviewModel(read = LabelParse.Read("p", facts, emptyMap(), emptyList(), readable = true))
         val row = form(model).checks.first { it.code == LabelCheckCode.ServingMismatch }
-        assertEquals("45 g", row.fix)
+        assertEquals(UnitAmount("45", Res.string.submit_unit_g), row.fix)
 
         val fixed = SubmitFoodForm.fix(model, SubmitFoodForm.checks(model).first { it.code == LabelCheckCode.ServingMismatch })
         assertEquals("45", fixed.texts[SubmitFoodForm.SERVING_SIZE])

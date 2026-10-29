@@ -42,6 +42,7 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
 
     private fun vm(voiceOn: Boolean = true, start: LoggerStart = LoggerStart.Describe) = LoggerViewModel(
         route = LoggerRoute(slot = MealSlot.Breakfast, start = start),
+        quickAddName = "Quick add",
         diary = diary,
         customFoods = FakeCustomFoodRepository(),
         savedMeals = FakeSavedMealRepository(),

@@ -27,6 +27,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.submit_unit_kcal
 
 class SubmitFoodViewModelTest : CoroutineTest() {
     private val labels = FakeFoodLabels()
@@ -228,7 +230,7 @@ class SubmitFoodViewModelTest : CoroutineTest() {
     @Test
     fun theOneTapFixAndKeepWorkLive() = runUnitTest {
         val vm = reviewing()
-        assertEquals("234 kcal", vm.form.checks.single().fix)
+        assertEquals(UnitAmount("234", Res.string.submit_unit_kcal), vm.form.checks.single().fix)
 
         vm.takeAction(SubmitFoodAction.KeepTapped(LabelCheckCode.EnergyMacrosMismatch, LabelNutrient.Energy.wire))
         settle()

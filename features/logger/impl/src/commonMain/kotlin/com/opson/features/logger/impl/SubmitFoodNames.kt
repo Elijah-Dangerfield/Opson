@@ -1,6 +1,9 @@
 package com.opson.features.logger.impl
 
+import androidx.compose.runtime.Composable
 import com.opson.libraries.foods.LabelNutrient
+import com.opson.libraries.foods.LabelUnit
+import com.opson.libraries.foods.ServingUnit
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.submit_n_added_sugars_g
 import opson.libraries.resources.generated.resources.submit_n_calcium_mg
@@ -35,7 +38,34 @@ import opson.libraries.resources.generated.resources.submit_n_vitamin_d_ug
 import opson.libraries.resources.generated.resources.submit_n_vitamin_e_mg
 import opson.libraries.resources.generated.resources.submit_n_vitamin_k_ug
 import opson.libraries.resources.generated.resources.submit_n_zinc_mg
+import opson.libraries.resources.generated.resources.submit_amount_unit
+import opson.libraries.resources.generated.resources.submit_unit_g
+import opson.libraries.resources.generated.resources.submit_unit_kcal
+import opson.libraries.resources.generated.resources.submit_unit_mcg
+import opson.libraries.resources.generated.resources.submit_unit_mg
+import opson.libraries.resources.generated.resources.submit_unit_ml
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
+
+/** A label unit as the form writes it beside a figure. [LabelUnit.symbol] is the wire spelling. */
+val LabelUnit.label: StringResource
+    get() = when (this) {
+        LabelUnit.Kcal -> Res.string.submit_unit_kcal
+        LabelUnit.Gram -> Res.string.submit_unit_g
+        LabelUnit.Milligram -> Res.string.submit_unit_mg
+        LabelUnit.Microgram -> Res.string.submit_unit_mcg
+    }
+
+/** A serving unit as the form writes it. [ServingUnit.wire] is what the server stores. */
+val ServingUnit.label: StringResource
+    get() = when (this) {
+        ServingUnit.Gram -> Res.string.submit_unit_g
+        ServingUnit.Milliliter -> Res.string.submit_unit_ml
+    }
+
+/** "234 kcal", or the figure alone when it has no unit. */
+@Composable
+fun UnitAmount.text(): String = unit?.let { stringResource(Res.string.submit_amount_unit, number, stringResource(it)) } ?: number
 
 /** A nutrient's name as the form labels it. */
 val LabelNutrient.title: StringResource
