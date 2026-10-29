@@ -6,6 +6,45 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: A low goal gets a note, not a lock; day groups are always open
+
+**Decision:** on Targets a calorie goal can be set anywhere from 800 to 6,000
+kcal (`MIN_GOAL_KCAL`, `MAX_GOAL_KCAL`, `TODO(clinician)`). Where the person
+started is a record, no longer a floor. Under 1,200 for a woman, 1,500 for a
+man and 1,350 when sex isn't said, a note says the goal "is lower than most
+people should go without a doctor's guidance" and links to Find support; a set
+deficit over 1,000 a day gets a gentler-pace note the same way. Nothing is
+refused. `GOAL_FLOOR_KCAL` stays null and, once a dietitian sets it, is a hard
+floor again. A goal Opson works out from the burn (a deficit or surplus) never
+comes to less than 1,200, whoever the person is. Onboarding keeps its own floor
+at the app's starting range, because setup has no note.
+
+Different by day starts with two groups, every day in the first and none in
+the second, and every group's controls are always open. A tap on a day moves it
+into that group or, for a day already there, back to the first; the first
+group's own days are not buttons. Every group but the first can be removed,
+its days going back to the first. An empty group is allowed and says how to
+fill it.
+
+**Why:** the owner found the range locked at 1,900 to 2,300 with no way down,
+and the by-day editor hard to use: an Edit tap per group, no way to delete a
+group, and on the first group no day that did anything. The old floor was the
+right instinct with the wrong mechanism: it treated whatever number someone
+started on as the safe one, which it never was, and it blocked people with a
+real reason to go lower. The trackers people know warn instead
+(`docs/research/goals-ux.md`), and a soft note keeps the person in charge while
+still saying the thing that matters. For day groups, making one group the rest
+of the week is what keeps every state valid: whatever is tapped or removed, each
+day is in exactly one group, so there is no invalid state to validate and no
+Save button to add. Starting with two groups means the first thing anyone does
+after picking the style is pick days.
+
+**Rejected:** a Save button that validates the week (more taps, and a state the
+page can be left in); pruning empty groups automatically (a group would vanish
+under the person mid-edit); an absolute floor of 1,200 (blocks the people the
+note is for from tracking what they are told to eat). The deficit and surplus
+caps are unchanged and still wait on a dietitian.
+
 ## 2026-10-28: A packaged food is added from its label wherever a food is added, and says when it is unverified
 
 **Decision:** "Add this food" is now "Add a packaged food", and it opens from

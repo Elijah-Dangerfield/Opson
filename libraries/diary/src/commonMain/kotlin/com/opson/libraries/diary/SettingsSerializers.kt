@@ -9,6 +9,7 @@ import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.LegacyPreset
 import com.opson.libraries.nutrition.MAX_DEFICIT_KCAL
+import com.opson.libraries.nutrition.MAX_GOAL_KCAL
 import com.opson.libraries.nutrition.MAX_SURPLUS_KCAL
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ModeTiming
@@ -502,7 +503,7 @@ internal object TargetsSerializer : KSerializer<Targets> {
      * could break the rules the write path keeps. A deficit is held to 0..its start (or the
      * dietitian's maximum) and a surplus the same way, the style's or a group's alike,
      * groups to four, each weekday to exactly one group (first wins, missing days join the
-     * first), and a group whose range breaks the floor takes the base range. Anything unreadable
+     * first), and a group whose range breaks the floor or the ceiling takes the base range. Anything unreadable
      * is a plain range.
      */
     private fun TargetStyleWire.toStyle(targets: Targets): TargetStyle = when (kind) {
@@ -519,8 +520,8 @@ internal object TargetsSerializer : KSerializer<Targets> {
         val seen = mutableSetOf<DayOfWeek>()
         val decoded = wires.map { wire ->
             val days = wire.days.mapNotNull(DayOfWeekSerializer::fromKey).filter(seen::add).toSet()
-            val safe = wire.minKcal >= targets.lowFloorKcal &&
-                (wire.minKcal + wire.maxKcal) / 2 >= targets.floorKcal &&
+            val safe = wire.minKcal >= targets.floorKcal &&
+                wire.maxKcal <= MAX_GOAL_KCAL &&
                 wire.maxKcal - wire.minKcal >= Targets.STEP_KCAL
             val shape = when (wire.shape) {
                 TargetStyleWire.KIND_EXACT -> GroupShape.Exact

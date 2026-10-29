@@ -6,6 +6,7 @@ import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.findSupportFlag
 import com.opson.features.settings.impl.goalsAndEnergyFlag
 import com.opson.features.settings.impl.integrations.FakeCalendar
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
@@ -15,6 +16,8 @@ import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.MAX_GOAL_KCAL
+import com.opson.libraries.nutrition.MIN_GOAL_KCAL
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -28,6 +31,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.settings_targets_ceiling_toast
 import opson.libraries.resources.generated.resources.settings_targets_deficit_cap_toast
 import opson.libraries.resources.generated.resources.settings_targets_floor_toast
 import opson.libraries.resources.generated.resources.settings_targets_gap_toast
@@ -39,9 +43,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Targets: amounts only when calories are configured Show, each end stepping on its own under
- * the floor, the deficit and by-day styles, and ratio versus gram macros. The floor, deficit
- * and group arithmetic themselves are `TargetsTest` and `TargetStyleTest` in `:libraries:nutrition`.
+ * Targets: amounts only when calories are configured Show, each end stepping on its own between
+ * the lowest and highest a goal goes, the deficit and by-day styles (every group open, days moved
+ * by a tap), and ratio versus gram macros. The floor, deficit and group arithmetic themselves are
+ * `TargetsTest` and `TargetStyleTest` in `:libraries:nutrition`; the low-goal note is
+ * `TargetsSafetyTest`.
  */
 class TargetsTest : CoroutineTest() {
 
@@ -49,12 +55,10 @@ class TargetsTest : CoroutineTest() {
         numbers: NumbersSettings = NumbersSettings(PresetId.Full),
         targets: Targets = SettingsFixtures.rangeTargets,
         burned: Burned? = null,
-        editingGroup: Int? = null,
     ) = TargetsStateBuilder.build(
         SettingsFixtures.settings(numbers, targets),
         SettingsFixtures.policy(numbers),
         burned = burned,
-        editingGroup = editingGroup,
     )
 
     // --- builder ---
@@ -63,10 +67,21 @@ class TargetsTest : CoroutineTest() {
     fun aRangeShowsEachEndWithItsSteps() {
         val range = assertNotNull(build().range)
 
-        assertEquals(EndStepper(Display.Shown("1,900"), down = StepState.Locked, up = StepState.Open), range.low)
+        assertEquals(EndStepper(Display.Shown("1,900"), down = StepState.Open, up = StepState.Open), range.low, "under where it started is fine")
         assertEquals(EndStepper(Display.Shown("2,300"), down = StepState.Open, up = StepState.Open), range.high)
-        assertTrue(range.lowLocked)
+        assertFalse(range.lowLocked)
         assertTrue(range.band.start < range.band.endInclusive)
+    }
+
+    @Test
+    fun aRangeAtTheLimits_locksThoseSteps() {
+        val low = assertNotNull(build(targets = SettingsFixtures.rangeTargets.copy(energyKcal = 1000, minKcal = MIN_GOAL_KCAL, maxKcal = 1200)).range)
+        assertEquals(StepState.Locked, low.low.down)
+        assertTrue(low.lowLocked)
+
+        val high = assertNotNull(build(targets = SettingsFixtures.rangeTargets.copy(energyKcal = 5800, minKcal = 5600, maxKcal = MAX_GOAL_KCAL)).range)
+        assertEquals(StepState.Locked, high.high.up)
+        assertFalse(high.lowLocked)
     }
 
     @Test
@@ -84,7 +99,7 @@ class TargetsTest : CoroutineTest() {
     fun softDelayedAndHiddenCaloriesGetTheBackgroundCardWithNoAmounts() {
         listOf(NumbersSettings(PresetId.MacrosOnly), NumbersSettings.later(), NumbersSettings(PresetId.NoNumbers)).forEach { numbers ->
             listOf(SettingsFixtures.rangeTargets, SettingsFixtures.deficitTargets, SettingsFixtures.byDayTargets).forEach { targets ->
-                val state = build(numbers, targets, burned = SettingsFixtures.burned, editingGroup = 1)
+                val state = build(numbers, targets, burned = SettingsFixtures.burned)
                 assertEquals(TargetsState(loaded = true, visible = false), state, "in $numbers")
             }
         }
@@ -169,15 +184,45 @@ class TargetsTest : CoroutineTest() {
         )
         assertEquals(listOf(1f, 1f, 1f, 0f, 0f, 0f, 0f), state.week.map { it.position })
         assertTrue(state.canAddGroup)
-        assertNull(state.groups[1].low, "steppers only while editing")
     }
 
     @Test
-    fun editingAGroupOpensItsSteppers() {
-        val group = build(targets = SettingsFixtures.byDayTargets, editingGroup = 1).groups[1]
+    fun everyGroupIsOpen_andEveryGroupButTheFirstCanBeRemoved() {
+        val groups = build(targets = SettingsFixtures.byDayTargets).groups
 
-        assertEquals(Display.Shown("2,300"), group.low?.value)
-        assertTrue(group.removable)
+        assertEquals(listOf("1,900", "2,300"), groups.map { (it.low?.value as Display.Shown).text })
+        assertEquals(listOf(false, true), groups.map { it.removable })
+    }
+
+    @Test
+    fun theFirstGroupsOwnDays_areShownNotTapped_andEveryOtherDayIs() {
+        val groups = build(targets = SettingsFixtures.byDayTargets).groups
+
+        assertEquals(
+            listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY),
+            groups[0].days.filter { it.tappable }.map { it.day },
+            "in Other days, only the days another group has can be tapped, to bring them back",
+        )
+        assertTrue(groups[1].days.all { it.tappable })
+    }
+
+    @Test
+    fun theOnlyGroup_hasNoDaysToPick() {
+        val only = SettingsFixtures.rangeTargets.useByDay()
+        val group = build(targets = only).groups.single()
+
+        assertEquals(GroupLabel.EveryDay, group.label)
+        assertEquals(emptyList(), group.days)
+        assertFalse(group.removable)
+    }
+
+    @Test
+    fun aNewGroup_isEmpty_andSaysHowToFillIt() {
+        val groups = build(targets = SettingsFixtures.newByDayTargets).groups
+
+        assertEquals(listOf(false, true), groups.map { it.empty })
+        assertTrue(groups[1].days.none { it.inGroup })
+        assertEquals(List(7) { 0.5f }, build(targets = SettingsFixtures.newByDayTargets).week.map { it.position }, "an empty group is drawn nowhere")
     }
 
     @Test
@@ -199,6 +244,7 @@ class TargetsTest : CoroutineTest() {
         goalsAndEnergyFlag(false),
         FakeBurnedRepository(),
         FakeCalendar(),
+        findSupportFlag(),
     )
 
     private fun FakeSettingsRepository.targets(): Targets = state.value.targets
@@ -217,6 +263,7 @@ class TargetsTest : CoroutineTest() {
             goalsAndEnergyFlag(true),
             waiting,
             FakeCalendar(),
+            findSupportFlag(),
         )
 
         assertFalse(vm.state.loaded)
@@ -235,8 +282,21 @@ class TargetsTest : CoroutineTest() {
     }
 
     @Test
-    fun aStepPastTheFloorWritesNothingAndSaysWhy() = runUnitTest {
+    fun aLowEndUnderWhereItStarted_isWritten() = runUnitTest {
         val repository = FakeSettingsRepository()
+        val vm = viewModel(repository)
+        val events = eventsOf(vm)
+
+        repeat(4) { vm.takeAction(TargetsAction.StepTapped(RangeEnd.Low, up = false)) }
+
+        assertEquals(1700 to 2300, repository.targets().minKcal to repository.targets().maxKcal)
+        assertEquals(emptyList(), events)
+    }
+
+    @Test
+    fun aStepPastTheFloorWritesNothingAndSaysWhy() = runUnitTest {
+        val atFloor = SettingsFixtures.rangeTargets.copy(energyKcal = 1000, minKcal = MIN_GOAL_KCAL, maxKcal = 1200)
+        val repository = FakeSettingsRepository(SettingsFixtures.settings(targets = atFloor))
         val vm = viewModel(repository)
         val events = eventsOf(vm)
         val writes = repository.writes
@@ -245,6 +305,20 @@ class TargetsTest : CoroutineTest() {
 
         assertEquals(writes, repository.writes)
         assertEquals(listOf<TargetsEvent>(TargetsEvent.ShowToast(Toast(Res.string.settings_targets_floor_toast))), events)
+    }
+
+    @Test
+    fun aStepPastTheCeilingWritesNothingAndSaysWhy() = runUnitTest {
+        val atCeiling = SettingsFixtures.rangeTargets.copy(energyKcal = 5800, minKcal = 5600, maxKcal = MAX_GOAL_KCAL)
+        val repository = FakeSettingsRepository(SettingsFixtures.settings(targets = atCeiling))
+        val vm = viewModel(repository)
+        val events = eventsOf(vm)
+        val writes = repository.writes
+
+        vm.takeAction(TargetsAction.StepTapped(RangeEnd.High, up = true))
+
+        assertEquals(writes, repository.writes)
+        assertEquals(listOf<TargetsEvent>(TargetsEvent.ShowToast(Toast(Res.string.settings_targets_ceiling_toast))), events)
     }
 
     @Test
@@ -352,27 +426,47 @@ class TargetsTest : CoroutineTest() {
 
         vm.takeAction(TargetsAction.DayTapped(group = 1, day = DayOfWeek.FRIDAY))
         assertTrue(DayOfWeek.FRIDAY in groups()[1].days && DayOfWeek.FRIDAY !in groups()[0].days)
+        vm.takeAction(TargetsAction.DayTapped(group = 1, day = DayOfWeek.FRIDAY))
+        assertTrue(DayOfWeek.FRIDAY in groups()[0].days, "tapped again, it goes back to Other days")
 
         vm.takeAction(TargetsAction.AddGroupTapped)
         assertEquals(3, groups().size)
-        assertEquals(2, vm.state.editingGroup, "a new group opens for editing")
+        assertTrue(vm.state.groups[2].empty)
+        vm.takeAction(TargetsAction.DayTapped(group = 2, day = DayOfWeek.MONDAY))
+        assertEquals(setOf(DayOfWeek.MONDAY), groups()[2].days, "a new group takes its days straight away")
+        assertTrue(DayOfWeek.MONDAY !in groups()[1].days)
 
         vm.takeAction(TargetsAction.StepTapped(RangeEnd.High, up = true, group = 2))
         assertEquals(2350, groups()[2].maxKcal)
 
         vm.takeAction(TargetsAction.RemoveGroupTapped(2))
         assertEquals(2, groups().size)
-        assertNull(vm.state.editingGroup)
+        assertTrue(DayOfWeek.MONDAY in groups()[0].days, "its days go back to Other days")
     }
 
     @Test
-    fun editingAGroupTogglesItsSteppers() = runUnitTest {
-        val vm = viewModel(FakeSettingsRepository(SettingsFixtures.settings(targets = SettingsFixtures.byDayTargets)))
+    fun theFirstGroup_cantBeRemoved_andItsOwnDaysDontMove() = runUnitTest {
+        val repository = FakeSettingsRepository(SettingsFixtures.settings(targets = SettingsFixtures.byDayTargets))
+        val vm = viewModel(repository)
+        val before = repository.targets()
 
-        vm.takeAction(TargetsAction.EditGroupTapped(1))
-        assertNotNull(vm.state.groups[1].low)
-        vm.takeAction(TargetsAction.EditGroupTapped(1))
-        assertNull(vm.state.groups[1].low)
+        vm.takeAction(TargetsAction.RemoveGroupTapped(0))
+        vm.takeAction(TargetsAction.DayTapped(group = 0, day = DayOfWeek.FRIDAY))
+
+        assertEquals(before, repository.targets())
+    }
+
+    @Test
+    fun pickingDifferentByDay_startsWithAnEmptyGroupReadyForItsDays() = runUnitTest {
+        val repository = FakeSettingsRepository()
+        val vm = viewModel(repository)
+
+        vm.takeAction(TargetsAction.StylePicked(StyleKind.ByDay))
+
+        val groups = (repository.targets().style as TargetStyle.ByDay).groups
+        assertEquals(listOf(DayOfWeek.entries.toSet(), emptySet()), groups.map { it.days })
+        assertEquals(listOf(GroupLabel.OtherDays, GroupLabel.Numbered(2)), vm.state.groups.map { it.label })
+        assertTrue(vm.state.groups[1].days.all { it.tappable })
     }
 
     @Test

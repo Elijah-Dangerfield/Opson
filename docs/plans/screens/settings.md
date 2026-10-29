@@ -295,16 +295,18 @@ Domain (`:libraries:nutrition`), all additive so existing callers compile:
   `GOAL_FLOOR_KCAL` is null) and `style: TargetStyle` (`Range`, the default;
   `Deficit(kcal, startingKcal)`; `ByDay(groups)`), and `MAX_DEFICIT_KCAL: Int?
   = null` sits next to the floor with a `TODO(dietitian)`.
-- Each end steps on its own, 50 kcal: `lowerLow()` / `raiseLow()` /
-  `lowerHigh()` / `raiseHigh()`, null when blocked. The floor rule is
-  unchanged and checked inside the write: the low end never goes below
-  `GOAL_FLOOR_KCAL ?: startingMinKcal`, and the aim (the midpoint,
-  `energyKcal`) never below `floorKcal`. Raising the high end is always
-  allowed. The ends stay at least 50 kcal apart.
+- Each end steps on its own, 50 kcal (`step(end, up, group)`), null when
+  blocked, checked inside the write. Since 2026-10-29 the only limits are
+  `floorKcal` (`GOAL_FLOOR_KCAL ?: MIN_GOAL_KCAL`, 800) under the low end and
+  `MAX_GOAL_KCAL` (6,000) over the high end; where the person started is a
+  record, not a limit. A low goal gets a note instead (below). The ends stay
+  at least 50 kcal apart.
 - `rangeFor(date, preset, burnKcal = null): DayGoal` is the one question Today
   and Trends ask. `DayGoal.Range(min, max, target, group)` for a range or a
   day group; `DayGoal.About(kcal)` for a set deficit, `max(burn - deficit,
-  floorKcal)` rounded to 10 ("Goal about 1,870", never "-300"). A deficit
+  workedOutFloorKcal)` rounded to 10 ("Goal about 1,870", never "-300"), where
+  `workedOutFloorKcal` is the floor but never under 1,200, so a quiet day's
+  burn can't work out a goal lower than that for anyone. A deficit
   falls back to the range when the burn is unknown or the preset does not
   allow deficits (`TargetStyle.deficitAllowed`: Full numbers and Sprint).
 - Deficit steps: lowering is always allowed, down to 0; raising stops at
@@ -316,10 +318,18 @@ Domain (`:libraries:nutrition`), all additive so existing callers compile:
   floor does, and "−" goes quiet at 0. A deficit picked with no burn known
   starts at 0, so it is locked at 0 until a burn source or a dietitian's
   maximum exists; a greyed "+" there read as a broken stepper.
-- By day: at most four groups, each weekday in exactly one. Tapping a day in
-  a group moves it there; a day is never removed, only moved. Removing a group
-  hands its days to the first group. Each group has its own range, stepped
-  under the same floor rule.
+- By day: at most four groups, each weekday in exactly one. Picking "Different
+  by day" makes two: every day in the first ("Other days") and an empty second
+  one, so days can be picked at once. A tap on a day (`Targets.toggleDay`)
+  moves it into that group, or a day of that group back to the first; the
+  first group's own days are shown, not buttons, since they have nowhere to go,
+  and the only group shows no days at all ("Add a day group to give some days
+  a goal of their own."). Every group but the first has a remove button in its
+  header and hands its days back to the first. An empty group is harmless (no
+  day reads it, `spanGoal` and the week strip skip it) and says "No days yet.
+  Tap the days this group is for." Every group's controls are always open;
+  there is no edit mode. Each group has its own range, stepped under the same
+  limits.
 
 ```kotlin
 data class TargetsState(
@@ -340,14 +350,29 @@ data class TargetsState(
 |---|---|
 | `InputsArrived(settings, policy)` | |
 | `StylePicked(kind)` | Writes the style at once (design sync 4 replaced the goal style sheet; see "Goals and energy"). |
-| `StepTapped(end, up, group)` | The step inside `SettingsRepository.update`; blocked writes nothing and toasts `The low end can't go down until a dietitian sets a safe floor.` |
+| `StepTapped(end, up, group)` | The step inside `SettingsRepository.update`; blocked writes nothing and toasts the floor, the ceiling or the gap. |
 | `DeficitStepped(up)` | As above; a blocked raise toasts `A bigger deficit needs a limit set with a dietitian first.` |
-| `DayTapped(group, day)` | Moves the day to that group. |
+| `DayTapped(group, day)` | `Targets.toggleDay`: into that group, or back to the first. |
 | `AddGroupTapped` | A new empty group with the first group's range (four at most). |
-| `EditGroupTapped(group)` / `RemoveGroupTapped(group)` | Inline editing in the group card, and removal (not the first group). |
+| `RemoveGroupTapped(group)` | Removes it (not the first group); its days go back to the first. |
+| `FindSupportTapped` | `OpenFindSupport`, with `release.findSupport` only. |
 | `MacroCardTapped` | Opens or closes the Ratios / Grams editor in the card. |
 | `MacroModePicked(mode)` | `settings.macroMode`. |
 | `ModesTapped`, `BackTapped` | `OpenModes`, `Close`. |
+
+**The note under a low goal (2026-10-29).** `GoalSafety`
+(`:libraries:nutrition`) decides it, nothing refuses anything. `LowGoal` when
+the least any day asks for (`spanGoal(preset, burn).minKcal`, so a range by its
+low end and a deficit by today's burn) is under 1,200 for a woman, 1,500 for a
+man, 1,350 when sex isn't said; else `FastDeficit` when a set deficit, the
+style's or a day group's, is over 1,000 a day. The card sits under the goal on
+the warm tint ("This goal is lower than most people should go without a
+doctor's guidance.") with a "Find support" link when `release.findSupport` is
+on. Only where calories show, like every amount here. The page ends with "These
+numbers are estimates to start from, not medical advice." `GoalSafety` also has
+`weightGoalPace(currentKg, goalKg, today, by)` for the goal screen being
+designed separately; no screen calls it yet. One number's typed field says a
+number is under the minimum only once no more digits could help, or on Done.
 
 Burn: 0.1 had no burn source. With `release.goalsAndEnergy` the view model
 reads today's Burned (see "Goals and energy"), and a set deficit and surplus
@@ -423,7 +448,7 @@ numbers only (`TargetStyle.surplusAllowed` is `deficitAllowed`).
   `DayGoal.Exact(kcal)`.
 - `TargetStyle.Deficit` and `Surplus(kcal, startingKcal)` aim at Burned:
   `rangeFor(date, preset, burnKcal = burned.totalKcal)`, never under
-  `GOAL_FLOOR_KCAL` (or where the user started). Either can be picked with or
+  `workedOutFloorKcal`. Either can be picked with or
   without a health app (decisions, 2026-10-27, "A deficit can be chosen"):
   Burned falls back to resting energy plus everyday activity. The caps hold:
   `MAX_DEFICIT_KCAL` and `MAX_SURPLUS_KCAL` stay null (`TODO(dietitian)`,
@@ -441,7 +466,7 @@ numbers only (`TargetStyle.surplusAllowed` is `deficitAllowed`).
   Burned, the group's range until it is known) or `Surplus(kcal,
   startingKcal)` (over Burned, or the group's middle until it is known), the
   last two capped as the styles are and Full numbers only. So Monday can be a
-  range, Tuesday a deficit and Thursday a surplus. Editing a group shows a
+  range, Tuesday a deficit and Thursday a surplus. Each group shows a
   `Range / One number / Deficit / Surplus` switch above the stepper for its
   shape. A new group is a range. On the wire a group keeps `minKcal` and
   `maxKcal` whatever its shape, so a build that predates a shape reads that
@@ -515,11 +540,12 @@ rounded to 10.
 
 Previews: `targets-goal-style-v4`, `targets-exact`, `targets-exact-at-floor`,
 `targets-surplus`, `targets-surplus-no-burn-yet`, `targets-surplus-large-text`,
-`targets-by-day-shapes`, `targets-by-day-surplus-dark`, `resting-energy`,
+`targets-by-day-shapes`, `targets-by-day-surplus-dark`, `targets-by-day-new-group`,
+`targets-low-goal`, `targets-fast-deficit`, `resting-energy`,
 `resting-energy-needs-details`, `resting-energy-own-dark`,
 `resting-energy-large-text`, `energy-today`, `energy-today-no-burned-dark`,
 `energy-today-large-text`. `SURFACES`: `targets-goal-style`, `targets-exact`,
-`targets-surplus`, `targets-by-day-shapes`, `resting-energy`, `energy-today`.
+`targets-surplus`, `targets-by-day-shapes`, `targets-safety-notes`, `resting-energy`, `energy-today`.
 
 ---
 

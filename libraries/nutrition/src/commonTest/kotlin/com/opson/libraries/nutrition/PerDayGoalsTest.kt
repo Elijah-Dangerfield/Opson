@@ -55,7 +55,8 @@ class PerDayGoalsTest {
     fun aDeficitDay_movesWithWhatYouBurn_neverUnderTheFloor() {
         val targets = week(deficitBurn = 2900)
         assertEquals(DayGoal.About(2500, groupIndex = 2), targets.rangeFor(tuesday, PresetId.Full, burnKcal = 3200))
-        assertEquals(DayGoal.About(2100, groupIndex = 2), targets.rangeFor(tuesday, PresetId.Full, burnKcal = 2000), "the floor, where this person started")
+        assertEquals(DayGoal.About(1300, groupIndex = 2), targets.rangeFor(tuesday, PresetId.Full, burnKcal = 2000))
+        assertEquals(DayGoal.About(LOW_GOAL_FEMALE_KCAL, groupIndex = 2), targets.rangeFor(tuesday, PresetId.Full, burnKcal = 1600), "never a worked-out goal under 1,200")
     }
 
     @Test

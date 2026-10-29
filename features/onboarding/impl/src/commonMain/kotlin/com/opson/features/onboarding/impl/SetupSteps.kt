@@ -47,11 +47,11 @@ enum class GoalChoice {
 }
 
 /**
- * The goal as the person leaves the step. [targets] starts at [Targets.Default], where the floor
- * is while no dietitian has set one ([Targets.floorKcal]), or at an ordinary day's burn above it
- * ([startingFrom]). The steps raise and lower it through [Targets.raise] and [Targets.lower], so
- * onboarding can never start anyone below the floor. Macros follow the energy, as ratio mode
- * (the default) does in Targets.
+ * The goal as the person leaves the step. [targets] starts at [Targets.Default], or at an
+ * ordinary day's burn above it ([startingFrom]). The steps raise and lower it through
+ * [Targets.raise] and [Targets.lower], never under [Targets.Default]: Targets lets a goal go lower,
+ * with a note when it is low, but setup has no such note, so it never starts anyone below the
+ * app's starting range. Macros follow the energy, as ratio mode (the default) does in Targets.
  */
 data class GoalAnswer(
     val style: GoalChoice = GoalChoice.Range,
@@ -64,19 +64,23 @@ data class GoalAnswer(
     fun stepped(up: Boolean): GoalAnswer = when {
         style.needsBurn -> this
         up -> copy(targets = targets.raise(scaleMacros = true), edited = true)
-        else -> targets.lower(scaleMacros = true)?.let { copy(targets = it, edited = true) } ?: this
+        canLower -> targets.lower(scaleMacros = true)?.let { copy(targets = it, edited = true) } ?: this
+        else -> this
     }
+
+    /** One step down stays at or above the app's starting range. */
+    val canLower: Boolean get() = targets.canLower && targets.minKcal - Targets.STEP_KCAL >= Targets.Default.minKcal
 
     /**
      * The starting goal from an ordinary day's burn, [burnKcal]: the range around it, to the
-     * nearest step. Never under the floor: [Targets.withEnergy] holds it there, so a low estimate
-     * (or a typo) leaves the app's starting range. Once the person has moved the amount, or with
-     * no burn to start from, the goal is left as it is.
+     * nearest step. Never under the app's starting range, so a low estimate (or a typo) leaves it
+     * there. Once the person has moved the amount, or with no burn to start from, the goal is
+     * left as it is.
      */
     fun startingFrom(burnKcal: Int?): GoalAnswer {
         if (edited) return this
         val aim = burnKcal?.let { (it.toDouble() / Targets.STEP_KCAL).roundToInt() * Targets.STEP_KCAL }
-        val start = aim?.let { Targets.Default.withEnergy(it, scaleMacros = true) } ?: Targets.Default
+        val start = aim?.takeIf { it > Targets.Default.energyKcal }?.let { Targets.Default.withEnergy(it, scaleMacros = true) } ?: Targets.Default
         return copy(targets = start, basedOnKcal = burnKcal?.takeIf { start.energyKcal == aim })
     }
 
@@ -282,7 +286,7 @@ object SetupViews {
             styles = styles.filter { !it.needsBurn || TargetStyle.deficitAllowed(policy.preset.id) },
             style = answer.style,
             amount = amount,
-            canLower = targets.canLower,
+            canLower = answer.canLower,
             basedOn = basedOn,
         )
     }

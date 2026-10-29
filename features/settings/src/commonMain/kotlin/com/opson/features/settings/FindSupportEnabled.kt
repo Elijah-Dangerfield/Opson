@@ -23,5 +23,5 @@ class FindSupportEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfig
     // A literal on purpose: ConfigManifestRegistryDriftTest reads declared paths from source.
     override val path = "release.findSupport"
     override val default = false
-    override val description = "Find support: helplines by country, Support's crisis row and the pause sheet's link"
+    override val description = "Find support: helplines by country, Support's crisis row, and the links from the pause sheet and Targets' low-goal note"
 }

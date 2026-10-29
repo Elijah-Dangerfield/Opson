@@ -261,6 +261,7 @@ class SettingsFeatureEntryPoint(
                     TargetsEvent.OpenModes -> router.navigate(ModesRoute())
                     TargetsEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                     TargetsEvent.OpenMicroTargets -> router.navigate(MicroTargetsRoute())
+                    TargetsEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
                     TargetsEvent.Close -> router.goBack()
                 }
             }

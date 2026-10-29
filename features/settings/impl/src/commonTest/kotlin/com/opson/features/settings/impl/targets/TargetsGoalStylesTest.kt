@@ -6,6 +6,7 @@ import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.findSupportFlag
 import com.opson.features.settings.impl.goalsAndEnergyFlag
 import com.opson.features.settings.impl.integrations.FakeCalendar
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
@@ -16,6 +17,7 @@ import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.MIN_GOAL_KCAL
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -45,13 +47,11 @@ class TargetsGoalStylesTest : CoroutineTest() {
         targets: Targets,
         numbers: NumbersSettings = NumbersSettings(PresetId.Full),
         burned: Burned? = null,
-        editingGroup: Int? = null,
         goalsAndEnergy: Boolean = true,
     ) = TargetsStateBuilder.build(
         SettingsFixtures.settings(numbers, targets),
         SettingsFixtures.policy(numbers),
         burned = burned,
-        editingGroup = editingGroup,
         goalsAndEnergy = goalsAndEnergy,
         healthSource = HealthSource.HealthConnect,
     )
@@ -71,8 +71,24 @@ class TargetsGoalStylesTest : CoroutineTest() {
 
     @Test
     fun oneNumber_atTheFloor_locksItsDownStep() {
-        val atFloor = SettingsFixtures.rangeTargets.copy(startingKcal = 2100).useExact()
+        val atFloor = SettingsFixtures.rangeTargets.withEnergy(MIN_GOAL_KCAL).useExact()
         assertEquals(StepState.Locked, build(atFloor).number?.stepper?.down)
+        assertEquals(StepState.Open, build(SettingsFixtures.rangeTargets.useExact()).number?.stepper?.down, "under where it started is fine")
+    }
+
+    @Test
+    fun oneNumber_typed_saysTooLowOnlyOnceNoDigitCanHelp() {
+        fun typed(text: String, done: Boolean = false) = TargetsStateBuilder.build(
+            SettingsFixtures.settings(NumbersSettings(PresetId.Full), SettingsFixtures.exactTargets),
+            SettingsFixtures.policy(PresetId.Full),
+            drafts = TargetsDrafts(number = text, numberDone = done),
+        ).number!!
+        assertFalse(typed("15").tooLow, "on the way to 1500")
+        assertFalse(typed("500").tooLow, "on the way to 5000")
+        assertTrue(typed("500", done = true).tooLow)
+        assertTrue(typed("700").tooLow, "7000 would be over the maximum, so no digit can help")
+        assertTrue(typed("7000").tooHigh)
+        assertFalse(typed("1500", done = true).tooLow)
     }
 
     // --- builder: surplus ---
@@ -108,7 +124,7 @@ class TargetsGoalStylesTest : CoroutineTest() {
     fun noModeWithoutShownCaloriesSeesEitherStyle() {
         listOf(NumbersSettings(PresetId.MacrosOnly), NumbersSettings.later(), NumbersSettings(PresetId.NoNumbers)).forEach { numbers ->
             listOf(SettingsFixtures.exactTargets, SettingsFixtures.surplusTargets, SettingsFixtures.shapedByDayTargets).forEach { targets ->
-                val state = build(targets, numbers, burned = SettingsFixtures.burned, editingGroup = 1)
+                val state = build(targets, numbers, burned = SettingsFixtures.burned)
                 assertEquals(TargetsState(loaded = true, visible = false), state, "in $numbers")
             }
         }
@@ -147,25 +163,25 @@ class TargetsGoalStylesTest : CoroutineTest() {
         assertEquals(Display.Shown("2,500 kcal"), groups[1].summary)
         assertEquals(Display.Shown("2,400 kcal"), groups[2].summary, "300 over the group's 2,100 until Burned is known")
         assertEquals(Display.Shown("2,480 kcal"), build(SettingsFixtures.shapedByDayTargets, burned = SettingsFixtures.burned).groups[2].summary)
-        assertTrue(groups.all { it.shapes.isEmpty() }, "shapes only while editing")
+        assertTrue(groups.all { it.shapes == ShapeKind.entries }, "every group open on its shapes")
     }
 
     @Test
-    fun editingAGroup_opensTheStepperForItsShape_andTheShapes() {
-        val exact = build(SettingsFixtures.shapedByDayTargets, editingGroup = 1).groups[1]
+    fun eachGroup_showsTheStepperForItsShape_andTheShapes() {
+        val exact = build(SettingsFixtures.shapedByDayTargets).groups[1]
         assertEquals(ShapeKind.entries, exact.shapes)
         assertEquals(Display.Shown("2,500"), exact.number?.value)
         assertNull(exact.low)
         assertNull(exact.surplus)
 
-        val surplus = build(SettingsFixtures.shapedByDayTargets, editingGroup = 2).groups[2]
+        val surplus = build(SettingsFixtures.shapedByDayTargets).groups[2]
         assertEquals(Display.Shown("300"), surplus.surplus?.value)
         assertNull(surplus.number)
     }
 
     @Test
     fun withTheFlagOff_aGroupOffersNoShapes_butKeepsTheOneItHas() {
-        val group = build(SettingsFixtures.shapedByDayTargets, editingGroup = 1, goalsAndEnergy = false).groups[1]
+        val group = build(SettingsFixtures.shapedByDayTargets, goalsAndEnergy = false).groups[1]
 
         assertEquals(emptyList(), group.shapes)
         assertEquals(ShapeKind.Exact, group.shape)
@@ -215,6 +231,7 @@ class TargetsGoalStylesTest : CoroutineTest() {
             goalsAndEnergyFlag(on = flag),
             burned,
             FakeCalendar(),
+            findSupportFlag(),
         )
 
     private fun FakeSettingsRepository.targets(): Targets = state.value.targets
@@ -277,7 +294,7 @@ class TargetsGoalStylesTest : CoroutineTest() {
 
     @Test
     fun numberStepped_pastTheFloor_writesNothingAndSaysWhy() = runUnitTest {
-        val repository = repositoryWith(SettingsFixtures.rangeTargets.copy(startingKcal = 2100).useExact())
+        val repository = repositoryWith(SettingsFixtures.rangeTargets.withEnergy(MIN_GOAL_KCAL).useExact())
         val vm = viewModel(repository)
         val events = eventsOf(vm)
         val writes = repository.writes
@@ -320,11 +337,10 @@ class TargetsGoalStylesTest : CoroutineTest() {
         val vm = viewModel(repository)
         fun groups() = (repository.targets().style as TargetStyle.ByDay).groups
 
-        vm.takeAction(TargetsAction.EditGroupTapped(1))
         vm.takeAction(TargetsAction.GroupShapePicked(1, ShapeKind.Exact))
         assertEquals(GroupShape.Exact, groups()[1].shape)
         assertEquals(ShapeKind.Exact, vm.state.groups[1].shape)
-        assertNotNull(vm.state.groups[1].number, "the group stays open on its new stepper")
+        assertNotNull(vm.state.groups[1].number, "the group shows its new stepper")
 
         // The group's middle is 2,500; against 2,180 burned that is 320 over, floored to 300.
         vm.takeAction(TargetsAction.GroupShapePicked(1, ShapeKind.Surplus))

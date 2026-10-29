@@ -164,13 +164,13 @@ class SettingsTest {
     }
 
     @Test
-    fun aTargetWithoutItsStartingPointKeepsTheFloorWhereItIs() {
+    fun aTargetWithoutItsStartingPoint_startsFromWhereItIs() {
         val decoded = SettingsJson.decodeFromString(
             Settings.serializer(),
             """{"targets":{"energyKcal":2300,"minKcal":2100,"maxKcal":2500,"proteinG":120,"carbsG":250,"fatG":70,"fiberG":30}}""",
         )
 
-        assertEquals(2300, decoded.targets.floorKcal)
+        assertEquals(2300, decoded.targets.startingKcal)
     }
 
     @Test
@@ -316,13 +316,13 @@ class SettingsTest {
     }
 
     @Test
-    fun targetsFromBeforeGoalStylesAreARange_withTheLowEndPinned() {
+    fun targetsFromBeforeGoalStylesAreARange_thatStartedWhereItIs() {
         val decoded = SettingsJson.decodeFromString(
             Settings.serializer(),
             """{"targets":{"energyKcal":2100,"minKcal":1900,"maxKcal":2300,"proteinG":120,"carbsG":250,"fatG":70,"fiberG":30}}""",
         )
         assertEquals(TargetStyle.Range, decoded.targets.style)
-        assertEquals(1900, decoded.targets.lowFloorKcal)
+        assertEquals(1900, decoded.targets.startingMinKcal)
     }
 
     @Test
@@ -339,7 +339,7 @@ class SettingsTest {
         // A day in two groups stays in the first; days in none join the first; a range under the floor takes the base.
         val repaired = decode(
             """{"kind":"by_day","groups":[{"days":["mon","tue"],"minKcal":1900,"maxKcal":2300},""" +
-                """{"days":["tue","sat"],"minKcal":1200,"maxKcal":1400}]}""",
+                """{"days":["tue","sat"],"minKcal":500,"maxKcal":700}]}""",
         )
         val groups = (repaired as TargetStyle.ByDay).groups
         assertEquals(DayOfWeek.entries.toSet() - DayOfWeek.SATURDAY, groups[0].days)
