@@ -61,6 +61,9 @@ data class AppData(
      * change. Account-scoped.
      */
     val healthEnergy: HealthEnergySnapshot? = null,
+
+    /** The day ("2026-10-29") the person put away Today's happy birthday line, so it stays away that day. Account-scoped. */
+    val birthdayThankedOn: String? = null,
 )
 
 /** One reading of a day's energy, in kcal, and when it was read (epoch ms). [day] is ISO, `2026-10-29`. */
@@ -106,4 +109,5 @@ fun AppData.resetAccountScoped(): AppData = copy(
     healthWeighIns = false,
     healthImportedWeighIns = emptyList(),
     healthEnergy = null,
+    birthdayThankedOn = null,
 )
