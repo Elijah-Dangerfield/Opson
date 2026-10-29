@@ -66,6 +66,16 @@ has no Open Food Facts results until `FOOD_SEARCH_OFF_ENABLED` is on for prod.
 A newer TestFlight build needs its own rules, or widen these with the admin
 console. `main` still says 0.1.0: the bump was local, for this build only.
 
+**TestFlight 0.2.0 (202610290944), versionCode 703 (2026-10-29).** Built from
+`341a9a72`, internal testers only, pointed at prod. The prod rules above now run
+700 to 703, and build 703 alone also gets `release.exercise`,
+`release.providerSummary`, `release.submitFood`, `release.repeats` and
+`release.medication`. Two things a laptop build needs that the credential store
+lacks: a UTF-8 locale for fastlane (now handled in the Fastfile) and
+`GRAFANA_LOGS_WRITE_TOKEN`, which is account-wide and was taken from Cards'
+`local.properties` for this build. Add `grafana.logsWriteToken` to the store so
+`scripts/beta_ios.sh` stops failing the release check as half configured.
+
 **Website:** live at https://www.opsontracker.com (the bare domain forwards).
 What has to happen before 0.2 ships is in `docs/plans/0.2/release-checklist.md`.
 
