@@ -7,6 +7,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import com.opson.features.qa.QaMenuRoute
+import com.opson.features.qa.QaPromptsRoute
 import com.opson.features.settings.MoreRowContribution
 import com.opson.features.today.CheckInRoute
 import com.opson.libraries.flowroutines.ObserveEvents
@@ -35,6 +36,7 @@ import kotlin.native.HiddenFromObjC
 @Inject
 class QaFeatureEntryPoint(
     private val qaViewModel: (QaStateBuilder.BuildFacts) -> QaViewModel,
+    private val qaPromptsViewModel: () -> QaPromptsViewModel,
     private val qaAccess: QaAccess,
 ) : FeatureEntryPoint {
 
@@ -49,10 +51,22 @@ class QaFeatureEntryPoint(
                 when (event) {
                     is QaEvent.ShowToast -> showSnackBar(message = getString(event.toast.message, *event.toast.args.toTypedArray()))
                     is QaEvent.OpenCheckIn -> router.navigate(CheckInRoute(event.dayIso))
+                    QaEvent.OpenPrompts -> router.navigate(QaPromptsRoute())
                     QaEvent.Close -> router.goBack()
                 }
             }
             QaScreen(state = state, onAction = viewModel::takeAction)
+        }
+        screen<QaPromptsRoute> {
+            val viewModel: QaPromptsViewModel = viewModel { qaPromptsViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is QaPromptsEvent.ShowToast -> showSnackBar(message = getString(event.toast.message, *event.toast.args.toTypedArray()))
+                    QaPromptsEvent.Close -> router.goBack()
+                }
+            }
+            QaPromptsScreen(state = state, onAction = viewModel::takeAction)
         }
     }
 }

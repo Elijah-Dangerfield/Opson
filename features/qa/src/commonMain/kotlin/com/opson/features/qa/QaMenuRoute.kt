@@ -13,3 +13,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 class QaMenuRoute : Route()
+
+/** The QA menu's Prompts page: each prompt, why it would or would not show on Today, and resets. Gated like [QaMenuRoute]. */
+@Serializable
+class QaPromptsRoute : Route()
