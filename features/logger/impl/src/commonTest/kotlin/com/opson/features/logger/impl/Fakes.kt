@@ -1,5 +1,7 @@
 package com.opson.features.logger.impl
 
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import com.opson.libraries.core.AppState
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.fixed
@@ -638,6 +640,8 @@ class RecordingVoiceTelemetry : VoiceTelemetry {
 fun fastingFlag(on: Boolean): FastingRelease = FastingRelease { on }
 
 /** What the server says this account may use; today's default unless a test says otherwise. */
+@OptIn(ExperimentalObjCRefinement::class)
+@HiddenFromObjC
 class FakeEntitlements(held: Set<Entitlement> = Entitlement.DEFAULTS) : EntitlementRepository {
     override val entitlements = MutableStateFlow(held)
 }

@@ -22,6 +22,7 @@ import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.identity.auth.DeleteAccountOutcome
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.flow.first
+import com.opson.integration.helpers.InProcessServer
 import java.util.UUID
 import kotlin.random.Random
 import kotlin.test.Test
@@ -71,6 +72,27 @@ class DeleteEverythingTest : IntegrationTest() {
         assertIs<SubmitResult.Submitted>(foodLabels.submit(submission))
     }
 
+    /**
+     * Rows a phone can't write: a role, a grant and their audit are set from the admin console,
+     * and a food report needs a catalog food to point at. Written straight to the database so
+     * the delete is still seen to empty those tables.
+     */
+    private fun InProcessServer.fillServerOnlyTables(user: String) {
+        sql("INSERT INTO user_roles (user_id, role, granted_by) VALUES (?::uuid, 'builder', 'test')", user)
+        sql(
+            "INSERT INTO entitlement_grants (id, user_id, kind, key, granted_by) VALUES (?::uuid, ?::uuid, 'bundle', 'pro', 'test')",
+            UUID.randomUUID().toString(), user,
+        )
+        sql(
+            "INSERT INTO access_audit (id, actor, action, user_id) VALUES (?::uuid, 'test', 'set_role', ?::uuid)",
+            UUID.randomUUID().toString(), user,
+        )
+        sql(
+            "INSERT INTO food_reports (id, food_id, user_id, reason, snapshot) VALUES (?::uuid, ?::uuid, ?::uuid, 'wrong_calories', '{}'::jsonb)",
+            UUID.randomUUID().toString(), UUID.randomUUID().toString(), user,
+        )
+    }
+
     @Test
     fun deletingTheAccount_leavesNoRowsOnTheServer_andACleanPhone() = integration {
         val user = randomUserId()
@@ -80,6 +102,7 @@ class DeleteEverythingTest : IntegrationTest() {
         phone.settings.isKnown.awaitState { it }
         phone.fillEveryTable()
         phone.syncNow().getOrThrow()
+        server.fillServerOnlyTables(user)
         val tables = server.userTables()
         // The build is recorded after the response, off the request.
         awaitUntil { server.countFor("user_installs", user) > 0 }

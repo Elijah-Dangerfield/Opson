@@ -41,7 +41,7 @@ class QaPromptsTest : CoroutineTest() {
     }
 
     @Test
-    fun `lists the prompts as they stand, and a reset reloads them`() = runUnitTest {
+    fun `lists the prompts as they stand and a reset reloads them`() = runUnitTest {
         val debug = FakePromptDebug()
         val vm = QaPromptsViewModel(debug)
 
