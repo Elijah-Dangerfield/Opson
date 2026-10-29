@@ -64,6 +64,7 @@ class MedicationDoseRemindersTest : CoroutineTest() {
     @Test
     fun aLoggedDoseCoversItsDaySoTheNudgeIsDropped() = runUnitTest {
         repository.updatePlan { it.withMedication(wegovy).copy(on = true) }
+        repository.logDose(DoseDraft("med", 1.7, DoseUnit.Mg, Instant.parse("2026-10-22T19:00:00Z"), InjectionSite.ThighRight), DoseVia.Medication)
         repository.logDose(DoseDraft("med", 1.7, DoseUnit.Mg, Instant.parse("2026-10-28T19:00:00Z"), InjectionSite.ThighLeft), DoseVia.Medication)
         assertEquals(listOf(DoseNudge("med", thursday, LocalTime(19, 0), covered = true)), reminders.upcoming(monday, 7).first())
     }

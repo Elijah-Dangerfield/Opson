@@ -43,6 +43,10 @@ menu). Where the build differs from the spec below, this section wins.
   is the Medication row in More › Today screen's "In the list", after Fasting, while tracking
   (`MedicationTodaySwitch`). Between weekly doses the card has no Log dose button; it opens the
   Medication page, where Log a dose comes first.
+- **Which dose day a dose is for** (`DoseDays`). Each weekly dose counts for one dose day. A
+  dose after a dose day nothing covered is a late dose for that day, even a day or three before
+  the next one, so the next one still says "Dose day" and keeps its reminder. Otherwise a dose
+  up to three days before a dose day is early for it. A daily dose is for its own day.
 - **Reminders** need `release.reminders` too, since that flag gates every notification.
 - **Not built in v1:** the onboarding offer, the export CSV, Patterns' dose-day markers and
   side-effect strip, the nutrition emphasis card, and a "Started on" date picker (the model has

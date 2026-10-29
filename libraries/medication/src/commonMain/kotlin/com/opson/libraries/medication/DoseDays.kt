@@ -51,9 +51,13 @@ sealed interface DoseStatus {
  * Dose days from a schedule, and which of them a logged dose covers. Pure, so the Today card,
  * the reminder plan and their tests read the same rules.
  *
- * A weekly dose logged up to [EARLY_DAYS] days before its day, or any day after it until the next,
- * counts for that dose day. People shift a weekly shot by a day or two all the time, and a card
- * still saying "Dose day" the morning after an early dose would be wrong.
+ * Each weekly dose is for exactly one dose day. A dose late for a dose day nothing covered yet is
+ * for that day, however near the next one it falls. Otherwise a dose up to [EARLY_DAYS] days
+ * before a dose day is an early dose for it. People shift a weekly shot by a day or two all the
+ * time, and a card still saying "Dose day" the morning after an early dose would be wrong. But a
+ * Friday dose after a missed Monday is that Monday's, so the next Monday is still a dose day and
+ * keeps its reminder. A dose day before the medication was set up here is never waiting for a
+ * late dose. A daily dose is for its own day.
  */
 object DoseDays {
     const val EARLY_DAYS = 3
@@ -79,10 +83,25 @@ object DoseDays {
         DoseSchedule.AsNeeded -> null
     }
 
-    /** Whether a dose of [medicationId] logged between [due]'s early window and [upTo] covers [due]. */
-    fun covered(schedule: DoseSchedule, due: LocalDate, upTo: LocalDate, medicationId: String, doses: List<MedicationDose>): Boolean {
-        val from = if (schedule is DoseSchedule.Weekly) due.minus(DatePeriod(days = EARLY_DAYS)) else due
-        return doses.any { it.medicationId == medicationId && it.day >= from && it.day <= upTo }
+    /** Whether a dose of [medication] logged on or before [upTo] is for the dose day [due]. */
+    fun covered(medication: Medication, due: LocalDate, doses: List<MedicationDose>, upTo: LocalDate = due): Boolean =
+        due in coveredDays(medication, doses, upTo)
+
+    /** The dose days [medication]'s doses up to [upTo] are for, each dose for one day at most. */
+    private fun coveredDays(medication: Medication, doses: List<MedicationDose>, upTo: LocalDate): Set<LocalDate> {
+        val mine = doses.filter { it.medicationId == medication.id && it.day <= upTo }
+        val schedule = medication.schedule as? DoseSchedule.Weekly ?: return mine.mapTo(mutableSetOf()) { it.day }
+        val covered = mutableSetOf<LocalDate>()
+        mine.sortedWith(compareBy({ it.day }, { it.takenAt })).forEach { dose ->
+            val before = checkNotNull(lastDue(schedule, dose.day))
+            val after = before.plus(DatePeriod(days = WEEK))
+            when {
+                before >= medication.addedOn && before !in covered -> covered += before
+                dose.day >= after.minus(DatePeriod(days = EARLY_DAYS)) -> covered += after
+                // A second dose for a day already covered: it covers nothing more.
+            }
+        }
+        return covered
     }
 
     /** Today's status for [medication]. [doses] may be in any order and hold other medications'. */
@@ -98,7 +117,7 @@ object DoseDays {
                 val due = checkNotNull(lastDue(schedule, today))
                 val next = nextDue(schedule, today)
                 when {
-                    covered(schedule, due, today, medication.id, mine) -> DoseStatus.Between(last, next)
+                    covered(medication, due, mine, upTo = today) -> DoseStatus.Between(last, next)
                     due == today -> DoseStatus.Due(site)
                     due < medication.addedOn || plan.skippedDue == due -> DoseStatus.Between(last, next)
                     else -> DoseStatus.NotLogged(due, site)
@@ -112,7 +131,7 @@ object DoseDays {
         val time = medication.schedule.reminderTime ?: return emptyList()
         return (0 until days).map { from.plus(DatePeriod(days = it)) }
             .filter { it >= medication.addedOn && isDue(medication.schedule, it) }
-            .map { date -> DueDay(date, time, covered(medication.schedule, date, date, medication.id, doses)) }
+            .map { date -> DueDay(date, time, covered(medication, date, doses)) }
     }
 
     data class DueDay(val date: LocalDate, val time: LocalTime, val covered: Boolean)

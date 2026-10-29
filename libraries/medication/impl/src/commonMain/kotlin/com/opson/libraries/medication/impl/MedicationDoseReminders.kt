@@ -49,7 +49,7 @@ class MedicationDoseReminders(
         val medication = plan.medication?.takeIf { it.id == medicationId } ?: return
         val amount = medication.currentDose ?: return
         val doses = repository.observeDoses().first()
-        if (DoseDays.covered(medication.schedule, date, date, medication.id, doses)) return
+        if (DoseDays.covered(medication, date, doses)) return
         val site = if (medication.injected) SiteRotation.next(plan.sites, doses) else null
         repository.logDose(DoseDraft(medication.id, amount, medication.doseUnit, at, site), DoseVia.AlreadyDid)
     }
