@@ -187,6 +187,8 @@ fun App(appComponent: AppComponent) {
             appRecomposeLogger.e {
                 "Rapid recompositions: ${info.countInWindow} in ${info.windowMillis}ms (total=${info.totalCount})"
             }
+            // Debug builds only (showDebugSnackBar is a no-op in release): a note to the developer, not copy.
+            @Suppress("VerifyStringArguments")
             showDebugSnackBar(
                 title = "Performance hiccup",
                 message = "App recomposed ${info.countInWindow}× in ${info.windowMillis}ms.",
