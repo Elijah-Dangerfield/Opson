@@ -102,6 +102,17 @@ object BarcodeChoice {
 
     fun best(candidates: List<Food>): Food? =
         candidates.firstOrNull { it.energyFlags.none(DOUBTFUL::contains) } ?: candidates.firstOrNull()
+
+    /**
+     * Every candidate, [best] first and the rest in their own order, each row
+     * once (the same source and id twice is one row). What a scan offers to
+     * choose from, so the first is always the food a single answer would be.
+     */
+    fun ordered(candidates: List<Food>): List<Food> {
+        val distinct = candidates.distinctBy { it.source to it.id }
+        val best = best(distinct) ?: return emptyList()
+        return listOf(best) + distinct.filterNot { it.source == best.source && it.id == best.id }
+    }
 }
 
 /**
@@ -224,6 +235,14 @@ interface FoodCatalogRepository {
     suspend fun findByBarcode(barcode: String): Food?
 
     /**
+     * Every food for the code, as [findByBarcode] weighs them: its answer
+     * first, then the other rows best tier first ([BarcodeChoice.ordered]).
+     * Empty when the catalog has none. What a scan that asks for every match
+     * is given (`?matches=all`).
+     */
+    suspend fun findAllByBarcode(barcode: String): List<Food> = listOfNotNull(findByBarcode(barcode))
+
+    /**
      * Insert or refresh a product an outside source returned, keyed on
      * `(source, source_id = barcode)`. Returns the stored row, whose id is
      * stable across refreshes.
@@ -311,7 +330,12 @@ fun interface LiveFoodSources {
 }
 
 sealed interface BarcodeLookupResult {
-    data class Found(val food: Food) : BarcodeLookupResult
+    /**
+     * [food] is the answer; [matches] every food the lookup found for the
+     * code, [food] first. Only the catalog finds more than one: an outside
+     * source is asked on a miss, and the first that knows the code answers.
+     */
+    data class Found(val food: Food, val matches: List<Food> = listOf(food)) : BarcodeLookupResult
     data object NotFound : BarcodeLookupResult
     data object Unavailable : BarcodeLookupResult
 }

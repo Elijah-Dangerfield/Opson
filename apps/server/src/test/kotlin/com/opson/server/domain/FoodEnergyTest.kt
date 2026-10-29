@@ -88,6 +88,18 @@ class FoodEnergyTest {
         assertSame(cola, BarcodeChoice.best(listOf(cola, off)))
     }
 
+    /** Every match for the code, for a scan that lists them: the one [BarcodeChoice.best] picks first, each row once. */
+    @Test
+    fun everyMatchIsOfferedWithTheBestFirstAndNoRowTwice() {
+        val branded = ServedFood.of(brandedMonster, null)
+        val off = ServedFood.of(offMonster, null)
+        val opdb = food(CatalogSource.UserSubmitted, kcal = 2.1, carbs = 1.2)
+        assertEquals(listOf(off, branded, opdb), BarcodeChoice.ordered(listOf(branded, off, opdb, branded)))
+        val cola = food(CatalogSource.UsdaBranded, kcal = 42.0, carbs = 10.6)
+        assertEquals(listOf(cola, off), BarcodeChoice.ordered(listOf(cola, off)), "a sound Branded row keeps first place")
+        assertEquals(emptyList(), BarcodeChoice.ordered(emptyList()))
+    }
+
     @Test
     fun aZeroTheMacrosAgreeWithStaysZero() {
         val dietCola = food(CatalogSource.UsdaBranded, kcal = 0.0, carbs = 0.0, portions = listOf(Portion("1 can (355 ml)", null)))

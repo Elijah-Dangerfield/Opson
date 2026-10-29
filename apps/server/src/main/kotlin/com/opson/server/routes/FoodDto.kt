@@ -39,6 +39,26 @@ data class FoodResponse(
     val tier: Int,
     val verified: Boolean,
     val reviewStatus: String? = null,
+    /**
+     * Only on `GET /v1/foods/barcode/{code}?matches=all`: every food for the
+     * code, this one first ([BarcodeMatchDto]). Null, so left out, everywhere
+     * else, which keeps every other answer exactly what it was.
+     */
+    val matches: List<BarcodeMatchDto>? = null,
+)
+
+/**
+ * One food a scanned code matched, with what the server knows about its
+ * numbers. `energyCheck` is what the energy guard caught (`zero_with_macros`,
+ * `from_macros`, `energy_without_macros`; the food's numbers are already as
+ * served); `corrected` when a reviewer's correction is laid over the source's
+ * numbers.
+ */
+@Serializable
+data class BarcodeMatchDto(
+    val food: FoodResponse,
+    val energyCheck: List<String> = emptyList(),
+    val corrected: Boolean = false,
 )
 
 @Serializable
@@ -132,6 +152,16 @@ fun Food.toResponse(): FoodResponse = FoodResponse(
     tier = tier.wire,
     verified = verified,
     reviewStatus = reviewStatus.takeIf { it != SubmissionStatus.Approved }?.wire,
+)
+
+/** [food] as a scan's answer that lists every match: [matches] are every food found, [food] first. */
+fun barcodeResponse(food: Food, matches: List<Food>): FoodResponse =
+    food.toResponse().copy(matches = matches.map { it.toMatchDto() })
+
+fun Food.toMatchDto(): BarcodeMatchDto = BarcodeMatchDto(
+    food = toResponse(),
+    energyCheck = energyFlags.map { it.wire }.sorted(),
+    corrected = correction != null,
 )
 
 fun DescribedItem.toDto(): DescribedItemDto = DescribedItemDto(

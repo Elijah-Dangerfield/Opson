@@ -54,6 +54,7 @@ import kotlinx.serialization.json.Json
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class FoodRoutesTest {
@@ -310,6 +311,45 @@ class FoodRoutesTest {
             val community = client.get("/v1/foods/${scanned.id}") { auth() }.body<FoodResponse>()
             assertEquals(4 to false, community.tier to community.verified)
             assertEquals("usda_branded", client.get("/v1/foods/${cola.id}") { auth() }.body<FoodResponse>().source)
+        }
+    }
+
+    /**
+     * `?matches=all` lists every food the code has, the answer first, each with its energy check
+     * and correction. Without it, the body is byte for byte what it was, so an older app that
+     * decodes strictly never meets the new key.
+     */
+    @Test
+    fun everyMatchOnlyForAnAppThatAsks() = runTest {
+        val branded = com.opson.server.domain.ServedFood.of(
+            food("Energy Drink", kcal = 0.0, source = CatalogSource.UsdaBranded, barcode = "00070847012474", portions = listOf(Portion("8.0 fl oz (240 ml)", 240.0)))
+                .copy(per100g = Nutrients(kcal = 0.0, protein = 0.0, carbs = 0.83, fat = 0.0)),
+            correction = null,
+        )
+        val off = food("Zero Ultra", kcal = 2.0, source = CatalogSource.OpenFoodFacts, barcode = "0070847012474")
+        @OptIn(kotlin.time.ExperimentalTime::class)
+        val opdb = food("Zero Ultra", kcal = 2.1, source = CatalogSource.UserSubmitted, barcode = "00070847012474")
+            .copy(verified = true, correction = com.opson.server.domain.CorrectionMark(UUID.randomUUID(), kotlin.time.Instant.fromEpochSeconds(0), "reviewer"))
+        val lookup = FakeBarcodeLookup(BarcodeLookupResult.Found(off, listOf(off, branded, opdb)))
+        val reports = FakeFoodReportRepository()
+        withApp(lookup = lookup, reports = reports) { client ->
+            val plain = client.get("/v1/foods/barcode/070847012474") { auth() }.bodyAsText()
+            val asServed = Json { encodeDefaults = true; explicitNulls = false }
+            assertEquals(asServed.encodeToString(FoodResponse.serializer(), off.toResponse()), plain)
+            assertTrue("matches" !in plain)
+
+            val all = client.get("/v1/foods/barcode/070847012474?matches=all") { auth() }.body<FoodResponse>()
+            assertEquals(off.id.toString(), all.id, "the answer itself is unchanged")
+            val matches = assertNotNull(all.matches)
+            assertEquals(listOf(off.id, branded.id, opdb.id).map { it.toString() }, matches.map { it.food.id })
+            assertEquals(listOf("off", "usda_branded", "user_submitted"), matches.map { it.food.source })
+            assertEquals(listOf(emptyList(), listOf("zero_with_macros"), emptyList()), matches.map { it.energyCheck })
+            assertEquals(listOf(false, false, true), matches.map { it.corrected })
+            assertEquals(listOf(false, true, true), matches.map { it.food.verified })
+            assertEquals(2.1, matches[1].food.per100g.kcal, "the guard's estimate, as served")
+            assertTrue(matches.all { it.food.matches == null }, "a match carries no matches of its own")
+            // Every food the scan shows is filed for review once, as the detail would.
+            assertEquals(listOf(branded.id), reports.energyFlagged)
         }
     }
 

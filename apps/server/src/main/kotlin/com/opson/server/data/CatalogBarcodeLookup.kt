@@ -18,7 +18,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import java.util.UUID
 
 /**
- * Our catalog first, in any equivalent form of the code. On a miss, each
+ * Our catalog first, in any equivalent form of the code, with every row it
+ * has for it ([FoodCatalogRepository.findAllByBarcode]). On a miss, each
  * enabled outside source in tier order ([LiveFoodSources]); the first one
  * that knows the product answers. A cacheable answer is upserted into
  * `foods`, so the next scan of that code is a catalog hit and every user gets
@@ -38,9 +39,10 @@ class CatalogBarcodeLookup(
 ) : BarcodeLookup {
 
     override suspend fun lookup(barcode: String): BarcodeLookupResult {
-        catalog.findByBarcode(barcode)?.let { food ->
+        val stored = catalog.findAllByBarcode(barcode)
+        if (stored.isNotEmpty()) {
             catalog.recordBarcodeLookup(barcode, BarcodeOutcome.Catalog)
-            return BarcodeLookupResult.Found(food)
+            return BarcodeLookupResult.Found(stored.first(), stored)
         }
         var answered = false
         for (source in sources.inTierOrder()) {
