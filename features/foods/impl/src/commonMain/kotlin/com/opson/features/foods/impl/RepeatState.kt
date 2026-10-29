@@ -82,6 +82,9 @@ sealed interface RepeatNote {
 
     /** An edit to a rule that logged today already. */
     data object LoggedToday : RepeatNote
+
+    /** An edit to a rule that has had today, and its foods were removed since: it won't log them again. */
+    data object DoneToday : RepeatNote
     data object Tomorrow : RepeatNote
     data class NextOn(val day: LocalDate) : RepeatNote
     data object Never : RepeatNote
@@ -130,11 +133,15 @@ data class RepeatDraft(
 }
 
 sealed interface RepeatAction {
-    /** Everything the form reads besides the draft. [loggedToday] is whether this rule's foods are on today. */
+    /**
+     * Everything the form reads besides the draft. [ranToday] is whether this rule has had today
+     * (`RepeatRepository.observeHasRun`), [loggedToday] whether its foods are still on it.
+     */
     data class InputsArrived(
         val meals: List<SavedMeal>,
         val today: LocalDate,
         val todayOpen: Boolean,
+        val ranToday: Boolean,
         val loggedToday: Boolean,
     ) : RepeatAction
 
@@ -171,7 +178,8 @@ object RepeatStateBuilder {
         today: LocalDate,
         policy: VisibilityPolicy,
         todayOpen: Boolean = true,
-        loggedToday: Boolean = false,
+        ranToday: Boolean = false,
+        loggedToday: Boolean = ranToday,
     ): RepeatState {
         val bare = FormatContext(bare = true)
         val meal = meals.firstOrNull { it.id == draft.savedMealId }
@@ -200,18 +208,20 @@ object RepeatStateBuilder {
             ends = RepeatEnd.offered + listOfNotNull(draft.end as? RepeatEnd.On),
             end = draft.end,
             paused = draft.paused,
-            note = note(draft, today, todayOpen, loggedToday),
+            note = note(draft, today, todayOpen, ranToday, loggedToday),
             canSave = draft.items.isNotEmpty() && draft.days.isNotEmpty(),
         )
     }
 
-    private fun note(draft: RepeatDraft, today: LocalDate, todayOpen: Boolean, loggedToday: Boolean): RepeatNote {
+    /** A rule that has had today logs nothing more on it, whatever is in the log now; the ledger says so, not the entries. */
+    private fun note(draft: RepeatDraft, today: LocalDate, todayOpen: Boolean, ranToday: Boolean, loggedToday: Boolean): RepeatNote {
         if (draft.paused) return RepeatNote.Paused
         val plan = RepeatPlan(name = "", items = draft.items, slot = draft.slot, days = draft.days, startDay = draft.start, endDay = draft.end.lastDay(draft.start))
         if (plan.fallsOn(today)) {
             when {
                 draft.countsToday.isNotEmpty() -> return RepeatNote.CountsToday
-                loggedToday -> return RepeatNote.LoggedToday
+                ranToday && loggedToday -> return RepeatNote.LoggedToday
+                ranToday -> return RepeatNote.DoneToday
                 todayOpen -> return RepeatNote.LogsToday
             }
         }

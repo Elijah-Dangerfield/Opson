@@ -39,11 +39,17 @@ interface LogEntryDao : ClearableDao {
     fun observeDaysWithEntries(from: String, to: String): Flow<List<String>>
 
     /**
-     * The latest entry of any kind logged at or before [untilEpochMs]: the last time anything was
-     * eaten, for fasting. Bounded because a repeat's foods carry their meal's time, which can be
-     * later today than now.
+     * The latest entry logged at or before [untilEpochMs] that the person logged: the last time
+     * anything was eaten, for fasting. A repeat's foods (in `repeat_logs`) are left out, since
+     * food that logged itself is not proof of eating then: a dinner repeat timed after the
+     * fasting window closed would otherwise stop that evening's fast. Bounded because a repeat
+     * on a day its ledger lost (pulled from another phone) still carries its meal's time, which
+     * can be later today than now.
      */
-    @Query("SELECT * FROM log_entries WHERE deleted = 0 AND loggedAtEpochMs <= :untilEpochMs ORDER BY loggedAtEpochMs DESC LIMIT 1")
+    @Query(
+        "SELECT * FROM log_entries WHERE deleted = 0 AND loggedAtEpochMs <= :untilEpochMs " +
+            "AND id NOT IN (SELECT entryId FROM repeat_logs) ORDER BY loggedAtEpochMs DESC LIMIT 1",
+    )
     suspend fun latestUntil(untilEpochMs: Long): LogEntryEntity?
 
     /**
@@ -206,9 +212,13 @@ interface ExerciseDao : ClearableDao {
     override suspend fun deleteAll()
 }
 
-/** Repeating foods (`RepeatRule`). Reads skip tombstones. */
+/**
+ * Repeating foods (`RepeatRule`). Reads skip tombstones. Not cleared on a user change like the
+ * rest: nothing syncs it, so the sign-out dump would lose it for good. `RepeatOwner` keeps it to
+ * one account and deletes it when another signs in.
+ */
 @Dao
-interface RepeatRuleDao : ClearableDao {
+interface RepeatRuleDao {
     @Upsert
     suspend fun upsert(rows: List<RepeatRuleEntity>)
 
@@ -222,7 +232,7 @@ interface RepeatRuleDao : ClearableDao {
     fun observeAll(): Flow<List<RepeatRuleEntity>>
 
     @Query("DELETE FROM repeat_rules")
-    override suspend fun deleteAll()
+    suspend fun deleteAll()
 }
 
 /** The entries repeats logged, by day. */

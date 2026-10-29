@@ -398,13 +398,14 @@ class TodayViewModel(
 
     private fun Set<String>.toggle(id: String): Set<String> = if (id in this) this - id else this + id
 
-    /** Sets the day's water to the glasses the tap leaves full, so the bar shows exactly what was tapped. */
+    /** Moves the day's water by the glasses the tap adds or takes off ([WaterTaps.mlAfter]). */
     private suspend fun glassTapped(index: Int) {
         val inputs = model.inputs ?: return
         val water = state.water ?: return
         if (index !in 0 until water.total) return
-        val glasses = WaterTaps.glassesAfter(filled = water.filled, tapped = index)
-        written(diary.setWater(inputs.day.date, glasses * inputs.settings.glassMl))
+        val settings = inputs.settings
+        val ml = WaterTaps.mlAfter(inputs.day.waterMl, settings.glassMl, settings.waterGlasses, tapped = index)
+        written(diary.setWater(inputs.day.date, ml))
     }
 
     /** "Clear this day" asks for a second tap. */

@@ -17,6 +17,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.macroEnergy
 import com.opson.libraries.nutrition.resolveRange
+import com.opson.libraries.nutrition.shownOn
 import kotlinx.datetime.LocalDate
 
 /**
@@ -102,7 +103,8 @@ object EnergyTodayStateBuilder {
         val context = day.formatContext(inputs.today)
         val totals = day.totals()
         val eaten = totals.kcal.known
-        val burned = inputs.burned
+        // With calories short of Show, digesting food leaves Burned here, goal and bar scale too, so no amount moves with eaten.
+        val burned = inputs.burned?.shownOn(policy, Surface.Today, context)
         val dayGoal = settings.targets.rangeFor(day.date, settings.numbers.preset, burned?.totalKcal)
         // A goal worked out from Burned already counts the day's activity, as on Today.
         val goal = settings.targets.today(
@@ -117,7 +119,7 @@ object EnergyTodayStateBuilder {
         return EnergyTodayState(
             loaded = true,
             eaten = if (caloriesShown) eatenSection(inputs, policy, context, eaten, scale, goal.minKcal, goal.maxKcal) else null,
-            burned = if (energyOutShown) burnedSection(inputs, policy, context, scale) else null,
+            burned = if (energyOutShown) burnedSection(inputs, burned, policy, context, scale) else null,
             balance = if (caloriesShown && energyOutShown && burned != null) {
                 val difference = burned.totalKcal - eaten
                 Balance(
@@ -165,8 +167,8 @@ object EnergyTodayStateBuilder {
         )
     }
 
-    private fun burnedSection(inputs: EnergyTodayInputs, policy: VisibilityPolicy, context: FormatContext, scale: Double): BurnedSection {
-        val burned = inputs.burned ?: return BurnedSection(known = false)
+    private fun burnedSection(inputs: EnergyTodayInputs, burned: Burned?, policy: VisibilityPolicy, context: FormatContext, scale: Double): BurnedSection {
+        if (burned == null) return BurnedSection(known = false)
         val bare = context.copy(bare = true)
         fun energy(kcal: Int?) = kcal?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Today, bare) } ?: Display.Hidden
         return BurnedSection(

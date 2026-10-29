@@ -87,6 +87,13 @@ interface RepeatRepository {
     suspend fun get(id: String): RepeatRule?
 
     /**
+     * Whether rule [id] has had [day]: it logged its foods there, or "Repeat this" counted a food
+     * as that day's. Still true once those foods are removed, since the rule logs nothing more
+     * that day, so this rather than the day's entries says whether saving will log it.
+     */
+    fun observeHasRun(id: String, day: LocalDate): Flow<Boolean>
+
+    /**
      * Saves a new rule and logs today's foods if today is one of its days. [loggedToday] names
      * entries already logged today that count as today's ("Repeat this" on Today), so the food the
      * person just logged is not logged twice.

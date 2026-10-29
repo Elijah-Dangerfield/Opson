@@ -265,6 +265,11 @@ class FakeRepeatRepository(rules: List<RepeatRule> = emptyList()) : RepeatReposi
 
     override suspend fun get(id: String): RepeatRule? = rules.value.firstOrNull { it.id == id }
 
+    /** Rule ids that have had today, as the ledger would say. */
+    val ranToday = MutableStateFlow(emptySet<String>())
+
+    override fun observeHasRun(id: String, day: LocalDate): Flow<Boolean> = ranToday.map { id in it }
+
     override suspend fun create(plan: RepeatPlan, loggedToday: List<String>): RepeatSaved {
         created += Created(plan, loggedToday)
         val rule = RepeatRule(id = "repeat-${created.size}", plan = plan)

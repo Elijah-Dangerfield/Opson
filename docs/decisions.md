@@ -95,7 +95,11 @@ is a better question at any hour); a Reminders switch kept for the check-in
 of the day's eaten (`THERMIC_EFFECT_OF_FOOD_SHARE`) to Burned as its own part.
 It is not activity: it adds whichever source the day's activity comes from, and
 "Add activity to Burned" off keeps it. Today's Activity card shows it as its own
-line; Energy today has a row for it.
+line; Energy today has a row for it. Only where calories show in full: a tenth of
+eaten is eaten, so with calories short of Show it leaves every Burned amount on
+that screen, line and total (`Burned.shownOn`), even with energy out turned up to
+Show. A calorie target aimed at Burned still counts it, since that target only
+shows where calories do.
 
 **Why:** the owner asked for it. The objection in the 2026-10-27 entry (a deficit
 aimed at Burned moves as food is logged) still holds, so it stays off until
@@ -180,13 +184,23 @@ switch, since this writes to the person's log unasked.
   meal's time from `Settings.mealTimes`, so Today's meal header and learned meal
   times read the meal, not the moment the app opened. That time can be later
   than now, so fasting's "last eaten" now ignores entries timed in the future.
-  Logging this way never ends a fast. Closed and untracked days are skipped and
+  Logging this way never ends a fast, and never stops one starting: "last
+  eaten" leaves out every entry in `repeat_logs`, so a dinner repeat timed
+  after the window closed does not cancel that evening's fast. Closed and untracked days are skipped and
   not recorded, so reopening or tracking the day again lets the next run log it.
 - **Not synced yet.** The prod server could not be redeployed for this, and
   settings JSON was ruled out: older builds drop unknown keys on save (which
   would erase the rules) and it would put the rules' food snapshots into a
-  64 KB blob. So `repeat_rules` (Room 12) is device-local, wiped on a user
-  change like every diary table, and lost on reinstall. It already has what an
+  64 KB blob. So `repeat_rules` (Room 12) is device-local and lost on
+  reinstall. It is the one diary table a sign-out keeps: the dump is safe for
+  the rest because the server gives them back, and these it would lose for good.
+  `RepeatOwner` records whose they are (one account per phone, in a small cache,
+  so no migration): the same account signing back in finds them, nobody sees or
+  logs any while signed out, and a different account signing in deletes them
+  and their ledger before it can read one. Rules from before the owner was
+  recorded go to the first account seen signed in, or at a user change before
+  that, as they always did. A deleted account's rules stay, inert, until the
+  next sign-in deletes them. It already has what an
   outbox row needs (UUID, `clientUpdatedAt`, tombstone); syncing it is a new
   `SyncEntity`, a server table and migration, and nothing else on the client.
   Until then a rule set up separately on two phones has two ids and logs twice.

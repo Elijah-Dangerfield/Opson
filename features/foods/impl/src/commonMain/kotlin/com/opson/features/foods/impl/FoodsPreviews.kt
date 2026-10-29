@@ -192,3 +192,8 @@ private fun FoodsRepeatEmptyPreview() = Repeat(FoodsFixtures.repeatState(full, e
 @Preview(widthDp = 390, heightDp = 1300)
 @Composable
 private fun FoodsRepeatEditPreview() = Repeat(FoodsFixtures.repeatState(full, edit = true))
+
+/** An edit after today's food was removed: the note says it won't log again today. */
+@Preview(widthDp = 390, heightDp = 1300)
+@Composable
+private fun FoodsRepeatDoneTodayPreview() = Repeat(FoodsFixtures.repeatDoneTodayState(full))

@@ -757,6 +757,33 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun aGlassTap_movesTheWaterByGlasses_keepingWhatTheBarCannotShow() = runUnitTest {
+        val glass = settings.state.value.glassMl
+        diary.days.value = diary.days.value + (today to TodayFixtures.day().copy(waterMl = 830))
+        val vm = vm()
+        assertEquals(3, vm.state.water?.filled)
+
+        vm.takeAction(TodayAction.WaterGlassTapped(2))
+        vm.takeAction(TodayAction.WaterGlassTapped(5))
+
+        assertEquals(listOf(today to 830 - glass, today to 830 + 3 * glass), diary.setWater, "the part glass stays")
+    }
+
+    @Test
+    fun aGlassTapPastTheGoal_takesOneGlassOff_notTheDay() = runUnitTest {
+        val goal = settings.state.value.waterGlasses
+        val glass = settings.state.value.glassMl
+        val ml = (goal + 4) * glass
+        diary.days.value = diary.days.value + (today to TodayFixtures.day().copy(waterMl = ml))
+        val vm = vm()
+        assertEquals(goal, vm.state.water?.filled, "the bar stops at the goal")
+
+        vm.takeAction(TodayAction.WaterGlassTapped(goal - 1))
+
+        assertEquals(listOf(today to ml - glass), diary.setWater)
+    }
+
+    @Test
     fun aGlassTapOnAClosedDay_addsNothing_andSaysTheDayIsClosed() = runUnitTest {
         diary.days.value = diary.days.value + (today to TodayFixtures.day().copy(closedAt = clock.now))
         val vm = vm()
@@ -775,6 +802,18 @@ class TodayViewModelTest : CoroutineTest() {
         assertEquals(1, WaterTaps.glassesAfter(filled = 3, tapped = 0), "an earlier full glass: down to it")
         assertEquals(0, WaterTaps.glassesAfter(filled = 1, tapped = 0))
         assertEquals(1, WaterTaps.glassesAfter(filled = 0, tapped = 0))
+    }
+
+    @Test
+    fun waterTaps_mlAfter_addsOrTakesOffGlassesFromWhatIsLogged() {
+        assertEquals(1_750, WaterTaps.mlAfter(ml = 2_000, glassMl = 250, goalGlasses = 8, tapped = 7), "the last glass: one off")
+        assertEquals(2_750, WaterTaps.mlAfter(ml = 3_000, glassMl = 250, goalGlasses = 8, tapped = 7), "past the goal: still one off")
+        assertEquals(1_000, WaterTaps.mlAfter(ml = 3_000, glassMl = 250, goalGlasses = 8, tapped = 3), "an earlier glass: the bar lands on it")
+        assertEquals(580, WaterTaps.mlAfter(ml = 830, glassMl = 250, goalGlasses = 8, tapped = 2))
+        assertEquals(1_330, WaterTaps.mlAfter(ml = 830, glassMl = 250, goalGlasses = 8, tapped = 4))
+        assertEquals(330, WaterTaps.mlAfter(ml = 830, glassMl = 250, goalGlasses = 8, tapped = 0))
+        assertEquals(0, WaterTaps.mlAfter(ml = 250, glassMl = 250, goalGlasses = 8, tapped = 0))
+        assertEquals(370, WaterTaps.mlAfter(ml = 120, glassMl = 250, goalGlasses = 8, tapped = 0), "a part glass, then the first tap")
     }
 
     @Test

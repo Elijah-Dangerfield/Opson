@@ -43,6 +43,10 @@ class LeakTestControlTest(private val surface: LeakSurface) {
             "${surface.id} shows energy out, so EnergyOutHiddenLeakTest.ENERGY_OUT_SURFACES has to list it.",
         )
         assertFalse(
+            compose.digestingLines() > 0 && surface.id !in DigestingFoodLeakTest.DIGESTING_SURFACES,
+            "${surface.id} shows digesting food, so DigestingFoodLeakTest.DIGESTING_SURFACES has to list it.",
+        )
+        assertFalse(
             compose.microTexts().isNotEmpty() && surface.id !in MicrosHiddenLeakTest.MICROS_SURFACES,
             "${surface.id} shows vitamins or minerals, so MicrosHiddenLeakTest.MICROS_SURFACES has to list it.",
         )

@@ -273,9 +273,11 @@ hunger toggle, old fullness and moods kept, empty clears, trimmed save.
 
 The card itself takes taps too: each glass is a target (`WaterGlassTapped(index)`
 on `TodayViewModel`). A tap fills the glasses up to the one tapped, and a tap on
-the last full glass empties it (`WaterTaps.glassesAfter`); the day's water is set
-to that many glasses (`setWater`), so the bar shows exactly what was tapped. A
-closed day takes no taps.
+the last full glass empties it (`WaterTaps.glassesAfter`). The day's water moves
+by the glasses added or taken off (`WaterTaps.mlAfter`, then `setWater`), never
+to that many glasses outright: the bar floors the amount and stops at the goal,
+so 830 ml keeps its 80 ml and a tap on the last glass at 3,000 ml takes off one
+glass, not 1,250 ml. A closed day takes no taps.
 
 ```kotlin
 data class WaterSheetState(

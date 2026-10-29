@@ -76,6 +76,19 @@ class EnergyTodayTest : CoroutineTest() {
         assertEquals(Display.Hidden, assertNotNull(build().burned).food, "off, there is no row")
     }
 
+    /** A tenth of eaten is eaten: energy out turned up by hand over hidden calories leaves digesting food out of Burned. */
+    @Test
+    fun digestingFood_withCaloriesHidden_isNotInBurned() {
+        val inputs = EnergyTodayFixtures.inputs().copy(burned = SettingsFixtures.burned.copy(foodKcal = 125))
+        val withFood = EnergyTodayStateBuilder.build(inputs, SettingsFixtures.policy(NumbersSettings(preset = PresetId.MacrosOnly, overrides = mapOf(Metric.EnergyOut to Visibility.Show))))
+        val without = build(PresetId.MacrosOnly, overrides = mapOf(Metric.EnergyOut to Visibility.Show))
+        val burned = assertNotNull(withFood.burned)
+
+        assertEquals(Display.Hidden, burned.food)
+        assertEquals(Display.Shown("2,180"), burned.total)
+        assertEquals(without.burned, burned, "every amount and share as if it were off")
+    }
+
     @Test
     fun theDeficitSoFar_andTheGapToTheRange() {
         val state = build()

@@ -25,10 +25,12 @@ import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseTotals
 import com.opson.libraries.nutrition.HealthActivity
+import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingEnergy
 import com.opson.libraries.nutrition.RestingFrom
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.burnedFor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -121,6 +123,16 @@ class TodayActivityTest : CoroutineTest() {
 
         assertEquals(listOf("Resting" to "1,600 kcal", "Everyday" to "320 kcal", "Exercise" to "760 kcal", "Digesting" to "125 kcal"), card.sum())
         assertEquals("2,805 kcal", card.total.text())
+    }
+
+    /** Digesting food is a tenth of eaten, so energy out turned up over hidden calories must not carry it. */
+    @Test
+    fun digestingFood_withCaloriesHidden_isNeitherALineNorInTheTotal() {
+        val numbers = NumbersSettings(preset = PresetId.MacrosOnly, overrides = mapOf(Metric.EnergyOut to Visibility.Show))
+        val card = assertNotNull(build(burned = burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals(760, 0), true, foodKcal = 125), numbers = numbers))
+
+        assertEquals(listOf("Resting" to "1,600 kcal", "Everyday" to "320 kcal", "Exercise" to "760 kcal"), card.sum())
+        assertEquals("2,680 kcal", card.total.text())
     }
 
     @Test

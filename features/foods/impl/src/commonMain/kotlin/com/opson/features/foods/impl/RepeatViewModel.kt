@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -66,11 +67,13 @@ class RepeatViewModel(
         }
         viewModelScope.launch {
             val today = calendar.today()
-            combine(savedMeals.observeAll(), diary.observeDay(today)) { meals, day ->
+            val ran = route.ruleId?.let { repeats.observeHasRun(it, today) } ?: flowOf(false)
+            combine(savedMeals.observeAll(), diary.observeDay(today), ran) { meals, day, ranToday ->
                 RepeatAction.InputsArrived(
                     meals = meals,
                     today = today,
                     todayOpen = !day.closedByUser && !day.untracked,
+                    ranToday = ranToday,
                     loggedToday = route.ruleId != null && day.allItems.any { it.repeatRuleId == route.ruleId },
                 )
             }.collect(::takeAction)
@@ -187,7 +190,7 @@ class RepeatViewModel(
         val current = draft ?: return
         val read = inputs ?: return
         val currentPolicy = policy
-        updateState { RepeatStateBuilder.build(current, read.meals, read.today, currentPolicy, read.todayOpen, read.loggedToday) }
+        updateState { RepeatStateBuilder.build(current, read.meals, read.today, currentPolicy, read.todayOpen, read.ranToday, read.loggedToday) }
     }
 
     private companion object {

@@ -219,9 +219,19 @@ class RepeatTest : CoroutineTest() {
     @Test
     fun anEditToARepeatThatLoggedTodaySaysChangesStartNextTime() = runUnitTest {
         val logged = porridge.copy(repeatRuleId = "repeat-coffee")
+        repeats.ranToday.value = setOf("repeat-coffee")
         val vm = vm(RepeatRoute(ruleId = "repeat-coffee"), days = listOf(Day.empty(today).with(logged)))
 
         assertEquals(RepeatNote.LoggedToday, vm.state.note)
+    }
+
+    /** The materializer skips a day its ledger has, so a removed food does not mean saving logs it again. */
+    @Test
+    fun anEditToARepeatWhoseFoodWasRemovedToday_doesNotPromiseToLogIt() = runUnitTest {
+        repeats.ranToday.value = setOf("repeat-coffee")
+        val vm = vm(RepeatRoute(ruleId = "repeat-coffee"), days = listOf(Day.empty(today)))
+
+        assertEquals(RepeatNote.DoneToday, vm.state.note)
     }
 
     @Test

@@ -368,14 +368,24 @@ day or on chosen days; the storage, timing and sync decisions are in
 - A saved repeat adds Pause and Delete repeat. Delete keeps what it logged.
 - Under the form, what saving does: "Saving logs it for today too.", "The one
   you logged today counts for today." (Repeat this from today), "Today's is in
-  your log. Changes start with the next one." (an edit), the next day it logs,
-  or that it is paused or past its end. Then how it works: it logs when Opson
+  your log. Changes start with the next one." (an edit), "It won't log again
+  today. Changes start with the next one." (an edit after today's food was
+  removed), the next day it logs, or that it is paused or past its end. Whether
+  it has had today comes from its ledger (`RepeatRepository.observeHasRun`), not
+  from the day's entries, since the ledger is what stops it logging again.
+  Then how it works: it logs when Opson
   is opened that day, missed days stay empty, and its foods edit and delete
   like any.
 - Saved: "Repeat saved. Today's breakfast is logged." when saving logged today.
 - From Repeat this: the entry's food and amount, its meal (Uncategorized takes
   the meal its time falls in), every day from today. On today it counts as
   today's, so the food is not logged twice.
+- Repeats live on this phone. Signing out keeps them for the same account;
+  another account signing in on the phone deletes them (`RepeatOwner`).
+- Copy yesterday, copy to tomorrow and copying a meal leave out a repeat's
+  foods when that repeat logs on the day copied onto (it falls on it, and the
+  day is today or later, or it already logged there). A repeat that skips that
+  day is copied like any food.
 
 ### Tests
 `RepeatRepositoryImplTest` (diary impl) for the logging rules, `RepeatsTest`

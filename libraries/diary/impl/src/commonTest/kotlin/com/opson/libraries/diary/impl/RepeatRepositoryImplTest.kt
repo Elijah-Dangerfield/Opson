@@ -15,6 +15,7 @@ import com.opson.libraries.diary.impl.wire.LogEntryRowDto
 import com.opson.libraries.diary.impl.wire.WireJson
 import com.opson.libraries.diary.repeatEntryId
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.opson.storage.db.ClearableDao
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -30,7 +31,10 @@ import kotlin.time.Instant
 /**
  * Repeats over the in-memory database: that a rule logs today once and only once, through the
  * same rows and outbox a logged food uses, what it skips, and that two phones holding one rule
- * write one set of rows. Times are UTC ([FakeCalendar]); the fixtures' today is Sunday Oct 25.
+ * write one set of rows. Also that a sign-out keeps them for the same account and another
+ * account's sign-in deletes them ([RepeatOwner]); the dump is stood in for by [Phone.dump], the
+ * real one is `UserScopedDaoCleaner`. Times are UTC ([FakeCalendar]); the fixtures' today is
+ * Sunday Oct 25.
  */
 class RepeatRepositoryImplTest : CoroutineTest() {
     private val db = FakeDiaryDb()
@@ -98,6 +102,16 @@ class RepeatRepositoryImplTest : CoroutineTest() {
 
         assertTrue(diary.observeDay(today).first().allItems.isEmpty())
         assertNotNull(repeats.get(saved.rule.id))
+    }
+
+    @Test
+    fun aRuleHasHadTodayOnceItLogged_evenWithItsFoodRemoved() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+        val other = repeats.create(plan(listOf(coffee), start = LocalDate(2026, 10, 26)))
+        diary.removeItem(repeatEntryId(saved.rule.id, today, 0))
+
+        assertTrue(repeats.observeHasRun(saved.rule.id, today).first())
+        assertFalse(repeats.observeHasRun(other.rule.id, today).first(), "starts tomorrow")
     }
 
     @Test
@@ -304,6 +318,99 @@ class RepeatRepositoryImplTest : CoroutineTest() {
         assertEquals(sent(db), sent(otherDb))
     }
 
+    // Copy yesterday and copy to tomorrow, over a day a repeat logged
+
+    @Test
+    fun copyingADayOntoTheNext_leavesARepeatsFoodsToTheRepeat() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+        diary.addItems(today, MealSlot.Lunch, listOf(coffee), LogMethod.Search)
+        val tomorrow = LocalDate(2026, 10, 26)
+
+        diary.copyDay(today, tomorrow)
+        calendar.today = tomorrow
+        clock.now = Instant.parse("2026-10-26T06:00:00Z")
+        phone.materializer.logDue()
+
+        val monday = diary.observeDay(tomorrow).first().allItems
+        assertEquals(setOf("Oat porridge", "Coffee with milk"), monday.map { it.name }.toSet())
+        assertEquals(2, monday.size, "one porridge, the repeat's")
+        assertEquals(saved.rule.id, monday.single { it.name == "Oat porridge" }.repeatRuleId)
+    }
+
+    @Test
+    fun copyYesterday_ontoADayTheRepeatAlreadyLogged_addsNoSecondCopy() = runUnitTest {
+        repeats.create(plan(listOf(porridge)))
+        val tomorrow = LocalDate(2026, 10, 26)
+        calendar.today = tomorrow
+        clock.now = Instant.parse("2026-10-26T06:00:00Z")
+        phone.materializer.logDue()
+
+        diary.copyDay(today, tomorrow)
+        diary.copySlot(today, tomorrow, MealSlot.Breakfast)
+
+        assertEquals(1, diary.observeDay(tomorrow).first().allItems.size)
+    }
+
+    @Test
+    fun aRepeatThatSkipsTheDayCopiedOnto_isCopiedLikeAnyFood() = runUnitTest {
+        repeats.create(plan(listOf(porridge), days = setOf(DayOfWeek.SUNDAY)))
+
+        diary.copyDay(today, LocalDate(2026, 10, 26))
+
+        assertEquals(listOf("Oat porridge"), diary.observeDay(LocalDate(2026, 10, 26)).first().allItems.map { it.name })
+    }
+
+    // Signing out, and who signs in next
+
+    @Test
+    fun signingOutAndBackIn_keepsTheRepeats() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+
+        phone.user.user.value = ActiveUser.SignedOut
+        phone.dump("user-a")
+        assertTrue(repeats.observeAll().first().isEmpty(), "nobody signed in sees none")
+        phone.user.user.value = ActiveUser.SignedIn("user-a")
+
+        assertEquals(listOf(saved.rule.id), repeats.observeAll().first().map { it.id })
+        assertNotNull(repeats.get(saved.rule.id))
+    }
+
+    @Test
+    fun anotherAccountSigningIn_neitherSeesNorLogsThem_andTheyAreDeleted() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+        phone.user.user.value = ActiveUser.SignedOut
+        phone.dump("user-a")
+        phone.user.user.value = ActiveUser.SignedIn("user-b")
+        calendar.today = LocalDate(2026, 10, 26)
+        clock.now = Instant.parse("2026-10-26T06:00:00Z")
+
+        assertTrue(repeats.observeAll().first().isEmpty())
+        assertNull(repeats.get(saved.rule.id))
+        assertEquals(emptyMap(), phone.materializer.logDue())
+        assertTrue(db.repeats.rows.isEmpty(), "gone from the phone, not just hidden")
+
+        phone.user.user.value = ActiveUser.SignedIn("user-a")
+        assertTrue(repeats.observeAll().first().isEmpty(), "and not back for the first account either")
+    }
+
+    @Test
+    fun rulesFromBeforeAnOwner_areClaimedBySomeoneSignedIn_orGoAtAUserChange() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+        val row = db.repeats.state.value.getValue(saved.rule.id)
+
+        // A phone upgraded while signed in: its rules become that account's.
+        val upgraded = Phone(FakeDiaryDb().also { it.repeats.put(row.id, row) }, clock, calendar, settings) { true }
+        assertEquals(listOf(saved.rule.id), upgraded.repeats.observeAll().first().map { it.id })
+        upgraded.dump("user-a")
+        assertEquals(1, upgraded.repeats.observeAll().first().size)
+
+        // Upgraded mid-expiry, and a user change before anyone signed in: whose they were is unknown.
+        val held = FakeDiaryDb().also { it.repeats.put(row.id, row) }
+        val expired = Phone(held, clock, calendar, settings, FakeActiveUser(ActiveUser.SignedOut)) { true }
+        expired.dump("user-a")
+        assertTrue(held.repeats.rows.isEmpty())
+    }
+
     private fun plan(
         items: List<LogDraft>,
         slot: MealSlot = MealSlot.Breakfast,
@@ -314,18 +421,30 @@ class RepeatRepositoryImplTest : CoroutineTest() {
         name: String = items.first().name,
     ) = RepeatPlan(name = name, items = items, slot = slot, days = days, startDay = start, endDay = end, savedMealId = savedMealId)
 
-    /** One phone's diary, saved meals and repeats over [db]. */
+    /** One phone's diary, saved meals and repeats over [db], signed in as [user]. */
     private class Phone(
-        db: FakeDiaryDb,
+        private val db: FakeDiaryDb,
         clock: FakeClock,
         calendar: FakeCalendar,
         settings: FakeSettingsRepository,
+        val user: FakeActiveUser = FakeActiveUser(),
         release: RepeatsRelease,
     ) {
         private val writer = DiaryWriter(db.tables, clock, FakeScheduler())
         val diary = DiaryRepositoryImpl(db.tables, writer, settings, calendar, FakeFastEnder())
         val savedMeals = SavedMealRepositoryImpl(db.tables, writer)
-        val materializer = RepeatMaterializer(db.tables, writer, settings, calendar, release)
-        val repeats = RepeatRepositoryImpl(db.tables, materializer, calendar, clock)
+        val owner = RepeatOwner(db.tables, user, FakeCacheFactory())
+        val materializer = RepeatMaterializer(db.tables, writer, settings, calendar, release, owner)
+        val repeats = RepeatRepositoryImpl(db.tables, materializer, owner, calendar, clock)
+
+        /** What a user change runs on this phone: every [ClearableDao] the tables hold, then the repeats' own clearer. */
+        suspend fun dump(previousUserId: String) {
+            val t = db.tables
+            listOf<Any>(
+                t.entries, t.days, t.feelings, t.weighIns, t.customFoods, t.savedMeals, t.fasts,
+                t.exercises, t.outbox, t.syncState, t.repeats, t.repeatLogs,
+            ).filterIsInstance<ClearableDao>().forEach { it.deleteAll() }
+            owner.clear(previousUserId)
+        }
     }
 }

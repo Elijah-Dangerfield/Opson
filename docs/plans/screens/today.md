@@ -233,7 +233,8 @@ the last row.
   opens Resting energy), then either Active energy from the health app
   ("Includes 330 kcal from workouts") or Everyday activity at the person's
   level, then logged Exercise, then Digesting food when "Count digesting food"
-  is on. A rule and Total burned under them.
+  is on and calories show in full (it is a tenth of eaten, so otherwise it is
+  left out of the line and the total). A rule and Total burned under them.
 - **A health app counting activity** is named under the title, "From Apple
   Health" with a check, as Integrations' Connected pill. The store's workouts
   are not imported as entries (`HealthReader` reads energy sums only), so they

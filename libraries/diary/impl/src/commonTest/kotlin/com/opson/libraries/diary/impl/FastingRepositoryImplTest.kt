@@ -8,6 +8,7 @@ import com.opson.libraries.core.logging.LogTree
 import com.opson.libraries.diary.Fast
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.LogDraft
+import com.opson.libraries.diary.db.RepeatLogEntity
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.OnboardingAnswers
@@ -154,6 +155,21 @@ class FastingRepositoryImplTest : CoroutineTest() {
         fasting.startDue()
 
         assertTrue(db.fasts.rows.isEmpty())
+    }
+
+    /** Food that logged itself is not proof of eating: a dinner repeat timed after the close leaves the evening's fast to start. */
+    @Test
+    fun startDue_aRepeatTimedAfterTheClose_isNotFoodEaten() = runUnitTest {
+        clock.now = Instant.parse("2026-10-25T20:00:00Z")
+        released = false
+        val repeated = diary.addItems(oct25, MealSlot.Dinner, listOf(draft()), LogMethod.Copy).written().single()
+        released = true
+        db.repeatLogs.put(repeated.id, RepeatLogEntity(entryId = repeated.id, ruleId = "rule-dinner", day = "2026-10-25"))
+        clock.now = Instant.parse("2026-10-25T21:30:00Z")
+
+        fasting.startDue()
+
+        assertEquals(Fast(oct25, close, goalHours = 14), fasting.observeLatest().first())
     }
 
     /** A repeat logs dinner at dinner time, which in the morning is still to come: it is not food eaten since the close. */

@@ -143,7 +143,8 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "energy-today", label = "Energy today", showsCaloriesInFull = true) { policy ->
             val settings = SettingsFixtures.settings(policy.settings)
-            EnergyTodayScreen(EnergyTodayStateBuilder.build(EnergyTodayFixtures.inputs(settings), policy), onAction = {})
+            // With food counted, so the line for digesting it is checked too.
+            EnergyTodayScreen(EnergyTodayStateBuilder.build(EnergyTodayFixtures.inputs(settings, digesting = true), policy), onAction = {})
         },
         // release.goalsAndEnergy: one number, a set surplus, and a day group of each shape.
         LeakSurface(id = "targets-exact", label = "Targets, one number", showsCaloriesInFull = true) { policy ->

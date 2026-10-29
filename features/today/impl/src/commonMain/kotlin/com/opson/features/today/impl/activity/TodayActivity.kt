@@ -23,6 +23,7 @@ import com.opson.libraries.nutrition.RestingFrom
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.nutrition.shownOn
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -137,7 +138,8 @@ object TodayActivityStateBuilder {
         if (!inputs.settings.exerciseOffered(inputs.released, policy.level(Metric.EnergyOut))) return TodayActivityState()
         val context = FormatContext(day = inputs.day)
         fun energy(kcal: Int?): Display = kcal?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Today, context) } ?: Display.Hidden
-        val burned = inputs.burned
+        // Digesting food is a tenth of what was eaten: with calories short of Show it is not on the card (Burned.shownOn).
+        val burned = inputs.burned?.shownOn(policy, Surface.Today, context)
         // The health app read activity, so it stands in for everything a watch would have seen.
         val healthRead = burned != null && burned.everydayKcal == null && (burned.movementKcal != null || burned.workoutKcal != null)
         val counted = burned?.activityCounted == true

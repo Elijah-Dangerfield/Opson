@@ -24,6 +24,7 @@ import com.opson.libraries.diary.impl.wire.WireJson
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEvents
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -59,25 +60,37 @@ import kotlin.time.Instant
 /**
  * Repeats on this phone (see [RepeatRepository]). A rule's own writes touch only the device-local
  * rule tables; every save then asks [RepeatMaterializer] to log today, so a rule that falls on
- * today shows its foods the moment it is saved.
+ * today shows its foods the moment it is saved. Only the signed-in account's ([RepeatOwner]).
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 @Inject
 class RepeatRepositoryImpl(
     private val tables: DiaryTables,
     private val materializer: RepeatMaterializer,
+    private val owner: RepeatOwner,
     private val calendar: LocalCalendar,
     private val clock: Clock,
 ) : RepeatRepository {
 
     private val logger = KLog.withTag("Repeats")
 
-    override fun observeAll(): Flow<List<RepeatRule>> = tables.repeats.observeAll().map { rows -> rows.mapNotNull { it.toDomain() } }
+    override fun observeAll(): Flow<List<RepeatRule>> = owner.observe().flatMapLatest { userId ->
+        if (userId == null) flowOf(emptyList()) else tables.repeats.observeAll().map { rows -> rows.mapNotNull { it.toDomain() } }
+    }
 
-    override suspend fun get(id: String): RepeatRule? = tables.repeats.get(id)?.takeUnless { it.deleted }?.toDomain()
+    override suspend fun get(id: String): RepeatRule? {
+        if (owner.current() == null) return null
+        return tables.repeats.get(id)?.takeUnless { it.deleted }?.toDomain()
+    }
+
+    override fun observeHasRun(id: String, day: LocalDate): Flow<Boolean> =
+        tables.repeatLogs.observeDay(day.toString()).map { rows -> rows.any { it.ruleId == id } }.distinctUntilChanged()
 
     override suspend fun create(plan: RepeatPlan, loggedToday: List<String>): RepeatSaved {
+        // Settles the phone's repeats on the account saving this one.
+        owner.current()
         val rule = RepeatRule(id = newId(), plan = plan.cleaned())
         val now = clock.now().toEpochMilliseconds()
         val today = calendar.today().toString()
@@ -98,6 +111,7 @@ class RepeatRepositoryImpl(
         change(id) { it.copy(paused = paused) }
 
     override suspend fun delete(id: String) {
+        if (owner.current() == null) return
         tables.transactor.inTransaction {
             val existing = tables.repeats.get(id)?.takeUnless { it.deleted } ?: return@inTransaction
             val now = clock.now().toEpochMilliseconds()
@@ -108,6 +122,7 @@ class RepeatRepositoryImpl(
     }
 
     private suspend fun change(id: String, transform: (RepeatRule) -> RepeatRule): RepeatSaved? {
+        if (owner.current() == null) return null
         val changed = tables.transactor.inTransaction {
             val existing = tables.repeats.get(id)?.takeUnless { it.deleted } ?: return@inTransaction null
             val rule = existing.toDomain() ?: return@inTransaction null
@@ -158,6 +173,7 @@ class RepeatMaterializer(
     private val settingsRepository: SettingsRepository,
     private val calendar: LocalCalendar,
     private val release: RepeatsRelease,
+    private val owner: RepeatOwner,
 ) {
     private val logger = KLog.withTag("Repeats")
     private val mutex = Mutex()
@@ -166,6 +182,8 @@ class RepeatMaterializer(
     suspend fun logDue(): Map<String, Int> = mutex.withLock {
         // The settings say where food goes (meal groups) and when (meal times); the defaults are not theirs.
         if (!release.isOn() || !settingsRepository.isKnown.value) return emptyMap()
+        // Only the signed-in account's rules; another account's are gone before they are read.
+        owner.current() ?: return emptyMap()
         val today = calendar.today()
         val zone = calendar.timeZone()
         val settings = settingsRepository.settings.value

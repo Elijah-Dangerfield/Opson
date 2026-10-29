@@ -115,6 +115,14 @@ Two companion tests in the same module:
    without being listed. Proved by breaking it once: the amount sheet's rows built without the
    policy failed `logger-amount-nutrients` in all eight presets and in Full with micros off
    (2026-10-27).
+11. **Digesting food is a tenth of eaten.** With "Count digesting food" on, Burned carries 10%
+   of the day's calories, so a mode that hides calories while the person turns energy out up to
+   Show would give eaten away through it. `Burned.shownOn` drops it wherever calories are short
+   of Show. `DigestingFoodLeakTest` runs every surface in `DIGESTING_SURFACES` in each mode under
+   test with energy out set to Show, a mix no preset has, and asserts no "Digesting food" line;
+   `DigestingFoodControlTest` needs the line in Full, and `LeakTestControlTest` fails on a
+   surface that draws it without being listed. The line's step in Burned's total is in
+   `TodayActivityTest` and `EnergyTodayTest` (2026-10-29).
 
 ## SURFACES, ported
 
