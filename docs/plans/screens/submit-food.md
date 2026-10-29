@@ -140,7 +140,7 @@ the food, and the screen says it plainly:
 - the form keeps name, brand, barcode and serving, which are amounts of food
   every mode shows;
 - in place of the numbers, one sentence: the label's numbers are saved with
-  the food and the mode keeps them out of sight; or something on the label
+  the food and the mode hides them; or something on the label
   doesn't add up and someone will check it against the photos; or some
   numbers couldn't be read and someone will fill them in;
 - nothing is required that cannot be seen, and no check offers a figure;

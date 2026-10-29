@@ -42,7 +42,7 @@
     <string name="logger_for_meal">For %1$s</string>
     <string name="logger_describe_title">Describe it</string>
     <string name="logger_describe_placeholder">2 eggs and toast</string>
-    <string name="logger_describe_prompt">Say it the way you'd say it</string>
+    <string name="logger_describe_prompt">Write it the way you'd say it</string>
     <string name="logger_describe_reading">Reading that…</string>
     <string name="logger_read_as">We read that as</string>
     <string name="logger_quick_title">Or just the numbers</string>
@@ -62,7 +62,7 @@
     <string name="logger_quick_fit_macros">Fit macros to %1$s</string>
     <string name="logger_name_only">Just save the name</string>
     <string name="logger_describe_offline">Describe needs a connection. You can still save it by name.</string>
-    <string name="logger_describe_failed">That didn't parse. Try fewer words, or save it by name.</string>
+    <string name="logger_describe_failed">Couldn't make sense of that. Try fewer words, or save it by name.</string>
 
     <!-- Saved meals -->
     <string name="logger_saved_title">Saved meals</string>
@@ -87,7 +87,7 @@
     <string name="logger_amount_closed">closed</string>
     <string name="logger_amount_custom">Custom size…</string>
     <string name="logger_amount_custom_title">A size of your own</string>
-    <string name="logger_amount_custom_body">Name it the way you would say it, and give its weight once. It stays with this food.</string>
+    <string name="logger_amount_custom_body">Give it a name and a weight. It's saved with this food.</string>
     <string name="logger_amount_custom_name">Name</string>
     <string name="logger_amount_custom_name_hint">my bowl</string>
     <string name="logger_amount_custom_grams">Grams</string>

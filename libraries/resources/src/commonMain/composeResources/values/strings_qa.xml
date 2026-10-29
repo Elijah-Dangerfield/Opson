@@ -56,7 +56,7 @@
     <string name="qa_prompts">Prompts</string>
     <string name="qa_prompts_sub">Each prompt on Today, why it would or wouldn't show, and resets.</string>
 
-    <string name="qa_failed">That didn't work. The log has why.</string>
+    <string name="qa_failed">That didn't work. Check the log.</string>
 
     <string name="qa_section_flags">Remote config</string>
     <string name="qa_flags_body">Overrides stay on this phone until you clear them or uninstall.</string>

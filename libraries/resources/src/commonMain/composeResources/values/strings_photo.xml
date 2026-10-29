@@ -33,8 +33,8 @@
     <string name="photo_about">about %1$s</string>
     <string name="photo_not_matched">Not in the food list yet</string>
     <string name="photo_add_missed">Add something it missed</string>
-    <string name="photo_banner_note">Photos miss oil and cooking method, so your note was used. This is saved as an estimate.</string>
-    <string name="photo_banner">Photos miss oil and cooking method. This is saved as an estimate.</string>
+    <string name="photo_banner_note">We used your note too. This is saved as an estimate.</string>
+    <string name="photo_banner">Photos can miss oil and how it was cooked. This is saved as an estimate.</string>
     <string name="photo_remove_cd">Remove %1$s</string>
     <string name="photo_food_cd">Swap %1$s</string>
     <string name="photo_amount_cd">Change the amount of %1$s</string>
@@ -65,7 +65,7 @@
     <string name="photo_too_many_body">Try again in a little while, or describe this one in your own words.</string>
     <string name="photo_camera_title">The camera is off for Opson</string>
     <string name="photo_camera_body">You can turn it on in Settings, or choose a photo from your library.</string>
-    <string name="photo_camera_body_ask">Opson uses the camera only when you take a meal photo. You can also choose one from your library.</string>
+    <string name="photo_camera_body_ask">Opson only uses the camera when you take a meal photo. You can also choose one from your library.</string>
 
     <!-- Buttons -->
     <string name="photo_try_again">Try again</string>

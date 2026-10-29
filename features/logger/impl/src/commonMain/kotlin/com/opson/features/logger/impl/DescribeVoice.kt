@@ -60,7 +60,7 @@ enum class VoiceAnnouncement { Listening, Stopped }
 data class VoiceUi(
     val phase: VoicePhase = VoicePhase.Ready,
     val notice: VoiceNotice? = null,
-    /** Null shows the design's prompt, "Say it the way you'd say it". */
+    /** Null shows the design's prompt, "Write it the way you'd say it". */
     val announcement: VoiceAnnouncement? = null,
     val focusText: Boolean = false,
 )

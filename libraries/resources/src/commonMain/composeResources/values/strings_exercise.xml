@@ -32,8 +32,8 @@
     <string name="exercise_estimate_no_weight">Log a weight to get an estimate, or type the number below.</string>
     <string name="exercise_estimate_no_weight_only">Log a weight to get an estimate.</string>
     <string name="exercise_estimate_weigh_action">Log a weigh-in</string>
-    <string name="exercise_estimate_basis_personal">An estimate from published averages for your age, height, weight and sex. A watch measures it more closely.</string>
-    <string name="exercise_estimate_basis_weight">An estimate from published averages for your weight. Add your age, height and sex for one closer to you.</string>
+    <string name="exercise_estimate_basis_personal">Estimated from published averages for your age, height, weight and sex. A watch is more accurate.</string>
+    <string name="exercise_estimate_basis_weight">Estimated from published averages for your weight. Add your age, height and sex to make it closer.</string>
     <string name="exercise_estimate_profile_action">Add them in Profile</string>
     <string name="exercise_typed_label">Your own number</string>
     <string name="exercise_typed_label_needed">Calories burned</string>
@@ -62,13 +62,13 @@
     <string name="today_activity_unknown">Add your details on Resting energy to see what you burn.</string>
     <string name="today_burned_unknown_action">Resting energy</string>
     <string name="today_activity_watch_has_it">Already counted by %1$s</string>
-    <string name="today_activity_health_note">%1$s already counts your watch's workouts. Add one here only if your watch missed it, or it counts twice.</string>
+    <string name="today_activity_health_note">%1$s already counts your watch's workouts. Only add one here if your watch missed it, or it counts twice.</string>
     <string name="today_activity_add_missed">Add exercise your watch missed</string>
     <string name="settings_energy_logged">Logged by you</string>
 
     <!-- Everyday activity, on Resting energy -->
     <string name="everyday_activity_title">Everyday activity</string>
-    <string name="everyday_activity_body">Your day outside workouts. Burned counts it when no health app counts your activity.</string>
+    <string name="everyday_activity_body">How active you are outside workouts. Used when no health app tracks your activity.</string>
     <string name="everyday_activity_mostly_sitting">Mostly sitting</string>
     <string name="everyday_activity_mostly_sitting_detail">Desk work, a bit of walking</string>
     <string name="everyday_activity_some_walking">Some walking</string>

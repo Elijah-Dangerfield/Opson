@@ -259,8 +259,8 @@ No mode check: Blind is the calories level at Hide.
 | `photo_about` | about %1$s |
 | `photo_not_matched` | Not in the food list yet |
 | `photo_add_missed` | Add something it missed |
-| `photo_banner_note` | Photos miss oil and cooking method, so your note was used. This is saved as an estimate. |
-| `photo_banner` | Photos miss oil and cooking method. This is saved as an estimate. |
+| `photo_banner_note` | We used your note too. This is saved as an estimate. |
+| `photo_banner` | Photos can miss oil and how it was cooked. This is saved as an estimate. |
 | `photo_footer_count` | %1$d items · Estimate (plural, 1 item) |
 | `photo_footer_about` | About |
 | `photo_remove_cd` | Remove %1$s |
@@ -271,7 +271,7 @@ No mode check: Blind is the calories level at Hide.
 | `photo_failed_title` / `_body` / `_offline` | Couldn't read that photo / Something went wrong on our side. Try again in a moment. / Photo estimates need a connection. |
 | `photo_too_many_title` / `_body` | That's a lot of photos for now / Try again in a little while, or describe this one in your own words. |
 | `photo_camera_title` / `_body` | The camera is off for Opson / You can turn it on in Settings, or choose a photo from your library. |
-| `photo_camera_body_ask` | Opson uses the camera only when you take a meal photo. You can also choose one from your library. |
+| `photo_camera_body_ask` | Opson only uses the camera when you take a meal photo. You can also choose one from your library. |
 | `photo_try_again`, `photo_another`, `photo_describe_instead`, `photo_back_to_search`, `photo_open_settings`, `photo_allow_camera` | Try again / Try another photo / Describe it instead / Go back / Open Settings / Allow camera |
 | `photo_list_empty` | Nothing left on the list. Add what you ate, or go back. |
 | `photo_swap_searching` / `photo_swap_none` | Searching / Nothing by that name. Try another word. |

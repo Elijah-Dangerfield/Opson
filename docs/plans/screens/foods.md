@@ -267,7 +267,7 @@ Top app bar with a close X and "Add a food". Card 1: Name, "Brand or where
 it's from · optional", "One serving is" (an amount field and unit chips).
 Card 2, when any field is asked: "Per serving" with "Fill in what you know"
 on the right, then the number fields two to a row. Card 2 in Blind (no
-fields): an eye-off tile, "Nutrition stays out of view", and one sentence.
+fields): an eye-off tile, "Numbers are hidden", and one sentence.
 Save food pinned to the bottom.
 
 ### State
@@ -320,7 +320,7 @@ No resolved numbers. A metric at Hide has no field; Blind hides all five.
 · optional`, placeholder `Corner bakery`; `One serving is`, amount description
 `Serving amount`, units `piece` / `grams` / `cup`; `Per serving`,
 `Fill in what you know`; labels Calories / Protein / Carbs / Fat / Fiber with
-kcal / g; Blind card `Nutrition stays out of view`, `A name is enough to save
+kcal / g; Blind card `Numbers are hidden`, `A name is enough to save
 it.`; `Save food`. Toast `%1$s saved. It shows up in search now.`
 
 **Cut for 0.1**: v3's "Scan the label instead" (Full) and "Photograph the
