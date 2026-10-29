@@ -123,6 +123,8 @@ import com.opson.libraries.diary.ui.KeyNutrientsPage
 import com.opson.libraries.diary.ui.MacrosPage
 import com.opson.libraries.diary.ui.SummaryLabel
 import com.opson.libraries.nutrition.ui.NutrientPhrase
+import com.opson.libraries.prompts.PromptEvent
+import com.opson.libraries.prompts.PromptEvents
 import opson.libraries.resources.generated.resources.today_dayclose_balance_burned
 import opson.libraries.resources.generated.resources.today_dayclose_balance_burned_so_far
 import opson.libraries.resources.generated.resources.today_dayclose_balance_eaten
@@ -179,6 +181,7 @@ class DayCloseViewModel(
     private val checkInEnabled: CheckInEnabled,
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val burnedRepository: BurnedRepository,
+    private val promptEvents: PromptEvents = PromptEvents.None,
 ) : SEAViewModel<DayCloseState, DayCloseEvent, DayCloseAction>(initialStateArg = DayCloseState()) {
 
     private var model = Model()
@@ -243,6 +246,7 @@ class DayCloseViewModel(
                     feeling = if (state.feeling != null) model.feeling else stored?.feeling,
                 )
                 diary.closeDay(day, reflection)
+                promptEvents.emit(PromptEvent.DayClosed)
                 sendEvent(DayCloseEvent.Close)
             }
             DayCloseAction.ReopenTapped -> {

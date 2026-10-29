@@ -284,6 +284,19 @@ health data, and what someone burns is a number the app hides in most modes.
 | `exercise.edited` | `listed`, `typed`, as above | Save on an entry that already existed |
 | `exercise.deleted` | | Delete on an entry. An entry deleted on another phone and pulled fires nothing |
 
+### Prompts on Today
+
+From `PromptProcessor` (`:libraries:prompts:impl`) through `PromptTelemetry`, which takes only a
+prompt id, how it was drawn and what called it up. **No event carries the account or anything
+typed.** The rules are in [prompts.md](prompts.md). A funnel is `prompt.shown` to
+`prompt.accepted` by `prompt`; a prompt can be shown and never answered (the app closed under it).
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `prompt.shown` | `prompt` (`connect_health`, `meal_reminders`, `try_check_in`, …), `presentation` (`dialog`, `sheet`, `card`), `trigger` (`today`, `report_sent`, `day_closed`, `qa`) | A prompt was picked and is about to be drawn. Written to the counts first, so it fires once per showing. `qa` is the QA menu's Show next |
+| `prompt.accepted` | `prompt` | The main button. Once per showing |
+| `prompt.dismissed` | `prompt` | Not now, a swipe, a tap outside or Back. Once per showing, never after an accept |
+
 ## Warn+ log forwarding (not events)
 
 Besides events, `GrafanaLogTree` forwards plain KLog lines at Warn and above to Loki as ordinary

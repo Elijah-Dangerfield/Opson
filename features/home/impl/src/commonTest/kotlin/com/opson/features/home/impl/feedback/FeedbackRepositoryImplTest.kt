@@ -4,6 +4,8 @@ import com.opson.libraries.core.AppState
 import com.opson.libraries.flowroutines.DispatcherProvider
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.opson.Telemetry
+import com.opson.libraries.prompts.PromptEvent
+import com.opson.libraries.prompts.PromptEvents
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +33,19 @@ class FeedbackRepositoryImplTest : CoroutineTest() {
         val repository = FeedbackRepositoryImpl(FakeTelemetry(delivers = true), dispatchers, online)
 
         assertTrue(repository.submitFeedback("The water card is great", isBugReport = false).isSuccess)
+    }
+
+    /** A report that went through is a moment a prompt can follow; a dropped one is not. */
+    @Test
+    fun onlyAReportThatWentThrough_isAPromptMoment() = runUnitTest {
+        val moments = mutableListOf<PromptEvent>()
+        val events = PromptEvents { moments += it }
+
+        FeedbackRepositoryImpl(FakeTelemetry(delivers = false), dispatchers, online, events).submitFeedback("Hi", isBugReport = true)
+        assertEquals(emptyList(), moments)
+
+        FeedbackRepositoryImpl(FakeTelemetry(delivers = true), dispatchers, online, events).submitFeedback("Hi", isBugReport = true)
+        assertEquals(listOf(PromptEvent.ReportSent), moments)
     }
 
     @Test

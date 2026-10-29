@@ -149,6 +149,8 @@ kotlin {
             implementation(projects.libraries.progressphotos.impl)
             implementation(projects.libraries.pdf)
             implementation(projects.libraries.pdf.impl)
+            implementation(projects.libraries.prompts)
+            implementation(projects.libraries.prompts.impl)
 
             implementation(projects.features.foods)
             implementation(projects.features.foods.impl)

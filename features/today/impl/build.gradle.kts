@@ -38,6 +38,8 @@ kotlin {
             implementation(projects.libraries.storage)
             // UserScopedClearer, so a user change wipes the card's view with the rest.
             implementation(projects.libraries.opson)
+            // PromptEvents: Close the day's Done is a moment a prompt can follow.
+            implementation(projects.libraries.prompts)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -65,6 +67,7 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.storage)
             implementation(projects.libraries.opson)
+            implementation(projects.libraries.prompts)
         }
     }
 }
