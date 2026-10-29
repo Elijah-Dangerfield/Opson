@@ -410,7 +410,6 @@ class DiaryRepositoryImplTest : CoroutineTest() {
         assertEquals(closed, repo.addWater(today, 250))
         assertEquals(closed, repo.removeWater(today, 250))
         assertEquals(closed, repo.setWater(today, 1_000))
-        assertEquals(closed, repo.setDayNote(today, "A note"))
         assertEquals(closed, repo.setAteNoDetails(today, MealSlot.Lunch, ate = true))
         assertEquals(closed, repo.setFeeling(today, MealSlot.Breakfast, MealFeeling(note = "Quick one")))
         assertEquals(closed, repo.updateItem(oats.copy(name = "Overnight oats")))
@@ -455,6 +454,18 @@ class DiaryRepositoryImplTest : CoroutineTest() {
         assertTrue(repo.addWater(today, 250) is DayWrite.Written)
         assertEquals(250, repo.observeDay(today).first().waterMl)
         assertEquals(false, repo.observeDay(today).first().closedByUser)
+    }
+
+    @Test
+    fun aClosedDayTakesItsNote_theSameNoteClosingSaved_andStaysClosed() = runUnitTest {
+        repo.closeDay(today, DayReflection(note = "Written when closing"))
+        assertEquals("Written when closing", repo.observeDay(today).first().note)
+
+        assertTrue(repo.setDayNote(today, "  Changed from the Note sheet  ") is DayWrite.Written)
+
+        val day = repo.observeDay(today).first()
+        assertEquals("Changed from the Note sheet", day.note)
+        assertTrue(day.closedByUser)
     }
 
     @Test

@@ -29,6 +29,7 @@ import com.opson.features.today.DayCloseRoute
 import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
 import com.opson.features.today.TodayCardContribution
+import com.opson.features.today.NotesOrigin
 import com.opson.features.today.NotesRoute
 import com.opson.features.today.TodayRoute
 import com.opson.features.today.impl.activity.TodayActivityEvent
@@ -111,7 +112,7 @@ class TodayFeatureEntryPoint(
     private val waterSheetViewModelFactory: (LocalDate) -> WaterSheetViewModel,
     private val itemSheetViewModelFactory: (LocalDate, String) -> ItemSheetViewModel,
     private val dayNoteViewModelFactory: (LocalDate) -> DayNoteViewModel,
-    private val notesViewModelFactory: (Boolean) -> NotesViewModel,
+    private val notesViewModelFactory: (NotesOrigin) -> NotesViewModel,
     private val todayActivityViewModelFactory: () -> TodayActivityViewModel,
     private val checkInViewModelFactory: (LocalDate?) -> CheckInViewModel,
     private val tabBar: TabBar,
@@ -145,13 +146,14 @@ class TodayFeatureEntryPoint(
             )
         }
 
-        screen<NotesRoute> { backStackEntry ->
+        screen<NotesRoute>(typeMap = mapOf(typeOf<NotesOrigin>() to serializableType<NotesOrigin>())) { backStackEntry ->
             val route = backStackEntry.toRoute<NotesRoute>()
-            val viewModel: NotesViewModel = viewModel { notesViewModelFactory(route.fromTrends) }
+            val viewModel: NotesViewModel = viewModel { notesViewModelFactory(route.from) }
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is NotesEvent.OpenNote -> router.navigate(MealNoteRoute(event.day.toString(), event.slot))
+                    is NotesEvent.OpenDayNote -> router.navigate(DayNoteRoute(event.day.toString()))
                     NotesEvent.Close -> router.goBack()
                 }
             }
@@ -319,7 +321,6 @@ class TodayFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is DayNoteEvent.ShowToast -> showToast(event.toast)
-                    is DayNoteEvent.DayClosed -> router.showDayClosed(event.day)
                     DayNoteEvent.Dismiss -> sheetState.dismiss()
                 }
             }

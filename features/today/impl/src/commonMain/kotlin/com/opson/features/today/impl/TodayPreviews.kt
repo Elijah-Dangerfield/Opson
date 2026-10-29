@@ -3,6 +3,7 @@ package com.opson.features.today.impl
 import com.opson.libraries.diary.LoggingHabits
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import com.opson.features.today.NotesOrigin
 import com.opson.features.today.impl.dayclose.DayClosedSheetContent
 import com.opson.features.today.impl.dayclose.DayClosedState
 import com.opson.features.today.impl.item.ItemSheetStateBuilder
@@ -196,7 +197,7 @@ private fun TodayNotesDarkPreview() = Phone(dark = true) { NotesScreen(state = T
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayNotesEmptyPreview() = Phone {
-    NotesScreen(state = NotesStateBuilder.build(emptyList(), TodayFixtures.today, NotesStateBuilder.PAGE_DAYS, fromTrends = true), onAction = {})
+    NotesScreen(state = NotesStateBuilder.build(emptyList(), TodayFixtures.today, NotesStateBuilder.PAGE_DAYS, NotesOrigin.Trends), onAction = {})
 }
 
 /** The last page: key minerals and See all, which opens the Nutrients screen. */

@@ -224,7 +224,8 @@ class TodayViewModel(
                     }
                 }
             }
-            TodayAction.DayNoteTapped -> action.closeMenuThen { ifOpen { sendEvent(TodayEvent.OpenDayNote(day())) } }
+            // Not ifOpen: a closed day takes its note, as Close the day's Save does.
+            TodayAction.DayNoteTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenDayNote(day())) }
             TodayAction.UntrackedMenuTapped -> action.closeMenuThen {
                 diary.setUntracked(day(), untracked = model.inputs?.day?.untracked != true)
             }

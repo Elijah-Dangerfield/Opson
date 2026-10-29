@@ -94,7 +94,8 @@ class ClosedDayTest : CoroutineTest() {
         val items = menu?.groups.orEmpty().flatten()
         assertTrue(DayMenuItem.Reopen(isToday = true) in items)
         assertTrue(items.none { it is DayMenuItem.CloseDay })
-        assertTrue(DayMenuItem.CopyYesterday !in items && DayMenuItem.AddNote !in items && DayMenuItem.ClearDay !in items)
+        assertTrue(DayMenuItem.CopyYesterday !in items && DayMenuItem.ClearDay !in items)
+        assertTrue(DayMenuItem.AddNote in items, "the day's note is not its log, so a closed day keeps it")
         assertTrue(DayMenuItem.CopyToTomorrow in items, "copying out to an open day changes nothing here")
     }
 
@@ -118,13 +119,29 @@ class ClosedDayTest : CoroutineTest() {
         vm.takeAction(TodayAction.MealPlusTapped(MealSlot.Dinner))
         vm.takeAction(TodayAction.WaterPlusTapped)
         vm.takeAction(TodayAction.MealTileTapped(MealSlot.Lunch))
-        vm.takeAction(TodayAction.DayNoteTapped)
         vm.takeAction(TodayAction.CopyYesterdayTapped)
         vm.takeAction(TodayAction.ClearDayTapped)
         vm.takeAction(TodayAction.ClearDayTapped)
 
-        assertEquals(List(6) { TodayEvent.OpenDayClosed(today) }, events)
+        assertEquals(List(5) { TodayEvent.OpenDayClosed(today) }, events)
         assertEquals(0, diary.writes)
+    }
+
+    @Test
+    fun theDaysNote_opensAndSavesOnAClosedDay_andTheDayStaysClosed() = runUnitTest {
+        val vm = today()
+        val events = collect(vm.eventFlow)
+        vm.takeAction(TodayAction.DayNoteTapped)
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenDayNote(today)), events)
+
+        val note = DayNoteViewModel(today, diary, FakeCalendar())
+        val noteEvents = collect(note.eventFlow)
+        note.takeAction(DayNoteAction.NoteTyped("Lazy Sunday"))
+        note.takeAction(DayNoteAction.SaveTapped)
+
+        assertEquals(today to "Lazy Sunday", diary.notes.single())
+        assertEquals<DayNoteEvent>(DayNoteEvent.Dismiss, noteEvents.last())
+        assertTrue(diary.days.value.getValue(today).closedByUser)
     }
 
     @Test
@@ -165,11 +182,6 @@ class ClosedDayTest : CoroutineTest() {
         val waterEvents = collect(water.eventFlow)
         water.takeAction(WaterSheetAction.AddGlassTapped)
 
-        val note = DayNoteViewModel(today, diary, FakeCalendar())
-        val noteEvents = collect(note.eventFlow)
-        note.takeAction(DayNoteAction.NoteTyped("Lazy Sunday"))
-        note.takeAction(DayNoteAction.SaveTapped)
-
         val mealNote = MealNoteViewModel(today, MealSlot.Dinner, diary)
         val mealNoteEvents = collect(mealNote.eventFlow)
         mealNote.takeAction(MealNoteAction.NoteTyped("At Lola's"))
@@ -180,7 +192,6 @@ class ClosedDayTest : CoroutineTest() {
         meal.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
 
         assertEquals(listOf<WaterSheetEvent>(WaterSheetEvent.DayClosed(today)), waterEvents)
-        assertEquals(listOf<DayNoteEvent>(DayNoteEvent.DayClosed(today)), noteEvents)
         assertEquals(listOf<MealNoteEvent>(MealNoteEvent.DayClosed(today)), mealNoteEvents)
         assertEquals(listOf<MealSheetEvent>(MealSheetEvent.DayClosed(today)), mealEvents)
         assertEquals(0, diary.writes)

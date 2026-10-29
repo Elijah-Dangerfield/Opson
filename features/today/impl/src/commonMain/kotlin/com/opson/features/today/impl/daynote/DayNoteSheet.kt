@@ -11,7 +11,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.lifecycle.viewModelScope
 import com.opson.features.today.impl.Toast
-import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.ui.SectionLabel
@@ -37,8 +36,9 @@ import opson.libraries.resources.generated.resources.today_toast_daynote_saved
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The day's note, the same field Day close has. Saving it never closes the day:
- * adding a note must not change anything else.
+ * The day's note, the same field Close the day writes, so it is one note whichever saved it last.
+ * Saving it never closes or reopens the day: adding a note must not change anything else, and a
+ * closed day takes it as Close the day's Save does.
  */
 data class DayNoteState(val draft: String = "", val isToday: Boolean = true, val loaded: Boolean = false)
 
@@ -51,9 +51,6 @@ sealed interface DayNoteAction {
 
 sealed interface DayNoteEvent {
     data class ShowToast(val toast: Toast) : DayNoteEvent
-
-    /** The day is closed (Close the day, maybe on another phone): the note was not saved. */
-    data class DayClosed(val day: LocalDate) : DayNoteEvent
     data object Dismiss : DayNoteEvent
 }
 
@@ -83,10 +80,7 @@ class DayNoteViewModel(
                 // Before the day is read the draft is empty, and saving it would wipe the note.
                 if (!state.loaded) return
                 val note = state.draft.trim()
-                if (diary.setDayNote(day, note.ifEmpty { null }) is DayWrite.DayClosed) {
-                    sendEvent(DayNoteEvent.DayClosed(day))
-                    return
-                }
+                diary.setDayNote(day, note.ifEmpty { null })
                 if (note.isNotEmpty()) sendEvent(DayNoteEvent.ShowToast(Toast(Res.string.today_toast_daynote_saved)))
                 sendEvent(DayNoteEvent.Dismiss)
             }

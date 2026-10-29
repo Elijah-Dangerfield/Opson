@@ -152,10 +152,12 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
 
     override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = open(day) { setWater += day to ml }
 
-    /** Records the close and marks the day closed, so what reads it sees the change. */
+    /** Records the close, keeps its note and feeling on the day and marks it closed, so what reads it sees the change. */
     override suspend fun closeDay(day: LocalDate, reflection: DayReflection) {
         closed += day to reflection
-        days.value += day to (days.value[day] ?: Day.empty(day)).let { it.copy(closedAt = it.closedAt ?: CLOSED_AT) }
+        days.value += day to (days.value[day] ?: Day.empty(day)).let {
+            it.copy(closedAt = it.closedAt ?: CLOSED_AT, note = reflection.note.cleaned(), feeling = reflection.feeling)
+        }
     }
 
     /** Records the check-in and keeps it on the day, closed or not, as the diary does. */
@@ -169,7 +171,14 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
         days.value[day]?.let { days.value += day to it.copy(closedAt = null) }
     }
 
-    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = open(day) { notes += day to note }
+    /** Records the note and keeps it on the day, closed or not, as the diary does. */
+    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> {
+        notes += day to note
+        days.value += day to (days.value[day] ?: Day.empty(day)).copy(note = note.cleaned())
+        return DayWrite.Written(Unit)
+    }
+
+    private fun String?.cleaned(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
 
     override suspend fun setUntracked(day: LocalDate, untracked: Boolean) {
         this.untracked += day to untracked

@@ -75,7 +75,11 @@ interface DiaryRepository {
     /** Opens a closed day to logging again. */
     suspend fun reopenDay(day: LocalDate)
 
-    /** A blank note clears it. */
+    /**
+     * The day's note, the same one [closeDay] saves. A blank note clears it. A closed day takes it
+     * too, as it takes a check-in: what someone writes about the day is not its log. Always
+     * [DayWrite.Written]; it keeps the [DayWrite] shape so callers and fakes did not all change.
+     */
     suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit>
 
     /** Marks [day] untracked (a holiday) or tracked again. Trends shows an untracked day as a gap. */
