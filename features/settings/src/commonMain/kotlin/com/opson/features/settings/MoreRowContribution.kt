@@ -9,8 +9,8 @@ import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
 
 /**
- * A row another module puts on More, below the Account card, under a label of its own. Rows that
- * share a [section] share a card. Contribute one with
+ * A row another module puts on More, below the Account card unless its [placement] says otherwise,
+ * under a label of its own. Rows that share a [section] share a card. Contribute one with
  * `@ContributesBinding(AppScope::class, multibinding = true)` and register [route] in the same
  * module's `FeatureEntryPoint`.
  *
@@ -35,4 +35,17 @@ interface MoreRowContribution {
 
     /** Asked whenever More builds its list, and again on a tap. */
     fun visible(): Boolean = true
+
+    /** Where the card goes on More. A card takes the placement of its first row. */
+    val placement: MorePlacement get() = MorePlacement.End
+
+    /** Order within the card, lowest first; rows that tie keep the set's order. */
+    val order: Int get() = 0
 }
+
+/**
+ * [AfterExtras]: under the extras card (Water, Fasting, Widgets), for something used day to day.
+ * [End]: after Account, for something most people never open.
+ */
+@HiddenFromObjC
+enum class MorePlacement { AfterExtras, End }

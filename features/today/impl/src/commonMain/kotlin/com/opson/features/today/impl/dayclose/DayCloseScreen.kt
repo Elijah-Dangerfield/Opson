@@ -131,6 +131,8 @@ import opson.libraries.resources.generated.resources.today_dayclose_balance_over
 import opson.libraries.resources.generated.resources.today_dayclose_balance_title
 import opson.libraries.resources.generated.resources.today_dayclose_balance_under
 import opson.libraries.resources.generated.resources.today_dayclose_checkin_empty
+import opson.libraries.resources.generated.resources.today_dayclose_checkin_label
+import opson.libraries.resources.generated.resources.today_dayclose_checkin_label_other_day
 import opson.libraries.resources.generated.resources.today_dayclose_checkin_open_cd
 import opson.libraries.resources.generated.resources.today_dayclose_checkin_pair
 import opson.libraries.resources.generated.resources.today_dayclose_macros
@@ -159,8 +161,11 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * Day close for one day. Done saves the note and the feeling and stamps the day closed, in one
  * write; Back leaves both alone. On a closed day Done saves them and keeps it closed, and Reopen
- * opens it to food again. The commitment buttons change only what this screen says. The check-in
- * row opens the check-in sheet, which saves on its own; closing never writes it.
+ * opens it to food again. The commitment buttons change only what this screen says.
+ *
+ * The check-in and the note are two optional sections, each the same data its own sheet edits:
+ * the check-in row opens the check-in sheet, which saves on its own (closing never writes it),
+ * and the note is the day's note, the one the Note sheet writes and All notes lists.
  */
 @Inject
 class DayCloseViewModel(
@@ -340,7 +345,14 @@ fun DayCloseScreen(
                     )
                 }
                 state.feeling?.let { choice -> Feeling(choice, onAction) }
-                state.checkIn?.let { checkIn -> CheckInEntry(checkIn, onClick = { onAction(DayCloseAction.CheckInTapped) }) }
+                state.checkIn?.let { checkIn ->
+                    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+                        SectionLabel(
+                            stringResource(if (state.isToday) Res.string.today_dayclose_checkin_label else Res.string.today_dayclose_checkin_label_other_day),
+                        )
+                        CheckInEntry(checkIn, onClick = { onAction(DayCloseAction.CheckInTapped) })
+                    }
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                     SectionLabel(
                         stringResource(if (state.isToday) Res.string.today_dayclose_note_label else Res.string.today_dayclose_note_label_other_day),

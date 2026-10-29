@@ -66,10 +66,19 @@
     <!-- The + sheet's tile. -->
     <string name="adding_action_check_in">Check in</string>
 
-    <!-- Close the day's way in. -->
-    <string name="today_dayclose_checkin_empty">How are you feeling? Hunger, energy and mood, if you like.</string>
+    <!-- Close the day's way in: a labelled section whose row opens the same sheet. -->
+    <string name="today_dayclose_checkin_label">How are you feeling? · optional</string>
+    <string name="today_dayclose_checkin_label_other_day">How were you feeling? · optional</string>
+    <string name="today_dayclose_checkin_empty">Hunger, energy, mood and sleep. Answer any of it.</string>
     <string name="today_dayclose_checkin_open_cd">Open the check-in</string>
     <string name="today_dayclose_checkin_pair">%1$s %2$s</string>
+
+    <!-- More's Journal card: the check-in and every note, away from Today. -->
+    <string name="today_more_journal">Journal</string>
+    <string name="today_more_checkin">Check in</string>
+    <string name="today_more_checkin_sub">Hunger, energy, mood and sleep</string>
+    <string name="today_more_notes">Notes</string>
+    <string name="today_more_notes_sub">Your day and meal notes</string>
 
     <!-- Patterns: the check-ins over the four weeks, one bar a day. -->
     <string name="trends_patterns_checkins">How you've felt</string>
