@@ -1,5 +1,6 @@
 package com.opson.features.logger.impl
 
+import com.opson.features.foods.CreateMealRoute
 import com.opson.features.foods.EditCopyRoute
 import com.opson.features.foods.RepeatRoute
 import com.opson.features.logger.LoggedFoodRoute
@@ -261,6 +262,10 @@ class LoggerFeatureEntryPoint(
                 is LoggerEvent.OpenMealNote -> router.batch {
                     goBack()
                     navigate(MealNoteRoute(event.day.toString(), event.slot))
+                }
+                is LoggerEvent.OpenCreateMeal -> router.batch {
+                    goBack()
+                    navigate(CreateMealRoute(fromDayIso = event.day.toString(), fromSlot = event.slot))
                 }
                 is LoggerEvent.OpenScanner -> router.batch {
                     goBack()

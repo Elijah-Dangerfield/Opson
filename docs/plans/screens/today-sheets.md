@@ -1,7 +1,7 @@
 # Today menus and sheets plan
 
-Rebuilt to design v3 (`docs/design/v3/`). The Day menu, Edit Today's cards, Calendar, Meal sheet (with its Note
-sheet), Water sheet, and two small sheets the handoff does not have: Item and
+Rebuilt to design v3 (`docs/design/v3/`). The Day menu, Edit Today's cards, Calendar, a meal's Note
+sheet (the Meal sheet is gone, below), Water sheet, and two small sheets the handoff does not have: Item and
 Day note. Read `shared.md` and `today.md` first.
 
 ## Source
@@ -192,46 +192,14 @@ with dots. `SURFACES`: `calendar`.
 
 ---
 
-## Meal sheet
+## Meal sheet (removed 2026-10-29)
 
-`MealSheetRoute(dayIso: String, slot: MealSlot)`, `bottomSheet<>`, typeMap for
-`MealSlot`. `MealSheetViewModel(day, slot)`.
-
-```kotlin
-data class MealSheetState(
-    val title: StringResource,             // slot name, or "All food" for Uncategorized with groups off
-    val items: List<MealSheetItem>,
-)
-sealed interface MealSheetItem {
-    data object AddFood : MealSheetItem
-    data object Note : MealSheetItem                                       // the note and how hungry, one sheet
-    data class CopyFromDayBefore(val dayIsToday: Boolean) : MealSheetItem   // only when day − 1 has items in this slot
-    data object AteNoDetails : MealSheetItem
-    data object SaveAsMeal : MealSheetItem                                 // only when this slot has items
-}
-```
-
-| Action | Does |
-|---|---|
-| `DaysArrived(day, dayBefore, settings)` | Rebuilds `items` and `title`. |
-| `AddFoodTapped` | `OpenLogger(day, slot)`. |
-| `NoteTapped` | `OpenMealNote(day, slot)`. |
-| `CopyFromDayBeforeTapped` | `DiaryRepository.copySlot(from = day − 1, to = day, slot)`, toast, `Dismiss`. |
-| `AteNoDetailsTapped` | `DiaryRepository.markAteNoDetails(day, slot)`, toast, `Dismiss`. |
-| `SaveAsMealTapped` | `OpenCreateMeal(dayIso, slot)`: `CreateMealRoute(fromDayIso, fromSlot)`, added to `:features:foods` as `foods.md` specifies (Foods registers it). |
-
-Every `Open*` event dismisses this sheet first (`router.goBack()` then
-`router.navigate(next)`). Data: `DiaryRepository.observeDay(day)` and `(day − 1)`,
-`SettingsRepository.observe()`.
-
-Copy: `today_meal_add_food` Add food, `_note` Note, `_copy_yesterday` Copy yesterday's %s, `_copy_day_before` (new, when the
-viewed day is not today) Copy %s from the day before, `_ate` Ate, no details,
-`_save_as_meal` Save as a meal, `today_close_cd` Close. Toasts: `Added to %s.` /
-`Marked %s as eaten.` Icons `restaurant`, `edit_note`, `history`,
-`check_circle`, `bookmark_add`. Scan a barcode, Photo and Voice log are not built.
-
-Visibility: none. Tests: copy item only when the day before has that slot;
-save-as-meal only with items; each tap's event and write. `SURFACES`: `meal-sheet`.
+A meal's + used to open a sheet of Add food, Note, Copy yesterday's {meal} and
+Save as a meal. It now opens the add sheet on that meal (`LoggerRoute(slot,
+dayIso)`, see `adding.md`), which already had Note and Copy a meal and now
+has Save as a meal when the meal has food. Owner feedback: one sheet fewer on
+the way to logging. `MealSheetRoute`, its view model and the `meal-sheet` leak
+surface are gone.
 
 ### Note sheet
 

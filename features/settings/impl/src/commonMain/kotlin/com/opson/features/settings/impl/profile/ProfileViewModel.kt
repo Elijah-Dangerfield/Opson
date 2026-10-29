@@ -85,7 +85,10 @@ class ProfileViewModel(
             is ProfileAction.SexPicked -> settingsRepository.update { it.copy(bodySex = action.sex) }
             is ProfileAction.HeightUnitPicked -> {
                 drafts = drafts.copy(height = height().inUnit(action.unit))
-                settingsRepository.update { it.copy(heightUnit = action.unit) }
+                // A height unit ends the region fallback for weight (Settings.withRegionWeightUnit), so the
+                // weight unit on show is written with it rather than switching back to the stored default.
+                val weightUnit = RegionUnits.weight(region.countryCode())
+                settingsRepository.update { it.copy(heightUnit = action.unit, weightUnit = it.withRegionWeightUnit(weightUnit).weightUnit) }
                 rebuild(action)
             }
             is ProfileAction.HeightCmTyped -> heightTyped(action) { it.copy(cm = NumberInput.sanitize(action.text, allowDecimal = true)) }

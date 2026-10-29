@@ -46,10 +46,10 @@
 
     <!-- Expended today -->
     <string name="integrations_expended_title">Expended today</string>
-    <string name="integrations_resting">Resting</string>
-    <string name="integrations_movement">Everyday movement</string>
-    <string name="integrations_workouts">Workouts</string>
-    <string name="integrations_total">Total</string>
+    <string name="integrations_resting">Resting energy (BMR)</string>
+    <string name="integrations_movement">Everyday activity</string>
+    <string name="integrations_workouts">Exercise</string>
+    <string name="integrations_total">Total burned (TDEE)</string>
     <string name="integrations_empty">Nothing from %1$s yet today.</string>
     <string name="integrations_hidden">Your watch syncs in the background. Nothing from it shows in this mode.</string>
 

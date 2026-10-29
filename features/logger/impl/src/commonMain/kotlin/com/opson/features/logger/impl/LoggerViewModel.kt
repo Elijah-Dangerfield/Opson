@@ -175,6 +175,7 @@ class LoggerViewModel(
             LoggerAction.SavedMealsTapped -> action.choose { copy(pane = LoggerPane.Saved, height = SheetHeight.Full) }
             is LoggerAction.SavedMealPicked -> logSavedMeal(action.id)
             LoggerAction.CopyMealTapped -> copyYesterday()
+            LoggerAction.SaveAsMealTapped -> sendEvent(LoggerEvent.OpenCreateMeal(day, slot()))
             LoggerAction.WaterTapped -> addWater()
             LoggerAction.WeighInTapped -> sendEvent(LoggerEvent.OpenWeighIn)
             LoggerAction.NoteTapped -> {

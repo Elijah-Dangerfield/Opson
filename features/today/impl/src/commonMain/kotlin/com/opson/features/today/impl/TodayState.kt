@@ -406,6 +406,11 @@ sealed interface TodayAction {
     /** A tap on [figure] (the macro row, a stat): its next reading, remembered across phones. */
     data class FigureFlipped(val figure: FlipFigure) : TodayAction
     data class MealTileTapped(val slot: MealSlot) : TodayAction
+
+    /**
+     * Adding to a meal from its card: the +, the header of a meal with food, anywhere on an empty
+     * one. Opens the add sheet on that meal, which also holds its Note, Copy and Save as a meal.
+     */
     data class MealPlusTapped(val slot: MealSlot) : TodayAction
     data class PlanItTapped(val slot: MealSlot) : TodayAction
     /** A food row: its detail, editing that entry. While selecting, a tap ticks it instead (`FoodToggled`). */
@@ -516,7 +521,6 @@ sealed interface TodayEvent {
     data object OpenEnergyToday : TodayEvent
     data class OpenLogger(val day: LocalDate, val slot: MealSlot?) : TodayEvent
     data class OpenDayNote(val day: LocalDate) : TodayEvent
-    data class OpenMealSheet(val day: LocalDate, val slot: MealSlot) : TodayEvent
 
     /** Create a meal filled with [entryIds] from [day]; [slot] when they all sit in that one meal. */
     data class OpenCreateMeal(val day: LocalDate, val entryIds: List<String>, val slot: MealSlot?) : TodayEvent

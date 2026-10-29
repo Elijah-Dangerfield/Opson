@@ -153,7 +153,8 @@ interface HealthRepository {
 The reader returns the day from local midnight to now. On Android: aggregate
 `TotalCaloriesBurnedRecord.ENERGY_TOTAL` and
 `ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL`, resting is total minus
-active; workouts are active calories aggregated over each
+active, and unknown without an active reading (the total alone is the whole
+day's burn, not resting energy; `HealthConnectEnergy`); workouts are active calories aggregated over each
 `ExerciseSessionRecord`'s window. On iOS: cumulative-sum statistics for
 `activeEnergyBurned` and `basalEnergyBurned`, workouts are each `HKWorkout`'s
 `statisticsForType(activeEnergyBurned)` sum.

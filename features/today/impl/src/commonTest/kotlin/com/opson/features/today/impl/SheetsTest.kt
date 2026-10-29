@@ -13,11 +13,6 @@ import com.opson.features.today.impl.item.ItemSheetViewModel
 import com.opson.features.today.impl.meal.MealNoteAction
 import com.opson.features.today.impl.meal.MealNoteEvent
 import com.opson.features.today.impl.meal.MealNoteViewModel
-import com.opson.features.today.impl.meal.MealSheetAction
-import com.opson.features.today.impl.meal.MealSheetEvent
-import com.opson.features.today.impl.meal.MealSheetItem
-import com.opson.features.today.impl.meal.MealSheetStateBuilder
-import com.opson.features.today.impl.meal.MealSheetViewModel
 import com.opson.features.today.impl.water.WaterSheetAction
 import com.opson.features.today.impl.water.WaterSheetStateBuilder
 import com.opson.features.today.impl.water.WaterSheetViewModel
@@ -112,65 +107,7 @@ class SheetsTest : CoroutineTest() {
         assertEquals(3, events.count { it == CalendarEvent.Dismiss })
     }
 
-    // Meal sheet
-
-    @Test
-    fun mealSheetOffersCopyOnlyWhenTheDayBeforeHasTheMealAndSaveOnlyWithItems() {
-        val dinner = MealSheetStateBuilder.build(MealSlot.Dinner, today, TodayFixtures.day(), TodayFixtures.yesterday(), Settings())
-        assertTrue(MealSheetItem.CopyFromDayBefore(dayIsToday = true) in dinner.items)
-        assertTrue(MealSheetItem.SaveAsMeal !in dinner.items)
-
-        val lunch = MealSheetStateBuilder.build(MealSlot.Lunch, today, TodayFixtures.day(), TodayFixtures.yesterday(), Settings())
-        assertTrue(lunch.items.none { it is MealSheetItem.CopyFromDayBefore })
-        assertTrue(MealSheetItem.SaveAsMeal in lunch.items)
-    }
-
-    @Test
-    fun mealSheetHasNoAteWithNoDetails() {
-        val dinner = MealSheetStateBuilder.build(MealSlot.Dinner, today, TodayFixtures.day(), Day.empty(yesterday), Settings())
-        assertEquals(listOf(MealSheetItem.AddFood, MealSheetItem.Note), dinner.items)
-    }
-
-    @Test
-    fun mealSheetTapsOpenOrWrite() = runUnitTest {
-        val vm = MealSheetViewModel(today, MealSlot.Dinner, diary, FakeSettingsRepository(), FakeCalendar())
-        val events = collect(vm.eventFlow)
-
-        vm.takeAction(MealSheetAction.AddFoodTapped)
-        vm.takeAction(MealSheetAction.NoteTapped)
-        vm.takeAction(MealSheetAction.SaveAsMealTapped)
-        vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
-
-        assertEquals(
-            listOf(
-                MealSheetEvent.OpenLogger(today, MealSlot.Dinner),
-                MealSheetEvent.OpenMealNote(today, MealSlot.Dinner),
-                MealSheetEvent.OpenCreateMeal(today, MealSlot.Dinner),
-            ),
-            events.take(3),
-        )
-        assertEquals(listOf(Triple(yesterday, today, MealSlot.Dinner)), diary.copiedSlots)
-        assertEquals(1, events.count { it == MealSheetEvent.Dismiss })
-    }
-
-    /** The sheet animates down after a write; a second tap in that time is queued behind the first. */
-    @Test
-    fun aSecondTapWhileTheMealSheetClosesWritesNothingMore() = runUnitTest {
-        val vm = MealSheetViewModel(today, MealSlot.Dinner, diary, FakeSettingsRepository(), FakeCalendar())
-
-        vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
-        vm.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
-
-        assertEquals(1, diary.copiedSlots.size)
-    }
-
     // A meal's Note
-
-    @Test
-    fun mealSheetOffersOneNoteForTheNoteAndHunger() {
-        val items = TodayFixtures.mealSheetState().items
-        assertEquals(1, items.count { it == MealSheetItem.Note })
-    }
 
     @Test
     fun mealNotePrefillsOnceAndSavesTrimmedKeepingTheHunger() = runUnitTest {

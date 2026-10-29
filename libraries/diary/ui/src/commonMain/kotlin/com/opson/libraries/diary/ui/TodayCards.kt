@@ -300,7 +300,8 @@ private const val SUBTITLE_SEPARATOR = " · "
  * A meal with its items (2.1): the [MealHeader] with [headerTrailing] (the + , or Move to… on
  * Uncategorized), each item drawn by [itemRow] (a plain row, a swipe row, a tickable row while
  * selecting, or its own confirmation), then the meal's [note].
- * [onHeaderClick] makes the header a target: while selecting it toggles the meal's foods.
+ * [onHeaderClick] makes the header one target, read with [headerClickLabel]: outside select mode
+ * it adds to the meal, while selecting it toggles the meal's foods.
  * [dropLabel] marks the card as where dragged foods will land (13.3c): "Move to Dinner".
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -318,6 +319,7 @@ fun TodayMealCard(
     modifier: Modifier = Modifier,
     highlighted: Boolean = false,
     onHeaderClick: (() -> Unit)? = null,
+    headerClickLabel: String? = null,
     headerTrailing: @Composable RowScope.() -> Unit = {},
     dropLabel: String? = null,
     itemRow: @Composable (MealCardItem) -> Unit,
@@ -338,7 +340,7 @@ fun TodayMealCard(
             macros = macros,
             macroStyle = macroStyle,
             modifier = if (onHeaderClick != null) {
-                Modifier.semantics { role = Role.Button }.bounceClick(scaleDown = 0.99f, onClick = onHeaderClick)
+                Modifier.bounceClick(scaleDown = 0.99f, onClickLabel = headerClickLabel, onClick = onHeaderClick)
             } else {
                 Modifier
             },
@@ -417,7 +419,8 @@ fun MealCardRow(item: MealCardItem, onClick: () -> Unit, trailing: @Composable R
 
 /**
  * A meal as one compact card: the [MealHeader] and anything [below] it (suggestions, the foods).
- * [dropLabel] marks it as where dragged foods will land, as on [TodayMealCard].
+ * [dropLabel] marks it as where dragged foods will land, as on [TodayMealCard]. [onClick] makes
+ * the whole card one target, read as its texts with [onClickLabel] as the action.
  */
 @Composable
 fun MealRowCard(
@@ -429,12 +432,14 @@ fun MealRowCard(
     calories: Display = Display.Hidden,
     trailing: @Composable RowScope.() -> Unit = {},
     dropLabel: String? = null,
+    onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
     below: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     TodayCard(
-        modifier = modifier.then(
-            if (dropLabel != null) Modifier.border(2.dp, AppTheme.colors.accent.color, AppTheme.shapes.card) else Modifier,
-        ),
+        modifier = modifier
+            .then(if (dropLabel != null) Modifier.border(2.dp, AppTheme.colors.accent.color, AppTheme.shapes.card) else Modifier)
+            .then(if (onClick != null) Modifier.bounceClick(scaleDown = 0.98f, onClickLabel = onClickLabel, onClick = onClick) else Modifier),
         contentPadding = PaddingValues(start = 20.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
     ) {

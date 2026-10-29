@@ -180,7 +180,7 @@ class TodayViewModel(
             TodayAction.ReopenTapped -> action.closeMenuThen { diary.reopenDay(day()) }
             is TodayAction.MealTileTapped -> ifOpen { sendEvent(TodayEvent.OpenLogger(day(), action.slot)) }
             is TodayAction.PlanItTapped -> ifOpen { sendEvent(TodayEvent.OpenLogger(day(), action.slot)) }
-            is TodayAction.MealPlusTapped -> ifOpen { sendEvent(TodayEvent.OpenMealSheet(day(), action.slot)) }
+            is TodayAction.MealPlusTapped -> ifOpen { sendEvent(TodayEvent.OpenLogger(day(), action.slot)) }
             // A row swiped open closes first. Otherwise the food's detail, for this entry alone:
             // the same food twice on a day is two rows, and each opens its own.
             is TodayAction.ItemTapped -> when {

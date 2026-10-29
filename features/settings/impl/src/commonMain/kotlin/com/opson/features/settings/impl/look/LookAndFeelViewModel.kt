@@ -46,7 +46,7 @@ class LookAndFeelViewModel(
             is LookAndFeelAction.InputsArrived -> action.updateState { LookAndFeelStateBuilder.build(action.settings) }
             is LookAndFeelAction.ThemePicked -> settingsRepository.update { it.copy(theme = action.theme) }
             is LookAndFeelAction.TextSizePicked -> settingsRepository.update { it.copy(textSize = action.size) }
-            is LookAndFeelAction.WeightUnitPicked -> settingsRepository.update { it.copy(weightUnit = action.unit) }
+            is LookAndFeelAction.WeightUnitPicked -> settingsRepository.update { it.copy(weightUnit = action.unit, weightUnitChosen = true) }
         }
     }
 }

@@ -88,6 +88,19 @@ with pipes, never line filters.
 {service_name="opson-server"} | session_id="<uuid>"
 ```
 
+In a metric query every structured-metadata key behaves like a label, and each record carries
+unique ones (`session_id`, `observed_timestamp`). So a range aggregation with no grouping returns
+one series per record, not one number: `quantile_over_time(0.5, … | unwrap session_duration_sec
+[$__interval])` draws a dot per session, every one labelled `p50`. Always group it, with `by ()`
+for one series or `by (screen)` for one per value. `count_over_time` is safe inside
+`sum(…)` or `sum by (…)`, which collapse the same way.
+
+```
+# p50 session length, one series
+quantile_over_time(0.5, {service_name="opson-client"} | event_name="app.backgrounded"
+  | unwrap session_duration_sec [$__interval]) by ()
+```
+
 Client records also carry resource attributes: `service.version`, `platform` (android/ios),
 `build_number`, `commit_sha`, `release_channel`, and `deployment.environment` (dev for debug
 builds, prod for release).

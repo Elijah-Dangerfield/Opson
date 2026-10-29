@@ -12,6 +12,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.home.FeedbackRoute
 import com.opson.features.onboarding.OnboardingRoute
+import com.opson.features.settings.EnergyExplainerRoute
 import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.CreditsRoute
@@ -36,7 +37,11 @@ import com.opson.features.settings.TodayScreenChoiceRoute
 import com.opson.features.settings.TodayScreenSettingsRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.WidgetsRoute
+import com.opson.features.settings.impl.energy.EnergyExplainerEvent
+import com.opson.features.settings.impl.energy.EnergyExplainerSheetContent
+import com.opson.features.settings.impl.energy.EnergyExplainerViewModel
 import com.opson.features.settings.impl.energy.EnergyTodayEvent
+import com.opson.features.settings.impl.energy.EnergyTopic
 import com.opson.features.settings.impl.energy.EnergyTodayScreen
 import com.opson.features.settings.impl.energy.EnergyTodayViewModel
 import com.opson.features.settings.impl.energy.RestingEnergyEvent
@@ -163,6 +168,7 @@ class SettingsFeatureEntryPoint(
     private val microTargetsViewModel: (backToTodayScreen: Boolean) -> MicroTargetsViewModel,
     private val microTargetViewModel: (Micronutrient) -> MicroTargetViewModel,
     private val providerSummaryViewModel: () -> ProviderSummaryViewModel,
+    private val energyExplainerViewModel: (EnergyTopic) -> EnergyExplainerViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -265,6 +271,7 @@ class SettingsFeatureEntryPoint(
                     TargetsEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                     TargetsEvent.OpenMicroTargets -> router.navigate(MicroTargetsRoute())
                     TargetsEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
+                    is TargetsEvent.OpenExplainer -> router.navigate(EnergyExplainerRoute(event.topic.wire))
                     TargetsEvent.Close -> router.goBack()
                 }
             }
@@ -315,6 +322,7 @@ class SettingsFeatureEntryPoint(
                 when (event) {
                     RestingEnergyEvent.OpenProfile -> router.navigate(ProfileRoute(from = ProfileBack.RestingEnergy.wire))
                     RestingEnergyEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
+                    RestingEnergyEvent.OpenExplainer -> router.navigate(EnergyExplainerRoute(EnergyExplainerRoute.TOPIC_RESTING))
                     RestingEnergyEvent.Close -> router.goBack()
                 }
             }
@@ -381,10 +389,37 @@ class SettingsFeatureEntryPoint(
                 when (event) {
                     is EnergyTodayEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
                     EnergyTodayEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute(fromEnergyToday = true))
+                    is EnergyTodayEvent.OpenExplainer -> router.navigate(EnergyExplainerRoute(event.topic.wire))
                     EnergyTodayEvent.Close -> router.goBack()
                 }
             }
             EnergyTodayScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        // The (i) sheets. Today's Activity card opens Burned's, so it is registered whatever
+        // release.goalsAndEnergy says, as the pages it explains are.
+        bottomSheet<EnergyExplainerRoute> { backStackEntry, sheetState ->
+            val topic = remember(backStackEntry) { EnergyTopic.fromWire(backStackEntry.toRoute<EnergyExplainerRoute>().topic) }
+            val viewModel: EnergyExplainerViewModel = viewModel { energyExplainerViewModel(topic) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    // In the sheet's place, so back from there doesn't land on an explanation already read.
+                    EnergyExplainerEvent.OpenProfile -> router.batch {
+                        goBack()
+                        navigate(ProfileRoute(from = ProfileBack.Elsewhere.wire))
+                    }
+                    EnergyExplainerEvent.OpenRestingEnergy -> router.batch {
+                        goBack()
+                        navigate(RestingEnergyRoute())
+                    }
+                    // Animate the sheet down first; its dismiss callback pops the route.
+                    EnergyExplainerEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            BottomSheet(onDismissRequest = { router.goBack() }, state = sheetState, backgroundColor = AppTheme.colors.bg, scrollableContent = true) {
+                EnergyExplainerSheetContent(state = state, onAction = viewModel::takeAction)
+            }
         }
 
         screen<WaterSettingsRoute> { backStackEntry ->

@@ -5,21 +5,28 @@ import com.opson.features.settings.impl.FakePolicySource
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.integrations.FakeCalendar
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
 import com.opson.features.settings.impl.integrations.healthFlag
+import com.opson.libraries.core.DeviceRegion
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.BodyDetail
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.HeightUnit
+import com.opson.libraries.nutrition.Heights
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
+import com.opson.libraries.nutrition.Units
 import com.opson.libraries.nutrition.Visibility
+import com.opson.libraries.nutrition.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -35,7 +42,7 @@ class RestingEnergyTest : CoroutineTest() {
     private val missing = choices.copy(calculatedKcal = null, missing = setOf(BodyDetail.Height, BodyDetail.Weight))
 
     private fun build(settings: Settings = Settings(), choices: RestingChoices = this.choices, numbers: NumbersSettings = NumbersSettings(PresetId.Full)) =
-        RestingEnergyStateBuilder.build(settings, choices, SettingsFixtures.policy(numbers))
+        RestingEnergyStateBuilder.build(settings, choices, SettingsFixtures.policy(numbers), today = SettingsFixtures.today)
 
     // --- builder ---
 
@@ -60,9 +67,9 @@ class RestingEnergyTest : CoroutineTest() {
     fun everydayActivity_isAskedOnlyWhileNoHealthAppCountsTheDay() {
         // Connected with activity counted, Burned takes movement from the health app and leaves
         // everyday activity out, so asking would change nothing.
-        assertFalse(RestingEnergyStateBuilder.build(Settings(), choices, SettingsFixtures.policy(PresetId.Full), activitySource = HealthSource.AppleHealth).asksEveryday)
+        assertFalse(RestingEnergyStateBuilder.build(Settings(), choices, SettingsFixtures.policy(PresetId.Full), activitySource = HealthSource.AppleHealth, today = SettingsFixtures.today).asksEveryday)
         assertTrue(build(Settings()).asksEveryday, "no health app")
-        val off = RestingEnergyStateBuilder.build(Settings(activityInBurned = false), choices, SettingsFixtures.policy(PresetId.Full), activitySource = HealthSource.HealthConnect)
+        val off = RestingEnergyStateBuilder.build(Settings(activityInBurned = false), choices, SettingsFixtures.policy(PresetId.Full), activitySource = HealthSource.HealthConnect, today = SettingsFixtures.today)
         assertTrue(off.asksEveryday, "activity off: the everyday baseline counts again")
     }
 
@@ -75,7 +82,37 @@ class RestingEnergyTest : CoroutineTest() {
         assertNull(state.ownText)
     }
 
+    /** "Male, 28, 5 ft 11 in, 170.0 lb": what the calculation reads, so a weigh-in stored as 170 kg reads "170.0 kg" here. */
+    @Test
+    fun aCompleteProfile_isReadBack_inThePersonsUnits() {
+        val profile = Settings(heightCm = Heights.cm(5, 11.0), heightUnit = HeightUnit.FtIn, birthYear = 1998, bodySex = BodySex.Male, weightUnit = WeightUnit.Lb)
+        val inputs = assertNotNull(build(profile, choices.copy(weightKg = Units.lbToKg(170.0))).profileInputs)
+
+        assertEquals(BodySex.Male, inputs.sex)
+        assertEquals(28, inputs.age, "born 1998, on ${SettingsFixtures.today}")
+        assertEquals(HeightUnit.FtIn, inputs.heightUnit)
+        assertEquals(Display.Shown("170.0 lb"), inputs.weight)
+        assertEquals(Display.Shown("170.0 kg"), build(profile.copy(weightUnit = WeightUnit.Kg), choices.copy(weightKg = 170.0)).profileInputs?.weight)
+    }
+
+    @Test
+    fun theInputsLine_hidesTheWeightWhereTheModeDoes_andWaitsForEveryDetail() {
+        val profile = Settings(heightCm = 180.0, birthYear = 1997, bodySex = BodySex.Female)
+
+        assertEquals(Display.Hidden, build(profile, numbers = NumbersSettings(PresetId.NoNumbers)).profileInputs?.weight)
+        assertNull(build(profile.copy(bodySex = null)).profileInputs, "the row says what it still needs instead")
+        assertNull(build(profile.copy(restingSource = RestingSource.Own)).profileInputs, "only while calculating")
+    }
+
     // --- view model ---
+
+    @Test
+    fun theInfoButton_opensTheExplainer() = runUnitTest {
+        val vm = viewModel(FakeSettingsRepository())
+        val events = eventsOf(vm)
+        vm.takeAction(RestingEnergyAction.InfoTapped)
+        assertEquals(listOf<RestingEnergyEvent>(RestingEnergyEvent.OpenExplainer), events)
+    }
 
     private fun viewModel(
         repository: FakeSettingsRepository,
@@ -87,6 +124,8 @@ class RestingEnergyTest : CoroutineTest() {
         FakePolicySource(SettingsFixtures.policy(PresetId.Full)),
         health,
         healthFlag(true),
+        FakeCalendar(SettingsFixtures.today),
+        DeviceRegion { "US" },
     )
 
     @Test

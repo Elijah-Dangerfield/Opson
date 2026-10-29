@@ -220,6 +220,18 @@ class ProfileTest : CoroutineTest() {
         assertEquals(HeightUnit.FtIn, viewModel(region = "US").state.height.unit)
     }
 
+    /** A height unit ends weight's region fallback, so the pounds on show are written with it. */
+    @Test
+    fun pickingAHeightUnit_keepsTheWeightUnitOnShow() = runUnitTest {
+        val repository = FakeSettingsRepository(Settings())
+        val vm = viewModel(repository, region = "US")
+
+        vm.takeAction(ProfileAction.HeightUnitPicked(HeightUnit.Cm))
+
+        assertEquals(WeightUnit.Lb, repository.state.value.weightUnit)
+        assertEquals(WeightUnit.Lb, repository.state.value.withRegionWeightUnit(WeightUnit.Kg).weightUnit)
+    }
+
     @Test
     fun bodyFat_savesASensibleShare_andEmptyingItClearsIt() = runUnitTest {
         val repository = FakeSettingsRepository(Settings())

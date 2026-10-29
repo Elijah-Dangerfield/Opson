@@ -680,7 +680,7 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.5, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"onboarding.completed\" | unwrap duration_sec [$__interval])",
+          "expr": "quantile_over_time(0.5, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"onboarding.completed\" | unwrap duration_sec [$__interval]) by ()",
           "refId": "A",
           "legendFormat": "p50"
         },
@@ -690,7 +690,7 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.9, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"onboarding.completed\" | unwrap duration_sec [$__interval])",
+          "expr": "quantile_over_time(0.9, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"onboarding.completed\" | unwrap duration_sec [$__interval]) by ()",
           "refId": "B",
           "legendFormat": "p90"
         }

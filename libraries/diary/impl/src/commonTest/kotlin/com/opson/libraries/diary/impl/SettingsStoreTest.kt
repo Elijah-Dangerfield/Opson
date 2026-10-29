@@ -11,8 +11,10 @@ import com.opson.libraries.diary.impl.wire.SettingsRowDto
 import com.opson.libraries.diary.impl.wire.WireJson
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.coroutines.cancel
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.JsonNull
@@ -29,7 +31,8 @@ import kotlin.time.Instant
 /**
  * [SettingsStore]: when `changedAt` moves, what goes into the outbox, and
  * whose settings are on screen across a user change (the `isKnown` rule that
- * keeps a new phone from pushing default settings over the user's own).
+ * keeps a new phone from pushing default settings over the user's own), and the weight unit
+ * read in the phone region's units until one is set, without writing it.
  *
  * The pull path that feeds [SettingsStore.applyPulled] and
  * [SettingsStore.markPulled] is covered from the syncer's side in
@@ -40,10 +43,38 @@ class SettingsStoreTest : CoroutineTest() {
     private val clock = FakeClock(Instant.parse("2026-10-25T08:00:00Z"))
     private val user = FakeActiveUser(ActiveUser.SignedOut)
     private val appScope by lazy { AppCoroutineScope(dispatchers) }
-    private val store by lazy { SettingsStore(FakeCacheFactory(), db.outboxDao, db.transactor, clock, user, appScope) }
+    private var country: String? = null
+    private val store by lazy { SettingsStore(FakeCacheFactory(), db.outboxDao, db.transactor, clock, user, appScope) { country } }
 
     @AfterTest
     fun tearDown() = appScope.cancel()
+
+    @Test
+    fun anAmericanWhoNeverPickedAUnit_readsPounds_andNothingIsWritten() = runUnitTest {
+        country = "US"
+
+        assertEquals(WeightUnit.Lb, store.settings.value.weightUnit, "the stored default is kg, the region's unit is lb")
+        store.update(stampNumbersChange = false) { it.copy(theme = ThemeMode.Dark) }
+        assertEquals(WeightUnit.Lb, store.settings.value.weightUnit)
+        val wire = WireJson.decodeFromString(SettingsRowDto.serializer(), db.outbox.rows.single().payload)
+        assertEquals(JsonPrimitive("kg"), wire.settings["weightUnit"], "the region's unit is read, never synced on their behalf")
+    }
+
+    @Test
+    fun aPickedUnit_orUnitsSetByOnboarding_beatTheRegion() = runUnitTest {
+        country = "US"
+        store.update(stampNumbersChange = false) { it.copy(weightUnit = WeightUnit.Kg, weightUnitChosen = true) }
+        assertEquals(WeightUnit.Kg, store.settings.value.weightUnit, "picked on Display")
+
+        store.update(stampNumbersChange = false) { it.copy(weightUnitChosen = false, heightUnit = HeightUnit.Cm) }
+        assertEquals(WeightUnit.Kg, store.settings.value.weightUnit, "onboarding wrote both units")
+    }
+
+    @Test
+    fun aMetricRegion_keepsKilograms() = runUnitTest {
+        country = "GB"
+        assertEquals(WeightUnit.Kg, store.settings.value.weightUnit)
+    }
 
     @Test
     fun changedAtMovesOnlyWhenTheNumbersChange() = runUnitTest {
