@@ -16,6 +16,8 @@ kotlin {
             implementation(projects.features.settings)
             // Edit a copy, from the food detail's ⋮.
             implementation(projects.features.foods)
+            // BuildersEnabled and BuilderProgramRoute: Builder mode, Check against the pack, the scanner's label read.
+            implementation(projects.features.builder)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)
@@ -61,6 +63,7 @@ kotlin {
             implementation(projects.libraries.speech)
             implementation(projects.libraries.health)
             implementation(projects.libraries.prompts)
+            implementation(projects.features.builder)
         }
     }
 }

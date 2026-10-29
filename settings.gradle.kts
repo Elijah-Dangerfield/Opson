@@ -77,6 +77,8 @@ if (!serverOnly) {
     include(":apps:admin")
 
     // Features
+    include(":features:builder")
+    include(":features:builder:impl")
     include(":features:foods")
     include(":features:foods:impl")
     include(":features:home")

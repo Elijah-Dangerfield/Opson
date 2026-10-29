@@ -63,6 +63,8 @@ kotlin {
             implementation(projects.features.logger.impl)
             // release.todaySummary, release.todaySelect and release.foodActions live next to Today.
             implementation(projects.features.today.impl)
+            // BuildersEnabled (release.builders), for ConfigManifestRegistryDriftTest.
+            implementation(projects.features.builder)
             // release.onboardingSetup lives next to onboarding.
             implementation(projects.features.onboarding.impl)
             // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.

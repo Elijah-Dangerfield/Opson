@@ -122,12 +122,13 @@ class PromptProcessor(
             }
         }
 
-        val eligibility = mutableMapOf<String, Boolean>()
+        val eligibility = mutableMapOf<Pair<String, PromptEvent?>, Boolean>()
         for (trigger in moments + PromptTrigger.TodayOpen) {
+            val moment = (trigger as? PromptTrigger.After)?.event
             for (candidate in ordered) {
                 val block = PromptRules.check(candidate, trigger, account, who, now, shownThisSession = promptedInSession == session)
                 if (block != null) continue
-                val eligible = eligibility.getOrPut(candidate.id) { isEligible(candidate) }
+                val eligible = eligibility.getOrPut(candidate.id to moment) { isEligible(candidate, moment) }
                 if (eligible) return@withLock show(candidate, trigger, userId, session, now)
             }
         }
@@ -173,8 +174,8 @@ class PromptProcessor(
         return showing
     }
 
-    private suspend fun isEligible(candidate: PromptCandidate): Boolean =
-        Catching { candidate.isEligible() }
+    private suspend fun isEligible(candidate: PromptCandidate, moment: PromptEvent? = null): Boolean =
+        Catching { candidate.isEligible(moment) }
             .logOnFailure { "Prompt ${candidate.id} failed its eligibility check" }
             .getOrNull() == true
 

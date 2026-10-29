@@ -33,6 +33,11 @@ private fun LoggerScanDarkPreview() = Scanner(LoggerFixtures.scanning, dark = tr
 @Composable
 private fun LoggerScanLightOnPreview() = Scanner(LoggerFixtures.scanningLit)
 
+/** A Builder with Also read the label on: after the code, the label. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanReadLabelPreview() = Scanner(LoggerFixtures.scanning.copy(canReadLabel = true, readLabel = true))
+
 /** The instant a code is caught, before a lookup has been slow enough for the spinner. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

@@ -10,6 +10,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.scanner.FocusPoint
 import com.opson.libraries.scanner.ScanArea
+import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.CircularProgressIndicator
 import com.opson.libraries.ui.components.ScanFrame
 import com.opson.libraries.ui.components.Screen
@@ -60,6 +62,8 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.builder_scan_read_label
+import opson.libraries.resources.generated.resources.builder_scan_read_label_on
 import opson.libraries.resources.generated.resources.barcode_allow_camera
 import opson.libraries.resources.generated.resources.barcode_camera_body
 import opson.libraries.resources.generated.resources.barcode_camera_body_ask
@@ -125,6 +129,7 @@ fun BarcodeScanScreen(
         ) {
             SheetHeader(title = stringResource(Res.string.barcode_title), onClose = { onAction(BarcodeScanAction.CloseTapped) })
             CameraWindow(state, onAction, viewfinder)
+            state.readLabel?.let { on -> ReadLabelRow(on, onAction) }
             StageContent(state.stage, onAction)
         }
     }
@@ -244,6 +249,22 @@ private fun ReadConfirmation() {
             alpha = pop.value.coerceIn(0f, 1f)
         },
     )
+}
+
+/** A Builder's Also read the label: the next screen after a code asks for a photo of the panel. */
+@Composable
+private fun ReadLabelRow(on: Boolean, onAction: (BarcodeScanAction) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(stringResource(Res.string.builder_scan_read_label), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
+            if (on) Text(stringResource(Res.string.builder_scan_read_label_on), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        }
+        AppSwitch(checked = on, onCheckedChange = { onAction(BarcodeScanAction.ReadLabelChanged(it)) })
+    }
 }
 
 @Composable

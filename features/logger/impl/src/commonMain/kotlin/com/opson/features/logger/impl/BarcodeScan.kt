@@ -25,6 +25,12 @@ data class BarcodeScanState(
     val slot: MealSlot = MealSlot.Dinner,
     val stage: ScanStage = ScanStage.Starting,
     val torch: Torch = Torch.None,
+    /**
+     * A Builder's "Also read the label" (`release.builders`): null when not offered. On, a code
+     * that finds a food opens Check against the pack instead of the detail, so the next tap
+     * photographs the label. Nothing is read from the scanner's frames.
+     */
+    val readLabel: Boolean? = null,
 )
 
 /** The light for a dim kitchen. [None] when there is no live camera, or it has no torch: no button then. */
@@ -71,6 +77,9 @@ sealed interface BarcodeScanAction {
 
     /** Back on screen, from Settings for instance. */
     data object Resumed : BarcodeScanAction
+
+    /** Also read the label, on or off. */
+    data class ReadLabelChanged(val on: Boolean) : BarcodeScanAction
     data class CodeRead(val code: ScannedCode) : BarcodeScanAction
     data class LookupSlow(val code: String) : BarcodeScanAction
     data class FoodFound(val code: String, val food: Food) : BarcodeScanAction
@@ -110,6 +119,9 @@ sealed interface BarcodeScanEvent {
     /** A hit: this screen gives way to the food detail for [foodId]. */
     data class OpenFoodDetail(val foodId: String, val day: LocalDate, val slot: MealSlot) : BarcodeScanEvent
 
+    /** A hit with Also read the label on: Check against the pack for the food, in this screen's place. */
+    data class OpenCheck(val foodId: String, val name: String) : BarcodeScanEvent
+
     /** Search, in this screen's place: "Search instead" when the + sheet opened the scanner. */
     data class OpenSearch(val day: LocalDate, val slot: MealSlot) : BarcodeScanEvent
 
@@ -145,6 +157,9 @@ data class ScanModel(
     val torchOn: Boolean = false,
     /** `release.submitFood`, read once when the scanner opens. */
     val canAddFood: Boolean = false,
+    /** `release.builders` and an active Builder, read once when the scanner opens. */
+    val canReadLabel: Boolean = false,
+    val readLabel: Boolean = false,
 )
 
 /** The scanner's state as a pure function of [ScanModel], like the logger's [LoggerStateBuilder]. */
@@ -178,7 +193,12 @@ object BarcodeScanStateBuilder {
                 }
             }
         }
-        return BarcodeScanState(slot = slot, stage = stage, torch = torch(stage, model))
+        return BarcodeScanState(
+            slot = slot,
+            stage = stage,
+            torch = torch(stage, model),
+            readLabel = model.readLabel.takeIf { model.canReadLabel && stage == ScanStage.Scanning },
+        )
     }
 
     /** Offered wherever the live camera shows, which includes under a lookup's scrim. */

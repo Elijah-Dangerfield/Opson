@@ -140,6 +140,10 @@ data class FoodDetailState(
     val hunger: HungerCheck? = null,
     /** There is a food behind it to star or report: an entry that is only a name or a number has none. */
     val hasFood: Boolean = true,
+    /** A food from Opson's catalog, which a Builder can check against its pack. */
+    val catalog: Boolean = false,
+    /** The ⋮ menu offers Check against the pack: set by the screen for an active Builder (`release.builders`). */
+    val canCheck: Boolean = false,
     /** Opened on an entry already on the log: Save changes and Remove from log take Add's place. */
     val entry: EntryUi? = null,
 ) {
@@ -534,6 +538,7 @@ object FoodDetailStateBuilder {
             precision = draft.precision,
             canAdd = choice.quantity > 0.0 && (entry == null || entry.changed),
             hasFood = ref != null,
+            catalog = food is AmountFood.Catalog,
             entry = entry,
         )
         val origin = origin(food)

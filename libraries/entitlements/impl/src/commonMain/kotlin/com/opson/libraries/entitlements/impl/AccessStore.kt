@@ -132,6 +132,8 @@ class AccessStore(
         cache.set(StoredAccess())
     }
 
+    override suspend fun refresh(): Result<Unit> = sync()
+
     internal companion object {
         const val PATH = "/v1/me/entitlements"
 

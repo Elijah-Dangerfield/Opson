@@ -16,6 +16,9 @@ enum class ReadOutcome(val wire: String) {
     TooMany("too_many"),
     Offline("offline"),
     Error("error"),
+
+    /** Builder mode: the phone read the panel well enough that the server was not asked. */
+    OnPhone("on_phone"),
 }
 
 /**
@@ -57,7 +60,11 @@ class AppEventsSubmitFoodTelemetry : SubmitFoodTelemetry {
     override fun photoTaken(side: PackSide, fromCamera: Boolean) {
         logger.logEvent(
             "food_add.photo_taken",
-            "side" to if (side == PackSide.Front) "front" else "label",
+            "side" to when (side) {
+                PackSide.Front -> "front"
+                PackSide.Label -> "label"
+                PackSide.Ingredients -> "ingredients"
+            },
             "source" to if (fromCamera) "camera" else "library",
         )
     }

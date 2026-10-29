@@ -57,10 +57,15 @@ class FoodSubmission(
     val acknowledged: List<LabelCheckCode>,
     /** The person's own copy, saved to their foods first, so it can be marked while review runs. */
     val customFoodId: String? = null,
+    /** Builder mode: a photo of the ingredients list, optional. */
+    val ingredients: ByteArray? = null,
+    /** Builder mode: what the phone read off the label before the person edited it. */
+    val capture: SubmissionCapture? = null,
 )
 
 sealed interface SubmitResult {
-    data class Submitted(val submissionId: String, val foodId: String) : SubmitResult
+    /** [lane] is where it went (`review`, `auto`, `owner`), from a server that routes; null otherwise. */
+    data class Submitted(val submissionId: String, val foodId: String, val lane: String? = null) : SubmitResult
 
     data object TooMany : SubmitResult
 

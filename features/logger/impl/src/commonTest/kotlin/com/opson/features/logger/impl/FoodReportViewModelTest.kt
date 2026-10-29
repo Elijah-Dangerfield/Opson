@@ -78,7 +78,7 @@ class FoodReportViewModelTest : CoroutineTest() {
         )
         assertEquals("The can says 10", report.note)
         assertContentEquals(byteArrayOf(7), report.photo)
-        assertEquals(listOf(PromptEvent.ReportSent), moments, "a sent report is the moment the Builder prompt follows")
+        assertEquals(listOf(PromptEvent.ReportSent, PromptEvent.FoodReportSent), moments, "a sent report is the moment the Builder prompt follows")
     }
 
     @Test
@@ -112,7 +112,7 @@ class FoodReportViewModelTest : CoroutineTest() {
         reports.answer = FoodReportResult.Sent(applied = false)
         vm.takeAction(FoodReportAction.SendTapped)
         assertEquals(1, reports.sent.map { it.id }.distinct().size, "the same id, so the server never files it twice")
-        assertEquals(listOf(PromptEvent.ReportSent), moments)
+        assertEquals(listOf(PromptEvent.ReportSent, PromptEvent.FoodReportSent), moments)
     }
 
     @Test

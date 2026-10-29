@@ -97,3 +97,13 @@ private fun SubmitFoodSaveOnlyReviewPreview() = Submit(SubmitFoodFixtures.saveOn
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun SubmitFoodPhotoFailedPreview() = Submit(SubmitFoodFixtures.photoFailedState(full))
+
+/** Builder mode: front, label and the optional ingredients. */
+@Preview(widthDp = 390, heightDp = 1100)
+@Composable
+private fun SubmitFoodBuilderPhotosPreview() = Submit(SubmitFoodFixtures.builderPhotosState(full))
+
+/** Builder mode, read on the phone: every number to check against the pack. */
+@Preview(widthDp = 390, heightDp = 1600)
+@Composable
+private fun SubmitFoodBuilderReviewPreview() = Submit(SubmitFoodFixtures.builderReviewState(full))

@@ -1,6 +1,7 @@
 package com.opson.integration.config
 
 import com.opson.features.logger.impl.BarcodeScanEnabled
+import com.opson.features.builder.BuildersEnabled
 import com.opson.features.logger.impl.FoodReportEnabled
 import com.opson.features.upgrade.LatestVersionCode
 import com.opson.features.upgrade.MaintenanceMessage
@@ -318,6 +319,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     PhotoEstimateEnabled(appConfigMap),
     SubmitFoodEnabled(appConfigMap),
     FoodReportEnabled(appConfigMap),
+    BuildersEnabled(appConfigMap),
     WidgetsEnabled(appConfigMap),
     SearchOptionsEnabled(appConfigMap),
     OnboardingSetupEnabled(appConfigMap),

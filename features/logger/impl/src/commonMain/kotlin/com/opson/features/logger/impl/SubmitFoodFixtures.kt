@@ -92,4 +92,12 @@ object SubmitFoodFixtures {
     /** The label photo picked from the library would not open: a line under the photos says so. */
     fun photoFailedState(policy: VisibilityPolicy): SubmitFoodState =
         state(model(photos = 1).copy(photoFailed = PackSide.Label), policy)
+
+    /** Builder mode: the ingredients slot, with the front and label taken. */
+    fun builderPhotosState(policy: VisibilityPolicy): SubmitFoodState =
+        state(model(photos = 2).copy(builderMode = true, slot = null), policy)
+
+    /** Builder mode, the label read on the phone: the form filled in, with the notice to check it. */
+    fun builderReviewState(policy: VisibilityPolicy): SubmitFoodState =
+        state(reviewModel(notice = ReviewNotice.ReadOnPhone).copy(builderMode = true), policy)
 }

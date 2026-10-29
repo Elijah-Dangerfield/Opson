@@ -111,6 +111,9 @@ enum class SubmitEntry(val wire: String) {
 
     /** The Foods tab's Add a food, which saves without logging. */
     Foods("foods"),
+
+    /** More › Builders' Add a food from its pack, which saves without logging, as Foods does. */
+    Builders("builders"),
 }
 
 /**

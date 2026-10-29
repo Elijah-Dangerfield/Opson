@@ -6,6 +6,8 @@ import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.BarcodeMissReporter
+import com.opson.features.builder.BuildersEnabled
+import com.opson.libraries.foods.BuilderProgram
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.Gtin
 import com.opson.libraries.scanner.BarcodeFormat
@@ -43,13 +45,15 @@ class BarcodeScanViewModel(
     private val telemetry: BarcodeTelemetry,
     private val pairing: MissedBarcodePairing,
     submitFood: SubmitFoodEnabled,
+    builders: BuilderProgram,
+    buildersEnabled: BuildersEnabled,
 ) : SEAViewModel<BarcodeScanState, BarcodeScanEvent, BarcodeScanAction>(
     initialStateArg = BarcodeScanState(slot = route.slot),
 ) {
     private val day: LocalDate = LocalDate.parse(route.dayIso)
     private val slot: MealSlot = route.slot
     private val overSearch: Boolean = route.overSearch
-    private var model = ScanModel(canAddFood = submitFood())
+    private var model = ScanModel(canAddFood = submitFood(), canReadLabel = buildersEnabled.value && builders.isBuilder)
     private var slowJob: Job? = null
 
     /**
@@ -74,6 +78,7 @@ class BarcodeScanViewModel(
                     telemetry.scanStarted(asked = false)
                 }
             }
+            is BarcodeScanAction.ReadLabelChanged -> if (model.canReadLabel) action.rebuild { copy(readLabel = action.on) }
             is BarcodeScanAction.CodeRead -> codeRead(action, action.code)
             is BarcodeScanAction.LookupSlow -> {
                 val lookup = model.lookup
@@ -84,7 +89,13 @@ class BarcodeScanViewModel(
                 if (lookup !is Lookup.Running || lookup.code != action.code) return
                 slowJob?.cancel()
                 telemetry.hit(action.food.source, slow = lookup.slow, typed = lookup.typed)
-                sendEvent(BarcodeScanEvent.OpenFoodDetail(action.food.id, day, slot))
+                sendEvent(
+                    if (model.canReadLabel && model.readLabel) {
+                        BarcodeScanEvent.OpenCheck(action.food.id, action.food.name)
+                    } else {
+                        BarcodeScanEvent.OpenFoodDetail(action.food.id, day, slot)
+                    },
+                )
             }
             is BarcodeScanAction.FoodNotFound -> {
                 val lookup = model.lookup

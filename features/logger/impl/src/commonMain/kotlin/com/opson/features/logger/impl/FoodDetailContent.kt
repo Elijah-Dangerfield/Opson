@@ -78,6 +78,7 @@ import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.builder_check_menu
 import opson.libraries.resources.generated.resources.adding_detail_adds
 import opson.libraries.resources.generated.resources.adding_detail_all
 import opson.libraries.resources.generated.resources.adding_detail_all_cd
@@ -314,6 +315,9 @@ private fun MoreMenuItems(state: FoodDetailState, onAction: (FoodDetailAction) -
             onClick = tap(FoodDetailAction.RepeatTapped),
             icon = AppIcons.Repeat,
         )
+    }
+    if (state.canCheck && state.catalog) {
+        MenuItem(label = stringResource(Res.string.builder_check_menu), onClick = tap(FoodDetailAction.CheckTapped), icon = AppIcons.CheckCircleOutline)
     }
     if (state.hasFood) {
         MenuItem(label = stringResource(Res.string.adding_detail_report), onClick = tap(FoodDetailAction.ReportTapped), icon = AppIcons.Support)

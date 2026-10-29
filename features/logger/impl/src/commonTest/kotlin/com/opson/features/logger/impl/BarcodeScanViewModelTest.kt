@@ -32,7 +32,7 @@ class BarcodeScanViewModelTest : CoroutineTest() {
 
     private val pairing = RecordingPairing()
 
-    private fun vm(overSearch: Boolean = false, addFood: Boolean = false) = BarcodeScanViewModel(
+    private fun vm(overSearch: Boolean = false, addFood: Boolean = false, builder: Boolean = false) = BarcodeScanViewModel(
         route = BarcodeScanRoute(dayIso = LoggerFixtures.today.toString(), slot = MealSlot.Dinner, overSearch = overSearch),
         foodCatalog = catalog,
         missReporter = misses,
@@ -42,6 +42,8 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         telemetry = telemetry,
         pairing = pairing,
         submitFood = submitFoodFlag(addFood),
+        builders = FakeBuilderProgram(active = builder),
+        buildersEnabled = buildersFlag(builder),
     )
 
     private fun TestScope.events(vm: BarcodeScanViewModel): List<BarcodeScanEvent> {
@@ -725,5 +727,30 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         vm.takeAction(BarcodeScanAction.AddFoodTapped)
         settle()
         assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun aBuilderWhoAsksToReadTheLabelGoesToCheckAgainstThePackOnAHit() = runUnitTest {
+        catalog.barcodeResult = Catching.success(LoggerFixtures.scannedYogurt)
+        val vm = vm(builder = true)
+        val events = events(vm)
+        settle()
+        assertEquals(false, vm.state.readLabel)
+
+        vm.takeAction(BarcodeScanAction.ReadLabelChanged(on = true))
+        vm.takeAction(BarcodeScanAction.CodeRead(ScannedCode("0036632027627", BarcodeFormat.Ean13)))
+        settle()
+
+        assertEquals(BarcodeScanEvent.OpenCheck(LoggerFixtures.scannedYogurt.id, LoggerFixtures.scannedYogurt.name), events.last())
+    }
+
+    @Test
+    fun theLabelToggleIsOnlyForBuilders() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.ReadLabelChanged(on = true))
+        settle()
+
+        assertEquals(null, vm.state.readLabel)
     }
 }

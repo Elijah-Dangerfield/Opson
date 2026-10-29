@@ -81,6 +81,9 @@ sealed interface FoodDetailAction {
     data object CreditsTapped : FoodDetailAction
     data object RemoveFromRecentsTapped : FoodDetailAction
     data object ReportTapped : FoodDetailAction
+
+    /** A Builder's Check against the pack, on a catalog food. */
+    data object CheckTapped : FoodDetailAction
     data object EditCopyTapped : FoodDetailAction
 
     /** No numbers: a hunger answer, or the same one again to clear it. */
@@ -119,6 +122,9 @@ sealed interface FoodDetailEvent {
      * "Report a problem" itself (`release.foodReports`); null for the person's own food.
      */
     data class OpenReport(val context: String, val target: ReportTarget? = null) : FoodDetailEvent
+
+    /** Check a catalog food against the pack in hand ([target] is the food and the amount on screen). */
+    data class OpenCheck(val target: ReportTarget) : FoodDetailEvent
 
     /** Edit a copy of this food, which logs to [day] and [slot] once it is saved. */
     data class OpenEditCopy(val ref: FoodRef, val day: LocalDate, val slot: MealSlot) : FoodDetailEvent
@@ -331,6 +337,7 @@ class FoodDetailViewModel(
             }
             // Ids only: a report is read by people, and the food's name or numbers are this person's log.
             FoodDetailAction.ReportTapped -> ref?.let { sendEvent(FoodDetailEvent.OpenReport("Food detail: ${it.key}", reportTarget())) }
+            FoodDetailAction.CheckTapped -> reportTarget()?.let { sendEvent(FoodDetailEvent.OpenCheck(it)) }
             FoodDetailAction.EditCopyTapped -> editCopy()
             FoodDetailAction.AddToMealTapped -> if (entryId != null) saveChanges() else addToMeal()
             FoodDetailAction.RemoveTapped -> remove()

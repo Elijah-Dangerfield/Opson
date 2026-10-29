@@ -3,6 +3,7 @@ package com.opson.features.logger.impl
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.foods.CarbBasis
 import com.opson.libraries.foods.LabelCheckCode
+import com.opson.libraries.foods.LabelDraft
 import com.opson.libraries.foods.LabelNutrient
 import com.opson.libraries.foods.LabelParse
 import com.opson.libraries.foods.ServingUnit
@@ -13,8 +14,8 @@ import com.opson.libraries.scanner.MealPhoto
 import com.opson.libraries.scanner.PhotoPickResult
 import kotlinx.datetime.LocalDate
 
-/** Which photo: the front (name, brand) or the nutrition label. */
-enum class PackSide { Front, Label }
+/** Which photo: the front (name, brand), the nutrition label, or in Builder mode the ingredients list. */
+enum class PackSide { Front, Label, Ingredients }
 
 /**
  * What "Add a packaged food" draws, built by [SubmitFoodStateBuilder]. The route is
@@ -30,6 +31,11 @@ data class SubmitFoodState(
     val canTakePhoto: Boolean = true,
     /** The photo picked for this side could not be read (an iCloud photo that would not download, say). */
     val photoFailed: PackSide? = null,
+    /** A Builder adding a food: the ingredients slot, and the label read on the phone (`release.builders`). */
+    val builderMode: Boolean = false,
+    val ingredients: MealPhoto? = null,
+    /** The label is being read on the phone rather than by the server. */
+    val readingOnPhone: Boolean = false,
 )
 
 sealed interface SubmitStage {
@@ -119,6 +125,9 @@ enum class ReviewNotice {
 
     /** The person chose to type it in. */
     ByHand,
+
+    /** Builder mode: the phone read the label, and every number wants a look against the pack. */
+    ReadOnPhone,
 }
 
 sealed interface SubmitFoodAction {
@@ -131,6 +140,9 @@ sealed interface SubmitFoodAction {
     data class PhotoAnswered(val side: PackSide, val result: PhotoPickResult, val fromCamera: Boolean) : SubmitFoodAction
     data object ReadTapped : SubmitFoodAction
     data class ReadArrived(val parse: LabelParse) : SubmitFoodAction
+
+    /** Builder mode: the phone read the panel well enough to fill the form without the server. */
+    data class ReadOnPhoneArrived(val draft: LabelDraft) : SubmitFoodAction
     data object TypeItInTapped : SubmitFoodAction
     data object TryAgainTapped : SubmitFoodAction
     data object RetakeLabelTapped : SubmitFoodAction
@@ -159,7 +171,7 @@ sealed interface SubmitFoodEvent {
      * [name] is saved to the person's foods and logged to [slot], or only saved when [slot] is null;
      * [sent] when the copy for review went too. The screen closes with a word about which.
      */
-    data class Finished(val name: String, val slot: MealSlot?, val sent: Boolean) : SubmitFoodEvent
+    data class Finished(val name: String, val slot: MealSlot?, val sent: Boolean, val published: Boolean = false) : SubmitFoodEvent
     data object Close : SubmitFoodEvent
 
     /**
@@ -213,4 +225,7 @@ data class SubmitModel(
     /** The fields the model filled, as it filled them, to tell an edit from a read. */
     val read: Map<String, String> = emptyMap(),
     val photoFailed: PackSide? = null,
+    val builderMode: Boolean = false,
+    val ingredients: MealPhoto? = null,
+    val readingOnPhone: Boolean = false,
 )

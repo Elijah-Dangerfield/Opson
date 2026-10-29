@@ -43,6 +43,11 @@ import com.opson.libraries.ui.components.text.SingleLineField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.builder_ingredients_hint
+import opson.libraries.resources.generated.resources.builder_ingredients_title
+import opson.libraries.resources.generated.resources.builder_mode_badge
+import opson.libraries.resources.generated.resources.builder_read_notice
+import opson.libraries.resources.generated.resources.builder_reading_on_phone
 import opson.libraries.resources.generated.resources.submit_add
 import opson.libraries.resources.generated.resources.submit_after
 import opson.libraries.resources.generated.resources.submit_after_save
@@ -163,7 +168,11 @@ fun SubmitFoodScreen(
             )
             when (val stage = state.stage) {
                 is SubmitStage.Photos -> PhotosBody(state, stage, onAction)
-                SubmitStage.Reading -> Waiting(state, Res.string.submit_reading, Res.string.submit_reading_body)
+                SubmitStage.Reading -> if (state.readingOnPhone) {
+                    Waiting(state, Res.string.builder_reading_on_phone, null)
+                } else {
+                    Waiting(state, Res.string.submit_reading, Res.string.submit_reading_body)
+                }
                 is SubmitStage.Review -> ReviewBody(state, stage.form, onAction)
                 SubmitStage.Saving -> Waiting(state, if (state.slot == null) Res.string.submit_saving_save else Res.string.submit_saving, null)
                 SubmitStage.NoLabel -> Calm(
@@ -217,8 +226,10 @@ private fun ColumnScope.PhotosBody(state: SubmitFoodState, stage: SubmitStage.Ph
         typography = AppTheme.type.body,
         color = AppTheme.colors.ink,
     )
+    if (state.builderMode) NoteBanner(stringResource(Res.string.builder_mode_badge))
     PhotoSlot(PackSide.Front, state, onAction)
     PhotoSlot(PackSide.Label, state, onAction)
+    if (state.builderMode) PhotoSlot(PackSide.Ingredients, state, onAction)
     if (state.photoFailed != null) NoteBanner(stringResource(Res.string.submit_photo_failed))
     ButtonPrimary(
         onClick = { onAction(SubmitFoodAction.ReadTapped) },
@@ -232,7 +243,11 @@ private fun ColumnScope.PhotosBody(state: SubmitFoodState, stage: SubmitStage.Ph
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhotoSlot(side: PackSide, state: SubmitFoodState, onAction: (SubmitFoodAction) -> Unit) {
-    val photo = if (side == PackSide.Front) state.front else state.label
+    val photo = when (side) {
+        PackSide.Front -> state.front
+        PackSide.Label -> state.label
+        PackSide.Ingredients -> state.ingredients
+    }
     FoodRowsCard {
         Row(
             modifier = Modifier.padding(vertical = AppTheme.spacing.section),
@@ -241,16 +256,34 @@ private fun PhotoSlot(side: PackSide, state: SubmitFoodState, onAction: (SubmitF
         ) {
             PhotoThumbnail(
                 jpeg = photo?.jpeg,
-                contentDescription = stringResource(if (side == PackSide.Front) Res.string.submit_front_cd else Res.string.submit_label_cd),
+                contentDescription = stringResource(
+                    when (side) {
+                        PackSide.Front -> Res.string.submit_front_cd
+                        PackSide.Label -> Res.string.submit_label_cd
+                        PackSide.Ingredients -> Res.string.builder_ingredients_title
+                    },
+                ),
             )
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
                 Text(
-                    stringResource(if (side == PackSide.Front) Res.string.submit_front_title else Res.string.submit_label_title),
+                    stringResource(
+                        when (side) {
+                            PackSide.Front -> Res.string.submit_front_title
+                            PackSide.Label -> Res.string.submit_label_title
+                            PackSide.Ingredients -> Res.string.builder_ingredients_title
+                        },
+                    ),
                     typography = AppTheme.type.cardTitle,
                     color = AppTheme.colors.ink,
                 )
                 Text(
-                    stringResource(if (side == PackSide.Front) Res.string.submit_front_hint else Res.string.submit_label_hint),
+                    stringResource(
+                        when (side) {
+                            PackSide.Front -> Res.string.submit_front_hint
+                            PackSide.Label -> Res.string.submit_label_hint
+                            PackSide.Ingredients -> Res.string.builder_ingredients_hint
+                        },
+                    ),
                     typography = AppTheme.type.secondary,
                     color = AppTheme.colors.muted,
                 )
@@ -279,6 +312,7 @@ private fun Photos(state: SubmitFoodState) {
     Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
         PhotoThumbnail(jpeg = state.front?.jpeg, contentDescription = stringResource(Res.string.submit_front_cd))
         PhotoThumbnail(jpeg = state.label?.jpeg, contentDescription = stringResource(Res.string.submit_label_cd))
+        state.ingredients?.let { PhotoThumbnail(jpeg = it.jpeg, contentDescription = stringResource(Res.string.builder_ingredients_title)) }
     }
 }
 
@@ -321,7 +355,13 @@ private fun ReviewBody(state: SubmitFoodState, form: SubmitForm, onAction: (Subm
     }
     form.notice?.let { notice ->
         NoteBanner(
-            stringResource(if (notice == ReviewNotice.Unavailable) Res.string.submit_notice_unavailable else Res.string.submit_notice_by_hand),
+            stringResource(
+                when (notice) {
+                    ReviewNotice.Unavailable -> Res.string.submit_notice_unavailable
+                    ReviewNotice.ByHand -> Res.string.submit_notice_by_hand
+                    ReviewNotice.ReadOnPhone -> Res.string.builder_read_notice
+                },
+            ),
         )
     }
     FoodRowsCard {

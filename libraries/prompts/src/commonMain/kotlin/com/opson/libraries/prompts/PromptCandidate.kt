@@ -62,6 +62,13 @@ interface PromptCandidate {
      */
     suspend fun isEligible(): Boolean
 
+    /**
+     * [isEligible] for one trigger: [moment] is the [PromptEvent] that called it up, or null when
+     * Today simply opened. Override it for a prompt that both follows a moment and waits for
+     * Today, with a different reason to show for each.
+     */
+    suspend fun isEligible(moment: PromptEvent?): Boolean = isEligible()
+
     /** The main button was tapped. Do the work, if any, then say where the person goes. */
     suspend fun accept(): PromptAccept
 }

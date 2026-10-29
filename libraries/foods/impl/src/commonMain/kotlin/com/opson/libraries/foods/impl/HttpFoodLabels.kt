@@ -10,7 +10,9 @@ import com.opson.libraries.foods.LabelCheckCode
 import com.opson.libraries.foods.LabelFacts
 import com.opson.libraries.foods.LabelNutrient
 import com.opson.libraries.foods.LabelParse
+import com.opson.libraries.foods.LabelSignals
 import com.opson.libraries.foods.ServingUnit
+import com.opson.libraries.foods.SubmissionCapture
 import com.opson.libraries.foods.SubmitResult
 import com.opson.libraries.networking.NetworkClient
 import com.opson.libraries.networking.authedCall
@@ -108,7 +110,62 @@ data class FoodSubmissionRequest(
     val label: String,
     val food: LabelFactsDto,
     val customFoodId: String? = null,
+    /** Builder mode only; a server from before it ignores both. */
+    val ingredients: String? = null,
+    val capture: CaptureDto? = null,
 )
+
+@Serializable
+data class CaptureLineDto(val text: String, val confidence: Double = 1.0)
+
+/** The phone's measured signals, as numbers and flags only, for the reviewer. */
+@Serializable
+data class LabelSignalsDto(
+    val panelFound: Boolean,
+    val headlineFound: Int,
+    val ocrMinConfidence: Double? = null,
+    val atwaterGap: Double? = null,
+    val servingGap: Double? = null,
+    val columns: Int,
+    val asPrepared: Boolean,
+    val dualLanguage: Boolean,
+    val grounded: Int,
+    val groundable: Int,
+    val ungrounded: List<String> = emptyList(),
+    val edited: Int,
+    val medianLineHeight: Double? = null,
+    val checksFailed: Int,
+    val blockingFailed: Boolean,
+) {
+    companion object {
+        fun of(s: LabelSignals) = LabelSignalsDto(
+            s.panelFound, s.headlineFound, s.ocrMinConfidence, s.atwaterGap, s.servingGap, s.columns, s.asPrepared,
+            s.dualLanguage, s.grounded, s.groundable, s.ungrounded, s.edited, s.medianLineHeight, s.checksFailed, s.blockingFailed,
+        )
+    }
+}
+
+/** The server's `CaptureJson`. Boxes stay on the phone: the server only needs the words and numbers. */
+@Serializable
+data class CaptureDto(
+    val engine: String,
+    val source: String,
+    val lines: List<CaptureLineDto>,
+    val draft: LabelFactsDto? = null,
+    val score: Double? = null,
+    val signals: LabelSignalsDto? = null,
+) {
+    companion object {
+        fun of(capture: SubmissionCapture) = CaptureDto(
+            engine = capture.engine,
+            source = if (capture.fromCamera) "camera" else "library",
+            lines = capture.lines.map { CaptureLineDto(it.text, it.confidence) },
+            draft = capture.draft?.let { LabelFactsDto.of(it) },
+            score = capture.score,
+            signals = capture.signals?.let(LabelSignalsDto::of),
+        )
+    }
+}
 
 /** Every field the server sends: debug builds decode strictly, so a field left out here fails the call. */
 @Serializable
@@ -117,6 +174,7 @@ data class FoodSubmissionResponse(
     val foodId: String,
     val status: String = "pending",
     val checks: List<LabelCheckDto> = emptyList(),
+    val lane: String? = null,
 )
 
 @Serializable
@@ -176,6 +234,8 @@ class HttpFoodLabels(private val networkClient: NetworkClient) : FoodLabels {
             label = Base64.encode(submission.label),
             food = LabelFactsDto.of(submission.facts, submission.acknowledged),
             customFoodId = submission.customFoodId,
+            ingredients = submission.ingredients?.let { Base64.encode(it) },
+            capture = submission.capture?.let(CaptureDto::of),
         )
         return networkClient.authedCall("foods.submission") { client ->
             val response = client.post(SUBMIT_PATH) {
@@ -189,7 +249,7 @@ class HttpFoodLabels(private val networkClient: NetworkClient) : FoodLabels {
             }
             when (response.status) {
                 HttpStatusCode.Created, HttpStatusCode.OK -> response.body<FoodSubmissionResponse>().let {
-                    SubmitResult.Submitted(it.submissionId, it.foodId)
+                    SubmitResult.Submitted(it.submissionId, it.foodId, it.lane)
                 }
                 HttpStatusCode.TooManyRequests -> SubmitResult.TooMany
                 else -> SubmitResult.Failed(offline = false)

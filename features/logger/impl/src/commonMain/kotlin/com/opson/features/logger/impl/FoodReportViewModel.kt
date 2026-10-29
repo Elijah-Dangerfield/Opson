@@ -24,7 +24,7 @@ import kotlin.uuid.Uuid
  * showed, a photo of the label and a note, all but the first optional. Online only, like adding a
  * pack: a report that cannot go keeps the sheet open with everything in it. The id is made once,
  * so trying again never files it twice. A report that went through is a moment a prompt may follow
- * ([PromptEvent.ReportSent]), which is where the Builder program asks.
+ * ([PromptEvent.ReportSent], and [PromptEvent.FoodReportSent], which the Builder prompt follows).
  */
 @OptIn(ExperimentalUuidApi::class)
 @Inject
@@ -104,6 +104,7 @@ class FoodReportViewModel(
         )
         if (result is FoodReportResult.Sent) {
             promptEvents.emit(PromptEvent.ReportSent)
+            promptEvents.emit(PromptEvent.FoodReportSent)
             sendEvent(FoodReportEvent.Sent(route.name, result.applied))
         } else {
             action.change { copy(sending = false, problem = FoodReportStateBuilder.problemOf(result)) }

@@ -87,6 +87,12 @@ interface EntitlementRepository {
     fun has(entitlement: Entitlement): Boolean = entitlement in entitlements.value
 
     fun observe(entitlement: Entitlement): Flow<Boolean> = entitlements.map { entitlement in it }.distinctUntilChanged()
+
+    /**
+     * Asks the server again now, for a change made on this phone that grants or takes away
+     * something (joining Builders), rather than waiting for the next foreground. The role too.
+     */
+    suspend fun refresh(): Result<Unit> = Result.success(Unit)
 }
 
 /** The signed-in account's role and what it may do. [Role.Member] with nothing until the server says otherwise. */

@@ -25,6 +25,7 @@ import com.opson.libraries.ui.snackbar.showSnackBar
 import com.opson.libraries.ui.system.confirm
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.builder_sent_published
 import opson.libraries.resources.generated.resources.submit_done_kept
 import opson.libraries.resources.generated.resources.submit_done_saved
 import opson.libraries.resources.generated.resources.submit_done_saved_sent
@@ -71,6 +72,8 @@ class SubmitFoodEntryPoint(
         val labelCamera = picker.rememberCamera { viewModel.takeAction(SubmitFoodAction.PhotoAnswered(PackSide.Label, it, fromCamera = true)) }
         val frontLibrary = picker.rememberLibrary { viewModel.takeAction(SubmitFoodAction.PhotoAnswered(PackSide.Front, it, fromCamera = false)) }
         val labelLibrary = picker.rememberLibrary { viewModel.takeAction(SubmitFoodAction.PhotoAnswered(PackSide.Label, it, fromCamera = false)) }
+        val ingredientsCamera = picker.rememberCamera { viewModel.takeAction(SubmitFoodAction.PhotoAnswered(PackSide.Ingredients, it, fromCamera = true)) }
+        val ingredientsLibrary = picker.rememberLibrary { viewModel.takeAction(SubmitFoodAction.PhotoAnswered(PackSide.Ingredients, it, fromCamera = false)) }
         val requestPermission = barcodeCamera.rememberPermissionRequest { answer ->
             viewModel.takeAction(SubmitFoodAction.CameraPermissionAnswered(answer))
         }
@@ -78,13 +81,22 @@ class SubmitFoodEntryPoint(
 
         viewModel.ObserveEvents { event ->
             when (event) {
-                is SubmitFoodEvent.LaunchCamera -> if (event.side == PackSide.Front) frontCamera() else labelCamera()
-                is SubmitFoodEvent.LaunchLibrary -> if (event.side == PackSide.Front) frontLibrary() else labelLibrary()
+                is SubmitFoodEvent.LaunchCamera -> when (event.side) {
+                    PackSide.Front -> frontCamera()
+                    PackSide.Label -> labelCamera()
+                    PackSide.Ingredients -> ingredientsCamera()
+                }
+                is SubmitFoodEvent.LaunchLibrary -> when (event.side) {
+                    PackSide.Front -> frontLibrary()
+                    PackSide.Label -> labelLibrary()
+                    PackSide.Ingredients -> ingredientsLibrary()
+                }
                 SubmitFoodEvent.RequestCameraPermission -> requestPermission()
                 is SubmitFoodEvent.Finished -> {
                     haptics.confirm()
                     val slot = event.slot
                     val message = when {
+                        event.published && slot == null -> getString(Res.string.builder_sent_published, event.name)
                         slot == null && event.sent -> getString(Res.string.submit_done_saved_sent, event.name)
                         slot == null -> getString(Res.string.submit_done_saved, event.name)
                         event.sent -> getString(Res.string.submit_done_sent, event.name, getString(slot.label))

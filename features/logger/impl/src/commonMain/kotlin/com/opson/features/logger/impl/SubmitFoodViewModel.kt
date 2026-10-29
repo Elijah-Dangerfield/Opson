@@ -7,11 +7,17 @@ import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.features.builder.BuildersEnabled
+import com.opson.libraries.foods.BuilderProgram
 import com.opson.libraries.foods.FoodLabels
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSubmission
 import com.opson.libraries.foods.LabelCheckCode
+import com.opson.libraries.foods.LabelChecks
+import com.opson.libraries.foods.LabelConfidence
+import com.opson.libraries.foods.LabelFacts
 import com.opson.libraries.foods.LabelParse
+import com.opson.libraries.foods.SubmissionCapture
 import com.opson.libraries.foods.SubmissionOrigin
 import com.opson.libraries.foods.SubmitResult
 import com.opson.libraries.foods.SubmittedFoods
@@ -53,9 +59,22 @@ class SubmitFoodViewModel(
     private val submittedFoods: SubmittedFoods,
     picker: MealPhotoPicker,
     policySource: VisibilityPolicySource,
+    builders: BuilderProgram,
+    buildersEnabled: BuildersEnabled,
+    private val phoneReader: PhoneLabelReader,
 ) : SEAViewModel<SubmitFoodState, SubmitFoodEvent, SubmitFoodAction>(
     initialStateArg = SubmitFoodState(slot = route.slot?.takeIf { route.logs }, canTakePhoto = picker.canTakePhoto),
 ) {
+    /**
+     * Builder mode (`release.builders`, an active Builder): an ingredients slot, and the label read
+     * on the phone first. The server's read stays the way back when the phone can't place the
+     * panel, so nobody is left typing a label the server could have read.
+     */
+    private val builderMode = buildersEnabled.value && builders.isBuilder
+
+    /** What the phone read off the label, sent with the submission so review can ground the numbers. */
+    private var phoneReading: PhoneReading? = null
+    private var labelFromCamera = false
     /** Where it is logged; both null from the Foods tab, which only saves it. */
     private val day: LocalDate? = route.dayIso?.takeIf { route.logs }?.let(LocalDate::parse)
     private val slot: MealSlot? = route.slot?.takeIf { route.logs }
@@ -66,7 +85,7 @@ class SubmitFoodViewModel(
     private val origin = if (route.barcode != null) SubmissionOrigin.Barcode else SubmissionOrigin.Search
     private val submissionId = Uuid.random().toString()
 
-    private var model = SubmitModel(slot = slot, barcodeLocked = barcode != null, canTakePhoto = picker.canTakePhoto)
+    private var model = SubmitModel(slot = slot, barcodeLocked = barcode != null, canTakePhoto = picker.canTakePhoto, builderMode = builderMode)
     private var policy: VisibilityPolicy = policySource.policy.value
     private var lastRead: LabelParse.Read? = null
     private var pendingSide: PackSide = PackSide.Front
@@ -117,6 +136,7 @@ class SubmitFoodViewModel(
             is SubmitFoodAction.PhotoAnswered -> photoAnswered(action)
             SubmitFoodAction.ReadTapped -> read(action)
             is SubmitFoodAction.ReadArrived -> readArrived(action)
+            is SubmitFoodAction.ReadOnPhoneArrived -> readOnPhoneArrived(action)
             SubmitFoodAction.TypeItInTapped -> if (model.step != SubmitStep.Review) {
                 action.change { SubmitFoodForm.fromReading(this, lastRead, barcode).copy(step = SubmitStep.Review, notice = ReviewNotice.ByHand) }
             }
@@ -147,10 +167,15 @@ class SubmitFoodViewModel(
         when (val result = action.result) {
             is PhotoPickResult.Picked -> {
                 telemetry.photoTaken(action.side, action.fromCamera)
+                if (action.side == PackSide.Label) {
+                    labelFromCamera = action.fromCamera
+                    phoneReading = null
+                }
                 action.change {
                     when (action.side) {
                         PackSide.Front -> copy(front = result.photo, step = SubmitStep.Photos, photoFailed = null)
                         PackSide.Label -> copy(label = result.photo, step = SubmitStep.Photos, photoFailed = null)
+                        PackSide.Ingredients -> copy(ingredients = result.photo, step = SubmitStep.Photos, photoFailed = null)
                     }
                 }
             }
@@ -164,10 +189,42 @@ class SubmitFoodViewModel(
         val front = model.front ?: return
         val label = model.label ?: return
         readJob?.cancel()
-        action.change { copy(step = SubmitStep.Reading) }
+        action.change { copy(step = SubmitStep.Reading, readingOnPhone = builderMode) }
         readJob = viewModelScope.launch {
+            if (builderMode) {
+                val onPhone = phoneReader.read(label.jpeg)
+                phoneReading = (onPhone as? PhoneRead.Read)?.reading
+                val draft = phoneReading?.draft
+                if (draft != null && SubmitFoodForm.usable(draft)) {
+                    takeAction(SubmitFoodAction.ReadOnPhoneArrived(draft))
+                    return@launch
+                }
+            }
             takeAction(SubmitFoodAction.ReadArrived(labels.parse(front.jpeg, label.jpeg)))
         }
+    }
+
+    private suspend fun readOnPhoneArrived(action: SubmitFoodAction.ReadOnPhoneArrived) {
+        if (model.step != SubmitStep.Reading) return
+        telemetry.read(ReadOutcome.OnPhone, LabelChecks.check(action.draft.facts).size, action.draft.fieldConfidence.count { it.value < SubmitFoodStateBuilder.LOW_CONFIDENCE })
+        action.change {
+            SubmitFoodForm.fromDraft(this, action.draft, barcode).copy(step = SubmitStep.Review, notice = ReviewNotice.ReadOnPhone, readingOnPhone = false)
+        }
+    }
+
+    /** The phone's reading as sent with the submission, with the signals measured against what the person kept. */
+    private fun capture(facts: LabelFacts): SubmissionCapture? {
+        if (!builderMode) return null
+        val reading = phoneReading ?: return null
+        val signals = LabelConfidence.signals(reading.draft, reading.lines, facts)
+        return SubmissionCapture(
+            engine = reading.engine,
+            fromCamera = labelFromCamera,
+            lines = reading.lines,
+            draft = reading.draft.facts,
+            signals = signals,
+            score = LabelConfidence.score(signals),
+        )
     }
 
     private suspend fun readArrived(action: SubmitFoodAction.ReadArrived) {
@@ -241,6 +298,8 @@ class SubmitFoodViewModel(
             facts = facts,
             acknowledged = acknowledged(),
             customFoodId = customFoodId,
+            ingredients = model.ingredients?.jpeg?.takeIf { builderMode },
+            capture = capture(facts),
         )
         viewModelScope.launch {
             val result = labels.submit(submission)
@@ -268,17 +327,17 @@ class SubmitFoodViewModel(
             return
         }
         when (val result = action.result) {
-            is SubmitResult.Submitted -> finish(sent = true)
+            is SubmitResult.Submitted -> finish(sent = true, published = result.lane == LANE_OWNER || result.lane == LANE_AUTO)
             SubmitResult.TooMany -> action.change { copy(step = SubmitStep.SendFailed(offline = false, tooMany = true)) }
             is SubmitResult.Failed -> action.change { copy(step = SubmitStep.SendFailed(offline = result.offline, tooMany = false)) }
         }
     }
 
-    private suspend fun finish(sent: Boolean) {
+    private suspend fun finish(sent: Boolean, published: Boolean = false) {
         if (finished) return
         finished = true
         reportSubmitted(sent)
-        sendEvent(SubmitFoodEvent.Finished(SubmitFoodForm.facts(model).name.orEmpty(), committed?.slot ?: slot, sent))
+        sendEvent(SubmitFoodEvent.Finished(SubmitFoodForm.facts(model).name.orEmpty(), committed?.slot ?: slot, sent, published))
     }
 
     private fun reportSubmitted(sent: Boolean) = telemetry.submitted(
@@ -301,6 +360,12 @@ class SubmitFoodViewModel(
             }
             else -> action.change { copy(step = SubmitStep.Photos) }
         }
+    }
+
+    private companion object {
+        /** The server's lanes for a food that went straight into the catalog (V30). */
+        const val LANE_OWNER = "owner"
+        const val LANE_AUTO = "auto"
     }
 
     override fun onCleared() {

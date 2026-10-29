@@ -158,9 +158,9 @@ eat. The last step, approval, is not an app event: it is in the review ledger,
 
 | Event | Attributes | Fires |
 |---|---|---|
-| `food_add.started` | `origin` (`barcode`, `search`: whether a code was scanned, as the server keeps it), `entry` (`barcode_miss`, `empty_search`, `search_results`, `add_sheet`, `foods`) | The Add a packaged food screen opened |
-| `food_add.photo_taken` | `side` (`front`, `label`), `source` (`camera`, `library`) | A photo came back for one side. Backing out fires nothing; a retake fires again |
-| `food_add.read` | `outcome` (`read`, `no_label`, `unavailable`, `too_many`, `offline`, `error`), `checks` (count failed), `unsure` (count of fields the model was unsure of) | The server answered Read the label |
+| `food_add.started` | `origin` (`barcode`, `search`: whether a code was scanned, as the server keeps it), `entry` (`barcode_miss`, `empty_search`, `search_results`, `add_sheet`, `foods`, `builders`) | The Add a packaged food screen opened |
+| `food_add.photo_taken` | `side` (`front`, `label`, `ingredients` in Builder mode), `source` (`camera`, `library`) | A photo came back for one side. Backing out fires nothing; a retake fires again |
+| `food_add.read` | `outcome` (`read`, `no_label`, `unavailable`, `too_many`, `offline`, `error`, and `on_phone` when Builder mode read the panel on the phone), `checks` (count failed), `unsure` (count of fields the model, or the phone's OCR, was unsure of) | The server answered Read the label, or the phone read it in Builder mode |
 | `food_add.submitted` | `origin`, `entry`, `edited` (the person changed what was read), `kept` (checks they kept the label's figure through), `numbers_shown` (the mode showed the numbers), `sent` (the copy for review reached the server; false when only the person's own food was saved) | Once per food, when it was saved (and logged, where there is a meal): on the server's answer, on Done after a failed send, or on leaving with it unsent |
 | `food_add.abandoned` | `stage` (`photos_none`, `photos_some`, `reading`, `review`, `no_label`, `too_many`, `read_failed`, `camera_off`) | Left before anything was saved |
 

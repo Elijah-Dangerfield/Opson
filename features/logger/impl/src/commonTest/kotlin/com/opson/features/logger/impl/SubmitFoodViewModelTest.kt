@@ -24,6 +24,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 
@@ -46,7 +47,9 @@ class SubmitFoodViewModelTest : CoroutineTest() {
     /** From the Foods tab's Add a food: no day, no meal, saved only. */
     private fun saveOnly() = vmFor(SubmitFoodRoute(entry = SubmitEntry.Foods))
 
-    private fun vmFor(route: SubmitFoodRoute) = SubmitFoodViewModel(
+    private val recognizer = FakeTextRecognizer(GRANOLA_PANEL)
+
+    private fun vmFor(route: SubmitFoodRoute, builder: Boolean = false) = SubmitFoodViewModel(
         route = route,
         labels = labels,
         customFoods = customFoods,
@@ -56,6 +59,9 @@ class SubmitFoodViewModelTest : CoroutineTest() {
         submittedFoods = submittedFoods,
         picker = FakeMealPhotoPicker(),
         policySource = policySource,
+        builders = FakeBuilderProgram(active = builder),
+        buildersEnabled = buildersFlag(builder),
+        phoneReader = PhoneLabelReader(recognizer),
     )
 
     private fun TestScope.events(vm: SubmitFoodViewModel): List<SubmitFoodEvent> {
@@ -423,5 +429,80 @@ class SubmitFoodViewModelTest : CoroutineTest() {
         settle()
         assertEquals(null, vm.state.photoFailed)
         assertEquals(label, vm.state.label)
+    }
+
+    // Builder mode (release.builders, an active Builder)
+
+    private fun builderVm() = vmFor(SubmitFoodRoute(entry = SubmitEntry.Builders), builder = true)
+
+    @Test
+    fun aBuilderAddsAnIngredientsPhotoAndThePhoneReadsTheLabelWithoutTheServer() = runUnitTest {
+        val vm = withPhotos(builderVm())
+        assertTrue(vm.state.builderMode)
+        vm.takeAction(SubmitFoodAction.PhotoAnswered(PackSide.Ingredients, PhotoPickResult.Picked(MealPhoto(byteArrayOf(3))), fromCamera = true))
+        vm.takeAction(SubmitFoodAction.ReadTapped)
+        settle()
+
+        assertTrue(labels.parsed.isEmpty(), "the server read nothing")
+        val form = vm.form
+        assertEquals(ReviewNotice.ReadOnPhone, form.notice)
+        assertEquals("55", form.servingSize.text)
+        assertEquals("230", form.numbers!!.main.single { it.nutrient == LabelNutrient.Energy }.field.text)
+        assertEquals(1, recognizer.calls)
+    }
+
+    @Test
+    fun aBuildersSubmissionCarriesWhatThePhoneReadAndTheIngredients() = runUnitTest {
+        val vm = withPhotos(builderVm())
+        vm.takeAction(SubmitFoodAction.PhotoAnswered(PackSide.Ingredients, PhotoPickResult.Picked(MealPhoto(byteArrayOf(3))), fromCamera = true))
+        vm.takeAction(SubmitFoodAction.ReadTapped)
+        settle()
+        vm.takeAction(SubmitFoodAction.FieldTyped(SubmitFoodForm.NAME, "Maple granola"))
+        vm.takeAction(SubmitFoodAction.SubmitTapped)
+        settle()
+
+        val sent = labels.submitted.single()
+        val capture = assertNotNull(sent.capture)
+        assertEquals("vision", capture.engine)
+        assertEquals(false, capture.fromCamera, "the label came from the library")
+        assertEquals(GRANOLA_PANEL.size, capture.lines.size)
+        assertEquals(5, capture.signals?.grounded)
+        assertTrue((capture.score ?: 0.0) > 0.8)
+        assertContentEquals(byteArrayOf(3), sent.ingredients)
+        assertEquals(null, sent.parseId)
+    }
+
+    @Test
+    fun aLabelThePhoneCanNotPlaceGoesToTheServerAsBefore() = runUnitTest {
+        recognizer.result = com.opson.libraries.scanner.TextRecognition.Unavailable
+        val vm = withPhotos(builderVm())
+        vm.takeAction(SubmitFoodAction.ReadTapped)
+        settle()
+
+        assertEquals(1, labels.parsed.size)
+        assertEquals(null, vm.form.notice)
+    }
+
+    @Test
+    fun someoneWhoIsNotABuilderSeesNoBuilderMode() = runUnitTest {
+        val vm = reviewing()
+
+        assertEquals(false, vm.state.builderMode)
+        assertEquals(0, recognizer.calls)
+        assertEquals(1, labels.parsed.size)
+    }
+
+    @Test
+    fun aFoodTheServerPublishedSaysSoWhenItCloses() = runUnitTest {
+        labels.submit = SubmitResult.Submitted("submission-1", "food-1", lane = "owner")
+        val vm = withPhotos(builderVm())
+        val events = events(vm)
+        vm.takeAction(SubmitFoodAction.ReadTapped)
+        settle()
+        vm.takeAction(SubmitFoodAction.FieldTyped(SubmitFoodForm.NAME, "Maple granola"))
+        vm.takeAction(SubmitFoodAction.SubmitTapped)
+        settle()
+
+        assertEquals(true, assertIs<SubmitFoodEvent.Finished>(events.last()).published)
     }
 }

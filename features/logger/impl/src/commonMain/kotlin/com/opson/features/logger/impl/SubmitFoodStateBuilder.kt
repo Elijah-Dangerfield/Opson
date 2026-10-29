@@ -4,6 +4,7 @@ import com.opson.libraries.diary.CustomFoodDraft
 import com.opson.libraries.foods.LabelCheck
 import com.opson.libraries.foods.LabelCheckCode
 import com.opson.libraries.foods.LabelChecks
+import com.opson.libraries.foods.LabelDraft
 import com.opson.libraries.foods.LabelFacts
 import com.opson.libraries.foods.LabelNutrient
 import com.opson.libraries.foods.LabelParse
@@ -75,6 +76,27 @@ object SubmitFoodForm {
             kept = emptySet(),
         )
     }
+
+    /**
+     * The phone's own reading of the label (Builder mode) as fields, the same way as the
+     * server's: each field carries the OCR confidence of the line behind it, so a hazy digit
+     * asks for a look. There is no parse id; the server never saw this reading.
+     */
+    fun fromDraft(model: SubmitModel, draft: LabelDraft, barcode: String?): SubmitModel {
+        val read = LabelParse.Read(
+            parseId = "",
+            facts = draft.facts,
+            confidence = draft.fieldConfidence,
+            checks = LabelChecks.check(draft.facts),
+            readable = true,
+        )
+        return fromReading(model, read, barcode).copy(parseId = null)
+    }
+
+    /** Enough of the panel read on the phone to fill the form without the server: four of the five headline fields. */
+    fun usable(draft: LabelDraft): Boolean = draft.layout.panelFound && draft.headlineFound >= MIN_HEADLINE_ON_PHONE
+
+    private const val MIN_HEADLINE_ON_PHONE = 4
 
     /**
      * A keystroke. A nutrient typed is the person's word: its per 100 figure
@@ -237,6 +259,9 @@ object SubmitFoodStateBuilder {
         label = model.label,
         canTakePhoto = model.canTakePhoto,
         photoFailed = model.photoFailed.takeIf { model.step == SubmitStep.Photos },
+        builderMode = model.builderMode,
+        ingredients = model.ingredients,
+        readingOnPhone = model.readingOnPhone && model.step == SubmitStep.Reading,
     )
 
     private fun stage(model: SubmitModel, policy: VisibilityPolicy): SubmitStage = when (val step = model.step) {

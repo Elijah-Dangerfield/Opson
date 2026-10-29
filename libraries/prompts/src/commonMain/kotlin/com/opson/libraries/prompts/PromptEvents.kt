@@ -12,6 +12,9 @@ enum class PromptEvent(val wire: String) {
 
     /** Close the day's Done saved the day as closed. */
     DayClosed("day_closed"),
+
+    /** "Report a problem" on a catalog food reached Opson's reviewers. [ReportSent] fires too. */
+    FoodReportSent("food_report_sent"),
 }
 
 /** Where a moment is announced. Never throws and never waits: it only notes the moment. */

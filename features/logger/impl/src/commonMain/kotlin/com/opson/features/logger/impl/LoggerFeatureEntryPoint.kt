@@ -29,6 +29,8 @@ import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
 import com.opson.features.logger.SubmitEntry
+import com.opson.features.builder.BuildersEnabled
+import com.opson.libraries.foods.BuilderProgram
 import com.opson.features.logger.SubmitFoodRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.ProfileRoute
@@ -103,6 +105,9 @@ class LoggerFeatureEntryPoint(
     private val editor: () -> DiaryItemEditor,
     // "Report a problem" on a catalog food; off, the ⋮ item opens the bug report.
     private val foodReports: FoodReportEnabled,
+    // Check against the pack on a catalog food, for an active Builder.
+    private val builders: BuildersEnabled,
+    private val builderProgram: BuilderProgram,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -403,6 +408,7 @@ class LoggerFeatureEntryPoint(
                 is FoodDetailEvent.OpenReport -> router.navigate(
                     event.target?.takeIf { foodReports() }?.route() ?: BugReportRoute(contextMessage = event.context),
                 )
+                is FoodDetailEvent.OpenCheck -> router.navigate(CheckFoodRoute(event.target.foodId, event.target.name))
                 is FoodDetailEvent.OpenEditCopy -> router.navigate(
                     EditCopyRoute(
                         dayIso = event.day.toString(),
@@ -415,7 +421,8 @@ class LoggerFeatureEntryPoint(
         }
 
         Screen(containerColor = AppTheme.colors.bg.color) { padding ->
-            FoodDetailContent(state = state, onAction = viewModel::takeAction, modifier = Modifier.padding(padding))
+            val canCheck = builders.value && builderProgram.isBuilder
+            FoodDetailContent(state = state.copy(canCheck = canCheck), onAction = viewModel::takeAction, modifier = Modifier.padding(padding))
         }
     }
 
@@ -488,6 +495,11 @@ class LoggerFeatureEntryPoint(
                 is BarcodeScanEvent.OpenFoodDetail -> router.batch {
                     goBack()
                     navigate(FoodDetailRoute(event.foodId, isCustom = false, source = PickSource.Barcode, dayIso = event.day.toString(), slot = event.slot))
+                }
+                // A Builder reading the label: Check against the pack takes the scanner's place.
+                is BarcodeScanEvent.OpenCheck -> router.batch {
+                    goBack()
+                    navigate(CheckFoodRoute(event.foodId, event.name))
                 }
                 // The pack's photos take the scanner's place, for the code that missed.
                 is BarcodeScanEvent.OpenSubmitFood -> router.batch {
