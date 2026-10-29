@@ -26,8 +26,10 @@ import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.LoggedToMeal
+import com.opson.libraries.diary.LoggingHabits
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.ModeTimerEnded
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
@@ -224,6 +226,9 @@ object TodayFixtures {
         foodActionsOn: Boolean = false,
         goalsAndEnergyOn: Boolean = false,
         burned: Burned? = null,
+        habits: LoggingHabits? = null,
+        now: LocalTime? = null,
+        nudgeDismissedOn: LocalDate? = null,
     ): TodayInputs = TodayInputs(
         today = today,
         timeZone = timeZone,
@@ -237,7 +242,25 @@ object TodayFixtures {
         foodActionsOn = foodActionsOn,
         goalsAndEnergyOn = goalsAndEnergyOn,
         burned = burned,
+        habits = habits,
+        now = now,
+        nudgeDismissedOn = nudgeDismissedOn,
     )
+
+    /** Four weeks of ordinary days: dinner usually at 7:15 pm, about 1,900 kcal and nine entries a day. */
+    val habits: LoggingHabits = LoggingHabits(
+        usual = MealTimes(dinner = LocalTime(19, 15)),
+        learned = setOf(MealSlot.Dinner),
+        loggedDays = 20,
+        typicalKcal = 1900.0,
+        typicalEntries = 9.0,
+    )
+
+    /** 9:30 pm, past the late-day card's evening for [habits]. */
+    val lateEvening: LocalTime = LocalTime(21, 30)
+
+    /** Today with breakfast's first food in and nothing since: the day the late-day card is for. */
+    fun lightDay(): Day = Day(date = today, itemsBySlot = mapOf(MealSlot.Breakfast to breakfast(today).take(1)))
 
     /** Two weeks of morning weigh-ins ending on [today] at 7:02 am, 73.9 kg, the line about level. */
     val weighIns: List<WeighIn> = (13 downTo 0).map { back ->
@@ -300,6 +323,8 @@ object TodayFixtures {
         foodActionsOn: Boolean = false,
         goalsAndEnergyOn: Boolean = false,
         burned: Burned? = null,
+        habits: LoggingHabits? = null,
+        now: LocalTime? = null,
     ): TodayState = TodayStateBuilder.build(
         inputs(
             day,
@@ -311,6 +336,8 @@ object TodayFixtures {
             foodActionsOn = foodActionsOn,
             goalsAndEnergyOn = goalsAndEnergyOn,
             burned = burned,
+            habits = habits,
+            now = now,
         ),
         policy,
         menuOpen,

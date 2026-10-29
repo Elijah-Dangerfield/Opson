@@ -232,6 +232,37 @@ the last row.
   without entries, with digesting food); leak surfaces `today-activity` and
   `today-activity-health`, both with digesting food counted.
 
+## Learned meal times and the late-day card (no flag, 2026-10-29)
+
+**Usually around.** `LoggingHabitsEstimator` (`:libraries:diary`) reads the
+four weeks before today: each meal's time on a day is when its first item went
+in, on that day only (a back-fill says nothing about when), and the usual time
+is the weighted median of those, a day's weight halving every two weeks,
+rounded to five minutes. A meal needs three days to be learned; until then its
+time is the person's own (`Settings.mealTimes`, from onboarding and Reminders).
+Untracked days and today are left out. Today's "Usually around", the No
+numbers timeline and the Counted card's next meal read `TodayInputs.usualTimes`.
+Meal reminders keep the times the person set on Reminders: a reminder they
+chose should not move on its own.
+
+**The late-day card** (`LowLoggingNudge`): "Looks like logging got away from
+you today" with Not now and Skip today. Skip today marks the day untracked
+(`DiaryRepository.setUntracked`), the per-day skip Trends already leaves as a
+gap; it syncs as day records already do. It shows only:
+
+- on today, not untracked or closed, and not after Not now today
+  (`TodayNudgeStore`, on this phone only);
+- once the window holds five logged days, so never in the first days;
+- from an hour after the usual last learned meal, kept between 6 pm and
+  10 pm, or from 8 pm while no meal is learned;
+- when today holds under 35% of the person's usual day: by energy in a mode
+  with calories on show, by entries (foods plus meals marked eaten) in the
+  others, after "numbers have been hard", or when a meal was marked eaten with
+  no details. Nothing on the card is a number.
+
+Previews `TodayLowLoggingPreview`, `TodayLowLoggingBlindDarkPreview`; leak
+surface `today-low-logging`.
+
 ## Source
 - Design v3: `today-full`, `today-empty`, `today-delayed-locked`, `today-blind`, `today-nutrient-focus`, `today-fuel`, `today-rhythm`, `today-explorer`, `today-mindful`, `today-plan-tomorrow`, `today-day-menu`, `today-added`, and the manifest notes for each.
 - Handoff: `README.md` section 2 (safety) and 5 (tokens). The handoff's sticky hero, ring pager and header + are gone in v3.

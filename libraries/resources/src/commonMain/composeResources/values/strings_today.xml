@@ -156,6 +156,10 @@
     <string name="today_untracked_title">Not tracking this day</string>
     <string name="today_untracked_body">Trends leaves a gap here, not a low day.</string>
     <string name="today_untracked_action">Track it again</string>
+    <string name="today_lowlog_title">Looks like logging got away from you today</string>
+    <string name="today_lowlog_body">That's okay. Want to skip today so it doesn't skew your trends? Not every day needs to be perfect.</string>
+    <string name="today_lowlog_skip">Skip today</string>
+    <string name="today_lowlog_later">Not now</string>
     <string name="today_toast_note_saved">Note saved to %1$s.</string>
     <string name="today_toast_removed">Removed from %1$s.</string>
     <string name="today_toast_daynote_saved">Note saved.</string>

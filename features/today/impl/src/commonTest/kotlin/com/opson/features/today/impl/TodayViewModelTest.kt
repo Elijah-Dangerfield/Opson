@@ -21,9 +21,11 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_toast_cleared
 import opson.libraries.resources.generated.resources.today_toast_copied_foods_other
@@ -68,6 +70,7 @@ class TodayViewModelTest : CoroutineTest() {
 
     private val weights = FakeWeightRepository()
     private val cardView = TodayCardViewStore(FakeCacheFactory())
+    private val nudges = TodayNudgeStore(FakeCacheFactory())
 
     private fun vm(
         health: FakeHealthRepository = FakeHealthRepository(),
@@ -99,6 +102,7 @@ class TodayViewModelTest : CoroutineTest() {
         goalsAndEnergy = goalsAndEnergyFlag(goalsAndEnergyOn),
         burnedRepository = burnedRepository,
         cardView = cardView,
+        nudges = nudges,
     )
 
     private fun TestScope.events(vm: TodayViewModel): List<TodayEvent> {
@@ -683,6 +687,58 @@ class TodayViewModelTest : CoroutineTest() {
 
         vm.takeAction(TodayAction.SelectionClosed)
         assertNull(vm.state.selection)
+    }
+
+    // The late-day card and the learned meal times (owner feedback, 2026-10-29)
+
+    /** A week of ordinary days behind a today with one food in, at 9:30 pm. */
+    private fun lightEvening() {
+        val week = (1..7).map { TodayFixtures.day(today.minus(DatePeriod(days = it))) }
+        diary.days.value = (week + TodayFixtures.lightDay()).associateBy { it.date }
+        clock.now = TodayFixtures.evening
+    }
+
+    @Test
+    fun aLightEvening_showsTheCard_andSkipTodayMarksItUntracked() = runUnitTest {
+        lightEvening()
+        val vm = vm()
+        assertTrue(vm.state.lowLogging)
+
+        vm.takeAction(TodayAction.LowLoggingSkipTapped)
+
+        assertEquals(listOf(today to true), diary.untracked)
+    }
+
+    @Test
+    fun notNow_putsTheCardAwayForTheDay() = runUnitTest {
+        lightEvening()
+        val vm = vm()
+        vm.takeAction(TodayAction.LowLoggingDismissed)
+        assertFalse(vm.state.lowLogging)
+        assertFalse(vm().state.lowLogging, "a fresh Today the same day keeps it away")
+        assertTrue(diary.untracked.isEmpty())
+    }
+
+    @Test
+    fun noonIsNotTheEvening() = runUnitTest {
+        lightEvening()
+        clock.now = TodayFixtures.noon
+        assertFalse(vm().state.lowLogging)
+    }
+
+    /** "Usually around" follows when meals are logged, not only the times set in onboarding. */
+    @Test
+    fun anEmptyMealsUsualTime_isLearnedFromTheLog() = runUnitTest {
+        val days = (1..5).map { back ->
+            val date = today.minus(DatePeriod(days = back))
+            val at = LocalDateTime(date, LocalTime(20, 40)).toInstant(TodayFixtures.timeZone)
+            TodayFixtures.day(date, dinner = true).let { day ->
+                day.copy(itemsBySlot = day.itemsBySlot + (MealSlot.Dinner to day.items(MealSlot.Dinner).map { it.copy(loggedAt = at) }))
+            }
+        }
+        diary.days.value = (days + TodayFixtures.day()).associateBy { it.date }
+        val dinner = vm().state.meals.filterIsInstance<MealEntry.Collapsed>().single { it.slot == MealSlot.Dinner }
+        assertEquals(LocalTime(20, 40), dinner.around)
     }
 
     // The water card's glasses (owner feedback, 2026-10-29)

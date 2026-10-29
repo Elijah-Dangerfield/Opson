@@ -135,6 +135,7 @@ object TodayStateBuilder {
             highlight = highlight,
             added = added?.takeIf { it.day == date }?.let { AddedNotice(it.slot, it.itemIds.size) },
             untracked = untracked,
+            lowLogging = LowLoggingNudge.shows(inputs),
             menu = if (menuOpen) menu(inputs, clearArmed) else null,
             summaryTools = summaryOn,
             // Settings held these before they moved to the phone; a phone that never set them keeps that choice.
@@ -176,7 +177,7 @@ object TodayStateBuilder {
             soft is Display.Soft -> softCard(inputs, policy, context, soft)
             else -> macroTiles(day, settings, policy, context, GoalStyle.Default).takeIf { it.isNotEmpty() }?.let(TodaySummary::Focus)
                 // No numbers' meal timeline already says which meals are done.
-                ?: counted(day, inputs.settings.mealTimes).takeIf { policy.preset.today != TodayLayout.MealTimeline }
+                ?: counted(day, inputs.usualTimes).takeIf { policy.preset.today != TodayLayout.MealTimeline }
         }
     }
 
@@ -475,7 +476,7 @@ object TodayStateBuilder {
 
     private fun tileStatus(day: Day, slot: MealSlot, inputs: TodayInputs): TileStatus {
         val items = day.items(slot)
-        val around = inputs.settings.mealTimes.at(slot)
+        val around = inputs.usualTimes.at(slot)
         return when {
             items.isNotEmpty() -> TileStatus.Logged(items.first().localTime(inputs.timeZone))
             slot in day.ateNoDetails -> TileStatus.AteNoDetails(around)
@@ -524,7 +525,7 @@ object TodayStateBuilder {
     private fun nextEmpty(day: Day): MealSlot? = MealSlot.meals.firstOrNull { !day.isMealDone(it) }
 
     private fun collapsed(inputs: TodayInputs, slot: MealSlot, usual: Boolean): MealEntry.Collapsed =
-        MealEntry.Collapsed(slot = slot, around = inputs.settings.mealTimes.at(slot), usual = usual, note = noteOf(inputs.day, slot))
+        MealEntry.Collapsed(slot = slot, around = inputs.usualTimes.at(slot), usual = usual, note = noteOf(inputs.day, slot))
 
     /** The Note is on every meal's + in every mode, so what it holds shows in every mode too. */
     internal fun noteOf(day: Day, slot: MealSlot): MealNoteUi? {

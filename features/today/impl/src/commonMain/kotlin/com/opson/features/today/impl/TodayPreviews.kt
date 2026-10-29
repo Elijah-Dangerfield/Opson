@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.LoggingHabits
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import com.opson.features.today.impl.dayclose.DayClosedSheetContent
@@ -39,6 +40,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.PreviewContent
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.minus
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Clock
@@ -79,6 +81,8 @@ private fun Today(
     drag: FoodDrag = rememberFoodDrag(),
     burned: Burned? = null,
     activity: (@Composable () -> Unit)? = null,
+    habits: LoggingHabits? = null,
+    now: LocalTime? = null,
 ) {
     TodayScreen(
         state = TodayFixtures.todayState(
@@ -95,6 +99,8 @@ private fun Today(
             foodActionsOn = flagsOn,
             goalsAndEnergyOn = burned != null,
             burned = burned,
+            habits = habits,
+            now = now,
         ),
         onAction = {},
         drag = drag,
@@ -267,6 +273,20 @@ private fun TodayAddedDarkPreview() = Phone(dark = true) {
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayUntrackedPreview() = Phone { Today(full, day = TodayFixtures.untrackedDay()) }
+
+/** 9:30 pm with one food logged against a usual day of nine: the late-day card offers to skip the day. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayLowLoggingPreview() = Phone {
+    Today(full, day = TodayFixtures.lightDay(), habits = TodayFixtures.habits, now = TodayFixtures.lateEvening)
+}
+
+/** The same evening in No numbers, where entries decide rather than energy. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayLowLoggingBlindDarkPreview() = Phone(dark = true) {
+    Today(policy(PresetId.NoNumbers), day = TodayFixtures.lightDay(), settings = Settings(numbers = NumbersSettings(PresetId.NoNumbers)), habits = TodayFixtures.habits, now = TodayFixtures.lateEvening)
+}
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

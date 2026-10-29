@@ -220,6 +220,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-summary-rings` | today | design sync 4; one number as rings | yes |
 | new | | `today-summary-equation` | today | design sync 4; Eaten − Burned = Deficit | yes |
 | new | | `today-screen-settings` | settings | design sync 4; More › Today screen and its main number sheet, no amounts | no |
+| new | | `today-low-logging` | today | the late-day card over a day with one food; the card has no numbers | yes |
 | new | | `nutrient-foods`, `nutrient-foods-week`, `nutrient-foods-protein` | trends | which foods gave a nutrient; amounts and shares only where the level shows, ranked alone where it softens, nothing where it hides (`NutrientFoodsLeakTest`) | no |
 | new | | `micro-targets`, `micro-target-sheet` | settings | Vitamins and minerals: references, never an amount eaten, off where micros are hidden | no |
 | new | | `onboarding-goal` | onboarding | `onboarding-v2.md`, `release.onboardingSetup`; goal styles and the range on a stepper | yes |

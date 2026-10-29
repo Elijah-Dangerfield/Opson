@@ -7,8 +7,10 @@ import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.FastingRepository
 import com.opson.libraries.diary.FastingStatus
+import com.opson.libraries.diary.LoggingHabits
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LoggedToMeal
+import com.opson.libraries.diary.LoggingHabitsEstimator
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MinuteTicker
 import com.opson.libraries.diary.RecentLogEvents
@@ -43,8 +45,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_toast_cleared
@@ -91,6 +95,7 @@ class TodayViewModel(
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val burnedRepository: BurnedRepository,
     private val cardView: TodayCardViewStore,
+    private val nudges: TodayNudgeStore,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value, dayLabel = RelativeDay.of(selectedDay.date.value, calendar.today())),
 ) {
@@ -186,6 +191,12 @@ class TodayViewModel(
             }
             is TodayAction.UndoExpired -> if (model.added == action.event) action.rebuild { copy(added = null) }
             TodayAction.TrackAgainTapped -> diary.setUntracked(day(), untracked = false)
+            // Both on today alone: the card never shows on another day.
+            TodayAction.LowLoggingSkipTapped -> if (state.lowLogging) {
+                nudges.dismissLowLogging(calendar.today())
+                diary.setUntracked(calendar.today(), untracked = true)
+            }
+            TodayAction.LowLoggingDismissed -> nudges.dismissLowLogging(calendar.today())
             // The banner only offers this when the switch has to wait for the pause, so open it.
             is TodayAction.TimedSwitchTapped -> sendEvent(TodayEvent.OpenPause(NumbersChange.PickPreset(action.to)))
             is TodayAction.FastingArrived -> {
@@ -521,7 +532,10 @@ class TodayViewModel(
             combine(diary.observeDay(date), diary.observeDay(date.minus(DatePeriod(days = 1)))) { d, before -> d to before }
         }
         val energy = combine(expended(), burned()) { expended, burned -> expended to burned }
-        return combine(days, settingsRepository.settings, energy, weighIns(), cardView()) { (d, before), settings, (expended, burned), weighIns, view ->
+        val extras = combine(cardView(), habits(), now(), nudges.lowLoggingDismissedOn) { view, habits, now, dismissed ->
+            Extras(view, habits, now, dismissed)
+        }
+        return combine(days, settingsRepository.settings, energy, weighIns(), extras) { (d, before), settings, (expended, burned), weighIns, extra ->
             TodayInputs(
                 today = calendar.today(),
                 timeZone = calendar.timeZone(),
@@ -535,10 +549,39 @@ class TodayViewModel(
                 weighIns = weighIns,
                 goalsAndEnergyOn = goalsAndEnergy(),
                 burned = burned,
-                cardView = view,
+                cardView = extra.cardView,
+                habits = extra.habits,
+                now = extra.now,
+                nudgeDismissedOn = extra.nudgeDismissedOn,
             )
         }
     }
+
+    private data class Extras(
+        val cardView: TodayCardView,
+        val habits: LoggingHabits,
+        val now: LocalTime,
+        val nudgeDismissedOn: LocalDate?,
+    )
+
+    /**
+     * How the person usually logs, from the four weeks before today, learned again as the log or
+     * their own meal times change and when the date turns. Today itself is left out.
+     */
+    private fun habits(): Flow<LoggingHabits> =
+        ticker.ticks().map { calendar.today() }.distinctUntilChanged().flatMapLatest { today ->
+            val history = diary.observeDays(today.minus(DatePeriod(days = LoggingHabitsEstimator.WINDOW_DAYS)), today.minus(DatePeriod(days = 1)))
+            combine(history, settingsRepository.settings.map { it.mealTimes }.distinctUntilChanged()) { days, own ->
+                LoggingHabitsEstimator.of(days, today, calendar.timeZone(), own)
+            }
+        }.distinctUntilChanged()
+
+    /** The time of day to five minutes: enough for the late-day card, and Today rebuilds at most that often. */
+    private fun now(): Flow<LocalTime> =
+        ticker.ticks().map { instant ->
+            val time = instant.toLocalDateTime(calendar.timeZone()).time
+            LocalTime(time.hour, time.minute - time.minute % NOW_STEP_MINUTES)
+        }.distinctUntilChanged()
 
     /** How the card was left on this phone. With `release.todaySummary` off there is no page or collapse to read. */
     private fun cardView(): Flow<TodayCardView> {
@@ -585,6 +628,8 @@ class TodayViewModel(
     companion object {
         /** How long a changed meal stays outlined. */
         val HIGHLIGHT_FOR = 2.seconds
+
+        private const val NOW_STEP_MINUTES = 5
 
         /** The Weight row's trend reads two weeks; a little more covers a day in the past. */
         private val WEIGH_IN_LOOKBACK = 42.days

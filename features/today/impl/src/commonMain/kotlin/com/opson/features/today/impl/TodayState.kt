@@ -1,5 +1,7 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.LoggingHabits
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.ui.SummaryStat
 import androidx.compose.runtime.Immutable
 import com.opson.libraries.diary.Day
@@ -61,6 +63,8 @@ data class TodayState(
      * planning banner and Close the day. The meals stay, so logging still works.
      */
     val untracked: Boolean = false,
+    /** The late-day card ([LowLoggingNudge]): today got away, want to skip it? */
+    val lowLogging: Boolean = false,
     val menu: DayMenu? = null,
     /** The fasting card (0.2), from [TodayFastingCard]; null when it does not show. */
     val fasting: FastingStatus? = null,
@@ -395,6 +399,12 @@ sealed interface TodayAction {
     data class UndoExpired(val event: LoggedToMeal) : TodayAction
     data object TrackAgainTapped : TodayAction
 
+    /** The late-day card's Skip today: today is marked untracked, so Trends leaves a gap. */
+    data object LowLoggingSkipTapped : TodayAction
+
+    /** The late-day card's Not now: it stays away for the rest of the day. */
+    data object LowLoggingDismissed : TodayAction
+
     /** "Switch to No numbers" on the banner, when End after a set time ran out with the pause on. */
     data class TimedSwitchTapped(val to: PresetId) : TodayAction
 
@@ -519,7 +529,19 @@ data class TodayInputs(
     val burned: Burned? = null,
     /** The card's page and collapse as left on this phone, with [summaryOn]. */
     val cardView: TodayCardView = TodayCardView(),
-)
+    /**
+     * How the person usually logs, from the four weeks before today: the "Usually around" times
+     * and what the late-day card compares with. Null reads the times they set.
+     */
+    val habits: LoggingHabits? = null,
+    /** The time of day now, to five minutes, for the late-day card; null where nothing reads it. */
+    val now: LocalTime? = null,
+    /** The day the late-day card was put away with Not now. */
+    val nudgeDismissedOn: LocalDate? = null,
+) {
+    /** When each meal usually is: learned from the log where it can be, else the person's own times. */
+    val usualTimes: MealTimes get() = habits?.usual ?: settings.mealTimes
+}
 
 /**
  * A one-off message for the snackbar. [args] fill the message's `%1$s` slots; a

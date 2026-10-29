@@ -112,6 +112,10 @@ import opson.libraries.resources.generated.resources.today_label_tomorrow
 import opson.libraries.resources.generated.resources.today_label_yesterday
 import opson.libraries.resources.generated.resources.today_meal_around
 import opson.libraries.resources.generated.resources.today_meal_usually
+import opson.libraries.resources.generated.resources.today_lowlog_body
+import opson.libraries.resources.generated.resources.today_lowlog_later
+import opson.libraries.resources.generated.resources.today_lowlog_skip
+import opson.libraries.resources.generated.resources.today_lowlog_title
 import opson.libraries.resources.generated.resources.today_menu_add_note
 import opson.libraries.resources.generated.resources.today_menu_clear
 import opson.libraries.resources.generated.resources.today_menu_clear_confirm
@@ -352,6 +356,7 @@ internal sealed interface TodayRow {
     data object Planning : TodayRow { override val key = "planning" }
     data class Summary(val summary: TodaySummary) : TodayRow { override val key = "summary" }
     data object Untracked : TodayRow { override val key = "untracked" }
+    data object LowLogging : TodayRow { override val key = "low-logging" }
 
     /** "Today is closed. Reopen it to add more.", standing in for every + the closed day has lost. */
     data object Closed : TodayRow { override val key = "closed" }
@@ -372,6 +377,7 @@ internal fun todayRows(state: TodayState, activity: Boolean = false): List<Today
     if (state.planning) add(TodayRow.Planning)
     state.summary?.let { add(TodayRow.Summary(it)) }
     if (state.untracked) add(TodayRow.Untracked)
+    if (state.lowLogging) add(TodayRow.LowLogging)
     if (state.closed) add(TodayRow.Closed)
     state.mealTiles?.let { add(TodayRow.Tiles(it)) }
     state.fasting?.let { add(TodayRow.Fasting(it)) }
@@ -410,6 +416,24 @@ private fun TodayListItem(row: TodayRow, state: TodayState, context: FoodRowCont
                 label = stringResource(Res.string.today_untracked_action),
                 onClick = { onAction(TodayAction.TrackAgainTapped) },
                 modifier = Modifier.weight(1f),
+            )
+        }
+        TodayRow.LowLogging -> PromptCard(
+            icon = AppIcons.BeachAccess,
+            tone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint),
+            title = stringResource(Res.string.today_lowlog_title),
+            body = stringResource(Res.string.today_lowlog_body),
+        ) {
+            PromptAction(
+                label = stringResource(Res.string.today_lowlog_later),
+                onClick = { onAction(TodayAction.LowLoggingDismissed) },
+                modifier = Modifier.weight(1f),
+            )
+            PromptAction(
+                label = stringResource(Res.string.today_lowlog_skip),
+                onClick = { onAction(TodayAction.LowLoggingSkipTapped) },
+                modifier = Modifier.weight(1f),
+                emphasis = true,
             )
         }
         TodayRow.Closed -> DayClosedNotice(isToday = state.dayLabel == RelativeDay.Today, onReopen = { onAction(TodayAction.ReopenTapped) })

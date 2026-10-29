@@ -105,6 +105,13 @@ object TodayLeakSurfaces {
         LeakSurface(id = "today-untracked", label = "Today, marked untracked", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.untrackedDay()), onAction = {})
         },
+        // The late-day card says nothing numeric; the day behind it is one food.
+        LeakSurface(id = "today-low-logging", label = "Today, the late-day card", showsCaloriesInFull = true) { policy ->
+            TodayScreen(
+                state = TodayFixtures.todayState(policy, day = TodayFixtures.lightDay(), habits = TodayFixtures.habits, now = TodayFixtures.lateEvening),
+                onAction = {},
+            )
+        },
         LeakSurface(id = "today-groups-off", label = "Today, meal groups off", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.day(loose = true), settings = Settings(mealGroups = false)), onAction = {})
         },
