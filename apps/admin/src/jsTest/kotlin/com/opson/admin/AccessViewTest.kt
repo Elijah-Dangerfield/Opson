@@ -75,4 +75,32 @@ class AccessViewTest {
         assertTrue(roleWarning("owner")!!.contains("verified"))
         assertNull(roleWarning("builder"))
     }
+
+    @Test
+    fun aBuilderRecordReadsAsRows() {
+        val builder = AdminBuilderDto(
+            me = BuilderMeDto(status = "active", trust = "trusted", joinedAtEpochMs = 1, accepted30d = 7, needed = 10),
+            role = "builder",
+            trustHold = true,
+            trustedSinceEpochMs = 2,
+            reviewedTotal = 60,
+            agreementLast50 = 0.98,
+            decided30d = 12,
+            rejected30d = 1,
+            audits30d = 4,
+            auditsFailed30d = 1,
+        )
+        val facts = builderFacts(builder) { "day $it" }.toMap()
+
+        assertEquals("active", facts["Status"])
+        assertEquals("trusted, Trusted since day 2, held at Builder", facts["Trust"])
+        assertEquals("7 of 10 accepted in the last 30 days", facts["Toward Pro"])
+        assertEquals("not earned", facts["Pro until"])
+        assertEquals("98%", facts["Agreement, last 50"])
+        assertEquals("4, 1 failed", facts["Audits, 30 days"])
+        assertEquals("none", facts["Fake or copied"])
+
+        val removed = builder.copy(me = builder.me.copy(status = "removed"), removedBy = "elijah", removedReason = "copied labels")
+        assertEquals("removed by elijah: copied labels", builderFacts(removed) { "" }.toMap()["Status"])
+    }
 }

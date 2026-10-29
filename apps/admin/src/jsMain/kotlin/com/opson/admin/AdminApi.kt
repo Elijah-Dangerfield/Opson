@@ -19,6 +19,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Wire shapes mirroring the server's `ConfigAdminRoutes` DTOs. Kept as a small
@@ -255,6 +256,15 @@ data class SubmissionSummaryDto(
     val barcode: String? = null,
     val failedChecks: List<String> = emptyList(),
     val hasPhotos: Boolean = false,
+    /** `review`, `auto` or `owner`; null before routing existed. */
+    val lane: String? = null,
+    /** What the auto-approval lane would have done, in any mode. */
+    val wouldAutoApprove: Boolean = false,
+    /** Why it is in the queue, first things first: `not_grounded:fat_g`, `cloud_differs:energy_kcal`. */
+    val reasons: List<String> = emptyList(),
+    val confidence: Double? = null,
+    /** `pending`, `passed` or `failed` for an audited auto-approval. */
+    val audit: String? = null,
 )
 
 @Serializable
@@ -273,13 +283,104 @@ data class SubmissionDetailDto(
     val reviewedAtEpochMs: Long? = null,
     val reviewedBy: String? = null,
     val rejectReason: String? = null,
+    val rejectCode: String? = null,
+    /** How the server routed it: lane, reasons, confidence, trust, the second read, grounding. */
+    val routing: RoutingDto? = null,
+    /** What the phone read off the label, line by line, and its draft. */
+    val capture: CaptureDto? = null,
+    val auditNote: String? = null,
+)
+
+/** How many headline fields the photo's text showed, of those the label has, and which it did not. */
+@Serializable
+data class GroundingDto(val grounded: Int, val groundable: Int, val missing: List<String> = emptyList())
+
+/** The server's independent read of the label photo, compared with what was sent. */
+@Serializable
+data class CloudCheckDto(
+    val model: String,
+    val readable: Boolean,
+    val agrees: Boolean,
+    val differs: List<String> = emptyList(),
+    val latencyMs: Long = 0,
+)
+
+/** The server's `RoutingJson`: codes and numbers only. */
+@Serializable
+data class RoutingDto(
+    val lane: String,
+    val wouldAutoApprove: Boolean,
+    val reasons: List<String> = emptyList(),
+    val confidence: Double? = null,
+    val trust: String,
+    val mode: String,
+    val grounding: GroundingDto? = null,
+    val cloud: CloudCheckDto? = null,
+    val audit: Boolean = false,
+)
+
+@Serializable
+data class CaptureLineDto(val text: String, val confidence: Double = 1.0)
+
+/** The server's `CaptureJson`: the phone's OCR of the label and the draft it made from it. */
+@Serializable
+data class CaptureDto(
+    val engine: String? = null,
+    val source: String? = null,
+    val lines: List<CaptureLineDto> = emptyList(),
+    val draft: LabelFactsDto? = null,
+    val score: Double? = null,
+    val signals: JsonObject? = null,
 )
 
 @Serializable
 private data class ReviewEditRequest(val food: LabelFactsDto? = null)
 
 @Serializable
-private data class ReviewRejectRequest(val reason: String)
+private data class ReviewRejectRequest(val reason: String, val code: String? = null)
+
+@Serializable
+private data class AuditRequest(val passed: Boolean, val note: String? = null)
+
+// ---------- Builder program ----------
+
+/** The server's `BuilderMeResponse`: where one account stands. [status] is `none` for a non-member. */
+@Serializable
+data class BuilderMeDto(
+    val status: String,
+    val trust: String,
+    val joinedAtEpochMs: Long? = null,
+    val proUntilEpochMs: Long? = null,
+    val accepted30d: Int = 0,
+    val needed: Int = 0,
+    val photoRetention: Boolean = false,
+    val canJoin: Boolean = false,
+    val joinBlock: String? = null,
+    val availableAtEpochMs: Long? = null,
+    val termsVersion: String? = null,
+)
+
+/** The server's `AdminBuilderResponse`: standing, trust and the record behind it. */
+@Serializable
+data class AdminBuilderDto(
+    val me: BuilderMeDto,
+    val role: String,
+    val trustHold: Boolean = false,
+    val trustedSinceEpochMs: Long? = null,
+    val removedReason: String? = null,
+    val removedBy: String? = null,
+    val reviewedTotal: Int = 0,
+    val agreementLast50: Double? = null,
+    val decided30d: Int = 0,
+    val rejected30d: Int = 0,
+    val fakeOrCopied: Int = 0,
+    val audits30d: Int = 0,
+    val auditsFailed30d: Int = 0,
+    val autoApprovedSinceTrusted: Int = 0,
+)
+
+@Serializable
+private data class BuilderActionRequest(val action: String, val reason: String? = null)
 
 @Serializable
 data class BarcodeLinkDto(
@@ -407,11 +508,15 @@ class AdminApi(
     suspend fun listSubmissions(status: String, limit: Int = 50): SubmissionListDto =
         client.get("$base/v1/admin/food-submissions?status=${encode(status)}&limit=$limit") { auth() }.require()
 
+    /** Auto-approvals waiting for a person to audit them, in the queue's shape. */
+    suspend fun listAudits(limit: Int = 50): SubmissionListDto =
+        client.get("$base/v1/admin/food-submissions?audit=pending&limit=$limit") { auth() }.require()
+
     suspend fun submission(id: String): SubmissionDetailDto =
         client.get("$base/v1/admin/food-submissions/${encode(id)}") { auth() }.require()
 
     /**
-     * A submission's photo, `front` or `label`, as bytes. Fetched with the token like everything
+     * A submission's photo, `front`, `label` or `ingredients`, as bytes. Fetched with the token like everything
      * else: an `<img src>` cannot carry the header, so the view turns these into a blob URL that
      * lives only in this tab.
      */
@@ -434,11 +539,31 @@ class AdminApi(
             setBody(ReviewEditRequest(food))
         }.require()
 
-    suspend fun rejectSubmission(id: String, reason: String): SubmissionDetailDto =
+    /** [code] is one of [ReviewForm.REJECT_CODES]; fake and copied data count against the submitter's trust. */
+    suspend fun rejectSubmission(id: String, reason: String, code: String? = null): SubmissionDetailDto =
         client.post("$base/v1/admin/food-submissions/${encode(id)}/reject") {
             auth()
             contentType(ContentType.Application.Json)
-            setBody(ReviewRejectRequest(reason))
+            setBody(ReviewRejectRequest(reason, code))
+        }.require()
+
+    /** Closes the audit of an auto-approval. A fail needs a [note]; the food goes back to pending. */
+    suspend fun auditSubmission(id: String, passed: Boolean, note: String?): SubmissionDetailDto =
+        client.post("$base/v1/admin/food-submissions/${encode(id)}/audit") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(AuditRequest(passed, note))
+        }.require()
+
+    suspend fun builder(userId: String): AdminBuilderDto =
+        client.get("$base/v1/admin/users/${encode(userId)}/builder") { auth() }.require()
+
+    /** [action] is `remove` (with a [reason]), `restore`, `hold` or `release`. Answers the new standing. */
+    suspend fun builderAction(userId: String, action: String, reason: String? = null): AdminBuilderDto =
+        client.post("$base/v1/admin/users/${encode(userId)}/builder") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(BuilderActionRequest(action, reason))
         }.require()
 
     suspend fun listBarcodeLinks(status: String = "pending"): List<BarcodeLinkDto> =

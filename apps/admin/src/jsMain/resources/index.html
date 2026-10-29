@@ -38,7 +38,7 @@
         .rule.off { opacity: .5; }
         .muted { color: var(--muted); }
         label { color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
-        input[type=text], input[type=number], input[type=password], textarea {
+        input[type=text], input[type=number], input[type=password], textarea, select {
             background: #100d0a; color: var(--text); border: 1px solid var(--line);
             border-radius: 6px; padding: 6px 8px; font: inherit;
         }
@@ -50,7 +50,7 @@
         button:hover { border-color: var(--accent); }
         button.primary { background: var(--accent); color: #1a140a; border-color: var(--accent); font-weight: 600; }
         .photos { display: flex; gap: 12px; margin: 10px 0; }
-        .photos img { width: 49%; max-height: 560px; object-fit: contain; background: #000; border: 1px solid var(--line); border-radius: 8px; }
+        .photos img { flex: 1 1 0; min-width: 0; width: 49%; max-height: 560px; object-fit: contain; background: #000; border: 1px solid var(--line); border-radius: 8px; }
         button.danger { color: var(--danger); }
         a { color: var(--accent); }
         .status { min-height: 20px; margin: 8px 0; }
@@ -104,6 +104,7 @@
         .flag-desc { color: var(--muted); font-size: 12px; margin-top: 1px; }
         .tag { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; text-transform: uppercase; letter-spacing: .04em; }
         .chip { font-size: 11px; color: var(--accent); border: 1px solid var(--accent); border-radius: 10px; padding: 0 8px; white-space: nowrap; }
+        .chip.ok { color: var(--ok); border-color: var(--ok); }
         .val { color: var(--text); font-size: 13px; }
         .val-drift { color: var(--accent); font-weight: 600; font-size: 13px; }
         .val-not-set { color: var(--muted); font-style: italic; }

@@ -82,6 +82,15 @@ way.
   `pro`) with a source tag, a reason and an optional end in days, revoke one
   entitlement, or remove a grant. Server side it's `/v1/admin/users/{id}/access`
   and its siblings (`apps/server/README.md`, "Roles and entitlements").
+  Below that, **Builder** shows the account's place in the Builder program:
+  status, trust level (and whether it is held), progress toward Pro, Pro
+  until, photo retention, and the record trust is worked out from (reviewed in
+  all, agreement over the last 50, decided and rejected in 30 days, fake or
+  copied rejections, audits and failed audits, auto-approvals since Trusted).
+  From there you remove someone (with a reason; it takes the builder role and
+  its Pro), restore them, or hold them at Builder whatever the record says. An
+  account that never joined reads "Not a Builder". Server side it's
+  `/v1/admin/users/{id}/builder`.
 - **Entitlements.** The policy, which is remote config: `entitlements.everyone`
   (what every account has), `entitlements.bundles` (Pro and any other bundle)
   and `entitlements.roles` (which bundles a role brings), each edited as JSON
@@ -90,13 +99,23 @@ way.
   again. Below that, the entitlements and roles the server knows, who holds
   each by policy, and the latest role and grant changes across accounts.
 - **Review.** Foods people added from photos of a pack (`release.submitFood`),
-  pending oldest first, with approved and rejected a click away. A submission
-  opens with the front and the label photos side by side, then every field as
-  the model read it (with its confidence), as the person sent it, and as it
+  pending oldest first, with approved and rejected a click away. Each row
+  says where routing sent it and how confident it was, its first two reasons
+  in plain words ("Fat not found in the photo's text"), and a "Would
+  auto-approve" badge when the auto lane would have taken it. A submission
+  opens with the front, label and (when there is one) ingredients photos side
+  by side, then the routing record (lane, trust, mode, confidence, which
+  headline numbers the photo's text showed, the second read's verdict) and
+  what the phone read (engine, camera or library, score, and the OCR lines
+  behind a button), then every field as the model read it (with its
+  confidence), as the phone drafted it, as the person sent it, and as it
   stands, and the checks the server ran on each. Correct any field and save,
   approve (the food joins search and barcode lookup for everyone, with the
-  barcode and `verified` set) or reject with a reason (the submitter keeps
-  their own copy). Below the queue, barcodes suggested by a miss followed by
+  barcode and `verified` set) or reject with a reason and an optional code
+  (the submitter keeps their own copy; fake data or copied data ends their
+  chance of Trusted). **Audits** lists auto-approvals picked for a person to
+  check: pass one, or fail it with a note the Builder is told, which puts the
+  food back to pending. Below the queue, barcodes suggested by a miss followed by
   a search: attach one to its food or dismiss it. The photos are fetched with
   the admin token into a blob URL that lives in the tab; nothing links to
   them. `#review/<id>` in the address opens one submission, which is how the

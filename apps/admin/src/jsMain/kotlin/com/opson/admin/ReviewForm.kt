@@ -5,9 +5,9 @@ import kotlin.math.round
 
 /**
  * One field of a submission, side by side: what the model read (and how sure
- * it was), what the person sent, and what stands now (the reviewer's edit, or
- * what was sent). [key] is the server's field key (`name`, `serving_size`,
- * `energy_kcal`).
+ * it was), what the phone's own reading drafted, what the person sent, and
+ * what stands now (the reviewer's edit, or what was sent). [key] is the
+ * server's field key (`name`, `serving_size`, `energy_kcal`).
  */
 internal data class ReviewRow(
     val key: String,
@@ -17,9 +17,11 @@ internal data class ReviewRow(
     val confidence: Double?,
     val sent: String?,
     val current: String,
+    val draft: String? = null,
 ) {
-    /** The model was unsure, or the person changed what it read. */
-    val needsLook: Boolean get() = (confidence ?: 1.0) < LOW_CONFIDENCE || (read != null && read != sent)
+    /** The model was unsure, or the person changed what it or the phone read. */
+    val needsLook: Boolean
+        get() = (confidence ?: 1.0) < LOW_CONFIDENCE || (read != null && read != sent) || (draft != null && draft != sent)
 
     companion object {
         const val LOW_CONFIDENCE = 0.7
@@ -80,8 +82,9 @@ internal object ReviewForm {
     /** The submission's fields, per serving, with every nutrient anyone gave and the required ones. */
     fun rows(detail: SubmissionDetailDto): List<ReviewRow> {
         val read = detail.parsed?.facts
+        val draft = detail.capture?.draft
         val current = detail.reviewed ?: detail.submitted
-        val present = listOfNotNull(read, detail.submitted, current).flatMap { it.perServing.keys + it.per100.keys }.toSet()
+        val present = listOfNotNull(read, draft, detail.submitted, current).flatMap { it.perServing.keys + it.per100.keys }.toSet()
         val fields = TEXT_FIELDS + NUTRIENTS.filter { it.first in present || it.first in REQUIRED }
         return fields.map { (key, label, unit) ->
             ReviewRow(
@@ -92,6 +95,7 @@ internal object ReviewForm {
                 confidence = detail.parsed?.confidence?.get(key),
                 sent = text(detail.submitted, key),
                 current = text(current, key).orEmpty(),
+                draft = draft?.let { text(it, key) },
             )
         }
     }
@@ -147,6 +151,100 @@ internal object ReviewForm {
             "sodium_unit" -> "Sodium looks 1000x off: ${number(check.actual)} mg, maybe ${number(check.expected)} mg"
             else -> "${check.code}: $fields"
         }
+    }
+
+    /** The reject codes the server takes, with what the select shows. */
+    val REJECT_CODES: List<Pair<String, String>> = listOf(
+        "blurry" to "Blurry photo",
+        "not_food" to "Not a food",
+        "duplicate" to "Duplicate",
+        "wrong_column" to "Wrong column",
+        "wrong_values" to "Wrong values",
+        "fake_data" to "Fake data",
+        "copied_data" to "Copied data",
+        "other" to "Other",
+    )
+
+    /** The codes that end the submitter's chance of Trusted. */
+    val TRUST_ENDING_CODES: Set<String> = setOf("fake_data", "copied_data")
+
+    fun rejectCodeLabel(code: String): String = REJECT_CODES.firstOrNull { it.first == code }?.second ?: code
+
+    /**
+     * A routing reason as a reviewer reads it. The server sends codes (`not_grounded:fat_g`,
+     * `check:energy_macros_mismatch`); one it adds later is shown as sent.
+     */
+    fun reasonLabel(code: String): String {
+        val field = code.substringAfter(':', "")
+        return when {
+            code == "not_trusted" -> "Not Trusted yet"
+            code == "no_capture" -> "Typed or read by the server"
+            code == "not_from_camera" -> "Photo from the library"
+            code == "low_confidence" -> "Low confidence"
+            code == "headline_incomplete" -> "Not every headline number was given"
+            code == "no_cloud_read" -> "No second read"
+            code == "cloud_unreadable" -> "Second read couldn't read the photo"
+            code == "mode:shadow" -> "Would auto-approve (shadow)"
+            code == "mode:off" -> "Would auto-approve (lane off)"
+            code.startsWith("not_grounded:") -> "${labelOf(field)} not found in the photo's text"
+            code.startsWith("cloud_differs:") -> "Second read differs on ${labelOf(field).lowercase()}"
+            code.startsWith("check:") -> checkLabel(field)
+            else -> code
+        }
+    }
+
+    private fun checkLabel(code: String): String = when (code) {
+        "missing_required" -> "Check: a required field is missing"
+        "impossible_value" -> "Check: an impossible value"
+        "energy_macros_mismatch" -> "Check: calories don't match the macros"
+        "energy_looks_like_kj" -> "Check: calories look like kJ"
+        "energy_units_disagree" -> "Check: kJ and kcal disagree"
+        "serving_per_100_mismatch" -> "Check: per serving and per 100 disagree"
+        "sodium_unit" -> "Check: sodium looks 1000x off"
+        else -> "Check: $code"
+    }
+
+    /** "Review lane, 82%": where routing sent it and how sure it was. Null for a submission from before routing. */
+    fun laneLine(summary: SubmissionSummaryDto): String? {
+        val lane = summary.lane ?: return null
+        val name = when (lane) {
+            "review" -> "Review lane"
+            "auto" -> "Auto-approved"
+            "owner" -> "Owner, skipped the queue"
+            else -> lane
+        }
+        val confidence = summary.confidence?.let { "${percent(it)}%" } ?: "no confidence"
+        val audit = summary.audit?.let { ", audit $it" }.orEmpty()
+        return "$name, $confidence$audit"
+    }
+
+    /**
+     * The badge on a row the lane would have approved. In shadow or off the server adds a
+     * `mode:` reason saying why it still came to a person; the badge carries it instead.
+     */
+    fun autoApproveBadge(reasons: List<String>): String =
+        reasons.firstOrNull { it.startsWith("mode:") }?.let(::reasonLabel) ?: "Would auto-approve"
+
+    /** A 0..1 share as a whole percent. */
+    fun percent(share: Double): Int = round(share * 100).toInt()
+
+    /** The photo's text against the headline fields: "4 of 5 headline numbers found ...; missing Fat". */
+    fun groundingLine(grounding: GroundingDto): String {
+        val missing = grounding.missing.joinToString(", ") { labelOf(it) }
+        return "${grounding.grounded} of ${grounding.groundable} headline numbers found in the photo's text" +
+            if (missing.isEmpty()) "" else "; missing $missing"
+    }
+
+    /** The second read: "gemini-x agrees, 1.2 s" or "gemini-x differs on calories, fat, 900 ms". */
+    fun cloudLine(cloud: CloudCheckDto): String {
+        val verdict = when {
+            !cloud.readable -> "couldn't read the photo"
+            cloud.agrees -> "agrees"
+            cloud.differs.isEmpty() -> "disagrees"
+            else -> "differs on " + cloud.differs.joinToString(", ") { labelOf(it).lowercase() }
+        }
+        val latency = if (cloud.latencyMs >= 1000) "${number(cloud.latencyMs / 1000.0)} s" else "${cloud.latencyMs} ms"
+        return "${cloud.model} $verdict, $latency"
     }
 
     fun labelOf(key: String): String =

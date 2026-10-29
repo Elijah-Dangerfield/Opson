@@ -74,4 +74,53 @@ class ReviewFormTest {
         assertEquals("Missing: Name, Calories", ReviewForm.describe(LabelCheckDto("missing_required", listOf("name", "energy_kcal"))))
         assertEquals("1.08", ReviewForm.number(1.08))
     }
+
+    @Test
+    fun routingReasonsReadAsPlainWords() {
+        assertEquals("Not Trusted yet", ReviewForm.reasonLabel("not_trusted"))
+        assertEquals("Fat not found in the photo's text", ReviewForm.reasonLabel("not_grounded:fat_g"))
+        assertEquals("Second read differs on calories", ReviewForm.reasonLabel("cloud_differs:energy_kcal"))
+        assertEquals("Typed or read by the server", ReviewForm.reasonLabel("no_capture"))
+        assertEquals("Photo from the library", ReviewForm.reasonLabel("not_from_camera"))
+        assertEquals("Would auto-approve (shadow)", ReviewForm.reasonLabel("mode:shadow"))
+        assertEquals("Check: calories don't match the macros", ReviewForm.reasonLabel("check:energy_macros_mismatch"))
+        assertEquals("Check: brand_new_check", ReviewForm.reasonLabel("check:brand_new_check"))
+        assertEquals("some_future_code", ReviewForm.reasonLabel("some_future_code"), "an unknown code is shown as sent")
+    }
+
+    @Test
+    fun aRowSaysItsLaneAndTheBadgeCarriesTheMode() {
+        val routed = SubmissionSummaryDto(
+            id = "s1", createdAtEpochMs = 0, status = "approved", origin = "barcode",
+            lane = "auto", confidence = 0.914, audit = "pending",
+        )
+        assertEquals("Auto-approved, 91%, audit pending", ReviewForm.laneLine(routed))
+        assertNull(ReviewForm.laneLine(routed.copy(lane = null)), "a submission from before routing has no line")
+        assertEquals("Would auto-approve (shadow)", ReviewForm.autoApproveBadge(listOf("mode:shadow")))
+        assertEquals("Would auto-approve", ReviewForm.autoApproveBadge(emptyList()))
+    }
+
+    @Test
+    fun groundingAndTheSecondReadAreOneLineEach() {
+        assertEquals(
+            "4 of 5 headline numbers found in the photo's text; missing Fat",
+            ReviewForm.groundingLine(GroundingDto(grounded = 4, groundable = 5, missing = listOf("fat_g"))),
+        )
+        assertEquals("m agrees, 1.2 s", ReviewForm.cloudLine(CloudCheckDto("m", readable = true, agrees = true, latencyMs = 1200)))
+        assertEquals(
+            "m differs on calories, fat, 900 ms",
+            ReviewForm.cloudLine(CloudCheckDto("m", readable = true, agrees = false, differs = listOf("energy_kcal", "fat_g"), latencyMs = 900)),
+        )
+    }
+
+    @Test
+    fun thePhoneDraftGetsItsOwnColumnAndFlagsAChangedField() {
+        val withDraft = detail.copy(
+            capture = CaptureDto(engine = "vision", source = "camera", draft = read.copy(perServing = read.perServing + ("fat_g" to 9.0))),
+        )
+        val rows = ReviewForm.rows(withDraft).associateBy { it.key }
+        assertEquals("9", rows.getValue("fat_g").draft)
+        assertTrue(rows.getValue("fat_g").needsLook, "the person changed what the phone drafted")
+        assertNull(ReviewForm.rows(detail).first().draft, "no capture, no draft")
+    }
 }

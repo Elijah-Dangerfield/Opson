@@ -10,12 +10,16 @@ import androidx.compose.runtime.setValue
 import kotlinx.browser.window
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.placeholder
+import org.jetbrains.compose.web.attributes.selected
 import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.H3
 import org.jetbrains.compose.web.dom.Img
 import org.jetbrains.compose.web.dom.Li
+import org.jetbrains.compose.web.dom.Option
 import org.jetbrains.compose.web.dom.P
+import org.jetbrains.compose.web.dom.Pre
+import org.jetbrains.compose.web.dom.Select
 import org.jetbrains.compose.web.dom.Span
 import org.jetbrains.compose.web.dom.Table
 import org.jetbrains.compose.web.dom.Tbody
@@ -31,12 +35,20 @@ import org.w3c.dom.url.URL
 import org.w3c.files.Blob
 import org.w3c.files.BlobPropertyBag
 
+/** The queue tab that lists auto-approvals waiting for audit rather than a status. */
+private const val AUDITS = "audits"
+
+/** How many routing reasons a queue row shows before "and N more". */
+private const val REASONS_IN_ROW = 2
+
 /**
  * The food review queue (`/v1/admin/food-submissions`, `/v1/admin/barcode-links`): foods people
  * added from photos of a pack, and barcodes suggested by a miss followed by a search. A
- * submission opens with both photos side by side, then every field as the model read it, as the
- * person sent it, and as it stands, with the checks the server ran. The reviewer can correct any
- * field, approve (the food joins search and barcode lookup for everyone) or reject with a reason.
+ * submission opens with its photos side by side, how the server routed it and what the phone read,
+ * then every field as the model read it, as the phone drafted it, as the person sent it, and as it
+ * stands, with the checks the server ran. The reviewer can correct any field, approve (the food
+ * joins search and barcode lookup for everyone) or reject with a reason and a code. The Audits tab
+ * lists auto-approvals picked for a person to pass or fail.
  *
  * Below them, reports on foods already in the catalog ([FoodReportsView]): "Report a problem" from
  * any food's detail, and the server's own energy check.
@@ -54,33 +66,40 @@ internal fun ReviewView(ctx: AdminCtx, openId: String?) {
     var refresh by remember { mutableStateOf(0) }
 
     LaunchedEffect(status, refresh) {
-        Catching { list = ctx.api.listSubmissions(status) }
+        Catching { list = if (status == AUDITS) ctx.api.listAudits() else ctx.api.listSubmissions(status) }
             .onFailure { ctx.setStatus(Status(false, it.message ?: "Couldn't load the queue")) }
         Catching { links = ctx.api.listBarcodeLinks() }
             .onFailure { ctx.setStatus(Status(false, it.message ?: "Couldn't load barcode links")) }
     }
 
+    val what = if (status == AUDITS) "waiting for audit" else status
     Div(attrs = { classes("panel") }) {
         Div(attrs = { classes("row") }) {
-            listOf("pending", "approved", "rejected").forEach { s ->
+            listOf("pending", "approved", "rejected", AUDITS).forEach { s ->
                 Button(attrs = {
                     if (s == status) classes("primary")
                     onClick { status = s; selected = null }
                 }) { Text(s.replaceFirstChar { it.uppercase() }) }
             }
             Span(attrs = { classes("spacer") })
-            list?.let { Span(attrs = { classes("muted") }) { Text("${it.total} $status") } }
+            list?.let { Span(attrs = { classes("muted") }) { Text("${it.total} $what") } }
             Button(attrs = { onClick { refresh++ } }) { Text("Reload") }
         }
         Span(attrs = { classes("muted", "hint") }) {
-            Text("Photos are shown only here, fetched with your token. They are deleted 30 days after the decision.")
+            Text(
+                if (status == AUDITS) {
+                    "Auto-approvals picked for a person to check: every one of a newly Trusted Builder's first, then some at random. A fail puts the food back to pending."
+                } else {
+                    "Photos are shown only here, fetched with your token. They are deleted 30 days after the decision."
+                },
+            )
         }
     }
 
     val current = list
     when {
         current == null -> P(attrs = { classes("muted") }) { Text("Loading…") }
-        current.submissions.isEmpty() -> P(attrs = { classes("muted") }) { Text("Nothing $status.") }
+        current.submissions.isEmpty() -> P(attrs = { classes("muted") }) { Text("Nothing $what.") }
         else -> SubmissionTable(current.submissions, selected) { selected = it }
     }
 
@@ -103,6 +122,7 @@ private fun SubmissionTable(rows: List<SubmissionSummaryDto>, selected: String?,
                 Th { Text("Barcode") }
                 Th { Text("From") }
                 Th { Text("Checks") }
+                Th { Text("Routing") }
             }
         }
         Tbody {
@@ -126,10 +146,32 @@ private fun SubmissionTable(rows: List<SubmissionSummaryDto>, selected: String?,
                             row.failedChecks.forEach { Span(attrs = { classes("chip") }) { Text(it) } }
                         }
                     }
+                    Td { RoutingCell(row) }
                 }
             }
         }
     }
+}
+
+/** Where routing sent a row and why: the lane and confidence, the first two reasons, and a badge when it would auto-approve. */
+@Composable
+private fun RoutingCell(row: SubmissionSummaryDto) {
+    val lane = ReviewForm.laneLine(row)
+    if (lane == null) {
+        Span(attrs = { classes("muted", "hint") }) { Text("before routing") }
+        return
+    }
+    Div {
+        Span(attrs = { classes("muted", "hint") }) { Text(lane) }
+        if (row.wouldAutoApprove) {
+            Text(" ")
+            Span(attrs = { classes("chip", "ok") }) { Text(ReviewForm.autoApproveBadge(row.reasons)) }
+        }
+    }
+    val shown = row.reasons.filterNot { it.startsWith("mode:") }.take(REASONS_IN_ROW)
+    shown.forEach { Div(attrs = { classes("hint") }) { Text(ReviewForm.reasonLabel(it)) } }
+    val more = row.reasons.count { !it.startsWith("mode:") } - shown.size
+    if (more > 0) Div(attrs = { classes("muted", "hint") }) { Text("and $more more") }
 }
 
 @Composable
@@ -138,6 +180,8 @@ private fun SubmissionPanel(ctx: AdminCtx, id: String, onDecided: () -> Unit) {
     var edits by remember(id) { mutableStateOf<Map<String, String>>(emptyMap()) }
     var unit by remember(id) { mutableStateOf<String?>(null) }
     var reason by remember(id) { mutableStateOf("") }
+    var code by remember(id) { mutableStateOf("") }
+    var auditNote by remember(id) { mutableStateOf("") }
 
     LaunchedEffect(id) {
         Catching { detail = ctx.api.submission(id) }
@@ -163,10 +207,14 @@ private fun SubmissionPanel(ctx: AdminCtx, id: String, onDecided: () -> Unit) {
             Div(attrs = { classes("photos") }) {
                 Photo(ctx, id, "front", "Front of the pack")
                 Photo(ctx, id, "label", "Nutrition label")
+                Photo(ctx, id, "ingredients", "Ingredients", optional = true)
             }
         } else {
             P(attrs = { classes("muted") }) { Text("The photos have been deleted (30 days after the decision).") }
         }
+
+        loaded.routing?.let { RoutingFacts(it, loaded.summary) }
+        loaded.capture?.let { CaptureFacts(it) }
 
         Checks("The checks on it as it stands", loaded.checks)
         if (loaded.parsedChecks.isNotEmpty()) Checks("The checks on the model's reading", loaded.parsedChecks)
@@ -186,11 +234,13 @@ private fun SubmissionPanel(ctx: AdminCtx, id: String, onDecided: () -> Unit) {
             base.servingLabel?.let { Span(attrs = { classes("muted") }) { Text("label says: $it") } }
         }
 
+        val hasDraft = loaded.capture?.draft != null
         Table(attrs = { classes("flags") }) {
             Thead {
                 Tr {
                     Th { Text("Field") }
                     Th { Text("Model read") }
+                    if (hasDraft) Th { Text("Phone draft") }
                     Th { Text("Sent") }
                     Th { Text(if (pending) "Now (edit)" else "Final") }
                 }
@@ -207,6 +257,7 @@ private fun SubmissionPanel(ctx: AdminCtx, id: String, onDecided: () -> Unit) {
                                 }
                             }
                         }
+                        if (hasDraft) Td { Text(row.draft ?: "") }
                         Td { Text(row.sent ?: "") }
                         Td {
                             if (pending) {
@@ -262,32 +313,185 @@ private fun SubmissionPanel(ctx: AdminCtx, id: String, onDecided: () -> Unit) {
                     placeholder("why it is rejected (the submitter keeps their own copy)")
                     style { property("min-width", "340px") }
                 }
+                Select(attrs = {
+                    onChange { code = it.value.orEmpty() }
+                    attr("title", "What kind of problem, for the submitter's record")
+                }) {
+                    Option("", attrs = { if (code.isEmpty()) selected() }) { Text("No code") }
+                    ReviewForm.REJECT_CODES.forEach { (wire, label) ->
+                        Option(wire, attrs = { if (code == wire) selected() }) { Text(label) }
+                    }
+                }
                 Button(attrs = {
                     classes("danger")
                     if (reason.isBlank()) attr("disabled", "true")
                     onClick {
+                        val chosen = code.ifEmpty { null }
+                        val label = chosen?.let { " (${ReviewForm.rejectCodeLabel(it)})" }.orEmpty()
                         ctx.confirmWrite(
                             title = "Reject",
                             flagPath = null,
                             before = loaded.summary.name ?: "(no name)",
-                            after = "Rejected: ${reason.trim()}",
+                            after = "Rejected$label: ${reason.trim()}",
                             success = "Rejected.",
+                            warning = chosen?.takeIf { it in ReviewForm.TRUST_ENDING_CODES }?.let {
+                                "${ReviewForm.rejectCodeLabel(it)} ends the submitter's chance of Trusted, for good. Continue?"
+                            },
                         ) {
-                            ctx.api.rejectSubmission(id, reason.trim())
+                            ctx.api.rejectSubmission(id, reason.trim(), chosen)
                             onDecided()
                         }
                     }
                 }) { Text("Reject") }
             }
+            Span(attrs = { classes(if (code in ReviewForm.TRUST_ENDING_CODES) "err" else "muted", "hint") }) {
+                Text("The code goes on the submitter's record. Fake data or copied data ends their chance of Trusted.")
+            }
         } else {
             P(attrs = { classes("muted") }) {
+                val codeLabel = loaded.rejectCode?.let { " (${ReviewForm.rejectCodeLabel(it)})" }.orEmpty()
                 Text(
                     "${loaded.summary.status.replaceFirstChar { it.uppercase() }} by ${loaded.reviewedBy ?: "?"}" +
                         (loaded.reviewedAtEpochMs?.let { " ${relativeTime(it)}" } ?: "") +
+                        codeLabel +
                         (loaded.rejectReason?.let { ": $it" } ?: "."),
                 )
             }
         }
+
+        loaded.summary.audit?.let { audit ->
+            AuditBlock(
+                audit = audit,
+                note = loaded.auditNote,
+                draft = auditNote,
+                onDraft = { auditNote = it },
+                onPass = {
+                    ctx.confirmWrite(
+                        title = "Pass the audit",
+                        flagPath = null,
+                        before = "${loaded.summary.name ?: "(no name)"}: approved, audit pending",
+                        after = "Audit passed" + (auditNote.trim().ifEmpty { null }?.let { ": $it" } ?: ""),
+                        success = "Audit passed.",
+                    ) {
+                        ctx.api.auditSubmission(id, passed = true, note = auditNote.trim().ifEmpty { null })
+                        onDecided()
+                    }
+                },
+                onFail = {
+                    ctx.confirmWrite(
+                        title = "Fail the audit",
+                        flagPath = null,
+                        before = "${loaded.summary.name ?: "(no name)"}: approved, audit pending",
+                        after = "Back to pending, and the Builder's record takes the miss: ${auditNote.trim()}",
+                        success = "Audit failed. The food is back to pending.",
+                    ) {
+                        ctx.api.auditSubmission(id, passed = false, note = auditNote.trim())
+                        onDecided()
+                    }
+                },
+            )
+        }
+    }
+}
+
+/** How routing judged it: the lane, the trust and mode behind it, the grounding and the second read. */
+@Composable
+private fun RoutingFacts(routing: RoutingDto, summary: SubmissionSummaryDto) {
+    P { Text("Routing:") }
+    Table(attrs = { classes("flags") }) {
+        Tbody {
+            fact("Lane", routing.lane + if (routing.wouldAutoApprove) ", and the auto lane would approve it" else "")
+            fact("Trust", routing.trust)
+            fact("Mode", routing.mode + if (routing.mode == "shadow") ": records what the lane would do, a person still decides" else "")
+            fact("Confidence", routing.confidence?.let { "${ReviewForm.percent(it)}%" } ?: "none (the phone sent no score)")
+            fact("Reasons", routing.reasons.joinToString("; ") { ReviewForm.reasonLabel(it) }.ifEmpty { "none" })
+            fact("Grounding", routing.grounding?.let(ReviewForm::groundingLine) ?: "not checked (no text from the phone)")
+            fact("Second read", routing.cloud?.let(ReviewForm::cloudLine) ?: "none")
+            if (routing.audit || summary.audit != null) fact("Audit", summary.audit ?: "picked")
+        }
+    }
+}
+
+/** What the phone read off the label: the engine, where the photo came from, its score, and the lines. */
+@Composable
+private fun CaptureFacts(capture: CaptureDto) {
+    var showLines by remember(capture) { mutableStateOf(false) }
+    P { Text("The phone's reading:") }
+    Table(attrs = { classes("flags") }) {
+        Tbody {
+            fact("Engine", capture.engine ?: "unknown")
+            fact(
+                "Photo from",
+                when (capture.source) {
+                    "camera" -> "the camera"
+                    "library" -> "the photo library"
+                    else -> "unknown"
+                },
+            )
+            fact("Score", capture.score?.let { "${ReviewForm.percent(it)}%" } ?: "none")
+        }
+    }
+    if (capture.lines.isEmpty()) {
+        P(attrs = { classes("muted") }) { Text("No lines of text were sent.") }
+        return
+    }
+    Div(attrs = { classes("row"); style { property("margin-top", "6px") } }) {
+        Button(attrs = { onClick { showLines = !showLines } }) {
+            Text(if (showLines) "Hide the text" else "Show the ${capture.lines.size} lines it read")
+        }
+    }
+    if (showLines) {
+        Pre {
+            Text(
+                capture.lines.joinToString("\n") { line ->
+                    if (line.confidence < 1.0) "${line.text}  (${ReviewForm.percent(line.confidence)}%)" else line.text
+                },
+            )
+        }
+    }
+}
+
+/** An auto-approval picked for audit: pass or fail it while pending, the outcome and note after. */
+@Composable
+private fun AuditBlock(
+    audit: String,
+    note: String?,
+    draft: String,
+    onDraft: (String) -> Unit,
+    onPass: () -> Unit,
+    onFail: () -> Unit,
+) {
+    if (audit != "pending") {
+        P(attrs = { classes(if (audit == "failed") "err" else "muted") }) {
+            Text("Audit $audit" + (note?.let { ": $it" } ?: "."))
+        }
+        return
+    }
+    P { Text("Picked for audit. Check the photos against the food as it stands, then pass or fail it.") }
+    Div(attrs = { classes("row") }) {
+        Button(attrs = {
+            classes("primary")
+            onClick { onPass() }
+        }) { Text("Pass") }
+        TextInput(draft) {
+            onInput { onDraft(it.value) }
+            placeholder("what was wrong, in plain words (the Builder is told)")
+            style { property("min-width", "340px") }
+        }
+        Button(attrs = {
+            classes("danger")
+            if (draft.isBlank()) attr("disabled", "true")
+            onClick { onFail() }
+        }) { Text("Fail") }
+    }
+    note?.let { P(attrs = { classes("muted") }) { Text("Note: $it") } }
+}
+
+@Composable
+private fun fact(label: String, value: String) {
+    Tr {
+        Td { Span(attrs = { classes("muted") }) { Text(label) } }
+        Td { Text(value) }
     }
 }
 
@@ -301,11 +505,16 @@ private fun Checks(title: String, checks: List<LabelCheckDto>) {
     Ul { checks.forEach { Li { Span(attrs = { classes("err") }) { Text(ReviewForm.describe(it)) } } } }
 }
 
-/** One photo, fetched with the token into a blob URL that is revoked when the panel goes. */
+/**
+ * One photo, fetched with the token into a blob URL that is revoked when the panel goes. An
+ * [optional] one (the ingredients, which not every submission has) shows nothing when the
+ * server has none.
+ */
 @Composable
-private fun Photo(ctx: AdminCtx, id: String, kind: String, alt: String) {
+private fun Photo(ctx: AdminCtx, id: String, kind: String, alt: String, optional: Boolean = false) {
     var url by remember(id, kind) { mutableStateOf<String?>(null) }
     var failed by remember(id, kind) { mutableStateOf(false) }
+    var absent by remember(id, kind) { mutableStateOf(false) }
 
     LaunchedEffect(id, kind) {
         Catching { ctx.api.submissionPhoto(id, kind) }
@@ -313,7 +522,9 @@ private fun Photo(ctx: AdminCtx, id: String, kind: String, alt: String) {
                 val blob = Blob(arrayOf(bytes.unsafeCast<Int8Array>()), BlobPropertyBag(type = "image/jpeg"))
                 url = URL.createObjectURL(blob)
             }
-            .onFailure { failed = true }
+            .onFailure { error ->
+                if (optional && (error as? AdminApiException)?.status?.value == 404) absent = true else failed = true
+            }
     }
     DisposableEffect(url) {
         val held = url
@@ -323,7 +534,9 @@ private fun Photo(ctx: AdminCtx, id: String, kind: String, alt: String) {
     val src = url
     when {
         src != null -> Img(src = src, alt = alt, attrs = { attr("title", alt) })
+        absent -> Unit
         failed -> P(attrs = { classes("err") }) { Text("Couldn't load the $kind photo.") }
+        optional -> Unit
         else -> P(attrs = { classes("muted") }) { Text("Loading the $kind photo…") }
     }
 }

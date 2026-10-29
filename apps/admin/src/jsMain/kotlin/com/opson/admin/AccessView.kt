@@ -56,7 +56,10 @@ internal fun UserAccessPanel(ctx: AdminCtx, userId: String) {
     Div(attrs = { classes("panel") }) {
         H3 { Text("Access") }
         when {
-            shown != null -> AccessDetail(ctx, shown, overview) { reloadKey++ }
+            shown != null -> {
+                AccessDetail(ctx, shown, overview) { reloadKey++ }
+                BuilderSection(ctx, userId) { reloadKey++ }
+            }
             failed -> P(attrs = { classes("muted") }) { Text("Couldn't load access. This server may predate roles and entitlements.") }
             else -> P(attrs = { classes("muted") }) { Text("Loading…") }
         }
@@ -429,7 +432,7 @@ private fun accessFact(label: String, value: String) {
 
 private val DEFAULT_ROLES = listOf("member", "builder", "moderator", "admin", "owner")
 
-private fun shortDate(epochMs: Long): String = kotlin.js.Date(epochMs.toDouble()).toLocaleDateString()
+internal fun shortDate(epochMs: Long): String = kotlin.js.Date(epochMs.toDouble()).toLocaleDateString()
 
 // ---------- pure, tested in AccessViewTest ----------
 
