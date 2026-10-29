@@ -457,6 +457,44 @@ class AdminApi(
         }.requireOk()
     }
 
+    suspend fun listFoodReports(limit: Int = 50): FoodReportQueueDto =
+        client.get("$base/v1/admin/food-reports?limit=$limit") { auth() }.require()
+
+    suspend fun foodReports(foodId: String): FoodReportFoodDto =
+        client.get("$base/v1/admin/food-reports/foods/${encode(foodId)}") { auth() }.require()
+
+    /** A report's label photo, as bytes for a blob URL, like [submissionPhoto]. */
+    suspend fun foodReportPhoto(id: String): ByteArray =
+        client.get("$base/v1/admin/food-reports/${encode(id)}/photo") { auth() }
+            .also { it.requireOk() }
+            .readRawBytes()
+
+    suspend fun acceptFoodReports(foodId: String, reportIds: List<String>, values: CorrectionValuesDto): FoodCorrectionDto =
+        client.post("$base/v1/admin/food-reports/foods/${encode(foodId)}/accept") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(AcceptReportsDto(reportIds, values))
+        }.require()
+
+    suspend fun rejectFoodReports(reportIds: List<String>, reason: String?) {
+        client.post("$base/v1/admin/food-reports/reject") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(CloseReportsDto(reportIds, reason = reason))
+        }.requireOk()
+    }
+
+    suspend fun markFoodReportsDuplicate(reportIds: List<String>, duplicateOf: String?) {
+        client.post("$base/v1/admin/food-reports/duplicate") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(CloseReportsDto(reportIds, duplicateOf = duplicateOf))
+        }.requireOk()
+    }
+
+    suspend fun revertFoodCorrection(id: String): FoodCorrectionDto =
+        client.post("$base/v1/admin/food-corrections/${encode(id)}/revert") { auth() }.require()
+
     private fun io.ktor.client.request.HttpRequestBuilder.auth() {
         header("X-Admin-Token", token)
         header("X-Admin-Actor", actor)

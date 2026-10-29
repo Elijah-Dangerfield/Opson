@@ -88,6 +88,17 @@ way.
   them. `#review/<id>` in the address opens one submission, which is how the
   Grafana Food review board links here. Server side it's
   `/v1/admin/food-submissions` and `/v1/admin/barcode-links`.
+
+  Then **Reports on foods**: "Report a problem" from any food's detail
+  (`release.foodReports`) and the server's own energy check, grouped per
+  food, most reported first, then oldest. A food opens with what it is served
+  as now beside every suggestion (per 100 g, as accepting stores it), the
+  label photos and the notes. *Accept* writes a correction, prefilled with the
+  newest suggestion from a person and editable, that is laid over the
+  source's data, so a re-import never undoes it; *Undo* in the food's
+  correction history takes it back. *Reject* and *Duplicate* close the
+  reports and change nothing. Server side it's `/v1/admin/food-reports` and
+  `/v1/admin/food-corrections`.
 - **Waitlist.** The website waitlist for the connected environment: how many
   addresses, the newest 50 (page back with *Older*), *Export CSV*
   (`email,source,created_at`, downloaded by the browser), and *Remove*, per

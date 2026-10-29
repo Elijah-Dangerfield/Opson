@@ -38,6 +38,9 @@ import org.w3c.files.BlobPropertyBag
  * person sent it, and as it stands, with the checks the server ran. The reviewer can correct any
  * field, approve (the food joins search and barcode lookup for everyone) or reject with a reason.
  *
+ * Below them, reports on foods already in the catalog ([FoodReportsView]): "Report a problem" from
+ * any food's detail, and the server's own energy check.
+ *
  * The photos never have a URL anyone else could open: they are fetched with the admin token and
  * shown through a blob URL that lives in this tab. Grafana's review board links here as
  * `/admin/#review/<id>`.
@@ -84,6 +87,8 @@ internal fun ReviewView(ctx: AdminCtx, openId: String?) {
     selected?.let { id ->
         SubmissionPanel(ctx, id, onDecided = { selected = null; refresh++ })
     }
+
+    FoodReportsView(ctx, refresh)
 
     BarcodeLinks(ctx, links, onDecided = { refresh++ })
 }
