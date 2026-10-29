@@ -18,7 +18,7 @@
     <string name="builder_title">Builders</string>
     <string name="builder_back">More</string>
     <string name="builder_intro_title">Help fill in Opson's food database</string>
-    <string name="builder_intro_body">Builders add the packaged foods in their kitchen, and get Pro free while they do.</string>
+    <string name="builder_intro_body">Add the packaged foods in your kitchen and get Pro free while you do.</string>
     <string name="builder_steps_title">How it works</string>
     <string name="builder_step_front">Photograph the front</string>
     <string name="builder_step_label">Photograph the label</string>
@@ -64,7 +64,7 @@
     <string name="builder_pro_title">Pro while you're active</string>
     <string name="builder_pro_progress">%1$d of %2$d this month</string>
     <string name="builder_pro_until">Pro is on until %1$s.</string>
-    <string name="builder_pro_ended">Pro ended on %1$s. Get to %2$d this month to turn it back on.</string>
+    <string name="builder_pro_ended">Pro ended on %1$s. Reach %2$d this month to turn it back on.</string>
     <string name="builder_add_food">Add a food</string>
     <string name="builder_add_food_sub">Photograph a pack Opson doesn't have</string>
     <string name="builder_check_food">Check a food against its pack</string>
@@ -74,15 +74,15 @@
     <string name="builder_stats_accepted">Accepted</string>
     <!-- The share of what they sent that was accepted: "92%". -->
     <string name="builder_stats_percent">%1$d%</string>
-    <string name="builder_retention_on">Keep my label photos for 2 years</string>
-    <string name="builder_retention_on_sub">So Opson can test how well it reads labels</string>
+    <string name="builder_retention_on">Keep my label photos for up to 2 years</string>
+    <string name="builder_retention_on_sub">Used to test how well Opson reads labels</string>
     <string name="builder_leave">Leave Builders</string>
     <string name="builder_leave_confirm_title">Leave Builders?</string>
-    <string name="builder_leave_confirm_body">Builder Pro ends now. The foods you added stay in Opson. To come back, you'd apply again.</string>
+    <string name="builder_leave_confirm_body">Builder Pro ends now. The foods you added stay in Opson. To come back, apply again.</string>
     <string name="builder_leave_confirm">Leave</string>
     <string name="builder_leave_cancel">Stay</string>
     <string name="builder_removed_title">You're no longer a Builder</string>
-    <string name="builder_removed_body">This account was taken out of Builders. You can still log food as always. If you think that's a mistake, write to support.</string>
+    <string name="builder_removed_body">This account was removed from Builders. You can still log food as usual. If you think that's a mistake, write to support.</string>
 
     <!-- The application -->
     <string name="builder_apply_title">Apply to Opson Builders</string>
@@ -104,7 +104,7 @@
     <string name="builder_agree">I've read the rules and I'll follow them</string>
     <string name="builder_rules_show">Read the rules</string>
     <string name="builder_rules_hide">Hide the rules</string>
-    <string name="builder_retention">Keep my label photos for up to 2 years so Opson can test how well it reads labels (optional)</string>
+    <string name="builder_retention">Keep my label photos for up to 2 years to test how well Opson reads labels (optional)</string>
     <string name="builder_apply_send">Send application</string>
     <string name="builder_apply_sending">Sending…</string>
 
@@ -112,17 +112,17 @@
     <string name="builder_rules_title">The rules</string>
     <string name="builder_rule_real">Photograph only packs you have in front of you. No photos from websites, other apps or other people.</string>
     <string name="builder_rule_copy">Don't copy numbers from other apps or databases. Type what the label says.</string>
-    <string name="builder_rule_license">Opson keeps your photos for review and publishes the food data, as the privacy policy says.</string>
-    <string name="builder_rule_one">One account per person. There's no payment, and Opson can change or end the program with notice.</string>
-    <string name="builder_rule_removal">Fake or copied data means removal from Builders, the end of Builder Pro and removal of your contributions. It can also mean a ban.</string>
+    <string name="builder_rule_license">Opson keeps your photos for review and publishes the food data. The privacy policy has the details.</string>
+    <string name="builder_rule_one">One account per person. Builders aren't paid. Opson can change or end the program with notice.</string>
+    <string name="builder_rule_removal">If you send fake or copied data, you're removed from Builders, Builder Pro ends and what you added is taken out. Your account can also be banned.</string>
     <string name="builder_terms_link">Read the full terms</string>
 
     <!-- Prompts on Today -->
     <string name="builder_prompt_title">Help fill in Opson's food database</string>
-    <string name="builder_prompt_body">Builders add the foods in their kitchen from the pack, and get Pro while they do.</string>
+    <string name="builder_prompt_body">Add the packaged foods in your kitchen from the label, and get Pro while you do.</string>
     <string name="builder_prompt_accept">Tell me more</string>
     <string name="builder_accepted_prompt_title">You're in. Welcome to Builders.</string>
-    <string name="builder_accepted_prompt_body">Thanks for helping. Add a food or check one you have, and Pro is yours while you're active.</string>
+    <string name="builder_accepted_prompt_body">Add a food or check one you have. Pro is yours while you're active.</string>
     <string name="builder_accepted_prompt_accept">Start</string>
     <string name="builder_declined_prompt_title">About your Builders application</string>
     <string name="builder_declined_prompt_body">We can't add you right now. Thanks for offering to help.</string>
@@ -140,7 +140,7 @@
     <!-- Check against the pack -->
     <string name="builder_check_menu">Check against the pack</string>
     <string name="builder_check_title">Check against the pack</string>
-    <string name="builder_check_intro">Photograph the nutrition label on the pack. Your phone reads it and compares it with what Opson has. Only the text goes to Opson, not the photo.</string>
+    <string name="builder_check_intro">Photograph the nutrition label. Your phone reads it and compares it with Opson's numbers. Only the text is sent to Opson, not the photo.</string>
     <string name="builder_check_reading">Reading the label…</string>
     <string name="builder_check_unreadable">Couldn't read a nutrition label in that photo. Try again closer, with the whole panel in view.</string>
     <string name="builder_check_matches_title">It matches the pack</string>
@@ -154,7 +154,7 @@
     <string name="builder_check_correct_note">Checked against the pack by a Builder.</string>
     <string name="builder_check_retake">Take another photo</string>
     <string name="builder_check_confirmed">Thanks, that's checked.</string>
-    <string name="builder_check_unconfirmed">Opson couldn't find every number in the photo's text, so this one doesn't count. Try a clearer photo.</string>
+    <string name="builder_check_unconfirmed">Some numbers couldn't be read, so this check doesn't count. Try a clearer photo.</string>
     <string name="builder_check_corrected">Thanks. Your correction is with Opson's reviewers.</string>
     <string name="builder_check_not_builder">Checking foods is for Builders.</string>
     <string name="builder_check_too_many">That's a lot of checks for now. Try again later.</string>

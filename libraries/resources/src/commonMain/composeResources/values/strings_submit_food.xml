@@ -13,7 +13,7 @@
 
     <!-- Entry points -->
     <string name="submit_add_this_food">Add it from the label</string>
-    <string name="submit_add_this_food_body">Photograph the pack. We read the label, and it's saved to your foods and sent to Opson's food database.</string>
+    <string name="submit_add_this_food_body">Photograph the pack and we'll read the label. It's saved to your foods and sent to Opson's food database.</string>
 
     <!-- Header -->
     <string name="submit_overline">For %1$s</string>
@@ -22,8 +22,8 @@
     <string name="submit_title">Add a packaged food</string>
 
     <!-- Photos -->
-    <string name="submit_intro">Photograph the front and the nutrition label. We read the label, you check it, and it's logged right away. It's also saved to your foods and sent to Opson's food database.</string>
-    <string name="submit_intro_save">Photograph the front and the nutrition label. We read the label, you check it, and it's saved to your foods and sent to Opson's food database.</string>
+    <string name="submit_intro">Photograph the front and the nutrition label, then check what we read. It's logged right away, saved to your foods and sent to Opson's food database.</string>
+    <string name="submit_intro_save">Photograph the front and the nutrition label, then check what we read. It's saved to your foods and sent to Opson's food database.</string>
     <string name="submit_front_title">Front of the pack</string>
     <string name="submit_front_hint">The name and the brand</string>
     <string name="submit_label_title">Nutrition label</string>
@@ -35,7 +35,7 @@
     <string name="submit_choose">Choose from library</string>
     <string name="submit_read">Read the label</string>
     <string name="submit_photo_failed">That photo couldn't be opened. Try another one.</string>
-    <string name="submit_privacy">The photos go to our AI provider to read the label, and to us so someone can check the food before anyone else sees it. Only you and the person checking it see the photos.</string>
+    <string name="submit_privacy">The photos go to our AI provider to read the label, and to Opson so a reviewer can check the food before anyone else sees it. Only you and the reviewer see the photos.</string>
 
     <!-- Reading -->
     <string name="submit_reading">Reading the label</string>
@@ -113,7 +113,7 @@
 
     <!-- The numbers in a mode that hides them -->
     <string name="submit_hidden_title">Nutrition</string>
-    <string name="submit_hidden_adds_up">We read the label's numbers. They're saved with the food, and your mode keeps them out of sight.</string>
+    <string name="submit_hidden_adds_up">We read the numbers and saved them with the food. Your mode hides them.</string>
     <string name="submit_hidden_off">Something on the label doesn't add up. You can still add it, and someone will check it against your photos.</string>
     <string name="submit_hidden_incomplete">Some numbers couldn't be read. Someone will fill them in from your photos.</string>
 
@@ -123,8 +123,8 @@
     <string name="submit_missing">Fill in %1$s to add it.</string>
     <string name="submit_missing_save">Fill in %1$s to save it.</string>
     <string name="submit_list_and">%1$s and %2$s</string>
-    <string name="submit_after">It's logged and saved to your foods now, marked unverified. Once someone checks it against your photos, it's in Opson's food database for everyone.</string>
-    <string name="submit_after_save">It's saved to your foods now, marked unverified. Once someone checks it against your photos, it's in Opson's food database for everyone.</string>
+    <string name="submit_after">It's logged and saved to your foods as unverified. Once someone checks it against your photos, everyone can find it in Opson's food database.</string>
+    <string name="submit_after_save">It's saved to your foods as unverified. Once someone checks it against your photos, everyone can find it in Opson's food database.</string>
     <string name="submit_saving">Adding it</string>
     <string name="submit_saving_save">Saving it</string>
 
@@ -147,12 +147,12 @@
     <string name="submit_send_failed_title">Added to your foods</string>
     <string name="submit_send_failed_body">It's logged. Sending it to Opson's food database didn't work, so only you have it for now.</string>
     <string name="submit_send_failed_offline">It's logged. You're offline, so it hasn't gone to Opson's food database yet.</string>
-    <string name="submit_send_failed_too_many">It's logged. You've sent a lot of foods today, so this one waits. Try again later.</string>
+    <string name="submit_send_failed_too_many">It's logged. You've sent a lot of foods today. Try sending this one later.</string>
     <string name="submit_send_failed_body_save">It's saved. Sending it to Opson's food database didn't work, so only you have it for now.</string>
     <string name="submit_send_failed_offline_save">It's saved. You're offline, so it hasn't gone to Opson's food database yet.</string>
     <string name="submit_send_failed_restricted">It's logged. This account can't add foods to Opson's food database right now, so only you have it. If that seems wrong, write to contact@nightjarlabs.llc.</string>
     <string name="submit_send_failed_restricted_save">It's saved. This account can't add foods to Opson's food database right now, so only you have it. If that seems wrong, write to contact@nightjarlabs.llc.</string>
-    <string name="submit_send_failed_too_many_save">It's saved. You've sent a lot of foods today, so this one waits. Try again later.</string>
+    <string name="submit_send_failed_too_many_save">It's saved. You've sent a lot of foods today. Try sending this one later.</string>
     <string name="submit_done">Done</string>
 
     <!-- After -->

@@ -380,7 +380,7 @@ foods, describe, yesterday, ate_no_details, quick_number, name_only, note;
 | `logger_add_to` | Add to %1$s |
 | `logger_for_meal` | For %1$s |
 | `logger_describe_title` | Describe it |
-| `logger_describe_prompt` | Say it the way you'd say it |
+| `logger_describe_prompt` | Write it the way you'd say it |
 | `logger_read_as` | We read that as |
 | `logger_described_sub` | %1$s · Estimate |
 | `logger_quick_title` / `logger_quick_name` | Or just the numbers / Name (optional) |
@@ -438,8 +438,8 @@ is kept so the next person's scan is instant.
 
 | Key | String |
 |---|---|
-| `barcode_looking_up` | First time anyone's scanned this one. Looking it up now, and it'll be instant for the next person. |
-| `barcode_not_found` | We couldn't find this one anywhere. |
+| `barcode_looking_up` | This one is new to Opson. Looking it up now. |
+| `barcode_not_found` | We couldn't find this barcode. |
 | `barcode_add_custom` | Add it as a custom food |
 | `barcode_unavailable` | Couldn't look that up right now. Try again in a moment. |
 | `barcode_scan_again` | Scan again |

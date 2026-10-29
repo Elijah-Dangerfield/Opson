@@ -18,7 +18,7 @@
     <!-- When voice can't help, typing can -->
     <string name="voice_denied">Opson needs the microphone to hear you. You can turn it on in Settings.</string>
     <string name="voice_denied_ask">Opson needs the microphone to hear you.</string>
-    <string name="voice_unavailable">Voice isn't available on this phone right now. Typing works just the same.</string>
+    <string name="voice_unavailable">Voice isn't available on this phone right now. You can type it instead.</string>
     <string name="voice_needs_connection">Voice needs a connection on this phone right now. You can type it instead.</string>
     <string name="voice_no_speech">Didn't catch anything that time.</string>
     <string name="voice_failed">Voice stopped unexpectedly.</string>

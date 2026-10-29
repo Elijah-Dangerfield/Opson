@@ -8,7 +8,7 @@ Describe lines in the basket, the same policy-resolved rows, the same "Add to
 
 ## Source
 - `docs/design/v3/logger-describe.png` (3.8): the round mic at the bottom
-  right of the Describe box, beside "Say it the way you'd say it". The
+  right of the Describe box, beside "Write it the way you'd say it". The
   manifest note: "Type or speak, and it's split into editable lines."
 - `logger.png`: the Describe chip already carries the mic icon. No change.
 - `today-full.png`: v3 meal cards have no mic, so none is built.
@@ -225,7 +225,7 @@ Never the transcript, a word, or anything parsed from it.
 | `voice_open_settings` | Open Settings |
 | `voice_type_instead` | Type instead |
 | `voice_try_again` | Try again |
-| `voice_unavailable` | Voice isn't available on this phone right now. Typing works just the same. |
+| `voice_unavailable` | Voice isn't available on this phone right now. You can type it instead. |
 | `voice_needs_connection` | Voice needs a connection on this phone right now. You can type it instead. |
 | `voice_no_speech` | Didn't catch anything that time. |
 | `voice_failed` | Voice stopped unexpectedly. |

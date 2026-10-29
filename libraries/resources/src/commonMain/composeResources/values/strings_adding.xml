@@ -89,14 +89,14 @@
     <string name="adding_detail_from_typed">Numbers you entered</string>
     <!-- The source's name is a button that says what the source is -->
     <string name="adding_detail_source_cd">%1$s. About this source</string>
-    <string name="adding_detail_about_usda">The US government's food data: lab measurements, and the labels food makers send in.</string>
+    <string name="adding_detail_about_usda">Food data from the US government, from lab tests and the labels food makers send in.</string>
     <!-- Open Food Facts' licence (ODbL) asks for this credit wherever its data shows -->
-    <string name="adding_detail_about_off">A free database of packaged foods, added by people from the label. Contains data from Open Food Facts, available under the Open Database License.</string>
+    <string name="adding_detail_about_off">A free database of packaged foods, typed in by people from the label. Contains data from Open Food Facts, available under the Open Database License.</string>
     <string name="adding_detail_about_nevo">The Dutch food composition table, kept by RIVM, the Dutch public health institute.</string>
-    <string name="adding_detail_about_opson">Opson's own database of packaged foods, read from photos people take of the label and checked by a reviewer.</string>
+    <string name="adding_detail_about_opson">Opson's own database of packaged foods. People photograph the label and a reviewer checks it.</string>
     <string name="adding_detail_about_nutritionix">A licensed database of restaurant and packaged foods.</string>
     <string name="adding_detail_about_yours">A food you made. The numbers are the ones you gave it.</string>
-    <string name="adding_detail_about_estimate">Opson worked these out from what you described or photographed. Treat them as a good guess.</string>
+    <string name="adding_detail_about_estimate">Opson estimated these from what you described or photographed. Treat them as a good guess.</string>
     <string name="adding_detail_about_typed">You entered these numbers yourself.</string>
     <string name="adding_detail_credits">Credits</string>
     <string name="adding_detail_unverified">Unverified. Only you see it until someone checks it against your photos.</string>

@@ -280,8 +280,8 @@ Leak test: `logger-scan-miss` and `logger-scan-amount` added to
 | `barcode_title` | Scan a barcode |
 | `barcode_close_cd` | Close |
 | `barcode_hint` | Hold the barcode inside the frame. |
-| `barcode_looking_up` | First time anyone's scanned this one. Looking it up now, and it'll be instant for the next person. |
-| `barcode_not_found` | We couldn't find this one anywhere. |
+| `barcode_looking_up` | This one is new to Opson. Looking it up now. |
+| `barcode_not_found` | We couldn't find this barcode. |
 | `barcode_code` | Barcode %1$s |
 | `barcode_miss_body` | You can still log it by name, without numbers. |
 | `barcode_name_placeholder` | What is it? |

@@ -6,7 +6,7 @@
 -->
 <resources>
     <string name="food_report_title">Report a problem</string>
-    <string name="food_report_intro">Tell us what looks off. Someone at Opson checks every report, and the food stays as it is until they do.</string>
+    <string name="food_report_intro">Tell us what looks off. Someone at Opson checks every report before the food changes.</string>
     <string name="food_report_what">What's wrong?</string>
     <string name="food_report_reason_calories">Wrong calories</string>
     <string name="food_report_reason_nutrients">Wrong nutrients</string>
@@ -30,17 +30,17 @@
     <string name="food_report_serving">Serving size on the pack</string>
     <string name="food_report_serving_hint">1 can, 473 ml</string>
     <string name="food_report_photo_title">A photo of the label (optional)</string>
-    <string name="food_report_photo_hint">The nutrition panel, so the numbers can be checked against it.</string>
+    <string name="food_report_photo_hint">The nutrition panel, to check the numbers against.</string>
     <string name="food_report_photo_cd">Photo of the label</string>
     <string name="food_report_photo_remove">Remove</string>
     <string name="food_report_note">Anything else (optional)</string>
     <string name="food_report_note_hint">What the pack says, in your own words</string>
     <string name="food_report_send">Send report</string>
     <string name="food_report_sending">Sending…</string>
-    <string name="food_report_offline">You're offline. Your report is still here, so send it when you're back online.</string>
+    <string name="food_report_offline">You're offline. Your report is still here to send when you're back online.</string>
     <string name="food_report_failed">That didn't go through. Try again in a moment.</string>
     <string name="food_report_too_many">That's a lot of reports for now. Try again later.</string>
-    <string name="food_report_gone">This food isn't in Opson's food database any more, so there's nothing to report.</string>
+    <string name="food_report_gone">This food has been removed from Opson's food database.</string>
     <string name="food_report_camera_off">The camera is off. Choose a photo from your library, or turn the camera on in Settings.</string>
     <!-- The snackbar once it is sent. %1$s is the food's name. -->
     <string name="food_report_sent">Thanks. Someone will check %1$s.</string>
