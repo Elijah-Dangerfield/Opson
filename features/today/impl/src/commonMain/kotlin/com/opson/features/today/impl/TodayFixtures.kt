@@ -24,6 +24,11 @@ import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.HungerLevel
 import com.opson.libraries.diary.MoodLevel
 import com.opson.libraries.diary.Energy
+import com.opson.libraries.diary.FlipFigure
+import com.opson.libraries.diary.MainNumberChoice
+import com.opson.libraries.diary.Reading
+import com.opson.libraries.diary.rememberMainNumber
+import com.opson.libraries.diary.withReading
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -314,6 +319,17 @@ object TodayFixtures {
 
     /** Design sync 4's 13.6c: one number, 2,100. */
     val oneNumber: Settings = Settings(targets = Targets.Default.useExact())
+
+    /**
+     * Every figure read its other way: the main number on [main], the macro row on [macros], Burned
+     * so far for Deficit so far, and glasses to go, with both of those stats on the older card.
+     */
+    fun flipped(main: MainNumberChoice = MainNumberChoice.Eaten, macros: Reading = Reading.Left): Settings =
+        Settings(todaySummaryStats = listOf("deficit_so_far", "water", "meals"))
+            .rememberMainNumber(main)
+            .withReading(FlipFigure.Macros, macros)
+            .withReading(FlipFigure.DeficitSoFar, Reading.Burned)
+            .withReading(FlipFigure.Water, Reading.Left)
 
     /** Someone who let all of their activity into the range: [expended]'s 410 active moves 1,900 to 2,300 up to 2,310 to 2,710. */
     val exerciseAll: Settings = Settings(exerciseRange = ExerciseAdjustment.All)

@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.Flips
 import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.SummaryCardPreset
@@ -20,16 +21,21 @@ import kotlin.math.abs
 
 /**
  * Design sync 4's summary card, page 1 (13.1, 13.2a, 13.2b, 13.6c): one of four [preset]s around
- * the [main] number, whose label toggles between the gap to the goal and the deficit or surplus
- * so far. Built only with `release.goalsAndEnergy` in a layout whose card comes from Full
- * numbers, and only while calories are on show; every number in it is policy-resolved.
+ * the [main] number, which a tap flips between the gap to the goal, the deficit or surplus so far,
+ * and eaten ([TodayFlips.mainNumber]). Built only with `release.goalsAndEnergy` in a layout whose
+ * card comes from Full numbers, and only while calories are on show; every number in it is
+ * policy-resolved.
  */
 data class EnergyCard(
     /** The preset drawn: Rings needs a single target, and Equation needs Burned, else In and out. */
     val preset: SummaryCardPreset,
     val main: MainNumber,
-    /** What a tap on the main number's label switches to; null when there is nothing to switch to. */
+    /** What a tap on the main number switches to; null when there is nothing to switch to. */
     val next: MainNumberChoice?,
+    /** What [next] reads as, for the screen reader's "double tap to show what you've eaten". */
+    val nextKind: MainKind? = null,
+    /** [main] with its unit ("655 kcal"), for the sticky bar, which reads the card's choice. */
+    val mainLine: MainNumber = main,
     /** "Range 1,900 to 2,300", "Target 2,100", "Goal 500 a day" or "Goal +300 a day". */
     val goal: GoalLine,
     /** Eaten, bare, with its fill fraction on the card's scale. */
@@ -103,37 +109,44 @@ object EnergyCardBuilder {
         val bare = context.copy(of = null, bare = true)
         val goalKind = goalKind(settings.targets.style, goal)
 
-        val options = buildList {
-            add(MainNumberChoice.Goal)
-            if (burned != null) add(MainNumberChoice.Balance)
-            if (settings.todayMainNumber == MainNumberChoice.Eaten) add(MainNumberChoice.Eaten)
-        }
         val styleDefault = if (goalKind == MainKind.LeftToTarget && settings.targets.style is TargetStyle.Deficit) {
             MainNumberChoice.Balance
         } else {
             MainNumberChoice.Goal
         }
+        val options = TodayFlips.mainNumber(
+            level = { policy.effectiveLevel(it, Surface.Today, context) },
+            burnedShown = burned != null,
+            hard = settings.onboarding.hard,
+            balanceIsTheGoal = styleDefault == MainNumberChoice.Balance,
+        )
         val wanted = settings.rememberedMainNumber ?: settings.todayMainNumber.takeUnless { it == MainNumberChoice.Follow } ?: styleDefault
-        val choice = wanted.takeIf { it in options } ?: MainNumberChoice.Goal
+        // Calories are on show wherever this card is built, so Eaten is always among the options.
+        val choice = Flips.pick(options, wanted) ?: MainNumberChoice.Eaten
         val target = range.targetKcal.toDouble()
-        val main = when (choice) {
+        fun number(of: MainNumberChoice, bare: Boolean): MainNumber = when (of) {
             MainNumberChoice.Balance -> {
                 val difference = requireNotNull(burned).totalKcal - eaten
                 MainNumber(
                     kind = if (difference < 0) MainKind.Surplus else MainKind.Deficit,
                     metric = Metric.EnergyOut,
-                    display = policy.resolve(Metric.EnergyOut, abs(difference), Surface.Today, bare),
+                    display = policy.resolve(Metric.EnergyOut, abs(difference), Surface.Today, context.copy(of = null, bare = bare)),
                 )
             }
-            MainNumberChoice.Eaten -> MainNumber(MainKind.Eaten, Metric.Calories, policy.resolve(Metric.Calories, eaten, Surface.Today, bare))
-            else -> gap(policy, context.copy(bare = true), eaten, range, goalKind)
+            MainNumberChoice.Eaten ->
+                MainNumber(MainKind.Eaten, Metric.Calories, policy.resolve(Metric.Calories, eaten, Surface.Today, context.copy(of = null, bare = bare)))
+            else -> gap(policy, context.copy(bare = bare), eaten, range, goalKind)
         }
+        val main = number(choice, bare = true)
+        val next = Flips.next(options, choice)
         // The same rule More › Today screen reads to say when a pick can't be drawn.
         val drawn = TodayCardRules.drawn(settings.todayCard, singleTarget = range.single, burnedOnShow = burned != null)
         return EnergyCard(
             preset = drawn,
             main = main,
-            next = options.getOrNull((options.indexOf(choice) + 1) % options.size)?.takeIf { options.size > 1 },
+            next = next,
+            nextKind = next?.let { number(it, bare = true).kind },
+            mainLine = number(choice, bare = false),
             goal = goalLine(settings.targets.style, goal, policy, bare, range),
             eaten = policy.resolve(Metric.Calories, eaten, Surface.Today, bare.copy(of = scale)),
             eatenParts = eatenParts,

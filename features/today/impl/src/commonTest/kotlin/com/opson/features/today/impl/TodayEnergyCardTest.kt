@@ -1,6 +1,7 @@
 package com.opson.features.today.impl
 
 import com.opson.libraries.diary.MainNumberChoice
+import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.diary.rememberMainNumber
@@ -10,6 +11,9 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.today_card_to_range_line
+import opson.libraries.resources.generated.resources.today_compact_deficit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -18,8 +22,9 @@ import kotlin.test.assertTrue
 
 /**
  * Design sync 4's summary card (13.1, 13.2, 13.6) over the fixture day: 1,245 eaten against
- * 2,180 burned. The presets, the main number's default per goal style and its toggle, and what
- * the levels hide.
+ * 2,180 burned. The presets, the main number's default per goal style and its flip (the gap, the
+ * balance, eaten; fewer after "numbers have been hard"), the sticky bar following it, and what the
+ * levels hide. Which readings a mode allows is `TodayFlipsTest`.
  */
 class TodayEnergyCardTest {
 
@@ -66,7 +71,7 @@ class TodayEnergyCardTest {
         val target = assertNotNull(card.target)
         assertEquals("1,680", target.target.text())
         assertEquals("435 kcal", target.left?.text())
-        assertEquals(MainNumberChoice.Goal, card.next)
+        assertEquals(MainNumberChoice.Eaten, card.next)
     }
 
     @Test
@@ -92,7 +97,7 @@ class TodayEnergyCardTest {
         val balance = assertNotNull(card(Settings().rememberMainNumber(MainNumberChoice.Balance)))
         assertEquals(MainKind.Deficit, balance.main.kind)
         assertEquals("935", balance.main.display.text())
-        assertEquals(MainNumberChoice.Goal, balance.next)
+        assertEquals(MainNumberChoice.Eaten, balance.next)
     }
 
     @Test
@@ -103,19 +108,66 @@ class TodayEnergyCardTest {
         assertEquals(MainNumberChoice.Goal, eaten.next)
     }
 
+    /** The owner's ask: "1,800 to range" flips to what was eaten, and round again. */
     @Test
-    fun withoutBurned_theresNoDeficit_noBurnedBar_andNoToggle() {
+    fun theMainNumber_flipsFromTheGap_toTheBalance_toEaten_andBack() {
+        val readings = generateSequence(Settings()) { s -> card(s)?.next?.let(s::rememberMainNumber) }
+            .take(4)
+            .map { assertNotNull(card(it)) }
+            .toList()
+        assertEquals(listOf(MainKind.ToRange, MainKind.Deficit, MainKind.Eaten, MainKind.ToRange), readings.map { it.main.kind })
+        assertEquals(listOf("655", "935", "1,245", "655"), readings.map { it.main.display.text() })
+        assertEquals(listOf(MainKind.Deficit, MainKind.Eaten, MainKind.ToRange, MainKind.Deficit), readings.map { it.nextKind })
+    }
+
+    @Test
+    fun theMainNumberWithItsUnit_isWhatTheStickyBarLeadsWith() {
+        fun sticky(settings: Settings) = TodayFixtures.todayState(
+            policy(PresetId.Full),
+            settings = settings,
+            summaryOn = true,
+            goalsAndEnergyOn = true,
+            burned = TodayFixtures.burned,
+        ).compact?.pages?.first()?.parts?.first() as CompactPart.Amount
+
+        val gap = sticky(Settings())
+        assertEquals("655 kcal", gap.display.text())
+        assertEquals(Res.string.today_card_to_range_line, gap.phrase)
+        val deficit = sticky(Settings().rememberMainNumber(MainNumberChoice.Balance))
+        assertEquals("935 kcal", deficit.display.text())
+        assertEquals(Res.string.today_compact_deficit, deficit.phrase)
+        val eaten = sticky(Settings().rememberMainNumber(MainNumberChoice.Eaten))
+        assertEquals("1,245 kcal", eaten.display.text())
+        assertNull(eaten.phrase, "eaten leads bare, as the bar always did")
+    }
+
+    @Test
+    fun afterNumbersHaveBeenHard_theMainNumberNeverFlipsIntoADeficitTheyDidNotSet() {
+        val hard = Settings(onboarding = OnboardingAnswers(hard = true))
+        val card = assertNotNull(card(hard))
+        assertEquals(MainKind.ToRange, card.main.kind)
+        assertEquals(MainNumberChoice.Eaten, card.next)
+        assertEquals(MainNumberChoice.Goal, card(hard.rememberMainNumber(MainNumberChoice.Eaten))?.next)
+        assertEquals(MainKind.ToRange, card(hard.rememberMainNumber(MainNumberChoice.Balance))?.main?.kind, "a stored deficit falls back")
+        // A set deficit is their own goal, so its balance stays.
+        val deficitGoal = assertNotNull(card(TodayFixtures.deficit500.copy(onboarding = OnboardingAnswers(hard = true))))
+        assertEquals(MainKind.Deficit, deficitGoal.main.kind)
+    }
+
+    @Test
+    fun withoutBurned_theresNoDeficit_noBurnedBar_andTheToggleIsGoalAndEaten() {
         val card = assertNotNull(card(Settings(todayMainNumber = MainNumberChoice.Balance), burned = false))
         assertEquals(MainKind.ToRange, card.main.kind)
         assertNull(card.burned)
-        assertNull(card.next)
+        assertEquals(MainNumberChoice.Eaten, card.next)
+        assertEquals(MainNumberChoice.Goal, card(Settings().rememberMainNumber(MainNumberChoice.Eaten), burned = false)?.next)
     }
 
     @Test
     fun withWatchEnergyHidden_burnedAndTheDeficitGo_theCardStays() {
         val card = assertNotNull(card(TodayFixtures.deficit500, policy(PresetId.Full, overrides = mapOf(Metric.EnergyOut to Visibility.Hide))))
         assertNull(card.burned)
-        assertNull(card.next)
+        assertEquals(MainNumberChoice.Eaten, card.next, "eaten, never the deficit")
         assertTrue(card.main.kind != MainKind.Deficit)
     }
 

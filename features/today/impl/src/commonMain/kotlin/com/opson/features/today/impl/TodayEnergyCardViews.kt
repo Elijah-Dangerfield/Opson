@@ -20,10 +20,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.diary.ui.SummaryLabel
@@ -33,14 +29,15 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
-import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.FlipContent
+import com.opson.libraries.ui.components.FlipControl
+import com.opson.libraries.ui.components.FlipIcon
+import com.opson.libraries.ui.components.flipToggle
 import com.opson.libraries.ui.components.RangeBar
 import com.opson.libraries.ui.components.RangeBarDefaults
 import com.opson.libraries.ui.components.RangeBarSegment
 import com.opson.libraries.ui.components.RingSegment
 import com.opson.libraries.ui.components.ProgressRing
-import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.system.color.ColorResource
@@ -66,7 +63,6 @@ import opson.libraries.resources.generated.resources.today_card_ring_left
 import opson.libraries.resources.generated.resources.today_card_ring_to_range
 import opson.libraries.resources.generated.resources.today_card_ring_to_surplus
 import opson.libraries.resources.generated.resources.today_card_surplus
-import opson.libraries.resources.generated.resources.today_card_switch_cd
 import opson.libraries.resources.generated.resources.today_card_target
 import opson.libraries.resources.generated.resources.today_card_target_follows
 import opson.libraries.resources.generated.resources.today_card_target_left
@@ -75,13 +71,19 @@ import opson.libraries.resources.generated.resources.today_card_to_range
 import opson.libraries.resources.generated.resources.today_card_to_range_line
 import opson.libraries.resources.generated.resources.today_card_to_surplus
 import opson.libraries.resources.generated.resources.today_card_to_surplus_line
+import opson.libraries.resources.generated.resources.today_flip_show_deficit
+import opson.libraries.resources.generated.resources.today_flip_show_eaten
+import opson.libraries.resources.generated.resources.today_flip_show_left
+import opson.libraries.resources.generated.resources.today_flip_show_surplus
+import opson.libraries.resources.generated.resources.today_flip_show_to_range
+import opson.libraries.resources.generated.resources.today_flip_show_to_surplus
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /*
  * Design sync 4's summary card, page 1 (13.1, 13.2a, 13.2b, 13.6c), in each of its presets.
- * Stateless: the card arrives built in [EnergyCard]; the label toggle and "Energy ›" go back as
- * [TodayAction]s.
+ * Stateless: the card arrives built in [EnergyCard]; a tap on the main number and "Energy ›" go
+ * back as [TodayAction]s.
  */
 
 /** [macros] is the macro row, drawn under the eaten bar (or the rings, or the sum). */
@@ -100,9 +102,9 @@ internal fun EnergyCardContent(card: EnergyCard, onAction: (TodayAction) -> Unit
 private fun InOut(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Column(Modifier.weight(1f)) {
-                MainLabel(card, onAction)
-                BigNumber(card.main.metric, card.main.display)
+            MainFigure(card, onAction, Modifier.weight(1f)) { main ->
+                MainLabel(main.kind, switchable = card.next != null)
+                BigNumber(main.metric, main.display)
             }
             Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(bottom = 8.dp)) {
                 SummaryLink(text = stringResource(Res.string.today_card_energy), onClick = { onAction(TodayAction.EnergyTapped) })
@@ -126,9 +128,9 @@ private fun InOut(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Co
 private fun RangeBarCard(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                MainLabel(card, onAction)
-                BigNumber(card.main.metric, card.main.display)
+            MainFigure(card, onAction, Modifier.weight(1f)) { main ->
+                MainLabel(main.kind, switchable = card.next != null)
+                BigNumber(main.metric, main.display)
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 PairRow(stringResource(Res.string.today_card_eaten), Metric.Calories, card.eaten)
@@ -179,11 +181,15 @@ private fun Rings(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Co
                     stringResource(Res.string.today_card_burned),
                 )
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.flipToggle(card.flip(onAction)),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 ProgressRing(listOf(RingSegment(card.mainFraction, AppTheme.colors.inkSoft)), size = RING, trackColor = AppTheme.colors.track) {
-                    RingFigure(card.main.metric, card.main.display)
+                    FlipContent(card.main) { RingFigure(it.metric, it.display) }
                 }
-                MainLabel(card, onAction, short = true)
+                FlipContent(card.main.kind) { MainLabel(it, switchable = card.next != null, short = true) }
             }
         }
         macros()
@@ -214,9 +220,9 @@ private fun Equation(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: 
                 }
             }
             Operator("=")
-            Column {
-                MainLabel(card, onAction)
-                NutrientText(card.main.metric, card.main.display, typography = AppTheme.type.figureLarge, color = AppTheme.colors.ink, maxLines = 1)
+            MainFigure(card, onAction) { main ->
+                MainLabel(main.kind, switchable = card.next != null)
+                NutrientText(main.metric, main.display, typography = AppTheme.type.figureLarge, color = AppTheme.colors.ink, maxLines = 1)
             }
         }
         EatenBar(card)
@@ -237,34 +243,49 @@ private fun EnergyCard.toGoalPhrase(): StringResource = when (toGoal.kind) {
     else -> Res.string.today_card_to_range_line
 }
 
-/** The accent label over the main number, with ⇄ when a tap switches it. */
+/**
+ * The main number and its label as one button that flips it (owner feedback, 2026-10-29), the two
+ * cross-fading to the next reading. [content] draws the reading it is handed, so the outgoing one
+ * keeps its own words while it fades.
+ */
 @Composable
-private fun MainLabel(card: EnergyCard, onAction: (TodayAction) -> Unit, short: Boolean = false) {
-    val label = stringResource(if (short) card.main.kind.shortLabel else card.main.kind.label)
-    val switchLabel = stringResource(Res.string.today_card_switch_cd)
-    val switchable = card.next != null
+private fun MainFigure(card: EnergyCard, onAction: (TodayAction) -> Unit, modifier: Modifier = Modifier, content: @Composable (MainNumber) -> Unit) {
+    Column(modifier.flipToggle(card.flip(onAction))) {
+        FlipContent(card.main) { main -> Column { content(main) } }
+    }
+}
+
+/** What a tap on the main number does, and what a screen reader offers; null when it reads one way. */
+@Composable
+private fun EnergyCard.flip(onAction: (TodayAction) -> Unit): FlipControl? =
+    nextKind?.let { kind -> FlipControl(stringResource(kind.showLabel)) { onAction(TodayAction.MainNumberToggled) } }
+
+/** The accent label over the main number, with ⇄ when a tap flips it; muted when it can't. */
+@Composable
+private fun MainLabel(kind: MainKind, switchable: Boolean, short: Boolean = false) {
     Row(
-        modifier = Modifier
-            .defaultMinSize(minHeight = if (switchable) MinTouchTarget else 0.dp)
-            .then(
-                if (switchable) {
-                    Modifier
-                        .semantics {
-                            role = Role.Button
-                            onClick(label = switchLabel) { onAction(TodayAction.MainNumberToggled); true }
-                        }
-                        .bounceClick(scaleDown = 0.96f, onClick = { onAction(TodayAction.MainNumberToggled) })
-                } else {
-                    Modifier
-                },
-            ),
+        modifier = Modifier.defaultMinSize(minHeight = if (switchable) MinTouchTarget else 0.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(text = label, typography = AppTheme.type.bodyBold.ExtraBold, color = if (switchable) AppTheme.colors.accent else AppTheme.colors.muted)
-        if (switchable) Icon(icon = AppIcons.SwapHoriz, size = 22.dp, color = AppTheme.colors.accent)
+        Text(
+            text = stringResource(if (short) kind.shortLabel else kind.label),
+            typography = AppTheme.type.bodyBold.ExtraBold,
+            color = if (switchable) AppTheme.colors.accent else AppTheme.colors.muted,
+        )
+        if (switchable) FlipIcon(size = 22.dp)
     }
 }
+
+private val MainKind.showLabel: StringResource
+    get() = when (this) {
+        MainKind.ToRange -> Res.string.today_flip_show_to_range
+        MainKind.LeftToTarget -> Res.string.today_flip_show_left
+        MainKind.ToSurplus -> Res.string.today_flip_show_to_surplus
+        MainKind.Deficit -> Res.string.today_flip_show_deficit
+        MainKind.Surplus -> Res.string.today_flip_show_surplus
+        MainKind.Eaten -> Res.string.today_flip_show_eaten
+    }
 
 private val MainKind.label: StringResource
     get() = when (this) {

@@ -23,6 +23,7 @@ import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ModeTimerEnded
+import com.opson.libraries.diary.Reading
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.diary.WeighIn
@@ -174,6 +175,62 @@ private fun TodayRingsPreview() = Phone(dark = true) { TodayV4(TodayFixtures.one
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodaySummaryInOutLargeTextPreview() = Phone(largeText = true) { TodayV4() }
+
+/**
+ * Every figure flipped (owner feedback, 2026-10-29): the main number on Eaten, the macro row on
+ * grams left with the bars still on what was eaten.
+ */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryFlippedPreview() = Phone(dark = true) { TodayV4(TodayFixtures.flipped()) }
+
+/** The deficit as the main number and the macros as a percent of each goal. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryFlippedPercentPreview() =
+    Phone { TodayV4(TodayFixtures.flipped(main = MainNumberChoice.Balance, macros = Reading.Percent)) }
+
+/** Watch energy hidden: no Burned, so the main number flips between the gap and eaten alone. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryFlipWatchHiddenPreview() = Phone(dark = true) {
+    Today(
+        policy(NumbersSettings(overrides = mapOf(Metric.EnergyOut to Visibility.Hide))),
+        settings = TodayFixtures.flipped(main = MainNumberChoice.Goal),
+        expended = TodayFixtures.expended,
+        burned = TodayFixtures.burned,
+    )
+}
+
+/** Every macro softened: their words stay and the row has no ⇄, whatever was chosen. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryFlipMacrosSoftPreview() = Phone(dark = true) {
+    Today(
+        policy(NumbersSettings(overrides = listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber).associateWith { Visibility.Soften })),
+        settings = TodayFixtures.flipped(),
+        expended = TodayFixtures.expended,
+        burned = TodayFixtures.burned,
+    )
+}
+
+/** The older card's stats flipped: Burned so far, and glasses to go. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayStatsFlippedPreview() = Phone { TodayFull(settings = TodayFixtures.flipped()) }
+
+/** Scrolled to lunch with the deficit as the main number: the sticky bar leads with it. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayStickyFlippedPreview() = Phone(dark = true) {
+    Today(
+        full,
+        settings = TodayFixtures.flipped(main = MainNumberChoice.Balance),
+        expended = TodayFixtures.expended,
+        burned = TodayFixtures.burned,
+        firstRow = LUNCH_ROW,
+    )
+}
 
 /** Both release flags off: the refined v3 card, macros as columns, no dots, no chevron, no swipe. */
 @Preview(widthDp = 390, heightDp = 844)

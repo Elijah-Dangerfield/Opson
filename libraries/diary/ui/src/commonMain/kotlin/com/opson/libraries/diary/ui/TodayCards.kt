@@ -78,8 +78,19 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * bars, so a hidden number takes its label with it. Bars stop at full.
  */
 
-/** One macro on a summary card: its label, the resolved amount, and its colour. */
-data class SummaryMacro(val metric: Metric, val label: String, val display: Display, val color: ColorResource)
+/**
+ * One macro on a summary card: its label, the resolved amount, and its colour. [bar] fills the
+ * macro's bar; it is the amount eaten even while [display] reads it another way (grams left). [word]
+ * stands in for the amount where a number would mislead ("Reached" rather than "0 g" left).
+ */
+data class SummaryMacro(
+    val metric: Metric,
+    val label: String,
+    val display: Display,
+    val color: ColorResource,
+    val bar: Display = display,
+    val word: String? = null,
+)
 
 /** Paddings for [TodayCard]s that hold a list row or a checklist rather than free content. */
 object TodayCardPadding {

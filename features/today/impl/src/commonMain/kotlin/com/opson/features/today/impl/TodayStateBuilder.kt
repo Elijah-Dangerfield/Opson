@@ -1,6 +1,10 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.FlipFigure
+import com.opson.libraries.diary.Flips
+import com.opson.libraries.diary.Reading
 import com.opson.libraries.diary.TodayCardRules
+import com.opson.libraries.diary.reading
 import com.opson.libraries.diary.ui.SummaryStat
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
@@ -31,6 +35,7 @@ import com.opson.libraries.nutrition.macroEnergyShares
 import com.opson.libraries.nutrition.macroLine
 import com.opson.libraries.nutrition.resolveRange
 import com.opson.libraries.nutrition.share
+import com.opson.libraries.nutrition.targetShare
 import com.opson.libraries.nutrition.thermicEffectKcal
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.DatePeriod
@@ -41,12 +46,19 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_all_food
+import opson.libraries.resources.generated.resources.today_card_left_line
+import opson.libraries.resources.generated.resources.today_card_to_range_line
+import opson.libraries.resources.generated.resources.today_card_to_surplus_line
+import opson.libraries.resources.generated.resources.today_compact_deficit
+import opson.libraries.resources.generated.resources.today_compact_surplus
+import opson.libraries.resources.generated.resources.today_flip_reached
 import opson.libraries.resources.generated.resources.today_compact_goal
 import opson.libraries.resources.generated.resources.today_compact_range
 import opson.libraries.resources.generated.resources.today_macro_carbs
 import opson.libraries.resources.generated.resources.today_macro_fat
 import opson.libraries.resources.generated.resources.today_macro_fiber
 import opson.libraries.resources.generated.resources.today_macro_protein
+import opson.libraries.resources.generated.resources.today_stat_burned_so_far
 import opson.libraries.resources.generated.resources.today_stat_to_goal
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Duration
@@ -86,6 +98,7 @@ object TodayStateBuilder {
     /** A sliver under this share of the bar is not drawn. */
     private const val MIN_PART = 0.01
     private const val NOON = 12
+    private const val PERCENT = 100.0
     private const val DAYS_PER_WEEK = 7.0
     private val TREND_WINDOW = 14.days
 
@@ -190,7 +203,9 @@ object TodayStateBuilder {
         val summaryOn = inputs.summaryOn
         // Every macro the levels show, in grams, under the bar. The stats row and design sync 4's
         // card once took this row's place, so All numbers showed one macro at most (2026-10-27).
-        val macros = if (empty) emptyList() else macroTiles(day, settings, policy, context, GoalStyle.None)
+        val eatenMacros = if (empty) emptyList() else macroTiles(day, settings, policy, context, GoalStyle.None)
+        val macroFlip = macroFlip(eatenMacros, day, settings)
+        val macros = macroFlip?.let { read(eatenMacros, it.current, day, settings, policy, context) } ?: eatenMacros
         val bar = if (empty) emptyList() else barParts(day, policy, context, eaten)
         return TodaySummary.Energy(
             eaten = policy.resolve(Metric.Calories, eaten, Surface.Today, context.copy(of = scaleMax, bare = true)),
@@ -212,7 +227,47 @@ object TodayStateBuilder {
             } else {
                 null
             },
+            macroFlip = macroFlip,
         )
+    }
+
+    /**
+     * How the macro row reads, and what a tap shows next: grams eaten, left, or a percent of the
+     * goal (`TodayFlips.macros`). Null when only one reading is allowed.
+     */
+    private fun macroFlip(row: List<MacroTile>, day: Day, settings: Settings): FlipState? {
+        val withGoal = row.any { it.display is Display.Shown && macroAmount(day, settings, it.metric).second > 0.0 }
+        val readings = TodayFlips.macros(withGoal, settings.onboarding.hard)
+        val current = Flips.pick(readings, settings.reading(FlipFigure.Macros)) ?: return null
+        val next = Flips.next(readings, current) ?: return null
+        return FlipState(FlipFigure.Macros, current, next)
+    }
+
+    /**
+     * [row] read as [reading]: "69 g" left or "43%" of the goal, under the row's own word for the
+     * reading (four columns leave no room for "of goal" after each). Only a macro shown in full
+     * with a goal reads another way; a softened one keeps its word. A macro past its goal reads
+     * "Reached", never "0 g" or a negative. Each keeps what was eaten for its bar.
+     */
+    private fun read(row: List<MacroTile>, reading: Reading, day: Day, settings: Settings, policy: VisibilityPolicy, context: FormatContext): List<MacroTile> {
+        if (reading == Reading.Eaten) return row
+        val grams = context.copy(of = null, goal = GoalStyle.None)
+        return row.map { tile ->
+            val (eaten, goal) = macroAmount(day, settings, tile.metric)
+            if (tile.display !is Display.Shown || goal <= 0.0) return@map tile
+            when (reading) {
+                Reading.Left -> {
+                    val left = goal - eaten
+                    if (left >= 1.0) {
+                        tile.copy(display = policy.resolve(tile.metric, left, Surface.Today, grams), bar = tile.display)
+                    } else {
+                        tile.copy(word = Res.string.today_flip_reached, bar = tile.display)
+                    }
+                }
+                Reading.Percent -> tile.copy(display = policy.targetShare(tile.metric, eaten / goal * PERCENT, Surface.Today, context), bar = tile.display)
+                else -> tile
+            }
+        }
     }
 
     /** Protein, carbs and fat by their energy, end to end; a macro not on show and energy no macro explains are one neutral piece. */
@@ -243,16 +298,34 @@ object TodayStateBuilder {
         return SummaryStats.chosen(inputs.settings)
             .filter { it in offered && SummaryStats.allowed(it, policy.settings) && it.metric !in inRow }
             .mapNotNull { stat ->
-                statValue(stat, inputs, policy, context, eaten, range)?.let {
-                    StatTile(stat, it, if (stat == SummaryStat.ToRange && range.single) Res.string.today_stat_to_goal else stat.label)
+                val flip = statFlip(stat, inputs.settings) { policy.effectiveLevel(it, Surface.Today, context) }
+                statValue(stat, flip?.current, inputs, policy, context, eaten, range)?.let {
+                    val label = when {
+                        stat == SummaryStat.ToRange && range.single -> Res.string.today_stat_to_goal
+                        stat == SummaryStat.DeficitSoFar && flip?.current == Reading.Burned -> Res.string.today_stat_burned_so_far
+                        else -> stat.label
+                    }
+                    StatTile(stat, it, label, flip)
                 }
             }
             .take(SummaryStats.MAX)
     }
 
+    /** The stats that read two ways: Deficit so far and Burned so far, glasses drunk and to go. */
+    private fun statFlip(stat: SummaryStat, settings: Settings, level: (Metric) -> Visibility): FlipState? {
+        val (figure, readings) = when (stat) {
+            SummaryStat.DeficitSoFar -> FlipFigure.DeficitSoFar to TodayFlips.deficitSoFar(level)
+            SummaryStat.Water -> FlipFigure.Water to TodayFlips.water(level)
+            else -> return null
+        }
+        val current = Flips.pick(readings, settings.reading(figure)) ?: return null
+        return Flips.next(readings, current)?.let { FlipState(figure, current, it) }
+    }
+
     @Suppress("CyclomaticComplexMethod", "ReturnCount")
     private fun statValue(
         stat: SummaryStat,
+        reading: Reading?,
         inputs: TodayInputs,
         policy: VisibilityPolicy,
         context: FormatContext,
@@ -265,7 +338,8 @@ object TodayStateBuilder {
             SummaryStat.Expended -> StatValue.Amount(Metric.EnergyOut, expended(inputs, policy, context))
             SummaryStat.DeficitSoFar -> {
                 val out = expendedKcal(inputs, policy, context)?.takeIf { day.date == inputs.today } ?: return null
-                StatValue.Amount(Metric.EnergyOut, policy.resolve(Metric.EnergyOut, (out - eaten).coerceAtLeast(0.0), Surface.Today, energy))
+                val amount = if (reading == Reading.Burned) out else (out - eaten).coerceAtLeast(0.0)
+                StatValue.Amount(Metric.EnergyOut, policy.resolve(Metric.EnergyOut, amount, Surface.Today, energy))
             }
             SummaryStat.ToRange -> {
                 if (policy.effectiveLevel(Metric.Remaining, Surface.Today, context) != Visibility.Show) return null
@@ -281,7 +355,7 @@ object TodayStateBuilder {
             SummaryStat.Water -> {
                 if (policy.level(Metric.Water) == Visibility.Hide) return null
                 val glasses = WaterProgress.glasses(day.waterMl.toDouble(), inputs.settings.glassMl, inputs.settings.waterGlasses)
-                StatValue.Count(glasses.filled, glasses.total)
+                if (reading == Reading.Left) StatValue.ToGo((glasses.total - glasses.filled).coerceAtLeast(0)) else StatValue.Count(glasses.filled, glasses.total)
             }
             SummaryStat.Protein, SummaryStat.Carbs, SummaryStat.Fat, SummaryStat.Fiber -> {
                 val metric = requireNotNull(stat.metric)
@@ -348,7 +422,8 @@ object TodayStateBuilder {
         val totals = inputs.day.totals()
         val eaten = policy.resolve(Metric.Calories, totals.kcal.known, Surface.Today, context.copy(of = null, bare = false))
         val bar = CompactBar(summary.eaten, summary.rangeStart, summary.rangeEnd, summary.bar)
-        val lead = CompactPart.Amount(Metric.Calories, eaten)
+        // The card as one line, so it leads with the main number the person flipped to.
+        val lead = summary.card?.mainLine?.let(::compactLead) ?: CompactPart.Amount(Metric.Calories, eaten)
         val rangeLabel = if (summary.singleGoal) Res.string.today_compact_goal else Res.string.today_compact_range
         val energyLine = CompactLine(listOf(lead, CompactPart.Amount(Metric.Calories, summary.range, rangeLabel)), bar)
         val macros = policy.macroLine(
@@ -366,6 +441,23 @@ object TodayStateBuilder {
             }
         }
         return CompactSummary(pages = pages)
+    }
+
+    /**
+     * Design sync 4's main number as the sticky bar's lead: eaten bare as before, the rest in the
+     * words its label uses ("655 kcal to your range", "Deficit 935 kcal"). "On target" and "Above
+     * your range today" are words already.
+     */
+    private fun compactLead(main: MainNumber): CompactPart.Amount {
+        val phrase = when (main.kind) {
+            MainKind.ToRange -> Res.string.today_card_to_range_line
+            MainKind.LeftToTarget -> Res.string.today_card_left_line
+            MainKind.ToSurplus -> Res.string.today_card_to_surplus_line
+            MainKind.Deficit -> Res.string.today_compact_deficit
+            MainKind.Surplus -> Res.string.today_compact_surplus
+            MainKind.Eaten -> null
+        }
+        return CompactPart.Amount(main.metric, main.display, phrase = phrase.takeUnless { main.metric == Metric.Remaining })
     }
 
     /** The day's latest weigh-in through the weight level, with the two weeks' slope for the soft word. */
