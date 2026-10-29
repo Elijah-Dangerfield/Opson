@@ -35,6 +35,8 @@ import opson.libraries.resources.generated.resources.targets_goal_none
 import opson.libraries.resources.generated.resources.targets_goal_none_body
 import opson.libraries.resources.generated.resources.targets_goal_not_driving
 import opson.libraries.resources.generated.resources.targets_goal_not_driving_body
+import opson.libraries.resources.generated.resources.targets_goal_not_yet
+import opson.libraries.resources.generated.resources.targets_goal_not_yet_body
 import opson.libraries.resources.generated.resources.targets_goal_use
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -74,8 +76,16 @@ internal fun WeightGoalCard(row: WeightGoalRow, onAction: (TargetsAction) -> Uni
         }
         is WeightGoalRow.NotDriving -> SettingsCard {
             Column(Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(text = stringResource(Res.string.targets_goal_not_driving), typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
-                Text(text = stringResource(Res.string.targets_goal_not_driving_body), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+                Text(
+                    text = stringResource(if (row.byHand) Res.string.targets_goal_not_driving else Res.string.targets_goal_not_yet),
+                    typography = AppTheme.type.bodyBold,
+                    color = AppTheme.colors.ink,
+                )
+                Text(
+                    text = stringResource(if (row.byHand) Res.string.targets_goal_not_driving_body else Res.string.targets_goal_not_yet_body),
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (row.canUseGoal) {
                         FlatButton(text = stringResource(Res.string.targets_goal_use), onClick = { onAction(TargetsAction.UseGoalTapped) })

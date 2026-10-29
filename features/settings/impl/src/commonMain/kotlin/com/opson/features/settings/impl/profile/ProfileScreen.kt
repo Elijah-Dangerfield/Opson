@@ -35,6 +35,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
@@ -328,6 +329,14 @@ private fun ProfileBlindPreview() {
 private fun ProfileHardPreview() {
     val settings = ProfileFixtures.filled.copy(onboarding = OnboardingAnswers(hard = true))
     SettingsPreview { ProfileScreen(ProfileFixtures.state(settings, preset = PresetId.MacrosOnly), onAction = {}) }
+}
+
+/** A whole birthday, and pregnant: the note says it only adds that energy and keeps weight change out of the plan. */
+@Preview
+@Composable
+private fun ProfileBirthdayPregnantPreview() {
+    val settings = ProfileFixtures.filled.withBirthDate(LocalDate(1992, 4, 18)).copy(bodyStage = BodyStage.Pregnant)
+    SettingsPreview { ProfileScreen(ProfileFixtures.state(settings), onAction = {}) }
 }
 
 @Preview

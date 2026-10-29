@@ -137,8 +137,11 @@ sealed interface WeightGoalRow {
     /** The goal sets it. [pace] is "0.5 lb" a week, where weight shows; null while keeping weight steady. */
     data class Driving(val direction: GoalDirection, val pace: String?) : WeightGoalRow
 
-    /** A goal is set, and the target was changed since. [canUseGoal] once a typical day's burn is known. */
-    data class NotDriving(val canUseGoal: Boolean) : WeightGoalRow
+    /**
+     * A goal is set, and it is not setting the target: changed by hand since ([byHand]), or never
+     * set because what a day burns wasn't known. [canUseGoal] once a typical day's burn is known.
+     */
+    data class NotDriving(val canUseGoal: Boolean, val byHand: Boolean = true) : WeightGoalRow
 
     /** No weight goal yet: an offer to set one. */
     data object None : WeightGoalRow
@@ -492,7 +495,7 @@ object TargetsStateBuilder {
                         pace = goal.kgPerWeek.takeIf { goal.direction.changesWeight && it > 0 }?.let { WeightGoals.weightText(it, settings.weightUnit) },
                     )
                 } else {
-                    WeightGoalRow.NotDriving(canUseGoal = typicalBurnKcal(burned, settings) != null)
+                    WeightGoalRow.NotDriving(canUseGoal = typicalBurnKcal(burned, settings) != null, byHand = goal.targetsKcal != null)
                 }
             else -> WeightGoalRow.None
         }

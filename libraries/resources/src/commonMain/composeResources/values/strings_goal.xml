@@ -128,6 +128,8 @@
     <string name="targets_goal_change">Change goal</string>
     <string name="targets_goal_not_driving">Your weight goal isn't setting this now</string>
     <string name="targets_goal_not_driving_body">You changed the target yourself, so it's yours. You can set it from your goal again any time.</string>
+    <string name="targets_goal_not_yet">Your weight goal isn't setting this yet</string>
+    <string name="targets_goal_not_yet_body">Opson needs your birthday, height and weight to work out a target from your goal. Add them on Profile.</string>
     <string name="targets_goal_use">Use my goal</string>
     <string name="targets_goal_none">Set a weight goal</string>
     <string name="targets_goal_none_body">Opson can work out this target for you from where you'd like to be.</string>

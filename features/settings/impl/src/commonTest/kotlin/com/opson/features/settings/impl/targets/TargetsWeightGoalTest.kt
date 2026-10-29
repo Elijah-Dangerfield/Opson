@@ -66,6 +66,12 @@ class TargetsWeightGoalTest : CoroutineTest() {
     }
 
     @Test
+    fun aGoalThatNeverSetTheTarget_saysItIsWaiting_notThatItWasChanged() {
+        val waiting = settings(goal = WeightGoal.None).copy(weightGoal = goal)
+        assertEquals(WeightGoalRow.NotDriving(canUseGoal = true, byHand = false), row(waiting))
+    }
+
+    @Test
     fun noGoal_orJustTracking_isAnOffer() {
         assertEquals(WeightGoalRow.None, row(settings(goal = WeightGoal.None)))
         assertEquals(WeightGoalRow.None, row(settings(goal = WeightGoal.None).copy(weightGoal = WeightGoal(GoalDirection.JustTrack))))
