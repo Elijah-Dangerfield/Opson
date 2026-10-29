@@ -57,7 +57,13 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.everyday_activity_title
 import opson.libraries.resources.generated.resources.integrations_apple_health
+import opson.libraries.resources.generated.resources.plan_overview_breastfeeding_extra
+import opson.libraries.resources.generated.resources.plan_overview_pregnancy
+import opson.libraries.resources.generated.resources.plan_overview_working
+import opson.libraries.resources.generated.resources.settings_energy_burned
+import opson.libraries.resources.generated.resources.settings_energy_resting
 import opson.libraries.resources.generated.resources.integrations_health_connect
 import opson.libraries.resources.generated.resources.onboarding_body_height_hint_cm
 import opson.libraries.resources.generated.resources.onboarding_body_height_hint_ft_in
@@ -568,6 +574,7 @@ private fun OverviewStep(view: OverviewView) {
                 modifier = Modifier.testTag(Metric.EnergyOut.testTag()),
             )
         }
+        (view.burned as? Display.Shown)?.let { burned -> WorkingCard(view, burned) }
         when {
             view.kind == OverviewKind.Stage -> {
                 Note(stringResource(if (view.stage == BodyStage.Pregnant) Res.string.plan_overview_pregnant else Res.string.plan_overview_breastfeeding))
@@ -583,8 +590,34 @@ private fun OverviewStep(view: OverviewView) {
     }
 }
 
+/**
+ * A typical day's working, in the energy words Opson uses everywhere: resting energy (BMR), plus
+ * everyday activity, plus what pregnancy or breastfeeding needs, is the total burned (TDEE).
+ */
 @Composable
-private fun OverviewRow(label: String, value: String, metric: Metric?) {
+private fun WorkingCard(view: OverviewView, burned: Display.Shown) {
+    val rows = buildList {
+        (view.resting as? Display.Shown)?.let { add(stringResource(Res.string.settings_energy_resting) to it.text) }
+        (view.everyday as? Display.Shown)?.let { add(stringResource(Res.string.everyday_activity_title) to it.text) }
+        (view.stageExtra as? Display.Shown)?.let {
+            val label = if (view.stage == BodyStage.Pregnant) Res.string.plan_overview_pregnancy else Res.string.plan_overview_breastfeeding_extra
+            add(stringResource(label) to it.text)
+        }
+        add(stringResource(Res.string.settings_energy_burned) to burned.text)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
+        FieldLabel(stringResource(Res.string.plan_overview_working))
+        EdgeCard(edgeToEdge = false, contentPadding = PaddingValues(horizontal = Dimension.D800, vertical = Dimension.D300)) {
+            rows.forEachIndexed { index, (label, value) ->
+                OverviewRow(label = label, value = value, metric = Metric.EnergyOut, strong = index == rows.lastIndex)
+                if (index < rows.lastIndex) HorizontalDivider()
+            }
+        }
+    }
+}
+
+@Composable
+private fun OverviewRow(label: String, value: String, metric: Metric?, strong: Boolean = true) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = Dimension.D500).semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
@@ -592,7 +625,7 @@ private fun OverviewRow(label: String, value: String, metric: Metric?) {
         Text(text = label, typography = AppTheme.type.body, color = AppTheme.colors.muted, modifier = Modifier.weight(1f))
         Text(
             text = value,
-            typography = AppTheme.type.bodyBold,
+            typography = if (strong) AppTheme.type.bodyBold else AppTheme.type.body,
             color = AppTheme.colors.ink,
             modifier = if (metric != null) Modifier.testTag(metric.testTag()) else Modifier,
         )

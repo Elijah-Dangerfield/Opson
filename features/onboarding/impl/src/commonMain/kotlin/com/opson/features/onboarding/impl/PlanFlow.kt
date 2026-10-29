@@ -460,12 +460,16 @@ object PlanFlow {
         val body = answers.body
         val (goal, targets) = planTargets(answers, context, current)
         val withDate = body.birthDate?.let(current::withBirthDate) ?: current
+        // The weight field's switch is a choice of unit, as Display's is: it is kept, and the
+        // region no longer decides (Settings.withRegionWeightUnit).
+        val unitPicked = PlanViews.profile(answers, context).weightShown
         return withDate.copy(
             bodySex = body.sex?.sex ?: current.bodySex,
             bodyStage = body.sex?.stage ?: current.bodyStage,
             heightCm = body.heightCmOrNull() ?: current.heightCm,
             heightUnit = body.height.unit.takeIf { body.heightCmOrNull() != null } ?: current.heightUnit,
-            weightUnit = body.weightUnit.takeIf { body.weightKgOrNull() != null || context.weightShown } ?: current.weightUnit,
+            weightUnit = if (unitPicked) body.weightUnit else current.weightUnit,
+            weightUnitChosen = unitPicked || current.weightUnitChosen,
             everydayActivity = body.activity,
             weightGoal = if (goal.isSet) goal else current.weightGoal,
             targets = targets ?: current.targets,
@@ -553,6 +557,14 @@ data class OverviewView(
     val differenceSign: Int = 0,
     /** Whether the step says how the target compares with a typical day: only where energy out shows. */
     val compared: Boolean = false,
+    /**
+     * How a typical day was worked out, where energy out shows: resting energy (BMR), everyday
+     * activity, what pregnancy or breastfeeding adds, and the total burned (TDEE) they make.
+     */
+    val resting: Display = Display.Hidden,
+    val everyday: Display = Display.Hidden,
+    val stageExtra: Display = Display.Hidden,
+    val burned: Display = Display.Hidden,
     /** Details are missing, so no target could be worked out: the step says which page adds them. */
     val needsDetails: Boolean = false,
     val stage: BodyStage = BodyStage.None,
@@ -630,6 +642,10 @@ object PlanViews {
             },
             differenceSign = difference.coerceIn(-1, 1),
             compared = aim != null && context.energyOutShown && kind != OverviewKind.NoGoal,
+            resting = PlanFlow.restingKcal(answers, context)?.let { burnPart(it, context) } ?: Display.Hidden,
+            everyday = PlanFlow.restingKcal(answers, context)?.let { burnPart(answers.body.activity.kcalFor(it), context) } ?: Display.Hidden,
+            stageExtra = stage.extraKcal.takeIf { it > 0 && burn != null }?.let { burnPart(it, context) } ?: Display.Hidden,
+            burned = burn?.let { burnPart(it + stage.extraKcal, context) } ?: Display.Hidden,
             needsDetails = burn == null && wouldSetTargets,
             stage = stage,
         )
@@ -637,6 +653,10 @@ object PlanViews {
 
     private fun weight(kg: Double?, unit: WeightUnit, context: PlanContext): Display =
         if (kg == null || !context.weightShown) Display.Hidden else context.policy.resolve(Metric.Weight, kg, Surface.Settings, FormatContext(weightUnit = unit))
+
+    /** A part of what a day burns, energy out, only where energy out and calories both show. */
+    private fun burnPart(kcal: Int, context: PlanContext): Display =
+        if (!context.energyOutShown) Display.Hidden else context.policy.resolve(Metric.EnergyOut, kcal.toDouble(), Surface.Settings)
 
     /** Energy a day, only where calories are on show in full: a deficit gives away what is eaten. */
     private fun energy(kcal: Int, context: PlanContext): Display =

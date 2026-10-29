@@ -72,6 +72,26 @@ class PlanFlowTest {
         assertEquals(181.61, saved.heightCm!!, 0.01)
         assertEquals(2200, saved.targets.energyKcal)
         assertTrue(saved.weightGoal.drives(saved.targets))
+        assertEquals(WeightUnit.Lb, saved.weightUnit)
+        assertTrue(saved.weightUnitChosen, "the weight field's switch is a choice, so the region no longer decides")
+        assertEquals(HeightUnit.FtIn, saved.heightUnit)
+    }
+
+    @Test
+    fun withNoWeightField_theUnitIsLeftToTheRegion() {
+        val saved = PlanFlow.save(Settings(), lose, full.copy(hard = true))
+        assertFalse(saved.weightUnitChosen)
+        assertEquals(WeightUnit.Kg, saved.weightUnit, "the stored default, which the region still overrides when read")
+    }
+
+    @Test
+    fun theOverview_showsTheWorking_inTheEnergyWords() {
+        val view = PlanViews.overview(lose, full, Settings())
+        assertEquals("1,780 kcal", (view.resting as Display.Shown).text)
+        assertEquals("670 kcal", (view.everyday as Display.Shown).text)
+        assertEquals("2,450 kcal", (view.burned as Display.Shown).text)
+        val macros = PlanViews.overview(lose, context(PresetId.MacrosWithGrams), Settings())
+        assertEquals(Display.Hidden, macros.burned)
     }
 
     @Test
