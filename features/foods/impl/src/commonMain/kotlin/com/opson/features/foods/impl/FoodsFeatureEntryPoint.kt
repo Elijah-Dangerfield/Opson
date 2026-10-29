@@ -43,7 +43,7 @@ class FoodsFeatureEntryPoint(
     private val foodsViewModelFactory: () -> FoodsViewModel,
     private val createMealViewModelFactory: (CreateMealRoute, String?) -> CreateMealViewModel,
     private val addFoodViewModelFactory: () -> AddFoodViewModel,
-    private val editCopyViewModelFactory: (EditCopyRoute, String) -> EditCopyViewModel,
+    private val editCopyViewModelFactory: (EditCopyRoute, CopyName) -> EditCopyViewModel,
     private val repeatViewModelFactory: (RepeatRoute) -> RepeatViewModel,
 ) : FeatureEntryPoint {
 
@@ -116,9 +116,10 @@ class FoodsFeatureEntryPoint(
             typeMap = mapOf(typeOf<MealSlot?>() to nullableSerializableType<MealSlot>()),
         ) { backStackEntry ->
             val route = backStackEntry.toRoute<EditCopyRoute>()
-            // "(mine)", resolved here so the view model needs no resources.
-            val mine = stringResource(Res.string.foods_copy_mine)
-            val viewModel: EditCopyViewModel = viewModel { editCopyViewModelFactory(route, mine) }
+            // "Peanut butter (mine)", worded here so the view model needs no resources.
+            val viewModel: EditCopyViewModel = viewModel {
+                editCopyViewModelFactory(route, CopyName { getString(Res.string.foods_copy_mine, it) })
+            }
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event ->
                 when (event) {

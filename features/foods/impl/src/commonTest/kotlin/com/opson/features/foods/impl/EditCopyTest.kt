@@ -52,7 +52,7 @@ class EditCopyTest : CoroutineTest() {
 
     private fun vm(route: EditCopyRoute, policySource: VisibilityPolicySource) = EditCopyViewModel(
         route = route,
-        mine = "(mine)",
+        copyName = { "$it (mine)" },
         diary = diary,
         customFoods = customFoods,
         foodCatalog = catalog,
@@ -108,7 +108,7 @@ class EditCopyTest : CoroutineTest() {
         val weighed = entry.copy(id = "pb-weighed", kcal = 219.667, protein = 9.249, carbs = 7.534, fat = 18.5, fiber = 2.0)
         val vm = EditCopyViewModel(
             route = EditCopyRoute(FoodsFixtures.today.toString(), entryId = weighed.id),
-            mine = "(mine)",
+            copyName = { "$it (mine)" },
             diary = FakeDiaryRepository(listOf(Day(date = FoodsFixtures.today, itemsBySlot = mapOf(MealSlot.Snack to listOf(weighed))))),
             customFoods = customFoods,
             foodCatalog = catalog,

@@ -42,7 +42,8 @@
     <string name="foods_copy_save">Save</string>
     <string name="foods_copy_name">Name</string>
     <string name="foods_copy_brand">Brand</string>
-    <string name="foods_copy_mine">(mine)</string>
+    <!-- The copy's name as it opens: the food's name, then (mine). -->
+    <string name="foods_copy_mine">%1$s (mine)</string>
     <string name="foods_copy_was">Was</string>
     <string name="foods_copy_use">Use for this entry</string>
     <string name="foods_copy_use_body_today">Today's %1$s switches to your copy</string>

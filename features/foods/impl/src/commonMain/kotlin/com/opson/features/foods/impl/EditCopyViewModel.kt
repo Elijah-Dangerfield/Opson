@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.features.foods.impl
 
 import androidx.lifecycle.viewModelScope
@@ -19,6 +21,8 @@ import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.foods_copy_saved
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 
 /**
  * Edit a copy: a food as a new food of the person's own, saved with [CustomFoodRepository] so it
@@ -26,13 +30,14 @@ import opson.libraries.resources.generated.resources.foods_copy_saved
  * entry then points at the copy through [DiaryRepository.updateItem]. From a food's detail, the
  * copy's detail opens next. The food it came from, catalog or custom, is never written.
  *
- * [mine] is " (mine)"'s word, resolved by the entry point so this needs no resources to open.
+ * [copyName] words the copy's name from the food's, "Peanut butter (mine)", with the entry point's
+ * resources so this needs none to open.
  */
 @Inject
 @Suppress("LongParameterList", "TooManyFunctions")
 class EditCopyViewModel(
     @Assisted private val route: EditCopyRoute,
-    @Assisted private val mine: String,
+    @Assisted private val copyName: CopyName,
     private val diary: DiaryRepository,
     private val customFoods: CustomFoodRepository,
     private val foodCatalog: FoodCatalog,
@@ -84,7 +89,7 @@ class EditCopyViewModel(
                 seed = action.seed
                 policy = action.policy
                 // Opened once: the policy is read as it was then, so a field never vanishes mid-edit.
-                form = EditCopyStateBuilder.form(action.seed, mine, action.policy)
+                form = EditCopyStateBuilder.form(action.seed, copyName.of(action.seed.food.name), action.policy)
                 action.rebuild()
             }
             is EditCopyAction.NameTyped -> action.change { copy(name = action.text) }
@@ -150,4 +155,10 @@ class EditCopyViewModel(
         /** The label's serving and the server's cap on sizes (`DiaryRules.MAX_SIZES`). */
         const val MAX_SIZES = 21
     }
+}
+
+/** The copy's name from the food's: "Peanut butter (mine)". The entry point words it from its resources. */
+@HiddenFromObjC
+fun interface CopyName {
+    suspend fun of(foodName: String): String
 }

@@ -224,7 +224,7 @@ object FoodsFixtures {
     /** The copy named, its brand given, and calories and protein changed from 190 and 8 g. */
     fun editCopyState(policy: VisibilityPolicy, changed: Boolean = true): EditCopyState {
         val seed = EditCopyStateBuilder.seed(peanutButter, brand = null, isToday = true)
-        val opened = EditCopyStateBuilder.form(seed, mine = "(mine)", policy = policy)
+        val opened = EditCopyStateBuilder.form(seed, name = "${seed.food.name} (mine)", policy = policy)
         val form = if (changed) {
             opened.copy(
                 brand = "Store brand",
@@ -255,7 +255,7 @@ object FoodsFixtures {
      */
     fun creamerCopyState(policy: VisibilityPolicy, weighed: Boolean = true): EditCopyState {
         val seed = EditCopyStateBuilder.seed(creamer, saved = emptyList())
-        val opened = EditCopyStateBuilder.form(seed, mine = "(mine)", policy = policy)
+        val opened = EditCopyStateBuilder.form(seed, name = "${seed.food.name} (mine)", policy = policy)
         val form = if (weighed) {
             opened.copy(
                 servings = listOf(opened.servings.first().copy(grams = "15"), ServingRow("1 cup", "240", removable = true)),
@@ -281,7 +281,7 @@ object FoodsFixtures {
 
     fun catalogCopyState(policy: VisibilityPolicy): EditCopyState {
         val seed = EditCopyStateBuilder.seed(peanutButterFood, saved = emptyList())
-        val opened = EditCopyStateBuilder.form(seed, mine = "(mine)", policy = policy)
+        val opened = EditCopyStateBuilder.form(seed, name = "${seed.food.name} (mine)", policy = policy)
         val per100 = EditCopyStateBuilder.perOptions(opened).indexOfFirst { it.row == CopyForm.PER_100_G }
         val form = EditCopyStateBuilder.rePer(opened, EditCopyStateBuilder.perOptions(opened)[per100].row)
         // Calories typed off a label that disagrees with its own macros, where the mode has the field.
