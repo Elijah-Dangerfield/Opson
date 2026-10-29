@@ -5,6 +5,7 @@ import com.opson.server.config.SupabaseConfig
 import com.opson.server.data.LabelParseCache
 import com.opson.server.data.PhotoDescriber
 import com.opson.server.db.Database
+import com.opson.server.domain.AccessAuditRepository
 import com.opson.server.domain.AppConfigAdminRepository
 import com.opson.server.domain.AppConfigManifestRepository
 import com.opson.server.domain.AppConfigSource
@@ -13,6 +14,8 @@ import com.opson.server.domain.AppleTokenRepository
 import com.opson.server.domain.BarcodeLinkRepository
 import com.opson.server.domain.BarcodeMissRepository
 import com.opson.server.domain.BarcodeLookup
+import com.opson.server.domain.EntitlementGrantRepository
+import com.opson.server.domain.EntitlementService
 import com.opson.server.domain.ExportRepository
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodDescriber
@@ -21,12 +24,14 @@ import com.opson.server.domain.FoodSubmissionRepository
 import com.opson.server.domain.LabelParser
 import com.opson.server.domain.ExampleSource
 import com.opson.server.domain.ModerationRepository
+import com.opson.server.domain.Permissions
 import com.opson.server.domain.PhotoEstimateLimiter
 import com.opson.server.domain.ProfileRepository
 import com.opson.server.domain.SupabaseAdminClient
 import com.opson.server.domain.SyncRepository
 import com.opson.server.domain.UserInstallRepository
 import com.opson.server.domain.UserLookupRepository
+import com.opson.server.domain.UserRoleRepository
 import com.opson.server.domain.WaitlistLimiter
 import com.opson.server.domain.WaitlistRepository
 import kotlinx.coroutines.CoroutineScope
@@ -102,6 +107,13 @@ abstract class ServerComponent(
     abstract val foodLabelLimiter: FoodLabelLimiter
     abstract val foodSubmissionRepository: FoodSubmissionRepository
     abstract val barcodeLinkRepository: BarcodeLinkRepository
+
+    /** Roles, grants and their resolution. See "Roles and entitlements" in apps/server/README.md. */
+    abstract val userRoleRepository: UserRoleRepository
+    abstract val permissions: Permissions
+    abstract val entitlementGrantRepository: EntitlementGrantRepository
+    abstract val entitlementService: EntitlementService
+    abstract val accessAuditRepository: AccessAuditRepository
 
     /**
      * Long-lived application scope for server-owned background work (e.g. the

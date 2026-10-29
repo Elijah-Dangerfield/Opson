@@ -38,7 +38,7 @@ Boot modes (graceful degradation is a deliberate standard):
 |---|---|---|
 | unset | unset | `/_health`, `/v1/example` |
 | set   | unset | + DB connected (no auth routes) |
-| set   | set   | + `/v1/me`, `/v1/sync`, `/v1/foods/*` (labels and submissions included), `/v1/describe`, `/v1/export.zip` and `.csv` (full) |
+| set   | set   | + `/v1/me` (and `/v1/me/entitlements`), `/v1/sync`, `/v1/foods/*` (labels and submissions included), `/v1/describe`, `/v1/export.zip` and `.csv` (full) |
 
 ## Layout
 
@@ -534,6 +534,77 @@ through these routes:
 |---|---|---|
 | POST | `/v1/admin/users/search` `{query}` | Admin token. An exact user id, or part of an email or display name; blank lists the most recently seen. At most 25. A POST so a typed email stays out of URLs. |
 | GET | `/v1/admin/users/{id}` | Admin token. The account, every build it ran, its Settings choices and logging counts. 404 `not_found`, 400 `invalid_user_id`. |
+
+### Roles and entitlements (`V28__roles_and_entitlements.sql`)
+
+Nothing asks "is this person Pro". Paid features are **entitlements**, named
+capabilities in `domain/Entitlements.kt` (`photo_estimate`,
+`share_professional`, `share_friends`, `adaptive_burn`, `long_range_reports`,
+`recipe_import`). Free features have none. An account's set is the union of:
+
+1. `entitlements.everyone`, a remote-config list (seeded `["photo_estimate"]`,
+   which is today's behaviour);
+2. the bundles its role brings, `entitlements.roles` (seeded owner, admin and
+   builder to `pro`);
+3. its own grants in `entitlement_grants`: one entitlement, or a whole bundle
+   from `entitlements.bundles` (seeded `pro` to all six), with an optional
+   expiry, a `source` tag (`manual`, `founding`, `builder`, `comp`, later
+   `app_store` / `play`) and a reason;
+
+minus its revocations (a grant row with `effect = revoke`), which beat all
+three. The three `entitlements.*` paths are ordinary config flags: edited,
+targeted and audited like any other, and checked by `EntitlementPolicy.validate`
+on the way in, because a typo there would quietly take a feature from people.
+A path with no row reads as the seeded value.
+
+**Roles** are `owner`, `admin`, `moderator`, `builder`; no `user_roles` row
+means member. What a role may do is code (`Role.permissions` in
+`domain/Roles.kt`): `food.contribute` (builder and up), `food.review`
+(moderator and up), `food.edit.direct` (admin and owner: edits go straight
+into the catalog and count as verification).
+
+Server code asks one of two questions, never compares role names:
+
+```kotlin
+entitlements.has(userId, Entitlement.PhotoEstimate, call.clientContext())  // EntitlementService
+permissions.can(userId, Permission.FoodEditDirect)                          // Permissions
+```
+
+`POST /v1/describe/photo` is the first gate: 403 `entitlement_required`
+without `photo_estimate`. Neither check caches beyond the config's 30 seconds,
+so a grant applies on the next request. Every role and grant change writes
+`access_audit` (before and after) in the same transaction; policy edits are
+config edits and land in `app_config_audit`. All three tables cascade with the
+account.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/v1/me/entitlements` | JWT. `{role, permissions, entitlements: [{key, sources: [{type, bundle?, role?, expiresAtEpochMs?}]}]}`, `type` being `everyone`, `role` or `grant`. No admin notes. Clients ignore keys they don't know. |
+| GET | `/v1/admin/users/{id}/access` | Admin token. Role and who set it, permissions, each entitlement with its sources and grants, revocations, every grant ever, the last 50 changes. Resolved for a neutral client. |
+| PUT | `/v1/admin/users/{id}/role` `{role, reason?}` | `member` clears it. 400 `invalid_role`, 404 `not_found`. |
+| POST | `/v1/admin/users/{id}/grants` `{kind, key, effect?, source?, reason?, expiresAtEpochMs?}` | `kind` `entitlement` or `bundle`, `effect` `grant` (default) or `revoke` (entitlements only). 201. 400 `unknown_entitlement`, `unknown_bundle`, `invalid_effect`, `invalid_source`, `invalid_expiry`; 404 `not_found`. |
+| DELETE | `/v1/admin/users/{id}/grants/{grantId}` | Marks it removed; the row stays. 204, 404. |
+| GET | `/v1/admin/entitlements` | Known entitlements, roles and their permissions, the policy as it resolves now, its config paths, the last 100 changes. |
+| GET | `/v1/admin/access/audit?limit=100` | Every role and grant change, newest first. |
+
+**Making the owner an owner.** No migration names an account. After the
+deploy that brings V28, open the console's Users tab, find the account, and
+set its role to owner under Access. Or from a terminal, which asks for the
+token and the email and changes nothing unless exactly one account has that
+email:
+
+```bash
+stty -echo; printf "Prod ADMIN_API_TOKEN: "; read -r T; stty echo; printf "\nOwner's email: "; read -r E
+S=https://opson-server-prod.fly.dev
+ID=$(curl -fsS -X POST "$S/v1/admin/users/search" -H "X-Admin-Token: $T" -H "Content-Type: application/json" -d "{\"query\":\"$E\"}" | python3 -I -c 'import json,sys; e=sys.argv[1].lower(); u=[x for x in json.load(sys.stdin)["users"] if (x.get("email") or "").lower()==e]; print(u[0]["userId"] if len(u)==1 else "")' "$E")
+if [ -n "$T" ] && [ -n "$ID" ]; then curl -fsS -X PUT "$S/v1/admin/users/$ID/role" -H "X-Admin-Token: $T" -H "X-Admin-Actor: owner-seed" -H "Content-Type: application/json" -d '{"role":"owner","reason":"Opson owner"}'; echo; else echo "No single account with that email. Nothing changed."; fi; unset T E S ID
+```
+
+**Store purchases, later.** A verified purchase writes a `bundle` grant of
+`pro` with `source` `app_store` or `play` and the subscription's expiry, so
+every gate keeps asking the same question. Granting paid features outside
+in-app purchase has an App Store 3.1.1 angle; see `docs/decisions.md`
+(2026-10-29, roles and entitlements).
 
 ## Environment variables
 
