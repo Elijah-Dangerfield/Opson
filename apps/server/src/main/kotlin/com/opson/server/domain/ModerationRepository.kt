@@ -4,14 +4,13 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
- * Read-side view of a user's moderation standing.
+ * Read-side view of a user's moderation standing, for the ban gate.
  *
- * V1 source of truth is the native Supabase flag `auth.users.banned_until`:
- * a dashboard ban (or the Admin API) sets a future timestamp; a clear sets
- * it to null or a past timestamp. That column carries no reason or appeal
- * URL, so [BanStatus.reason] is always [BanReason.Banned] today — a richer
- * suspended-vs-banned distinction needs an app-level moderation table, which
- * is deliberately left to apps that need it.
+ * Two sources, the stricter wins: Supabase's own `auth.users.banned_until` (a ban set from the
+ * dashboard or the Admin API, which has no reason, so it reads as [BanReason.Banned]), and the
+ * app's `moderation_actions` (V29), where a `full`-scope ban or suspension carries its kind and
+ * end. A `contributions` restriction is not a ban: the app keeps working and only the
+ * contribution routes refuse ([ContributionGate]).
  */
 interface ModerationRepository {
     /**

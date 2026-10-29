@@ -1,5 +1,6 @@
 package com.opson.server
 
+import com.opson.server.config.DeviceIntegrityConfig
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.Database
 import com.opson.server.db.DatabaseTest
@@ -92,7 +93,7 @@ class FullStackFoodLatencyTest : DatabaseTest() {
 
     private fun runFoodApp(block: suspend (suspend (String) -> io.ktor.client.statement.HttpResponse) -> Unit) {
         val user = seedAuthUser()
-        val component = ServerComponent::class.create(db, null, FoodSourcesConfig(searchOpenFoodFacts = false), Clock.System)
+        val component = ServerComponent::class.create(db, null, FoodSourcesConfig(searchOpenFoodFacts = false), Clock.System, DeviceIntegrityConfig())
         testApplication {
             application { installApp(component, TestJwt.verification) }
             val client = createClient { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }

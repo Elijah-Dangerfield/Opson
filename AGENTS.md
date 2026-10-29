@@ -135,6 +135,10 @@ in [`docs/practices/prompts.md`](docs/practices/prompts.md); QA menu › Prompts
 
 Never ask whether someone is Pro. Paid features are named entitlements, and Pro is a bundle of them in remote config, so a feature can move between Free and Pro, or go to one person, without a release. The app asks `EntitlementRepository.has(Entitlement.X)` (and `RoleRepository.can(Permission.X)`); the server checks the same thing itself on the route (`EntitlementService.has`, `Permissions.can`). Free features get no entitlement. The client holds `Entitlement.DEFAULTS` until the server answers, so nothing free disappears offline. How it resolves, the admin API and how the owner's role is set: "Roles and entitlements" in [`apps/server/README.md`](apps/server/README.md).
 
+## Contributions and moderation
+
+Anything that adds to the shared catalog (a food submission, a report, later a Builder's check) is a contribution. Its route calls `refuseIfRestricted(contributionGate, …)` before doing anything, and its client sends `ContributionAttestation.headers(id)` (`:libraries:foods`) with that request and no other. Anything that hands out free Pro asks `ContributionGate.mayReceiveFreePro` first. Logging food is never gated by moderation or by a device. A new kind of contribution also gets a `food_provenance` row when accepted and a `ContributionReverter` so rollback covers it. Details: "Moderation" in [`apps/server/README.md`](apps/server/README.md).
+
 ## Server (`:apps:server`)
 
 A Ktor + Postgres backend with Supabase JWT auth. It reuses the client's conventions, kotlin-inject + anvil DI (`ServerScope` / `ServerComponent`), the `domain/` interface + `data/` impl split, one `fun Route.xRoutes(deps)` per resource, and degrades gracefully (boots with no DB / no Supabase). It's a plain JVM module, so it applies plugins directly rather than via a convention plugin.

@@ -4,6 +4,7 @@ import com.opson.server.config.AdminConfig
 import com.opson.server.config.AnthropicConfig
 import com.opson.server.config.AppleSignInConfig
 import com.opson.server.config.DatabaseConfig
+import com.opson.server.config.DeviceIntegrityConfig
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.config.SupabaseConfig
 import com.opson.server.config.WaitlistConfig
@@ -74,6 +75,7 @@ class InProcessServer(photoEstimates: Boolean = true) : AutoCloseable {
             openFoodFactsUrl = upstreams.baseUrl,
         ),
         clock,
+        DeviceIntegrityConfig(),
     )
 
     private val engine: EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> =

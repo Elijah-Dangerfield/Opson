@@ -455,6 +455,8 @@ class DatabaseSchemaTest : DatabaseTest() {
             "log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "barcode_misses",
             "profiles", "waitlist", "apple_refresh_tokens", "food_submissions", "food_submission_photos",
             "barcode_link_suggestions", "food_reports", "food_report_photos", "food_corrections",
+            "moderation_secrets", "moderation_actions", "moderation_events", "food_provenance", "device_sightings",
+            "device_markers", "contribution_checks", "contribution_signals",
         ).forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {
@@ -521,7 +523,13 @@ class DatabaseSchemaTest : DatabaseTest() {
             "weekly_retention_cohorts", "retention_d1_d7_d30", "barcode_hit_rate_daily", "top_missed_barcodes",
             "barcode_misses_by_country", "waitlist_daily", "food_submissions_daily", "food_submission_queue",
             "barcode_link_queue", "food_report_queue",
+            // V30, the Builders board.
+            "contributions_daily", "contribution_queue", "contribution_flags_daily", "contribution_checks_daily",
+            "moderation_daily", "top_reported_foods",
         )
-        val SUPPORT_VIEWS = listOf("users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings")
+        val SUPPORT_VIEWS = listOf(
+            "users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings",
+            "contributors", "photo_reuse", "moderation_actions",
+        )
     }
 }

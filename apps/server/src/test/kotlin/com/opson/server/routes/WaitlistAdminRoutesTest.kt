@@ -1,6 +1,7 @@
 package com.opson.server.routes
 
 import com.opson.server.config.AdminConfig
+import com.opson.server.config.DeviceIntegrityConfig
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.DatabaseTest
 import com.opson.server.db.WaitlistTable
@@ -114,7 +115,7 @@ class WaitlistAdminRoutesTest : DatabaseTest() {
     }
 
     private fun adminApp(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System, DeviceIntegrityConfig())
         application { installApp(component, verification = null, adminConfig = AdminConfig(apiToken = token)) }
         block()
     }

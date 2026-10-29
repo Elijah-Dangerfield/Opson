@@ -14,7 +14,7 @@ class ServerConfigTest {
     fun withNothingSet_everyFeatureReadsOff() {
         assertEquals(
             "database=off auth=off accountDeletion=off appleRevoke=off sentry=off otlp=off admin=off " +
-                "configWebhook=off photo=off nutritionix=off offSearch=off",
+                "configWebhook=off photo=off nutritionix=off offSearch=off deviceCheck=off playIntegrity=off",
             ServerConfig.fromEnv(env()).featureSummary(),
         )
     }
@@ -37,12 +37,15 @@ class ServerConfigTest {
                 "NUTRITIONIX_APP_ID" to "id",
                 "NUTRITIONIX_APP_KEY" to "nutritionix-secret",
                 "FOOD_SEARCH_OFF_ENABLED" to "true",
+                "APPLE_DEVICECHECK_KEY_ID" to "DCKEY",
+                "APPLE_DEVICECHECK_PRIVATE_KEY" to "devicecheck-secret",
+                "PLAY_INTEGRITY_SERVICE_ACCOUNT_JSON" to "{\"private_key\":\"play-secret\"}",
             ),
         ).featureSummary()
 
         assertEquals(
             "database=on auth=on accountDeletion=on appleRevoke=on sentry=on otlp=on admin=on " +
-                "configWebhook=on photo=on nutritionix=on offSearch=on",
+                "configWebhook=on photo=on nutritionix=on offSearch=on deviceCheck=on playIntegrity=on",
             summary,
         )
     }

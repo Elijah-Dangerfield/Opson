@@ -6,6 +6,37 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: Bans are an app table, device marks follow contributions only, and provenance outlives the account
+
+**Decision:** Bans, suspensions and contribution restrictions live in
+`moderation_actions` (V30) with a reason, a note, an end, the actor and an
+appeal state, and the ban gate reads them beside Supabase's `banned_until`.
+The console never sets `banned_until`. A restriction keeps the app working
+and refuses only food submissions and reports. Device bans mark an install key
+(a Keychain item on iOS, the install id on Android) and, once configured, a
+DeviceCheck bit or a Play Integrity device recall bit; they block contributing
+and free Pro, never logging. The app sends those signals only with
+contribution requests. `food_provenance` records each accepted submission and
+report, and every moderation table keeps a keyed hash of the account id after
+the account is deleted.
+
+**Alternatives:** setting Supabase's `ban_duration` too (it also refuses the
+token refresh, so within the hour a banned app falls to "session expired" and
+sign-in errors instead of the blocked screen and its appeal link); blocking a
+device-marked phone from the whole app (families share phones and phones are
+sold, and a DeviceCheck bit outlives an erase); sending the device signals on
+every request (more data than the purpose needs); keeping provenance on
+`food_submissions` (it cascades away with the account, so a bad actor could
+delete the account and leave their foods untraceable).
+
+**Why:** the owner asked for an easy way to remove bad actors that holds after
+a reinstall, and a review board to see who is entering fake data. Apple's
+licence (3.3.7(F)) wants a reset path for DeviceCheck data and forbids relying
+on it alone, so a mark comes from a person's decision on an account, shows in
+the console, and can be cleared there. The keyed hash after deletion rests on
+fraud prevention as a legitimate interest; a lawyer should confirm it, as
+`builder-program.md` says.
+
 ## 2026-10-29: Food data is guarded on the way out, and corrections are an overlay
 
 **Decision:** Every food the catalog serves goes through `ServedFood`: a

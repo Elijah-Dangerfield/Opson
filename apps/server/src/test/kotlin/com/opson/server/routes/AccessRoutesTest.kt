@@ -1,6 +1,7 @@
 package com.opson.server.routes
 
 import com.opson.server.config.AdminConfig
+import com.opson.server.config.DeviceIntegrityConfig
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.DatabaseTest
 import com.opson.server.di.ServerComponent
@@ -195,7 +196,7 @@ class AccessRoutesTest : DatabaseTest() {
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), clock)
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), clock, DeviceIntegrityConfig())
         application {
             installApp(component, verification = TestJwt.verification, adminConfig = AdminConfig(apiToken = token))
         }
