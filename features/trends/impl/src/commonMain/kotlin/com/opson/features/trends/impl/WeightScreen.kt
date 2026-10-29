@@ -261,7 +261,10 @@ private fun ChartCard(chart: WeightChart, range: WeightRange, onAction: (WeightA
                 TrendLine(points = chart.trend, dots = chart.dots, readouts = chart.readouts)
                 GapNote(Res.string.trends_weight_one_reading)
             }
-            null -> TrendLine(points = chart.trend, dots = chart.dots, readouts = chart.readouts)
+            null -> {
+                TrendLine(points = chart.trend, dots = chart.dots, readouts = chart.readouts)
+                WeightDoseTicks(chart.doseTicks)
+            }
         }
         if (chart.gap != ChartGap.NoneInRange && chart.from != null && chart.to != null) {
             Row(Modifier.fillMaxWidth()) {
@@ -286,6 +289,7 @@ private fun SoftCard(word: Display, chart: WeightChart?, range: WeightRange) {
                 modifier = Modifier.fillMaxWidth().height(Dimension.D1900).padding(vertical = Dimension.D700),
                 readouts = chart.readouts,
             )
+            WeightDoseTicks(chart.doseTicks)
         }
         when (chart?.gap) {
             ChartGap.NoneInRange -> GapNote(Res.string.trends_weight_none_in_range)
@@ -436,6 +440,17 @@ private fun WeightTrendPickedPreview() =
     CompositionLocalProvider(LocalChartPreviewPick provides PREVIEW_PICK) { Weight(TrendsFixtures.policy(PresetId.MacrosOnly)) }
 
 private const val PREVIEW_PICK = 18
+
+/** On a medication (`release.medication`): "Started" and the step up as ticks under the line. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightDoseTicksPreview() = Weight(TrendsFixtures.policy(), inputs = TrendsFixtures.weightInputs(doseMarks = TrendsFixtures.doseMarks()))
+
+/** Trend only, on a medication: the ticks stay, since a dose is not a weight. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun WeightDoseTicksTrendPreview() =
+    Weight(TrendsFixtures.policy(PresetId.MacrosOnly), inputs = TrendsFixtures.weightInputs(doseMarks = TrendsFixtures.doseMarks()))
 
 /** Hidden, mid weigh-in and just after one: the digits are dots and the save says it shows nowhere. */
 @Preview(widthDp = 390, heightDp = 844)

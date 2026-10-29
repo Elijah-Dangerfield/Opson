@@ -1,5 +1,7 @@
 package com.opson.features.trends.impl
 
+import com.opson.libraries.medication.DoseMarks
+import com.opson.libraries.medication.DoseUnit
 import com.opson.libraries.nutrition.RevealOn
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.CheckIn
@@ -126,7 +128,14 @@ object TrendsFixtures {
         settings: Settings = Settings(),
         weighIns: List<WeighIn> = weighIns(),
         photosReleased: Boolean = true,
-    ): WeightInputs = WeightInputs(today, settings, weighIns, timeZone, photosReleased, photosLastTaken = today)
+        doseMarks: List<DoseMarks.Mark> = emptyList(),
+    ): WeightInputs = WeightInputs(today, settings, weighIns, timeZone, photosReleased, photosLastTaken = today, doseMarks = doseMarks)
+
+    /** A weekly medication started three weeks ago and stepped up last week (`release.medication`). */
+    fun doseMarks(): List<DoseMarks.Mark> = listOf(
+        DoseMarks.Mark.Started(today.minus(STARTED_DAYS_AGO, DateTimeUnit.DAY)),
+        DoseMarks.Mark.Changed(today.minus(STEPPED_UP_DAYS_AGO, DateTimeUnit.DAY), STEPPED_UP_MG, DoseUnit.Mg),
+    )
 
     /** [checkInOn]: hunger from the check-ins, as the design draws Patterns. */
     fun patternsInputs(settings: Settings = Settings(), days: List<Day> = days(), checkInOn: Boolean = false): PatternsInputs =
@@ -154,6 +163,9 @@ object TrendsFixtures {
     private const val HISTORY_DAYS = 100
     private const val EMPTY_EVERY = 9
     private const val WEIGH_IN_DAYS = 90
+    private const val STARTED_DAYS_AGO = 21
+    private const val STEPPED_UP_DAYS_AGO = 7
+    private const val STEPPED_UP_MG = 0.5
     private const val START_KG = 74.6
     private const val DRIFT = 0.014
 

@@ -7,6 +7,7 @@ import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
+import com.opson.libraries.medication.DoseMarksSource
 import com.opson.libraries.nutrition.Units
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -38,6 +39,7 @@ class WeightViewModel(
     private val clock: Clock,
     photosEnabled: ProgressPhotosEnabled,
     progressPhotos: ProgressPhotoRepository,
+    doseMarks: DoseMarksSource = DoseMarksSource.None,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ) : SEAViewModel<WeightState, WeightEvent, WeightAction>(initialStateArg = WeightState()) {
 
@@ -57,8 +59,8 @@ class WeightViewModel(
         // Read once, as the page opens. Off, the photo index is never touched.
         val photosReleased = photosEnabled.value
         val lastPhoto = if (photosReleased) progressPhotos.observeLastTaken() else flowOf(null)
-        combine(settingsRepository.settings, policySource.policy, weighIns, lastPhoto) { settings, policy, weighIns, last ->
-            WeightAction.InputsArrived(WeightInputs(today, settings, weighIns, timeZone, photosReleased, last), policy)
+        combine(settingsRepository.settings, policySource.policy, weighIns, lastPhoto, doseMarks.marks) { settings, policy, weighIns, last, marks ->
+            WeightAction.InputsArrived(WeightInputs(today, settings, weighIns, timeZone, photosReleased, last, marks), policy)
         }.collectIn(viewModelScope) { takeAction(it) }
     }
 

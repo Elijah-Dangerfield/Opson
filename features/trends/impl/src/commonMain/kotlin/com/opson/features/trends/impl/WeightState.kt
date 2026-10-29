@@ -2,6 +2,7 @@ package com.opson.features.trends.impl
 
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.medication.DoseMarks
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
@@ -13,6 +14,7 @@ import com.opson.libraries.ui.components.ChartReadout
 import com.opson.libraries.ui.time.DateCopy
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
 
 enum class WeightRange(val days: Int) {
     W1(7),
@@ -41,6 +43,8 @@ data class WeightInputs(
     val photosReleased: Boolean = false,
     /** The day of the newest progress photo, `null` before the first. */
     val photosLastTaken: LocalDate? = null,
+    /** Dose ticks (`release.medication`, while tracking): the start and each change of dose. */
+    val doseMarks: List<DoseMarks.Mark> = emptyList(),
 )
 
 /** The Progress photos row under the log card. */
@@ -107,7 +111,36 @@ data class WeightChart(
     val gap: ChartGap? = null,
     /** One per weigh-in: its day, and at Show the trend there and the reading. */
     val readouts: List<ChartReadout?> = emptyList(),
+    /** Dose ticks under the line, placed on its x axis. Only where there is a line. */
+    val doseTicks: List<DoseTick> = emptyList(),
 )
+
+/**
+ * A tick under the weight line: [x] is `0..1` along the line's points, which are evenly spaced
+ * one per weigh-in, so a tick between two weigh-ins sits between them in proportion to the days.
+ */
+data class DoseTick(val x: Float, val mark: DoseMarks.Mark)
+
+/** Places dose marks on the weight line's x axis ([WeightCurve.points] order). */
+object DoseTicks {
+    fun place(marks: List<DoseMarks.Mark>, points: List<WeightPoint>): List<DoseTick> {
+        if (points.size < 2) return emptyList()
+        val first = points.first().day
+        val last = points.last().day
+        return marks.filter { it.day >= first && it.day <= last }.map { DoseTick(position(it.day, points), it) }
+    }
+
+    private fun position(day: LocalDate, points: List<WeightPoint>): Float {
+        val span = (points.size - 1).toFloat()
+        val onOrAfter = points.indexOfFirst { it.day >= day }
+        val before = points.indexOfLast { it.day < day }
+        if (before < 0 || points[onOrAfter].day == day) return onOrAfter / span
+        val from = points[before].day
+        val to = points[onOrAfter].day
+        val share = from.daysUntil(day).toFloat() / from.daysUntil(to)
+        return (before + share * (onOrAfter - before)) / span
+    }
+}
 
 /** Why a range has no line: nothing in it, or a single weigh-in, which is not a trend yet. */
 enum class ChartGap { NoneInRange, OneReading }
@@ -152,6 +185,7 @@ object WeightStateBuilder {
                         else -> null
                     },
                     readouts = TrendsReadouts.weight(curve, inputs.today, unit, policy, weighIns = shown),
+                    doseTicks = DoseTicks.place(inputs.doseMarks, curve.points),
                 )
             },
             empty = level != Visibility.Hide && inputs.weighIns.isEmpty(),

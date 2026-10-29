@@ -1,6 +1,7 @@
 package com.opson.libraries.medication
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.LocalDate
 
 /**
@@ -55,4 +56,17 @@ interface SymptomLog {
 
     /** Replaces the day's side effects; empty clears them. */
     suspend fun set(day: LocalDate, symptoms: Map<Symptom, Severity>)
+}
+
+/**
+ * The weight chart's dose ticks ([DoseMarks]), while `release.medication` and tracking are on;
+ * empty otherwise. Trends decides whether the chart, and so the ticks, shows at all.
+ */
+interface DoseMarksSource {
+    val marks: Flow<List<DoseMarks.Mark>>
+
+    /** For tests that are not about doses. */
+    object None : DoseMarksSource {
+        override val marks: Flow<List<DoseMarks.Mark>> = flowOf(emptyList())
+    }
 }

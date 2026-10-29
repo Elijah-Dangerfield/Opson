@@ -25,6 +25,8 @@ kotlin {
             implementation(projects.libraries.opson)
             // The Expended card: energy from the watch, behind release.health.
             implementation(projects.libraries.health)
+            // The weight chart's dose ticks, behind release.medication.
+            implementation(projects.libraries.medication)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -50,6 +52,7 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.opson)
             implementation(projects.libraries.health)
+            implementation(projects.libraries.medication)
         }
     }
 }
