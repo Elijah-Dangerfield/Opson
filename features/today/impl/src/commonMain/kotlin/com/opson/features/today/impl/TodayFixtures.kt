@@ -13,8 +13,6 @@ import com.opson.features.today.impl.item.ItemStep
 import com.opson.features.today.impl.meal.MealNoteState
 import com.opson.features.today.impl.notes.NotesState
 import com.opson.features.today.impl.notes.NotesStateBuilder
-import com.opson.features.today.impl.meal.MealSheetState
-import com.opson.features.today.impl.meal.MealSheetStateBuilder
 import com.opson.features.today.impl.water.WaterSheetState
 import com.opson.features.today.impl.water.WaterSheetStateBuilder
 import com.opson.libraries.diary.CheckIn
@@ -409,9 +407,6 @@ object TodayFixtures {
         val logged = (1..24).filter { it % 7 != 4 }.map { LocalDate(today.year, today.month, it) }.toSet() + today
         return CalendarStateBuilder.build(CalendarStateBuilder.monthOf(today), selected = today, today = today, logged = logged)
     }
-
-    fun mealSheetState(slot: MealSlot = MealSlot.Dinner): MealSheetState =
-        MealSheetStateBuilder.build(slot, today, day(), yesterday(), Settings())
 
     /** Lunch's Note with both halves answered. */
     fun mealNoteState(): MealNoteState =

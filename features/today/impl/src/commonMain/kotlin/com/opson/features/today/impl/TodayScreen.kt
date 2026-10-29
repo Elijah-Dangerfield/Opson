@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
@@ -587,14 +588,10 @@ private fun Meal(entry: MealEntry, context: FoodRowContext, drag: FoodDrag, onAc
     val slot = entry.slot
     val sentence = stringResource(slot.sentenceName)
     val dropLabel = if (drag.target == slot) stringResource(Res.string.today_drop_to, stringResource(slot.label)) else null
+    val addLabel = stringResource(Res.string.today_add_to_cd, sentence)
+    // An empty meal is one target: the + is what it looks like, and the card is what it does.
     val add: @Composable RowScope.() -> Unit = {
-        if (!context.selecting && !context.closed) {
-            RoundIconButton(
-                icon = AppIcons.Add.described(stringResource(Res.string.today_add_to_cd, sentence)),
-                onClick = { onAction(TodayAction.MealPlusTapped(slot)) },
-                size = MinTouchTarget,
-            )
-        }
+        if (!context.selecting && !context.closed) MealPlus(onClick = { onAction(TodayAction.MealPlusTapped(slot)) })
     }
     when (entry) {
         is MealEntry.Full -> FullMeal(entry.card, context, drag, dropLabel, onAction)
@@ -609,6 +606,9 @@ private fun Meal(entry: MealEntry, context: FoodRowContext, drag: FoodDrag, onAc
             },
             trailing = add,
             dropLabel = dropLabel,
+            // A closed day keeps the tap: it says the day is closed rather than doing nothing.
+            onClick = if (context.selecting) null else ({ onAction(TodayAction.MealPlusTapped(slot)) }),
+            onClickLabel = addLabel,
             below = entry.note?.let { note -> { MealNoteBlock(note.forCard()) } },
         )
         // A planned meal is filled in from Plan it or the add sheet; the card itself has no + (2.10).
@@ -634,6 +634,7 @@ private fun Meal(entry: MealEntry, context: FoodRowContext, drag: FoodDrag, onAc
 private fun FullMeal(card: MealCard, context: FoodRowContext, drag: FoodDrag, dropLabel: String?, onAction: (TodayAction) -> Unit) {
     val sentence = stringResource(card.slot.sentenceName)
     val selecting = context.selecting
+    val addLabel = stringResource(Res.string.today_add_to_cd, sentence)
     TodayMealCard(
         icon = card.slot.icon,
         iconColor = card.slot.tileColors().content,
@@ -658,7 +659,13 @@ private fun FullMeal(card: MealCard, context: FoodRowContext, drag: FoodDrag, dr
         },
         note = card.note?.forCard(),
         highlighted = context.highlight == card.slot,
-        onHeaderClick = if (selecting) ({ onAction(TodayAction.MealHeaderToggled(card.slot)) }) else null,
+        // The header adds to the meal as its + does; foods to file have Move to… instead, and no header tap.
+        onHeaderClick = when {
+            selecting -> ({ onAction(TodayAction.MealHeaderToggled(card.slot)) })
+            card.fileable -> null
+            else -> ({ onAction(TodayAction.MealPlusTapped(card.slot)) })
+        },
+        headerClickLabel = if (selecting) null else addLabel,
         headerTrailing = {
             when {
                 selecting || context.closed -> Unit
@@ -666,16 +673,23 @@ private fun FullMeal(card: MealCard, context: FoodRowContext, drag: FoodDrag, dr
                     label = stringResource(Res.string.today_move_to),
                     onClick = { onAction(TodayAction.MoveUncategorizedTapped(card.items.map { it.entryId })) },
                 )
-                else -> RoundIconButton(
-                    icon = AppIcons.Add.described(stringResource(Res.string.today_add_to_cd, sentence)),
-                    onClick = { onAction(TodayAction.MealPlusTapped(card.slot)) },
-                    size = MinTouchTarget,
-                )
+                else -> MealPlus(onClick = { onAction(TodayAction.MealPlusTapped(card.slot)) })
             }
         },
         dropLabel = dropLabel,
         itemRow = { item -> FoodRow(item, sentence, context, drag, onAction) },
     )
+}
+
+/**
+ * A meal's +, inside a card or header that is already the button for it: a screen reader meets
+ * one "Add to breakfast", on the card, and a finger on the + still gets the same thing.
+ */
+@Composable
+private fun MealPlus(onClick: () -> Unit) {
+    Box(Modifier.clearAndSetSemantics {}) {
+        RoundIconButton(icon = AppIcons.Add, onClick = onClick, size = MinTouchTarget)
+    }
 }
 
 /**

@@ -250,7 +250,7 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun mealTapsOpenTheLoggerOrTheMealSheet() = runUnitTest {
+    fun mealTapsOpenTheAddSheetOnThatMeal() = runUnitTest {
         val vm = vm()
         val events = events(vm)
 
@@ -262,7 +262,7 @@ class TodayViewModelTest : CoroutineTest() {
             listOf(
                 TodayEvent.OpenLogger(today, MealSlot.Lunch),
                 TodayEvent.OpenLogger(today, MealSlot.Snack),
-                TodayEvent.OpenMealSheet(today, MealSlot.Breakfast),
+                TodayEvent.OpenLogger(today, MealSlot.Breakfast),
             ),
             events,
         )

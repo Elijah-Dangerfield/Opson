@@ -42,6 +42,11 @@ private fun ExpandedPreview() = Sheet(LoggerFixtures.sheetState(full, height = S
 @Composable
 private fun HalfLightPreview() = Sheet(LoggerFixtures.sheetState(full), dark = false)
 
+/** A meal's + on Today: "Add to Breakfast", and Save as a meal since breakfast has food. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun MealPlusPreview() = Sheet(LoggerFixtures.sheetState(full, slot = MealSlot.Breakfast), dark = false)
+
 /** No barcode, photo, voice or fasting: what ships with the 0.2 flags off. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
