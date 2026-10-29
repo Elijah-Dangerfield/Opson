@@ -7,8 +7,12 @@ import com.opson.libraries.medication.DoseUnit
 import com.opson.libraries.medication.DoseVia
 import com.opson.libraries.medication.InjectionSite
 import com.opson.libraries.medication.Medication
+import com.opson.libraries.medication.MedicationDose
+import com.opson.libraries.medication.MedicationPlan
 import com.opson.libraries.medication.MedicationProduct
+import com.opson.libraries.medication.MedicationRepository
 import com.opson.libraries.reminders.DoseNudge
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.DayOfWeek
@@ -59,6 +63,30 @@ class MedicationDoseRemindersTest : CoroutineTest() {
         repository.updatePlan { it.copy(on = true) }
         flag.value = false
         assertEquals(emptyList(), reminders.upcoming(monday, 7).first())
+    }
+
+    @Test
+    fun withTheFlagOff_thePlanAndDosesAreNeverRead() = runUnitTest {
+        repository.updatePlan { it.withMedication(wegovy).copy(on = true) }
+        flag.value = false
+        val counting = CountingRepository(repository)
+        val reminders = MedicationDoseReminders(counting, medicationConfig(flag))
+
+        assertEquals(emptyList(), reminders.upcoming(monday, 7).first())
+        assertEquals(0, counting.reads, "nothing about medication runs at app start while the flag is off")
+
+        flag.value = true
+        assertEquals(listOf(DoseNudge("med", thursday, LocalTime(19, 0))), reminders.upcoming(monday, 7).first())
+        assertEquals(2, counting.reads, "on, it reads the plan and the doses")
+    }
+
+    /** Counts every read of the plan or the doses. */
+    private class CountingRepository(private val real: MedicationRepository) : MedicationRepository by real {
+        var reads = 0
+
+        override val plan: Flow<MedicationPlan> get() = real.plan.also { reads++ }
+
+        override fun observeDoses(): Flow<List<MedicationDose>> = real.observeDoses().also { reads++ }
     }
 
     @Test

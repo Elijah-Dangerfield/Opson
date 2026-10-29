@@ -7,8 +7,11 @@ import com.opson.libraries.medication.MedicationDose
 import com.opson.libraries.medication.MedicationEnabled
 import com.opson.libraries.medication.MedicationPlan
 import com.opson.libraries.medication.MedicationRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Inject
@@ -17,7 +20,12 @@ import me.tatarka.inject.annotations.Inject
  * Today's Medication card. Today tells it which day is on show ([MedicationCardAction.DayShown]);
  * the card exists only on today, and the day is re-read then, so it rolls over at midnight with
  * Today rather than on its own timer.
+ *
+ * Today builds this whatever `release.medication` says. While it is off, nothing reads the plan
+ * or the doses; the flag is read again each time Today shows a day, as screens read it when they
+ * build.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @Inject
 class MedicationCardViewModel(
     private val repository: MedicationRepository,
@@ -29,8 +37,13 @@ class MedicationCardViewModel(
 
     init {
         viewModelScope.launch {
-            combine(repository.plan, repository.observeDoses(), shown) { plan, doses, day -> Triple(plan, doses, day) }
-                .collect { (plan, doses, day) -> takeAction(MedicationCardAction.InputsArrived(plan, doses, day)) }
+            shown.flatMapLatest { day ->
+                if (day == null || !enabled.value) {
+                    flowOf(MedicationCardAction.Off)
+                } else {
+                    combine(repository.plan, repository.observeDoses()) { plan, doses -> MedicationCardAction.InputsArrived(plan, doses, day) }
+                }
+            }.collect { takeAction(it) }
         }
     }
 
@@ -45,6 +58,7 @@ class MedicationCardViewModel(
                 }
                 action.updateState { it.copy(card = card) }
             }
+            MedicationCardAction.Off -> action.updateState { it.copy(card = null) }
             is MedicationCardAction.DayShown -> shown.value = action.day
             MedicationCardAction.LogTapped -> sendEvent(MedicationCardEvent.OpenSheet(doseId = null))
             MedicationCardAction.CardTapped -> when (val card = state.card) {
@@ -64,6 +78,9 @@ data class MedicationCardState(val card: MedicationCard? = null)
 
 sealed interface MedicationCardAction {
     data class InputsArrived(val plan: MedicationPlan, val doses: List<MedicationDose>, val day: LocalDate?) : MedicationCardAction
+
+    /** No day shown yet, or the flag is off: no card, and nothing read. */
+    data object Off : MedicationCardAction
     data class DayShown(val day: LocalDate) : MedicationCardAction
     data object LogTapped : MedicationCardAction
     data object CardTapped : MedicationCardAction
