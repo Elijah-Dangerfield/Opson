@@ -8,6 +8,13 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Totals
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.hidesAnyOf
+import com.opson.libraries.medication.DoseMarks
+import com.opson.libraries.medication.DoseUnit
+import com.opson.libraries.medication.InjectionSite
+import com.opson.libraries.medication.MedicationName
+import com.opson.libraries.medication.MedicationRecord
+import com.opson.libraries.medication.SymptomDay
+import com.opson.libraries.medication.displayName
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.Visibility
@@ -29,6 +36,8 @@ data class SummaryChoices(
     val checkIns: Boolean = true,
     val weight: Boolean = false,
     val numbers: Boolean = false,
+    /** Doses, changes of dose and side effect days (`release.medication`). On when tracking is. */
+    val medication: Boolean = false,
 ) {
     /** The numbers these choices put in the PDF. */
     val metrics: Set<Metric>
@@ -37,7 +46,7 @@ data class SummaryChoices(
             if (weight) add(Metric.Weight)
         }
 
-    val isEmpty: Boolean get() = !mealsAndTimes && !notes && !hunger && !checkIns && !weight && !numbers
+    val isEmpty: Boolean get() = !mealsAndTimes && !notes && !hunger && !checkIns && !weight && !numbers && !medication
 
     fun with(part: SummaryPart, on: Boolean): SummaryChoices = when (part) {
         SummaryPart.MealsAndTimes -> copy(mealsAndTimes = on)
@@ -46,6 +55,7 @@ data class SummaryChoices(
         SummaryPart.CheckIns -> copy(checkIns = on)
         SummaryPart.Weight -> copy(weight = on)
         SummaryPart.Numbers -> copy(numbers = on)
+        SummaryPart.Medication -> copy(medication = on)
     }
 
     fun has(part: SummaryPart): Boolean = when (part) {
@@ -55,6 +65,7 @@ data class SummaryChoices(
         SummaryPart.CheckIns -> checkIns
         SummaryPart.Weight -> weight
         SummaryPart.Numbers -> numbers
+        SummaryPart.Medication -> medication
     }
 
     companion object {
@@ -76,6 +87,9 @@ enum class SummaryPart(val metrics: List<Metric>) {
     CheckIns(emptyList()),
     Weight(listOf(Metric.Weight)),
     Numbers(SummaryChoices.NUMBER_METRICS),
+
+    /** Only listed while there is a medication to tell of. A dose is not a food number: no mode hides it. */
+    Medication(emptyList()),
 }
 
 /** Which days, inclusive. */
@@ -130,7 +144,22 @@ data class SummaryContent(
     val days: List<SummaryDay>,
     /** Null when weight is not in. */
     val weighIns: List<SummaryWeighIn>?,
+    /** Null when medication is not in, or there is none. */
+    val medication: SummaryMedication? = null,
 )
+
+/**
+ * The medication section: what it is, the doses in the range, the changes of dose in it (read
+ * from every dose, so a step up on the range's first day counts), and the side effect days.
+ */
+data class SummaryMedication(
+    val name: MedicationName,
+    val doses: List<SummaryDose>,
+    val changes: List<DoseMarks.Mark.Changed>,
+    val sideEffects: List<SymptomDay>,
+)
+
+data class SummaryDose(val date: LocalDate, val time: LocalTime, val dose: Double, val unit: DoseUnit, val site: InjectionSite?)
 
 /**
  * Picks what goes in from the log: pure, so what a summary holds for each choice is tested
@@ -139,7 +168,14 @@ data class SummaryContent(
  */
 object SummaryContentBuilder {
 
-    fun build(range: SummaryRange, choices: SummaryChoices, days: List<Day>, weighIns: List<WeighIn>, zone: TimeZone): SummaryContent =
+    fun build(
+        range: SummaryRange,
+        choices: SummaryChoices,
+        days: List<Day>,
+        weighIns: List<WeighIn>,
+        zone: TimeZone,
+        medication: MedicationRecord? = null,
+    ): SummaryContent =
         SummaryContent(
             range = range,
             choices = choices,
@@ -150,7 +186,21 @@ object SummaryContentBuilder {
             } else {
                 null
             },
+            medication = medication?.takeIf { choices.medication }?.let { medication(it, range, zone) },
         )
+
+    private fun medication(record: MedicationRecord, range: SummaryRange, zone: TimeZone): SummaryMedication {
+        fun inRange(day: LocalDate) = day >= range.start && day <= range.end
+        return SummaryMedication(
+            name = record.medication.displayName(),
+            doses = record.doses.filter { inRange(it.day) }.map { dose ->
+                val local = dose.takenAt.toLocalDateTime(zone)
+                SummaryDose(dose.day, LocalTime(local.hour, local.minute), dose.dose, dose.unit, dose.site)
+            },
+            changes = DoseMarks.of(record.medication, record.doses).filterIsInstance<DoseMarks.Mark.Changed>().filter { inRange(it.day) },
+            sideEffects = record.sideEffects.filter { inRange(it.day) && it.symptoms.isNotEmpty() },
+        )
+    }
 
     private fun day(day: Day, choices: SummaryChoices, zone: TimeZone): SummaryDay = SummaryDay(
         date = day.date,

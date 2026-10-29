@@ -3,6 +3,7 @@ package com.opson.features.settings.impl.summary
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.medication.MedicationRecord
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -77,6 +78,8 @@ data class SummaryInput(
     /** Null until the range's days have been read. */
     val days: List<Day>? = null,
     val weighIns: List<WeighIn> = emptyList(),
+    /** Null while `release.medication` is off or nothing was set up: no Medication switch at all. */
+    val medication: MedicationRecord? = null,
     /** "Include them" was said once; no switch asks again on this visit. */
     val warned: Boolean = false,
     val confirming: SummaryPart? = null,
@@ -91,14 +94,15 @@ object ProviderSummaryStateBuilder {
 
     fun build(input: SummaryInput, policy: VisibilityPolicy): ProviderSummaryState {
         val numbers = policy.settings
-        val content = SummaryContentBuilder.build(input.dates, input.choices, input.days.orEmpty(), input.weighIns, input.zone)
+        val content = SummaryContentBuilder.build(input.dates, input.choices, input.days.orEmpty(), input.weighIns, input.zone, input.medication)
         val shown = previewMetrics(input.choices, numbers)
         return ProviderSummaryState(
             range = input.range,
             dates = input.dates,
             rangeLabel = "${DateCopy.range(input.dates.start, input.dates.end)}, ${input.dates.end.year}",
             calendar = if (input.range == SummaryRangeChoice.Custom) calendar(input) else null,
-            parts = SummaryPart.entries.map { SummaryPartRow(it, input.choices.has(it), hiddenByMode = hides(it, numbers)) },
+            parts = SummaryPart.entries.filter { it != SummaryPart.Medication || input.medication != null }
+                .map { SummaryPartRow(it, input.choices.has(it), hiddenByMode = hides(it, numbers)) },
             preview = if (input.days == null) emptyList() else SummaryLines.build(content, shown, policy, units(input.settings), input.today),
             previewHidesNumbers = shown != input.choices.metrics,
             loading = input.days == null,
@@ -114,7 +118,7 @@ object ProviderSummaryStateBuilder {
      * on the same clock, whatever the person's own mode.
      */
     fun pdfLines(input: SummaryInput, clock: Clock): List<SummaryLine> {
-        val content = SummaryContentBuilder.build(input.dates, input.choices, input.days.orEmpty(), input.weighIns, input.zone)
+        val content = SummaryContentBuilder.build(input.dates, input.choices, input.days.orEmpty(), input.weighIns, input.zone, input.medication)
         val everything = VisibilityPolicy(NumbersSettings(preset = PresetId.Full), clock, input.zone)
         return SummaryLines.build(content, input.choices.metrics, everything, units(input.settings), input.today)
     }

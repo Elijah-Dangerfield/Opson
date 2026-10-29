@@ -70,3 +70,25 @@ interface DoseMarksSource {
         override val marks: Flow<List<DoseMarks.Mark>> = flowOf(emptyList())
     }
 }
+
+/**
+ * What the provider summary can say about medication: the medication, every dose (so a change of
+ * dose at the start of a range is still a change), and the side effects in the range.
+ */
+data class MedicationRecord(
+    val medication: Medication,
+    val tracking: Boolean,
+    /** Oldest first. */
+    val doses: List<MedicationDose>,
+    val sideEffects: List<SymptomDay>,
+)
+
+/** The provider summary's medication section. Null while `release.medication` is off or nothing was ever set up. */
+interface MedicationRecords {
+    fun observe(from: LocalDate, to: LocalDate): Flow<MedicationRecord?>
+
+    /** For tests that are not about medication. */
+    object None : MedicationRecords {
+        override fun observe(from: LocalDate, to: LocalDate): Flow<MedicationRecord?> = flowOf(null)
+    }
+}

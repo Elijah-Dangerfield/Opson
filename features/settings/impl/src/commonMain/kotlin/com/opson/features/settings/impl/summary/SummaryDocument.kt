@@ -4,6 +4,12 @@ import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Total
 import com.opson.libraries.diary.Totals
 import com.opson.libraries.diary.ui.label
+import com.opson.libraries.medication.DoseFormat
+import com.opson.libraries.medication.DoseUnit
+import com.opson.libraries.medication.MedicationName
+import com.opson.libraries.medication.amount
+import com.opson.libraries.medication.inSentence
+import com.opson.libraries.medication.label
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.GoalStyle
@@ -42,6 +48,14 @@ import opson.libraries.resources.generated.resources.summary_doc_weight
 import opson.libraries.resources.generated.resources.summary_include_check_ins
 import opson.libraries.resources.generated.resources.summary_include_hunger
 import opson.libraries.resources.generated.resources.summary_include_meals
+import opson.libraries.resources.generated.resources.summary_include_medication
+import opson.libraries.resources.generated.resources.medication_symptom_with_severity
+import opson.libraries.resources.generated.resources.summary_doc_medication
+import opson.libraries.resources.generated.resources.summary_doc_medication_changed
+import opson.libraries.resources.generated.resources.summary_doc_medication_dose
+import opson.libraries.resources.generated.resources.summary_doc_medication_none
+import opson.libraries.resources.generated.resources.summary_doc_side_effects
+import opson.libraries.resources.generated.resources.summary_doc_side_effects_day
 import opson.libraries.resources.generated.resources.summary_include_notes
 import opson.libraries.resources.generated.resources.summary_include_numbers
 import opson.libraries.resources.generated.resources.summary_include_weight
@@ -156,6 +170,62 @@ object SummaryLines {
                 )
             }
         }
+
+        content.medication?.let { addAll(medication(it)) }
+    }
+
+    /**
+     * "Medication", its name, a line per dose ("Thu, Oct 23: 1 mg, upper left abdomen"), each change
+     * of dose, then the side effect days with how bad. No dose is a food number, so no mode hides them.
+     */
+    private fun medication(medication: SummaryMedication): List<SummaryLine> = buildList {
+        add(line(SummaryText.Res(Res.string.summary_doc_medication), PdfStyle.Heading))
+        add(line(medication.name.summaryText(), PdfStyle.Label))
+        if (medication.doses.isEmpty()) add(line(SummaryText.Res(Res.string.summary_doc_medication_none), PdfStyle.Small))
+        medication.doses.forEach { dose ->
+            val amount = amount(dose.dose, dose.unit)
+            val what = dose.site?.let { SummaryText.Joined(listOf(amount, SummaryText.Res(it.inSentence))) } ?: amount
+            add(
+                line(
+                    SummaryText.Res(
+                        Res.string.summary_doc_medication_dose,
+                        listOf(SummaryText.Plain("${DateCopy.weekdayMonthDay(dose.date)}, ${DateCopy.time(dose.time.hour, dose.time.minute)}"), what),
+                    ),
+                    indented = true,
+                ),
+            )
+        }
+        medication.changes.forEach { change ->
+            add(
+                line(
+                    SummaryText.Res(
+                        Res.string.summary_doc_medication_changed,
+                        listOf(amount(change.dose, change.unit), SummaryText.Plain(DateCopy.monthDay(change.day))),
+                    ),
+                ),
+            )
+        }
+        if (medication.sideEffects.isNotEmpty()) {
+            add(line(SummaryText.Res(Res.string.summary_doc_side_effects), PdfStyle.Label))
+            medication.sideEffects.forEach { day ->
+                val felt = day.symptoms.entries.sortedBy { it.key.ordinal }.map { (symptom, severity) ->
+                    SummaryText.Res(Res.string.medication_symptom_with_severity, listOf(SummaryText.Res(symptom.label), SummaryText.Res(severity.label)))
+                }
+                add(
+                    line(
+                        SummaryText.Res(Res.string.summary_doc_side_effects_day, listOf(SummaryText.Plain(DateCopy.weekdayMonthDay(day.day)), SummaryText.Joined(felt))),
+                        indented = true,
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun amount(dose: Double, unit: DoseUnit): SummaryText = SummaryText.Res(unit.amount, listOf(SummaryText.Plain(DoseFormat.number(dose))))
+
+    private fun MedicationName.summaryText(): SummaryText = when (this) {
+        is MedicationName.Listed -> SummaryText.Res(label)
+        is MedicationName.Own -> SummaryText.Plain(text)
     }
 
     private fun included(choices: SummaryChoices): List<SummaryText> = SummaryPart.entries.filter(choices::has).map {
@@ -167,6 +237,7 @@ object SummaryLines {
                 SummaryPart.CheckIns -> Res.string.summary_include_check_ins
                 SummaryPart.Weight -> Res.string.summary_include_weight
                 SummaryPart.Numbers -> Res.string.summary_include_numbers
+                SummaryPart.Medication -> Res.string.summary_include_medication
             },
         )
     }

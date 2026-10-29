@@ -15,6 +15,16 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.medication.DoseUnit
+import com.opson.libraries.medication.InjectionSite
+import com.opson.libraries.medication.Medication
+import com.opson.libraries.medication.MedicationDose
+import com.opson.libraries.medication.MedicationDrug
+import com.opson.libraries.medication.MedicationProduct
+import com.opson.libraries.medication.MedicationRecord
+import com.opson.libraries.medication.Severity
+import com.opson.libraries.medication.Symptom
+import com.opson.libraries.medication.SymptomDay
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -96,6 +106,30 @@ object ProviderSummaryFixtures {
         WeighIn("w2", LocalDateTime(today, LocalTime(7, 10)).toInstant(zone), 62.1),
     )
 
+    /** A weekly shot stepped up this week, with a queasy day after it (`release.medication`). */
+    val medication: MedicationRecord = run {
+        val wegovy = Medication(id = "med", product = MedicationProduct.Wegovy, currentDose = 0.5, addedOn = today.minus(DatePeriod(days = 30)))
+        fun dose(daysAgo: Int, amount: Double, site: InjectionSite) = MedicationDose(
+            id = "dose-$daysAgo",
+            medicationId = "med",
+            product = MedicationProduct.Wegovy,
+            drug = MedicationDrug.Semaglutide,
+            brand = null,
+            dose = amount,
+            unit = DoseUnit.Mg,
+            takenAt = LocalDateTime(today.minus(DatePeriod(days = daysAgo)), LocalTime(19, 30)).toInstant(zone),
+            day = today.minus(DatePeriod(days = daysAgo)),
+            site = site,
+            note = null,
+        )
+        MedicationRecord(
+            medication = wegovy,
+            tracking = true,
+            doses = listOf(dose(10, 0.25, InjectionSite.AbdomenUpperLeft), dose(3, 0.5, InjectionSite.AbdomenLowerRight)),
+            sideEffects = listOf(SymptomDay(today.minus(DatePeriod(days = 2)), mapOf(Symptom.Nausea to Severity.Mild, Symptom.Fatigue to Severity.Moderate))),
+        )
+    }
+
     fun policy(preset: PresetId): VisibilityPolicy =
         VisibilityPolicy(NumbersSettings(preset = preset), SettingsFixtures.clock, zone)
 
@@ -117,6 +151,12 @@ object ProviderSummaryFixtures {
 
     fun state(policy: VisibilityPolicy = policy(PresetId.Full)): ProviderSummaryState =
         ProviderSummaryStateBuilder.build(input(policy), policy)
+
+    /** On a medication: its switch, on, and the section at the end of the preview. */
+    fun medicationState(policy: VisibilityPolicy = policy(PresetId.NoNumbers)): ProviderSummaryState = ProviderSummaryStateBuilder.build(
+        input(policy, everything = false).let { it.copy(medication = medication, choices = it.choices.copy(medication = true)) },
+        policy,
+    )
 
     /** No numbers, with weight and numbers switched in after the question. */
     fun hiddenState(policy: VisibilityPolicy = policy(PresetId.NoNumbers)): ProviderSummaryState = state(policy)

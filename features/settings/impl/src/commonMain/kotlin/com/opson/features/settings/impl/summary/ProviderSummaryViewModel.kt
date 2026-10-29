@@ -10,6 +10,8 @@ import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.DispatcherProvider
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.medication.MedicationRecord
+import com.opson.libraries.medication.MedicationRecords
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.pdf.PdfWriter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,6 +46,7 @@ class ProviderSummaryViewModel(
     private val pdfWriter: PdfWriter,
     private val strings: SummaryStrings,
     private val dispatchers: DispatcherProvider,
+    private val medication: MedicationRecords = MedicationRecords.None,
 ) : SEAViewModel<ProviderSummaryState, ProviderSummaryEvent, ProviderSummaryAction>(
     initialStateArg = ProviderSummaryStateBuilder.build(
         SummaryInput(calendar.today(), calendar.timeZone(), settings.settings.value),
@@ -51,14 +54,17 @@ class ProviderSummaryViewModel(
     ),
 ) {
     private var input = SummaryInput(calendar.today(), calendar.timeZone(), settings.settings.value)
+
+    /** The person switched Medication themselves, so its default never overrides them. */
+    private var medicationChosen = false
     private val dates = MutableStateFlow(input.dates)
 
     init {
         viewModelScope.launch {
             dates.flatMapLatest { range ->
                 val since = range.start.atStartOfDayIn(input.zone)
-                combine(diary.observeDays(range.start, range.end), weights.observeWeighIns(since)) { days, weighIns ->
-                    ProviderSummaryAction.DaysArrived(range, days, weighIns)
+                combine(diary.observeDays(range.start, range.end), weights.observeWeighIns(since), medication.observe(range.start, range.end)) { days, weighIns, record ->
+                    ProviderSummaryAction.DaysArrived(range, days, weighIns, record)
                 }
             }.collect(::takeAction)
         }
@@ -67,7 +73,12 @@ class ProviderSummaryViewModel(
     override suspend fun handleAction(action: ProviderSummaryAction) {
         when (action) {
             is ProviderSummaryAction.DaysArrived -> if (action.range == input.dates) {
-                action.update { it.copy(days = action.days, weighIns = action.weighIns) }
+                // Medication starts in when it is being tracked, the first time it is known (spec: on when the plan is on).
+                val firstRecord = input.medication == null && action.medication != null && !medicationChosen
+                action.update {
+                    val choices = if (firstRecord) it.choices.with(SummaryPart.Medication, action.medication?.tracking == true) else it.choices
+                    it.copy(days = action.days, weighIns = action.weighIns, medication = action.medication, choices = choices)
+                }
             }
             is ProviderSummaryAction.RangePicked -> action.pickRange(action.range)
             is ProviderSummaryAction.DayTapped -> action.dayTapped(action.date)
@@ -90,7 +101,7 @@ class ProviderSummaryViewModel(
     private suspend fun ProviderSummaryAction.update(change: (SummaryInput) -> SummaryInput) {
         input = change(input).copy(settings = settings.settings.value)
         if (input.dates != dates.value) {
-            input = input.copy(days = null, weighIns = emptyList())
+            input = input.copy(days = null, weighIns = emptyList(), medication = input.medication)
             dates.value = input.dates
         }
         val next = ProviderSummaryStateBuilder.build(input, policies.policy.value)
@@ -127,6 +138,7 @@ class ProviderSummaryViewModel(
     }
 
     private suspend fun ProviderSummaryAction.toggle(part: SummaryPart) {
+        if (part == SummaryPart.Medication) medicationChosen = true
         val on = !input.choices.has(part)
         if (on && !input.warned && ProviderSummaryStateBuilder.hides(part, policies.policy.value.settings)) {
             update { it.copy(confirming = part) }
@@ -150,6 +162,7 @@ sealed interface ProviderSummaryAction {
         val range: SummaryRange,
         val days: List<Day>,
         val weighIns: List<WeighIn>,
+        val medication: MedicationRecord? = null,
     ) : ProviderSummaryAction
 
     data class RangePicked(val range: SummaryRangeChoice) : ProviderSummaryAction

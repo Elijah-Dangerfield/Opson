@@ -47,6 +47,7 @@ import opson.libraries.resources.generated.resources.summary_include_check_ins
 import opson.libraries.resources.generated.resources.summary_include_hidden
 import opson.libraries.resources.generated.resources.summary_include_hunger
 import opson.libraries.resources.generated.resources.summary_include_meals
+import opson.libraries.resources.generated.resources.summary_include_medication
 import opson.libraries.resources.generated.resources.summary_include_notes
 import opson.libraries.resources.generated.resources.summary_include_numbers
 import opson.libraries.resources.generated.resources.summary_include_weight
@@ -319,6 +320,7 @@ private val SummaryPart.label: StringResource
         SummaryPart.CheckIns -> Res.string.summary_include_check_ins
         SummaryPart.Weight -> Res.string.summary_include_weight
         SummaryPart.Numbers -> Res.string.summary_include_numbers
+        SummaryPart.Medication -> Res.string.summary_include_medication
     }
 
 private val WEEKDAY_INITIALS: List<StringResource> = listOf(
@@ -353,6 +355,13 @@ private fun ProviderSummaryWarningPreview() {
 }
 
 /** Pick dates, a range chosen across the month. */
+/** No numbers, on a medication: doses and side effects are in, since no mode hides a dose. */
+@Preview
+@Composable
+private fun ProviderSummaryMedicationPreview() {
+    SettingsPreview { ProviderSummaryScreen(ProviderSummaryFixtures.medicationState(), onAction = {}) }
+}
+
 @Preview
 @Composable
 private fun ProviderSummaryCustomDarkPreview() {

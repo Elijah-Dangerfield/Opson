@@ -33,6 +33,8 @@ kotlin {
             implementation(projects.libraries.progressphotos)
             // PdfWriter, for the provider summary.
             implementation(projects.libraries.pdf)
+            // The provider summary's medication section, behind release.medication.
+            implementation(projects.libraries.medication)
 
             implementation(libs.kotlinx.datetime)
 
@@ -61,6 +63,7 @@ kotlin {
             implementation(projects.libraries.progressphotos)
             // PdfWriter, for the provider summary.
             implementation(projects.libraries.pdf)
+            implementation(projects.libraries.medication)
             implementation(libs.kotlinx.datetime)
             implementation(projects.libraries.resources)
             // AppIcons, for the fake contributed More row.
