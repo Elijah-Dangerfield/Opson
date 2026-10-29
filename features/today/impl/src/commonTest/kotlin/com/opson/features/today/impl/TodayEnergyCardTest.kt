@@ -158,7 +158,7 @@ class TodayEnergyCardTest {
     }
 
     @Test
-    fun theListsRows_turnOff_onlyWithTheFlag() {
+    fun theListsRows_turnOff_withOrWithoutTheFlag() {
         val off = Settings(todayWater = false, todayWeight = false, todayCloseDay = false)
         val state = TodayFixtures.todayState(
             policy(PresetId.Full),
@@ -170,9 +170,10 @@ class TodayEnergyCardTest {
         assertNull(state.water)
         assertNull(state.weight)
         assertNull(state.closeDay)
+        // More › Today screen is reachable whatever the flags say, so its switches always count.
         val flagOff = TodayFixtures.todayState(policy(PresetId.Full), settings = off, summaryOn = true, weighIns = TodayFixtures.weighIns)
-        assertNotNull(flagOff.water)
-        assertNotNull(flagOff.closeDay)
+        assertNull(flagOff.water)
+        assertNull(flagOff.closeDay)
     }
 
     @Test

@@ -131,7 +131,7 @@ object BenchmarkJourney {
         listOf(
             TRENDS to By.desc(TRENDS_SETTINGS),
             FOODS to ciText(FOODS_CREATE_MEAL),
-            MORE to ciText(MORE_MODES),
+            MORE to ciText(MORE_DISPLAY),
             TODAY to todayScreen(),
         ).forEach { (tab, screen) ->
             tapRequired(tab)
@@ -177,7 +177,7 @@ object BenchmarkJourney {
     const val TODAY_DAY_MENU = "More for this day"
     const val TRENDS_SETTINGS = "Trends settings"
     const val FOODS_CREATE_MEAL = "Create a meal"
-    const val MORE_MODES = "Modes and numbers"
+    const val MORE_DISPLAY = "Display"
     const val LOGGER_SEARCH = "Search foods, dishes, restaurants"
 
     /** Today's day menu button, present on every day in every mode. */

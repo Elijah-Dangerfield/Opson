@@ -158,7 +158,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 33 | Targets | `targets` | settings | ported | yes |
 | new | | `today-groups-off`, `today-past`, `today-day-menu-armed` | today | | yes |
 | new | | `today-future` | today | | yes (a planned day shows planned energy) |
-| new | | `today-added`, `today-cards` | today | | `today-added` yes, `today-cards` no |
+| new | | `today-added` | today | | yes |
 | new | | `day-close` | today | | yes |
 | new | | `item-sheet` | today | | yes |
 | new | | `day-note`, `meal-note` | today | | no |
@@ -178,7 +178,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-activity-health` | today | `release.exercise`; the same with a health app, an entry the watch saw counting nothing | yes |
 | new | | `today-summary`, `today-macros`, `today-sticky`, `today-weight` | today | design sync 2, `release.todaySummary`; the stats row, the macros page, the sticky bar for every page, the weight row | yes |
 | new | | `today-select`, `today-select-remove`, `today-swipe-delete`, `today-delete-confirm` | today | design sync 2, `release.todaySelect`; the select panel's totals and its confirmation, a row swiped open and its confirmation | yes |
-| new | | `today-cards-summary` | today | design sync 2; Edit Today's cards with the summary section | no |
+| new | | `today-screen-settings-stats` | settings | design sync 2's stats, on More › Today screen since Edit Today's cards folded into it | no |
 | new | | `today-calendar`, `today-select-v4`, `today-drag-move`, `today-moved` | today | design sync 4, `today-actions.md`; the calendar over Today, select mode's bottom bar, foods mid-drag over dinner, the Undo after a move | yes |
 | new | | `food-actions`, `food-actions-amount` | today | design sync 4, `release.foodActions`; a food's ⋮ over Today (its energy through the policy), and Change amount | `food-actions` yes |
 | new | | `edit-a-copy` | foods | design sync 4, 13.3e; only numbers the mode shows in full, the Calories field and its "Was" tagged | yes |
@@ -225,6 +225,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-summary-rings` | today | design sync 4; one number as rings | yes |
 | new | | `today-summary-equation` | today | design sync 4; Eaten − Burned = Deficit | yes |
 | new | | `today-screen-settings` | settings | design sync 4; More › Today screen and its main number sheet, no amounts | no |
+| new | | `today-low-logging` | today | the late-day card over a day with one food; the card has no numbers | yes |
 | new | | `nutrient-foods`, `nutrient-foods-week`, `nutrient-foods-protein` | trends | which foods gave a nutrient; amounts and shares only where the level shows, ranked alone where it softens, nothing where it hides (`NutrientFoodsLeakTest`) | no |
 | new | | `micro-targets`, `micro-target-sheet` | settings | Vitamins and minerals: references, never an amount eaten, off where micros are hidden | no |
 | new | | `onboarding-goal` | onboarding | `onboarding-v2.md`, `release.onboardingSetup`; goal styles and the range on a stepper | yes |

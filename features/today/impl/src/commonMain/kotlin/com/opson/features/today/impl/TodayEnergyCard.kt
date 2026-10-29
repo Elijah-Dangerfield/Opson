@@ -3,6 +3,7 @@ package com.opson.features.today.impl
 import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.SummaryCardPreset
+import com.opson.libraries.diary.TodayCardRules
 import com.opson.libraries.diary.rememberedMainNumber
 import com.opson.libraries.nutrition.DayGoal
 import com.opson.libraries.nutrition.Display
@@ -127,11 +128,8 @@ object EnergyCardBuilder {
             MainNumberChoice.Eaten -> MainNumber(MainKind.Eaten, Metric.Calories, policy.resolve(Metric.Calories, eaten, Surface.Today, bare))
             else -> gap(policy, context.copy(bare = true), eaten, range, goalKind)
         }
-        val drawn = when {
-            settings.todayCard == SummaryCardPreset.Rings && !range.single -> SummaryCardPreset.InOut
-            settings.todayCard == SummaryCardPreset.Equation && burned == null -> SummaryCardPreset.InOut
-            else -> settings.todayCard
-        }
+        // The same rule More › Today screen reads to say when a pick can't be drawn.
+        val drawn = TodayCardRules.drawn(settings.todayCard, singleTarget = range.single, burnedOnShow = burned != null)
         return EnergyCard(
             preset = drawn,
             main = main,

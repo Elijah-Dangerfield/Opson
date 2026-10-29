@@ -22,7 +22,7 @@ screens below with none of the new behaviour.
 
 | Flag | Class | What it turns on |
 |---|---|---|
-| `release.todaySummary` | `TodaySummaryEnabled` | The macros page, the stats row, pager dots, the sticky bar, long-press to customise, the stats section of Edit Today's cards, and the Weight row. |
+| `release.todaySummary` | `TodaySummaryEnabled` (in `:libraries:diary`) | The macros page, the stats row, pager dots, the sticky bar, long-press to customise, the stats on More › Today screen, and the Weight row. |
 | `release.todaySelect` | `TodaySelectEnabled` | Long-press to select foods and the bottom bar (Move, Copy to…, Delete), dragging picked foods to another meal with Undo, swipe to delete with the inline confirmation, Undo after a removal, and "Move to…" on Uncategorized. Reworked for design sync 4: see `today-actions.md`. |
 | `release.foodActions` | `TodayFoodActionsEnabled` | A food row's ⋮ and the food's sheet with Change amount, Move, Copy to another day, Edit a copy and Add to favorites (design sync 4, `today-actions.md`). |
 | `release.checkIn` | `CheckInEnabled` | The check-in sheet (`CheckInRoute`: hunger on the 1 to 10 scale, energy, mood, sleep in the morning, mood tags), its tile on the + sheet and its row on Close the day in every mode, in place of Blind's "How did today feel?". |
@@ -80,7 +80,7 @@ screens below with none of the new behaviour.
 | Macros page | "Macros / of 1,245 kcal", the four macros 2×2 in `GoalStyle.Slash` with bars, then the split bar with each Show macro's share of energy ("Carbs 52%"). A macro at Hide drops its row and its share. |
 | Sticky bar | Under the pinned header once the card has scrolled away. Energy page 1: "1,245 kcal · range 1,900 to 2,300" and the split bar; page 2: "P 51 · C 162 · F 44". Soft: meals and the lead macro. Focus: each nutrient's word. Locked: "3 meals logged". Everything else (Blind, Rhythm, Mindful, Explorer, revealed): "3 of 4 meals". Tap scrolls to the top. |
 | Collapse | Gone (owner feedback, 2026-10-29). The card only shrinks to the sticky bar as it scrolls away. `todaySummaryCollapsed` is still in Settings for 0.1 clients and is read by nothing; a card collapsed before opens whole. |
-| Customise | Long-press the card, or Edit Today's cards: the sheet gains a Summary card section ("Suggested from your goals: Changing my weight", Reset), page 1's stats with checkboxes and drag handles (Move up and Move down as accessibility actions), at most 3 ticked; a stat the levels don't allow shows a lock and "Hidden in Modes and numbers" and opens Modes; Deficit so far is listed only where deficits are offered. Then "Page 2 · Macros" with a switch, then the existing cards. Done closes. |
+| Customise | Long-press the card, or the ⋮ menu's Edit Today screen: both open More › Today screen, which carries a Summary card section ("Suggested from your goals: Changing my weight", Reset), page 1's stats with checkboxes and drag handles (Move up and Move down as accessibility actions), at most 3 ticked; a stat the levels don't allow shows a lock and "Hidden in Modes and numbers" and opens Modes; Deficit so far is listed only where deficits are offered. Card pages is its own row there. |
 | Weight row | The day's latest weigh-in, "This morning · 7:02 AM", through `Metric.Weight` on `Surface.Today` with the 14-day slope, so Soften reads "Steady" and Hide removes the row. Opens Weight. |
 
 Settings keys, new and top level: `todaySummaryCollapsed: Boolean = false`,
@@ -168,7 +168,7 @@ every preset: `today-sticky` (the bar for both pages),
   Soften and Hide, selection totals in Full and Blind, flags off.
 - `TodayViewModelTest`: each new action, including Undo after a removal, the page
   saved on the phone, one open row at a time, scroll closing it.
-- `TodayCardsTest`: toggle, the limit of 3, move, reset, a locked stat opens Modes,
+- `TodayScreenSettingsTest` (settings): toggle, the limit of 3, move, reset, a locked stat opens Modes,
   the page 2 switch.
 - `DayCloseTest`: the check-in row shows the day's check-in and opens the sheet,
   closing never writes it, and it is absent with the flag off; the recap's balance
@@ -246,6 +246,38 @@ the last row.
   without entries, with digesting food); leak surfaces `today-activity` and
   `today-activity-health`, both with digesting food counted.
 
+## Learned meal times and the late-day card (no flag, 2026-10-29)
+
+**Usually around.** `LoggingHabitsEstimator` (`:libraries:diary`) reads the
+four weeks before today: each meal's time on a day is when its first item went
+in, on that day only (a back-fill says nothing about when), and the usual time
+is the weighted median of those, a day's weight halving every two weeks,
+rounded to five minutes. A meal needs three days to be learned; until then its
+time is the person's own (`Settings.mealTimes`, from onboarding and Reminders).
+Untracked days are left out; today counts for the times, so a meal logged now
+moves its time at once, but not for the usual day's size. Today's "Usually around", the No
+numbers timeline and the Counted card's next meal read `TodayInputs.usualTimes`.
+Meal reminders keep the times the person set on Reminders: a reminder they
+chose should not move on its own.
+
+**The late-day card** (`LowLoggingNudge`): "Looks like logging got away from
+you today" with Not now and Skip today. Skip today marks the day untracked
+(`DiaryRepository.setUntracked`), the per-day skip Trends already leaves as a
+gap; it syncs as day records already do. It shows only:
+
+- on today, not untracked or closed, and not after Not now today
+  (`TodayNudgeStore`, on this phone only);
+- once the window holds five logged days, so never in the first days;
+- from an hour after the usual last learned meal, kept between 6 pm and
+  10 pm, or from 8 pm while no meal is learned;
+- when today holds under 35% of the person's usual day: by energy in a mode
+  with calories on show, by entries (foods plus meals marked eaten) in the
+  others, after "numbers have been hard", or when a meal was marked eaten with
+  no details. Nothing on the card is a number.
+
+Previews `TodayLowLoggingPreview`, `TodayLowLoggingBlindDarkPreview`; leak
+surface `today-low-logging`.
+
 ## Source
 - Design v3: `today-full`, `today-empty`, `today-delayed-locked`, `today-blind`, `today-nutrient-focus`, `today-fuel`, `today-rhythm`, `today-explorer`, `today-mindful`, `today-plan-tomorrow`, `today-day-menu`, `today-added`, and the manifest notes for each.
 - Handoff: `README.md` section 2 (safety) and 5 (tokens). The handoff's sticky hero, ring pager and header + are gone in v3.
@@ -261,7 +293,7 @@ the last row.
 | Up to six days ahead | One day ahead: "Plan, then hide". |
 | Locked card alone | Counts stay visible: "3 meals logged", "3 glasses". At 9 pm, "Your totals are open" links to Day close. |
 | Water row in every layout but Explorer | Only with the amount on show; locked shows the glasses count instead. |
-| Day menu flat list with Hide water | Grouped; Hide water lives in Edit Today's cards (`today-sheets.md`). |
+| Day menu flat list with Hide water | Grouped; the water card is switched on More › Today screen, the water level on Display (`today-sheets.md`). |
 | (new) | After food lands on the day, its meal is outlined for 2 s and scrolled to. |
 
 Not built, and why: **Expended so far** (0.2, watch data; now built behind
@@ -441,4 +473,4 @@ through `NutrientText` / `NutrientBar` / `MacroLine`; the eaten bar is tagged
 - `TodayViewModelTest`: one per action, day bounds (one ahead), the outline on new food and its fade, copying, the two-tap clear.
 - Previews in `TodayPreviews.kt` named after the v3 screen ids, one theme each at 390.
 - `FoodBridgesTest`: pairs on a shared word, prefers rarer and more recent, skips today's and quick numbers, none when nothing pairs.
-- `TodayLeakSurfaces`: `today`, `today-big-day`, `today-added` (with the Undo bar), `today-untracked`, `today-explorer-bridge`, `today-groups-off`, `today-past`, `today-future`, `today-day-menu`, `today-day-menu-armed`, `today-cards`.
+- `TodayLeakSurfaces`: `today`, `today-big-day`, `today-added` (with the Undo bar), `today-untracked`, `today-explorer-bridge`, `today-groups-off`, `today-past`, `today-future`, `today-day-menu`, `today-day-menu-armed`.

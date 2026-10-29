@@ -19,7 +19,7 @@ import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.FindSupportRoute
 import com.opson.features.settings.SupportRoute
-import com.opson.features.settings.ModesRoute
+import com.opson.features.settings.TodayScreenSettingsRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
@@ -35,12 +35,9 @@ import com.opson.features.today.impl.activity.TodayActivityEvent
 import com.opson.features.today.impl.activity.TodayActivitySection
 import com.opson.features.today.impl.activity.TodayActivityViewModel
 import com.opson.features.today.impl.calendar.CalendarEvent
-import com.opson.features.today.impl.cards.TodayCardsEvent
 import com.opson.features.today.impl.checkin.CheckInEvent
 import com.opson.features.today.impl.checkin.CheckInSheetContent
 import com.opson.features.today.impl.checkin.CheckInViewModel
-import com.opson.features.today.impl.cards.TodayCardsSheetContent
-import com.opson.features.today.impl.cards.TodayCardsViewModel
 import com.opson.features.today.impl.calendar.CalendarDropdownContent
 import com.opson.features.today.impl.calendar.CalendarViewModel
 import com.opson.features.today.impl.dayclose.DayCloseEvent
@@ -98,7 +95,7 @@ import kotlin.reflect.typeOf
 /**
  * Today and everything that opens from it: the tab root, Day close, the calendar that drops from
  * the title, the Notes list, and the meal, meal Note (hunger and words), water, food actions, day
- * note, check-in, Today's cards and day closed sheets.
+ * note, check-in and day closed sheets. Arranging Today is More › Today screen's, which the ⋮ menu opens.
  * View models send events; only this class navigates.
  */
 @SingleIn(AppScope::class)
@@ -114,7 +111,6 @@ class TodayFeatureEntryPoint(
     private val waterSheetViewModelFactory: (LocalDate) -> WaterSheetViewModel,
     private val itemSheetViewModelFactory: (LocalDate, String) -> ItemSheetViewModel,
     private val dayNoteViewModelFactory: (LocalDate) -> DayNoteViewModel,
-    private val todayCardsViewModelFactory: () -> TodayCardsViewModel,
     private val notesViewModelFactory: (Boolean) -> NotesViewModel,
     private val todayActivityViewModelFactory: () -> TodayActivityViewModel,
     private val checkInViewModelFactory: (LocalDate?) -> CheckInViewModel,
@@ -280,7 +276,8 @@ class TodayFeatureEntryPoint(
                     WaterSheetEvent.Dismiss -> sheetState.dismiss()
                 }
             }
-            TodaySheet(router, sheetState) { WaterSheetContent(state = state, onAction = viewModel::takeAction) }
+            // Half height: a few rows, and Today's water card stays in view above it.
+            TodaySheet(router, sheetState, heightFraction = WATER_SHEET_HEIGHT) { WaterSheetContent(state = state, onAction = viewModel::takeAction) }
         }
 
         bottomSheet<ItemSheetRoute> { backStackEntry, sheetState ->
@@ -309,23 +306,6 @@ class TodayFeatureEntryPoint(
                 }
             }
             TodaySheet(router, sheetState) { ItemSheetContent(state = state, onAction = viewModel::takeAction) }
-        }
-
-        bottomSheet<TodayCardsRoute> { _, sheetState ->
-            val viewModel: TodayCardsViewModel = viewModel { todayCardsViewModelFactory() }
-            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-            viewModel.ObserveEvents { event ->
-                when (event) {
-                    is TodayCardsEvent.OpenPause -> router.navigate(event.change.toRoute())
-                    TodayCardsEvent.OpenModes -> router.batch {
-                        goBack()
-                        navigate(ModesRoute())
-                    }
-                    is TodayCardsEvent.ShowToast -> showToast(event.toast)
-                    TodayCardsEvent.Dismiss -> sheetState.dismiss()
-                }
-            }
-            TodaySheet(router, sheetState) { TodayCardsSheetContent(state = state, onAction = viewModel::takeAction) }
         }
 
         bottomSheet<WhyNotCutBackRoute> { _, sheetState ->
@@ -381,7 +361,10 @@ class TodayFeatureEntryPoint(
             TodayEvent.OpenEnergyToday -> router.navigate(EnergyTodayRoute())
             is TodayEvent.OpenLogger -> router.navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString()))
             TodayEvent.OpenWeight -> router.navigate(WeightRoute())
-            TodayEvent.OpenTodayCards -> router.navigate(TodayCardsRoute())
+            is TodayEvent.OpenCreateMeal -> router.navigate(
+                CreateMealRoute(fromDayIso = event.day.toString(), fromSlot = event.slot, entryIds = event.entryIds),
+            )
+            TodayEvent.OpenTodayScreenSettings -> router.navigate(TodayScreenSettingsRoute(fromToday = true))
             TodayEvent.OpenFasting -> router.navigate(FastingRoute())
             is TodayEvent.OpenDayNote -> router.navigate(DayNoteRoute(event.day.toString()))
             is TodayEvent.OpenMealSheet -> router.navigate(MealSheetRoute(event.day.toString(), event.slot))
@@ -396,19 +379,26 @@ class TodayFeatureEntryPoint(
 
 private const val TAB_BAR_OWNER = "today-select"
 
+/** The water sheet's height, a share of the screen's. */
+private const val WATER_SHEET_HEIGHT = 0.5f
+
 /** A Today sheet whose write the closed day refused gives way to the closed sheet, so Back lands on Today. */
 private fun Router.showDayClosed(day: LocalDate) = batch {
     goBack()
     navigate(DayClosedRoute(day.toString()))
 }
 
-/** Every Today sheet: the page colour, a grab handle, its own scroll. */
+/**
+ * Every Today sheet: the page colour, a grab handle, its own scroll. The sheet owns the scroll, so
+ * it is pinned to the full height unless [heightFraction] pins it lower (BottomSheet's KDoc).
+ */
 @Composable
-private fun TodaySheet(router: Router, sheetState: BottomSheetState, content: @Composable () -> Unit) {
+private fun TodaySheet(router: Router, sheetState: BottomSheetState, heightFraction: Float? = null, content: @Composable () -> Unit) {
     BottomSheet(
         onDismissRequest = { router.goBack() },
         state = sheetState,
         scrollableContent = true,
+        heightFraction = heightFraction,
         showDragHandle = true,
         backgroundColor = AppTheme.colors.bg,
     ) {

@@ -7,13 +7,16 @@ import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.FastingRepository
 import com.opson.libraries.diary.FastingStatus
+import com.opson.libraries.diary.LoggingHabits
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LoggedToMeal
+import com.opson.libraries.diary.LoggingHabitsEstimator
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MinuteTicker
 import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.TodaySummaryEnabled
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.diary.valueOrNull
@@ -42,8 +45,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_toast_cleared
@@ -90,6 +95,7 @@ class TodayViewModel(
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val burnedRepository: BurnedRepository,
     private val cardView: TodayCardViewStore,
+    private val nudges: TodayNudgeStore,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value, dayLabel = RelativeDay.of(selectedDay.date.value, calendar.today())),
 ) {
@@ -175,6 +181,7 @@ class TodayViewModel(
             }
             is TodayAction.ItemMenuTapped -> if (state.foodMenus) sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
             TodayAction.WaterPlusTapped -> ifOpen { sendEvent(TodayEvent.OpenWaterSheet(day())) }
+            is TodayAction.WaterGlassTapped -> ifOpen { glassTapped(action.index) }
             TodayAction.HighlightFaded -> action.rebuild { copy(highlight = null) }
             is TodayAction.LoggedArrived -> loggedArrived(action)
             TodayAction.UndoTapped -> model.added?.let { event ->
@@ -184,6 +191,12 @@ class TodayViewModel(
             }
             is TodayAction.UndoExpired -> if (model.added == action.event) action.rebuild { copy(added = null) }
             TodayAction.TrackAgainTapped -> diary.setUntracked(day(), untracked = false)
+            // Both on today alone: the card never shows on another day.
+            TodayAction.LowLoggingSkipTapped -> if (state.lowLogging) {
+                nudges.dismissLowLogging(calendar.today())
+                diary.setUntracked(calendar.today(), untracked = true)
+            }
+            TodayAction.LowLoggingDismissed -> nudges.dismissLowLogging(calendar.today())
             // The banner only offers this when the switch has to wait for the pause, so open it.
             is TodayAction.TimedSwitchTapped -> sendEvent(TodayEvent.OpenPause(NumbersChange.PickPreset(action.to)))
             is TodayAction.FastingArrived -> {
@@ -215,11 +228,11 @@ class TodayViewModel(
             TodayAction.UntrackedMenuTapped -> action.closeMenuThen {
                 diary.setUntracked(day(), untracked = model.inputs?.day?.untracked != true)
             }
-            TodayAction.EditCardsTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenTodayCards) }
+            TodayAction.EditCardsTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenTodayScreenSettings) }
             TodayAction.ClearDayTapped -> clearDay(action)
             // Kept on this phone, not in synced Settings: see TodayCardViewStore.
             is TodayAction.SummaryPageShown -> cardView.update { it.copy(page = action.page) }
-            TodayAction.SummaryLongPressed -> if (state.summaryTools) sendEvent(TodayEvent.OpenTodayCards)
+            TodayAction.SummaryLongPressed -> if (state.summaryTools) sendEvent(TodayEvent.OpenTodayScreenSettings)
             TodayAction.WeightTapped -> sendEvent(TodayEvent.OpenWeight)
             else -> selectAction(action)
         }
@@ -233,6 +246,10 @@ class TodayViewModel(
             is TodayAction.FoodLongPressed -> action.rebuild {
                 copy(selected = setOf(action.entryId), step = SelectStep.Actions, swipe = SwipeState(), menuOpen = false)
             }
+            // From the ⋮ menu: selecting with nothing picked yet, a tap on a food picks it.
+            TodayAction.SelectMenuTapped -> action.rebuild {
+                copy(selected = emptySet(), step = SelectStep.Actions, swipe = SwipeState(), menuOpen = false, clearArmed = false)
+            }
             is TodayAction.FoodToggled -> action.rebuild { copy(selected = selected?.toggle(action.entryId)) }
             is TodayAction.MealHeaderToggled -> action.rebuild {
                 val ids = inputs?.day?.items(action.slot).orEmpty().map { it.id }
@@ -241,6 +258,7 @@ class TodayViewModel(
             }
             TodayAction.SelectAllTapped -> action.rebuild { copy(selected = inputs?.day?.allItems.orEmpty().mapTo(LinkedHashSet()) { it.id }) }
             TodayAction.SelectionClosed -> action.rebuild { copy(selected = null, step = SelectStep.Actions) }
+            TodayAction.SaveAsMealTapped -> saveSelectedAsMeal(action)
             is TodayAction.DragStarted -> if (model.selected?.contains(action.entryId) == false) {
                 action.rebuild { copy(selected = selected.orEmpty() + action.entryId, step = SelectStep.Actions) }
             }
@@ -248,14 +266,14 @@ class TodayViewModel(
             is TodayAction.MoveRowRequested -> if (model.selected != null) {
                 action.rebuild { copy(selected = selected.orEmpty() + action.entryId, step = SelectStep.MoveTo()) }
             }
-            TodayAction.CopyToTapped -> action.rebuild { copy(step = SelectStep.CopyTo(slot = firstSelectedSlot())) }
+            TodayAction.CopyToTapped -> if (picking()) action.rebuild { copy(step = SelectStep.CopyTo(slot = firstSelectedSlot())) }
             is TodayAction.CopyDayPicked -> action.rebuild { copy(step = (step as? SelectStep.CopyTo)?.copy(day = action.day) ?: step) }
             is TodayAction.CopySlotPicked -> action.rebuild { copy(step = (step as? SelectStep.CopyTo)?.copy(slot = action.slot) ?: step) }
             TodayAction.CopyConfirmed -> copySelected(action)
-            TodayAction.MoveTapped -> action.rebuild { copy(step = SelectStep.MoveTo()) }
+            TodayAction.MoveTapped -> if (picking()) action.rebuild { copy(step = SelectStep.MoveTo()) }
             is TodayAction.MoveSlotPicked -> action.rebuild { copy(step = SelectStep.MoveTo(action.slot)) }
             TodayAction.MoveConfirmed -> (model.step as? SelectStep.MoveTo)?.slot?.let { move(action, it) }
-            TodayAction.RemoveSelectedTapped -> action.rebuild { copy(step = SelectStep.ConfirmRemove) }
+            TodayAction.RemoveSelectedTapped -> if (picking()) action.rebuild { copy(step = SelectStep.ConfirmRemove) }
             TodayAction.RemoveSelectedConfirmed -> {
                 val ids = state.selection?.ids.orEmpty().toList()
                 action.rebuild { copy(selected = null, step = SelectStep.Actions) }
@@ -332,6 +350,23 @@ class TodayViewModel(
         }
     }
 
+    /**
+     * Create a meal from the picks, which lands in My meals on Foods for logging again. Selecting
+     * ends here, as after Copy and Move; the meal is only made once Create a meal saves it.
+     */
+    private suspend fun saveSelectedAsMeal(action: TodayAction) {
+        val ids = state.selection?.ids.orEmpty()
+        if (ids.isEmpty()) return
+        val slot = model.inputs?.day?.allItems.orEmpty()
+            .filter { it.id in ids }
+            .map { it.slot }
+            .distinct()
+            .singleOrNull()
+            ?.takeIf { it.isMeal }
+        action.rebuild { copy(selected = null, step = SelectStep.Actions) }
+        sendEvent(TodayEvent.OpenCreateMeal(day(), ids.toList(), slot))
+    }
+
     private suspend fun copySelected(action: TodayAction) {
         val step = model.step as? SelectStep.CopyTo ?: return
         val slot = step.slot ?: return
@@ -358,7 +393,19 @@ class TodayViewModel(
         return model.inputs?.day?.allItems?.firstOrNull { it.id == first }?.slot?.takeIf { it.isMeal }
     }
 
+    /** Something is picked: selecting from the ⋮ menu starts with nothing, and the bar waits for a food. */
+    private fun picking(): Boolean = !state.selection?.ids.isNullOrEmpty()
+
     private fun Set<String>.toggle(id: String): Set<String> = if (id in this) this - id else this + id
+
+    /** Sets the day's water to the glasses the tap leaves full, so the bar shows exactly what was tapped. */
+    private suspend fun glassTapped(index: Int) {
+        val inputs = model.inputs ?: return
+        val water = state.water ?: return
+        if (index !in 0 until water.total) return
+        val glasses = WaterTaps.glassesAfter(filled = water.filled, tapped = index)
+        written(diary.setWater(inputs.day.date, glasses * inputs.settings.glassMl))
+    }
 
     /** "Clear this day" asks for a second tap. */
     private suspend fun clearDay(action: TodayAction) {
@@ -485,7 +532,10 @@ class TodayViewModel(
             combine(diary.observeDay(date), diary.observeDay(date.minus(DatePeriod(days = 1)))) { d, before -> d to before }
         }
         val energy = combine(expended(), burned()) { expended, burned -> expended to burned }
-        return combine(days, settingsRepository.settings, energy, weighIns(), cardView()) { (d, before), settings, (expended, burned), weighIns, view ->
+        val extras = combine(cardView(), habits(), now(), nudges.lowLoggingDismissedOn) { view, habits, now, dismissed ->
+            Extras(view, habits, now, dismissed)
+        }
+        return combine(days, settingsRepository.settings, energy, weighIns(), extras) { (d, before), settings, (expended, burned), weighIns, extra ->
             TodayInputs(
                 today = calendar.today(),
                 timeZone = calendar.timeZone(),
@@ -499,10 +549,39 @@ class TodayViewModel(
                 weighIns = weighIns,
                 goalsAndEnergyOn = goalsAndEnergy(),
                 burned = burned,
-                cardView = view,
+                cardView = extra.cardView,
+                habits = extra.habits,
+                now = extra.now,
+                nudgeDismissedOn = extra.nudgeDismissedOn,
             )
         }
     }
+
+    private data class Extras(
+        val cardView: TodayCardView,
+        val habits: LoggingHabits,
+        val now: LocalTime,
+        val nudgeDismissedOn: LocalDate?,
+    )
+
+    /**
+     * How the person usually logs, from the four weeks up to today, learned again as meals are
+     * logged, as their own meal times change and when the date turns.
+     */
+    private fun habits(): Flow<LoggingHabits> =
+        ticker.ticks().map { calendar.today() }.distinctUntilChanged().flatMapLatest { today ->
+            val history = diary.observeDays(today.minus(DatePeriod(days = LoggingHabitsEstimator.WINDOW_DAYS)), today)
+            combine(history, settingsRepository.settings.map { it.mealTimes }.distinctUntilChanged()) { days, own ->
+                LoggingHabitsEstimator.of(days, today, calendar.timeZone(), own)
+            }
+        }.distinctUntilChanged()
+
+    /** The time of day to five minutes: enough for the late-day card, and Today rebuilds at most that often. */
+    private fun now(): Flow<LocalTime> =
+        ticker.ticks().map { instant ->
+            val time = instant.toLocalDateTime(calendar.timeZone()).time
+            LocalTime(time.hour, time.minute - time.minute % NOW_STEP_MINUTES)
+        }.distinctUntilChanged()
 
     /** How the card was left on this phone. With `release.todaySummary` off there is no page or collapse to read. */
     private fun cardView(): Flow<TodayCardView> {
@@ -549,6 +628,8 @@ class TodayViewModel(
     companion object {
         /** How long a changed meal stays outlined. */
         val HIGHLIGHT_FOR = 2.seconds
+
+        private const val NOW_STEP_MINUTES = 5
 
         /** The Weight row's trend reads two weeks; a little more covers a day in the past. */
         private val WEIGH_IN_LOOKBACK = 42.days

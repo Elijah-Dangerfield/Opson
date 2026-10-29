@@ -30,10 +30,6 @@ data class ItemSheetRoute(val dayIso: String, val entryId: String) : Route()
 @Serializable
 data class DayNoteRoute(val dayIso: String) : Route()
 
-/** "Edit Today's cards" from the ⋮ menu or a long press on the summary card: its stats, meal groups, water and fasting. */
-@Serializable
-class TodayCardsRoute : Route()
-
 /** Day close's "Why not cut back?" on the big-day card: a short reason, nothing to do. */
 @Serializable
 class WhyNotCutBackRoute : Route()

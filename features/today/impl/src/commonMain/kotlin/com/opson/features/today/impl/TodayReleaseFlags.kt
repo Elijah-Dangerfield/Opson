@@ -12,22 +12,9 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * The release flags for Today (docs/plans/screens/today.md and today-actions.md, "Flags"). Off,
  * the screen is the refined design with none of the new behaviour. Each is read when Today or the
  * food's sheet builds its inputs; nothing runs at launch. Day close's check-in flag, `CheckInEnabled`, is in
- * `:libraries:diary`, because Reminders and Patterns read it too.
+ * `:libraries:diary`, because Reminders and Patterns read it too, and so is `TodaySummaryEnabled`, which
+ * More › Today screen reads.
  */
-
-/**
- * The summary card's macros page, stats row, collapse and sticky bar, long-press to customise,
- * the stats in Edit Today's cards, and the Weight row.
- */
-@Inject
-@SingleIn(AppScope::class)
-@ContributesBinding(AppScope::class, boundType = QaConfigValue::class, multibinding = true)
-class TodaySummaryEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap) {
-    override val name = "Today summary card"
-    override val path = "release.todaySummary"
-    override val default = false
-    override val description = "Today's summary pages, stats, collapse and sticky bar, and the weight row"
-}
 
 /**
  * Long-press to select foods with Move, Copy to… and Delete, dragging them between meals, swipe to

@@ -1,5 +1,8 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.LoggingHabits
+import com.opson.libraries.diary.MealTimes
+import com.opson.libraries.diary.ui.SummaryStat
 import androidx.compose.runtime.Immutable
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FastingStatus
@@ -60,6 +63,8 @@ data class TodayState(
      * planning banner and Close the day. The meals stay, so logging still works.
      */
     val untracked: Boolean = false,
+    /** The late-day card ([LowLoggingNudge]): today got away, want to skip it? */
+    val lowLogging: Boolean = false,
     val menu: DayMenu? = null,
     /** The fasting card (0.2), from [TodayFastingCard]; null when it does not show. */
     val fasting: FastingStatus? = null,
@@ -354,6 +359,11 @@ sealed interface DayMenuItem {
 
     /** "Mark as untracked", or "Track this day again" once [marked]. */
     data class Untracked(val marked: Boolean) : DayMenuItem
+
+    /** Select mode with nothing picked yet (`release.todaySelect`), for a day with foods on it. */
+    data object Select : DayMenuItem
+
+    /** More › Today screen, the one place Today is arranged; a long press on the summary card opens it too. */
     data object EditCards : DayMenuItem
     data object ClearDay : DayMenuItem
 }
@@ -380,6 +390,9 @@ sealed interface TodayAction {
     /** A food row's ⋮ (`release.foodActions`). */
     data class ItemMenuTapped(val entryId: String) : TodayAction
     data object WaterPlusTapped : TodayAction
+
+    /** A tap on glass [index] (from 0) of the water card: fills up to it, or empties the last full one. */
+    data class WaterGlassTapped(val index: Int) : TodayAction
     data object CloseDayButtonTapped : TodayAction
 
     /** Reopen on the closed line or in the ⋮ menu: the day takes food again. */
@@ -393,6 +406,12 @@ sealed interface TodayAction {
     /** [event]'s six seconds ran out. */
     data class UndoExpired(val event: LoggedToMeal) : TodayAction
     data object TrackAgainTapped : TodayAction
+
+    /** The late-day card's Skip today: today is marked untracked, so Trends leaves a gap. */
+    data object LowLoggingSkipTapped : TodayAction
+
+    /** The late-day card's Not now: it stays away for the rest of the day. */
+    data object LowLoggingDismissed : TodayAction
 
     /** "Switch to No numbers" on the banner, when End after a set time ran out with the pause on. */
     data class TimedSwitchTapped(val to: PresetId) : TodayAction
@@ -413,6 +432,7 @@ sealed interface TodayAction {
     data object DayNoteTapped : TodayAction
     data object UntrackedMenuTapped : TodayAction
     data object EditCardsTapped : TodayAction
+    data object SelectMenuTapped : TodayAction
     data object ClearDayTapped : TodayAction
 
     // The summary card (release.todaySummary)
@@ -426,6 +446,7 @@ sealed interface TodayAction {
     data class MealHeaderToggled(val slot: MealSlot) : TodayAction
     data object SelectAllTapped : TodayAction
     data object SelectionClosed : TodayAction
+    data object SaveAsMealTapped : TodayAction
 
     /** A row's handle was grabbed; a food not yet picked is picked, so it moves with the rest. */
     data class DragStarted(val entryId: String) : TodayAction
@@ -474,12 +495,15 @@ sealed interface TodayEvent {
     data class OpenMealSheet(val day: LocalDate, val slot: MealSlot) : TodayEvent
 
     /** The food's actions (13.3d), from its row or its ⋮. */
+    /** Create a meal filled with [entryIds] from [day]; [slot] when they all sit in that one meal. */
+    data class OpenCreateMeal(val day: LocalDate, val entryIds: List<String>, val slot: MealSlot?) : TodayEvent
     data class OpenItemSheet(val day: LocalDate, val entryId: String) : TodayEvent
     data class OpenWaterSheet(val day: LocalDate) : TodayEvent
 
     /** Something tried to add to [day], which is closed: "Today is closed. Reopen it to add more." */
     data class OpenDayClosed(val day: LocalDate) : TodayEvent
-    data object OpenTodayCards : TodayEvent
+    /** More › Today screen, from the ⋮ menu or a long press on the summary card. */
+    data object OpenTodayScreenSettings : TodayEvent
     data object OpenFasting : TodayEvent
     data object OpenWeight : TodayEvent
     data class OpenPause(val change: NumbersChange) : TodayEvent
@@ -513,7 +537,19 @@ data class TodayInputs(
     val burned: Burned? = null,
     /** The card's page and collapse as left on this phone, with [summaryOn]. */
     val cardView: TodayCardView = TodayCardView(),
-)
+    /**
+     * How the person usually logs, from the last four weeks: the "Usually around" times and what
+     * the late-day card compares with. Null reads the times they set.
+     */
+    val habits: LoggingHabits? = null,
+    /** The time of day now, to five minutes, for the late-day card; null where nothing reads it. */
+    val now: LocalTime? = null,
+    /** The day the late-day card was put away with Not now. */
+    val nudgeDismissedOn: LocalDate? = null,
+) {
+    /** When each meal usually is: learned from the log where it can be, else the person's own times. */
+    val usualTimes: MealTimes get() = habits?.usual ?: settings.mealTimes
+}
 
 /**
  * A one-off message for the snackbar. [args] fill the message's `%1$s` slots; a

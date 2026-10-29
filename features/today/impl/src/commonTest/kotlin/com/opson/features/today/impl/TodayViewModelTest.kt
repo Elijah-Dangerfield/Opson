@@ -21,9 +21,11 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_toast_cleared
 import opson.libraries.resources.generated.resources.today_toast_copied_foods_other
@@ -68,6 +70,7 @@ class TodayViewModelTest : CoroutineTest() {
 
     private val weights = FakeWeightRepository()
     private val cardView = TodayCardViewStore(FakeCacheFactory())
+    private val nudges = TodayNudgeStore(FakeCacheFactory())
 
     private fun vm(
         health: FakeHealthRepository = FakeHealthRepository(),
@@ -99,6 +102,7 @@ class TodayViewModelTest : CoroutineTest() {
         goalsAndEnergy = goalsAndEnergyFlag(goalsAndEnergyOn),
         burnedRepository = burnedRepository,
         cardView = cardView,
+        nudges = nudges,
     )
 
     private fun TestScope.events(vm: TodayViewModel): List<TodayEvent> {
@@ -473,7 +477,7 @@ class TodayViewModelTest : CoroutineTest() {
                 TodayEvent.OpenNutrients(today),
                 TodayEvent.OpenNotes,
                 TodayEvent.OpenDayNote(today),
-                TodayEvent.OpenTodayCards,
+                TodayEvent.OpenTodayScreenSettings,
             ),
             events,
         )
@@ -631,7 +635,7 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun aLongPressOnTheCardOpensTheCardsSheet_onlyWithTheFlag() = runUnitTest {
+    fun aLongPressOnTheCardOpensTodayScreen_onlyWithTheFlag() = runUnitTest {
         val off = vm(summaryOn = false)
         val offEvents = events(off)
         off.takeAction(TodayAction.SummaryLongPressed)
@@ -641,7 +645,7 @@ class TodayViewModelTest : CoroutineTest() {
         val events = events(on)
         on.takeAction(TodayAction.SummaryLongPressed)
         on.takeAction(TodayAction.WeightTapped)
-        assertEquals(listOf(TodayEvent.OpenTodayCards, TodayEvent.OpenWeight), events)
+        assertEquals(listOf(TodayEvent.OpenTodayScreenSettings, TodayEvent.OpenWeight), events)
     }
 
     // Select foods, drag them, swipe to delete (release.todaySelect), and a food's ⋮ (release.foodActions)
@@ -683,6 +687,155 @@ class TodayViewModelTest : CoroutineTest() {
 
         vm.takeAction(TodayAction.SelectionClosed)
         assertNull(vm.state.selection)
+    }
+
+    // The late-day card and the learned meal times (owner feedback, 2026-10-29)
+
+    /** A week of ordinary days behind a today with one food in, at 9:30 pm. */
+    private fun lightEvening() {
+        val week = (1..7).map { TodayFixtures.day(today.minus(DatePeriod(days = it))) }
+        diary.days.value = (week + TodayFixtures.lightDay()).associateBy { it.date }
+        clock.now = TodayFixtures.evening
+    }
+
+    @Test
+    fun aLightEvening_showsTheCard_andSkipTodayMarksItUntracked() = runUnitTest {
+        lightEvening()
+        val vm = vm()
+        assertTrue(vm.state.lowLogging)
+
+        vm.takeAction(TodayAction.LowLoggingSkipTapped)
+
+        assertEquals(listOf(today to true), diary.untracked)
+    }
+
+    @Test
+    fun notNow_putsTheCardAwayForTheDay() = runUnitTest {
+        lightEvening()
+        val vm = vm()
+        vm.takeAction(TodayAction.LowLoggingDismissed)
+        assertFalse(vm.state.lowLogging)
+        assertFalse(vm().state.lowLogging, "a fresh Today the same day keeps it away")
+        assertTrue(diary.untracked.isEmpty())
+    }
+
+    @Test
+    fun noonIsNotTheEvening() = runUnitTest {
+        lightEvening()
+        clock.now = TodayFixtures.noon
+        assertFalse(vm().state.lowLogging)
+    }
+
+    /** "Usually around" follows when meals are logged, not only the times set in onboarding. */
+    @Test
+    fun anEmptyMealsUsualTime_isLearnedFromTheLog() = runUnitTest {
+        val days = (1..5).map { back ->
+            val date = today.minus(DatePeriod(days = back))
+            val at = LocalDateTime(date, LocalTime(20, 40)).toInstant(TodayFixtures.timeZone)
+            TodayFixtures.day(date, dinner = true).let { day ->
+                day.copy(itemsBySlot = day.itemsBySlot + (MealSlot.Dinner to day.items(MealSlot.Dinner).map { it.copy(loggedAt = at) }))
+            }
+        }
+        diary.days.value = (days + TodayFixtures.day()).associateBy { it.date }
+        val dinner = vm().state.meals.filterIsInstance<MealEntry.Collapsed>().single { it.slot == MealSlot.Dinner }
+        assertEquals(LocalTime(20, 40), dinner.around)
+    }
+
+    // The water card's glasses (owner feedback, 2026-10-29)
+
+    @Test
+    fun aGlassTap_fillsUpToIt_andATapOnTheLastFullOneEmptiesIt() = runUnitTest {
+        val vm = vm()
+        val glass = settings.state.value.glassMl
+        assertEquals(3, vm.state.water?.filled, "750 ml of 250 ml glasses")
+
+        vm.takeAction(TodayAction.WaterGlassTapped(5))
+        vm.takeAction(TodayAction.WaterGlassTapped(2))
+        vm.takeAction(TodayAction.WaterGlassTapped(0))
+
+        assertEquals(listOf(today to 6 * glass, today to 2 * glass, today to glass), diary.setWater)
+    }
+
+    @Test
+    fun aGlassTapOnAClosedDay_addsNothing_andSaysTheDayIsClosed() = runUnitTest {
+        diary.days.value = diary.days.value + (today to TodayFixtures.day().copy(closedAt = clock.now))
+        val vm = vm()
+        val events = events(vm)
+
+        vm.takeAction(TodayAction.WaterGlassTapped(4))
+
+        assertTrue(diary.setWater.isEmpty())
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenDayClosed(today)), events)
+    }
+
+    @Test
+    fun waterTaps_fillUpToTheGlass_orTakeTheLastFullOneOff() {
+        assertEquals(5, WaterTaps.glassesAfter(filled = 3, tapped = 4))
+        assertEquals(2, WaterTaps.glassesAfter(filled = 3, tapped = 2), "the last full glass: one off")
+        assertEquals(1, WaterTaps.glassesAfter(filled = 3, tapped = 0), "an earlier full glass: down to it")
+        assertEquals(0, WaterTaps.glassesAfter(filled = 1, tapped = 0))
+        assertEquals(1, WaterTaps.glassesAfter(filled = 0, tapped = 0))
+    }
+
+    @Test
+    fun theMenusSelect_startsWithNothingPicked_andTheBarWaitsForAFood() = runUnitTest {
+        val vm = vm(selectOn = true)
+        vm.takeAction(TodayAction.DayMenuTapped)
+        assertTrue(vm.state.menu?.groups?.flatten()?.contains(DayMenuItem.Select) == true)
+
+        vm.takeAction(TodayAction.SelectMenuTapped)
+        assertNull(vm.state.menu, "the menu closes")
+        assertEquals(emptySet(), vm.state.selection?.ids)
+
+        vm.takeAction(TodayAction.MoveTapped)
+        vm.takeAction(TodayAction.CopyToTapped)
+        vm.takeAction(TodayAction.RemoveSelectedTapped)
+        assertEquals(SelectStep.Actions, vm.state.selection?.step, "nothing picked, nothing to move, copy or remove")
+
+        vm.takeAction(TodayAction.FoodToggled(oats))
+        assertEquals(setOf(oats), vm.state.selection?.ids)
+    }
+
+    @Test
+    fun theMenuOffersSelect_onlyWithTheFlag_andFoodsToPick() = runUnitTest {
+        val off = vm(selectOn = false)
+        off.takeAction(TodayAction.DayMenuTapped)
+        assertFalse(off.state.menu?.groups?.flatten().orEmpty().contains(DayMenuItem.Select))
+        off.takeAction(TodayAction.SelectMenuTapped)
+        assertNull(off.state.selection)
+
+        diary.days.value = emptyMap()
+        val empty = vm(selectOn = true)
+        empty.takeAction(TodayAction.DayMenuTapped)
+        assertFalse(empty.state.menu?.groups?.flatten().orEmpty().contains(DayMenuItem.Select))
+    }
+
+    @Test
+    fun saveAsMeal_opensCreateAMealWithThePicksAndStopsSelecting() = runUnitTest {
+        val vm = vm(selectOn = true)
+        val events = events(vm)
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+        vm.takeAction(TodayAction.FoodToggled(banana))
+
+        vm.takeAction(TodayAction.SaveAsMealTapped)
+
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenCreateMeal(today, listOf(oats, banana), MealSlot.Breakfast)), events)
+        assertNull(vm.state.selection)
+    }
+
+    @Test
+    fun saveAsMeal_fromTwoMealsNamesNoMeal_andWithNothingPickedOpensNothing() = runUnitTest {
+        val vm = vm(selectOn = true)
+        val events = events(vm)
+        vm.takeAction(TodayAction.SelectMenuTapped)
+        vm.takeAction(TodayAction.SaveAsMealTapped)
+        assertTrue(events.isEmpty())
+
+        vm.takeAction(TodayAction.FoodToggled(oats))
+        vm.takeAction(TodayAction.FoodToggled(adobo))
+        vm.takeAction(TodayAction.SaveAsMealTapped)
+
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenCreateMeal(today, listOf(oats, adobo), slot = null)), events)
     }
 
     @Test

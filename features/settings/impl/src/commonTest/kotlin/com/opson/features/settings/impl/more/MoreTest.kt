@@ -4,10 +4,10 @@ import com.opson.features.settings.MoreRowContribution
 import com.opson.features.settings.impl.FakeAuthRepository
 import com.opson.features.settings.impl.FakeDiarySync
 import com.opson.features.settings.impl.FakeSettingsRepository
+import com.opson.features.settings.impl.goalsAndEnergyFlag
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
-import com.opson.features.settings.impl.goalsAndEnergyFlag
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
 import com.opson.features.settings.impl.integrations.healthFlag
 import com.opson.features.settings.impl.remindersFlag
@@ -44,7 +44,7 @@ class MoreTest : CoroutineTest() {
     fun theRowsAreTheDesignsThreeCards_thenAbout() {
         assertEquals(
             listOf(
-                listOf(MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets),
+                listOf(MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.TodayScreen),
                 listOf(MoreRow.Water(glasses = 8)),
                 listOf(MoreRow.Support, MoreRow.ReportBug, MoreRow.SendFeedback, MoreRow.Plan),
                 listOf(MoreRow.Privacy, MoreRow.Terms, MoreRow.Credits),
@@ -298,7 +298,7 @@ class MoreTest : CoroutineTest() {
 
         assertEquals(
             listOf(
-                MoreEvent.OpenDisplay, MoreEvent.OpenTargets, MoreEvent.OpenHealth,
+                MoreEvent.OpenDisplay, MoreEvent.OpenTargets, MoreEvent.OpenTodayScreen, MoreEvent.OpenHealth,
                 MoreEvent.OpenWater, MoreEvent.OpenSupport, MoreEvent.OpenBugReport, MoreEvent.OpenFeedback,
                 MoreEvent.OpenPrivacy, MoreEvent.OpenTerms, MoreEvent.OpenCredits,
             ),
@@ -440,7 +440,7 @@ class MoreTest : CoroutineTest() {
         val rows = MoreStateBuilder.build(SettingsFixtures.settings(), healthConnected = true, remindersOn = true).groups[0]
         assertEquals(
             listOf(
-                MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.Reminders(quiet = true),
+                MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.TodayScreen, MoreRow.Reminders(quiet = true),
                 MoreRow.Health(connected = true),
             ),
             rows,
@@ -451,7 +451,7 @@ class MoreTest : CoroutineTest() {
     fun withTheRemindersFlagTheFirstCardGainsReminders_sayingWhetherQuietModeIsOn() = runUnitTest {
         val settings = SettingsFixtures.settings().copy(quiet = false)
         assertEquals(
-            listOf(MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.Reminders(quiet = false)),
+            listOf(MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.TodayScreen, MoreRow.Reminders(quiet = false)),
             MoreStateBuilder.build(settings, remindersOn = true).groups[0],
         )
 
@@ -461,6 +461,7 @@ class MoreTest : CoroutineTest() {
         assertEquals(listOf<MoreEvent>(MoreEvent.OpenReminders), events)
     }
 
+    /** Today's ⋮ menu opens the same page, so it is there whatever the release flags say. */
     @Test
     fun profile_leadsTheFirstCard_onlyWithGoalsAndEnergy_andOpensProfile() = runUnitTest {
         assertEquals(MoreRow.Profile, MoreStateBuilder.build(SettingsFixtures.settings(), goalsAndEnergyOn = true).groups[0].first())
@@ -472,10 +473,10 @@ class MoreTest : CoroutineTest() {
         assertEquals(listOf<MoreEvent>(MoreEvent.OpenProfile), events)
     }
 
+    /** Today's ⋮ menu opens the same page, so it is there whatever the release flags say. */
     @Test
-    fun todayScreen_followsTheTargets_onlyWithGoalsAndEnergy() {
-        val on = MoreStateBuilder.build(SettingsFixtures.settings(), goalsAndEnergyOn = true).groups[0]
-        assertEquals(MoreRow.TodayScreen, on[on.indexOf(MoreRow.Targets) + 1])
-        assertTrue(MoreRow.TodayScreen !in build().groups.flatten())
+    fun todayScreen_followsTheTargets_always() {
+        val first = MoreStateBuilder.build(SettingsFixtures.settings()).groups[0]
+        assertEquals(MoreRow.TodayScreen, first[first.indexOf(MoreRow.Targets) + 1])
     }
 }

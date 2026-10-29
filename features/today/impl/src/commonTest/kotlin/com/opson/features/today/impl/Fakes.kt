@@ -25,6 +25,7 @@ import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.TodaySummaryEnabled
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.nutrition.Display
@@ -94,6 +95,7 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
 
     val water = mutableListOf<Pair<LocalDate, Int>>()
     val removedWater = mutableListOf<Pair<LocalDate, Int>>()
+    val setWater = mutableListOf<Pair<LocalDate, Int>>()
     val copiedDays = mutableListOf<Pair<LocalDate, LocalDate>>()
     val copiedSlots = mutableListOf<Triple<LocalDate, LocalDate, MealSlot>>()
     val cleared = mutableListOf<LocalDate>()
@@ -148,7 +150,7 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
 
     override suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit> = open(day) { removedWater += day to ml }
 
-    override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = open(day) { }
+    override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = open(day) { setWater += day to ml }
 
     /** Records the close and marks the day closed, so what reads it sees the change. */
     override suspend fun closeDay(day: LocalDate, reflection: DayReflection) {

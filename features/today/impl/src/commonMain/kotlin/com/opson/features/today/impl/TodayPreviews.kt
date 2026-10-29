@@ -1,12 +1,12 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.LoggingHabits
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import com.opson.features.today.impl.dayclose.DayClosedSheetContent
 import com.opson.features.today.impl.dayclose.DayClosedState
 import com.opson.features.today.impl.item.ItemSheetStateBuilder
 import com.opson.features.today.impl.item.ItemStep
-import com.opson.features.today.impl.cards.TodayCardsSheetContent
 import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.item.ItemSheetContent
@@ -39,6 +39,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.PreviewContent
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.minus
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Clock
@@ -79,6 +80,8 @@ private fun Today(
     drag: FoodDrag = rememberFoodDrag(),
     burned: Burned? = null,
     activity: (@Composable () -> Unit)? = null,
+    habits: LoggingHabits? = null,
+    now: LocalTime? = null,
 ) {
     TodayScreen(
         state = TodayFixtures.todayState(
@@ -95,6 +98,8 @@ private fun Today(
             foodActionsOn = flagsOn,
             goalsAndEnergyOn = burned != null,
             burned = burned,
+            habits = habits,
+            now = now,
         ),
         onAction = {},
         drag = drag,
@@ -268,6 +273,20 @@ private fun TodayAddedDarkPreview() = Phone(dark = true) {
 @Composable
 private fun TodayUntrackedPreview() = Phone { Today(full, day = TodayFixtures.untrackedDay()) }
 
+/** 9:30 pm with one food logged against a usual day of nine: the late-day card offers to skip the day. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayLowLoggingPreview() = Phone {
+    Today(full, day = TodayFixtures.lightDay(), habits = TodayFixtures.habits, now = TodayFixtures.lateEvening)
+}
+
+/** The same evening in No numbers, where entries decide rather than energy. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayLowLoggingBlindDarkPreview() = Phone(dark = true) {
+    Today(policy(PresetId.NoNumbers), day = TodayFixtures.lightDay(), settings = Settings(numbers = NumbersSettings(PresetId.NoNumbers)), habits = TodayFixtures.habits, now = TodayFixtures.lateEvening)
+}
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayUntrackedBlindPreview() = Phone { Today(policy(PresetId.NoNumbers), day = TodayFixtures.untrackedDay()) }
@@ -361,30 +380,6 @@ private fun TodayDayMenuPreview() = Phone { TodayWithMenu(full) }
 private fun TodayDayMenuArmedDarkPreview() = Phone(dark = true) { TodayWithMenu(full, clearArmed = true) }
 
 // Sheets
-
-@Preview(widthDp = 390)
-@Composable
-private fun TodayCardsSheetPreview() = Phone {
-    // v3 draws fiber hidden in Modes and numbers, so its row shows the lock.
-    val fiberHidden = VisibilityPolicy(
-        NumbersSettings(preset = PresetId.Full, overrides = mapOf(Metric.Fiber to Visibility.Hide)),
-        Clock.fixed(TodayFixtures.noon),
-        TodayFixtures.timeZone,
-    )
-    TodayCardsSheetContent(TodayFixtures.todayCardsState(fiberHidden, TodayFixtures.changingWeight, summaryOn = true), onAction = {})
-}
-
-/** With the summary flag off: the cards alone, as before. */
-@Preview(widthDp = 390)
-@Composable
-private fun TodayCardsSheetFlagOffPreview() = Phone { TodayCardsSheetContent(TodayFixtures.todayCardsState(full), onAction = {}) }
-
-/** 0.2: with fasting offered and its timer on, the Fasting card switch joins the sheet. */
-@Preview(widthDp = 390)
-@Composable
-private fun TodayCardsSheetFastingPreview() = Phone {
-    TodayCardsSheetContent(TodayFixtures.todayCardsState(full, Settings(fasting = true), fastingReleased = true), onAction = {})
-}
 
 /** 0.2: the fasting card on an empty morning, 13h 40m into last night's fast. */
 @Preview(widthDp = 390, heightDp = 844)

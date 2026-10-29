@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,9 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -158,6 +162,10 @@ fun StatementSummaryCard(
 /**
  * Today's water card: the water drop, "Water" and its amount (nothing when hidden), the glasses
  * as segments, and the + that opens the water sheet.
+ *
+ * With [onGlassTap] each glass is a tap target: a tap fills the glasses up to it, and a tap on the
+ * last full one empties it, so a mistaken tap is one more tap to undo. [glassLabels] are what a
+ * screen reader says for each ("Glass 3 of 8"), one per glass.
  */
 @Composable
 fun WaterCard(
@@ -169,22 +177,70 @@ fun WaterCard(
     onAdd: (() -> Unit)?,
     addIcon: IconResource,
     modifier: Modifier = Modifier,
+    onGlassTap: ((Int) -> Unit)? = null,
+    glassLabels: List<GlassLabel> = emptyList(),
 ) {
     TodayCard(modifier = modifier, contentPadding = PaddingValues(start = 20.dp, end = 14.dp, top = 14.dp, bottom = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
             RowIcon(icon = AppIcons.WaterDrop, color = AppTheme.colors.nutrients.water.content)
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val tappable = onGlassTap != null && showSegments
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(if (tappable) 0.dp else 8.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                     Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
                     NutrientText(Metric.Water, display, typography = AppTheme.type.secondary.Tabular, color = AppTheme.colors.muted, maxLines = 1)
                 }
-                if (showSegments) SegmentedBar(filled = filled, total = total)
+                when {
+                    !showSegments -> Unit
+                    onGlassTap != null -> GlassSegments(filled = filled, total = total, labels = glassLabels, onTap = onGlassTap)
+                    else -> SegmentedBar(filled = filled, total = total)
+                }
             }
             // No + on a day closed with Close the day: it takes nothing until it is reopened.
             onAdd?.let { RoundIconButton(icon = addIcon, onClick = it, size = MinTouchTarget) }
         }
     }
 }
+
+/** What a screen reader says for one glass: which it is, whether it is full, and what a tap does. */
+data class GlassLabel(val name: String, val state: String, val action: String)
+
+/**
+ * [SegmentedBar]'s glasses, each its own tap target: the bar is still 6 dp, drawn in the middle of
+ * a taller strip so a fingertip can land on one glass.
+ */
+@Composable
+private fun GlassSegments(filled: Int, total: Int, labels: List<GlassLabel>, onTap: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().height(GlassTapHeight), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        repeat(total.coerceAtLeast(0)) { index ->
+            val label = labels.getOrNull(index)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .semantics(mergeDescendants = true) {
+                        if (label != null) {
+                            contentDescription = label.name
+                            stateDescription = label.state
+                            onClick(label = label.action) { onTap(index); true }
+                        }
+                    }
+                    .bounceClick(scaleDown = 0.9f, onClick = { onTap(index) }),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(AppTheme.shapes.bar)
+                        .background(if (index < filled.coerceIn(0, total)) AppTheme.colors.nutrients.water.content else AppTheme.colors.track),
+                )
+            }
+        }
+    }
+}
+
+/** Tall enough to aim at one glass without the card growing much. */
+private val GlassTapHeight = 28.dp
 
 /** One logged item on a [TodayMealCard]. [repeat]: a repeat logged it. */
 data class MealCardItem(
@@ -585,7 +641,7 @@ private fun TodayCardsPreview() {
         val n = AppTheme.colors.nutrients
         val lunch = NutrientAmounts(kcal = 515.0, protein = 30.0, carbs = 50.0, fat = 20.0)
         Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
-            WaterCard("Water", policy.resolve(Metric.Water, 750.0, Surface.Today), 3, 8, true, {}, AppIcons.Add)
+            WaterCard("Water", policy.resolve(Metric.Water, 750.0, Surface.Today), 3, 8, true, {}, AppIcons.Add, onGlassTap = {})
             TodayMealCard(
                 icon = AppIcons.LunchDining,
                 iconColor = n.fat.content,

@@ -14,7 +14,7 @@ import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.ProviderSummaryEnabled
 import com.opson.features.today.impl.TodayFoodActionsEnabled
 import com.opson.features.today.impl.TodaySelectEnabled
-import com.opson.features.today.impl.TodaySummaryEnabled
+import com.opson.libraries.diary.TodaySummaryEnabled
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.config.ConfiguredValue
 import com.opson.libraries.config.DoubleConfigValue

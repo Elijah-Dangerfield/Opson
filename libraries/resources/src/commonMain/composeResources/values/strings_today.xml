@@ -51,6 +51,11 @@
     <!-- Water and meal cards -->
     <string name="today_water">Water</string>
     <string name="today_water_cd">Water options</string>
+    <string name="today_water_glass_cd">Glass %1$d of %2$d</string>
+    <string name="today_water_glass_full">Full</string>
+    <string name="today_water_glass_empty">Empty</string>
+    <string name="today_water_glass_fill">Fill to here</string>
+    <string name="today_water_glass_take_off">Take this glass off</string>
     <string name="today_add_to_cd">Add to %1$s</string>
     <string name="today_all_food">All food</string>
     <string name="today_item_sub">%1$s · %2$s</string>
@@ -76,16 +81,13 @@
     <string name="today_menu_add_note">Add a note</string>
     <string name="today_menu_untracked">Mark as untracked</string>
     <string name="today_menu_tracked">Track this day again</string>
-    <string name="today_menu_edit_cards">Edit Today's cards</string>
+    <string name="today_menu_edit_cards">Edit Today screen</string>
     <string name="today_menu_clear">Clear this day</string>
     <string name="today_menu_clear_confirm">Tap again to clear</string>
 
     <!-- Today's cards sheet -->
-    <string name="today_cards_title">Today's cards</string>
     <string name="today_cards_groups">Meal groups</string>
     <string name="today_cards_groups_body">Breakfast, lunch, snack and dinner. Off puts everything in one list.</string>
-    <string name="today_cards_water">Water</string>
-    <string name="today_cards_water_body">The water card and its glasses.</string>
 
     <!-- Calendar -->
     <string name="today_cal_prev_cd">Previous month</string>
@@ -141,8 +143,6 @@
     <string name="today_daynote_save">Save</string>
 
     <!-- Toasts -->
-    <string name="today_toast_saved">Saved.</string>
-    <string name="today_toast_saved_fewer">Saved. Fewer numbers from now on.</string>
     <string name="today_toast_water">Glass of water added.</string>
     <string name="today_toast_water_added">Water added.</string>
     <string name="today_toast_water_removed">Removed a glass.</string>
@@ -156,6 +156,10 @@
     <string name="today_untracked_title">Not tracking this day</string>
     <string name="today_untracked_body">Trends leaves a gap here, not a low day.</string>
     <string name="today_untracked_action">Track it again</string>
+    <string name="today_lowlog_title">Looks like logging got away from you today</string>
+    <string name="today_lowlog_body">That's okay. Want to skip today so it doesn't skew your trends? Not every day needs to be perfect.</string>
+    <string name="today_lowlog_skip">Skip today</string>
+    <string name="today_lowlog_later">Not now</string>
     <string name="today_toast_note_saved">Note saved to %1$s.</string>
     <string name="today_toast_removed">Removed from %1$s.</string>
     <string name="today_toast_daynote_saved">Note saved.</string>
@@ -225,18 +229,13 @@
     <string name="today_weight">Weight</string>
     <string name="today_weight_this_morning">This morning · %1$s</string>
     <string name="today_weight_today">Today · %1$s</string>
-    <string name="today_summary_card">Summary card</string>
-    <string name="today_summary_done">Done</string>
     <string name="today_summary_suggested">Suggested from your goals: %1$s</string>
     <string name="today_summary_suggested_plain">Suggested for you</string>
     <string name="today_summary_reset">Reset</string>
     <string name="today_summary_page_one">Page 1 · up to 3 stats</string>
     <string name="today_summary_page_count">%1$d of %2$d</string>
-    <string name="today_summary_page_two">Page 2 · Macros</string>
-    <string name="today_summary_page_two_body">Swipe to see it</string>
     <string name="today_summary_move_up">Move up</string>
     <string name="today_summary_move_down">Move down</string>
-    <string name="today_cards_section">Cards</string>
 
     <!-- Design sync 2: select foods and swipe to delete (2.12 to 2.14) -->
     <string name="today_select_title">%1$d selected</string>
@@ -244,6 +243,7 @@
     <string name="today_select_foods_one">1 food</string>
     <string name="today_select_foods_other">%1$d foods</string>
     <string name="today_select_copy">Copy to…</string>
+    <string name="today_select_save_meal">Save as meal</string>
     <string name="today_select_move">Move</string>
     <string name="today_select_copy_title">Copy to</string>
     <string name="today_select_copy_action">Copy</string>

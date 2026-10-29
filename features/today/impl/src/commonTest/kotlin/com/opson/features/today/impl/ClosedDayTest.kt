@@ -70,6 +70,7 @@ class ClosedDayTest : CoroutineTest() {
         goalsAndEnergy = goalsAndEnergyFlag(false),
         burnedRepository = FakeBurnedRepository(),
         cardView = TodayCardViewStore(FakeCacheFactory()),
+        nudges = TodayNudgeStore(FakeCacheFactory()),
     )
 
     private fun <E> TestScope.collect(flow: Flow<E>): List<E> {

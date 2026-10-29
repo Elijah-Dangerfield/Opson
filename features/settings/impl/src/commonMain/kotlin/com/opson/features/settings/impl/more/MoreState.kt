@@ -60,7 +60,7 @@ sealed interface MoreRow {
      */
     data object Profile : MoreRow
 
-    /** More › Today screen (design sync 4, 13.6), with `release.goalsAndEnergy`. */
+    /** More › Today screen (design sync 4, 13.6), always: the release flags only decide what it arranges. */
     data object TodayScreen : MoreRow
 
     /** "Quiet mode on" or "Quiet mode off", as v3. Only with `release.reminders` on. */
@@ -126,7 +126,7 @@ object MoreStateBuilder {
                 MoreRow.Profile.takeIf { goalsAndEnergyOn },
                 MoreRow.Display(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
                 MoreRow.Targets,
-                MoreRow.TodayScreen.takeIf { goalsAndEnergyOn },
+                MoreRow.TodayScreen,
                 MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
                 healthConnected?.let { MoreRow.Health(connected = it) },
             ),
