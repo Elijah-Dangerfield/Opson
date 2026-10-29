@@ -240,7 +240,8 @@ in, on that day only (a back-fill says nothing about when), and the usual time
 is the weighted median of those, a day's weight halving every two weeks,
 rounded to five minutes. A meal needs three days to be learned; until then its
 time is the person's own (`Settings.mealTimes`, from onboarding and Reminders).
-Untracked days and today are left out. Today's "Usually around", the No
+Untracked days are left out; today counts for the times, so a meal logged now
+moves its time at once, but not for the usual day's size. Today's "Usually around", the No
 numbers timeline and the Counted card's next meal read `TodayInputs.usualTimes`.
 Meal reminders keep the times the person set on Reminders: a reminder they
 chose should not move on its own.

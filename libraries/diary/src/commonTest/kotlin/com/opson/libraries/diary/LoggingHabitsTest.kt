@@ -75,12 +75,19 @@ class LoggingHabitsTest {
     }
 
     @Test
-    fun backFilledItems_untrackedDays_today_andDaysPastTheWindow_sayNothingAboutWhen() {
+    fun aMealLoggedToday_countsForItsTime_butNotForTheUsualDay() {
+        val days = (1..2).map { day(ago(it), item(ago(it), MealSlot.Lunch, 13, 0)) } + day(today, item(today, MealSlot.Lunch, 13, 0))
+        val habits = habits(days)
+        assertEquals(LocalTime(13, 0), habits.usual.lunch, "two days and today make three")
+        assertEquals(2, habits.loggedDays)
+    }
+
+    @Test
+    fun backFilledItems_untrackedDays_andDaysPastTheWindow_sayNothingAboutWhen() {
         val backFilled = (1..3).map { day(ago(it), item(ago(it), MealSlot.Breakfast, 21, 0, loggedOn = ago(it - 1))) }
         val untracked = (4..6).map { day(ago(it), item(ago(it), MealSlot.Breakfast, 11, 0), untracked = true) }
         val outside = (30..32).map { day(ago(it), item(ago(it), MealSlot.Breakfast, 6, 0)) }
-        val now = day(today, item(today, MealSlot.Breakfast, 10, 0))
-        val habits = habits(backFilled + untracked + outside + now)
+        val habits = habits(backFilled + untracked + outside)
         assertEquals(own.breakfast, habits.usual.breakfast)
         assertEquals(3, habits.loggedDays, "back-filled days still count as logged, untracked and out-of-window ones don't")
     }

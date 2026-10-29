@@ -45,8 +45,9 @@ object LoggingHabitsEstimator {
     private const val MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR
 
     /**
-     * Habits from [days] in the [WINDOW_DAYS] before [today]; today itself is left out, so the
-     * times don't move while today is being logged. A day marked untracked says nothing.
+     * Habits from [days] in the [WINDOW_DAYS] before [today]. Today's meals count for when meals
+     * usually are, so a meal logged now moves its time at once; today is left out of the usual
+     * day's size, which today is measured against. A day marked untracked says nothing.
      *
      * A meal's time on a day is when its first item was logged, and only when that was on the
      * meal's own day: an item back-filled later says nothing about when it was eaten. Each
@@ -55,8 +56,8 @@ object LoggingHabitsEstimator {
      */
     fun of(days: List<Day>, today: LocalDate, timeZone: TimeZone, fallback: MealTimes): LoggingHabits {
         val from = today.minus(WINDOW_DAYS, DateTimeUnit.DAY)
-        val window = days.filter { it.date >= from && it.date < today && !it.untracked }
-        val logged = window.filter { it.hasLogged }
+        val window = days.filter { it.date >= from && it.date <= today && !it.untracked }
+        val logged = window.filter { it.hasLogged && it.date < today }
 
         var usual = fallback
         val learned = mutableSetOf<MealSlot>()

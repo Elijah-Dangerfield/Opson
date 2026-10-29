@@ -530,8 +530,8 @@ data class TodayInputs(
     /** The card's page and collapse as left on this phone, with [summaryOn]. */
     val cardView: TodayCardView = TodayCardView(),
     /**
-     * How the person usually logs, from the four weeks before today: the "Usually around" times
-     * and what the late-day card compares with. Null reads the times they set.
+     * How the person usually logs, from the last four weeks: the "Usually around" times and what
+     * the late-day card compares with. Null reads the times they set.
      */
     val habits: LoggingHabits? = null,
     /** The time of day now, to five minutes, for the late-day card; null where nothing reads it. */

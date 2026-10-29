@@ -565,12 +565,12 @@ class TodayViewModel(
     )
 
     /**
-     * How the person usually logs, from the four weeks before today, learned again as the log or
-     * their own meal times change and when the date turns. Today itself is left out.
+     * How the person usually logs, from the four weeks up to today, learned again as meals are
+     * logged, as their own meal times change and when the date turns.
      */
     private fun habits(): Flow<LoggingHabits> =
         ticker.ticks().map { calendar.today() }.distinctUntilChanged().flatMapLatest { today ->
-            val history = diary.observeDays(today.minus(DatePeriod(days = LoggingHabitsEstimator.WINDOW_DAYS)), today.minus(DatePeriod(days = 1)))
+            val history = diary.observeDays(today.minus(DatePeriod(days = LoggingHabitsEstimator.WINDOW_DAYS)), today)
             combine(history, settingsRepository.settings.map { it.mealTimes }.distinctUntilChanged()) { days, own ->
                 LoggingHabitsEstimator.of(days, today, calendar.timeZone(), own)
             }
