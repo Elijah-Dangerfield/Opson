@@ -19,6 +19,10 @@
     <!-- The amount the detail had on screen: "1 can (473 g)". -->
     <string name="food_report_values_for">As the pack gives them for %1$s.</string>
     <string name="food_report_values_for_100">As the pack gives them for 100 g.</string>
+    <!-- The detail's amount with its weight added, when the amount does not say it: "1 cup (81 g)". -->
+    <string name="food_report_basis_weight">%1$s (%2$d g)</string>
+    <!-- The unit beside the protein, carbs and fat fields. -->
+    <string name="food_report_unit_g">g</string>
     <string name="food_report_calories">Calories</string>
     <string name="food_report_protein">Protein</string>
     <string name="food_report_carbs">Carbs</string>

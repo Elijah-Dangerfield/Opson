@@ -303,7 +303,7 @@ object SubmitFoodStateBuilder {
             missing = requiredHere && key in missing,
         )
 
-        fun nutrient(key: LabelNutrient) = NutrientField(key, field(key.wire), key.unit.symbol)
+        fun nutrient(key: LabelNutrient) = NutrientField(key, field(key.wire), key.unit.label)
 
         val numbers = if (shown) {
             FormNumbers(
@@ -340,14 +340,14 @@ object SubmitFoodStateBuilder {
     }
 
     private fun row(check: LabelCheck, model: SubmitModel): CheckRow {
-        val unit = model.servingUnit.wire
+        val unit = model.servingUnit.label
         val field = check.fields.first()
         val nutrient = LabelNutrient.fromWire(field)
-        fun withUnit(value: Double?): String? = value?.let {
+        fun withUnit(value: Double?): UnitAmount? = value?.let {
             when {
-                field == SubmitFoodForm.SERVING_SIZE -> "${SubmitFoodForm.amount(it)} $unit"
-                nutrient != null -> "${SubmitFoodForm.amount(it, nutrient.unit)} ${nutrient.unit.symbol}"
-                else -> SubmitFoodForm.amount(it)
+                field == SubmitFoodForm.SERVING_SIZE -> UnitAmount(SubmitFoodForm.amount(it), unit)
+                nutrient != null -> UnitAmount(SubmitFoodForm.amount(it, nutrient.unit), nutrient.unit.label)
+                else -> UnitAmount(SubmitFoodForm.amount(it))
             }
         }
         val kept = (check.code to field) in model.kept

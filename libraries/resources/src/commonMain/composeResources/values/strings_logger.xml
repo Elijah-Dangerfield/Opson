@@ -47,6 +47,8 @@
     <string name="logger_read_as">We read that as</string>
     <string name="logger_quick_title">Or just the numbers</string>
     <string name="logger_quick_name">Name (optional)</string>
+    <!-- The name a quick add is logged under when the name field is left empty. Stored on the entry, so it shows in the diary. -->
+    <string name="logger_quick_add_name">Quick add</string>
     <string name="logger_quick_calories">Calories</string>
     <string name="logger_quick_protein">Protein</string>
     <string name="logger_quick_carbs">Carbs</string>

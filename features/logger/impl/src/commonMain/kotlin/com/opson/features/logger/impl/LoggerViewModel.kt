@@ -60,11 +60,15 @@ import kotlin.time.Duration.Companion.seconds
  *
  * The state is rebuilt from [model] by [LoggerStateBuilder] after every action; [model] holds
  * what was read and what the person chose, and only [handleAction] changes it.
+ *
+ * [quickAddName] is the name a quick add nobody named is logged under, resolved by the entry point
+ * so this needs no resources to open.
  */
 @Inject
 @Suppress("TooManyFunctions", "LongParameterList")
 class LoggerViewModel(
     @Assisted route: LoggerRoute,
+    @Assisted private val quickAddName: String,
     private val diary: DiaryRepository,
     private val customFoods: CustomFoodRepository,
     private val savedMeals: SavedMealRepository,
@@ -428,7 +432,7 @@ class LoggerViewModel(
     /** Quick add: one item, the numbers as this mode takes them (the policy has the last word, even over a field still on screen). */
     private suspend fun addQuick() {
         if (model.inputs == null || written) return
-        val draft = QuickAdd.draft(model.choices.quickAdd, model.policy) ?: return
+        val draft = QuickAdd.draft(model.choices.quickAdd, model.policy, quickAddName) ?: return
         val slot = slot()
         // A closed day refuses it, and the sheet stays open on "Today is closed" with Reopen.
         val items: List<LogItem> = diary.addItems(day, slot, listOf(draft), LogMethod.QuickNumber).valueOrNull() ?: return

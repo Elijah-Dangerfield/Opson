@@ -117,11 +117,11 @@ sealed interface FoodDetailEvent {
     data class DayClosed(val day: LocalDate) : FoodDetailEvent
 
     /**
-     * Report a problem with this food. [context] names it by id only, never by its name or
-     * numbers, for the bug report. [target] is a catalog food and the amount on screen, for
+     * Report a problem with this food. [refKey] names it by id only, never by its name or
+     * numbers, for the bug report's captured details. [target] is a catalog food and the amount on screen, for
      * "Report a problem" itself (`release.foodReports`); null for the person's own food.
      */
-    data class OpenReport(val context: String, val target: ReportTarget? = null) : FoodDetailEvent
+    data class OpenReport(val refKey: String, val target: ReportTarget? = null) : FoodDetailEvent
 
     /** Check a catalog food against the pack in hand ([target] is the food and the amount on screen). */
     data class OpenCheck(val target: ReportTarget) : FoodDetailEvent
@@ -336,7 +336,7 @@ class FoodDetailViewModel(
                 settingsRepository.update { it.hideFromRecent(food.key, clock.now().toEpochMilliseconds()) }
             }
             // Ids only: a report is read by people, and the food's name or numbers are this person's log.
-            FoodDetailAction.ReportTapped -> ref?.let { sendEvent(FoodDetailEvent.OpenReport("Food detail: ${it.key}", reportTarget())) }
+            FoodDetailAction.ReportTapped -> ref?.let { sendEvent(FoodDetailEvent.OpenReport(it.key, reportTarget())) }
             FoodDetailAction.CheckTapped -> reportTarget()?.let { sendEvent(FoodDetailEvent.OpenCheck(it)) }
             FoodDetailAction.EditCopyTapped -> editCopy()
             FoodDetailAction.AddToMealTapped -> if (entryId != null) saveChanges() else addToMeal()

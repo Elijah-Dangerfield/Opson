@@ -165,7 +165,7 @@ private fun Rows(stage: CheckStage.Differs) {
             )
             RowLine(label = "", pack = stringResource(Res.string.builder_check_row_pack), opson = stringResource(Res.string.builder_check_row_opson), strong = false)
             stage.rows.forEach { row ->
-                RowLine(label = stringResource(row.nutrient.label), pack = row.pack, opson = row.opson, strong = row.differs)
+                RowLine(label = stringResource(row.nutrient.label), pack = row.pack.shown(), opson = row.opson.shown(), strong = row.differs)
             }
         }
     }
@@ -180,6 +180,10 @@ private fun RowLine(label: String, pack: String, opson: String, strong: Boolean)
         Text(opson, typography = type, color = AppTheme.colors.muted, modifier = Modifier.weight(1f))
     }
 }
+
+/** A side with no figure reads as a dash. */
+@Composable
+private fun UnitAmount?.shown(): String = this?.text() ?: NO_FIGURE
 
 @Composable
 private fun Retake(onAction: (CheckFoodAction) -> Unit) {
@@ -211,3 +215,5 @@ private val CheckProblem.message: StringResource
         CheckProblem.NotBuilder -> Res.string.builder_check_not_builder
         CheckProblem.Unavailable -> Res.string.builder_check_unavailable
     }
+
+private const val NO_FIGURE = "–"

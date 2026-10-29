@@ -742,8 +742,8 @@ class FoodDetailTest : CoroutineTest() {
         runCurrent()
 
         val report = assertIs<FoodDetailEvent.OpenReport>(events.single())
-        assertEquals("Food detail: f:peanut-butter", report.context)
-        assertFalse("Peanut" in report.context)
+        assertEquals("f:peanut-butter", report.refKey)
+        assertFalse("Peanut" in report.refKey, "the bug report names the food by id, never by its name")
         // For "Report a problem" itself: the catalog food and the amount on screen, which suggested numbers are read for.
         val target = assertNotNull(report.target)
         assertEquals("peanut-butter", target.foodId)

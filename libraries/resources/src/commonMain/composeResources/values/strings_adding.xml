@@ -104,6 +104,8 @@
     <string name="adding_detail_yours_checked">Checked and added to Opson's food database.</string>
     <string name="adding_detail_remove_recent">Remove from recents</string>
     <string name="adding_detail_report">Report a problem</string>
+    <!-- Under Captured details on the bug report, for a food that goes there rather than to a food report: the food's id. -->
+    <string name="adding_detail_report_context">Food detail: %1$s</string>
     <string name="adding_detail_edit_copy">Edit a copy</string>
     <!-- A food already on the log, opened from Today -->
     <string name="adding_detail_save">Save changes</string>

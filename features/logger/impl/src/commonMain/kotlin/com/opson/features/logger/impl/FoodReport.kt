@@ -57,7 +57,7 @@ data class FoodReportState(
  * the serving is asked.
  */
 data class ReportValues(
-    val basis: String?,
+    val basis: ReportBasis?,
     val numbers: Boolean,
     val kcal: String = "",
     val protein: String = "",
@@ -65,6 +65,12 @@ data class ReportValues(
     val fat: String = "",
     val serving: String = "",
 )
+
+/**
+ * The amount the numbers are for, as the detail had it ("1 cup"), and its weight in grams when the
+ * amount does not say it already. The sheet words the two together, "1 cup (81 g)".
+ */
+data class ReportBasis(val amount: String, val grams: Long? = null)
 
 /** Why the last send did not go. The sheet keeps everything typed, to try again. */
 enum class ReportProblem { Offline, Failed, TooMany, Gone }
@@ -154,11 +160,11 @@ object FoodReportStateBuilder {
     )
 
     /** "8 fl oz (240 ml)" as the detail had it, its weight added when the amount does not say it. */
-    fun basis(model: FoodReportModel): String? {
+    fun basis(model: FoodReportModel): ReportBasis? {
         val text = model.amountText?.trim()?.ifEmpty { null } ?: return null
         val grams = model.amountGrams ?: return null
-        if (Regex("""\d\s*(g|ml)\b""", RegexOption.IGNORE_CASE).containsMatchIn(text)) return text
-        return "$text (${round(grams).toLong()} g)"
+        if (Regex("""\d\s*(g|ml)\b""", RegexOption.IGNORE_CASE).containsMatchIn(text)) return ReportBasis(text)
+        return ReportBasis(text, round(grams).toLong())
     }
 
     /**

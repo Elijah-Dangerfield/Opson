@@ -326,7 +326,7 @@ dayBefore, settings, basket, usualBySlot, recent, customFoods, savedMeals)`.
 | `DescribeReviewAction` | Per-line amount, unit, swap, remove and find (describe.md). |
 | `QuickAddAction.NameTyped` / `NumberTyped(metric, text)` | The optional name and the five numbers (`QuickAdd`). Energy takes digits, grams a decimal. |
 | `QuickAddAction.UseMacroEnergyTapped` / `FitMacrosTapped` | The energy and macros disagree beyond 15 kcal or 12% (`MacroEnergyCheck`): set the energy to their 4/4/9, or scale protein, carbs and fat to the energy. |
-| `QuickAddAction.AddTapped` | Some offered number above 0 logs one item, named "Quick add" unless named (`QuickNumber`), `LoggedToMeal`, `Dismiss`. With no energy typed, or calories hidden, it stores the macros' 4/4/9. |
+| `QuickAddAction.AddTapped` | Some offered number above 0 logs one item, named "Quick add" (`logger_quick_add_name`, resolved by the entry point) unless named (`QuickNumber`), `LoggedToMeal`, `Dismiss`. With no energy typed, or calories hidden, it stores the macros' 4/4/9. |
 | `BackTapped` | Describe / Saved back to Search; leaving Describe drops its lines. System back does the same. |
 | `AddToMealTapped` | `BasketCommitter.commit`, then `OpenHowItFelt(day, slot)` or `Dismiss`. |
 | `CloseTapped` | `Dismiss`. |

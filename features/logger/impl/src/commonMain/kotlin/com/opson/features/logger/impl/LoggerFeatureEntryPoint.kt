@@ -74,11 +74,14 @@ import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.adding_added
 import opson.libraries.resources.generated.resources.adding_detail_removed
+import opson.libraries.resources.generated.resources.adding_detail_report_context
 import opson.libraries.resources.generated.resources.adding_detail_saved
 import opson.libraries.resources.generated.resources.adding_undo
 import opson.libraries.resources.generated.resources.adding_water_added
+import opson.libraries.resources.generated.resources.logger_quick_add_name
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
@@ -89,7 +92,7 @@ import kotlin.reflect.typeOf
 @Inject
 @Suppress("LongParameterList")
 class LoggerFeatureEntryPoint(
-    private val loggerViewModelFactory: (LoggerRoute) -> LoggerViewModel,
+    private val loggerViewModelFactory: (LoggerRoute, String) -> LoggerViewModel,
     private val exerciseViewModelFactory: (ExerciseRoute) -> ExerciseSheetViewModel,
     private val searchViewModelFactory: (FoodSearchRoute) -> FoodSearchViewModel,
     private val detailViewModelFactory: (DetailOpen) -> FoodDetailViewModel,
@@ -239,7 +242,9 @@ class LoggerFeatureEntryPoint(
 
     @Composable
     private fun LoggerSheet(route: LoggerRoute, sheetState: BottomSheetState, router: Router) {
-        val viewModel: LoggerViewModel = viewModel { loggerViewModelFactory(route) }
+        // A quick add nobody named is logged under this, resolved here so the view model needs no resources.
+        val quickAddName = stringResource(Res.string.logger_quick_add_name)
+        val viewModel: LoggerViewModel = viewModel { loggerViewModelFactory(route, quickAddName) }
         val state by viewModel.stateFlow.collectAsStateWithLifecycle()
         // Only with release.voice on: off, nothing about the microphone is even composed.
         val requestMic: (() -> Unit)? = if (state.describe.voice != null) {
@@ -418,7 +423,8 @@ class LoggerFeatureEntryPoint(
                 // A catalog food goes to Opson's reviewers as a food report; the person's own food, or any food with
                 // release.foodReports off, to the bug report with its ref.
                 is FoodDetailEvent.OpenReport -> router.navigate(
-                    event.target?.takeIf { foodReports() }?.route() ?: BugReportRoute(contextMessage = event.context),
+                    event.target?.takeIf { foodReports() }?.route()
+                        ?: BugReportRoute(contextMessage = getString(Res.string.adding_detail_report_context, event.refKey)),
                 )
                 is FoodDetailEvent.OpenCheck -> router.navigate(CheckFoodRoute(event.target.foodId, event.target.name))
                 is FoodDetailEvent.OpenEditCopy -> router.navigate(
