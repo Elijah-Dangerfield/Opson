@@ -158,10 +158,10 @@ import org.jetbrains.compose.resources.stringResource
 
 /**
  * The Today tab (design sync 2, 2.1 to 2.14): the pinned day header with Close the day's button
- * (or the select header), the collapsed summary line when the person chose it, then the list: the
- * summary card the layout and levels call for, the cards the state carries, and the meals. Once the card
- * scrolls away its one-line form sticks under the header. Stateless; [TodayViewModel] owns what
- * it shows and the scroll is the only thing kept here.
+ * (or the select header), then the list: the summary card the layout and levels call for, the
+ * cards the state carries, the meals, and Activity last. Once the card scrolls away its one-line
+ * form sticks under the header. Stateless; [TodayViewModel] owns what it shows and the scroll is
+ * the only thing kept here.
  */
 @Composable
 fun TodayScreen(
@@ -169,9 +169,9 @@ fun TodayScreen(
     onAction: (TodayAction) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
-    burned: (@Composable () -> Unit)? = null,
+    activity: (@Composable () -> Unit)? = null,
     contributed: List<ContributedCard> = emptyList(),
-) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState, burned, contributed)
+) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState, activity, contributed)
 
 /** [TodayScreen] with the [drag] handed in, so a preview can hold foods mid-drag (13.3c). */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -182,14 +182,14 @@ internal fun TodayScreen(
     drag: FoodDrag,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
-    /** The Burned section (`release.exercise`), with its own view model; null leaves it out. */
-    burned: (@Composable () -> Unit)? = null,
+    /** The Activity card (`release.exercise`), with its own view model; null leaves it out. */
+    activity: (@Composable () -> Unit)? = null,
     /** Cards other modules add (`TodayCardContribution`), drawn after Fasting. */
     contributed: List<ContributedCard> = emptyList(),
 ) {
-    val hasBurned = burned != null
+    val hasActivity = activity != null
     val contributedKeys = contributed.map { it.key }
-    val rows = remember(state, hasBurned, contributedKeys) { todayRows(state, hasBurned, contributedKeys) }
+    val rows = remember(state, hasActivity, contributedKeys) { todayRows(state, hasActivity, contributedKeys) }
     val scope = rememberCoroutineScope()
     // Back leaves selecting, or puts a row's confirmation away, before it leaves Today.
     BackHandler(enabled = state.selection != null) { onAction(TodayAction.SelectionClosed) }
@@ -226,9 +226,6 @@ internal fun TodayScreen(
             } else {
                 Box(Modifier.padding(horizontal = AppTheme.spacing.row)) { Header(state, onAction) }
             }
-            if (state.collapsed && compact != null && selection == null) {
-                CollapsedSummary(compact, onAction, Modifier.padding(start = AppTheme.spacing.row, end = AppTheme.spacing.row, bottom = AppTheme.spacing.section))
-            }
             // Clipped so the sticky bar slides out from under the header rather than over it. The box
             // follows a drag once a row's handle starts one (13.3c).
             Box(
@@ -251,7 +248,7 @@ internal fun TodayScreen(
                     // A slot scrolled off is reused for a row of the same kind: a meal card for a meal card.
                     items(rows, key = { it.key }, contentType = { it::class }) { row ->
                         when (row) {
-                            TodayRow.Burned -> burned?.invoke()
+                            TodayRow.Activity -> activity?.invoke()
                             is TodayRow.Contributed -> contributed.firstOrNull { it.key == row.cardKey }?.content?.invoke()
                             else -> TodayListItem(row, state, rowContext, drag, onAction)
                         }
@@ -266,7 +263,7 @@ internal fun TodayScreen(
                     )
                 }
                 StickyLayer(
-                    compact = compact?.takeIf { !state.collapsed && selection == null },
+                    compact = compact?.takeIf { selection == null },
                     visible = scrolledPast,
                     page = state.summaryPage,
                     onScrollToTop = { scope.launch { listState.animateScrollToItem(0) } },
@@ -367,22 +364,21 @@ internal sealed interface TodayRow {
     data class Fasting(val status: FastingStatus) : TodayRow { override val key = "fasting" }
     data class Water(val water: WaterRow) : TodayRow { override val key = "water" }
     data class Weight(val weight: WeightRow) : TodayRow { override val key = "weight" }
-    data object Burned : TodayRow { override val key = "burned" }
+    data object Activity : TodayRow { override val key = "activity" }
 
     /** A card another module drew; see [ContributedCard]. */
     data class Contributed(val cardKey: String) : TodayRow { override val key = "contributed-$cardKey" }
     data class Meal(val entry: MealEntry) : TodayRow { override val key = "meal-${entry.slot.wire}" }
 }
 
-internal fun todayRows(state: TodayState, burned: Boolean = false, contributed: List<String> = emptyList()): List<TodayRow> = buildList {
+internal fun todayRows(state: TodayState, activity: Boolean = false, contributed: List<String> = emptyList()): List<TodayRow> = buildList {
     if (state.loading) {
         add(TodayRow.Loading)
         return@buildList
     }
     state.banner?.let { add(TodayRow.Banner(it)) }
     if (state.planning) add(TodayRow.Planning)
-    // Collapsed, the card is the pinned line above the list instead.
-    state.summary?.takeUnless { state.collapsed }?.let { add(TodayRow.Summary(it)) }
+    state.summary?.let { add(TodayRow.Summary(it)) }
     if (state.untracked) add(TodayRow.Untracked)
     if (state.closed) add(TodayRow.Closed)
     state.mealTiles?.let { add(TodayRow.Tiles(it)) }
@@ -390,8 +386,9 @@ internal fun todayRows(state: TodayState, burned: Boolean = false, contributed: 
     contributed.forEach { add(TodayRow.Contributed(it)) }
     state.water?.let { add(TodayRow.Water(it)) }
     state.weight?.let { add(TodayRow.Weight(it)) }
-    if (burned) add(TodayRow.Burned)
     state.meals.forEach { add(TodayRow.Meal(it)) }
+    // Below the meals: food is what Today is for, and what was burned is read after it (owner feedback, 2026-10-29).
+    if (activity) add(TodayRow.Activity)
 }
 
 /** The rows foods can be dropped on, by list key: a meal with foods, or an empty one drawn as a row. */
@@ -442,7 +439,7 @@ private fun TodayListItem(row: TodayRow, state: TodayState, context: FoodRowCont
         )
         is TodayRow.Weight -> WeightCard(row.weight, state.dayLabel, onAction)
         // Drawn by the slots the entry point passes in; see TodayScreen.
-        TodayRow.Burned, is TodayRow.Contributed -> Unit
+        TodayRow.Activity, is TodayRow.Contributed -> Unit
         is TodayRow.Meal -> Meal(row.entry, context, drag, onAction)
     }
 }
@@ -596,6 +593,7 @@ private fun FullMeal(card: MealCard, context: FoodRowContext, drag: FoodDrag, dr
                     else -> stringResource(Res.string.today_item_sub, item.amount, precision)
                 },
                 calories = item.calories,
+                repeat = item.repeat,
             )
         },
         note = card.note?.forCard(),
@@ -659,6 +657,7 @@ private fun FoodRow(item: MealCardItem, meal: String, context: FoodRowContext, d
             name = item.name,
             sub = item.sub,
             calories = item.calories,
+            repeat = item.repeat,
             open = context.swipe.open == id,
             deleteLabel = stringResource(Res.string.today_swipe_delete),
             onClick = { onAction(TodayAction.ItemTapped(id)) },

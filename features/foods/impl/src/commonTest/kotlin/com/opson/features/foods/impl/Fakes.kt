@@ -31,6 +31,10 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.PickedForMeal
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SavedMealRepository
+import com.opson.libraries.diary.RepeatPlan
+import com.opson.libraries.diary.RepeatRepository
+import com.opson.libraries.diary.RepeatRule
+import com.opson.libraries.diary.RepeatSaved
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.Metric
@@ -245,4 +249,39 @@ class FakeSubmittedFoods(initial: Map<String, ReviewStatus> = emptyMap()) : Subm
 /** The `release.submitFood` flag, fixed. */
 class FakeSubmitFoodAvailability(var on: Boolean = false) : SubmitFoodAvailability {
     override fun available(): Boolean = on
+}
+
+/** Repeats in memory. [loggedOnSave] is what the next save says it logged for today. */
+class FakeRepeatRepository(rules: List<RepeatRule> = emptyList()) : RepeatRepository {
+    val rules = MutableStateFlow(rules)
+    var loggedOnSave = true
+
+    data class Created(val plan: RepeatPlan, val loggedToday: List<String>)
+
+    val created = mutableListOf<Created>()
+    val deleted = mutableListOf<String>()
+
+    override fun observeAll(): Flow<List<RepeatRule>> = rules
+
+    override suspend fun get(id: String): RepeatRule? = rules.value.firstOrNull { it.id == id }
+
+    override suspend fun create(plan: RepeatPlan, loggedToday: List<String>): RepeatSaved {
+        created += Created(plan, loggedToday)
+        val rule = RepeatRule(id = "repeat-${created.size}", plan = plan)
+        rules.value = rules.value + rule
+        return RepeatSaved(rule, loggedOnSave)
+    }
+
+    override suspend fun update(id: String, plan: RepeatPlan, paused: Boolean): RepeatSaved? {
+        val rule = get(id)?.copy(plan = plan, paused = paused) ?: return null
+        rules.value = rules.value.map { if (it.id == id) rule else it }
+        return RepeatSaved(rule, loggedOnSave)
+    }
+
+    override suspend fun setPaused(id: String, paused: Boolean): RepeatSaved? = get(id)?.let { update(id, it.plan, paused) }
+
+    override suspend fun delete(id: String) {
+        deleted += id
+        rules.value = rules.value.filterNot { it.id == id }
+    }
 }

@@ -92,10 +92,29 @@ object RestingEnergies {
 }
 
 /**
+ * The thermic effect of food: the energy the body spends digesting what is eaten, as a share of
+ * it. 10% of intake is the common approximation (measured values run from about 8 to 15%, higher
+ * on a protein-heavy day), and the one Cronometer and most textbooks use. Neither health store
+ * counts it: Apple Health's and Health Connect's resting and active energy are both modelled
+ * from the body, never from food, so adding it to either can't count it twice.
+ */
+const val THERMIC_EFFECT_OF_FOOD_SHARE = 0.10
+
+/** [THERMIC_EFFECT_OF_FOOD_SHARE] of [eatenKcal], in whole kcal. Nothing eaten, or a total that makes no sense, is 0. */
+fun thermicEffectKcal(eatenKcal: Double): Int =
+    if (!eatenKcal.isFinite() || eatenKcal <= 0.0) 0 else (eatenKcal * THERMIC_EFFECT_OF_FOOD_SHARE).roundToInt()
+
+/**
  * What the person burns on a day (design sync 4): resting energy for the whole day, plus the
  * activity their health app has synced so far when they count it ([activityCounted]). A set
  * deficit or surplus is aimed at [totalKcal] ([Targets.rangeFor]'s `burnKcal`), so it moves
  * as activity syncs.
+ *
+ * [foodKcal] is the thermic effect of food ([thermicEffectKcal] of the day's eaten), with
+ * "Count digesting food" on and null with it off, the default. It is neither resting energy nor
+ * activity, so [activityKcal] leaves it out and "Add activity to Burned" switched off keeps it.
+ * A deficit aimed at a Burned that includes it moves a little as the day's food is logged; that
+ * converges (each 100 kcal eaten moves the target 10), and is the person's choice to make.
  *
  * [movementKcal] and [workoutKcal] are null when nothing reads them (no health app, or
  * `release.health` off), which is not the same as a synced zero. [everydayKcal] and
@@ -111,6 +130,7 @@ data class Burned(
     val activityCounted: Boolean = true,
     val everydayKcal: Int? = null,
     val exerciseKcal: Int? = null,
+    val foodKcal: Int? = null,
 ) {
     /** Whether the day's everyday movement is the [EverydayActivity] estimate, not a health app's reading. */
     val movementEstimated: Boolean get() = everydayKcal != null
@@ -125,5 +145,8 @@ data class Burned(
             return counted.sumOf { (it ?: 0).coerceAtLeast(0) }
         }
 
-    val totalKcal: Int get() = resting.kcal + activityKcal
+    val totalKcal: Int get() = resting.kcal + activityKcal + (foodKcal ?: 0).coerceAtLeast(0)
+
+    /** Everything on top of resting energy: activity, and digesting food when it counts. */
+    val aboveRestingKcal: Int get() = totalKcal - resting.kcal
 }

@@ -27,6 +27,7 @@ import com.opson.libraries.config.impl.ConfigRefreshThrottleMs
 import com.opson.libraries.config.impl.model.BasicMapAppConfig
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.FastingReleaseFlag
+import com.opson.libraries.diary.RepeatsReleaseFlag
 import com.opson.libraries.health.ExerciseReleaseFlag
 import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
@@ -332,6 +333,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     GoalsAndEnergyEnabled(appConfigMap),
     ExerciseReleaseFlag(appConfigMap, GoalsAndEnergyEnabled(appConfigMap)),
     MedicationEnabled(appConfigMap),
+    RepeatsReleaseFlag(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"

@@ -6,6 +6,7 @@ import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.findSupportFlag
 import com.opson.features.settings.impl.goalsAndEnergyFlag
 import com.opson.features.settings.impl.integrations.FakeCalendar
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
@@ -139,6 +140,7 @@ class TargetsMacroEditorTest : CoroutineTest() {
         goalsAndEnergyFlag(on = true),
         FakeBurnedRepository(),
         FakeCalendar(),
+        findSupportFlag(),
     ).also { it.takeAction(TargetsAction.MacroCardTapped) }
 
     private fun FakeSettingsRepository.targets(): Targets = state.value.targets
@@ -216,8 +218,8 @@ class TargetsMacroEditorTest : CoroutineTest() {
     }
 
     @Test
-    fun makingTheMacrosTheGoal_underWhereItStarted_writesNothing_andSaysWhy() = runUnitTest {
-        val under = SettingsFixtures.rangeTargets.copy(carbsG = 150)
+    fun makingTheMacrosTheGoal_underTheMinimum_writesNothing_andSaysWhy() = runUnitTest {
+        val under = SettingsFixtures.rangeTargets.copy(proteinG = 50, carbsG = 0, fatG = 20)
         val repository = FakeSettingsRepository(settings(under, MacroMode.Grams))
         val vm = viewModel(repository)
         val events = eventsOf(vm)
@@ -239,7 +241,7 @@ class TargetsMacroEditorTest : CoroutineTest() {
     // --- one number, typed ---
 
     @Test
-    fun aTypedGoal_writesOnceItIsAtOrAboveWhereItStarted() = runUnitTest {
+    fun aTypedGoal_writesOnceItIsOneAGoalCanBe() = runUnitTest {
         val repository = FakeSettingsRepository(settings(SettingsFixtures.exactTargets))
         val vm = viewModel(repository)
 
@@ -248,9 +250,12 @@ class TargetsMacroEditorTest : CoroutineTest() {
         assertEquals("2", vm.state.number?.text)
         assertFalse(vm.state.number?.tooLow == true, "still being typed")
 
+        vm.takeAction(TargetsAction.NumberTyped("210"))
+        assertEquals(2200, repository.targets().energyKcal, "on the way to 2,100, and under the minimum")
+
         vm.takeAction(TargetsAction.NumberTyped("1900"))
-        assertEquals(2200, repository.targets().energyKcal, "under 2,050, where this goal started")
-        assertEquals(true, vm.state.number?.tooLow)
+        assertEquals(1900, repository.targets().energyKcal, "under 2,050, where this goal started, is fine")
+        assertFalse(vm.state.number?.tooLow == true)
 
         vm.takeAction(TargetsAction.NumberTyped("2300"))
         assertEquals(2300, repository.targets().energyKcal)

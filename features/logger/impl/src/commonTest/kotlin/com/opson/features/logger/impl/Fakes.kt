@@ -3,6 +3,7 @@ package com.opson.features.logger.impl
 import com.opson.libraries.core.AppState
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.fixed
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.CustomFood
@@ -489,6 +490,13 @@ class FakeAppState(offline: Boolean = false) : AppState {
 fun photoFlag(on: Boolean): PhotoEstimateEnabled = PhotoEstimateEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("photo" to on))
+    },
+)
+
+/** `release.checkIn` as the remote config would set it. */
+fun checkInFlag(on: Boolean): CheckInEnabled = CheckInEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("checkIn" to on))
     },
 )
 

@@ -1,8 +1,6 @@
 package com.opson.features.qa.impl
 
 import com.opson.libraries.diary.LocalCalendar
-import com.opson.libraries.diary.Settings
-import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.identity.auth.AuthRepository
 import com.opson.libraries.identity.auth.AuthState
@@ -17,7 +15,6 @@ import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.SignUpOutcome
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.datetime.LocalDate
@@ -26,18 +23,6 @@ import kotlinx.datetime.TimeZone
 /*
  * Hand-rolled fakes for the QA menu's tests (docs/practices/testing.md).
  */
-
-class FakeSettingsRepository(initial: Settings = Settings()) : SettingsRepository {
-    val state = MutableStateFlow(initial)
-
-    override val settings: StateFlow<Settings> = state
-    override val isKnown: StateFlow<Boolean> = MutableStateFlow(true)
-
-    override suspend fun update(stampNumbersChange: Boolean, transform: (Settings) -> Settings): Settings {
-        state.value = transform(state.value)
-        return state.value
-    }
-}
 
 /** Who is signed in; the QA menu only reads it. */
 class FakeAuthRepository(initial: AuthState = AuthState.Unauthenticated()) : AuthRepository {

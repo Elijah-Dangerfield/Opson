@@ -46,7 +46,7 @@ What changed against this plan, and the differences kept on purpose.
   (`VisibilityPolicy.DAY_CLOSE_REVEAL`, the day-close design), so the app
   keeps 9:00 pm. Ranges keep "to" (`Oct 19 to 25`).
 - **Nutrients day and week**: match.
-- **Patterns** (Full): the hunger card is now **Hunger through the day**, a
+- **Patterns** (Full): the hunger card is now **Hunger by weekday**, a
   bar per weekday (Mon to Sun) of how hungry the tagged meals were, with
   `From your check-ins` beside the title, and one plain fact under it when
   the data says so: `Hungrier on days you skipped breakfast (Thu, Tue).`
@@ -387,7 +387,12 @@ ViewModel: range switch re-subscribes, `ModesTapped` emits `OpenModes`.
 ## Weight
 
 ### Route
-`WeightRoute()`, `screen<>`, from Trends, the logger's Weigh-in chip and More.
+`WeightRoute(focusInput)`, `screen<>`, from Trends, the + sheet's Weigh-in,
+Today's weight row, Profile's Current weight and the exercise sheet's "Log a
+weigh-in". `focusInput` (a plain Boolean, no type map) focuses the weigh-in
+field with the keyboard up once the screen is in; the + sheet, Profile and the
+exercise sheet pass it, since they open Weight only to log one. The page pads
+for the keyboard so the focused field scrolls above it.
 
 The **Numbers / Trend only / Hidden switch is gone** from this screen: it lives
 in Modes and numbers, behind the pause. Sending weigh-ins to a provider is v2
@@ -466,12 +471,19 @@ weeks`: the 28 days ending today.
 2. **How big each meal is** (calories Show): a bar split by each meal's share,
    then per meal `445 kcal · 21%`. Removed in Blind: even percentages reveal
    amounts. In its place, **How often**: `Breakfast` / `22 of 28 days` per meal.
-3. **Hunger through the day** (hunger tags on, `settings.askTags`, and some
+3. **Hunger by weekday** (some meals
    tagged): a bar per weekday, height the average hunger of that weekday's
    tagged meals (Not hungry 0 to Very hungry 3, over 3), `From your
-   check-ins`, and the optional skipped-breakfast fact. Design sync 2.
+   check-ins`, and the optional skipped-breakfast fact. Design sync 2. With
+   `release.checkIn` and some check-in hunger it reads the check-ins instead,
+   one answer a day on the 1 to 10 scale, taller is hungrier.
 4. **New foods** with the count and the names as chips. In Blind it comes
    before hunger.
+5. **How you've felt** (`release.checkIn`, 2026-10-29): the check-ins over the
+   four weeks, a bar a day, one of hunger, energy, mood or sleep at a time
+   (a segmented pick, only aspects someone answered). Gaps for days without
+   one and untracked days. Inspecting a bar says the day and the answer's word,
+   never an amount, so it stays in every mode.
 
 ### Domain (`:libraries:diary`, `MealPatterns.kt`, pure, unit tested)
 

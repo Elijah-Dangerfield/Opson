@@ -13,17 +13,20 @@
     <string name="settings_back_targets">‹ Targets</string>
     <string name="settings_back_today_screen">‹ Today screen</string>
     <string name="settings_back_energy">‹ Energy today</string>
+    <string name="settings_back_resting">‹ Resting energy</string>
+    <string name="settings_back_micros">‹ Vitamins and minerals</string>
+    <string name="settings_back_plain">‹ Back</string>
     <string name="settings_saved">Saved.</string>
     <string name="settings_saved_fewer">Saved. Fewer numbers from now on.</string>
 
     <!-- More (v3: three groups, no amounts in any subtitle) -->
     <string name="settings_more_title">More</string>
-    <string name="settings_more_modes">Modes and numbers</string>
+    <string name="settings_more_display">Display</string>
+    <string name="settings_more_profile">Profile</string>
+    <string name="settings_more_profile_sub">Age, sex, height and weight</string>
     <string name="settings_more_modes_changed">%1$s, %2$s</string>
     <string name="settings_more_targets">Targets</string>
     <string name="settings_more_targets_sub">Energy range and macro split</string>
-    <string name="settings_more_look">Look and feel</string>
-    <string name="settings_more_look_sub">Appearance, text size and units</string>
     <string name="settings_more_water">Water</string>
     <plurals name="settings_more_water_glasses">
         <item quantity="one">%1$d glass</item>
@@ -75,8 +78,10 @@
     <string name="settings_metric_weight_inline">weight</string>
     <string name="settings_metric_water_inline">water</string>
 
-    <!-- Modes and numbers -->
-    <string name="settings_modes_title">Modes and numbers</string>
+    <!-- Display: the Numbers half (modes) and the Appearance half -->
+    <string name="settings_display_title">Display</string>
+    <string name="settings_display_numbers">Numbers</string>
+    <string name="settings_display_appearance">Appearance</string>
     <string name="settings_modes_presets_header">Starting point</string>
     <plurals name="settings_modes_changes">
         <item quantity="one">%1$d change</item>
@@ -161,9 +166,16 @@
     <string name="settings_targets_raise_end">Raise the %1$s</string>
     <string name="settings_targets_low_end_inline">low end</string>
     <string name="settings_targets_high_end_inline">high end</string>
-    <string name="settings_targets_locked">Where you started</string>
+    <string name="settings_targets_locked">As low as a goal goes</string>
+    <string name="settings_targets_ceiling_locked">As high as a goal goes</string>
     <string name="settings_targets_floor_note">This is where your low end started. It can go up, and back down to here.</string>
-    <string name="settings_targets_floor_toast">Your goal stays at or above where you started.</string>
+    <string name="settings_targets_min_note">This is as low as a goal goes in Opson.</string>
+    <string name="settings_targets_floor_toast">That's as low as a goal goes in Opson.</string>
+    <string name="settings_targets_ceiling_toast">That's as high as a goal goes in Opson.</string>
+    <string name="settings_targets_low_note">This goal is lower than most people should go without a doctor's guidance.</string>
+    <string name="settings_targets_fast_note">That's a bigger deficit than most guidance suggests. A gentler pace is usually easier to keep.</string>
+    <string name="settings_targets_support_link">Find support</string>
+    <string name="settings_targets_disclosure">These numbers are estimates to start from, not medical advice. A doctor or dietitian can help you find ones that fit you.</string>
     <string name="settings_targets_gap_toast">The two ends need at least 50 kcal between them.</string>
     <string name="settings_targets_macro_split">Macro split</string>
     <string name="settings_targets_macro_protein">%1$s protein</string>
@@ -195,7 +207,7 @@
     <string name="settings_targets_macros_goal_today">today's goal of about %1$s</string>
     <string name="settings_targets_macros_fit">Fit macros to %1$s</string>
     <string name="settings_targets_macros_use">Make %1$s my goal</string>
-    <string name="settings_targets_macros_goal_floor_toast">That would take your goal under where you started, so fit the macros instead.</string>
+    <string name="settings_targets_macros_goal_floor_toast">That goal is past what Opson allows, so fit the macros instead.</string>
     <string name="settings_targets_deficit_less">Less under what you burn</string>
     <string name="settings_targets_deficit_more">More under what you burn</string>
     <string name="settings_targets_deficit_about">About %1$s</string>
@@ -206,9 +218,9 @@
     <string name="settings_targets_deficit_title">Under what you burn, each day</string>
     <string name="settings_targets_number_lower">Lower your goal</string>
     <string name="settings_targets_number_raise">Raise your goal</string>
-    <string name="settings_targets_number_floor_note">This is where your goal started. It can go up, and back down to here.</string>
     <string name="settings_targets_number_field">Type a goal</string>
-    <string name="settings_targets_number_too_low">Your goal starts at %1$s, where you began.</string>
+    <string name="settings_targets_number_too_low">A goal can be %1$s or more.</string>
+    <string name="settings_targets_number_too_high">A goal can be up to %1$s.</string>
     <string name="settings_targets_surplus_title">Over what you burn, each day</string>
     <string name="settings_targets_surplus_less">Less over what you burn</string>
     <string name="settings_targets_surplus_more">More over what you burn</string>
@@ -225,15 +237,31 @@
     <string name="settings_targets_group_shape_surplus">Surplus</string>
     <string name="settings_targets_group_shape_deficit">Deficit</string>
     <string name="settings_targets_group_waiting">This day uses its range until Opson can estimate what you burn. Add your details under Burned comes from.</string>
-    <string name="settings_targets_group_edit">Edit %1$s</string>
-    <string name="settings_targets_group_done">Done</string>
-    <string name="settings_targets_group_remove">Remove this group</string>
+    <string name="settings_targets_group_remove">Remove %1$s</string>
+    <string name="settings_targets_group_empty">No days yet. Tap the days this group is for.</string>
+    <string name="settings_targets_group_rest">The days no other group has.</string>
+    <string name="settings_targets_group_only">Add a day group to give some days a goal of their own.</string>
     <string name="settings_targets_group_day">%1$s, in %2$s</string>
     <string name="settings_targets_group_add">Add another day group</string>
     <string name="settings_targets_week">This week</string>
     <string name="settings_targets_hidden_title">Targets work in the background</string>
-    <string name="settings_targets_hidden_body">They're out of view in this mode. To see or change them, show calories in Modes and numbers.</string>
-    <string name="settings_targets_hidden_link">Modes and numbers</string>
+    <string name="settings_targets_hidden_body">They're out of view in this mode. To see or change them, show calories in Display.</string>
+    <string name="settings_targets_hidden_link">Display</string>
+
+    <!-- Profile: the one place the body details are edited -->
+    <string name="settings_profile_title">Profile</string>
+    <string name="settings_profile_intro">Resting energy, Burned and your vitamin and mineral references all use these. Change them here and they change everywhere.</string>
+    <string name="settings_profile_about">About you</string>
+    <string name="settings_profile_sex">Sex for estimates</string>
+    <string name="settings_profile_sex_body">The equations differ by sex. Rather not say uses the midpoint.</string>
+    <string name="settings_profile_body">Weight and body</string>
+    <string name="settings_profile_weight">Current weight</string>
+    <string name="settings_profile_weight_on">Your weigh-in on %1$s</string>
+    <string name="settings_profile_weight_none">No weigh-in yet. Tap to add one.</string>
+    <string name="settings_profile_bmi">BMI</string>
+    <string name="settings_profile_bmi_note">BMI is a rough measure made for populations. It can't see your build or your health.</string>
+    <string name="settings_profile_body_fat">Body fat, if you know it</string>
+    <string name="settings_profile_percent">%</string>
 
     <!-- Resting energy (design sync 4, 13.2d) -->
     <string name="settings_resting_title">Resting energy</string>
@@ -245,7 +273,14 @@
     <string name="settings_resting_own">Enter my own</string>
     <string name="settings_resting_own_line">From a lab test or a number you trust.</string>
     <string name="settings_resting_kcal_a_day">kcal a day</string>
-    <string name="settings_resting_details">For the calculation</string>
+    <string name="settings_resting_profile">Your profile</string>
+    <string name="settings_resting_profile_line">Age, sex, height and your latest weigh-in</string>
+    <string name="settings_resting_profile_needs">Still needs: %1$s</string>
+    <string name="settings_resting_needs_age">age</string>
+    <string name="settings_resting_needs_height">height</string>
+    <string name="settings_resting_needs_sex">sex</string>
+    <string name="settings_resting_needs_weight">a weigh-in</string>
+    <string name="settings_resting_everyday_measured">%1$s measures your activity, so we don't need to guess.</string>
     <string name="settings_resting_birth_year">Year you were born</string>
     <string name="settings_resting_height">Height</string>
     <string name="settings_resting_cm">cm</string>
@@ -257,12 +292,17 @@
     <string name="settings_resting_sex_female">Female</string>
     <string name="settings_resting_sex_male">Male</string>
     <string name="settings_resting_sex_unsaid">Rather not say</string>
-    <string name="settings_resting_weight_missing">Log a weight in Trends and this works it out.</string>
     <string name="settings_resting_activity">Activity</string>
     <string name="settings_resting_steps_workouts">Steps and workouts</string>
     <string name="settings_resting_activity_none">Not connected</string>
     <string name="settings_resting_add_activity">Add activity to Burned</string>
     <string name="settings_resting_add_activity_line">Off counts resting energy only</string>
+    <!-- THERMIC_EFFECT_OF_FOOD_SHARE in libraries/nutrition's Burned.kt; change both together. -->
+    <string name="settings_resting_thermic">Count digesting food</string>
+    <string name="settings_resting_thermic_line">Adds about 10% of what you eat, the energy your body uses to digest it.</string>
+    <!-- Its line on Today's Activity card and Energy today. -->
+    <string name="energy_digesting">Digesting food</string>
+    <string name="energy_digesting_line">About 10% of what you ate</string>
 
     <!-- Energy today (design sync 4, 13.2c) -->
     <string name="settings_energy_title">Energy today</string>
@@ -299,9 +339,8 @@
     <string name="settings_water_unit_ml">ml</string>
     <string name="settings_water_unit_floz">fl oz</string>
 
-    <!-- Look and feel -->
-    <string name="settings_look_title">Look and feel</string>
-    <string name="settings_look_theme">Appearance</string>
+    <!-- Display, Appearance -->
+    <string name="settings_look_theme">Theme</string>
     <string name="settings_look_theme_system">System</string>
     <string name="settings_look_theme_light">Light</string>
     <string name="settings_look_theme_dark">Dark</string>
@@ -311,14 +350,6 @@
     <string name="settings_look_weight">Weight units</string>
     <string name="settings_look_weight_kg">kg</string>
     <string name="settings_look_weight_lb">lb</string>
-    <string name="settings_look_tone">How we talk to you</string>
-    <string name="settings_look_tone_plain">Plain</string>
-    <string name="settings_look_tone_warm">Warm</string>
-    <string name="settings_look_tone_example">Example: %1$s</string>
-    <string name="settings_look_tone_plain_sample">“Nothing logged.”</string>
-    <string name="settings_look_tone_warm_sample">“Nothing here yet. Add it whenever.”</string>
-    <string name="settings_look_tags_title">Hunger and fullness questions</string>
-    <string name="settings_look_tags_body">Asked when you add food. Always skippable.</string>
 
     <!-- Support and sharing -->
     <string name="settings_support_title">Support and sharing</string>
@@ -360,6 +391,9 @@
 
     <!-- Design sync 2: More's Support subtitle, Support's Find support and crisis rows -->
     <string name="settings_more_support_sub">Helplines, your data and privacy</string>
+    <string name="settings_more_report_bug">Report a bug</string>
+    <string name="settings_more_report_bug_sub">Something broken? Tell us what happened.</string>
+    <string name="settings_more_send_feedback_sub">Ideas, gripes, anything on your mind</string>
     <string name="settings_support_find">Find support near you</string>
     <string name="settings_support_crisis_call_or_text">In crisis? Call or text %1$s</string>
     <string name="settings_support_crisis_call">In crisis? Call %1$s</string>
@@ -468,13 +502,13 @@
     <string name="settings_micros_basis_sex">Suggested for your sex at ages 31 to 50, since your birth year isn't set.</string>
     <string name="settings_micros_basis_dv">These are the Daily Values from food labels, for adults in general.</string>
     <string name="settings_micros_add_details">Add your birth year and sex</string>
-    <string name="settings_micros_add_details_line">In Resting energy</string>
+    <string name="settings_micros_add_details_line">In your profile</string>
     <string name="settings_micros_caption">These are typical daily amounts for healthy people, not goals to hit. A dietitian or doctor can give you ones that fit you better. Tap one to set your own or to show it on Today.</string>
     <string name="settings_micros_on_today">On Today</string>
     <string name="settings_micros_own">Your own, %1$s</string>
     <string name="settings_micros_off_title">Vitamins and minerals are off</string>
-    <string name="settings_micros_off_body">Turn them on in Modes and numbers to see and set them here.</string>
-    <string name="settings_micros_off_link">Modes and numbers</string>
+    <string name="settings_micros_off_body">Turn them on in Display to see and set them here.</string>
+    <string name="settings_micros_off_link">Display</string>
     <string name="settings_micros_suggested">Suggested: %1$s</string>
     <string name="settings_micros_own_field">Your own daily amount</string>
     <string name="settings_micros_use_suggested">Use the suggested amount</string>

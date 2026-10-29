@@ -3,7 +3,6 @@ package com.opson.libraries.reminders
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.Settings
-import com.opson.libraries.diary.Tone
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -55,16 +54,14 @@ class DoseReminderPlanTest {
         assertEquals(emptyList(), ReminderPlanner.plan(inputs(listOf(far))))
     }
 
-    /** Lock screens are public: the words are fixed resources with no argument, in both tones. */
+    /** Lock screens are public: the words are fixed resources with no argument. */
     @Test
     fun theNudgeNeverSaysTheDoseOrTheMedication() {
-        Tone.entries.forEach { tone ->
-            val text = ReminderCopy.text(ReminderKey.Dose(today, "med"), tone)
-            assertEquals("medication_reminder_title", text.title.key)
-            assertEquals("medication_reminder_body_text", text.body.key)
-            assertEquals(listOf(ReminderAction.AlreadyAte, ReminderAction.LogIt), text.actions.map { it.first })
-        }
-        val noQuickLog = ReminderCopy.text(ReminderKey.Dose(today, "med"), Tone.Plain, quickLog = false)
+        val text = ReminderCopy.text(ReminderKey.Dose(today, "med"))
+        assertEquals("medication_reminder_title", text.title.key)
+        assertEquals("medication_reminder_body_text", text.body.key)
+        assertEquals(listOf(ReminderAction.AlreadyAte, ReminderAction.LogIt), text.actions.map { it.first })
+        val noQuickLog = ReminderCopy.text(ReminderKey.Dose(today, "med"), quickLog = false)
         assertEquals(listOf(ReminderAction.LogIt), noQuickLog.actions.map { it.first })
     }
 

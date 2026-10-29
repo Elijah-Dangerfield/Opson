@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.lifecycle.viewModelScope
 import com.opson.features.today.impl.Toast
 import com.opson.libraries.diary.DayWrite
@@ -17,6 +20,7 @@ import com.opson.libraries.ui.components.SheetHeader
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonDefaults
 import com.opson.libraries.ui.components.button.FlatButtonTone
+import com.opson.libraries.ui.components.text.FocusOnOpen
 import com.opson.libraries.ui.components.text.TextArea
 import com.opson.system.AppTheme
 import kotlinx.coroutines.launch
@@ -108,11 +112,15 @@ fun DayNoteSheetContent(
             SectionLabel(
                 stringResource(if (state.isToday) Res.string.today_dayclose_note_label else Res.string.today_dayclose_note_label_other_day),
             )
+            val noteField = remember { FocusRequester() }
             TextArea(
                 value = state.draft,
                 onValueChange = { onAction(DayNoteAction.NoteTyped(it)) },
                 placeholder = stringResource(Res.string.today_dayclose_note_placeholder),
+                modifier = Modifier.focusRequester(noteField),
             )
+            // Opened to write the note, so the field is ready once what is there has been read.
+            FocusOnOpen(noteField, enabled = state.loaded)
         }
         FlatButton(
             text = stringResource(Res.string.today_daynote_save),

@@ -25,7 +25,7 @@ menu). Where the build differs from the spec below, this section wins.
   own them.
 - **On the phone only.** The prod server has no medication storage and is not redeployed with
   this, so nothing syncs and nothing is queued: the plan is a user-scoped device cache shaped as
-  the spec's `Settings.medication` key, doses are Room 12 `medication_doses` (uuid ids,
+  the spec's `Settings.medication` key, doses are Room 13 `medication_doses` (uuid ids,
   `clientUpdatedAtEpochMs`, tombstones: the spec's columns), and side effects are
   `symptom_days`, one row per day. No `V28` migration and no `SyncEntity` yet. A user change
   wipes all three. Adding sync is an outbox `enqueue` in `MedicationRepositoryImpl` plus the

@@ -4,18 +4,24 @@ import androidx.lifecycle.viewModelScope
 import com.opson.features.logger.FoodSearchRoute
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.RepeatRepository
+import com.opson.libraries.diary.RepeatRule
+import com.opson.libraries.diary.RepeatsRelease
 import com.opson.libraries.diary.SavedMealRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.SubmittedFoods
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 
 /**
- * The Foods tab: saved meals, the user's own foods and recent ones, each a way into the logger
- * with that food already picked. Everything it reads is on the device.
+ * The Foods tab: saved meals, repeats (`release.repeats`), the user's own foods and recent ones,
+ * each a way into the logger with that food already picked or into its editor. Everything it
+ * reads is on the device.
  */
 @Inject
 class FoodsViewModel(
@@ -24,6 +30,8 @@ class FoodsViewModel(
     diary: DiaryRepository,
     policySource: VisibilityPolicySource,
     submittedFoods: SubmittedFoods,
+    repeats: RepeatRepository,
+    repeatsRelease: RepeatsRelease,
 ) : SEAViewModel<FoodsState, FoodsEvent, FoodsAction>(initialStateArg = FoodsState()) {
 
     private var inputs: FoodsInputs? = null
@@ -31,7 +39,8 @@ class FoodsViewModel(
 
     init {
         viewModelScope.launch {
-            combine(customFoods.observeAll(), savedMeals.observeAll(), diary.recentFoods(limit = RECENT_LIMIT), submittedFoods.reviews, ::FoodsInputs)
+            val rules: Flow<List<RepeatRule>?> = if (repeatsRelease.isOn()) repeats.observeAll() else flowOf(null)
+            combine(customFoods.observeAll(), savedMeals.observeAll(), diary.recentFoods(limit = RECENT_LIMIT), submittedFoods.reviews, rules, ::FoodsInputs)
                 .collect { takeAction(FoodsAction.InputsArrived(it)) }
         }
         viewModelScope.launch {
@@ -53,6 +62,8 @@ class FoodsViewModel(
             FoodsAction.CreateMealTapped -> sendEvent(FoodsEvent.OpenCreateMeal)
             FoodsAction.AddFoodTapped -> sendEvent(FoodsEvent.OpenAddFood)
             is FoodsAction.RowTapped -> sendEvent(FoodsEvent.OpenLogger(action.target.toLoggerRoute()))
+            FoodsAction.NewRepeatTapped -> sendEvent(FoodsEvent.OpenRepeat(ruleId = null))
+            is FoodsAction.RepeatTapped -> sendEvent(FoodsEvent.OpenRepeat(action.id))
         }
     }
 

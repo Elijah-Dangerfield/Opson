@@ -156,6 +156,20 @@ class FastingRepositoryImplTest : CoroutineTest() {
         assertTrue(db.fasts.rows.isEmpty())
     }
 
+    /** A repeat logs dinner at dinner time, which in the morning is still to come: it is not food eaten since the close. */
+    @Test
+    fun startDue_foodTimedLaterTodayIsNotFoodEaten() = runUnitTest {
+        calendar.today = LocalDate(2026, 10, 26)
+        clock.now = Instant.parse("2026-10-26T07:00:00Z")
+        val dinner = diary.addItems(LocalDate(2026, 10, 26), MealSlot.Dinner, listOf(draft()), LogMethod.Copy).written().single()
+        db.fasts.clear()
+        db.entries.put(dinner.id, dinner.copy(loggedAt = Instant.parse("2026-10-26T19:00:00Z")).toEntity(updatedAtEpochMs = 1))
+
+        fasting.startDue()
+
+        assertEquals("2026-10-25", db.fasts.rows.single().day)
+    }
+
     @Test
     fun end_stampsTheEndNowAndKeepsTheBase() = runUnitTest {
         fasting.startDue()

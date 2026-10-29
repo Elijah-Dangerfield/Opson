@@ -61,6 +61,7 @@ import opson.libraries.resources.generated.resources.adding_action_copy_cd
 import opson.libraries.resources.generated.resources.adding_action_describe
 import opson.libraries.resources.generated.resources.adding_action_exercise
 import opson.libraries.resources.generated.resources.adding_action_fasting
+import opson.libraries.resources.generated.resources.adding_action_check_in
 import opson.libraries.resources.generated.resources.adding_action_note
 import opson.libraries.resources.generated.resources.adding_action_pack
 import opson.libraries.resources.generated.resources.adding_action_photo
@@ -306,6 +307,7 @@ private fun AddAction.tile(): Tile {
         AddAction.Water -> Tile(stringResource(Res.string.adding_action_water), AppIcons.WaterDrop, body, LoggerAction.WaterTapped)
         AddAction.WeighIn -> Tile(stringResource(Res.string.adding_action_weigh), AppIcons.MonitorWeight, body, LoggerAction.WeighInTapped)
         AddAction.Note -> Tile(stringResource(Res.string.adding_action_note), AppIcons.EditNote, note, LoggerAction.NoteTapped)
+        AddAction.CheckIn -> Tile(stringResource(Res.string.adding_action_check_in), AppIcons.Mood, note, LoggerAction.CheckInTapped)
         AddAction.Fasting -> Tile(stringResource(Res.string.adding_action_fasting), AppIcons.HourglassTop, body, LoggerAction.FastingTapped)
         AddAction.Exercise -> Tile(stringResource(Res.string.adding_action_exercise), AppIcons.FitnessCenter, body, LoggerAction.ExerciseTapped)
     }

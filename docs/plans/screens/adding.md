@@ -41,17 +41,31 @@ A 3-column grid, in this order, each shown only when it can run:
 | Search food | always | Full-screen search on this meal and day |
 | Scan barcode | `release.barcode` | The scanner |
 | Photo | `release.photo` | The photo estimate |
-| Say or type it | always ("Describe it" with `release.voice` off) | The Describe pane |
+| Say or type it | always ("Describe it" with `release.voice` off) | The Describe pane, listening; with voice off, the box focused |
 | Saved meals | always | The Saved pane; Add logs the meal at once |
 | Copy a meal | yesterday has this meal | Copies yesterday's {meal} |
 | Water | always | One glass, with Undo |
-| Weigh-in | always | `WeightRoute` |
-| Note | always | `MealNoteRoute` |
+| Weigh-in | always | `WeightRoute(focusInput = true)`, the field focused |
+| Note | always | `MealNoteRoute`, the note focused |
 | Fasting | `release.fasting`, offered in this mode and the timer on | `FastingRoute` |
-| Exercise | `release.exercise`, energy out not hidden | `ExerciseRoute` |
+| Exercise | `release.exercise`, energy out not hidden | `ExerciseRoute`, on the activity search, focused |
 
 Fasting reads "Fasting", not "Start a fast": fasts start on their schedule and
 there is no manual start to advertise.
+
+**Each lands ready for input** (owner feedback, 2026-10-29: "lessen the
+taps"). Where the next thing anyone does is type, the field has focus and the
+keyboard is up once the screen or sheet is in (`FocusOnOpen` in
+`libraries/ui`, which waits a frame and the enter animation, once per visit):
+search, Describe it without voice, Weigh-in, Note and Exercise's activity
+search. Water and Copy a meal already finish in one tap, Saved meals is a
+list to tap, and the scanner opens on the camera. Photo and Packaged food stay
+on their first step, since both start with a choice (camera or library, which
+photo first) that a launched camera would take away. Fasting opens its page,
+which is a status rather than a form. Today's own entries follow the same
+rule: the day note and a meal's note focus their field, Activity's Add
+exercise opens on the focused search, and the weight row, which shows a
+weigh-in already logged, opens Weight without the keyboard.
 
 At 60% the bottom edge fades over whatever is below. Dragging up grows the
 sheet to full height (`expandOnDragUp`), which shows Recent under the grid:

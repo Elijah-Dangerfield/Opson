@@ -145,9 +145,10 @@ object EnergyCardBuilder {
                 BurnedBars(
                     total = policy.resolve(Metric.EnergyOut, b.totalKcal.toDouble(), Surface.Today, bare),
                     resting = policy.resolve(Metric.EnergyOut, b.resting.kcal.toDouble(), Surface.Today, bare),
-                    active = policy.resolve(Metric.EnergyOut, b.activityKcal.toDouble(), Surface.Today, bare),
+                    // Digesting food, when counted, rides on the active bar so the two still end at the tick.
+                    active = policy.resolve(Metric.EnergyOut, b.aboveRestingKcal.toDouble(), Surface.Today, bare),
                     restingFraction = (b.resting.kcal / scale).toFloat().coerceIn(0f, 1f),
-                    activeFraction = (b.activityKcal / scale).toFloat().coerceIn(0f, 1f),
+                    activeFraction = (b.aboveRestingKcal / scale).toFloat().coerceIn(0f, 1f),
                     tick = (b.totalKcal / scale).toFloat().coerceIn(0f, 1f),
                     breakdown = settings.todayBurnedBreakdown,
                 )

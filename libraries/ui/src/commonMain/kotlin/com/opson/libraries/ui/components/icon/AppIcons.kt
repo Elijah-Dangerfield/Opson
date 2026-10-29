@@ -24,12 +24,16 @@ import androidx.compose.material.icons.outlined.Delete as OutlinedDelete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.EventRepeat
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Support
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Feedback
+import androidx.compose.material.icons.automirrored.rounded.Article
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.outlined.Edit as OutlinedEdit
 import androidx.compose.material.icons.rounded.Add
@@ -75,6 +79,7 @@ import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Mood
 import androidx.compose.material.icons.rounded.HighlightOff
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
@@ -86,6 +91,7 @@ import androidx.compose.material.icons.rounded.LunchDining
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.MonitorWeight
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PhotoLibrary
@@ -186,6 +192,7 @@ object AppIcons {
     val BookmarkAdd get() = icon("bookmark_add", MaterialIcons.Rounded.BookmarkAdd)
     val History get() = icon("history", MaterialIcons.Rounded.History)
     val MonitorWeight get() = icon("monitor_weight", MaterialIcons.Rounded.MonitorWeight)
+    val Person get() = icon("person", MaterialIcons.Rounded.Person)
     val Schedule get() = icon("schedule", MaterialIcons.Rounded.Schedule)
     val LockClock get() = icon("lock_clock", MaterialIcons.Rounded.LockClock)
 
@@ -248,11 +255,23 @@ object AppIcons {
     val WaterDropOutline get() = icon("water_drop_outline", MaterialIcons.Outlined.WaterDrop)
     val Support get() = icon("support", MaterialIcons.Rounded.Support)
 
+    /** More's Report a bug row. */
+    val BugReport get() = icon("bug_report", MaterialIcons.Rounded.BugReport)
+
+    /** More's Send feedback row. */
+    val Feedback get() = icon("feedback", MaterialIcons.Rounded.Feedback)
+
+    /** The app log a report carries. */
+    val Article get() = icon("article", MaterialIcons.AutoMirrored.Rounded.Article)
+
     val WorkspacePremium get() = icon("workspace_premium", MaterialIcons.Outlined.WorkspacePremium)
     val Download get() = icon("download", MaterialIcons.Rounded.Download)
 
     // Goals and checks
     val EventRepeat get() = icon("event_repeat", MaterialIcons.Rounded.EventRepeat)
+
+    /** Two arrows in a loop: a food that logs itself (Repeating). */
+    val Repeat get() = icon("repeat", MaterialIcons.Rounded.Repeat)
 
     /** A calendar with a check: the weekly check on Trends (numbers on Later, weekly). */
     val EventAvailable get() = icon("event_available", MaterialIcons.Rounded.EventAvailable)
@@ -266,6 +285,9 @@ object AppIcons {
     /** An outlined "i", for a note that explains rather than warns. */
     val Info get() = icon("info", MaterialIcons.Outlined.OutlinedInfo)
     val Favorite get() = icon("favorite", MaterialIcons.Rounded.Favorite)
+
+    /** A smiling face: the check-in (hunger, energy, mood, sleep). */
+    val Mood get() = icon("mood", MaterialIcons.Rounded.Mood)
     val Science get() = icon("science", MaterialIcons.Rounded.Science)
 
     /** More › Medication and its Today card. */
@@ -339,7 +361,7 @@ object AppIcons {
             Fruit, Icecream, SetMeal, Egg, Bread, SoupKitchen, LocalCafe, StarOutline, Info, Add, Remove,
             AddCircle, ContentCopy, Delete, ViewAgenda, CheckCircleOutline, MoreVert, EventNote, Lock,
             DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, PhotoLibrary, Mic, Stop,
-            EditNote, PostAdd, Edit, Bookmark, BookmarkAdd, EditOutline, History, MonitorWeight,
+            EditNote, PostAdd, Edit, Bookmark, BookmarkAdd, EditOutline, History, MonitorWeight, Person,
             Schedule, LockClock, HourglassTop, Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz,
             ChevronLeft, ChevronRight, SwapHoriz, Tune, Search, SearchOff, Cancel, ArrowBack, ExpandMore,
             ExpandLess, DragIndicator, AutoAwesome, Settings, CalendarToday,
@@ -348,7 +370,7 @@ object AppIcons {
             EventRepeat, EventAvailable, Star, Favorite, Science,
             FormatListBulleted, BeachAccess, Watch, Widgets, Call, Sms, Public, SupportAgent,
             DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove, FitnessCenter,
-            FlashlightOn, FlashlightOff, Medication,
+            FlashlightOn, FlashlightOff, BugReport, Feedback, Article, Repeat, Medication,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

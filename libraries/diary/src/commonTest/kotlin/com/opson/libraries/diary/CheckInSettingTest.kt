@@ -7,7 +7,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** The check-in switch in Reminders: on unless turned off, and a top-level key, since settings sync merges shallowly. */
+/**
+ * The check-in's old switch: no longer offered or read, but still a top-level key that round-trips,
+ * so a phone on an older build keeps whatever it was set to.
+ */
 class CheckInSettingTest {
 
     @Test

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 12,
-    "identityHash": "21f62f96e38df55af4251e010e985ccc",
+    "identityHash": "11d29625841de9921750deaa7fb3baaa",
     "entities": [
       {
         "tableName": "example_user_data",
@@ -812,8 +812,8 @@
         ]
       },
       {
-        "tableName": "medication_doses",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `medicationId` TEXT NOT NULL, `product` TEXT NOT NULL, `drug` TEXT NOT NULL, `brand` TEXT, `dose` REAL NOT NULL, `doseUnit` TEXT NOT NULL, `takenAtEpochMs` INTEGER NOT NULL, `day` TEXT NOT NULL, `site` TEXT, `note` TEXT, `clientUpdatedAtEpochMs` INTEGER NOT NULL, `deleted` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "tableName": "repeat_rules",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `itemsJson` TEXT NOT NULL, `savedMealId` TEXT, `slot` TEXT NOT NULL, `days` INTEGER NOT NULL, `startDay` TEXT NOT NULL, `endDay` TEXT, `paused` INTEGER NOT NULL, `createdAtEpochMs` INTEGER NOT NULL, `clientUpdatedAtEpochMs` INTEGER NOT NULL, `deleted` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -822,61 +822,56 @@
             "notNull": true
           },
           {
-            "fieldPath": "medicationId",
-            "columnName": "medicationId",
+            "fieldPath": "name",
+            "columnName": "name",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "product",
-            "columnName": "product",
+            "fieldPath": "itemsJson",
+            "columnName": "itemsJson",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "drug",
-            "columnName": "drug",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "brand",
-            "columnName": "brand",
+            "fieldPath": "savedMealId",
+            "columnName": "savedMealId",
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "dose",
-            "columnName": "dose",
-            "affinity": "REAL",
-            "notNull": true
-          },
-          {
-            "fieldPath": "doseUnit",
-            "columnName": "doseUnit",
+            "fieldPath": "slot",
+            "columnName": "slot",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "takenAtEpochMs",
-            "columnName": "takenAtEpochMs",
+            "fieldPath": "days",
+            "columnName": "days",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "day",
-            "columnName": "day",
+            "fieldPath": "startDay",
+            "columnName": "startDay",
             "affinity": "TEXT",
             "notNull": true
           },
           {
-            "fieldPath": "site",
-            "columnName": "site",
+            "fieldPath": "endDay",
+            "columnName": "endDay",
             "affinity": "TEXT"
           },
           {
-            "fieldPath": "note",
-            "columnName": "note",
-            "affinity": "TEXT"
+            "fieldPath": "paused",
+            "columnName": "paused",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMs",
+            "columnName": "createdAtEpochMs",
+            "affinity": "INTEGER",
+            "notNull": true
           },
           {
             "fieldPath": "clientUpdatedAtEpochMs",
@@ -896,59 +891,63 @@
           "columnNames": [
             "id"
           ]
-        },
-        "indices": [
-          {
-            "name": "index_medication_doses_day",
-            "unique": false,
-            "columnNames": [
-              "day"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_medication_doses_day` ON `${TABLE_NAME}` (`day`)"
-          }
-        ]
+        }
       },
       {
-        "tableName": "symptom_days",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`day` TEXT NOT NULL, `symptoms` TEXT NOT NULL, `clientUpdatedAtEpochMs` INTEGER NOT NULL, `deleted` INTEGER NOT NULL, PRIMARY KEY(`day`))",
+        "tableName": "repeat_logs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`entryId` TEXT NOT NULL, `ruleId` TEXT NOT NULL, `day` TEXT NOT NULL, PRIMARY KEY(`entryId`))",
         "fields": [
+          {
+            "fieldPath": "entryId",
+            "columnName": "entryId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ruleId",
+            "columnName": "ruleId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
           {
             "fieldPath": "day",
             "columnName": "day",
             "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "symptoms",
-            "columnName": "symptoms",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "clientUpdatedAtEpochMs",
-            "columnName": "clientUpdatedAtEpochMs",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "deleted",
-            "columnName": "deleted",
-            "affinity": "INTEGER",
             "notNull": true
           }
         ],
         "primaryKey": {
           "autoGenerate": false,
           "columnNames": [
-            "day"
+            "entryId"
           ]
-        }
+        },
+        "indices": [
+          {
+            "name": "index_repeat_logs_ruleId_day",
+            "unique": false,
+            "columnNames": [
+              "ruleId",
+              "day"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_repeat_logs_ruleId_day` ON `${TABLE_NAME}` (`ruleId`, `day`)"
+          },
+          {
+            "name": "index_repeat_logs_day",
+            "unique": false,
+            "columnNames": [
+              "day"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_repeat_logs_day` ON `${TABLE_NAME}` (`day`)"
+          }
+        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '21f62f96e38df55af4251e010e985ccc')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '11d29625841de9921750deaa7fb3baaa')"
     ]
   }
 }

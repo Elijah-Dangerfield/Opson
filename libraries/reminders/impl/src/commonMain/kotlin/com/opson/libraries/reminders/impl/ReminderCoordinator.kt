@@ -211,7 +211,7 @@ class ReminderCoordinator(
         val key = reminder.key
         val quickLog = key !is ReminderKey.Dose ||
             doses.firstOrNull { it.date == key.date && it.medicationId == key.medicationId }?.quickLog != false
-        val text = ReminderCopy.text(key, settings.tone, quickLog)
+        val text = ReminderCopy.text(key, quickLog)
         return ReminderNotification(
             reminder = reminder,
             title = strings.get(text.title),

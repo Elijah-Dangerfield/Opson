@@ -32,6 +32,16 @@ object FoodsLeakSurfaces {
         LeakSurface(id = "foods-unverified", label = "Foods tab, own food unverified", showsCaloriesInFull = true) { policy ->
             FoodsScreen(state = FoodsFixtures.foodsState(policy, inReview = true), onAction = {})
         },
+        // release.repeats: each repeat's row carries its foods' calories, as a saved meal's does.
+        LeakSurface(id = "foods-repeating", label = "Foods tab, Repeating", showsCaloriesInFull = true) { policy ->
+            FoodsScreen(state = FoodsFixtures.foodsState(policy, withRecent = false, repeatsOn = true), onAction = {})
+        },
+        LeakSurface(id = "foods-repeat", label = "New repeat", showsCaloriesInFull = true) { policy ->
+            RepeatScreen(state = FoodsFixtures.repeatState(policy), onAction = {})
+        },
+        LeakSurface(id = "foods-repeat-edit", label = "Edit repeat", showsCaloriesInFull = true) { policy ->
+            RepeatScreen(state = FoodsFixtures.repeatState(policy, edit = true), onAction = {})
+        },
         // Design sync 4, 13.3e, from a food's ⋮ on Today (release.foodActions). The Calories field
         // and its "Was" are tagged as calories, so Full's control sees them and no other mode may.
         LeakSurface(id = "edit-a-copy", label = "Edit a copy", showsCaloriesInFull = true) { policy ->

@@ -54,11 +54,14 @@ data class FoodSearchRoute(
  *
  * @param entryId the entry to edit; `null` logs a new one.
  * @param dayIso the day a new entry counts on; `null` is the day Today is showing.
+ * @param notOnWatch a new entry starts with "My watch didn't record this" on: Today's Activity
+ *   card opens it so when a health app already counts the day's workouts.
  */
 @Serializable
 data class ExerciseRoute(
     val entryId: String? = null,
     val dayIso: String? = null,
+    val notOnWatch: Boolean = false,
 ) : Route()
 
 /**

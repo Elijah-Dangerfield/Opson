@@ -3,7 +3,6 @@ package com.opson.libraries.reminders
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
-import com.opson.libraries.diary.Tone
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.medication_reminder_already
 import opson.libraries.resources.generated.resources.medication_reminder_body_text
@@ -11,21 +10,14 @@ import opson.libraries.resources.generated.resources.medication_reminder_log
 import opson.libraries.resources.generated.resources.medication_reminder_title
 import opson.libraries.resources.generated.resources.reminders_note_already_ate
 import opson.libraries.resources.generated.resources.reminders_note_breakfast
-import opson.libraries.resources.generated.resources.reminders_note_breakfast_warm
 import opson.libraries.resources.generated.resources.reminders_note_dinner
-import opson.libraries.resources.generated.resources.reminders_note_dinner_warm
 import opson.libraries.resources.generated.resources.reminders_note_log_it
 import opson.libraries.resources.generated.resources.reminders_note_lunch
-import opson.libraries.resources.generated.resources.reminders_note_lunch_warm
 import opson.libraries.resources.generated.resources.reminders_note_meal_body
-import opson.libraries.resources.generated.resources.reminders_note_meal_body_warm
 import opson.libraries.resources.generated.resources.reminders_note_snack
-import opson.libraries.resources.generated.resources.reminders_note_snack_warm
 import opson.libraries.resources.generated.resources.reminders_note_snooze
 import opson.libraries.resources.generated.resources.reminders_note_water
 import opson.libraries.resources.generated.resources.reminders_note_water_body
-import opson.libraries.resources.generated.resources.reminders_note_water_body_warm
-import opson.libraries.resources.generated.resources.reminders_note_water_warm
 import org.jetbrains.compose.resources.StringResource
 
 /** A notification's text before it is resolved: fixed resources only. */
@@ -36,7 +28,8 @@ data class ReminderText(
 )
 
 /**
- * The words on a reminder, by key and tone (v3 `reminder-notification.png`).
+ * The words on a reminder, by key (v3 `reminder-notification.png`). One voice, the plain one:
+ * the warm variant went with the How we talk to you setting.
  *
  * **This is a visibility surface with nothing to resolve.** Every string is a fixed resource
  * with no format argument, so no number, hidden or not, can reach a notification in any mode;
@@ -67,28 +60,25 @@ object ReminderCopy {
     )
 
     /**
-     * [quickLog] is [DoseNudge.quickLog]. A dose nudge reads the same in both tones and never names
-     * the medication or the dose: lock screens are public.
+     * [quickLog] is [DoseNudge.quickLog]. A dose nudge never names the medication or the dose:
+     * lock screens are public.
      */
-    fun text(key: ReminderKey, tone: Tone, quickLog: Boolean = true): ReminderText {
-        val warm = tone == Tone.Warm
-        return when (key) {
-            is ReminderKey.Meal -> ReminderText(
-                title = mealTitle(key.slot, warm),
-                body = if (warm) Res.string.reminders_note_meal_body_warm else Res.string.reminders_note_meal_body,
-                actions = mealActions,
-            )
-            is ReminderKey.Water -> ReminderText(
-                title = if (warm) Res.string.reminders_note_water_warm else Res.string.reminders_note_water,
-                body = if (warm) Res.string.reminders_note_water_body_warm else Res.string.reminders_note_water_body,
-                actions = emptyList(),
-            )
-            is ReminderKey.Dose -> ReminderText(
-                title = Res.string.medication_reminder_title,
-                body = Res.string.medication_reminder_body_text,
-                actions = if (quickLog) doseActions else doseActionsNoQuickLog,
-            )
-        }
+    fun text(key: ReminderKey, quickLog: Boolean = true): ReminderText = when (key) {
+        is ReminderKey.Meal -> ReminderText(
+            title = mealTitle(key.slot),
+            body = Res.string.reminders_note_meal_body,
+            actions = mealActions,
+        )
+        is ReminderKey.Water -> ReminderText(
+            title = Res.string.reminders_note_water,
+            body = Res.string.reminders_note_water_body,
+            actions = emptyList(),
+        )
+        is ReminderKey.Dose -> ReminderText(
+            title = Res.string.medication_reminder_title,
+            body = Res.string.medication_reminder_body_text,
+            actions = if (quickLog) doseActions else doseActionsNoQuickLog,
+        )
     }
 
     /**
@@ -103,12 +93,11 @@ object ReminderCopy {
         else -> ReminderStyle.Full
     }
 
-    private fun mealTitle(slot: MealSlot, warm: Boolean): StringResource = when (slot) {
-        MealSlot.Breakfast -> if (warm) Res.string.reminders_note_breakfast_warm else Res.string.reminders_note_breakfast
-        MealSlot.Lunch -> if (warm) Res.string.reminders_note_lunch_warm else Res.string.reminders_note_lunch
-        MealSlot.Snack -> if (warm) Res.string.reminders_note_snack_warm else Res.string.reminders_note_snack
+    private fun mealTitle(slot: MealSlot): StringResource = when (slot) {
+        MealSlot.Breakfast -> Res.string.reminders_note_breakfast
+        MealSlot.Lunch -> Res.string.reminders_note_lunch
+        MealSlot.Snack -> Res.string.reminders_note_snack
         // Uncategorized never gets a reminder (MealReminders.isOn); dinner is the safe wording.
-        MealSlot.Dinner, MealSlot.Uncategorized ->
-            if (warm) Res.string.reminders_note_dinner_warm else Res.string.reminders_note_dinner
+        MealSlot.Dinner, MealSlot.Uncategorized -> Res.string.reminders_note_dinner
     }
 }

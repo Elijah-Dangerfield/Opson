@@ -13,6 +13,7 @@ import com.opson.libraries.opson.Telemetry
 import com.opson.libraries.opson.impl.logging.DevConsoleWriter
 import com.opson.libraries.opson.impl.logging.KermitLogTree
 import com.opson.libraries.opson.impl.logging.SentryLogTree
+import com.opson.libraries.opson.impl.logging.scrubUrls
 import com.opson.libraries.opson.impl.logging.scrubbed
 import co.touchlab.kermit.Logger as KermitLogger
 import co.touchlab.kermit.Severity as KermitSeverity
@@ -151,6 +152,8 @@ private class ConfiguredTelemetry(
         }
     }
 
+    override fun recentLog(): String = sentryLogTree?.snapshot().orEmpty()
+
     @OptIn(ExperimentalUuidApi::class)
     override fun captureUserFeedback(
         message: String,
@@ -159,6 +162,7 @@ private class ConfiguredTelemetry(
         errorCode: Int?,
         email: String?,
         screenshots: List<ByteArray>,
+        sessionLog: String?,
     ): Boolean {
         val payload = message.trim()
         if (payload.isBlank()) {
@@ -193,8 +197,11 @@ private class ConfiguredTelemetry(
         // into its own issue (see init), and the in-memory log buffer rides
         // along as an attachment — the fine-grained Debug/Verbose we never ship
         // as breadcrumbs, captured only when the user actually files feedback.
-        // Local scope means none of this leaks onto later events.
-        val logDump = sentryLogTree?.snapshot()?.takeIf { it.isNotBlank() }
+        // Local scope means none of this leaks onto later events. The log is the
+        // one the report page showed (recentLog), or none if the person took it
+        // off. Scrubbed again on the way out: the buffer is scrubbed as it fills,
+        // and a caller handing in its own text must not be the gap.
+        val logDump = sessionLog?.let(::scrubUrls)?.takeIf { it.isNotBlank() }
         val feedbackId = Uuid.random().toString()
 
         // Composed once and used twice: as the legacy UserFeedback comment

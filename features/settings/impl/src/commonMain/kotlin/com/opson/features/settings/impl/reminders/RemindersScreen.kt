@@ -18,7 +18,6 @@ import com.opson.features.settings.impl.SettingsPreview
 import com.opson.features.settings.impl.SettingsRow
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -35,8 +34,6 @@ import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.reminders_big_day_body
 import opson.libraries.resources.generated.resources.reminders_big_day_title
-import opson.libraries.resources.generated.resources.reminders_checkin_body
-import opson.libraries.resources.generated.resources.reminders_checkin_title
 import opson.libraries.resources.generated.resources.reminders_level_full
 import opson.libraries.resources.generated.resources.reminders_level_off
 import opson.libraries.resources.generated.resources.reminders_level_subtle
@@ -47,20 +44,12 @@ import opson.libraries.resources.generated.resources.reminders_permission_off
 import opson.libraries.resources.generated.resources.reminders_permission_open
 import opson.libraries.resources.generated.resources.reminders_quiet_body
 import opson.libraries.resources.generated.resources.reminders_quiet_title
-import opson.libraries.resources.generated.resources.reminders_tags_body
-import opson.libraries.resources.generated.resources.reminders_tags_title
 import opson.libraries.resources.generated.resources.reminders_time_cancel
 import opson.libraries.resources.generated.resources.reminders_time_off
 import opson.libraries.resources.generated.resources.reminders_time_ok
 import opson.libraries.resources.generated.resources.reminders_time_title
 import opson.libraries.resources.generated.resources.reminders_times_label
 import opson.libraries.resources.generated.resources.reminders_title
-import opson.libraries.resources.generated.resources.reminders_tone_example
-import opson.libraries.resources.generated.resources.reminders_tone_plain
-import opson.libraries.resources.generated.resources.reminders_tone_plain_sample
-import opson.libraries.resources.generated.resources.reminders_tone_title
-import opson.libraries.resources.generated.resources.reminders_tone_warm
-import opson.libraries.resources.generated.resources.reminders_tone_warm_sample
 import opson.libraries.resources.generated.resources.settings_back_more
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -118,35 +107,6 @@ fun RemindersScreen(
                     AppSwitch(checked = row.on, onCheckedChange = { onAction(RemindersAction.MealToggled(row.slot)) })
                 }
             }
-        }
-        EdgeCard(edgeToEdge = false) {
-            Text(text = stringResource(Res.string.reminders_tone_title), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
-            SegmentedControl(
-                options = Tone.entries,
-                selected = state.tone,
-                onSelect = { onAction(RemindersAction.TonePicked(it)) },
-                label = { stringResource(if (it == Tone.Warm) Res.string.reminders_tone_warm else Res.string.reminders_tone_plain) },
-            )
-            val sample = if (state.tone == Tone.Warm) Res.string.reminders_tone_warm_sample else Res.string.reminders_tone_plain_sample
-            Text(
-                text = stringResource(Res.string.reminders_tone_example, stringResource(sample)),
-                typography = AppTheme.type.secondary,
-                color = AppTheme.colors.muted,
-            )
-        }
-        SwitchCard(
-            title = Res.string.reminders_tags_title,
-            body = Res.string.reminders_tags_body,
-            checked = state.askTags,
-            onToggle = { onAction(RemindersAction.HungerQuestionsToggled) },
-        )
-        state.checkIn?.let { checked ->
-            SwitchCard(
-                title = Res.string.reminders_checkin_title,
-                body = Res.string.reminders_checkin_body,
-                checked = checked,
-                onToggle = { onAction(RemindersAction.CheckInToggled) },
-            )
         }
         Text(
             text = stringResource(Res.string.reminders_no_evening),
@@ -222,19 +182,10 @@ private val EventLevel.label: StringResource
         EventLevel.Full -> Res.string.reminders_level_full
     }
 
-/** The design's page: `release.checkIn` on, so Check in at day close ends it. */
+/** The design's page, without the voice and check-in switches it once ended with. */
 @Preview
 @Composable
 private fun RemindersPreview() {
-    SettingsPreview {
-        RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet, checkInReleased = true), onAction = {})
-    }
-}
-
-/** `release.checkIn` off: no check-in row. */
-@Preview
-@Composable
-private fun RemindersNoCheckInPreview() {
     SettingsPreview { RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet), onAction = {}) }
 }
 
@@ -260,7 +211,7 @@ private fun RemindersPermissionDeniedPreview() {
 @Preview
 @Composable
 private fun RemindersBlindPreview() {
-    val settings = SettingsFixtures.remindersSet.copy(numbers = NumbersSettings(preset = PresetId.NoNumbers), tone = Tone.Warm)
+    val settings = SettingsFixtures.remindersSet.copy(numbers = NumbersSettings(preset = PresetId.NoNumbers))
     SettingsPreview { RemindersScreen(RemindersStateBuilder.build(settings), onAction = {}) }
 }
 

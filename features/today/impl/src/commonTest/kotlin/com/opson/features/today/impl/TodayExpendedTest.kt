@@ -1,6 +1,7 @@
 package com.opson.features.today.impl
 
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.Settings
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
@@ -79,6 +80,16 @@ class TodayExpendedTest {
             val shows = policy(preset).effectiveLevel(Metric.EnergyOut, Surface.Today) == Visibility.Show
             assertEquals(shows, expended is Display.Shown, "in $preset")
         }
+    }
+
+    /** "Count digesting food" on: neither store counts it, so a tenth of the 1,245 eaten joins the reading. */
+    @Test
+    fun countingDigestingFood_addsATenthOfWhatWasEaten() {
+        val state = TodayStateBuilder.build(
+            TodayFixtures.inputs(TodayFixtures.day(), Settings(thermicEffectInBurned = true), expended = TodayFixtures.expended),
+            policy(PresetId.Full, TodayFixtures.noon),
+        )
+        assertEquals(Display.Shown("2,115 kcal"), state.expended())
     }
 
     @Test

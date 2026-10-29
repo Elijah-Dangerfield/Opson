@@ -32,7 +32,7 @@ HealthKit, so Apple Health connects. Release builds don't, until 0.2.
 | Photo estimate | Says "not available" until `ANTHROPIC_API_KEY` is set on dev |
 | Open Food Facts products in search | Yes: pick it under search options, or see it mixed into All |
 | Today's summary card, multi-select (Copy, Move, Save as meal), swipe to delete | Yes |
-| Close the day check-in, and its switch in Reminders | Yes |
+| The check-in (the + sheet's tile and Close the day's row), Close the day's recap, How you've felt in Patterns | Yes |
 | Progress photos row in Modes, Expended card in Trends (with a watch connected) | Yes |
 | Home screen widgets | iOS: the native widget from the widget gallery, and the in-app Widgets page. Android's receiver is still held |
 | More › Testing › QA menu (debug and TestFlight only) | Fire each reminder in 5 s, open today's check-in, reset onboarding, clear caches, override config flags, copy the user id |

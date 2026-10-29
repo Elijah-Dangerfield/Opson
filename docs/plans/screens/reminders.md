@@ -23,7 +23,7 @@ first; this page follows the settings page conventions.
 `false`, in `:libraries:reminders` (QA menu through the `QaConfigValue`
 multibinding, listed in `apps/admin/config-manifest-registry.json` and the
 drift test). Off means: no More row, no Rhythm card, no Water reminders row,
-tone and hunger questions stay on Look and feel, and **nothing is scheduled**
+and **nothing is scheduled**
 (the coordinator cancels everything it scheduled and dismisses what it
 showed). It is read live from `AppConfigFlow`, so a remote flip takes effect
 on the next config emission.
@@ -36,7 +36,9 @@ on the next config emission.
 | Reminder time vs meal time | One time per meal. The design's 15 to 30 minute gaps between Rhythm's "planned around" and the reminder are not consistent between meals (8:00/8:30, 12:30/1:00, 7:00/7:15), so the nudge fires at the meal time itself, which is what "A nudge if a meal isn't logged by its time" says. |
 | Opt-in | 0.1 synced `remindersEvent = subtle` and three meals on for everyone (prototype defaults, `encodeDefaults`). Acting on that when the flag flips would schedule for users who never chose it, and on Android 12 and below would post without ever asking. New `Settings.remindersChosen = false`: until the person picks a level or turns a meal on, the effective level (`Settings.mealReminderLevel`) is Off. Water reminders already default off. |
 | Skip when logged | Yes (v3: "7:15 pm, only if dinner isn't logged"). Today's reminder for a meal is dropped once that meal has items or "Ate, no details"; with meal groups off it is dropped once anything was logged since the previous meal's time. A delivered nudge is dismissed when its meal gets logged. Water: the rest of today's water nudges drop once the day reaches the water goal. |
-| What the rows do | Shown: Quiet mode, After a big day, Meal reminders, the four meal times, How we talk to you, Hunger and fullness questions, the "no evening messages" line. **Not shown: New food tried and Weekly recap.** Nothing in the app acts on them yet (no new-food note, no recap notification), and 0.1's rule is to offer only what works. They come back with the features. |
+| What the rows do | Shown: Quiet mode, After a big day, Meal reminders, the four meal times, the "no evening messages" line. **Not shown: New food tried and Weekly recap.** Nothing in the app acts on them yet (no new-food note, no recap notification), and 0.1's rule is to offer only what works. They come back with the features. |
+| Tone and the check-in switches | Gone (owner, 2026-10-29). How we talk to you: the voice is the brand's, so every notification and Close the day's title use the plain words, and the warm copy is deleted. Hunger and fullness questions and Check in at day close: anyone can skip them, so there is no switch; the questions are always asked and the check-in shows whenever `release.checkIn` is on. `Settings.tone`, `askTags` and `checkIn` stay as keys so older JSON round-trips (and older builds keep reading their own), and no reader looks at them. |
+| The page's name | Kept as Reminders and celebrations. After a big day is an in-app card, not a notification, so "Notifications" would undersell half the page. |
 | Subtle vs Full | Subtle: silent, no heads-up (Android channel `IMPORTANCE_LOW`, iOS `passive`, no sound). Full: the system's default sound and a heads-up where the platform allows (`IMPORTANCE_DEFAULT`, iOS `active` with the default sound). Quiet mode on makes Full silent too (its own channel without sound or vibration). Water nudges always use Subtle. |
 | Exact vs inexact (Android) | Inexact: `AlarmManager.setAndAllowWhileIdle`. A meal nudge a few minutes late is fine; exact alarms need `SCHEDULE_EXACT_ALARM` (denied by default for new installs on 14) or `USE_EXACT_ALARM`, which Play reserves for alarm and calendar apps. No exact-alarm permission is requested. |
 | Horizon | Seven days ahead (4 meals and 2 waters a day stay under iOS's 64 pending). Any replan extends it: opening the app, a notification action, an Android alarm (it starts the process). On iOS a week without opening the app or answering a nudge lets them run out, which suits an app that should not nag someone who stepped away. |
@@ -50,7 +52,7 @@ on the next config emission.
 | Module | Holds |
 |---|---|
 | `:libraries:diary` | `Settings.mealTimes`, `Settings.remindersChosen`, `Settings.mealReminderLevel`, `MealReminders.isOn(slot)` / `with(slot, on)`, `MealTimes.at(slot)` / `with(slot, time)`. |
-| `:libraries:reminders` (new) | `RemindersEnabled`; `Reminder`, `ReminderKey`, `ReminderPlanner` (pure); `ReminderCopy` (the notification's `StringResource`s, by key and tone); `NotificationPermissions`, `LocalNotifications`, `ReminderNotification`; `ReminderActions`, `ReminderOpens`; `ReminderEvents` (telemetry names). |
+| `:libraries:reminders` (new) | `RemindersEnabled`; `Reminder`, `ReminderKey`, `ReminderPlanner` (pure); `ReminderCopy` (the notification's `StringResource`s, by key); `NotificationPermissions`, `LocalNotifications`, `ReminderNotification`; `ReminderActions`, `ReminderOpens`; `ReminderEvents` (telemetry names). |
 | `:libraries:reminders:impl` (new) | `ReminderCoordinator` (`AutoInit`): observes the flag, settings, today and foregrounds, plans and hands the platform the plan; handles actions. Android: `AndroidLocalNotifications`, the alarm, action and boot receivers, the manifest entries, `ic_stat_reminder`. iOS: `IosLocalNotifications` (`UNUserNotificationCenter` and its delegate, set when the coordinator is built in `iOSApp.init`). |
 
 ## Route
@@ -66,8 +68,6 @@ data class RemindersState(
     val bigDay: EventLevel,
     val mealLevel: EventLevel,                 // Settings.mealReminderLevel (Off until chosen)
     val meals: List<MealReminderRow>,          // Breakfast, Lunch, Snack, Dinner
-    val tone: Tone,
-    val askTags: Boolean,
     val permission: NotificationPermission,    // Granted | Denied | NotAsked
     val pickingTime: MealSlot?,                // the time dialog, open on that meal
 ) { val showPermissionNote: Boolean }          // something is on and permission is Denied
@@ -90,7 +90,6 @@ Off. `timeLabel` is `DateCopy.time` ("8:30 AM"); the row shows it when on and
 | `MealToggled(slot)` | Flips the meal. Turning one on while the level is Off sets the level to Subtle (turning a reminder on turns reminders on) and asks for permission. `reminder.set`. |
 | `MealTimeTapped(slot)` / `MealTimeDismissed` | Opens and closes the time dialog (`:libraries:ui`'s `TimePickerDialog`). |
 | `MealTimePicked(time)` | `mealTimes.with(slot, time)`; the same time writes nothing. |
-| `TonePicked(tone)` / `HungerQuestionsToggled` | As Look and feel. |
 | `OpenSettingsTapped` | `NotificationPermissions.openSettings()`. |
 | `ScreenResumed` | Re-checks permission. |
 | `BackTapped` | `Close`. |
@@ -101,8 +100,6 @@ them touch visibility, so nothing goes through `NumbersChanger`.
 Elsewhere in settings, all only with the flag on:
 - **More**: `MoreRow.Reminders(quiet)` third in the first card ("Quiet mode
   on" / "Quiet mode off"), opening `RemindersRoute`.
-- **Look and feel**: tone and hunger questions move to Reminders (settings.md
-  0.2 table), so the page drops them.
 - **Water settings**: a Reminders row, `One mid-morning, one mid-afternoon.`
   (10:30 and 15:00), `RemindersToggled`; on asks for permission.
 
@@ -118,17 +115,17 @@ or the next meal's switch is off. `ReminderTapped` opens `RemindersRoute`.
 
 ## Notification
 
-`ReminderCopy` picks resources by key and tone; the coordinator resolves them
+`ReminderCopy` picks resources by key; the coordinator resolves them
 (`getString`) into a `ReminderNotification(reminder, title, body, actions,
 style)` for the platform.
 
-| Key | Plain | Warm |
-|---|---|---|
-| Meal title | `Dinner isn't logged yet` (one per meal) | `Dinner, whenever you're ready` |
-| Meal body | `Add it whenever you like, or let us know you already ate.` | `No rush. Add it when it suits you, or tell us you already ate.` |
-| Meal actions | `Already ate`, `Log it`, `In 30 min` | same |
-| Water title | `Time for some water` | `A glass of water?` |
-| Water body | `Log a glass whenever you like.` | `Only if you feel like one. Log it whenever.` |
+| Key | Words |
+|---|---|
+| Meal title | `Dinner isn't logged yet` (one per meal) |
+| Meal body | `Add it whenever you like, or let us know you already ate.` |
+| Meal actions | `Already ate`, `Log it`, `In 30 min` |
+| Water title | `Time for some water` |
+| Water body | `Log a glass whenever you like.` |
 
 **Visibility.** A notification is a surface, and it has no `Display` and no
 format argument at all: every string is a fixed resource, so no number the
@@ -136,8 +133,8 @@ policy hides can reach it in any mode. Adding a number later means resolving
 it through `VisibilityPolicy` and keeping this test green. `CaloriesHiddenLeakTest`
 lists `reminder-notification` (`showsCaloriesInFull = false`): a lookalike of
 the system notification (`ReminderNotificationCard`, also the
-`reminder-notification` design-sync preview) rendering every key in both tones
-from `ReminderCopy`, scanned in every preset. `reminders` (the page) is listed
+`reminder-notification` design-sync preview) rendering every key from
+`ReminderCopy`, scanned in every preset. `reminders` (the page) is listed
 too.
 
 ## Data and platform
@@ -195,10 +192,7 @@ Added to `app-events.md`. No meal names, no times, no free text.
 `Quiet mode` / `No confetti, sounds or vibration.`; `After a big day` / `A calm
 card at day close. Full adds the two buttons.`; `Meal reminders` / `A nudge if
 a meal isn't logged by its time.`; `Off` `Subtle` `Full`; `Meal reminder
-times`; `How we talk to you`, `Plain` / `Warm`, `For example: %s` with
-`"Dinner isn't logged yet."` / `"Dinner's still open. Add it whenever."`;
-`Hunger and fullness questions` / `Asked when you add food. Always skippable.`;
-`We don't send evening messages about what's left to eat. That isn't a
+times`; `We don't send evening messages about what's left to eat. That isn't a
 setting, we just don't.`; permission note `Notifications are off for Opson, so
 reminders can't reach you.` / `Open settings`; time dialog `%s time`, `OK`,
 `Cancel`; More `Quiet mode on` / `Quiet mode off`; Water `Reminders` / `One
@@ -221,21 +215,20 @@ plan is empty and everything is cancelled); large text (rows wrap).
   `MealTimes` round trip and unreadable values.
 - `:libraries:reminders`: `ReminderPlannerTest` (flag, opt-in, level Off,
   per-meal switches, skip when logged, meal groups off, horizon, past times,
-  snoozes kept and dropped, water and the goal), `ReminderCopyTest` (tone,
-  keys, actions).
+  snoozes kept and dropped, water and the goal), `ReminderCopyTest` (keys,
+  actions).
 - `:libraries:reminders:impl`: `ReminderCoordinatorTest` with a fake
   `LocalNotifications`: flag off schedules nothing, turning on schedules,
   logging dinner drops and dismisses it, Already ate writes, snooze survives
   a replan, opened sends the Logger request, unknown settings wait.
 - `:features:settings:impl`: `RemindersViewModelTest` per action (permission
   asked only on turn-on, denied note, telemetry fired), `RemindersStateBuilderTest`,
-  More with the flag on and off, Look and feel with the flag on and off, Water
-  reminders row.
+  More with the flag on and off, Water reminders row.
 - `:features:today:impl`: the Rhythm reminder card per state and flag; times
   from settings.
 - Previews: `RemindersScreen.kt` configured, empty (never set), permission
   denied, Blind, dark, the time dialog; `ReminderNotification.kt` (dinner as
-  v3, and every reminder warm); More and Water settings with the flag on;
+  v3, and every reminder); More and Water settings with the flag on;
   `TodayRhythmRemindersPreview`.
 - `SURFACES`: `reminders`, `reminder-notification` (settings), `today-reminders` (Today
   with the Rhythm line).

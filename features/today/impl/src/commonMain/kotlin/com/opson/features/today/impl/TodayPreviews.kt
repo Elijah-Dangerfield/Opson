@@ -24,10 +24,11 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ModeTimerEnded
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SummaryCardPreset
-import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.ui.FastingStatusFixtures
 import com.opson.libraries.health.EnergyExpended
+import com.opson.features.today.impl.activity.TodayActivityFixtures
+import com.opson.features.today.impl.activity.TodayActivitySection
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ModeTiming
@@ -77,6 +78,7 @@ private fun Today(
     firstRow: Int = 0,
     drag: FoodDrag = rememberFoodDrag(),
     burned: Burned? = null,
+    activity: (@Composable () -> Unit)? = null,
 ) {
     TodayScreen(
         state = TodayFixtures.todayState(
@@ -97,6 +99,7 @@ private fun Today(
         onAction = {},
         drag = drag,
         listState = rememberLazyListState(initialFirstVisibleItemIndex = firstRow),
+        activity = activity,
     )
 }
 
@@ -196,15 +199,23 @@ private fun TodayNotesEmptyPreview() = Phone {
 @Composable
 private fun TodayNutrientsPagePreview() = Phone(dark = true) { TodayV4(Settings(todaySummaryPage = 2)) }
 
+/** Scrolled to dinner: the Activity card is the last thing on Today, under the meals. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayActivityAtTheBottomPreview() = Phone {
+    Today(
+        full,
+        expended = TodayFixtures.expended,
+        weighIns = TodayFixtures.weighIns,
+        firstRow = DINNER_ROW,
+        activity = { TodayActivityFixtures.withHealth(full)?.let { TodayActivitySection(it, onAction = {}) } },
+    )
+}
+
 /** 2.1c: scrolled to lunch, the card pinned under the header as one line. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayStickyPreview() = Phone { TodayFull(firstRow = LUNCH_ROW) }
-
-/** 2.1d: collapsed by choice, at the top of the page. */
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun TodayCollapsedPreview() = Phone { TodayFull(settings = Settings(todaySummaryCollapsed = true)) }
 
 /** 2.12: three foods picked, the bottom bar's actions. */
 @Preview(widthDp = 390, heightDp = 844)
@@ -559,9 +570,52 @@ private fun DayClosePastDayPreview() = Phone {
     DayCloseScreen(TodayFixtures.dayCloseState(full, date = TodayFixtures.pastDay().date), onAction = {})
 }
 
-@Preview(widthDp = 390, heightDp = 844)
+// Close the day's recap: eaten against burned, the macros and the vitamins and minerals. Tall, so
+// every card is in the capture.
+
+/** A set 500 kcal deficit on a busy day: about 500 under what was burned, right around the plan. */
+@Preview(widthDp = 390, heightDp = 1500)
 @Composable
-private fun DayCloseWarmPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(full, settings = Settings(tone = Tone.Warm)), onAction = {}) }
+private fun DayCloseRecapDeficitPreview() = Phone {
+    DayCloseScreen(
+        TodayFixtures.dayCloseState(full, settings = TodayFixtures.deficit500, burned = TodayFixtures.activeBurned, checkInOn = true, checkIn = TodayFixtures.checkIn),
+        onAction = {},
+    )
+}
+
+/** A set surplus on a quiet day: about 300 over what was burned, around the surplus the goal aims for. */
+@Preview(widthDp = 390, heightDp = 1500)
+@Composable
+private fun DayCloseRecapSurplusPreview() = Phone {
+    DayCloseScreen(TodayFixtures.dayCloseState(full, settings = TodayFixtures.surplus300, burned = TodayFixtures.quietBurned, checkInOn = true), onAction = {})
+}
+
+/** A deficit goal and a day over what was burned: the big-day card, then the same facts, said kindly. */
+@Preview(widthDp = 390, heightDp = 1500)
+@Composable
+private fun DayCloseRecapDeficitMissedPreview() = Phone(dark = true) {
+    DayCloseScreen(TodayFixtures.dayCloseState(full, settings = TodayFixtures.deficit500, burned = TodayFixtures.quietBurned, checkInOn = true), onAction = {})
+}
+
+/** Macros with grams hides energy: no eaten and burned card, the macros against their targets stay. */
+@Preview(widthDp = 390, heightDp = 1500)
+@Composable
+private fun DayCloseRecapMacrosWithGramsPreview() = Phone {
+    DayCloseScreen(
+        TodayFixtures.dayCloseState(policy(PresetId.MacrosWithGrams), settings = TodayFixtures.deficit500, burned = TodayFixtures.activeBurned, checkInOn = true),
+        onAction = {},
+    )
+}
+
+/** No numbers with the same day and Burned: the meals, the check-in and the note, and not one amount. */
+@Preview(widthDp = 390, heightDp = 1500)
+@Composable
+private fun DayCloseRecapNoNumbersPreview() = Phone {
+    DayCloseScreen(
+        TodayFixtures.dayCloseState(policy(PresetId.NoNumbers), settings = TodayFixtures.deficit500, burned = TodayFixtures.activeBurned, checkInOn = true, checkIn = TodayFixtures.checkIn),
+        onAction = {},
+    )
+}
 
 // A day closed with Close the day: no + anywhere, the closed line with Reopen
 
@@ -602,3 +656,4 @@ private fun FoodActionsClosedPreview() = Phone(dark = true) { ItemSheetContent(T
 /** Rows of [TodayFull]'s list: the card, water, weight, then breakfast and lunch. */
 private const val BREAKFAST_ROW = 3
 private const val LUNCH_ROW = 4
+private const val DINNER_ROW = 6

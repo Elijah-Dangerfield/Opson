@@ -378,7 +378,7 @@ object FoodDetailStateBuilder {
                 // A weight is a number too: the menu and the chips are measures, with no grams beside them.
                 units = units.map { UnitUi(it.chipLabel, grams = null) },
                 noNumbers = true,
-                hunger = HungerCheck(choice.hunger).takeIf { inputs.settings.askTags },
+                hunger = HungerCheck(choice.hunger),
                 // The source still names itself (NEVO asks to be cited wherever its foods show).
                 source = SourceLine(origin(food), review = review(food, inputs.review)),
             )

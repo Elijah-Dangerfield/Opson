@@ -38,9 +38,13 @@ interface LogEntryDao : ClearableDao {
     @Query("SELECT DISTINCT day FROM log_entries WHERE day >= :from AND day <= :to AND deleted = 0")
     fun observeDaysWithEntries(from: String, to: String): Flow<List<String>>
 
-    /** Newest first, of every kind: the last time anything was eaten, for fasting. */
-    @Query("SELECT * FROM log_entries WHERE deleted = 0 ORDER BY loggedAtEpochMs DESC LIMIT :limit")
-    fun observeLatest(limit: Int): Flow<List<LogEntryEntity>>
+    /**
+     * The latest entry of any kind logged at or before [untilEpochMs]: the last time anything was
+     * eaten, for fasting. Bounded because a repeat's foods carry their meal's time, which can be
+     * later today than now.
+     */
+    @Query("SELECT * FROM log_entries WHERE deleted = 0 AND loggedAtEpochMs <= :untilEpochMs ORDER BY loggedAtEpochMs DESC LIMIT 1")
+    suspend fun latestUntil(untilEpochMs: Long): LogEntryEntity?
 
     /**
      * Entries logged from a food, newest first, for Recent; the repository collapses repeats of
@@ -199,6 +203,48 @@ interface ExerciseDao : ClearableDao {
     suspend fun delete(id: String)
 
     @Query("DELETE FROM exercises")
+    override suspend fun deleteAll()
+}
+
+/** Repeating foods (`RepeatRule`). Reads skip tombstones. */
+@Dao
+interface RepeatRuleDao : ClearableDao {
+    @Upsert
+    suspend fun upsert(rows: List<RepeatRuleEntity>)
+
+    @Query("SELECT * FROM repeat_rules WHERE id = :id")
+    suspend fun get(id: String): RepeatRuleEntity?
+
+    @Query("SELECT * FROM repeat_rules WHERE deleted = 0 ORDER BY createdAtEpochMs, id")
+    suspend fun getAll(): List<RepeatRuleEntity>
+
+    @Query("SELECT * FROM repeat_rules WHERE deleted = 0 ORDER BY createdAtEpochMs, id")
+    fun observeAll(): Flow<List<RepeatRuleEntity>>
+
+    @Query("DELETE FROM repeat_rules")
+    override suspend fun deleteAll()
+}
+
+/** The entries repeats logged, by day. */
+@Dao
+interface RepeatLogDao : ClearableDao {
+    /** A row already there is kept: the first record of an entry is the one that counts. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(rows: List<RepeatLogEntity>)
+
+    @Query("SELECT COUNT(*) FROM repeat_logs WHERE ruleId = :ruleId AND day = :day")
+    suspend fun countFor(ruleId: String, day: String): Int
+
+    @Query("SELECT * FROM repeat_logs WHERE day = :day")
+    fun observeDay(day: String): Flow<List<RepeatLogEntity>>
+
+    @Query("SELECT * FROM repeat_logs WHERE day >= :from AND day <= :to")
+    fun observeRange(from: String, to: String): Flow<List<RepeatLogEntity>>
+
+    @Query("DELETE FROM repeat_logs WHERE ruleId = :ruleId")
+    suspend fun deleteForRule(ruleId: String)
+
+    @Query("DELETE FROM repeat_logs")
     override suspend fun deleteAll()
 }
 

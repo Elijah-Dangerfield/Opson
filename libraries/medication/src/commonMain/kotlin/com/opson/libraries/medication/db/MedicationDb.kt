@@ -10,7 +10,7 @@ import com.opson.libraries.opson.storage.db.ClearableDao
 import kotlinx.coroutines.flow.Flow
 
 /**
- * A logged dose (Room 12). Columns follow the spec's `medication_doses` server table, so a later
+ * A logged dose (Room 13). Columns follow the spec's `medication_doses` server table, so a later
  * `medication_dose` sync entity maps one to one: a client uuid [id], the [clientUpdatedAtEpochMs]
  * stamp and a [deleted] tombstone. Nothing syncs yet; the prod server has no such table.
  *
@@ -35,7 +35,7 @@ data class MedicationDoseEntity(
 )
 
 /**
- * A day's side effects (Room 12), one row per day: [symptoms] is a JSON object of symptom wire
+ * A day's side effects (Room 13), one row per day: [symptoms] is a JSON object of symptom wire
  * name to severity wire name. The day is the key, as `day_records` is, so a later sync (its own
  * entity, or the check-in's `symptoms` field) has a natural id.
  */

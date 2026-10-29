@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -49,8 +50,10 @@ import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.ui.detail
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.health.HealthSource
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.MIN_GOAL_KCAL
 import com.opson.libraries.nutrition.MacroPreset
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -61,6 +64,7 @@ import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.withPreset
 import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.ChevronLink
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -98,6 +102,7 @@ import opson.libraries.resources.generated.resources.settings_targets_burn_estim
 import opson.libraries.resources.generated.resources.settings_targets_burn_needs_details
 import opson.libraries.resources.generated.resources.settings_targets_burn_target
 import opson.libraries.resources.generated.resources.settings_targets_burned_title
+import opson.libraries.resources.generated.resources.settings_targets_ceiling_locked
 import opson.libraries.resources.generated.resources.settings_targets_deficit_about
 import opson.libraries.resources.generated.resources.settings_targets_deficit_cap_note
 import opson.libraries.resources.generated.resources.settings_targets_deficit_less
@@ -105,21 +110,23 @@ import opson.libraries.resources.generated.resources.settings_targets_deficit_lo
 import opson.libraries.resources.generated.resources.settings_targets_deficit_more
 import opson.libraries.resources.generated.resources.settings_targets_deficit_title
 import opson.libraries.resources.generated.resources.settings_targets_deficit_zero_note
-import opson.libraries.resources.generated.resources.settings_targets_floor_note
+import opson.libraries.resources.generated.resources.settings_targets_disclosure
+import opson.libraries.resources.generated.resources.settings_targets_fast_note
 import opson.libraries.resources.generated.resources.settings_targets_goal_style
 import opson.libraries.resources.generated.resources.settings_targets_grams
 import opson.libraries.resources.generated.resources.settings_targets_grams_note
 import opson.libraries.resources.generated.resources.settings_targets_grams_only_note
 import opson.libraries.resources.generated.resources.settings_targets_group_add
 import opson.libraries.resources.generated.resources.settings_targets_group_day
-import opson.libraries.resources.generated.resources.settings_targets_group_done
-import opson.libraries.resources.generated.resources.settings_targets_group_edit
+import opson.libraries.resources.generated.resources.settings_targets_group_empty
 import opson.libraries.resources.generated.resources.settings_targets_group_every_day
 import opson.libraries.resources.generated.resources.settings_targets_group_goal
 import opson.libraries.resources.generated.resources.settings_targets_group_numbered
+import opson.libraries.resources.generated.resources.settings_targets_group_only
 import opson.libraries.resources.generated.resources.settings_targets_group_other_days
 import opson.libraries.resources.generated.resources.settings_targets_group_range
 import opson.libraries.resources.generated.resources.settings_targets_group_remove
+import opson.libraries.resources.generated.resources.settings_targets_group_rest
 import opson.libraries.resources.generated.resources.settings_targets_group_shape_deficit
 import opson.libraries.resources.generated.resources.settings_targets_group_shape_exact
 import opson.libraries.resources.generated.resources.settings_targets_group_shape_range
@@ -134,6 +141,7 @@ import opson.libraries.resources.generated.resources.settings_targets_kcal_a_day
 import opson.libraries.resources.generated.resources.settings_targets_locked
 import opson.libraries.resources.generated.resources.settings_targets_low_end
 import opson.libraries.resources.generated.resources.settings_targets_low_end_inline
+import opson.libraries.resources.generated.resources.settings_targets_low_note
 import opson.libraries.resources.generated.resources.settings_targets_lower_end
 import opson.libraries.resources.generated.resources.settings_targets_macro_carbs
 import opson.libraries.resources.generated.resources.settings_targets_macro_fat
@@ -154,10 +162,11 @@ import opson.libraries.resources.generated.resources.settings_targets_macros_ove
 import opson.libraries.resources.generated.resources.settings_targets_macros_title
 import opson.libraries.resources.generated.resources.settings_targets_macros_under
 import opson.libraries.resources.generated.resources.settings_targets_macros_use
+import opson.libraries.resources.generated.resources.settings_targets_min_note
 import opson.libraries.resources.generated.resources.settings_targets_number_field
-import opson.libraries.resources.generated.resources.settings_targets_number_floor_note
 import opson.libraries.resources.generated.resources.settings_targets_number_lower
 import opson.libraries.resources.generated.resources.settings_targets_number_raise
+import opson.libraries.resources.generated.resources.settings_targets_number_too_high
 import opson.libraries.resources.generated.resources.settings_targets_number_too_low
 import opson.libraries.resources.generated.resources.settings_targets_preset_balanced
 import opson.libraries.resources.generated.resources.settings_targets_preset_custom
@@ -179,6 +188,7 @@ import opson.libraries.resources.generated.resources.settings_targets_style_exac
 import opson.libraries.resources.generated.resources.settings_targets_style_range
 import opson.libraries.resources.generated.resources.settings_targets_style_surplus
 import opson.libraries.resources.generated.resources.settings_targets_style_surplus_line
+import opson.libraries.resources.generated.resources.settings_targets_support_link
 import opson.libraries.resources.generated.resources.settings_targets_surplus_cap
 import opson.libraries.resources.generated.resources.settings_targets_surplus_from_target
 import opson.libraries.resources.generated.resources.settings_targets_surplus_less
@@ -216,16 +226,69 @@ fun TargetsScreen(
             BackgroundCard(onAction)
             if (state.macros.isNotEmpty()) MacroCard(state, onAction)
             if (state.micros) MicrosRow(onAction)
+            Disclosure()
             return@SettingsPage
         }
         SectionLabel(stringResource(Res.string.settings_targets_goal_style))
         StyleList(state, onAction)
         if (state.style == StyleKind.ByDay) ByDayCards(state, onAction)
+        state.safety?.let { SafetyNoteCard(it, state.supportLink, onAction) }
         state.burned?.let { BurnedSourceCard(it, onAction) }
         if (state.macros.isNotEmpty()) MacroCard(state, onAction)
         state.exercise?.let { ExerciseAdjustmentCard(it, onAction) }
         if (state.micros) MicrosRow(onAction)
+        Disclosure()
     }
+}
+
+/**
+ * Under a low goal or a fast deficit: a gentle note on the warm tint the photo estimate's note
+ * uses (it explains, it doesn't warn), and, with `release.findSupport`, a way to Find support.
+ * Nothing to dismiss, nothing blocked: the goal is still the person's to set.
+ */
+@Composable
+private fun SafetyNoteCard(note: SafetyNote, link: Boolean, onAction: (TargetsAction) -> Unit) {
+    val warm = AppTheme.colors.nutrients.carbs
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.inputLarge)
+            .background(warm.container)
+            .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = if (link) 0.dp else 12.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+            Icon(icon = AppIcons.Info, size = NoteIconSize, color = AppTheme.colors.ink)
+            Text(
+                text = stringResource(
+                    when (note) {
+                        SafetyNote.LowGoal -> Res.string.settings_targets_low_note
+                        SafetyNote.FastDeficit -> Res.string.settings_targets_fast_note
+                    },
+                ),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.ink,
+            )
+        }
+        if (link) {
+            ChevronLink(
+                text = stringResource(Res.string.settings_targets_support_link),
+                onClick = { onAction(TargetsAction.FindSupportTapped) },
+                color = AppTheme.colors.ink,
+                modifier = Modifier.padding(start = NoteIconSize + 10.dp),
+            )
+        }
+    }
+}
+
+/** What every number on this page is: an estimate to start from. Said once, at the foot. */
+@Composable
+private fun Disclosure() {
+    Text(
+        text = stringResource(Res.string.settings_targets_disclosure),
+        typography = AppTheme.type.secondarySmall,
+        color = AppTheme.colors.muted,
+        modifier = Modifier.padding(horizontal = 4.dp),
+    )
 }
 
 /** Vitamins and minerals: their own page, as their references are set one by one. */
@@ -319,7 +382,7 @@ private fun RangeBody(range: RangeCard, onAction: (TargetsAction) -> Unit) {
     RangeTrack(range.band)
     if (range.lowLocked) {
         Text(
-            text = stringResource(Res.string.settings_targets_floor_note),
+            text = stringResource(Res.string.settings_targets_min_note),
             typography = AppTheme.type.secondary,
             color = AppTheme.colors.muted,
         )
@@ -434,7 +497,7 @@ private fun EndStepperView(
         when (stepper.up) {
             StepState.Locked -> Box(modifier = Modifier.size(StepSize), contentAlignment = Alignment.Center) {
                 Icon(
-                    icon = AppIcons.LockOutlined.described(raiseLocked ?: stringResource(Res.string.settings_targets_locked)),
+                    icon = AppIcons.LockOutlined.described(raiseLocked ?: stringResource(Res.string.settings_targets_ceiling_locked)),
                     size = 22.dp,
                     color = AppTheme.colors.muted,
                 )
@@ -505,6 +568,7 @@ private fun BigStepper(
     locked: String,
     onStep: (up: Boolean) -> Unit,
     unit: StringResource = Res.string.settings_targets_kcal_a_day,
+    raiseLocked: String = locked,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         BigStep(state = stepper.down, icon = AppIcons.Remove.described(lower), locked = locked, onClick = { onStep(false) })
@@ -526,7 +590,7 @@ private fun BigStepper(
                 modifier = Modifier.padding(bottom = 6.dp),
             )
         }
-        BigStep(state = stepper.up, icon = AppIcons.Add.described(raise), locked = locked, onClick = { onStep(true) })
+        BigStep(state = stepper.up, icon = AppIcons.Add.described(raise), locked = raiseLocked, onClick = { onStep(true) })
     }
 }
 
@@ -550,7 +614,7 @@ private fun BigStep(state: StepState, icon: IconResource, locked: String, onClic
     }
 }
 
-/** One number: the goal, each day, stepped 50 at a time or typed, down to where it started. */
+/** One number: the goal, each day, stepped 50 at a time or typed, between the lowest and highest a goal goes. */
 @Composable
 private fun NumberBody(number: NumberCard, onAction: (TargetsAction) -> Unit) {
     BigStepper(
@@ -558,6 +622,7 @@ private fun NumberBody(number: NumberCard, onAction: (TargetsAction) -> Unit) {
         lower = stringResource(Res.string.settings_targets_number_lower),
         raise = stringResource(Res.string.settings_targets_number_raise),
         locked = stringResource(Res.string.settings_targets_locked),
+        raiseLocked = stringResource(Res.string.settings_targets_ceiling_locked),
         onStep = { up -> onAction(TargetsAction.NumberStepped(up)) },
     )
     NumberField(
@@ -566,6 +631,12 @@ private fun NumberBody(number: NumberCard, onAction: (TargetsAction) -> Unit) {
         label = stringResource(Res.string.settings_targets_number_field),
         unit = stringResource(Res.string.settings_targets_kcal_a_day),
         allowDecimal = false,
+        keyboardActions = KeyboardActions(
+            onDone = {
+                onAction(TargetsAction.NumberDone)
+                defaultKeyboardAction(ImeAction.Done)
+            },
+        ),
         modifier = Modifier.fillMaxWidth(),
     )
     when {
@@ -576,7 +647,14 @@ private fun NumberBody(number: NumberCard, onAction: (TargetsAction) -> Unit) {
             typography = AppTheme.type.secondary.Tabular,
             color = AppTheme.colors.muted,
         )
-        number.stepper.down == StepState.Locked -> Note(stringResource(Res.string.settings_targets_number_floor_note))
+        number.tooHigh -> NutrientPhrase(
+            metric = Metric.Calories,
+            display = number.ceiling,
+            phrase = { stringResource(Res.string.settings_targets_number_too_high, it) },
+            typography = AppTheme.type.secondary.Tabular,
+            color = AppTheme.colors.muted,
+        )
+        number.stepper.down == StepState.Locked -> Note(stringResource(Res.string.settings_targets_min_note))
     }
 }
 
@@ -781,6 +859,12 @@ private fun ByDayCards(state: TargetsState, onAction: (TargetsAction) -> Unit) {
     if (state.week.isNotEmpty()) WeekStrip(state.week)
 }
 
+/**
+ * A day group, its controls always open: its days, its shape, its steppers. A tap on a day moves
+ * it here, or a day of this group back to the first; the first group's own days are just shown
+ * (they have nowhere to go), and with only one group there is nothing to pick at all. Every group
+ * but the first has a remove button in its header.
+ */
 @Composable
 private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> Unit) {
     val name = group.label.text()
@@ -790,92 +874,81 @@ private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> U
         contentPadding = SettingsDefaults.CardInset,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.defaultMinSize(minHeight = MinTouchTarget)) {
             Text(text = name, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier
-                    .minTouchTarget()
-                    .semantics { role = Role.Button }
-                    .bounceClick(scaleDown = 0.9f, onClick = { onAction(TargetsAction.EditGroupTapped(group.index)) }),
-                contentAlignment = Alignment.Center,
-            ) {
-                val editing = group.editing
-                Icon(
-                    icon = (if (editing) AppIcons.Check else AppIcons.EditOutline).described(
-                        if (editing) {
-                            stringResource(Res.string.settings_targets_group_done)
-                        } else {
-                            stringResource(Res.string.settings_targets_group_edit, name)
-                        },
-                    ),
-                    size = 24.dp,
-                    color = AppTheme.colors.muted,
-                )
+            if (group.removable) {
+                Box(
+                    modifier = Modifier
+                        .minTouchTarget()
+                        .semantics { role = Role.Button }
+                        .bounceClick(scaleDown = 0.9f, onClick = { onAction(TargetsAction.RemoveGroupTapped(group.index)) }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        icon = AppIcons.DeleteOutline.described(stringResource(Res.string.settings_targets_group_remove, name)),
+                        size = 24.dp,
+                        color = AppTheme.colors.muted,
+                    )
+                }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            group.days.forEach { chip ->
-                DayChipView(
-                    chip = chip,
-                    tone = tone,
-                    description = stringResource(Res.string.settings_targets_group_day, DateCopy.longWeekday(chip.day), name),
-                    onClick = { onAction(TargetsAction.DayTapped(group.index, chip.day)) },
-                    modifier = Modifier.weight(1f),
-                )
+        if (group.days.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                group.days.forEach { chip ->
+                    DayChipView(
+                        chip = chip,
+                        tone = tone,
+                        description = stringResource(Res.string.settings_targets_group_day, DateCopy.longWeekday(chip.day), name),
+                        onClick = { onAction(TargetsAction.DayTapped(group.index, chip.day)) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
+        }
+        when {
+            group.days.isEmpty() -> Note(stringResource(Res.string.settings_targets_group_only))
+            group.empty -> Note(stringResource(Res.string.settings_targets_group_empty))
+            group.index == 0 -> Note(stringResource(Res.string.settings_targets_group_rest))
         }
         HorizontalDivider(color = AppTheme.colors.line)
-        if (group.editing) {
-            if (group.shapes.isNotEmpty()) {
-                SegmentedControl(
-                    options = group.shapes,
-                    selected = group.shape,
-                    onSelect = { onAction(TargetsAction.GroupShapePicked(group.index, it)) },
-                    label = { stringResource(it.label) },
-                )
-            }
-            if (group.low != null && group.high != null) EndSteppers(group.low, group.high, group = group.index, onAction = onAction)
-            group.number?.let { number ->
-                GroupStepper(
-                    title = stringResource(Res.string.settings_targets_group_goal),
-                    stepper = number,
-                    lower = stringResource(Res.string.settings_targets_number_lower),
-                    raise = stringResource(Res.string.settings_targets_number_raise),
-                    onStep = { up -> onAction(TargetsAction.NumberStepped(up, group.index)) },
-                )
-            }
-            group.surplus?.let { surplus ->
-                GroupStepper(
-                    title = stringResource(Res.string.settings_targets_surplus_title),
-                    stepper = surplus,
-                    lower = stringResource(Res.string.settings_targets_surplus_less),
-                    raise = stringResource(Res.string.settings_targets_surplus_more),
-                    raiseLocked = stringResource(Res.string.settings_targets_surplus_locked),
-                    onStep = { up -> onAction(TargetsAction.SurplusStepped(up, group.index)) },
-                )
-                GroupSummary(group)
-            }
-            group.deficit?.let { deficit ->
-                GroupStepper(
-                    title = stringResource(Res.string.settings_targets_deficit_title),
-                    stepper = deficit,
-                    lower = stringResource(Res.string.settings_targets_deficit_less),
-                    raise = stringResource(Res.string.settings_targets_deficit_more),
-                    raiseLocked = stringResource(Res.string.settings_targets_deficit_locked),
-                    onStep = { up -> onAction(TargetsAction.DeficitStepped(up, group.index)) },
-                )
-                GroupSummary(group)
-            }
-            if (group.removable) {
-                FlatButton(
-                    text = stringResource(Res.string.settings_targets_group_remove),
-                    onClick = { onAction(TargetsAction.RemoveGroupTapped(group.index)) },
-                    tone = FlatButtonTone.Outlined,
-                    centered = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        } else {
+        if (group.shapes.isNotEmpty()) {
+            SegmentedControl(
+                options = group.shapes,
+                selected = group.shape,
+                onSelect = { onAction(TargetsAction.GroupShapePicked(group.index, it)) },
+                label = { stringResource(it.label) },
+            )
+        }
+        if (group.low != null && group.high != null) EndSteppers(group.low, group.high, group = group.index, onAction = onAction)
+        group.number?.let { number ->
+            GroupStepper(
+                title = stringResource(Res.string.settings_targets_group_goal),
+                stepper = number,
+                lower = stringResource(Res.string.settings_targets_number_lower),
+                raise = stringResource(Res.string.settings_targets_number_raise),
+                onStep = { up -> onAction(TargetsAction.NumberStepped(up, group.index)) },
+            )
+        }
+        group.surplus?.let { surplus ->
+            GroupStepper(
+                title = stringResource(Res.string.settings_targets_surplus_title),
+                stepper = surplus,
+                lower = stringResource(Res.string.settings_targets_surplus_less),
+                raise = stringResource(Res.string.settings_targets_surplus_more),
+                raiseLocked = stringResource(Res.string.settings_targets_surplus_locked),
+                onStep = { up -> onAction(TargetsAction.SurplusStepped(up, group.index)) },
+            )
+            GroupSummary(group)
+        }
+        group.deficit?.let { deficit ->
+            GroupStepper(
+                title = stringResource(Res.string.settings_targets_deficit_title),
+                stepper = deficit,
+                lower = stringResource(Res.string.settings_targets_deficit_less),
+                raise = stringResource(Res.string.settings_targets_deficit_more),
+                raiseLocked = stringResource(Res.string.settings_targets_deficit_locked),
+                onStep = { up -> onAction(TargetsAction.DeficitStepped(up, group.index)) },
+            )
             GroupSummary(group)
         }
         if (group.waitingOnBurn) Note(stringResource(Res.string.settings_targets_group_waiting))
@@ -943,11 +1016,11 @@ private fun DayChipView(chip: DayChip, tone: ToneColors, description: String, on
             .background(if (chip.inGroup) tone.container else AppTheme.colors.surface)
             .thenIf(!chip.inGroup) { border(1.dp, AppTheme.colors.line.color, AppTheme.shapes.input) }
             .semantics {
-                role = Role.Checkbox
+                if (chip.tappable) role = Role.Checkbox
                 selected = chip.inGroup
                 contentDescription = description
             }
-            .bounceClick(scaleDown = 0.92f, onClick = onClick),
+            .thenIf(chip.tappable) { bounceClick(scaleDown = 0.92f, onClick = onClick) },
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -1274,6 +1347,7 @@ private fun BackgroundCard(onAction: (TargetsAction) -> Unit) {
 }
 
 private val StepSize = 40.dp
+private val NoteIconSize = 22.dp
 private val BigStepSize = 52.dp
 
 /** The ends' amounts, a step under `numericLarge` (design sync 2). */
@@ -1345,7 +1419,7 @@ private fun TargetsExactPreview() {
 @Preview
 @Composable
 private fun TargetsExactAtFloorPreview() {
-    val settings = SettingsFixtures.settings(targets = SettingsFixtures.rangeTargets.copy(startingKcal = 2100).useExact())
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.rangeTargets.withEnergy(MIN_GOAL_KCAL).useExact())
     SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }
 
@@ -1375,13 +1449,42 @@ private fun TargetsByDayPreview() {
     SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }
 
+/** Different by day just picked: every day still in Other days, and a new group ready for its days. */
+@Preview
+@Composable
+private fun TargetsByDayNewGroupPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.newByDayTargets)
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+/** A range whose low end is under the line for a woman: the gentle note and Find support, nothing locked. */
+@Preview
+@Composable
+private fun TargetsLowGoalPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.lowRangeTargets).copy(bodySex = BodySex.Female)
+    SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
+}
+
+/** A set deficit past a healthy pace: the same note, about the pace. */
+@Preview
+@Composable
+private fun TargetsFastDeficitPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.fastDeficitTargets)
+    SettingsPreview {
+        TargetsScreen(
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), burned = SettingsFixtures.activeBurned, goalsAndEnergy = true),
+            onAction = {},
+        )
+    }
+}
+
 @Preview
 @Composable
 private fun TargetsByDayEditingDarkPreview() {
     val settings = SettingsFixtures.settings(targets = SettingsFixtures.byDayTargets).copy(macroMode = MacroMode.Grams)
     SettingsPreview(dark = true) {
         TargetsScreen(
-            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 1, editingMacros = true),
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingMacros = true),
             onAction = {},
         )
     }
@@ -1393,7 +1496,7 @@ private fun TargetsByDayShapesPreview() {
     val settings = SettingsFixtures.settings(targets = SettingsFixtures.shapedByDayTargets)
     SettingsPreview {
         TargetsScreen(
-            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 1, goalsAndEnergy = true),
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), goalsAndEnergy = true),
             onAction = {},
         )
     }
@@ -1405,7 +1508,7 @@ private fun TargetsByDaySurplusDarkPreview() {
     val settings = SettingsFixtures.settings(targets = SettingsFixtures.shapedByDayTargets)
     SettingsPreview(dark = true) {
         TargetsScreen(
-            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 2, goalsAndEnergy = true),
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), goalsAndEnergy = true),
             onAction = {},
         )
     }
@@ -1458,14 +1561,14 @@ private fun TargetsDeficitStartFromBurnPreview() {
     }
 }
 
-/** One number, typed under where the goal started: the field keeps it and the note says where it starts. */
+/** One number, typed under the lowest a goal goes and Done pressed: the field keeps it and the note says the lowest. */
 @Preview
 @Composable
 private fun TargetsExactTypedTooLowPreview() {
     val settings = SettingsFixtures.settings(targets = SettingsFixtures.exactTargets)
     SettingsPreview {
         TargetsScreen(
-            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), drafts = TargetsDrafts(number = "1800")),
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), drafts = TargetsDrafts(number = "700", numberDone = true)),
             onAction = {},
         )
     }
@@ -1478,7 +1581,7 @@ private fun TargetsByDayEveryShapePreview() {
     val settings = SettingsFixtures.settings(targets = SettingsFixtures.everyShapeByDayTargets)
     SettingsPreview {
         TargetsScreen(
-            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), burned = SettingsFixtures.burned, editingGroup = 2, goalsAndEnergy = true),
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), burned = SettingsFixtures.burned, goalsAndEnergy = true),
             onAction = {},
         )
     }
@@ -1491,7 +1594,7 @@ private fun TargetsByDayDeficitNoBurnPreview() {
     val settings = SettingsFixtures.settings(targets = SettingsFixtures.everyShapeByDayTargets)
     SettingsPreview {
         TargetsScreen(
-            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 2, goalsAndEnergy = true),
+            TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), goalsAndEnergy = true),
             onAction = {},
         )
     }
@@ -1577,6 +1680,6 @@ private fun TargetsSurplusLargeTextPreview() {
 private fun TargetsByDayEditingLargeTextPreview() {
     val settings = SettingsFixtures.settings(targets = SettingsFixtures.byDayTargets)
     SettingsPreview(largeText = true) {
-        TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers), editingGroup = 1), onAction = {})
+        TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {})
     }
 }

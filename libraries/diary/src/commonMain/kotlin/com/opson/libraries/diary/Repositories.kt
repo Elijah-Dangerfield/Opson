@@ -131,6 +131,18 @@ interface DiaryItemEditor {
     suspend fun copyItems(ids: List<String>, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>>
 }
 
+/**
+ * The day's check-in (`release.checkIn`), written on its own rather than with Close the day. Its
+ * own interface so the many `DiaryRepository` fakes stay as they are. Read it from [Day.checkIn].
+ */
+interface DayCheckIns {
+    /**
+     * Saves [checkIn] as [day]'s whole check-in; null or an empty one clears it. Works on a
+     * closed day too: how someone feels is not part of the day's log.
+     */
+    suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?)
+}
+
 interface WeightRepository {
     /** Weigh-ins oldest first, from [since] when given. */
     fun observeWeighIns(since: Instant? = null): Flow<List<WeighIn>>

@@ -11,10 +11,10 @@ import kotlin.test.assertTrue
 
 /**
  * Design v3 Targets: each end of the range steps on its own, a goal can be a set deficit or
- * different by day, and `rangeFor` answers for any date. The floor rule is the old one: nothing
- * goes below where the user started (the low end, and the aim in the middle) while
- * [GOAL_FLOOR_KCAL] is unset, and a deficit never grows past where it started while
- * [MAX_DEFICIT_KCAL] is unset.
+ * different by day, and `rangeFor` answers for any date. Either end moves freely between
+ * [MIN_GOAL_KCAL] and [MAX_GOAL_KCAL] while [GOAL_FLOOR_KCAL] is unset (when a goal is low is
+ * `GoalSafetyTest`'s, a note rather than a lock), and a deficit never grows past where it started
+ * while [MAX_DEFICIT_KCAL] is unset.
  *
  * Not covered here: a dietitian's floor or maximum, because neither exists yet and inventing one
  * for a test would be the first step to shipping it.
@@ -31,10 +31,24 @@ class TargetStyleTest {
     }
 
     @Test
-    fun theLowEnd_isLockedWhereItStarted() {
-        assertFalse(base.canStep(RangeEnd.Low, up = false))
-        assertNull(base.step(RangeEnd.Low, up = false))
-        assertEquals(base.startingMinKcal, base.lowFloorKcal)
+    fun theLowEnd_goesUnderWhereItStarted_downToTheMinimum() {
+        val lowered = requireNotNull(base.step(RangeEnd.Low, up = false))
+        assertEquals(1850, lowered.minKcal)
+        assertEquals(1900, lowered.startingMinKcal, "where it started is a record, not a limit")
+        assertEquals(MIN_GOAL_KCAL, base.floorKcal)
+
+        var low = base
+        while (true) low = low.step(RangeEnd.Low, up = false) ?: break
+        assertEquals(MIN_GOAL_KCAL, low.minKcal)
+        assertEquals(StepBlock.Floor, low.stepBlock(RangeEnd.Low, up = false))
+    }
+
+    @Test
+    fun theHighEnd_stopsAtTheMaximum() {
+        var high = base
+        while (true) high = high.step(RangeEnd.High, up = true) ?: break
+        assertEquals(MAX_GOAL_KCAL, high.maxKcal)
+        assertEquals(StepBlock.Ceiling, high.stepBlock(RangeEnd.High, up = true))
     }
 
     @Test
@@ -46,27 +60,19 @@ class TargetStyleTest {
     }
 
     @Test
-    fun theHighEnd_cannotPullTheAimBelowWhereItStarted() {
-        // 1,900 to 2,300 puts the aim at the start, 2,100; one step down would make it 2,075.
-        assertNull(base.step(RangeEnd.High, up = false))
-        // Raised twice first (aim 2,150), it can come back down one step (aim 2,125).
-        val wider = requireNotNull(base.step(RangeEnd.High, up = true)?.step(RangeEnd.High, up = true))
-        assertEquals(2350, wider.step(RangeEnd.High, up = false)?.maxKcal)
+    fun theHighEnd_comesDown_pullingTheAimUnderWhereItStarted() {
+        val lowered = requireNotNull(base.step(RangeEnd.High, up = false))
+        assertEquals(2250, lowered.maxKcal)
+        assertEquals(2075, lowered.energyKcal)
     }
 
     @Test
-    fun theLowEnd_canComeBackDownToWhereItStarted_butNoFurther() {
-        val raised = requireNotNull(base.step(RangeEnd.Low, up = true))
-        val back = requireNotNull(raised.step(RangeEnd.Low, up = false))
-        assertEquals(1900, back.minKcal)
-        assertNull(back.step(RangeEnd.Low, up = false))
-    }
-
-    @Test
-    fun aRefusedStep_saysWhetherTheFloorOrTheGapStoppedIt() {
-        assertEquals(StepBlock.Floor, base.stepBlock(RangeEnd.Low, up = false))
-        assertEquals(StepBlock.Floor, base.stepBlock(RangeEnd.High, up = false))
+    fun aRefusedStep_saysWhetherTheFloorTheCeilingOrTheGapStoppedIt() {
+        val atFloor = base.copy(energyKcal = 1000, minKcal = MIN_GOAL_KCAL, maxKcal = 1200)
+        assertEquals(StepBlock.Floor, atFloor.stepBlock(RangeEnd.Low, up = false))
+        assertNull(atFloor.stepBlock(RangeEnd.High, up = false))
         assertNull(base.stepBlock(RangeEnd.High, up = true))
+        assertNull(base.stepBlock(RangeEnd.Low, up = false))
         var narrow = base
         while (true) narrow = narrow.step(RangeEnd.Low, up = true) ?: break
         assertEquals(StepBlock.Gap, narrow.stepBlock(RangeEnd.Low, up = true))
@@ -89,11 +95,12 @@ class TargetStyleTest {
     }
 
     @Test
-    fun lower_respectsTheLowEndsFloorToo() {
-        // Moved apart by hand: the aim could go down, but the low end is already at its floor.
-        val raisedHigh = requireNotNull(base.step(RangeEnd.High, up = true)?.step(RangeEnd.High, up = true))
-        assertFalse(raisedHigh.canLower)
-        assertNull(raisedHigh.lower())
+    fun lower_stopsWhereTheLowEndWouldPassTheMinimum() {
+        // Moved apart by hand: the aim could go down, but the low end is already at the minimum.
+        val wide = base.copy(energyKcal = 1500, minKcal = MIN_GOAL_KCAL, maxKcal = 2200)
+        assertFalse(wide.canLower)
+        assertNull(wide.lower())
+        assertTrue(base.canLower)
     }
 
     @Test
@@ -128,13 +135,11 @@ class TargetStyleTest {
 
     @Test
     fun deficit_goalIsAboutTheBurnLessTheDeficit_neverBelowTheFloor() {
-        val low = base.copy(startingKcal = 1800, style = TargetStyle.Deficit(kcal = 300, startingKcal = 300))
-        assertEquals(DayGoal.About(1870), low.rangeFor(monday, PresetId.Full, burnKcal = 2172))
-        // A low-burn day: 1,900 - 300 would be 1,600, but the floor is 1,800.
-        assertEquals(DayGoal.About(1800), low.rangeFor(monday, PresetId.Full, burnKcal = 1900))
-        // With the floor at the default start, 2,100.
-        val atStart = base.copy(style = TargetStyle.Deficit(kcal = 300, startingKcal = 300))
-        assertEquals(DayGoal.About(2100), atStart.rangeFor(monday, PresetId.Full, burnKcal = 2172))
+        val deficit = base.copy(style = TargetStyle.Deficit(kcal = 300, startingKcal = 300))
+        assertEquals(DayGoal.About(1870), deficit.rangeFor(monday, PresetId.Full, burnKcal = 2172))
+        assertEquals(DayGoal.About(1600), deficit.rangeFor(monday, PresetId.Full, burnKcal = 1900))
+        // A low-burn day: 1,400 - 300 would be 1,100, but a goal Opson works out stays at 1,200 or more.
+        assertEquals(DayGoal.About(LOW_GOAL_FEMALE_KCAL), deficit.rangeFor(monday, PresetId.Full, burnKcal = 1400))
     }
 
     @Test
@@ -179,10 +184,38 @@ class TargetStyleTest {
 
     @Test
     fun byDay_groupStepsKeepTheFloor() {
-        val targets = base.useByDay()
+        val targets = base.copy(style = TargetStyle.ByDay(listOf(DayGroup(DayOfWeek.entries.toSet(), MIN_GOAL_KCAL, 1200))))
         assertNull(targets.step(RangeEnd.Low, up = false, group = 0))
-        assertNull(targets.step(RangeEnd.High, up = false, group = 0))
+        assertEquals(1150, targets.step(RangeEnd.High, up = false, group = 0)?.let { (it.style as TargetStyle.ByDay).groups[0].maxKcal })
         assertNull(targets.step(RangeEnd.High, up = true, group = 3), "no such group")
+    }
+
+    @Test
+    fun byDay_aTappedDay_movesHere_andATappedDayOfThisGroup_goesBackToTheFirst() {
+        fun groups(targets: Targets) = (targets.style as TargetStyle.ByDay).groups
+        val split = requireNotNull(base.useByDay().addDayGroup())
+
+        val saturday = split.toggleDay(DayOfWeek.SATURDAY, 1)
+        assertEquals(setOf(DayOfWeek.SATURDAY), groups(saturday)[1].days)
+
+        val back = saturday.toggleDay(DayOfWeek.SATURDAY, 1)
+        assertEquals(emptySet(), groups(back)[1].days)
+        assertEquals(DayOfWeek.entries.toSet(), groups(back)[0].days)
+
+        assertEquals(saturday, saturday.toggleDay(DayOfWeek.MONDAY, 0), "the first group's own days have nowhere to go")
+        assertEquals(groups(back), groups(saturday.toggleDay(DayOfWeek.SATURDAY, 0)), "tapped in the first group, a day comes back to it")
+        assertEquals(saturday, saturday.toggleDay(DayOfWeek.MONDAY, 5), "no such group")
+    }
+
+    @Test
+    fun byDay_whateverIsTapped_everyDayStaysInExactlyOneGroup() {
+        var targets = requireNotNull(requireNotNull(base.useByDay().addDayGroup()).addDayGroup())
+        val taps = listOf(1, 2, 0, 1, 1, 2, 0, 2)
+        DayOfWeek.entries.forEachIndexed { index, day ->
+            taps.drop(index).forEach { group -> targets = targets.toggleDay(day, group) }
+        }
+        val groups = (targets.style as TargetStyle.ByDay).groups
+        DayOfWeek.entries.forEach { day -> assertEquals(1, groups.count { day in it.days }, day.name) }
     }
 
     @Test

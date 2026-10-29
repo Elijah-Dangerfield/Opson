@@ -73,7 +73,7 @@
     <string name="onboarding_reco_kept_out">Kept out of view</string>
     <string name="onboarding_reco_or">Or start with</string>
     <string name="onboarding_all_modes">All modes</string>
-    <string name="onboarding_reco_change">Change it any time under More, then Modes and numbers.</string>
+    <string name="onboarding_reco_change">Change it any time under More, then Display.</string>
     <string name="onboarding_start_with">Start with %1$s</string>
     <string name="onboarding_finishing">Setting things up…</string>
 

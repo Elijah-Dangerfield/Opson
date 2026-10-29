@@ -6,7 +6,7 @@ import com.opson.integration.helpers.randomUserId
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.CustomFoodDraft
-import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.HungerLevel
 import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.Hunger
@@ -50,8 +50,10 @@ class ExportTest : IntegrationTest() {
         phone.customFoods.create(CustomFoodDraft("Gran's flapjack", servingAmount = 1.0, servingUnit = "square", kcal = 210.0))
         phone.savedMeals.create("Packed lunch", MealSlot.Lunch, listOf(LogDraft(name = "Cheese sandwich", precision = Precision.Estimate, kcal = 380.0)))
         phone.settings.update { it.copy(numbers = NumbersSettings(preset = PresetId.NoNumbers)) }
-        // Last: a closed day takes no more writes. The note and check-in are saved with the close.
-        phone.diary.closeDay(day, DayReflection(note = "A steadier day", checkIn = CheckIn(hunger = DayHunger.Steady, moods = setOf(CheckInMood.Calm))))
+        // The check-in is its own write; 4 on the hunger scale exports as the old word nearest it.
+        phone.checkIns.setCheckIn(day, CheckIn(hunger = HungerLevel.of(4), moods = setOf(CheckInMood.Calm)))
+        // Last: a closed day takes no more food. The note is saved with the close.
+        phone.diary.closeDay(day, DayReflection(note = "A steadier day"))
         phone.syncNow().getOrThrow()
 
         val files = unzip(phone.export.everything().getOrThrow())

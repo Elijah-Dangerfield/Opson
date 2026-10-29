@@ -60,6 +60,7 @@ import opson.libraries.resources.generated.resources.summary_include_notes
 import opson.libraries.resources.generated.resources.summary_include_numbers
 import opson.libraries.resources.generated.resources.summary_include_weight
 import opson.libraries.resources.generated.resources.today_checkin_energy
+import opson.libraries.resources.generated.resources.today_checkin_mood_level
 import opson.libraries.resources.generated.resources.today_checkin_hunger
 import opson.libraries.resources.generated.resources.today_checkin_sleep
 import org.jetbrains.compose.resources.StringResource
@@ -246,6 +247,7 @@ object SummaryLines {
         listOfNotNull(
             checkIn.hunger?.let { pair(Res.string.today_checkin_hunger, it.label) },
             checkIn.energy?.let { pair(Res.string.today_checkin_energy, it.label) },
+            checkIn.mood?.let { pair(Res.string.today_checkin_mood_level, it.label) },
             checkIn.sleep?.let { pair(Res.string.today_checkin_sleep, it.label) },
             checkIn.moods.takeIf { it.isNotEmpty() }?.let { moods ->
                 SummaryText.Res(Res.string.summary_doc_moods, listOf(SummaryText.Joined(moods.sortedBy { it.ordinal }.map { SummaryText.Res(it.label) })))

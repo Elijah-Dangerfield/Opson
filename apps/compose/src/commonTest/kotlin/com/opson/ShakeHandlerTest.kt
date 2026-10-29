@@ -16,6 +16,7 @@ import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.RouterBatch
 import com.opson.libraries.navigation.ShakeDialogRoute
 import com.opson.libraries.navigation.TabRoute
+import com.opson.libraries.ui.system.ScreenCapture
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -32,6 +33,7 @@ class ShakeHandlerTest : CoroutineTest() {
 
     private val detector = FakeShakeDetector()
     private val router = RecordingRouter()
+    private val capture = FakeScreenCapture()
 
     @Test
     fun aShakeWhileTheProfileIsStillResolving_stillOpensTheDialog() = runUnitTest {
@@ -48,12 +50,59 @@ class ShakeHandlerTest : CoroutineTest() {
         handler.stop()
     }
 
+    /** Taken before the dialog is up, so it shows what the person shook the phone at. */
+    @Test
+    fun aShake_holdsTheScreenshotForTheReportBeforeTheDialogOpens() = runUnitTest {
+        val handler = handler(UnresolvedProfileRepository)
+        handler.start()
+
+        detector.shake()
+        advanceTimeBy(ShakeNameWaitMillis + 1)
+
+        assertEquals(listOf(true), capture.heldBeforeDialog)
+        assertEquals(SHOT, capture.takeHeld())
+        handler.stop()
+    }
+
+    /** No picture is no reason to lose the dialog. */
+    @Test
+    fun aCaptureThatThrows_stillOpensTheDialog() = runUnitTest {
+        capture.fails = true
+        val handler = handler(UnresolvedProfileRepository)
+        handler.start()
+
+        detector.shake()
+        advanceTimeBy(ShakeNameWaitMillis + 1)
+
+        assertEquals(1, router.dialogs.size)
+        assertEquals(null, capture.takeHeld())
+        handler.stop()
+    }
+
+    private inner class FakeScreenCapture : ScreenCapture {
+        var fails = false
+        private var held: ByteArray? = null
+        val heldBeforeDialog = mutableListOf<Boolean>()
+
+        override suspend fun capture(): ByteArray? = if (fails) error("no layer") else SHOT
+        override fun hold(jpeg: ByteArray?) {
+            heldBeforeDialog += router.dialogs.isEmpty()
+            held = jpeg
+        }
+        override fun takeHeld(): ByteArray? = held.also { held = null }
+    }
+
+    private companion object {
+        val SHOT = byteArrayOf(1, 2, 3)
+    }
+
     private fun handler(profiles: ProfileRepository) = ShakeHandler(
         shakeDetector = detector,
         shakeMessageProvider = GreetingProvider,
         profileRepository = profiles,
         router = router,
         appScope = AppCoroutineScope(dispatchers),
+        screenCapture = capture,
     )
 }
 

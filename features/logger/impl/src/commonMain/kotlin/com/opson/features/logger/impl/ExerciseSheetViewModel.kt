@@ -7,12 +7,14 @@ import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.ExerciseRules
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.SelectedDay
+import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.ExerciseActivities
+import com.opson.libraries.nutrition.RestingEnergies
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.flow.Flow
@@ -35,6 +37,9 @@ import kotlin.time.Clock
  * The exercise sheet: a new entry on [ExerciseRoute.dayIso] (the day Today shows by default), or
  * the entry [ExerciseRoute.entryId] to edit or delete. Writes go to [ExerciseRepository], which
  * queues them for sync; Burned picks them up from there.
+ *
+ * The estimate reads Profile ([SettingsRepository]'s age, height and sex) with the latest
+ * weigh-in, as they change.
  */
 @Inject
 @Suppress("LongParameterList")
@@ -42,6 +47,7 @@ class ExerciseSheetViewModel(
     @Assisted route: ExerciseRoute,
     private val exercise: ExerciseRepository,
     weights: WeightRepository,
+    settings: SettingsRepository,
     health: HealthRepository,
     healthFlag: HealthReleaseFlag,
     policySource: VisibilityPolicySource,
@@ -51,6 +57,7 @@ class ExerciseSheetViewModel(
 ) : SEAViewModel<ExerciseSheetState, ExerciseSheetEvent, ExerciseSheetAction>(initialStateArg = ExerciseSheetState()) {
 
     private val entryId = route.entryId
+    private val startsNotOnWatch = route.notOnWatch
     private var form = ExerciseForm()
     private var inputs: ExerciseInputs? = null
     private var policy: VisibilityPolicy = policySource.policy.value
@@ -64,7 +71,7 @@ class ExerciseSheetViewModel(
         val latestKg = weights.observeWeighIns().map { list -> list.maxByOrNull { it.measuredAt }?.kg }
         val entry = flow { emit(entryId?.let { exercise.get(it) }) }
         viewModelScope.launch {
-            combine(latestKg, connected, entry) { kg, isConnected, existing ->
+            combine(latestKg, settings.settings, connected, entry) { kg, current, isConnected, existing ->
                 val zone = calendar.timeZone()
                 ExerciseInputs(
                     day = existing?.day ?: route.dayIso?.let(LocalDate::parse) ?: selectedDay.date.value,
@@ -73,6 +80,7 @@ class ExerciseSheetViewModel(
                     weightKg = kg,
                     healthConnected = isConnected,
                     entry = existing,
+                    restingKcal = RestingEnergies.calculate(current.bodyProfile(kg, calendar.today())),
                 )
             }.distinctUntilChanged { old, new -> old.copy(now = new.now) == new }
                 .collect { takeAction(ExerciseSheetAction.InputsArrived(it)) }
@@ -88,7 +96,7 @@ class ExerciseSheetViewModel(
                 inputs = action.inputs
                 // The entry is read once; after that the form is the person's.
                 if (first) action.inputs.entry?.let { form = ExerciseForm.from(it, action.inputs.timeZone) }
-                if (first && action.inputs.entry == null) form = form.copy(pane = ExercisePane.Pick)
+                if (first && action.inputs.entry == null) form = form.copy(pane = ExercisePane.Pick, notOnWatch = startsNotOnWatch)
                 action.rebuild()
             }
             is ExerciseSheetAction.PolicyArrived -> {
@@ -111,6 +119,8 @@ class ExerciseSheetViewModel(
             is ExerciseSheetAction.TimePicked -> action.change { copy(startedAt = action.time) }
             is ExerciseSheetAction.NumberTyped -> action.change { copy(typed = ExerciseSheetStateBuilder.sanitizeNumber(action.text)) }
             is ExerciseSheetAction.NotOnWatchToggled -> action.change { copy(notOnWatch = action.on) }
+            ExerciseSheetAction.ProfileTapped -> if (state.basis == EstimateBasis.WeightOnly) sendEvent(ExerciseSheetEvent.OpenProfile)
+            ExerciseSheetAction.WeighInTapped -> if (state.noWeight) sendEvent(ExerciseSheetEvent.OpenWeighIn)
             ExerciseSheetAction.SaveTapped -> save()
             ExerciseSheetAction.DeleteTapped -> delete()
             ExerciseSheetAction.CloseTapped -> sendEvent(ExerciseSheetEvent.Dismiss)

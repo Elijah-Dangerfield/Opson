@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.viewModelScope
 import com.opson.features.today.impl.Toast
@@ -25,6 +28,7 @@ import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonDefaults
 import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.chip.ChoiceChip
+import com.opson.libraries.ui.components.text.FocusOnOpen
 import com.opson.libraries.ui.components.text.TextArea
 import com.opson.system.AppTheme
 import kotlinx.coroutines.launch
@@ -156,12 +160,17 @@ fun MealNoteSheetContent(
                 }
             }
         }
+        val noteField = remember { FocusRequester() }
         TextArea(
             value = state.draft,
             onValueChange = { onAction(MealNoteAction.NoteTyped(it)) },
             placeholder = stringResource(Res.string.today_note_placeholder),
             minLines = NOTE_LINES,
+            modifier = Modifier.focusRequester(noteField),
         )
+        // Opened to write a note (the + sheet's Note, a meal's own), so the field is ready, once the
+        // saved note has been read into it.
+        FocusOnOpen(noteField, enabled = state.loaded)
         FlatButton(
             text = stringResource(Res.string.today_note_save),
             onClick = { onAction(MealNoteAction.SaveTapped) },

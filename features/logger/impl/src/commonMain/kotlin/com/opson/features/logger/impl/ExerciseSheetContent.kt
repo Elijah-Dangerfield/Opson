@@ -15,6 +15,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import com.opson.libraries.diary.ui.exerciseActivityLabel
 import com.opson.libraries.nutrition.ExerciseActivities
@@ -33,6 +35,7 @@ import com.opson.libraries.ui.components.dialog.TimePickerDialog
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.IconSize
+import com.opson.libraries.ui.components.text.FocusOnOpen
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.SearchField
 import com.opson.libraries.ui.components.text.SingleLineField
@@ -45,9 +48,13 @@ import opson.libraries.resources.generated.resources.exercise_activity
 import opson.libraries.resources.generated.resources.exercise_activity_pick
 import opson.libraries.resources.generated.resources.exercise_delete
 import opson.libraries.resources.generated.resources.exercise_duration
+import opson.libraries.resources.generated.resources.exercise_estimate_basis_personal
+import opson.libraries.resources.generated.resources.exercise_estimate_basis_weight
 import opson.libraries.resources.generated.resources.exercise_estimate_label
 import opson.libraries.resources.generated.resources.exercise_estimate_no_weight
 import opson.libraries.resources.generated.resources.exercise_estimate_no_weight_only
+import opson.libraries.resources.generated.resources.exercise_estimate_profile_action
+import opson.libraries.resources.generated.resources.exercise_estimate_weigh_action
 import opson.libraries.resources.generated.resources.exercise_kcal_unit
 import opson.libraries.resources.generated.resources.exercise_minutes_chip
 import opson.libraries.resources.generated.resources.exercise_minutes_unit
@@ -125,7 +132,7 @@ private fun ExerciseForm(state: ExerciseSheetState, onAction: (ExerciseSheetActi
     }
     Duration(state, onAction)
     StartTime(state, onAction)
-    Burned(state)
+    Burned(state, onAction)
     if (state.canNumber) {
         NumberField(
             value = state.typed,
@@ -215,25 +222,47 @@ private fun StartTime(state: ExerciseSheetState, onAction: (ExerciseSheetAction)
     }
 }
 
-/** "Burned 133 kcal", or why there is no estimate. A hidden estimate takes its label with it. */
+/**
+ * "Burned 133 kcal" and what it is from, or why there is no estimate. A hidden estimate takes its
+ * label and its note with it. The note says it is an estimate from published averages and that a
+ * watch does better; from weight alone, it asks for the rest of Profile.
+ */
 @Composable
-private fun Burned(state: ExerciseSheetState) {
+private fun Burned(state: ExerciseSheetState, onAction: (ExerciseSheetAction) -> Unit) {
     NutrientVisible(state.estimate) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(Res.string.exercise_estimate_label),
-                typography = AppTheme.type.bodyBold,
-                color = AppTheme.colors.ink,
-                modifier = Modifier.weight(1f),
-            )
-            NutrientText(Metric.EnergyOut, state.estimate, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.exercise_estimate_label),
+                    typography = AppTheme.type.bodyBold,
+                    color = AppTheme.colors.ink,
+                    modifier = Modifier.weight(1f),
+                )
+                NutrientText(Metric.EnergyOut, state.estimate, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+            }
+            when (state.basis) {
+                EstimateBasis.Personal -> Note(stringResource(Res.string.exercise_estimate_basis_personal))
+                EstimateBasis.WeightOnly -> {
+                    Note(stringResource(Res.string.exercise_estimate_basis_weight))
+                    InlineLink(stringResource(Res.string.exercise_estimate_profile_action)) { onAction(ExerciseSheetAction.ProfileTapped) }
+                }
+                null -> Unit
+            }
         }
     }
     if (state.noWeight) {
-        // "or type the number below" only where there is a field below.
-        val why = if (state.canNumber) Res.string.exercise_estimate_no_weight else Res.string.exercise_estimate_no_weight_only
-        Text(text = stringResource(why), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        Column {
+            // "or type the number below" only where there is a field below.
+            val why = if (state.canNumber) Res.string.exercise_estimate_no_weight else Res.string.exercise_estimate_no_weight_only
+            Note(stringResource(why))
+            InlineLink(stringResource(Res.string.exercise_estimate_weigh_action)) { onAction(ExerciseSheetAction.WeighInTapped) }
+        }
     }
+}
+
+@Composable
+private fun Note(text: String) {
+    Text(text = text, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
 }
 
 @Composable
@@ -243,14 +272,18 @@ private fun ActivityPicker(state: ExerciseSheetState, onAction: (ExerciseSheetAc
         onBack = { onAction(ExerciseSheetAction.PickBackTapped) },
         onClose = { onAction(ExerciseSheetAction.CloseTapped) },
     )
+    val search = remember { FocusRequester() }
     SearchField(
         value = state.query,
         onValueChange = { onAction(ExerciseSheetAction.QueryTyped(it)) },
         placeholder = stringResource(Res.string.exercise_search_placeholder),
         onClear = { onAction(ExerciseSheetAction.QueryTyped("")) },
         clearDescription = stringResource(Res.string.exercise_search_clear_cd),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().focusRequester(search),
     )
+    // A new entry opens here, so the search is ready to type into. Changing an activity later
+    // keeps the keyboard down: by then the list is what is wanted, and the keyboard would cover it.
+    FocusOnOpen(search, enabled = !state.editing && state.activity == null)
     val labels = ExerciseActivities.all.map { it.key to stringResource(checkNotNull(exerciseActivityLabel(it.key))) }
     val query = state.query.trim()
     val matches = remember(labels, query) {

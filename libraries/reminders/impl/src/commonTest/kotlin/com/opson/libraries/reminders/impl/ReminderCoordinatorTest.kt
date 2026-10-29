@@ -110,7 +110,7 @@ class ReminderCoordinatorTest : CoroutineTest() {
     }
 
     @Test
-    fun theTextIsTheCopysResources_inTheChosenTone_andTheLoudnessFollowsTheLevel() = test {
+    fun theTextIsTheCopysResources_inThePlainVoice_andTheLoudnessFollowsTheLevel() = test {
         coordinator()
 
         val dinner = platform.scheduled.first { it.reminder.key == meal(MealSlot.Dinner) }
@@ -119,10 +119,11 @@ class ReminderCoordinatorTest : CoroutineTest() {
         assertEquals(listOf("reminders_note_already_ate", "reminders_note_log_it", "reminders_note_snooze"), dinner.actions.map { it.second })
         assertEquals(ReminderStyle.Full, dinner.style)
 
+        // A warm tone stored before the setting went keeps the plain words.
         settings.update { it.copy(tone = com.opson.libraries.diary.Tone.Warm, quiet = true) }
-        val warm = platform.scheduled.first { it.reminder.key == meal(MealSlot.Dinner) }
-        assertEquals("reminders_note_dinner_warm", warm.title)
-        assertEquals(ReminderStyle.FullQuiet, warm.style)
+        val quiet = platform.scheduled.first { it.reminder.key == meal(MealSlot.Dinner) }
+        assertEquals("reminders_note_dinner", quiet.title)
+        assertEquals(ReminderStyle.FullQuiet, quiet.style)
     }
 
     @Test

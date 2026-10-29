@@ -6,6 +6,7 @@ import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.RepeatsRelease
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.ReviewStatus
@@ -31,7 +32,10 @@ class FoodsTabTest : CoroutineTest() {
     private val policySource = FakePolicySource()
     private val submittedFoods = FakeSubmittedFoods()
 
-    private fun vm() = FoodsViewModel(customFoods, savedMeals, diary, policySource, submittedFoods)
+    private val repeats = FakeRepeatRepository(FoodsFixtures.repeats)
+
+    private fun vm(repeatsOn: Boolean = false) =
+        FoodsViewModel(customFoods, savedMeals, diary, policySource, submittedFoods, repeats, RepeatsRelease { repeatsOn })
 
     private fun TestScope.events(vm: FoodsViewModel): List<FoodsEvent> {
         val events = mutableListOf<FoodsEvent>()
@@ -158,5 +162,42 @@ class FoodsTabTest : CoroutineTest() {
 
         submittedFoods.reviews.value = mapOf(FoodsFixtures.pandesal.id to ReviewStatus.Approved)
         assertEquals(listOf(false), vm.state.yourFoods.map { it.unverified })
+    }
+
+    @Test
+    fun repeatingSitsUnderSavedMeals_withEachRulesMealDaysAndCalories() {
+        val state = FoodsFixtures.foodsState(policy(PresetId.Full), repeatsOn = true)
+
+        assertTrue(state.repeatsOn)
+        assertEquals(listOf("Usual breakfast", "Coffee with milk", "Greek yogurt"), state.repeats.map { it.name })
+        assertEquals(listOf("445", "40", "100"), state.repeats.map { (it.calories as? Display.Shown)?.text }, "a saved meal's are its foods'")
+        assertEquals(listOf(false, false, true), state.repeats.map { it.paused })
+    }
+
+    @Test
+    fun repeatingHidesItsCaloriesWhereTheModeDoes() {
+        val state = FoodsFixtures.foodsState(policy(PresetId.NoNumbers), repeatsOn = true)
+
+        assertTrue(state.repeats.all { it.calories == Display.Hidden })
+    }
+
+    @Test
+    fun withTheFlagOffThereIsNoRepeatingCard() = runUnitTest {
+        val vm = vm(repeatsOn = false)
+
+        assertFalse(vm.state.repeatsOn)
+        assertTrue(vm.state.repeats.isEmpty())
+    }
+
+    @Test
+    fun aRepeatOpensItsEditor_andNewRepeatABlankOne() = runUnitTest {
+        val vm = vm(repeatsOn = true)
+        val events = events(vm)
+
+        assertEquals(3, vm.state.repeats.size)
+        vm.takeAction(FoodsAction.RepeatTapped("repeat-coffee"))
+        vm.takeAction(FoodsAction.NewRepeatTapped)
+
+        assertEquals(listOf<FoodsEvent>(FoodsEvent.OpenRepeat("repeat-coffee"), FoodsEvent.OpenRepeat(null)), events)
     }
 }

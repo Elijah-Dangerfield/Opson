@@ -64,13 +64,37 @@ deficit works without a health app, and logged exercise, with
 `release.exercise` on.
 
 **Logged exercise.** An entry is an activity from a list of about fifty common
-Compendium activities, a duration and a start time. Its energy is
-(MET − 1) × latest weigh-in in kg × hours: net of resting energy, which Burned
-already counts for the whole day, as Cronometer does. The person can type their
-own number instead (a machine's display, a watch that does not sync), and
+Compendium activities, a duration and a start time. Intensity is part of the
+activity rather than a separate control: walking slow, ordinary and brisk,
+running at five paces, cycling easy, moderate and fast, weights and heavy
+weights, yoga and power yoga, and so on, each with its own MET. Its energy is
+net of resting energy, which Burned already counts for the whole day, as
+Cronometer does:
+
+- With Profile's age, height and sex and a weigh-in (2026-10-29), one MET is
+  the person's own resting rate: (MET − 1) × resting kcal an hour × hours,
+  resting energy being Mifflin–St Jeor from those four. The standard formula
+  takes one MET as 1 kcal per kg an hour, which assumes a resting rate of 3.5
+  ml of oxygen per kg a minute; measured resting rates average lower, and
+  further off for older and heavier people (Byrne et al. 2005, "Metabolic
+  equivalent: one size does not fit all"; the 2024 Compendium's corrected MET
+  makes the same adjustment). For a 35-year-old man of 180 cm and 80 kg the
+  personal number is about 8% under the standard one; for a 60-year-old woman
+  of 160 cm and 90 kg, about a third under. This is what makes age, height and
+  sex count, and Profile is the one place they are kept.
+- With a weigh-in but Profile missing one of age, height or sex, the standard
+  formula, (MET − 1) × kg × hours, and the sheet says so with a link to Profile.
+- With no weigh-in there is no estimate; the sheet asks for a number and links
+  to Weight with its field ready.
+
+Under every estimate the sheet says it comes from published averages and that a
+watch measures it more closely. It uses the calculated resting energy even when
+Resting energy is set to the health app's or the person's own: the exercise
+estimate is about the body Profile describes, and a health app connected for
+activity already replaces logged exercise anyway (below). The person can type
+their own number instead (a machine's display, a watch that does not sync), and
 "Other" is a name and a typed number. The number is worked out when the entry
 is saved and stored with it, so a later weigh-in does not rewrite past days.
-With no weigh-in there is no estimate and the sheet asks for a number.
 
 **Everyday activity.** A baseline for life outside workouts, as a fraction of
 resting energy: Mostly sitting (0.2, the default), Some walking (0.375), On
@@ -95,10 +119,24 @@ hundred calories too low for almost everyone.
 So switching Health on or off moves a day between the two sources whole, never
 half of each.
 
-**Not included.** The thermic effect of food: it would make Burned rise with
-what is eaten, and a deficit aimed at Burned would then grow as someone ate
-more, which is circular and hard to explain. Cronometer has it off by default
-too. Also not done: subtracting everyday activity for the length of a workout
+**The thermic effect of food, off by default.** Digesting food costs about 10%
+of what is eaten (measured values run from about 8 to 15%, more on a
+protein-heavy day). "Count digesting food" on Resting energy adds
+`THERMIC_EFFECT_OF_FOOD_SHARE` (0.10, `libraries/nutrition`'s `Burned.kt`) of
+the day's eaten to Burned as `Burned.foodKcal`, a part of its own: not
+activity, so "Add activity to Burned" off keeps it, and it adds on either side
+of the one-source rule. Neither health store counts it: Apple Health's and
+Health Connect's resting and active energy are modelled from the body, never
+from food, so it cannot count twice whether the day reads the store's active
+energy or its resting energy too. It does make Burned rise with what is eaten,
+so a deficit aimed at Burned moves a little as food is logged (10 kcal per 100
+eaten). That converges and is the person's choice, which is why it is off
+until they turn it on, as Cronometer has it. Today's Expended so far and
+Deficit so far stats, which read the health app's total directly, add it the
+same way. Trends' Expended card does not: it is the watch's daily average, not
+Burned.
+
+**Not done:** subtracting everyday activity for the length of a workout
 (Cronometer does this for workouts over an hour). The overlap is small next to
 the error in any MET estimate.
 
@@ -106,7 +144,7 @@ the error in any MET estimate.
 visibility levels already in place: All numbers shows it; Macros with grams,
 Macros only and No numbers hide it. Exercise exists only to count energy, so
 where energy out is hidden the Exercise option is not offered and Today's
-Burned section does not draw. It is also never offered to someone who said
+Activity card does not draw. It is also never offered to someone who said
 numbers have been hard, like exercise in the range and fasting
 (TODO(clinician) to confirm). Goals read Burned through `BurnedRepository`,
 unchanged, so a deficit or surplus works without a health app.
@@ -114,3 +152,14 @@ unchanged, so a deficit or surplus works without a health app.
 **Sync.** Entries are a new sync entity, `exercise`, in a new table `exercises`
 (V24), returned only to clients that send `accepts: ["exercise"]`, so 0.1 and
 earlier 0.2 builds get exactly the response they did before.
+
+**Today's Activity card** (2026-10-29) shows Burned as lines that add up to it:
+resting energy, then the health app's active energy or everyday activity, then
+logged exercise, then digesting food when it counts. With a health app counting
+activity it says "From Apple Health", and adding exercise is a quieter button
+for what the watch missed, opening the sheet with "My watch didn't record this"
+on, under a line saying the watch's workouts are already counted. That is Lose
+It's approach: logging by hand stays possible for a swim the watch did not see,
+but the default path cannot double count. The store's workouts are not
+imported as entries: `HealthReader` reads energy sums, not workout samples, so
+the card shows them as the workouts part of active energy.

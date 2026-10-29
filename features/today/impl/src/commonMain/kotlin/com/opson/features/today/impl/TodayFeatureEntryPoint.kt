@@ -11,6 +11,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.foods.CreateMealRoute
 import com.opson.features.foods.EditCopyRoute
+import com.opson.features.foods.RepeatRoute
 import com.opson.features.logger.ExerciseRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.settings.EnergyTodayRoute
@@ -22,17 +23,21 @@ import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
+import com.opson.features.today.CheckInRoute
 import com.opson.features.today.DayCloseRoute
 import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
 import com.opson.features.today.TodayCardContribution
 import com.opson.features.today.NotesRoute
 import com.opson.features.today.TodayRoute
-import com.opson.features.today.impl.burned.TodayBurnedEvent
-import com.opson.features.today.impl.burned.TodayBurnedSection
-import com.opson.features.today.impl.burned.TodayBurnedViewModel
+import com.opson.features.today.impl.activity.TodayActivityEvent
+import com.opson.features.today.impl.activity.TodayActivitySection
+import com.opson.features.today.impl.activity.TodayActivityViewModel
 import com.opson.features.today.impl.calendar.CalendarEvent
 import com.opson.features.today.impl.cards.TodayCardsEvent
+import com.opson.features.today.impl.checkin.CheckInEvent
+import com.opson.features.today.impl.checkin.CheckInSheetContent
+import com.opson.features.today.impl.checkin.CheckInViewModel
 import com.opson.features.today.impl.cards.TodayCardsSheetContent
 import com.opson.features.today.impl.cards.TodayCardsViewModel
 import com.opson.features.today.impl.calendar.CalendarDropdownContent
@@ -62,7 +67,6 @@ import com.opson.features.today.impl.notes.NotesViewModel
 import com.opson.features.today.impl.water.WaterSheetContent
 import com.opson.features.today.impl.water.WaterSheetEvent
 import com.opson.features.today.impl.water.WaterSheetViewModel
-import com.opson.features.trends.NutrientFoodsRoute
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
 import com.opson.features.trends.WeightRoute
@@ -93,7 +97,7 @@ import kotlin.reflect.typeOf
 /**
  * Today and everything that opens from it: the tab root, Day close, the calendar that drops from
  * the title, the Notes list, and the meal, meal Note (hunger and words), water, food actions, day
- * note, Today's cards and day closed sheets.
+ * note, check-in, Today's cards and day closed sheets.
  * View models send events; only this class navigates.
  */
 @SingleIn(AppScope::class)
@@ -111,7 +115,8 @@ class TodayFeatureEntryPoint(
     private val dayNoteViewModelFactory: (LocalDate) -> DayNoteViewModel,
     private val todayCardsViewModelFactory: () -> TodayCardsViewModel,
     private val notesViewModelFactory: (Boolean) -> NotesViewModel,
-    private val todayBurnedViewModelFactory: () -> TodayBurnedViewModel,
+    private val todayActivityViewModelFactory: () -> TodayActivityViewModel,
+    private val checkInViewModelFactory: (LocalDate?) -> CheckInViewModel,
     private val tabBar: TabBar,
     private val findSupportEnabled: FindSupportEnabled,
     /** Cards other modules add to the list, such as Medication's. */
@@ -138,7 +143,7 @@ class TodayFeatureEntryPoint(
                 state = state,
                 onAction = viewModel::takeAction,
                 listState = listState,
-                burned = burnedSection(router),
+                activity = activitySection(router),
                 contributed = contributedCards(state.day, router),
             )
         }
@@ -166,6 +171,8 @@ class TodayFeatureEntryPoint(
                     DayCloseEvent.OpenWhyNotCutBack -> router.navigate(WhyNotCutBackRoute())
                     // Find support once it is released, the Support page's helpline until then. Never logged.
                     DayCloseEvent.OpenSupport -> router.navigate(if (findSupportEnabled()) FindSupportRoute() else SupportRoute())
+                    is DayCloseEvent.OpenCheckIn -> router.navigate(CheckInRoute(event.day.toString()))
+                    is DayCloseEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
                 }
             }
             DayCloseScreen(state = state, onAction = viewModel::takeAction)
@@ -181,6 +188,20 @@ class TodayFeatureEntryPoint(
                 }
             }
             TodaySheet(router, sheetState) { DayClosedSheetContent(state = state, onAction = viewModel::takeAction) }
+        }
+
+        // The check-in, from the + sheet and Close the day (release.checkIn); a closed day still takes one.
+        bottomSheet<CheckInRoute> { backStackEntry, sheetState ->
+            val route = backStackEntry.toRoute<CheckInRoute>()
+            val viewModel: CheckInViewModel = viewModel { checkInViewModelFactory(route.dayIso?.let(LocalDate::parse)) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is CheckInEvent.ShowToast -> showToast(event.toast)
+                    CheckInEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            TodaySheet(router, sheetState) { CheckInSheetContent(state = state, onAction = viewModel::takeAction) }
         }
 
         dialog<CalendarRoute> { backStackEntry, dialogState ->
@@ -267,6 +288,16 @@ class TodayFeatureEntryPoint(
                         goBack()
                         navigate(EditCopyRoute(dayIso = event.day.toString(), entryId = event.entryId))
                     }
+                    is ItemSheetEvent.OpenRepeat -> router.batch {
+                        goBack()
+                        navigate(
+                            if (event.ruleId != null) {
+                                RepeatRoute(ruleId = event.ruleId)
+                            } else {
+                                RepeatRoute(fromDayIso = event.day.toString(), fromEntryId = event.entryId)
+                            },
+                        )
+                    }
                     is ItemSheetEvent.DayClosed -> router.showDayClosed(event.day)
                     ItemSheetEvent.Dismiss -> sheetState.dismiss()
                 }
@@ -310,19 +341,21 @@ class TodayFeatureEntryPoint(
         }
     }
 
-    /** Today's Burned section (`release.exercise`), or null while it has nothing to show. */
+    /** Today's Activity card (`release.exercise`), or null while it has nothing to show. */
     @Composable
-    private fun burnedSection(router: Router): (@Composable () -> Unit)? {
-        val viewModel: TodayBurnedViewModel = viewModel { todayBurnedViewModelFactory() }
+    private fun activitySection(router: Router): (@Composable () -> Unit)? {
+        val viewModel: TodayActivityViewModel = viewModel { todayActivityViewModelFactory() }
         val state by viewModel.stateFlow.collectAsStateWithLifecycle()
         viewModel.ObserveEvents { event ->
             when (event) {
-                is TodayBurnedEvent.OpenExercise -> router.navigate(ExerciseRoute(entryId = event.entryId, dayIso = event.day.toString()))
-                TodayBurnedEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute())
+                is TodayActivityEvent.OpenExercise -> router.navigate(
+                    ExerciseRoute(entryId = event.entryId, dayIso = event.day.toString(), notOnWatch = event.notOnWatch),
+                )
+                TodayActivityEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute())
             }
         }
         val card = state.card ?: return null
-        return remember(card) { { TodayBurnedSection(card, viewModel::takeAction) } }
+        return remember(card) { { TodayActivitySection(card, viewModel::takeAction) } }
     }
 
     /** Each contribution's card for [day], in a fixed order so their composition slots stay put. */
@@ -338,7 +371,6 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenCalendar -> router.navigate(CalendarRoute(event.day.toString()))
             is TodayEvent.OpenDayClose -> router.navigate(DayCloseRoute(event.day.toString()))
             is TodayEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
-            is TodayEvent.OpenNutrientFoods -> router.navigate(NutrientFoodsRoute(event.day.toString(), event.micro.key))
             TodayEvent.OpenNotes -> router.navigate(NotesRoute())
             TodayEvent.OpenEnergyToday -> router.navigate(EnergyTodayRoute())
             is TodayEvent.OpenLogger -> router.navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString()))

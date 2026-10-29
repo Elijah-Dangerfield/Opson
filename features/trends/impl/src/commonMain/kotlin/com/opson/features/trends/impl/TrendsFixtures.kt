@@ -6,7 +6,10 @@ import com.opson.libraries.nutrition.RevealOn
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.Energy
+import com.opson.libraries.diary.HungerLevel
+import com.opson.libraries.diary.MoodLevel
+import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
@@ -261,20 +264,26 @@ object TrendsFixtures {
     private val MOODS = listOf(setOf(Mood.Calm), setOf(Mood.Social, Mood.Happy), setOf(Mood.Rushed), setOf(Mood.Calm, Mood.Happy))
 
     /**
-     * Checked in three evenings in four, hungrier on a day without breakfast, so Patterns'
-     * check-in card has a shape and its skipped-breakfast line something to say.
+     * Checked in three days in four, hungrier (lower on the 1 to 10 scale) on a day without
+     * breakfast, so Patterns' hunger card has a shape and its skipped-breakfast line something to
+     * say. Energy and mood most days, last night's sleep every other one.
      */
     private fun checkIn(seed: Int, menu: Menu): CheckIn? {
         if (menu.isEmpty() || seed % 4 == 0) return null
         val hunger = if (menu[MealSlot.Breakfast] == null) {
-            if (seed % 2 == 0) DayHunger.Very else DayHunger.Often
+            if (seed % 2 == 0) 2 else 3
         } else {
             CHECK_IN_HUNGER[seed % CHECK_IN_HUNGER.size]
         }
-        return CheckIn(hunger = hunger)
+        return CheckIn(
+            hunger = HungerLevel.of(hunger),
+            energy = Energy.entries[1 + seed % 3],
+            mood = MoodLevel.entries[2 + (seed + 1) % 3],
+            sleep = if (seed % 2 == 0) Sleep.entries[1 + seed % 4] else null,
+        )
     }
 
-    private val CHECK_IN_HUNGER = listOf(DayHunger.Some, DayHunger.Steady, DayHunger.Rarely, DayHunger.Some, DayHunger.Steady)
+    private val CHECK_IN_HUNGER = listOf(5, 4, 6, 5, 4)
 
     private fun item(date: LocalDate, slot: MealSlot, index: Int, food: Food): LogItem = LogItem(
         id = "$date-${slot.wire}-$index",

@@ -44,7 +44,7 @@
 
     <string name="qa_section_shortcuts">Shortcuts</string>
     <string name="qa_check_in">Open today's check-in</string>
-    <string name="qa_check_in_sub">Close the day for today with the check-in showing. Turns on release.checkIn and the Reminders switch if they're off.</string>
+    <string name="qa_check_in_sub">Opens today's check-in sheet. Turns on release.checkIn if it's off.</string>
     <string name="qa_reset_onboarding">Reset onboarding</string>
     <string name="qa_reset_onboarding_sub">Shows on next launch. Signed in, it opens at the questions; log out to start from Welcome.</string>
     <string name="qa_reset_onboarding_done">Onboarding shows on next launch.</string>

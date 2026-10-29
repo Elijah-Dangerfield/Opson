@@ -17,14 +17,15 @@
   { "path": "release.widgets", "type": "boolean", "default": false, "description": "0.2: the Widgets row on More. The snapshot for the widget is written whatever this says" },
   { "path": "release.searchOptions", "type": "boolean", "default": false, "description": "0.2: the Logger's search options sheet, category tabs and source badges" },
   { "path": "release.onboardingSetup", "type": "boolean", "default": false, "description": "Onboarding: the goal, resting energy details and meal times after the starting mode" },
-  { "path": "release.findSupport", "type": "boolean", "default": false, "description": "Find support: helplines by country, Support's crisis row and the pause sheet's link" },
+  { "path": "release.findSupport", "type": "boolean", "default": false, "description": "Find support: helplines by country, Support's crisis row, and the links from the pause sheet and Targets' low-goal note" },
   { "path": "release.progressPhotos", "type": "boolean", "default": false, "description": "Progress photos: the Weight row, and the private photo grid, camera and compare it opens" },
   { "path": "release.todaySummary", "type": "boolean", "default": false, "description": "Today's summary pages, stats, collapse and sticky bar, and the weight row" },
   { "path": "release.todaySelect", "type": "boolean", "default": false, "description": "Select foods on Today, drag them between meals, swipe a food to delete it, and file Uncategorized foods" },
-  { "path": "release.checkIn", "type": "boolean", "default": false, "description": "The once-a-day check-in on Close the day" },
+  { "path": "release.checkIn", "type": "boolean", "default": false, "description": "The check-in sheet (hunger, energy, mood, sleep), its ways in from the + sheet and Close the day, and Patterns' charts" },
   { "path": "release.foodActions", "type": "boolean", "default": false, "description": "A food's menu on Today: change amount, move, copy to another day, edit a copy, favorite" },
   { "path": "release.goalsAndEnergy", "type": "boolean", "default": false, "description": "Targets: one number, a set deficit and surplus; Burned, Resting energy and Energy today" },
   { "path": "release.exercise", "type": "boolean", "default": false, "description": "Exercise logged by hand, counted in Burned; needs goalsAndEnergy" },
   { "path": "release.providerSummary", "type": "boolean", "default": false, "description": "Support: a PDF summary for a provider, from a range and contents the person picks" },
-  { "path": "release.medication", "type": "boolean", "default": false, "description": "Medication tracking: More › Medication, the dose sheet, the Today card, the dose reminder, weight ticks and the provider summary section" }
+  { "path": "release.medication", "type": "boolean", "default": false, "description": "Medication tracking: More › Medication, the dose sheet, the Today card, the dose reminder, weight ticks and the provider summary section" },
+  { "path": "release.repeats", "type": "boolean", "default": false, "description": "Repeating on the Foods tab: foods and meals that log themselves on the days picked" }
 ]

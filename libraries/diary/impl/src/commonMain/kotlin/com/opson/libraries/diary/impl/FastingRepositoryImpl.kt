@@ -16,7 +16,6 @@ import com.opson.libraries.diary.minuteTicks
 import com.opson.libraries.diary.impl.wire.FastRowDto
 import com.opson.libraries.diary.impl.wire.WireJson
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -95,7 +94,7 @@ class FastingRepositoryImpl(
         val settings = settingsRepository.settings.value
         if (!settings.fastingTimerOn(release.isOn())) return
         val latest = tables.fasts.latest()?.toDomain()
-        val lastLoggedAt = tables.entries.observeLatest(1).first().firstOrNull()
+        val lastLoggedAt = tables.entries.latestUntil(clock.now().toEpochMilliseconds())
             ?.let { Instant.fromEpochMilliseconds(it.loggedAtEpochMs) }
         val due = FastingSchedule.due(settings.fastPlan, clock.now(), calendar.timeZone(), latest, lastLoggedAt) ?: return
         val started = writer.write {

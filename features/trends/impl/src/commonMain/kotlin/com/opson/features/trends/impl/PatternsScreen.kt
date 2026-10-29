@@ -37,6 +37,7 @@ import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.InspectableChart
 import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.Screen
+import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.ShareBar
 import com.opson.libraries.ui.components.TimelineAxis
 import com.opson.libraries.ui.components.TimelineTrack
@@ -80,6 +81,15 @@ import opson.libraries.resources.generated.resources.trends_patterns_title
 import opson.libraries.resources.generated.resources.trends_patterns_usually
 import opson.libraries.resources.generated.resources.trends_patterns_when
 import opson.libraries.resources.generated.resources.trends_title
+import opson.libraries.resources.generated.resources.today_checkin_energy
+import opson.libraries.resources.generated.resources.today_checkin_hunger
+import opson.libraries.resources.generated.resources.today_checkin_mood_level
+import opson.libraries.resources.generated.resources.today_checkin_sleep
+import opson.libraries.resources.generated.resources.today_label_today
+import opson.libraries.resources.generated.resources.trends_patterns_checkins
+import opson.libraries.resources.generated.resources.trends_patterns_checkins_hunger_note
+import opson.libraries.resources.generated.resources.trends_patterns_checkins_note
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /** Patterns. Stateless; facts arrive worked out, amounts arrive resolved. */
@@ -127,6 +137,7 @@ internal fun PatternsContent(
         if (!state.hungerLast) state.hunger?.let { HungerCardView(it) }
         if (state.newFoods.isNotEmpty()) NewFoodsCard(state.newFoods)
         if (state.hungerLast) state.hunger?.let { HungerCardView(it) }
+        state.checkIns?.let { CheckInsCardView(it, onAction) }
     }
 }
 
@@ -333,6 +344,75 @@ private fun HungerCardView(card: HungerCard) {
         }
     }
 }
+
+/**
+ * The check-ins over the four weeks: pick hunger, energy, mood or sleep, then a bar a day, as tall
+ * as the answer (for hunger, as hungry), a gap for a day without one. Words only when inspected,
+ * so it stays in No numbers.
+ */
+@Composable
+private fun CheckInsCardView(card: CheckInsCard, onAction: (PatternsAction) -> Unit) {
+    val series = card.shown
+    PatternsCard {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            CardTitle(stringResource(Res.string.trends_patterns_checkins), Modifier.weight(1f))
+            Text(
+                text = stringResource(
+                    if (series.aspect == CheckInAspect.Hunger) Res.string.trends_patterns_checkins_hunger_note else Res.string.trends_patterns_checkins_note,
+                ),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+                modifier = Modifier.weight(HUNGER_NOTE_WEIGHT),
+            )
+        }
+        if (card.series.size > 1) {
+            SegmentedControl(
+                options = card.series.map { it.aspect },
+                selected = series.aspect,
+                onSelect = { onAction(PatternsAction.CheckInAspectPicked(it)) },
+                label = { stringResource(it.label) },
+            )
+        }
+        val selection = rememberChartSelection(series.readouts)
+        InspectableChart(
+            readouts = series.readouts,
+            axis = ChartAxis.Slots(CHECK_IN_GAP),
+            selection = selection,
+            modifier = Modifier.fillMaxWidth().height(HUNGER_CHART).padding(top = Dimension.D200),
+        ) {
+            Row(
+                modifier = Modifier.matchParentSize(),
+                horizontalArrangement = Arrangement.spacedBy(CHECK_IN_GAP),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                series.levels.forEachIndexed { index, level ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(level?.coerceIn(HUNGER_FLOOR, 1f) ?: HUNGER_FLOOR)
+                            .graphicsLayer { alpha = selection.emphasis(index, faded = HUNGER_UNPICKED_ALPHA) }
+                            .clip(AppTheme.shapes.bar)
+                            .background(if (level == null) AppTheme.colors.track else AppTheme.colors.accentTint),
+                    )
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth()) {
+            Text(text = DateCopy.monthDay(card.from), typography = AppTheme.type.secondary, color = AppTheme.colors.muted, modifier = Modifier.weight(1f))
+            Text(text = stringResource(Res.string.today_label_today), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        }
+    }
+}
+
+private val CheckInAspect.label: StringResource
+    get() = when (this) {
+        CheckInAspect.Hunger -> Res.string.today_checkin_hunger
+        CheckInAspect.Energy -> Res.string.today_checkin_energy
+        CheckInAspect.Mood -> Res.string.today_checkin_mood_level
+        CheckInAspect.Sleep -> Res.string.today_checkin_sleep
+    }
+
+private val CHECK_IN_GAP = 3.dp
 
 /** 6 am to 9 pm in three-hour steps, as the track spans. */
 private val AXIS = listOf(

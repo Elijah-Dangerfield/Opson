@@ -19,6 +19,10 @@ import com.opson.libraries.diary.db.MealFeelingDao
 import com.opson.libraries.diary.db.MealFeelingEntity
 import com.opson.libraries.diary.db.OutboxDao
 import com.opson.libraries.diary.db.OutboxEntity
+import com.opson.libraries.diary.db.RepeatLogDao
+import com.opson.libraries.diary.db.RepeatLogEntity
+import com.opson.libraries.diary.db.RepeatRuleDao
+import com.opson.libraries.diary.db.RepeatRuleEntity
 import com.opson.libraries.diary.db.SavedMealDao
 import com.opson.libraries.diary.db.SavedMealEntity
 import com.opson.libraries.diary.db.SyncStateDao
@@ -48,10 +52,12 @@ import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
         FoodCacheEntity::class,
         FastEntity::class,
         ExerciseEntity::class,
+        RepeatRuleEntity::class,
+        RepeatLogEntity::class,
         MedicationDoseEntity::class,
         SymptomDayEntity::class,
     ],
-    version = 12, // 6: the diary tables, the outbox, sync state and the food cache; 7: day_records.untracked and .feeling; 8: fasts; 9: day_records.checkIn; 10: exercises; 11: custom_foods' weight, sizes and micros; 12: medication_doses and symptom_days
+    version = 13, // 6: the diary tables, the outbox, sync state and the food cache; 7: day_records.untracked and .feeling; 8: fasts; 9: day_records.checkIn; 10: exercises; 11: custom_foods' weight, sizes and micros; 12: repeat_rules and repeat_logs; 13: medication_doses and symptom_days
     /**
      * Every bump from [FIRST_APP_DATA_VERSION] on has to be listed here.
      *
@@ -69,6 +75,7 @@ import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
         AutoMigration(from = 9, to = 10),
         AutoMigration(from = 10, to = 11),
         AutoMigration(from = 11, to = 12),
+        AutoMigration(from = 12, to = 13),
     ],
     exportSchema = true
 )
@@ -97,6 +104,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun fastDao(): FastDao
 
     abstract fun exerciseDao(): ExerciseDao
+
+    abstract fun repeatRuleDao(): RepeatRuleDao
+
+    abstract fun repeatLogDao(): RepeatLogDao
 
     abstract fun medicationDoseDao(): MedicationDoseDao
 

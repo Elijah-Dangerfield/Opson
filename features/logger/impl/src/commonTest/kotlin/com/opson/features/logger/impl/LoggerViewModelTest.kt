@@ -66,6 +66,7 @@ class LoggerViewModelTest : CoroutineTest() {
         voiceOn: Boolean = false,
         fastingOn: Boolean = false,
         exerciseOn: Boolean = false,
+        checkInOn: Boolean = false,
         diaryRepo: FakeDiaryRepository = diary,
     ) = LoggerViewModel(
         route = route,
@@ -88,6 +89,7 @@ class LoggerViewModelTest : CoroutineTest() {
         fastingRelease = fastingFlag(fastingOn),
         exerciseRelease = ExerciseRelease { exerciseOn },
         submittedFoods = submittedFoods,
+        checkInEnabled = checkInFlag(checkInOn),
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {
@@ -134,6 +136,20 @@ class LoggerViewModelTest : CoroutineTest() {
         vm.takeAction(LoggerAction.PackagedFoodTapped)
         settle()
         assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun checkIn_isOfferedWithItsFlag_afterTheNote_andOpensTheSheetForThisDay() = runUnitTest {
+        assertTrue(AddAction.CheckIn !in vm(checkInOn = false).state.actions)
+        val vm = vm(checkInOn = true)
+        val events = events(vm)
+        settle()
+
+        val actions = vm.state.actions
+        assertEquals(actions.indexOf(AddAction.Note) + 1, actions.indexOf(AddAction.CheckIn))
+        vm.takeAction(LoggerAction.CheckInTapped)
+        settle()
+        assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenCheckIn(LoggerFixtures.today)), events)
     }
 
     @Test
@@ -755,13 +771,13 @@ class LoggerViewModelTest : CoroutineTest() {
     fun aClosedDay_saysSoOverTheGrid_keepsOnlyWhatIsNotPartOfTheDay_andLogsNothing() = runUnitTest {
         diary.close(LoggerFixtures.today)
         settings.state.value = Settings(fasting = true)
-        val vm = vm(route = LoggerRoute(slot = MealSlot.Dinner, start = LoggerStart.Saved), fastingOn = true)
+        val vm = vm(route = LoggerRoute(slot = MealSlot.Dinner, start = LoggerStart.Saved), fastingOn = true, checkInOn = true)
         val events = events(vm)
         settle()
 
         assertTrue(vm.state.closed)
         assertEquals(LoggerPane.Actions, vm.state.pane, "Saved meals only adds, so the sheet opens on the closed line")
-        assertEquals(listOf(AddAction.WeighIn, AddAction.Fasting), vm.state.actions)
+        assertEquals(listOf(AddAction.WeighIn, AddAction.CheckIn, AddAction.Fasting), vm.state.actions, "how someone feels is not the day's log")
         assertTrue(vm.state.recent.isEmpty())
 
         vm.takeAction(LoggerAction.SavedMealPicked("sunday"))
