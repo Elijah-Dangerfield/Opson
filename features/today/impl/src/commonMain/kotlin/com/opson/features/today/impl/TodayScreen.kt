@@ -171,7 +171,7 @@ import opson.libraries.resources.generated.resources.today_weight_today
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The Today tab (design sync 2, 2.1 to 2.14): the pinned day header with Close the day's button
+ * The Today tab (design sync 2, 2.1 to 2.14): the pinned day header with the streak and Wrap up the day's button
  * (or the select header), then the list: the summary card the layout and levels call for, the
  * cards the state carries, the meals, and Activity last. Once the card scrolls away its one-line
  * form sticks under the header. Stateless; [TodayViewModel] owns what it shows and the scroll is
@@ -189,7 +189,9 @@ fun TodayScreen(
     refreshing: Boolean = false,
     /** Pull to refresh; null leaves the gesture off. */
     onRefresh: (() -> Unit)? = null,
-) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState, activity, contributed, refreshing, onRefresh)
+    /** The streak in the header (`release.celebrations`), with its own view model; null leaves it out. */
+    streak: (@Composable () -> Unit)? = null,
+) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState, activity, contributed, refreshing, onRefresh, streak)
 
 /** [TodayScreen] with the [drag] handed in, so a preview can hold foods mid-drag (13.3c). */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -206,6 +208,7 @@ internal fun TodayScreen(
     contributed: List<ContributedCard> = emptyList(),
     refreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
+    streak: (@Composable () -> Unit)? = null,
 ) {
     val hasActivity = activity != null
     val contributedKeys = contributed.map { it.key }
@@ -246,7 +249,7 @@ internal fun TodayScreen(
             if (selection != null) {
                 SelectHeader(selection, onAction)
             } else {
-                Box(Modifier.padding(horizontal = AppTheme.spacing.row)) { Header(state, onAction) }
+                Box(Modifier.padding(horizontal = AppTheme.spacing.row)) { Header(state, onAction, streak) }
             }
             // Clipped so the sticky bar slides out from under the header rather than over it. The box
             // follows a drag once a row's handle starts one (13.3c).
@@ -506,7 +509,7 @@ private fun glassLabels(water: WaterRow): List<GlassLabel> {
 }
 
 @Composable
-private fun Header(state: TodayState, onAction: (TodayAction) -> Unit) {
+private fun Header(state: TodayState, onAction: (TodayAction) -> Unit, streak: (@Composable () -> Unit)? = null) {
     val label = state.dayLabel.text()
     DayHeader(
         title = label,
@@ -518,6 +521,7 @@ private fun Header(state: TodayState, onAction: (TodayAction) -> Unit) {
         titleDescription = stringResource(Res.string.today_pick_day_cd) + ", " + label,
         nextEnabled = state.canGoForward,
     ) {
+        streak?.invoke()
         state.closeDay?.let { close ->
             // An empty circle until the day is closed, then filled: the check reads as done.
             val icon = if (close.closed) AppIcons.CheckCircle else AppIcons.CheckCircleOutline

@@ -187,6 +187,7 @@ class SettingsFeatureEntryPoint(
                     MoreEvent.OpenFeedback -> router.navigate(FeedbackRoute())
                     MoreEvent.OpenFasting -> router.navigate(FastingRoute())
                     MoreEvent.OpenReminders -> router.navigate(RemindersRoute())
+                    MoreEvent.OpenCelebrations -> router.navigate(RemindersRoute(celebrationsOnly = true))
                     MoreEvent.OpenHealth -> router.navigate(IntegrationsRoute())
                     MoreEvent.OpenWidgets -> router.navigate(WidgetsRoute())
                     MoreEvent.OpenPrivacy -> router.openWebLink(PRIVACY_URL)
@@ -448,7 +449,8 @@ class SettingsFeatureEntryPoint(
             FastingScreen(state = state, onAction = viewModel::takeAction)
         }
 
-        screen<RemindersRoute> {
+        screen<RemindersRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<RemindersRoute>()
             val viewModel: RemindersViewModel = viewModel { remindersViewModel() }
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             // Back from the system's notification settings, permission may have changed.
@@ -461,7 +463,7 @@ class SettingsFeatureEntryPoint(
                     RemindersEvent.Close -> router.goBack()
                 }
             }
-            RemindersScreen(state = state, onAction = viewModel::takeAction)
+            RemindersScreen(state = state, onAction = viewModel::takeAction, celebrationsOnly = route.celebrationsOnly)
         }
 
         screen<SupportRoute> {

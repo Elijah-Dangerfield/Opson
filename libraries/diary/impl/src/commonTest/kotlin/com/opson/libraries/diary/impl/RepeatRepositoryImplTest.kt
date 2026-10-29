@@ -1,5 +1,6 @@
 package com.opson.libraries.diary.impl
 
+import com.opson.libraries.diary.DayMark
 import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
@@ -409,6 +410,16 @@ class RepeatRepositoryImplTest : CoroutineTest() {
         val expired = Phone(held, clock, calendar, settings, FakeActiveUser(ActiveUser.SignedOut)) { true }
         expired.dump("user-a")
         assertTrue(held.repeats.rows.isEmpty())
+    }
+
+    @Test
+    fun foodsARepeatLogged_areNotShowingUp_forTheStreak_butAFoodLoggedByHandIs() = runUnitTest {
+        repeats.create(plan(listOf(porridge)))
+        val marks = DayMarksImpl(db.tables)
+        assertTrue(marks.observe().first().isEmpty(), "a day only a repeat logged is not someone showing up")
+
+        diary.addItems(today, MealSlot.Lunch, listOf(coffee), LogMethod.Search)
+        assertEquals(listOf(DayMark(today, logged = true)), marks.observe().first())
     }
 
     private fun plan(

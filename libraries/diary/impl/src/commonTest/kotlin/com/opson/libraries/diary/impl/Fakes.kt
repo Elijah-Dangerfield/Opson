@@ -38,6 +38,7 @@ import com.opson.libraries.storage.CacheFactory
 import com.opson.libraries.storage.CacheJsonSerializer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flow
@@ -164,6 +165,11 @@ class FakeDiaryDb {
 
         override fun observeDaysWithEntries(from: String, to: String) =
             entries.observe().map { m -> m.values.filter { !it.deleted && it.day in from..to }.map { it.day }.distinct() }
+
+        override fun observeDaysLoggedByHand() =
+            combine(entries.observe(), repeatLogs.observe()) { m, repeated ->
+                m.values.filter { !it.deleted && it.id !in repeated }.map { it.day }.distinct()
+            }
 
         override suspend fun latestUntil(untilEpochMs: Long) =
             live().filter { it.loggedAtEpochMs <= untilEpochMs && it.id !in repeatLogs.state.value }.maxByOrNull { it.loggedAtEpochMs }

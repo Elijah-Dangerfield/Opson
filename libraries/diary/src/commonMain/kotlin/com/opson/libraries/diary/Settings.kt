@@ -251,7 +251,34 @@ data class Settings(
     val microTargets: Map<String, Double> = emptyMap(),
     /** The nutrients page on Today, as `Micronutrient.key`s in order; empty is [DEFAULT_TODAY_NUTRIENTS]. */
     val todayNutrients: List<String> = emptyList(),
+
+    // Celebrations (`release.celebrations`): milestones for showing up, the streak on Today and
+    // Your progress. Top-level keys, because the server merges settings one level deep.
+    /**
+     * Milestone celebrations, the streak on Today and the line after wrapping up a day. On by
+     * default; the first celebration offers to turn it off, and More › Reminders and celebrations
+     * turns it back on. Onboarding may read it.
+     */
+    val celebrationsEnabled: Boolean = true,
+    /**
+     * Whether celebrations say how many days ("4 days in a row"). Null until the person picks,
+     * which follows the onboarding answer: off after numbers have been hard. Read it through
+     * [celebrationStyle].
+     */
+    val celebrationCounts: Boolean? = null,
 ) {
+    /**
+     * How celebrations speak: [CelebrationStyle.Counts] with the day counts, [CelebrationStyle.Gentle]
+     * with a kind line and no counts (the default after numbers have been hard), or
+     * [CelebrationStyle.Off].
+     */
+    val celebrationStyle: CelebrationStyle
+        get() = when {
+            !celebrationsEnabled -> CelebrationStyle.Off
+            celebrationCounts ?: !onboarding.hard -> CelebrationStyle.Counts
+            else -> CelebrationStyle.Gentle
+        }
+
     /** [bodyFatPercent] when one was given and makes sense. */
     val bodyFat: Double? get() = BodyFat.inRange(bodyFatPercent)
 

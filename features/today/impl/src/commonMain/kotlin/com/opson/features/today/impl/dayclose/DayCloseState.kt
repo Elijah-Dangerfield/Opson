@@ -2,13 +2,17 @@ package com.opson.features.today.impl.dayclose
 
 import com.opson.features.today.impl.KeyNutrient
 import com.opson.features.today.impl.MacroTile
+import com.opson.features.today.impl.Toast
 import com.opson.features.today.impl.TodayStateBuilder
 import com.opson.features.today.impl.todayRange
+import com.opson.features.today.impl.celebration.Celebrating
+import com.opson.libraries.diary.CelebrationStyle
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.Milestone
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.health.EnergyExpended
@@ -40,7 +44,8 @@ import kotlin.math.roundToInt
 /**
  * Close the day (design v3, 4.1 to 4.5), a recap of the day: a line on how much was logged, totals
  * or a soft line or the meals, the big-day reset, eaten against burned, the macros and a few
- * vitamins and minerals against their targets, the way into the check-in, a note, Close the day.
+ * vitamins and minerals against their targets, the way into the check-in, a note, Wrap up the day,
+ * and once it is wrapped up the run so far ([streak]).
  */
 data class DayCloseState(
     val loading: Boolean = true,
@@ -86,7 +91,28 @@ data class DayCloseState(
      * opens it to food again.
      */
     val closed: Boolean = false,
+    /** Today wrapped up, with celebrations on (`release.celebrations`): the run and the next milestone, gently. */
+    val streak: StreakLine? = null,
 )
+
+/** "4 days in a row. 3 more to a week." with counts; a kind line without. */
+sealed interface StreakLine {
+    data class Counts(val days: Int, val next: Milestone?, val toNext: Int?) : StreakLine
+
+    data object Gentle : StreakLine
+
+    companion object {
+        fun of(celebrating: Celebrating?): StreakLine? {
+            val progress = celebrating?.progress ?: return null
+            if (progress.current == 0) return null
+            return when (celebrating.style) {
+                CelebrationStyle.Counts -> Counts(progress.current, progress.next, progress.daysToNext)
+                CelebrationStyle.Gentle -> Gentle
+                CelebrationStyle.Off -> null
+            }
+        }
+    }
+}
 
 data class FeelingChoice(val options: List<DayFeeling>, val picked: DayFeeling?)
 
@@ -147,6 +173,9 @@ data class MealsLine(val done: Int, val total: Int)
 
 sealed interface DayCloseAction {
     data class InputsArrived(val inputs: DayCloseInputs, val policy: VisibilityPolicy) : DayCloseAction
+
+    /** The run and the style, while celebrations are on; null while they are off. */
+    data class CelebratingArrived(val celebrating: Celebrating?) : DayCloseAction
     data class NoteTyped(val text: String) : DayCloseAction
 
     /** A feeling chip; the picked one again clears it. */
@@ -177,6 +206,9 @@ sealed interface DayCloseEvent {
     data object OpenSupport : DayCloseEvent
     data class OpenCheckIn(val day: LocalDate) : DayCloseEvent
     data class OpenNutrients(val day: LocalDate) : DayCloseEvent
+
+    /** After wrapping up today: the run so far, when no celebration is about to say more. */
+    data class ShowToast(val toast: Toast) : DayCloseEvent
 }
 
 data class DayCloseInputs(
@@ -212,6 +244,7 @@ object DayCloseStateBuilder {
         note: String,
         committed: Boolean,
         feeling: DayFeeling? = null,
+        celebrating: Celebrating? = null,
     ): DayCloseState {
         val day = inputs.day
         val today = inputs.today
@@ -292,6 +325,7 @@ object DayCloseStateBuilder {
             isToday = isToday,
             note = note,
             closed = day.closedByUser,
+            streak = if (isToday && day.closedByUser) StreakLine.of(celebrating) else null,
         )
     }
 

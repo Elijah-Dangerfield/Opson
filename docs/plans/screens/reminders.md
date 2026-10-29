@@ -39,6 +39,7 @@ on the next config emission.
 | What the rows do | Shown: Quiet mode, After a big day, Meal reminders, the four meal times, the "no evening messages" line. **Not shown: New food tried and Weekly recap.** Nothing in the app acts on them yet (no new-food note, no recap notification), and 0.1's rule is to offer only what works. They come back with the features. |
 | Tone and the check-in switches | Gone (owner, 2026-10-29). How we talk to you: the voice is the brand's, so every notification and Close the day's title use the plain words, and the warm copy is deleted. Hunger and fullness questions and Check in at day close: anyone can skip them, so there is no switch; the questions are always asked and the check-in shows whenever `release.checkIn` is on. `Settings.tone`, `askTags` and `checkIn` stay as keys so older JSON round-trips (and older builds keep reading their own), and no reader looks at them. |
 | The page's name | Kept as Reminders and celebrations. After a big day is an in-app card, not a notification, so "Notifications" would undersell half the page. |
+| Celebrations (2026-10-29) | With `release.celebrations` on, the page starts with Celebrations (`Settings.celebrationsEnabled`) and, while on, Day counts (`Settings.celebrationCounts`, null follows the onboarding answer: off after numbers have been hard). With `release.reminders` off the More row still shows, reading "Celebrations on" or "off", and opens the page with the Celebrations rows alone (`RemindersRoute(celebrationsOnly = true)`). Quiet mode's line became "Reminders arrive without sound or vibration.": it only ever governed notification sound, and celebrations have their own switch and follow the system's reduce-motion setting. See `docs/decisions.md`, 2026-10-29. |
 | Subtle vs Full | Subtle: silent, no heads-up (Android channel `IMPORTANCE_LOW`, iOS `passive`, no sound). Full: the system's default sound and a heads-up where the platform allows (`IMPORTANCE_DEFAULT`, iOS `active` with the default sound). Quiet mode on makes Full silent too (its own channel without sound or vibration). Water nudges always use Subtle. |
 | Exact vs inexact (Android) | Inexact: `AlarmManager.setAndAllowWhileIdle`. A meal nudge a few minutes late is fine; exact alarms need `SCHEDULE_EXACT_ALARM` (denied by default for new installs on 14) or `USE_EXACT_ALARM`, which Play reserves for alarm and calendar apps. No exact-alarm permission is requested. |
 | Horizon | Seven days ahead (4 meals and 2 waters a day stay under iOS's 64 pending). Any replan extends it: opening the app, a notification action, an Android alarm (it starts the process). On iOS a week without opening the app or answering a nudge lets them run out, which suits an app that should not nag someone who stepped away. |
@@ -189,7 +190,7 @@ Added to `app-events.md`. No meal names, no times, no free text.
 ## Copy
 
 `strings_reminders.xml`, prefix `reminders_`: `Reminders and celebrations`;
-`Quiet mode` / `No confetti, sounds or vibration.`; `After a big day` / `A calm
+`Quiet mode` / `Reminders arrive without sound or vibration.`; `After a big day` / `A calm
 card at day close. Full adds the two buttons.`; `Meal reminders` / `A nudge if
 a meal isn't logged by its time.`; `Off` `Subtle` `Full`; `Meal reminder
 times`; `We don't send evening messages about what's left to eat. That isn't a

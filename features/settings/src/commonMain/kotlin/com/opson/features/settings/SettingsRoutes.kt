@@ -112,10 +112,11 @@ class SupportRoute : Route()
 
 /**
  * Reminders and celebrations (0.2, behind `release.reminders`): quiet mode, the big-day card,
- * and meal reminders and their times. Opened from More.
+ * and meal reminders and their times, and Celebrations (`release.celebrations`). Opened from More.
+ * [celebrationsOnly]: with `release.reminders` off, the page is the Celebrations rows alone.
  */
 @Serializable
-class RemindersRoute : Route()
+class RemindersRoute(val celebrationsOnly: Boolean = false) : Route()
 
 /** Watch and health apps: connect Apple Health or Health Connect, and today's energy from it (0.2). */
 @Serializable

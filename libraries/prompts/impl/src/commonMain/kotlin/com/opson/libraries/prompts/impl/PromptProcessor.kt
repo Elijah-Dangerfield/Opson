@@ -5,6 +5,7 @@ package com.opson.libraries.prompts.impl
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.logging.KLog
+import com.opson.libraries.navigation.Route
 import com.opson.libraries.opson.SessionTracker
 import com.opson.libraries.prompts.PromptAccept
 import com.opson.libraries.prompts.PromptCandidate
@@ -144,6 +145,14 @@ class PromptProcessor(
         return Catching { candidate.accept() }
             .logOnFailure { "Prompt $id failed to accept" }
             .getOrNull() ?: PromptAccept.Done
+    }
+
+    /** Where a [PromptPresentation.Screen] prompt draws itself, or null when it has nowhere to go. */
+    suspend fun screen(id: String): Route? {
+        val candidate = candidate(id) ?: return null
+        return Catching { candidate.screen() }
+            .logOnFailure { "Prompt $id failed to name its screen" }
+            .getOrNull()
     }
 
     /** Not now, a swipe, a tap outside, Back. A second answer to the same showing is ignored. */
