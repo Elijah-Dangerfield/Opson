@@ -22,7 +22,7 @@ data class MealSheetRoute(val dayIso: String, val slot: MealSlot) : Route()
 @Serializable
 data class WaterSheetRoute(val dayIso: String) : Route()
 
-/** One logged item, to remove a wrong entry. The day is how the sheet finds it. */
+/** A food's actions on Today, from its ⋮ (its row opens `LoggedFoodRoute`). The day is how the sheet finds it. */
 @Serializable
 data class ItemSheetRoute(val dayIso: String, val entryId: String) : Route()
 

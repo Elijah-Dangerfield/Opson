@@ -1,6 +1,10 @@
 package com.opson.features.logger.impl
 
 import com.opson.features.foods.EditCopyRoute
+import com.opson.features.foods.RepeatRoute
+import com.opson.features.logger.LoggedFoodRoute
+import com.opson.features.settings.CreditsRoute
+import com.opson.libraries.diary.DiaryItemEditor
 import com.opson.libraries.navigation.BugReportRoute
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Box
@@ -65,6 +69,8 @@ import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.adding_added
+import opson.libraries.resources.generated.resources.adding_detail_removed
+import opson.libraries.resources.generated.resources.adding_detail_saved
 import opson.libraries.resources.generated.resources.adding_undo
 import opson.libraries.resources.generated.resources.adding_water_added
 import org.jetbrains.compose.resources.StringResource
@@ -82,7 +88,7 @@ class LoggerFeatureEntryPoint(
     private val loggerViewModelFactory: (LoggerRoute) -> LoggerViewModel,
     private val exerciseViewModelFactory: (ExerciseRoute) -> ExerciseSheetViewModel,
     private val searchViewModelFactory: (FoodSearchRoute) -> FoodSearchViewModel,
-    private val detailViewModelFactory: (FoodDetailRoute) -> FoodDetailViewModel,
+    private val detailViewModelFactory: (DetailOpen) -> FoodDetailViewModel,
     private val barcodeScanViewModelFactory: (BarcodeScanRoute) -> BarcodeScanViewModel,
     private val barcodeCamera: BarcodeCamera,
     private val photoEstimateViewModelFactory: (PhotoEstimateRoute) -> PhotoEstimateViewModel,
@@ -94,6 +100,7 @@ class LoggerFeatureEntryPoint(
     private val appScope: () -> AppCoroutineScope,
     private val recentLogEvents: () -> RecentLogEvents,
     private val diary: () -> DiaryRepository,
+    private val editor: () -> DiaryItemEditor,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -130,7 +137,13 @@ class LoggerFeatureEntryPoint(
                 typeOf<MealSlot?>() to nullableSerializableType<MealSlot>(),
             ),
         ) { backStackEntry ->
-            FoodDetail(backStackEntry.toRoute<FoodDetailRoute>(), router)
+            FoodDetail(DetailOpen.Pick(backStackEntry.toRoute<FoodDetailRoute>()), router)
+        }
+
+        // A food already on the log, from its row on Today: the same detail, editing that entry alone.
+        screen<LoggedFoodRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<LoggedFoodRoute>()
+            FoodDetail(DetailOpen.Entry(LocalDate.parse(route.dayIso), route.entryId), router)
         }
 
         // Only the + sheet's and search's barcode buttons open it, and both are behind release.barcode.
@@ -341,8 +354,9 @@ class LoggerFeatureEntryPoint(
     }
 
     @Composable
-    private fun FoodDetail(route: FoodDetailRoute, router: Router) {
-        val viewModel: FoodDetailViewModel = viewModel { detailViewModelFactory(route) }
+    @Suppress("CyclomaticComplexMethod")
+    private fun FoodDetail(open: DetailOpen, router: Router) {
+        val viewModel: FoodDetailViewModel = viewModel { detailViewModelFactory(open) }
         val state by viewModel.stateFlow.collectAsStateWithLifecycle()
         val haptics = LocalHapticFeedback.current
 
@@ -356,6 +370,32 @@ class LoggerFeatureEntryPoint(
                     haptics.confirm()
                     router.goBack()
                 }
+                // The snackbar first: once the detail is gone, so is this collector.
+                FoodDetailEvent.Saved -> {
+                    haptics.confirm()
+                    showSnackBar(message = getString(Res.string.adding_detail_saved))
+                    router.goBack()
+                }
+                is FoodDetailEvent.Removed -> {
+                    showRemoved(event.name, event.entryId)
+                    router.goBack()
+                }
+                // The detail gives way, as the food's sheet on Today does, so Back lands on Today.
+                is FoodDetailEvent.OpenEntryCopy -> router.batch {
+                    goBack()
+                    navigate(EditCopyRoute(dayIso = event.day.toString(), entryId = event.entryId))
+                }
+                is FoodDetailEvent.OpenRepeat -> router.batch {
+                    goBack()
+                    navigate(
+                        if (event.ruleId != null) {
+                            RepeatRoute(ruleId = event.ruleId)
+                        } else {
+                            RepeatRoute(fromDayIso = event.day.toString(), fromEntryId = event.entryId)
+                        },
+                    )
+                }
+                FoodDetailEvent.OpenCredits -> router.navigate(CreditsRoute())
                 // TODO(review-queue): the review queue takes new packs (SubmitFoodRoute) but has no kind for a correction to a food it
                 // already holds; once it does, file this there. Until then the bug report carries the food's ref.
                 is FoodDetailEvent.OpenReport -> router.navigate(BugReportRoute(contextMessage = event.context))
@@ -482,6 +522,15 @@ class LoggerFeatureEntryPoint(
             message = getString(Res.string.adding_added, name, getString(event.slot.label)),
             actionLabel = getString(Res.string.adding_undo),
             onAction = { appScope().launch { recentLogEvents().undo(event) } },
+        )
+    }
+
+    /** "Peanut butter removed", with Undo that puts back that one entry, even once the detail has closed. */
+    private suspend fun showRemoved(name: String, entryId: String) {
+        showSnackBar(
+            message = getString(Res.string.adding_detail_removed, name),
+            actionLabel = getString(Res.string.adding_undo),
+            onAction = { appScope().launch { editor().restoreItems(listOf(entryId)) } },
         )
     }
 

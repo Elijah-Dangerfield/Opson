@@ -174,10 +174,12 @@ class TodayViewModel(
             is TodayAction.MealTileTapped -> ifOpen { sendEvent(TodayEvent.OpenLogger(day(), action.slot)) }
             is TodayAction.PlanItTapped -> ifOpen { sendEvent(TodayEvent.OpenLogger(day(), action.slot)) }
             is TodayAction.MealPlusTapped -> ifOpen { sendEvent(TodayEvent.OpenMealSheet(day(), action.slot)) }
-            is TodayAction.ItemTapped -> if (model.swipe.open != null) {
-                action.rebuild { copy(swipe = SwipeState()) }
-            } else {
-                sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
+            // A row swiped open closes first. Otherwise the food's detail, for this entry alone:
+            // the same food twice on a day is two rows, and each opens its own.
+            is TodayAction.ItemTapped -> when {
+                model.swipe.open != null -> action.rebuild { copy(swipe = SwipeState()) }
+                model.selected != null -> Unit
+                else -> sendEvent(TodayEvent.OpenLoggedFood(day(), action.entryId))
             }
             is TodayAction.ItemMenuTapped -> if (state.foodMenus) sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
             TodayAction.WaterPlusTapped -> ifOpen { sendEvent(TodayEvent.OpenWaterSheet(day())) }

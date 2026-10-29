@@ -13,6 +13,7 @@ import com.opson.features.foods.CreateMealRoute
 import com.opson.features.foods.EditCopyRoute
 import com.opson.features.foods.RepeatRoute
 import com.opson.features.logger.ExerciseRoute
+import com.opson.features.logger.LoggedFoodRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
@@ -369,6 +370,7 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenDayNote -> router.navigate(DayNoteRoute(event.day.toString()))
             is TodayEvent.OpenMealSheet -> router.navigate(MealSheetRoute(event.day.toString(), event.slot))
             is TodayEvent.OpenItemSheet -> router.navigate(ItemSheetRoute(event.day.toString(), event.entryId))
+            is TodayEvent.OpenLoggedFood -> router.navigate(LoggedFoodRoute(event.day.toString(), event.entryId))
             is TodayEvent.OpenWaterSheet -> router.navigate(WaterSheetRoute(event.day.toString()))
             is TodayEvent.OpenDayClosed -> router.navigate(DayClosedRoute(event.day.toString()))
             is TodayEvent.OpenPause -> router.navigate(event.change.toRoute())

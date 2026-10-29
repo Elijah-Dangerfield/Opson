@@ -7,6 +7,7 @@ import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.RepeatsRelease
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.Food
@@ -60,7 +61,7 @@ class FoodDetailTest : CoroutineTest() {
 
     private fun vm(foodId: String = "peanut-butter", custom: Boolean = false, source: PickSource = PickSource.Search, slot: MealSlot? = MealSlot.Dinner) =
         FoodDetailViewModel(
-            route = FoodDetailRoute(foodId, custom, source, LoggerFixtures.today.toString(), slot),
+            open = DetailOpen.Pick(FoodDetailRoute(foodId, custom, source, LoggerFixtures.today.toString(), slot)),
             foodCatalog = catalog,
             customFoods = customFoods,
             settingsRepository = settings,
@@ -71,6 +72,7 @@ class FoodDetailTest : CoroutineTest() {
             clock = Clock.fixed(NOON),
             logger = FoodLogger(diary, catalog, recentLogEvents, telemetry, Clock.fixed(NOON)),
             submittedFoods = submittedFoods,
+            repeats = RepeatsRelease { true },
         )
 
     private fun TestScope.events(vm: FoodDetailViewModel): List<FoodDetailEvent> {

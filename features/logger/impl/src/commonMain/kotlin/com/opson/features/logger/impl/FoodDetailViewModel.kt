@@ -13,6 +13,7 @@ import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealSlotPicker
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.RepeatsRelease
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -47,6 +48,9 @@ import kotlin.time.Clock
 sealed interface FoodDetailAction {
     data class FoodArrived(val food: AmountFood, val last: LogItem?) : FoodDetailAction
     data object FoodMissing : FoodDetailAction
+
+    /** The entry the detail was opened on, the food it came from while that is still here, and its meal's hunger answer. */
+    data class EntryArrived(val item: LogItem, val food: AmountFood?, val hunger: Hunger?) : FoodDetailAction
     data class InputsArrived(val settings: Settings, val policy: VisibilityPolicy, val day: Day) : FoodDetailAction
     data class ReviewArrived(val status: ReviewStatus?) : FoodDetailAction
     data class HistoryArrived(val days: List<Day>) : FoodDetailAction
@@ -68,13 +72,27 @@ sealed interface FoodDetailAction {
     data class SlotPicked(val slot: MealSlot) : FoodDetailAction
     data class TimePicked(val time: LocalTime) : FoodDetailAction
     data object AllNutrientsTapped : FoodDetailAction
+
+    /** The source's name: what the source is opens under it, or closes. */
+    data object SourceTapped : FoodDetailAction
+
+    /** Credits, under what the source is: every source's attribution. */
+    data object CreditsTapped : FoodDetailAction
     data object RemoveFromRecentsTapped : FoodDetailAction
     data object ReportTapped : FoodDetailAction
     data object EditCopyTapped : FoodDetailAction
 
     /** No numbers: a hunger answer, or the same one again to clear it. */
     data class HungerPicked(val hunger: Hunger) : FoodDetailAction
+
+    /** "Add to {meal}", or on an entry "Save changes". */
     data object AddToMealTapped : FoodDetailAction
+
+    /** An entry's Remove from log. */
+    data object RemoveTapped : FoodDetailAction
+
+    /** An entry's Repeat this, or Edit repeat for one a repeat logged. */
+    data object RepeatTapped : FoodDetailAction
     data object BackTapped : FoodDetailAction
 }
 
@@ -85,6 +103,12 @@ sealed interface FoodDetailEvent {
     /** Logged: the detail closes. Search draws ✓, Today takes it from `RecentLogEvents`. */
     data class Logged(val committed: Committed) : FoodDetailEvent
 
+    /** The entry's changes are saved: the detail closes back to Today. */
+    data object Saved : FoodDetailEvent
+
+    /** The entry is off the log: the detail closes, and the snackbar's Undo puts back [entryId] alone. */
+    data class Removed(val entryId: String, val name: String) : FoodDetailEvent
+
     /** The day is closed (Close the day, maybe on another phone): nothing was logged. */
     data class DayClosed(val day: LocalDate) : FoodDetailEvent
 
@@ -93,6 +117,14 @@ sealed interface FoodDetailEvent {
 
     /** Edit a copy of this food, which logs to [day] and [slot] once it is saved. */
     data class OpenEditCopy(val ref: FoodRef, val day: LocalDate, val slot: MealSlot) : FoodDetailEvent
+
+    /** Edit a copy of the entry [entryId] on [day], which can switch the entry to the copy: the detail gives way to it. */
+    data class OpenEntryCopy(val day: LocalDate, val entryId: String) : FoodDetailEvent
+
+    /** Repeat the entry: [ruleId]'s editor for one a repeat logged, else a new repeat from it. The detail gives way. */
+    data class OpenRepeat(val day: LocalDate, val entryId: String, val ruleId: String?) : FoodDetailEvent
+
+    data object OpenCredits : FoodDetailEvent
 }
 
 /**
@@ -101,11 +133,19 @@ sealed interface FoodDetailEvent {
  * is Weighed) until the person picks one. "Add to {meal}" logs this one food. The favorite, a
  * custom size and taking it off Recent are the person's own settings, so they save as they are
  * tapped.
+ *
+ * Opened on an entry already on the log ([DetailOpen.Entry]), it edits that entry and no other:
+ * it reads the entry by its id, starts from its amount, meal, time and how sure, shows the
+ * entry's own numbers (the snapshot it was logged with, scaled if the amount changes), and Today
+ * with this is the day without the entry as it was. Save changes writes that one entry, only
+ * when something differs; Remove from log tombstones it alone. If the entry changes under the
+ * page (another phone, a sync) it starts again from the new one, and if it is gone the page
+ * closes.
  */
 @Inject
-@Suppress("TooManyFunctions", "LongParameterList")
+@Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 class FoodDetailViewModel(
-    @Assisted route: FoodDetailRoute,
+    @Assisted open: DetailOpen,
     private val foodCatalog: FoodCatalog,
     private val customFoods: CustomFoodRepository,
     private val settingsRepository: SettingsRepository,
@@ -116,21 +156,32 @@ class FoodDetailViewModel(
     private val clock: Clock,
     private val logger: FoodLogger,
     private val submittedFoods: SubmittedFoods,
+    private val repeats: RepeatsRelease,
 ) : SEAViewModel<FoodDetailState, FoodDetailEvent, FoodDetailAction>(
-    initialStateArg = FoodDetailState(slot = route.slot ?: MealSlot.Dinner),
+    initialStateArg = FoodDetailState(slot = (open as? DetailOpen.Pick)?.route?.slot ?: MealSlot.Dinner),
 ) {
-    private val ref: FoodRef = route.ref
-    private val source: PickSource = route.source
-    private val day: LocalDate = route.dayIso?.let(LocalDate::parse) ?: selectedDay.date.value
+    private val pick: FoodDetailRoute? = (open as? DetailOpen.Pick)?.route
+    private val entryId: String? = (open as? DetailOpen.Entry)?.entryId
 
-    /** Logged and closing: a second tap queued behind the first would log it twice. */
+    /** The food: the one picked, or the entry's once it is read (null for an entry that is only a name or a number). */
+    private var ref: FoodRef? = pick?.ref
+
+    /** Where it was found, for the method and how sure. An entry keeps its own, so this only matters to a pick. */
+    private val source: PickSource = pick?.source ?: PickSource.Recent
+    private val day: LocalDate = when (open) {
+        is DetailOpen.Pick -> open.route.dayIso?.let(LocalDate::parse) ?: selectedDay.date.value
+        is DetailOpen.Entry -> open.day
+    }
+
+    /** Logged, saved or removed and closing: a second tap queued behind the first would write it twice. */
     private var done = false
+    private var watchingReview = false
 
     private var model = Model(
         settings = settingsRepository.settings.value,
         policy = policySource.policy.value,
         choice = DetailChoice(
-            slot = route.slot ?: MealSlot.defaultFor(
+            slot = pick?.slot ?: MealSlot.defaultFor(
                 time = clock.now().toLocalDateTime(calendar.timeZone()).time,
                 mealGroups = settingsRepository.settings.value.mealGroups,
             ),
@@ -146,29 +197,15 @@ class FoodDetailViewModel(
         val history: List<Day> = emptyList(),
         val inRecents: Boolean = false,
         val review: ReviewStatus? = null,
+        /** The entry as it is on the log, opened on one. */
+        val entry: LogItem? = null,
+        /** The entry's time and its meal's hunger answer as they were, to tell a change from none. */
+        val loggedTime: LocalTime? = null,
+        val loggedHunger: Hunger? = null,
     )
 
     init {
-        viewModelScope.launch {
-            val food = when (ref) {
-                is FoodRef.Catalog -> foodCatalog.detail(ref.id).getOrNull()?.let(AmountFood::Catalog)
-                is FoodRef.Custom -> customFoods.get(ref.id)?.let(AmountFood::Custom)
-            }
-            // The person's last amount of it, as search's + would log it.
-            val last = diary.recentFoods(limit = LAST_USED_LIMIT).first().firstOrNull { it.foodRef() == ref }
-            takeAction(if (food == null) FoodDetailAction.FoodMissing else FoodDetailAction.FoodArrived(food, last))
-        }
-        viewModelScope.launch {
-            diary.recentFoods(limit = RECENT_SHOWN).map { recent -> recent.any { it.foodRef() == ref } }.distinctUntilChanged().collect {
-                takeAction(FoodDetailAction.RecentsArrived(it))
-            }
-        }
-        // The person's own food says whether it is still waiting for review in Opson's food database.
-        if (ref is FoodRef.Custom) {
-            viewModelScope.launch {
-                submittedFoods.reviews.map { it[ref.id] }.distinctUntilChanged().collect { takeAction(FoodDetailAction.ReviewArrived(it)) }
-            }
-        }
+        if (pick != null) loadPick(pick) else loadEntry()
         viewModelScope.launch {
             combine(settingsRepository.settings, policySource.policy, diary.observeDay(day), ::Triple).collect { (settings, policy, today) ->
                 takeAction(FoodDetailAction.InputsArrived(settings, policy, today))
@@ -180,30 +217,86 @@ class FoodDetailViewModel(
             val today = calendar.today()
             val days = diary.observeDays(today.minus(MealSlotPicker.HISTORY_DAYS, DateTimeUnit.DAY), today).first()
             takeAction(FoodDetailAction.HistoryArrived(days))
-            if (route.slot == null) {
+            if (pick != null && pick.slot == null) {
                 val now = clock.now().toLocalDateTime(calendar.timeZone())
                 takeAction(FoodDetailAction.SlotSuggested(MealSlotPicker.pick(days, now, calendar.timeZone(), settingsRepository.settings.value.mealGroups)))
             }
         }
     }
 
+    private fun loadPick(route: FoodDetailRoute) {
+        val ref = route.ref
+        viewModelScope.launch {
+            val food = load(ref)
+            // The person's last amount of it, as search's + would log it.
+            val last = diary.recentFoods(limit = LAST_USED_LIMIT).first().firstOrNull { it.foodRef() == ref }
+            takeAction(if (food == null) FoodDetailAction.FoodMissing else FoodDetailAction.FoodArrived(food, last))
+        }
+        viewModelScope.launch {
+            diary.recentFoods(limit = RECENT_SHOWN).map { recent -> recent.any { it.foodRef() == ref } }.distinctUntilChanged().collect {
+                takeAction(FoodDetailAction.RecentsArrived(it))
+            }
+        }
+        watchReview(ref)
+    }
+
+    /** The entry by its id, never by its food: the same food twice on a day is two entries. */
+    private fun loadEntry() {
+        viewModelScope.launch {
+            val loaded = diary.observeDay(day).first()
+            val item = loaded.allItems.firstOrNull { it.id == entryId }
+            // Removed before the page opened (on another phone, say): there is nothing to show.
+            if (item == null) {
+                done = true
+                sendEvent(FoodDetailEvent.Dismiss)
+            } else {
+                takeAction(entryArrived(item, loaded))
+            }
+        }
+    }
+
+    private suspend fun entryArrived(item: LogItem, on: Day): FoodDetailAction.EntryArrived =
+        FoodDetailAction.EntryArrived(item, item.foodRef()?.let { load(it) }, on.feelings[item.slot]?.hunger)
+
+    /** Offline and never cached, or deleted: null. */
+    private suspend fun load(ref: FoodRef): AmountFood? = when (ref) {
+        is FoodRef.Catalog -> foodCatalog.detail(ref.id).getOrNull()?.let(AmountFood::Catalog)
+        is FoodRef.Custom -> customFoods.get(ref.id)?.let(AmountFood::Custom)
+    }
+
+    /** The person's own food says whether it is still waiting for review in Opson's food database. */
+    private fun watchReview(ref: FoodRef?) {
+        if (ref !is FoodRef.Custom || watchingReview) return
+        watchingReview = true
+        viewModelScope.launch {
+            submittedFoods.reviews.map { it[ref.id] }.distinctUntilChanged().collect { takeAction(FoodDetailAction.ReviewArrived(it)) }
+        }
+    }
+
     @Suppress("CyclomaticComplexMethod")
     override suspend fun handleAction(action: FoodDetailAction) {
         when (action) {
-            is FoodDetailAction.FoodArrived -> {
-                val saved = saved()
-                val slot = model.choice.slot
-                val ounces = FoodDetailStateBuilder.prefersOunces(model.settings)
-                val shown = FoodDetailStateBuilder.shownUnits(action.food, model.settings, ref, noNumbers())
-                val initial = DetailChoice.initial(action.food, slot, saved, ounces).let { first ->
-                    first.takeIf { it.unit in shown } ?: DetailChoice(unit = shown.first(), quantity = action.food.initialQuantity(shown.first()), slot = slot)
+            is FoodDetailAction.FoodArrived -> foodArrived(action)
+            is FoodDetailAction.EntryArrived -> {
+                ref = action.item.foodRef()
+                val logged = AmountFood.Logged(action.item, action.food)
+                val time = action.item.loggedAt.toLocalDateTime(calendar.timeZone()).time
+                action.rebuild {
+                    copy(
+                        food = logged,
+                        entry = action.item,
+                        loggedTime = time,
+                        loggedHunger = action.hunger,
+                        choice = DetailChoice.forEntry(logged, time, action.hunger),
+                    )
                 }
-                // A last amount in a unit No numbers does not offer (grams) starts from a household measure instead.
-                val choice = action.last?.let { DetailChoice.lastUsed(action.food, it, slot, saved, ounces) }?.takeIf { it.unit in shown } ?: initial
-                action.rebuild { copy(food = action.food, choice = choice.copy(slot = model.choice.slot)) }
+                watchReview(ref)
             }
             FoodDetailAction.FoodMissing -> action.updateState { it.copy(loading = false, missing = true) }
-            is FoodDetailAction.InputsArrived -> action.rebuild { copy(settings = action.settings, policy = action.policy, day = action.day) }
+            is FoodDetailAction.InputsArrived -> {
+                action.rebuild { copy(settings = action.settings, policy = action.policy, day = action.day) }
+                entryMoved(action.day)
+            }
             is FoodDetailAction.ReviewArrived -> action.rebuild { copy(review = action.status) }
             is FoodDetailAction.HistoryArrived -> action.rebuild { copy(history = action.days) }
             is FoodDetailAction.RecentsArrived -> action.rebuild { copy(inRecents = action.inRecents) }
@@ -222,31 +315,72 @@ class FoodDetailViewModel(
             }
             FoodDetailAction.CustomSizeSaved -> customSizeSaved(action)
             FoodDetailAction.CustomSizeDismissed -> action.choose { copy(customSize = null) }
-            FoodDetailAction.FavoriteTapped -> settingsRepository.update { it.toggleFavorite(ref.key) }
+            FoodDetailAction.FavoriteTapped -> ref?.let { food -> settingsRepository.update { it.toggleFavorite(food.key) } }
             is FoodDetailAction.SlotPicked -> action.choose { copy(slot = action.slot) }
             is FoodDetailAction.TimePicked -> action.choose { copy(time = action.time) }
             FoodDetailAction.AllNutrientsTapped -> action.choose { copy(nutrientsOpen = !nutrientsOpen) }
-            FoodDetailAction.RemoveFromRecentsTapped -> settingsRepository.update { it.hideFromRecent(ref.key, clock.now().toEpochMilliseconds()) }
+            FoodDetailAction.SourceTapped -> action.choose { copy(sourceOpen = !sourceOpen) }
+            FoodDetailAction.CreditsTapped -> sendEvent(FoodDetailEvent.OpenCredits)
+            FoodDetailAction.RemoveFromRecentsTapped -> ref?.let { food ->
+                settingsRepository.update { it.hideFromRecent(food.key, clock.now().toEpochMilliseconds()) }
+            }
             // Ids only: a report is read by people, and the food's name or numbers are this person's log.
-            FoodDetailAction.ReportTapped -> sendEvent(FoodDetailEvent.OpenReport("Food detail: ${ref.key}"))
-            FoodDetailAction.EditCopyTapped -> if (model.food != null) sendEvent(FoodDetailEvent.OpenEditCopy(ref, day, logSlot()))
-            FoodDetailAction.AddToMealTapped -> addToMeal()
+            FoodDetailAction.ReportTapped -> ref?.let { sendEvent(FoodDetailEvent.OpenReport("Food detail: ${it.key}")) }
+            FoodDetailAction.EditCopyTapped -> editCopy()
+            FoodDetailAction.AddToMealTapped -> if (entryId != null) saveChanges() else addToMeal()
+            FoodDetailAction.RemoveTapped -> remove()
+            FoodDetailAction.RepeatTapped -> repeat()
             FoodDetailAction.BackTapped -> sendEvent(FoodDetailEvent.Dismiss)
         }
     }
 
-    private fun saved(): List<FoodUnit> = model.settings.unitsFor(ref.key)
+    private suspend fun foodArrived(action: FoodDetailAction.FoodArrived) {
+        val saved = saved()
+        val slot = model.choice.slot
+        val ounces = FoodDetailStateBuilder.prefersOunces(model.settings)
+        val shown = FoodDetailStateBuilder.shownUnits(action.food, model.settings, ref, noNumbers())
+        val initial = DetailChoice.initial(action.food, slot, saved, ounces).let { first ->
+            first.takeIf { it.unit in shown } ?: DetailChoice(unit = shown.first(), quantity = action.food.initialQuantity(shown.first()), slot = slot)
+        }
+        // A last amount in a unit No numbers does not offer (grams) starts from a household measure instead.
+        val choice = action.last?.let { DetailChoice.lastUsed(action.food, it, slot, saved, ounces) }?.takeIf { it.unit in shown } ?: initial
+        action.rebuild { copy(food = action.food, choice = choice.copy(slot = model.choice.slot)) }
+    }
 
-    private fun noNumbers(): Boolean = FoodDetailStateBuilder.isNoNumbers(model.policy)
+    /**
+     * The entry on the day as it is now. Gone (removed on another phone): the page closes. Changed
+     * by something else (a sync, Edit a copy switching it): the page starts again from it, so a
+     * Save never writes back the entry as it was before.
+     */
+    private fun entryMoved(on: Day) {
+        val id = entryId ?: return
+        val shown = model.entry ?: return
+        if (done) return
+        val now = on.allItems.firstOrNull { it.id == id }
+        when {
+            now == null -> {
+                done = true
+                sendEvent(FoodDetailEvent.Dismiss)
+            }
+            now != shown -> {
+                model = model.copy(entry = now)
+                viewModelScope.launch { takeAction(entryArrived(now, on)) }
+            }
+        }
+    }
+
+    private fun saved(): List<FoodUnit> = ref?.let { model.settings.unitsFor(it.key) }.orEmpty()
+
+    private fun noNumbers(policy: VisibilityPolicy = model.policy): Boolean = FoodDetailStateBuilder.isNoNumbers(policy)
 
     /** The units as the menu lists them, so a picked index means the same unit here. */
-    private fun units(): List<AmountUnit> = model.food?.let { FoodDetailStateBuilder.shownUnits(it, model.settings, ref, noNumbers()) }.orEmpty()
+    private fun units(current: Model = model): List<AmountUnit> =
+        current.food?.let { FoodDetailStateBuilder.shownUnits(it, current.settings, ref, noNumbers(current.policy)) }.orEmpty()
+
+    private fun groupsOn(current: Model = model): Boolean = current.day?.mealGroupsOn(current.settings) ?: current.settings.mealGroups
 
     /** With meal groups off for the day, everything goes to Uncategorized, as the detail shows. */
-    private fun logSlot(): MealSlot {
-        val groupsOn = model.day?.mealGroupsOn(model.settings) ?: model.settings.mealGroups
-        return if (groupsOn) model.choice.slot else MealSlot.Uncategorized
-    }
+    private fun logSlot(): MealSlot = if (groupsOn()) model.choice.slot else MealSlot.Uncategorized
 
     private fun unit(): AmountUnit = units().takeIf { it.isNotEmpty() }?.let(model.choice::unitIn) ?: AmountUnit.Grams
 
@@ -266,9 +400,10 @@ class FoodDetailViewModel(
 
     /** Saves the size to this food in settings, then counts in it at the same count. */
     private suspend fun customSizeSaved(action: FoodDetailAction) {
+        val key = ref?.key ?: return
         val typed = model.choice.customSize?.takeIf { it.canSave } ?: return
         val size = FoodUnit(typed.name.trim(), typed.grams.toDouble())
-        val settings = settingsRepository.update { it.withUnit(ref.key, size) }
+        val settings = settingsRepository.update { it.withUnit(key, size) }
         val from = unit()
         val to = AmountUnit.Saved(size)
         model = model.copy(settings = settings)
@@ -277,6 +412,7 @@ class FoodDetailViewModel(
 
     private suspend fun addToMeal() {
         val food = model.food ?: return
+        val ref = ref ?: return
         val choice = model.choice
         if (done || choice.quantity <= 0.0) return
         done = true
@@ -305,21 +441,123 @@ class FoodDetailViewModel(
         sendEvent(FoodDetailEvent.Logged(committed))
     }
 
+    /**
+     * The entry as the page has it now: its amount and numbers from the draft, its meal, time
+     * and how sure. Equal to the entry when nothing was changed. With meal groups off for the day
+     * the meal stays as logged; a time left alone keeps the exact instant it was logged at.
+     */
+    private fun edited(current: Model = model): LogItem? {
+        val item = current.entry ?: return null
+        val food = current.food ?: return null
+        val unit = FoodDetailStateBuilder.unitFor(food, current.choice, units(current))
+        val draft = FoodDetailStateBuilder.draft(food, current.choice, unit, source, ref)
+        val time = current.choice.time
+        val loggedAt = if (time == null || time == current.loggedTime) item.loggedAt else LocalDateTime(item.day, time).toInstant(calendar.timeZone())
+        return item.copy(
+            slot = if (groupsOn(current)) current.choice.slot else item.slot,
+            loggedAt = loggedAt,
+            precision = draft.precision,
+            amountText = draft.amountText,
+            quantity = draft.quantity,
+            unit = draft.unit,
+            grams = draft.grams,
+            kcal = draft.kcal,
+            protein = draft.protein,
+            carbs = draft.carbs,
+            fat = draft.fat,
+            fiber = draft.fiber,
+            micros = draft.micros,
+        )
+    }
+
+    private fun hungerChanged(current: Model = model): Boolean = current.entry != null && current.choice.hunger != current.loggedHunger
+
+    /** Writes the entry, and only it, when something differs from how it was logged. */
+    private suspend fun saveChanges() {
+        val item = model.entry ?: return
+        val changed = edited() ?: return
+        val hunger = hungerChanged()
+        if (done || model.choice.quantity <= 0.0 || (changed == item && !hunger)) return
+        done = true
+        if (changed != item) {
+            val result = diary.updateItem(changed)
+            if (result is DayWrite.DayClosed) {
+                done = false
+                sendEvent(FoodDetailEvent.DayClosed(result.day))
+                return
+            }
+        }
+        // No numbers' hunger answer belongs to the meal the entry is in now.
+        if (hunger) {
+            val feeling = model.day?.feelings?.get(changed.slot) ?: MealFeeling()
+            diary.setFeeling(day, changed.slot, feeling.copy(hunger = model.choice.hunger))
+        }
+        sendEvent(FoodDetailEvent.Saved)
+    }
+
+    /** Takes this entry off the log, a tombstone that syncs. Another entry of the same food stays. */
+    private suspend fun remove() {
+        val item = model.entry ?: return
+        if (done) return
+        done = true
+        when (val result = diary.removeItem(item.id)) {
+            is DayWrite.Written -> sendEvent(FoodDetailEvent.Removed(item.id, item.name))
+            is DayWrite.DayClosed -> {
+                done = false
+                sendEvent(FoodDetailEvent.DayClosed(result.day))
+            }
+        }
+    }
+
+    private fun repeat() {
+        val item = model.entry ?: return
+        if (done || !repeats.isOn()) return
+        done = true
+        sendEvent(FoodDetailEvent.OpenRepeat(day, item.id, item.repeatRuleId))
+    }
+
+    /**
+     * On an entry, a copy of the entry (its own numbers, with "Use for this entry"); the page
+     * gives way to it. Otherwise a copy of the food, logged to this meal once saved.
+     */
+    private fun editCopy() {
+        val item = model.entry
+        when {
+            item != null -> if (!done) {
+                done = true
+                sendEvent(FoodDetailEvent.OpenEntryCopy(day, item.id))
+            }
+            model.food != null -> ref?.let { sendEvent(FoodDetailEvent.OpenEditCopy(it, day, logSlot())) }
+        }
+    }
+
     private suspend fun FoodDetailAction.choose(change: DetailChoice.() -> DetailChoice) = rebuild { copy(choice = choice.change()) }
 
     private suspend fun FoodDetailAction.rebuild(change: Model.() -> Model) {
         model = model.change()
         val current = model
         val food = current.food ?: return
+        val entry = current.entry
         val inputs = DetailInputs(
             settings = current.settings,
             policy = current.policy,
-            day = current.day,
+            // Today with this counts the entry as it would be saved, not twice.
+            day = if (entry == null) current.day else current.day?.without(entry.id),
             history = current.history,
             inRecents = current.inRecents,
             review = current.review,
             today = calendar.today(),
             now = clock.now().toLocalDateTime(calendar.timeZone()).time,
+            entry = entry?.let {
+                EntryUi(
+                    changed = edited(current) != it || hungerChanged(current),
+                    repeat = when {
+                        !repeats.isOn() -> null
+                        it.repeatRuleId != null -> EntryRepeat.Edit
+                        else -> EntryRepeat.New
+                    },
+                )
+            },
         )
         updateState { FoodDetailStateBuilder.build(food, current.choice, inputs, ref, source) }
     }

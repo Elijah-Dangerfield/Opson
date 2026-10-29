@@ -78,12 +78,34 @@
     <string name="adding_detail_from_usda">From USDA FoodData Central</string>
     <string name="adding_detail_from_off">From Open Food Facts</string>
     <string name="adding_detail_from_yours">Your own food</string>
-    <string name="adding_detail_from_opson">From Opson's food database</string>
+    <string name="adding_detail_from_opson">From Opson's food database (OPDB)</string>
+    <string name="adding_detail_from_nutritionix">From Nutritionix</string>
+    <!-- An entry Describe it or a photo worked out, with no catalog food behind it -->
+    <string name="adding_detail_from_estimate">An estimate</string>
+    <!-- A quick number: calories or macros typed in -->
+    <string name="adding_detail_from_typed">Numbers you entered</string>
+    <!-- The source's name is a button that says what the source is -->
+    <string name="adding_detail_source_cd">%1$s. About this source</string>
+    <string name="adding_detail_about_usda">The US government's food data: lab measurements, and the labels food makers send in.</string>
+    <!-- Open Food Facts' licence (ODbL) asks for this credit wherever its data shows -->
+    <string name="adding_detail_about_off">A free database of packaged foods, added by people from the label. Contains data from Open Food Facts, available under the Open Database License.</string>
+    <string name="adding_detail_about_nevo">The Dutch food composition table, kept by RIVM, the Dutch public health institute.</string>
+    <string name="adding_detail_about_opson">Opson's own database of packaged foods, read from photos people take of the label and checked by a reviewer.</string>
+    <string name="adding_detail_about_nutritionix">A licensed database of restaurant and packaged foods.</string>
+    <string name="adding_detail_about_yours">A food you made. The numbers are the ones you gave it.</string>
+    <string name="adding_detail_about_estimate">Opson worked these out from what you described or photographed. Treat them as a good guess.</string>
+    <string name="adding_detail_about_typed">You entered these numbers yourself.</string>
+    <string name="adding_detail_credits">Credits</string>
     <string name="adding_detail_unverified">Unverified. Only you see it until someone checks it against your photos.</string>
     <string name="adding_detail_yours_in_review">Sent to Opson's food database. Unverified until someone checks it.</string>
     <string name="adding_detail_yours_checked">Checked and added to Opson's food database.</string>
     <string name="adding_detail_remove_recent">Remove from recents</string>
     <string name="adding_detail_report">Report a problem</string>
     <string name="adding_detail_edit_copy">Edit a copy</string>
+    <!-- A food already on the log, opened from Today -->
+    <string name="adding_detail_save">Save changes</string>
+    <string name="adding_detail_remove">Remove from log</string>
+    <string name="adding_detail_saved">Changes saved</string>
+    <string name="adding_detail_removed">%1$s removed</string>
 
 </resources>

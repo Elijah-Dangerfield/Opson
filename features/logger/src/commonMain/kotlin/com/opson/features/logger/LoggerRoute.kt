@@ -50,6 +50,15 @@ data class FoodSearchRoute(
 ) : Route()
 
 /**
+ * One entry already on the log, from its row on Today: the food detail for exactly [entryId] on
+ * [dayIso] (`LocalDate.toString()`), with Save changes and Remove from log in place of Add. Two
+ * helpings of the same food logged the same day are two entries; what this saves or removes is
+ * this one alone. Its numbers are the entry's own, as they were logged. Plain strings, no typeMap.
+ */
+@Serializable
+data class LoggedFoodRoute(val dayIso: String, val entryId: String) : Route()
+
+/**
  * The exercise sheet (`release.exercise`): log an activity, or edit or delete one.
  *
  * @param entryId the entry to edit; `null` logs a new one.

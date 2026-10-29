@@ -17,6 +17,10 @@ import com.opson.libraries.foods.AmountUnit
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSource
+import com.opson.libraries.foods.MeasureKind
+import com.opson.libraries.foods.Portion
+import com.opson.libraries.foods.amountText
+import com.opson.libraries.foods.measureUnits
 import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.PortionAmount
 import com.opson.libraries.foods.amountText
@@ -55,7 +59,8 @@ import kotlin.time.Instant
  * chosen on the Foods tab or Today, so the route lives in the impl and the add sheet's
  * `prePickFoodId` stands in for it from outside. [source] is where the food was found, for the
  * method and telemetry. [dayIso] and [slot] are where "Add to {meal}" logs; null is the day Today
- * shows and the meal picked from this person's logging times.
+ * shows and the meal picked from this person's logging times. An entry already on the log opens
+ * the same screen through `LoggedFoodRoute` instead ([DetailOpen.Entry]).
  */
 @Serializable
 data class FoodDetailRoute(
@@ -66,6 +71,18 @@ data class FoodDetailRoute(
     val slot: MealSlot? = null,
 ) : Route() {
     val ref: FoodRef get() = if (isCustom) FoodRef.Custom(foodId) else FoodRef.Catalog(foodId)
+}
+
+/** What the detail was opened on: a food to log, or one entry already on the log. */
+sealed interface DetailOpen {
+    /** A food to add, from search, a scan, Foods or a pre-pick. */
+    data class Pick(val route: FoodDetailRoute) : DetailOpen
+
+    /**
+     * [entryId] on [day], from its row on Today. Everything the page saves or removes is that
+     * entry alone, never "the food": the same food logged twice that day is a second entry.
+     */
+    data class Entry(val day: LocalDate, val entryId: String) : DetailOpen
 }
 
 /**
@@ -122,9 +139,22 @@ data class FoodDetailState(
     val noNumbers: Boolean = false,
     /** No numbers' optional "How hungry were you?", null while the hunger questions are off. */
     val hunger: HungerCheck? = null,
+    /** There is a food behind it to star or report: an entry that is only a name or a number has none. */
+    val hasFood: Boolean = true,
+    /** Opened on an entry already on the log: Save changes and Remove from log take Add's place. */
+    val entry: EntryUi? = null,
 ) {
     val unit: UnitUi? get() = units.getOrNull(unitIndex)
 }
+
+/**
+ * An entry on the log, as the detail edits it. [changed]: the amount, meal, time, how sure or
+ * hunger differ from how it was logged, so Save changes has something to save.
+ */
+data class EntryUi(val changed: Boolean, val repeat: EntryRepeat? = null)
+
+/** The ⋮'s repeat line: a new repeat from this entry, or the repeat that logged it (`release.repeats`). */
+enum class EntryRepeat { New, Edit }
 
 data class UnitUi(val label: String, val grams: String?)
 
@@ -181,9 +211,20 @@ data class NutrientRow(val micro: Micronutrient, val display: Display, val notLi
  * source gives, shown beside All nutrients only, so a mode without that link shows no count.
  * [review] is whether anyone checked the numbers, where that is worth saying.
  */
-data class SourceLine(val source: FoodOrigin?, val nutrientCount: Int? = null, val review: SourceReview? = null)
+data class SourceLine(
+    val source: FoodOrigin?,
+    val nutrientCount: Int? = null,
+    val review: SourceReview? = null,
+    /** The source was tapped: a line on what it is shows under its name. */
+    val explained: Boolean = false,
+)
 
-enum class FoodOrigin { Usda, OpenFoodFacts, Nevo, Opson, Yours }
+/**
+ * Where a food's numbers come from. [Opson] is OPDB, Opson's own database of packaged foods read
+ * from people's photos and checked by a reviewer. [Estimate] is an entry Describe it or a photo
+ * worked out with no catalog food behind it; [Typed] is a number the person entered themselves.
+ */
+enum class FoodOrigin { Usda, OpenFoodFacts, Nevo, Opson, Nutritionix, Yours, Estimate, Typed }
 
 /** What review says about a food's numbers. */
 enum class SourceReview {
@@ -222,17 +263,90 @@ sealed interface AmountFood {
         override fun units(saved: List<FoodUnit>, prefersOunces: Boolean): List<AmountUnit> = food.detailUnits(saved, prefersOunces)
     }
 
+    /**
+     * One entry already on the log. Its numbers are the snapshot it was logged with, scaled to a
+     * new amount; [food], the catalog or custom food it came from while it is still there, only
+     * lends its units. So a food corrected in the catalog since, or deleted, never changes what
+     * this entry counted, and changing nothing saves nothing.
+     */
+    data class Logged(val item: LogItem, val food: AmountFood? = null) : AmountFood {
+        override val name: String get() = item.name
+
+        /** The unit it was logged in, as its food names it when it can. Null with no amount to scale: a quick number, a name. */
+        val own: AmountUnit? = ownUnit()
+
+        private val loggedGrams: Double? get() = item.grams?.takeIf { it > 0.0 }
+
+        /**
+         * The logged unit, and the food's other units when the entry's weight is known, since any
+         * other unit converts through that weight. With no food, the weights alone.
+         */
+        override fun units(saved: List<FoodUnit>, prefersOunces: Boolean): List<AmountUnit> {
+            val own = own ?: return emptyList()
+            if (loggedGrams == null) return listOf(own)
+            val others = (food?.units(saved, prefersOunces) ?: measureUnits(gramsPerMl = null, prefersOunces = prefersOunces))
+                .filter { it.gramsEach != null }
+            return if (own in others) others else listOf(own) + others
+        }
+
+        /**
+         * [quantity] of [unit] at [precision]: the entry's own numbers times the new amount over
+         * the old in its own unit, or the new weight over the old in any other. As logged, it is
+         * exactly the entry.
+         */
+        fun draftFor(unit: AmountUnit, quantity: Double, precision: Precision): LogDraft {
+            val asLogged = item.toDraft().copy(precision = precision)
+            val from = item.quantity ?: return asLogged
+            if (unit == own) {
+                if (quantity == from) return asLogged
+                return item.withQuantity(quantity)?.toDraft()?.copy(precision = precision) ?: asLogged
+            }
+            val grams = loggedGrams ?: return asLogged
+            val newGrams = quantity * (unit.gramsEach ?: return asLogged)
+            val amount = amountFields(unit, quantity)
+            return item.scaled(newGrams / grams).toDraft().copy(
+                precision = precision,
+                amountText = amount.amountText,
+                quantity = amount.quantity,
+                unit = amount.unit,
+                grams = newGrams,
+            )
+        }
+
+        /** The amount written as a fresh log of the food would write it, so the row reads the same. */
+        private fun amountFields(unit: AmountUnit, quantity: Double): LogDraft = when (val from = food) {
+            is Catalog -> from.food.draftFor(unit, quantity)
+            is Custom -> from.food.draftFor(unit, quantity)
+            else -> LogDraft(name = name, precision = item.precision, amountText = unit.amountText(quantity), quantity = quantity, unit = unit.label)
+        }
+
+        private fun ownUnit(): AmountUnit? {
+            val quantity = item.quantity?.takeIf { it > 0.0 } ?: return null
+            val label = item.unit?.takeIf { it.isNotBlank() } ?: return null
+            food?.units(emptyList(), prefersOunces = false)?.firstOrNull { it.label == label || it.chipLabel == label }?.let { return it }
+            val each = loggedGrams?.div(quantity)
+            if (label == AmountUnit.Grams.label) return AmountUnit.Grams
+            MeasureKind.entries.firstOrNull { it.label == label }?.let { kind ->
+                return AmountUnit.Measure(kind, if (kind.isVolume && each != null) each / kind.base else 1.0)
+            }
+            // A portion's label ("1 cup") counts portions; anything else ("bar") is a unit of its own.
+            return if (each != null && label.first().isDigit()) AmountUnit.OfPortion(Portion(label, each)) else AmountUnit.Serving(label, each)
+        }
+    }
+
     val tag: String?
         get() = when (this) {
             is Catalog -> food.brand
             is Custom -> food.brand
+            is Logged -> food?.tag
         }
 
-    /** A size in grams converts to it: every catalog food, and a custom food whose serving has a weight. */
+    /** A size in grams converts to it: every catalog food, and a custom food whose serving has a weight. Not an entry. */
     val takesSizes: Boolean
         get() = when (this) {
             is Catalog -> true
             is Custom -> food.isByWeight
+            is Logged -> false
         }
 
     fun initialQuantity(unit: AmountUnit): Double = when (this) {
@@ -242,6 +356,10 @@ sealed interface AmountFood {
             is AmountUnit.Saved -> 1.0
             is AmountUnit.Serving -> food.initialQuantity
             else -> food.gramsPerServing?.let { PortionAmount.convert(it, AmountUnit.Grams, unit) } ?: food.initialQuantity
+        }
+        is Logged -> {
+            val quantity = item.quantity ?: 1.0
+            own?.let { PortionAmount.convert(quantity, it, unit) } ?: quantity
         }
     }
 
@@ -267,6 +385,8 @@ data class DetailChoice(
     val customSize: CustomSizeUi? = null,
     /** No numbers' optional hunger check, saved to the meal when the food is added. */
     val hunger: Hunger? = null,
+    /** The source line tapped open, to say what the source is. */
+    val sourceOpen: Boolean = false,
 ) {
     /** The unit in force among [units]: the chosen one if it is still there, else the first. */
     fun unitIn(units: List<AmountUnit>): AmountUnit = unit?.takeIf { it in units } ?: units.first()
@@ -290,6 +410,19 @@ data class DetailChoice(
             return DetailChoice(unit = unit, quantity = food.initialQuantity(unit), slot = slot)
         }
 
+        /**
+         * An entry as it was logged: its amount in its own unit, its how-sure, meal and time, and
+         * the meal's hunger answer. How sure stays as it was logged until the person picks
+         * another or types a weight.
+         */
+        fun forEntry(food: AmountFood.Logged, time: LocalTime, hunger: Hunger?): DetailChoice = DetailChoice(
+            unit = food.own,
+            quantity = food.item.quantity ?: 1.0,
+            slot = food.item.slot,
+            time = time,
+            hunger = hunger,
+        )
+
         /** Opens at the person's last amount of this food, worked out again however it was logged. */
         fun lastUsed(food: AmountFood, item: LogItem, slot: MealSlot, saved: List<FoodUnit> = emptyList(), prefersOunces: Boolean = false): DetailChoice {
             val fresh = initial(food, slot, saved, prefersOunces)
@@ -301,14 +434,28 @@ data class DetailChoice(
 }
 
 /** The draft for [choice] in [unit]: what the detail shows and Add logs. */
-fun AmountFood.draftFor(choice: DetailChoice, unit: AmountUnit, source: PickSource, ref: FoodRef): LogDraft {
+fun AmountFood.draftFor(choice: DetailChoice, unit: AmountUnit, source: PickSource, ref: FoodRef?): LogDraft {
     val method = source.methodFor(ref)
-    val precision = choice.precision(unit, source)
     return when (this) {
-        is AmountFood.Catalog -> food.draftFor(unit, choice.quantity, precision, method)
-        is AmountFood.Custom -> food.draftFor(unit, choice.quantity, precision, method)
+        is AmountFood.Catalog -> food.draftFor(unit, choice.quantity, choice.precision(unit, source), method)
+        is AmountFood.Custom -> food.draftFor(unit, choice.quantity, choice.precision(unit, source), method)
+        // An entry keeps how sure it was logged as, unless the person picks another or weighs it now.
+        is AmountFood.Logged -> draftFor(unit, choice.quantity, choice.picked ?: if (choice.typed != null && unit.isMeasure) Precision.Weighed else item.precision)
     }
 }
+
+/** An entry with no amount to change (a quick number, a name): itself, at the how-sure picked. */
+private fun AmountFood.Logged.asLogged(choice: DetailChoice): LogDraft = item.toDraft().copy(precision = choice.picked ?: item.precision)
+
+/** Every amount and nutrient times [factor]; for an amount in a unit the entry was not logged in. */
+private fun LogItem.scaled(factor: Double): LogItem = copy(
+    kcal = kcal?.times(factor),
+    protein = protein?.times(factor),
+    carbs = carbs?.times(factor),
+    fat = fat?.times(factor),
+    fiber = fiber?.times(factor),
+    micros = micros?.mapValues { it.value * factor },
+)
 
 /** Everything the detail reads besides the food and the choice. */
 data class DetailInputs(
@@ -325,6 +472,8 @@ data class DetailInputs(
     val inRecents: Boolean = false,
     /** Where review stands for the person's own food, when they sent it to Opson's food database. */
     val review: ReviewStatus? = null,
+    /** Opened on an entry: whether it differs from how it was logged, and its repeat. */
+    val entry: EntryUi? = null,
 )
 
 /** The food detail's state as a pure function, like [LoggerStateBuilder]. Surface [Surface.Logger]. */
@@ -345,34 +494,51 @@ object FoodDetailStateBuilder {
     fun prefersOunces(settings: Settings): Boolean = settings.weightUnit == WeightUnit.Lb
 
     /** The unit menu: in No numbers household measures only, unless a weight is all the food has. */
-    fun shownUnits(food: AmountFood, settings: Settings, ref: FoodRef, noNumbers: Boolean): List<AmountUnit> {
-        val units = food.units(settings.unitsFor(ref.key), prefersOunces(settings))
+    fun shownUnits(food: AmountFood, settings: Settings, ref: FoodRef?, noNumbers: Boolean): List<AmountUnit> {
+        val units = food.units(ref?.let { settings.unitsFor(it.key) }.orEmpty(), prefersOunces(settings))
         if (!noNumbers) return units
-        return units.filterNot { it.isMeasure }.ifEmpty { units.take(1) }
+        // An entry logged in grams keeps its own unit: the row already says it.
+        val own = (food as? AmountFood.Logged)?.own
+        return units.filter { !it.isMeasure || it == own }.ifEmpty { units.take(1) }
     }
 
-    fun build(food: AmountFood, choice: DetailChoice, inputs: DetailInputs, ref: FoodRef, source: PickSource): FoodDetailState {
+    /** The unit in force, or null for an entry with no amount to scale: no Amount row, and its draft is itself. */
+    fun unitFor(food: AmountFood, choice: DetailChoice, units: List<AmountUnit>): AmountUnit? =
+        if (units.isEmpty() && food is AmountFood.Logged) null else choice.unitIn(units)
+
+    /** What the detail shows and Add or Save changes writes, in [unit] ([unitFor]). */
+    fun draft(food: AmountFood, choice: DetailChoice, unit: AmountUnit?, source: PickSource, ref: FoodRef?): LogDraft =
+        if (unit == null && food is AmountFood.Logged) food.asLogged(choice) else food.draftFor(choice, unit ?: AmountUnit.Grams, source, ref)
+
+    /** [ref] is the food behind it: null for an entry that is only a name or a number. */
+    @Suppress("LongMethod")
+    fun build(food: AmountFood, choice: DetailChoice, inputs: DetailInputs, ref: FoodRef?, source: PickSource): FoodDetailState {
         val noNumbers = isNoNumbers(inputs.policy)
         val units = shownUnits(food, inputs.settings, ref, noNumbers)
-        val unit = choice.unitIn(units)
-        val draft = food.draftFor(choice, unit, source, ref)
+        val unit = unitFor(food, choice, units)
+        val draft = draft(food, choice, unit, source, ref)
         val groupsOn = inputs.day?.mealGroupsOn(inputs.settings) ?: inputs.settings.mealGroups
+        val entry = inputs.entry
         val base = FoodDetailState(
             loading = false,
             name = food.name,
             tag = food.tag,
-            favorite = inputs.settings.isFavorite(ref.key),
-            inRecents = inputs.inRecents,
+            favorite = ref?.let { inputs.settings.isFavorite(it.key) } ?: false,
+            inRecents = inputs.inRecents && entry == null,
             slot = if (groupsOn) choice.slot else MealSlot.Uncategorized,
             slots = if (groupsOn) MealSlot.entries else listOf(MealSlot.Uncategorized),
             time = choice.time ?: inputs.now,
             timeIsNow = choice.time == null,
             amount = choice.typed ?: number(choice.quantity),
-            unitIndex = units.indexOf(unit),
-            servings = servings(units, unit, choice),
+            unitIndex = unit?.let(units::indexOf) ?: -1,
+            servings = unit?.let { servings(units, it, choice) }.orEmpty(),
             precision = draft.precision,
-            canAdd = choice.quantity > 0.0,
+            canAdd = choice.quantity > 0.0 && (entry == null || entry.changed),
+            hasFood = ref != null,
+            entry = entry,
         )
+        val origin = origin(food)
+        val review = review(food, inputs.review)
         if (noNumbers) {
             return base.copy(
                 // A weight is a number too: the menu and the chips are measures, with no grams beside them.
@@ -380,18 +546,18 @@ object FoodDetailStateBuilder {
                 noNumbers = true,
                 hunger = HungerCheck(choice.hunger),
                 // The source still names itself (NEVO asks to be cited wherever its foods show).
-                source = SourceLine(origin(food), review = review(food, inputs.review)),
+                source = SourceLine(origin, review = review, explained = choice.sourceOpen),
             )
         }
         val nutrients = nutrients(draft, inputs, choice.nutrientsOpen)
         return base.copy(
             units = units.map { UnitUi(it.chipLabel, it.gramsLabel) },
             canAddUnit = food.takesSizes,
-            weight = weight(unit, choice.quantity, draft),
+            weight = unit?.let { weight(it, choice.quantity, draft) },
             breakdown = breakdown(draft, inputs.policy),
             targets = targets(draft, inputs),
             nutrients = nutrients,
-            source = SourceLine(origin(food), nutrientCount = nutrients?.let { draft.nutrientCount() }, review = review(food, inputs.review)),
+            source = SourceLine(origin, nutrientCount = nutrients?.let { draft.nutrientCount() }, review = review, explained = choice.sourceOpen),
             customSize = choice.customSize,
         )
     }
@@ -524,19 +690,32 @@ object FoodDetailStateBuilder {
         return groups.takeIf { it.any { group -> group.rows.any { row -> !row.notListed } } }?.let { AllNutrients(open = open, groups = it) }
     }
 
-    private fun origin(food: AmountFood): FoodOrigin? = when (food) {
+    /**
+     * Where the numbers come from. An entry names its food's source while the food is still
+     * here. Without it, an entry of the person's own food is still theirs, one Describe it or a
+     * photo worked out with no catalog food is an estimate, and a quick number is theirs too.
+     */
+    fun origin(food: AmountFood): FoodOrigin? = when (food) {
         is AmountFood.Custom -> FoodOrigin.Yours
         is AmountFood.Catalog -> when {
             food.food.source.isUsda -> FoodOrigin.Usda
             food.food.source == FoodSource.OpenFoodFacts -> FoodOrigin.OpenFoodFacts
             food.food.source == FoodSource.Nevo -> FoodOrigin.Nevo
             food.food.source == FoodSource.UserSubmitted -> FoodOrigin.Opson
+            food.food.source == FoodSource.Nutritionix -> FoodOrigin.Nutritionix
+            else -> null
+        }
+        is AmountFood.Logged -> food.food?.let(::origin) ?: when {
+            food.item.customFoodId != null -> FoodOrigin.Yours
+            food.item.method == LogMethod.QuickNumber -> FoodOrigin.Typed
+            food.item.method == LogMethod.Describe && food.item.foodId == null -> FoodOrigin.Estimate
             else -> null
         }
     }
 
     /** [yours] is the review of the person's own food, when they sent it to Opson's food database. */
     private fun review(food: AmountFood, yours: ReviewStatus?): SourceReview? = when (food) {
+        is AmountFood.Logged -> food.food?.let { review(it, yours) }
         is AmountFood.Custom -> when (yours) {
             ReviewStatus.Pending -> SourceReview.YoursInReview
             ReviewStatus.Approved -> SourceReview.YoursChecked
@@ -570,3 +749,6 @@ private fun LogDraft.asItem(day: LocalDate): LogItem = LogItem(
     method = method ?: LogMethod.Search,
     kcal = kcal,
 )
+
+/** The day without [entryId]: Today with this, on an entry being edited, counts it once, as it would be saved. */
+internal fun Day.without(entryId: String): Day = copy(itemsBySlot = itemsBySlot.mapValues { (_, items) -> items.filterNot { it.id == entryId } })

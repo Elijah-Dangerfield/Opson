@@ -109,3 +109,37 @@ private fun ScannedPreview() = Detail(LoggerFixtures.scannedDetailState(full))
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun InReviewPreview() = Detail(LoggerFixtures.inReviewDetailState(full), dark = false)
+
+/** An entry opened from its row on Today: the second of two helpings, as logged. Save changes waits for a change. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EntryPreview() = Detail(LoggerFixtures.entryDetailState(full))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EntryLightPreview() = Detail(LoggerFixtures.entryDetailState(full), dark = false)
+
+/** The same entry changed to 3 tbsp: its own numbers scaled, and Save changes on. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EntryChangedPreview() = Detail(LoggerFixtures.entryChangedState(full))
+
+/** The entry's ⋮: the favorite, Repeat this, Report a problem and Edit a copy. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EntryMoreMenuPreview() = Detail(LoggerFixtures.entryDetailState(full), dark = false, menu = DetailMenu.More)
+
+/** A quick number on the log: no Amount row, and "Numbers you entered" tapped open. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EntryQuickNumberPreview() = Detail(LoggerFixtures.quickNumberDetailState(full), dark = false)
+
+/** No numbers, an entry: its tablespoons, the meal, the time and the hunger check, then Save changes and Remove from log. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun EntryNoNumbersPreview() = Detail(LoggerFixtures.entryNoNumbersState(noNumbers), dark = false)
+
+/** The source tapped open on an Open Food Facts food: what it is, its licence's credit, and Credits. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun SourceExplainedPreview() = Detail(LoggerFixtures.sourceExplainedState(full), dark = false, atBottom = true)
