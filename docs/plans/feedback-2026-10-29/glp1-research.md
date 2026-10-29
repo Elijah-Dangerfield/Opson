@@ -12,6 +12,39 @@ phase line, not a curve.
 
 The v1 scope is in [v1 spec](#v1-spec). Everything after it is later or never.
 
+## As built (v1, 2026-10-29)
+
+Behind `release.medication` (default off, on in dev through `seed_dev_config.py`, in the QA
+menu). Where the build differs from the spec below, this section wins.
+
+- **Modules.** `:libraries:medication` holds the model, the dose-day rules (`DoseDays`,
+  `SiteRotation`, `DoseMarks`), the flag and the Room entities; `:libraries:medication:impl`
+  the repository; `:features:medication` the routes and `:features:medication:impl` the page,
+  the dose sheet and the Today card. A module of its own because the plan, doses and side
+  effects are read by Today, Trends, the provider summary and reminders, none of which should
+  own them.
+- **On the phone only.** The prod server has no medication storage and is not redeployed with
+  this, so nothing syncs and nothing is queued: the plan is a user-scoped device cache shaped as
+  the spec's `Settings.medication` key, doses are Room 12 `medication_doses` (uuid ids,
+  `clientUpdatedAtEpochMs`, tombstones: the spec's columns), and side effects are
+  `symptom_days`, one row per day. No `V28` migration and no `SyncEntity` yet. A user change
+  wipes all three. Adding sync is an outbox `enqueue` in `MedicationRepositoryImpl` plus the
+  server table, not a data migration.
+- **Side effects are not on Close the day.** Check-ins are being rebuilt separately, so they
+  are asked on the Medication page ("How are you feeling today?", the spec's symptom list,
+  Mild / Moderate / Severe, the care line for severe vomiting or stomach pain). `SymptomLog`
+  is the read and write API a check-in can use to ask the same question: `asking` says when.
+- **More.** One row through `MoreRowContribution`, in a "Health" card. Its subtitle is fixed
+  ("Doses, sites and how you feel"), never the schedule or a dose.
+- **Today.** The card comes in through a new `TodayCardContribution` (Today draws whatever
+  the set holds, after Fasting). "Show on Today" is on the Medication page; Edit Today's cards
+  has no row for it yet. Between weekly doses the card has no Log dose button; it opens the
+  Medication page, where Log a dose comes first.
+- **Reminders** need `release.reminders` too, since that flag gates every notification.
+- **Not built in v1:** the onboarding offer, the export CSV, Patterns' dose-day markers and
+  side-effect strip, the nutrition emphasis card, and a "Started on" date picker (the weight
+  chart's "Started" tick uses the first dose until there is one).
+
 ## What other apps do
 
 | App | Dose log | Site rotation | Reminders | Side effects | Level curve | Nutrition tie-in | Price |

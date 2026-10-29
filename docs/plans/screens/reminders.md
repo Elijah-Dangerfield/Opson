@@ -159,7 +159,21 @@ too.
 - iOS: `UNCalendarNotificationTrigger` per reminder (non-repeating),
   `UNNotificationCategory` "meal" with the three actions (Log it opens the
   app, the other two run in the background), the delegate presents in the
-  foreground (banner for Full, list only for Subtle).
+  foreground (banner for Full, list only for Subtle). Dose nudges carry
+  "opson.dose" (Already did, Log it) or "opson.dose.log" (Log it alone, for a
+  medication with no current dose to log).
+- Dose nudges (`release.medication`, also needing `release.reminders`): the
+  planner takes the dose days from `DoseReminders`, which
+  `:libraries:medication:impl` answers, so it stays the one place that decides
+  the whole pending set. `ReminderKey.Dose(date, medicationId)`, kind `dose`,
+  at the schedule's time on each dose day while the medication's "Remind me on
+  dose day" is on, dropped (and a delivered one dismissed) once a dose covers
+  the day. Closing the day does not drop it. Copy is fixed: "Dose day", "Tap to
+  log it when you're done.", never the medication or the amount. It follows the
+  meal level and Quiet mode for loudness, but fires whatever the level: a level
+  never chosen makes it quiet, not silent. Log it opens the dose sheet
+  (`ReminderOpens.doseRequests`); Already did logs the current dose at the
+  nudge's time on the suggested site, once.
 - No Info.plist or entitlement change: local notifications need neither.
   AndroidManifest (`:libraries:reminders:impl`): `POST_NOTIFICATIONS`,
   `RECEIVE_BOOT_COMPLETED`, three receivers, all `exported="false"`.

@@ -221,8 +221,8 @@ levels, counts and permission states only: never a meal name, a meal time or any
 |---|---|---|
 | `reminder.set` | `kind` (`meal` / `water`), `level` (`off` / `subtle` / `full`, the meal level as chosen), `meals_on` (0 to 4), `water_on`, `permission` (`granted` / `denied` / `not_asked`) | A change to what gets scheduled: a meal level, a meal switch or a meal time on Reminders (`RemindersViewModel`), water reminders on Water settings (`WaterSettingsViewModel`) |
 | `reminder.permission` | `granted` | After the system notification prompt answers. Only asked when someone turns a reminder on |
-| `reminder.delivered` | `kind`, `snoozed` | **Android only**, when the alarm posts the notification. iOS has no delivery callback for a backgrounded app, so there is no iOS series to compare |
-| `reminder.tapped` | `kind`, `action` (`open` / `log_it` / `already_ate` / `snooze`) | The notification itself or one of its buttons (`ReminderCoordinator`) |
+| `reminder.delivered` | `kind` (`meal` / `water` / `dose`), `snoozed` | **Android only**, when the alarm posts the notification. iOS has no delivery callback for a backgrounded app, so there is no iOS series to compare |
+| `reminder.tapped` | `kind`, `action` (`open` / `log_it` / `already_ate` / `snooze`) | The notification itself or one of its buttons (`ReminderCoordinator`). A dose nudge's "Already did" reports as `already_ate` |
 
 ### Widgets
 
@@ -257,6 +257,20 @@ longest-fast record, which the app refuses to keep.
 |---|---|---|
 | `fast.started` | `plan` (`12:12`, `14:10`, `16:8`) | When this device writes the evening's fast. A fast starts when the eating window closes, so this fires the first time a screen showing the timer looks after the close, not at the close itself. A fast pulled from another device does not fire it |
 | `fast.ended` | `by` (`user`, `food`, `timer_off`) | End fast, logging food on today or earlier, or switching the timer off, while a fast runs. Reaching the goal is derived, not written, and fires nothing |
+
+### Medication (`release.medication`)
+
+All from `MedicationRepositoryImpl` (`:libraries:medication:impl`), the only writer of doses
+and the plan, so no screen emits them. **No event carries a drug, a brand, a dose, a site, a
+note or a side effect.** Medication is special-category health data; the log only says that
+something happened. `MedicationRepositoryImplTest.nothingAboutTheMedicationReachesALogLine`
+fails if any of it reaches a log line or an event.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `medication.dose_logged` | `via` (`medication`, `today_card`, `reminder`: the dose sheet opened from there; `already_did`: the reminder's button, no sheet) | A new dose saved. An edit fires nothing |
+| `medication.dose_deleted` | | Delete on the dose sheet. Undo fires nothing |
+| `medication.tracking` | `on` | Tracking turned on (set up, or turned back on) or stopped |
 
 ### Exercise (`release.exercise`)
 
