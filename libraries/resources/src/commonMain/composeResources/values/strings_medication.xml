@@ -46,6 +46,8 @@
     <string name="medication_sites">Injection sites</string>
     <string name="medication_sites_body">Tap the places you use. Opson suggests the one you used longest ago.</string>
     <string name="medication_show_on_today">Show on Today</string>
+    <!-- More › Today screen's row, the same switch -->
+    <string name="medication_today_switch_body">Dose day, what was logged and the next site</string>
     <string name="medication_save_plan">Save</string>
     <string name="medication_saved">Saved.</string>
 

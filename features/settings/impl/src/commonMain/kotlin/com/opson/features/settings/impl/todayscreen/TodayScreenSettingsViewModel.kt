@@ -12,6 +12,7 @@ import com.opson.libraries.diary.fastingTimerOn
 import com.opson.libraries.diary.ui.SummaryStat
 import com.opson.libraries.diary.ui.SummaryStats
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.medication.MedicationTodaySwitch
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.GoalsAndEnergyEnabled
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,6 +38,7 @@ class TodayScreenSettingsViewModel(
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val todaySummary: TodaySummaryEnabled,
     private val fastingRelease: FastingRelease,
+    private val medicationCard: MedicationTodaySwitch = MedicationTodaySwitch.None,
 ) : SEAViewModel<TodayScreenSettingsState, TodayScreenSettingsEvent, TodayScreenSettingsAction>(
     initialStateArg = TodayScreenSettingsState(),
 ) {
@@ -44,8 +46,9 @@ class TodayScreenSettingsViewModel(
 
     init {
         viewModelScope.launch {
-            combine(settingsRepository.observe(), burnedKnown()) { settings, known -> TodayScreenSettingsAction.InputsArrived(settings, known) }
-                .collect(::takeAction)
+            combine(settingsRepository.observe(), burnedKnown(), medicationCard.shown) { settings, known, medication ->
+                TodayScreenSettingsAction.InputsArrived(settings, known, medication)
+            }.collect(::takeAction)
         }
     }
 
@@ -59,8 +62,9 @@ class TodayScreenSettingsViewModel(
     override suspend fun handleAction(action: TodayScreenSettingsAction) {
         when (action) {
             is TodayScreenSettingsAction.InputsArrived -> action.updateState {
-                TodayScreenSettingsStateBuilder.build(action.settings, flags, action.burnedKnown)
+                TodayScreenSettingsStateBuilder.build(action.settings, flags, action.burnedKnown).copy(medication = action.medication)
             }
+            is TodayScreenSettingsAction.MedicationToggled -> if (state.medication != null) medicationCard.set(action.on)
             is TodayScreenSettingsAction.PresetPicked -> {
                 // Rings with a range is not offered; the card would only fall back.
                 val offered = state.presets.firstOrNull { it.preset == action.preset }?.enabled == true
@@ -147,7 +151,10 @@ sealed interface TodayScreenSettingsEvent {
 }
 
 sealed interface TodayScreenSettingsAction {
-    data class InputsArrived(val settings: Settings, val burnedKnown: Boolean = true) : TodayScreenSettingsAction
+    data class InputsArrived(val settings: Settings, val burnedKnown: Boolean = true, val medication: Boolean? = null) : TodayScreenSettingsAction
+
+    /** The Medication card's switch, which lives on the medication plan rather than in Settings. */
+    data class MedicationToggled(val on: Boolean) : TodayScreenSettingsAction
     data class PresetPicked(val preset: SummaryCardPreset) : TodayScreenSettingsAction
     data object MainNumberTapped : TodayScreenSettingsAction
     data object CardPagesTapped : TodayScreenSettingsAction

@@ -65,6 +65,8 @@ data class TodayScreenSettingsState(
     val waterNote: OverrideNote? = null,
     /** The fasting card, only while fasting is offered and its timer is on; null when the row is not there. */
     val fasting: Boolean? = null,
+    /** The Medication card (`release.medication`), only while medication is tracked; null when the row is not there. */
+    val medication: Boolean? = null,
     /** The Weight row, with `release.todaySummary`, which draws it; null without. */
     val weight: Boolean? = true,
     val weightNote: OverrideNote? = null,

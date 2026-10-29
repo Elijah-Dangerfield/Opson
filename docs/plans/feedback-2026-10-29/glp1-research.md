@@ -39,8 +39,9 @@ menu). Where the build differs from the spec below, this section wins.
 - **More.** One row through `MoreRowContribution`, in a "Health" card. Its subtitle is fixed
   ("Doses, sites and how you feel"), never the schedule or a dose.
 - **Today.** The card comes in through a new `TodayCardContribution` (Today draws whatever
-  the set holds, after Fasting). "Show on Today" is on the Medication page; Edit Today's cards
-  has no row for it yet. Between weekly doses the card has no Log dose button; it opens the
+  the set holds, after Fasting). "Show on Today" is on the Medication page, and the same switch
+  is the Medication row in More › Today screen's "In the list", after Fasting, while tracking
+  (`MedicationTodaySwitch`). Between weekly doses the card has no Log dose button; it opens the
   Medication page, where Log a dose comes first.
 - **Reminders** need `release.reminders` too, since that flag gates every notification.
 - **Not built in v1:** the onboarding offer, the export CSV, Patterns' dose-day markers and

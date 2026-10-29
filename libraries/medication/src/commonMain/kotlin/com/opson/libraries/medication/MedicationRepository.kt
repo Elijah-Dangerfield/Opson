@@ -100,3 +100,19 @@ interface MedicationRecords {
         override fun observe(from: LocalDate, to: LocalDate): Flow<MedicationRecord?> = flowOf(null)
     }
 }
+
+/**
+ * More › Today screen's Medication switch ("Show on Today", the same setting as on the Medication
+ * page). [shown] is null while there is no card to switch: the flag off or nothing tracked.
+ */
+interface MedicationTodaySwitch {
+    val shown: Flow<Boolean?>
+
+    suspend fun set(on: Boolean)
+
+    /** For tests that are not about medication. */
+    object None : MedicationTodaySwitch {
+        override val shown: Flow<Boolean?> = flowOf(null)
+        override suspend fun set(on: Boolean) = Unit
+    }
+}

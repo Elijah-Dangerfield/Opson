@@ -51,6 +51,8 @@ import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.fasting_cards_body
 import opson.libraries.resources.generated.resources.fasting_title
+import opson.libraries.resources.generated.resources.medication_title
+import opson.libraries.resources.generated.resources.medication_today_switch_body
 import opson.libraries.resources.generated.resources.settings_back_more
 import opson.libraries.resources.generated.resources.settings_back_today
 import opson.libraries.resources.generated.resources.settings_loading_cd
@@ -122,9 +124,25 @@ fun TodayScreenSettingsScreen(
         // here, shown while its feature is offered; the last row drops its divider.
         SettingsCard {
             Switch(Res.string.today_cards_groups, state.mealGroups, TodaySwitch.MealGroups, onAction, Res.string.today_cards_groups_body)
-            Switch(Res.string.settings_today_water, state.water, TodaySwitch.Water, onAction, note = state.waterNote, last = state.fasting == null && state.weight == null)
+            Switch(
+                Res.string.settings_today_water,
+                state.water,
+                TodaySwitch.Water,
+                onAction,
+                note = state.waterNote,
+                last = state.fasting == null && state.medication == null && state.weight == null,
+            )
             state.fasting?.let { on ->
-                Switch(Res.string.fasting_title, on, TodaySwitch.Fasting, onAction, Res.string.fasting_cards_body, last = state.weight == null)
+                Switch(Res.string.fasting_title, on, TodaySwitch.Fasting, onAction, Res.string.fasting_cards_body, last = state.medication == null && state.weight == null)
+            }
+            state.medication?.let { on ->
+                SettingsRow(
+                    title = stringResource(Res.string.medication_title),
+                    icon = null,
+                    subtitle = stringResource(Res.string.medication_today_switch_body),
+                    showDivider = state.weight != null,
+                    trailing = { AppSwitch(checked = on, onCheckedChange = { onAction(TodayScreenSettingsAction.MedicationToggled(it)) }) },
+                )
             }
             state.weight?.let { on ->
                 Switch(Res.string.settings_today_weight, on, TodaySwitch.Weight, onAction, note = state.weightNote, last = true)
@@ -509,5 +527,14 @@ private fun TodayScreenMainNumberPreview() {
 private fun TodayScreenCardPagesPreview() {
     SettingsPreview {
         TodayScreenChoiceSheetContent(TodayScreenChoiceState.of(TodayScreenChoice.CardPages, Settings()), onAction = {})
+    }
+}
+
+/** On a tracked medication (`release.medication`): its card's switch in the list, after Fasting. */
+@Preview
+@Composable
+private fun TodayScreenSettingsMedicationPreview() {
+    SettingsPreview {
+        TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings()).copy(medication = true), onAction = {})
     }
 }
