@@ -1,6 +1,8 @@
 package com.opson.libraries.foods.impl
 
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.foods.BarcodeMatch
+import com.opson.libraries.foods.EnergyCheck
 import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.FoodTier
@@ -223,6 +225,41 @@ class FoodCatalogImplTest : CoroutineTest() {
     }
 
     @Test
+    fun everyMatchComesBackWithTheAnswerFirstAndOnlyTheAnswerIsKept() = runUnitTest {
+        val branded = yogurt.copy(id = "yogurt-branded", source = "usda_branded", per100g = NutrientsDto(kcal = 0.0, protein = 10.0))
+        api.barcodeResult = Result.success(
+            yogurt.copy(
+                matches = listOf(
+                    BarcodeMatchDto(branded, energyCheck = listOf("zero_with_macros", "something_newer")),
+                    BarcodeMatchDto(yogurt, corrected = true),
+                ),
+            ),
+        )
+
+        val matches = catalog.barcodeMatches("012345678905").getOrThrow()
+
+        assertEquals(listOf("yogurt", "yogurt-branded"), matches.map { it.food.id }, "the answer leads even if the list is out of order")
+        assertTrue(matches[0].corrected)
+        assertEquals(setOf(EnergyCheck.ZeroWithMacros), matches[1].energyCheck, "an unknown check is dropped, not fatal")
+        assertTrue(matches[1].numbersLookOff)
+        assertEquals(listOf("yogurt"), cache.rows.value.keys.toList(), "only the answer is kept on the device")
+    }
+
+    @Test
+    fun aServerWithoutTheListGivesTheAnswerAloneAndOfflineTheKeptOne() = runUnitTest {
+        api.barcodeResult = Result.success(yogurt)
+        assertEquals(listOf(BarcodeMatch(yogurt.toDomain())), catalog.barcodeMatches("012345678905").getOrThrow())
+
+        api.barcodeResult = Result.failure(IllegalStateException("offline"))
+        assertEquals(listOf("yogurt"), catalog.barcodeMatches("0012345678905").getOrThrow().map { it.food.id })
+        assertTrue(catalog.barcodeMatches("4006381333931").isFailure, "never scanned, and out of reach")
+
+        api.barcodeResult = Result.success(null)
+        assertEquals(emptyList(), catalog.barcodeMatches("4006381333931").getOrThrow())
+        assertEquals(4, api.matchesAsked)
+    }
+
+    @Test
     fun tierAndVerifiedReachTheModelAndVolumeOnlyServingsAreLeftOut() {
         val cola = FoodResponse(
             id = "cola",
@@ -298,6 +335,13 @@ private class FakeFoodApi : FoodApi {
     override suspend fun detail(id: String) = detailResult ?: Result.failure(IllegalStateException("not found"))
 
     override suspend fun barcode(code: String) = barcodeResult
+
+    var matchesAsked = 0
+
+    override suspend fun barcodeMatches(code: String): Result<FoodResponse?> {
+        matchesAsked++
+        return barcodeResult
+    }
 
     var describeResult: Result<DescribeResponse> = Result.success(DescribeResponse(emptyList()))
 

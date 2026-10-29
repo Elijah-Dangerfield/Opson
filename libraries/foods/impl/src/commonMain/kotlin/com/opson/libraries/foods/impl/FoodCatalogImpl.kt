@@ -1,7 +1,9 @@
 package com.opson.libraries.foods.impl
 
 import com.opson.libraries.core.Catching
+import com.opson.libraries.foods.BarcodeMatch
 import com.opson.libraries.foods.Confidence
+import com.opson.libraries.foods.EnergyCheck
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodSearchFilter
@@ -79,16 +81,36 @@ class FoodCatalogImpl(
     override suspend fun barcode(code: String): Catching<Food?> {
         val trimmed = code.trim()
         val online = api.barcode(trimmed).map { it?.toDomain() }
-        online.getOrNull()?.let { food ->
-            // Kept but not marked used: the amount sheet opens it next, and has
-            // to work even when the server cannot serve it again (offline, or
-            // a source whose answers it may not store). It reaches Recent only
-            // once it is logged.
-            val existing = cache.get(food.id)
-            cache.upsert(food.toCacheRow(lastUsedAt = existing?.lastUsedAtEpochMs, favorite = existing?.favorite ?: false))
-        }
+        online.getOrNull()?.let { keep(it) }
         if (online.isSuccess) return online
         return cachedByBarcode(trimmed)?.let { Catching.success(it) } ?: online
+    }
+
+    override suspend fun barcodeMatches(code: String): Catching<List<BarcodeMatch>> {
+        val trimmed = code.trim()
+        val online = api.barcodeMatches(trimmed).map { response ->
+            response?.let { answer ->
+                val listed = answer.matches.orEmpty().map { it.toDomain() }
+                val food = answer.toDomain()
+                // The answer leads, whatever the list says; a server without the list gives the answer alone.
+                listOf(listed.firstOrNull { it.food.id == food.id } ?: BarcodeMatch(food)) + listed.filter { it.food.id != food.id }
+            }.orEmpty()
+        }
+        // Only the answer is kept, so an offline scan of the code finds the same food a single answer would.
+        online.getOrNull()?.firstOrNull()?.let { keep(it.food) }
+        if (online.isSuccess) return online
+        val cached = cachedByBarcode(trimmed) ?: return online
+        return Catching.success(listOf(BarcodeMatch(cached)))
+    }
+
+    /**
+     * A scanned food, kept but not marked used: the amount sheet opens it next, and has to work
+     * even when the server cannot serve it again (offline, or a source whose answers it may not
+     * store). It reaches Recent only once it is logged.
+     */
+    private suspend fun keep(food: Food) {
+        val existing = cache.get(food.id)
+        cache.upsert(food.toCacheRow(lastUsedAt = existing?.lastUsedAtEpochMs, favorite = existing?.favorite ?: false))
     }
 
     /** The cache stores GTINs (older rows the code as the server sent it), so try both forms. */
@@ -164,6 +186,12 @@ internal fun FoodResponse.toDomain(): Food = Food(
     tier = FoodTier.fromWire(tier),
     verified = verified,
     reviewStatus = ReviewStatus.fromWire(reviewStatus),
+)
+
+internal fun BarcodeMatchDto.toDomain(): BarcodeMatch = BarcodeMatch(
+    food = food.toDomain(),
+    energyCheck = energyCheck.mapNotNullTo(LinkedHashSet()) { EnergyCheck.fromWire(it) },
+    corrected = corrected,
 )
 
 internal fun DescribedItemDto.toDomain(): ParsedItem = ParsedItem(

@@ -74,6 +74,29 @@ class FoodSearchAndBarcodeTest : IntegrationTest() {
     }
 
     /**
+     * A code in two databases: USDA Branded's GTIN-14 and an Open Food Facts answer cached under
+     * the EAN-13. Asked for every match, the phone gets both over the wire, the server's answer
+     * first; asked the old way, the same single food it always got. Only the answer is kept.
+     */
+    @Test
+    fun barcodeInTwoDatabases_listsEveryMatch_withTheAnswerFirst() = integration {
+        val code = randomEan13(prefix = '0')
+        val branded = server.seedFood("$word protein bar", kcalPer100g = 380.0, barcode = "0$code", source = "usda_branded")
+        val off = server.seedFood("$word protein bar", kcalPer100g = 360.0, barcode = code, source = "off")
+        val phone = client()
+
+        val matches = phone.foods.barcodeMatches(code.drop(1)).getOrThrow()
+
+        assertEquals(listOf(branded, off), matches.map { it.food.id })
+        assertEquals(listOf(true, false), matches.map { it.food.verified })
+        assertTrue(matches.none { it.corrected || it.energyCheck.isNotEmpty() })
+        assertEquals(branded, phone.foods.barcode(code).getOrThrow()?.id, "the single answer is the first match")
+        assertNotNull(phone.database.foodCacheDao().get(branded))
+        assertNull(phone.database.foodCacheDao().get(off), "only the answer is kept on the device")
+        assertEquals(emptyList(), server.upstreams.openFoodFactsLookups, "a catalog hit never asks Open Food Facts")
+    }
+
+    /**
      * The importers store a Branded or Open Food Facts code as its 14-digit GTIN. A US scanner
      * reads the 12 printed digits, a European one the 13-digit EAN, and a small US pack carries
      * the 8-digit UPC-E. All four are one product.
