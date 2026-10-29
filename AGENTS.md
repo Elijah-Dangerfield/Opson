@@ -121,6 +121,10 @@ Supabase auth with accounts required. Sessions are never minted implicitly and n
 
 Repositories that mirror server state don't invent their own refresh timing. Implement one idempotent `sync(): Result<Unit>`, contribute to the `UserScopedSyncer` multibinding (its KDoc has the two-line registration recipe), and `UserScopedSyncCoordinator` runs it on every edge that matters: account became active (sign-in, cold-boot resolve, switch, claim), warm foreground, and connectivity regained. With exponential retry that parks as success while offline (re-armed by the reconnect edge). The level-keyed `runWhen` core means a subscriber can't miss an edge that fired before it attached. For offline *writes*, use the outbox pattern instead. `docs/practices/outbox.md`.
 
+## Entitlements and roles (`:libraries:entitlements`)
+
+Never ask whether someone is Pro. Paid features are named entitlements, and Pro is a bundle of them in remote config, so a feature can move between Free and Pro, or go to one person, without a release. The app asks `EntitlementRepository.has(Entitlement.X)` (and `RoleRepository.can(Permission.X)`); the server checks the same thing itself on the route (`EntitlementService.has`, `Permissions.can`). Free features get no entitlement. The client holds `Entitlement.DEFAULTS` until the server answers, so nothing free disappears offline. How it resolves, the admin API and how the owner's role is set: "Roles and entitlements" in [`apps/server/README.md`](apps/server/README.md).
+
 ## Server (`:apps:server`)
 
 A Ktor + Postgres backend with Supabase JWT auth. It reuses the client's conventions, kotlin-inject + anvil DI (`ServerScope` / `ServerComponent`), the `domain/` interface + `data/` impl split, one `fun Route.xRoutes(deps)` per resource, and degrades gracefully (boots with no DB / no Supabase). It's a plain JVM module, so it applies plugins directly rather than via a convention plugin.
