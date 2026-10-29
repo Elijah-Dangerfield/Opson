@@ -244,7 +244,7 @@ class TestClient(
 
     // ── Diary, settings, sync ────────────────────────────────────────────────
     private val calendar = SystemLocalCalendar(clock)
-    private val settingsStore = SettingsStore(cacheFactory, tables.outbox, transactor, clock, activeUser, appScope)
+    private val settingsStore = SettingsStore(cacheFactory, tables.outbox, transactor, clock, activeUser, appScope) { null }
     val syncApi: DiarySyncApi = wrapSync(HttpDiarySyncApi(networkClient))
     val sync = DiarySyncer(syncApi, tables, settingsStore, activeUser, appScope, clock, cacheFactory)
     private val writer = DiaryWriter(tables, clock, sync)

@@ -7,11 +7,13 @@ import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
+import kotlinx.datetime.LocalDate
 
 /**
  * Resting energy (design sync 4, 13.2d): where Burned's resting energy comes from, a link to the
@@ -37,6 +39,11 @@ data class RestingEnergyState(
      * Profile, never here, so there is one place to change them.
      */
     val profileMissing: Set<BodyDetail>? = null,
+    /**
+     * What the calculation is given, once nothing is missing: "Male, 28, 5 ft 11 in, 170 lb" under
+     * Your profile, so a detail in the wrong unit is easy to spot. Null with another source picked.
+     */
+    val profileInputs: ProfileInputs? = null,
     /** The connected store for "Steps and workouts", null when none. */
     val activitySource: HealthSource? = null,
     val activityInBurned: Boolean = true,
@@ -64,6 +71,8 @@ object RestingEnergyStateBuilder {
         policy: VisibilityPolicy,
         drafts: RestingDrafts = RestingDrafts(),
         activitySource: HealthSource? = null,
+        today: LocalDate,
+        regionHeight: HeightUnit = HeightUnit.Cm,
     ): RestingEnergyState = RestingEnergyState(
         loaded = true,
         source = settings.restingSource,
@@ -73,6 +82,8 @@ object RestingEnergyStateBuilder {
         ownText = (drafts.own ?: settings.restingOwnKcal?.toString().orEmpty())
             .takeIf { policy.effectiveLevel(Metric.EnergyOut, Surface.Settings) == Visibility.Show },
         profileMissing = choices.missing.takeIf { settings.restingSource == RestingSource.Calculate },
+        profileInputs = ProfileInputsBuilder.build(settings, choices.weightKg, today, policy, regionHeight)
+            .takeIf { settings.restingSource == RestingSource.Calculate },
         activitySource = activitySource,
         activityInBurned = settings.activityInBurned,
         thermicEffectInBurned = settings.thermicEffectInBurned,

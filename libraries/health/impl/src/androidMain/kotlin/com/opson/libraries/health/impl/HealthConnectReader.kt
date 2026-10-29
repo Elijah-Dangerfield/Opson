@@ -149,7 +149,7 @@ class HealthConnectReader(
         } else {
             sessions(range).sumOf { activeKcal(maxOf(it.startTime, start), minOf(it.endTime, end)) ?: 0.0 }
         }
-        val resting = total?.let { (it - (active ?: 0.0)).coerceAtLeast(0.0) }
+        val resting = HealthConnectEnergy.resting(total, active)
         return EnergyExpended(restingKcal = resting, activeKcal = active, workoutKcal = workouts)
     }
 
@@ -171,7 +171,7 @@ class HealthConnectReader(
         return days.associate { slice ->
             val total = slice.result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories
             val active = slice.result[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories
-            val resting = total?.let { (it - (active ?: 0.0)).coerceAtLeast(0.0) }
+            val resting = HealthConnectEnergy.resting(total, active)
             slice.startTime.toLocalDate().toKotlinLocalDate() to EnergyExpended(restingKcal = resting, activeKcal = active, workoutKcal = null)
         }
     }

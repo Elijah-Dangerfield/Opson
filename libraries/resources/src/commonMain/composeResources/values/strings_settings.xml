@@ -154,7 +154,7 @@
     <string name="settings_targets_start_from_burn">Start from today's burn</string>
     <string name="settings_targets_start_from_burn_note">It started at 0 because Opson didn't know what you burn yet.</string>
     <string name="settings_targets_burned_title">Burned comes from</string>
-    <string name="settings_targets_resting">Resting energy</string>
+    <string name="settings_targets_resting">Resting energy (BMR)</string>
     <string name="settings_targets_resting_calculated">Calculated</string>
     <string name="settings_targets_resting_own">Your own number</string>
     <string name="settings_targets_resting_unknown">Add your details</string>
@@ -216,6 +216,8 @@
     <string name="settings_targets_deficit_cap_note">This is the deficit you started with. It can come down, and back up to here.</string>
     <string name="settings_targets_deficit_zero_note">Your goal was already at or above what you burn, so the deficit is 0 and your goal simply follows your burn.</string>
     <string name="settings_targets_deficit_title">Under what you burn, each day</string>
+    <string name="settings_targets_deficit_info">How a deficit works</string>
+    <string name="settings_targets_surplus_info">How a surplus works</string>
     <string name="settings_targets_number_lower">Lower your goal</string>
     <string name="settings_targets_number_raise">Raise your goal</string>
     <string name="settings_targets_number_field">Type a goal</string>
@@ -264,8 +266,13 @@
     <string name="settings_profile_percent">%</string>
 
     <!-- Resting energy (design sync 4, 13.2d) -->
-    <string name="settings_resting_title">Resting energy</string>
-    <string name="settings_resting_intro">The energy your body uses at rest. It's most of what you burn in a day.</string>
+    <!--
+      The energy words, the same everywhere: "Resting energy (BMR)" for what the body uses at rest,
+      "Everyday activity", "Exercise", "Digesting food", and "Total burned (TDEE)" for their sum.
+      Compact places (Today's card, back labels) drop the abbreviation.
+    -->
+    <string name="settings_resting_title">Resting energy (BMR)</string>
+    <string name="settings_resting_intro">The energy your body uses at rest, also called your BMR. It's most of what you burn in a day.</string>
     <string name="settings_resting_calculate">Calculate it for me</string>
     <string name="settings_resting_calculate_line">From your age, height, weight and sex. Updates when you log a new weight.</string>
     <string name="settings_resting_health">Use %1$s</string>
@@ -276,6 +283,13 @@
     <string name="settings_resting_profile">Your profile</string>
     <string name="settings_resting_profile_line">Age, sex, height and your latest weigh-in</string>
     <string name="settings_resting_profile_needs">Still needs: %1$s</string>
+    <!-- What the calculation is given, so a wrong detail is easy to spot: "Male, 28, 5 ft 11 in, 170 lb". -->
+    <string name="settings_resting_profile_inputs">%1$s, %2$d, %3$s, %4$s</string>
+    <!-- The same where the mode hides weight. -->
+    <string name="settings_resting_profile_inputs_no_weight">%1$s, %2$d, %3$s, your latest weigh-in</string>
+    <string name="settings_resting_profile_unsaid">Sex not given</string>
+    <string name="settings_height_ft_in">%1$d ft %2$s in</string>
+    <string name="settings_height_cm">%1$d cm</string>
     <string name="settings_resting_needs_age">age</string>
     <string name="settings_resting_needs_height">height</string>
     <string name="settings_resting_needs_sex">sex</string>
@@ -304,6 +318,54 @@
     <string name="energy_digesting">Digesting food</string>
     <string name="energy_digesting_line">About 10% of what you ate</string>
 
+    <!--
+      The (i) sheets beside Resting energy, Burned and a set deficit or surplus. Plain words first;
+      the person's own working only where their mode shows those numbers. Any number followed by
+      "calories" here is a calorie amount to the leak test, so the rough rule's lines are only
+      shown where calories are.
+    -->
+    <string name="energy_info_cd">What this means</string>
+    <string name="energy_info_done">Done</string>
+    <string name="energy_info_plus">+ %1$s</string>
+    <string name="energy_info_minus">− %1$s</string>
+    <string name="energy_info_resting_body">BMR, your basal metabolic rate, is the energy your body uses just to keep going: breathing, your heartbeat, staying warm. You'd burn it lying in bed all day. For most people it's the biggest part of what they burn.</string>
+    <string name="energy_info_resting_how">Opson works it out with the Mifflin-St Jeor equation, the one dietitians use most. It takes four things from your profile: weight, height, age and sex. It's an estimate, and a real body can be about 10% either way.</string>
+    <string name="energy_info_resting_working">How we got your number</string>
+    <string name="energy_info_resting_weight">10 × your weight, %1$s</string>
+    <string name="energy_info_resting_height">6.25 × your height, %1$d cm</string>
+    <string name="energy_info_resting_age">5 × your age, %1$d</string>
+    <string name="energy_info_resting_male">For men</string>
+    <string name="energy_info_resting_female">For women</string>
+    <string name="energy_info_resting_unsaid">Halfway between men and women</string>
+    <string name="energy_info_resting_rounded">Rounded to the nearest 10. If it looks wrong, check the details on your profile.</string>
+    <string name="energy_info_resting_in_use_health">You picked %1$s's number instead, so Burned uses %2$s.</string>
+    <string name="energy_info_resting_in_use_own">You picked your own number instead, so Burned uses %1$s.</string>
+    <string name="energy_info_watch_title">Why your watch says something different</string>
+    <string name="energy_info_watch_body">Watches and phones estimate it too, from your heart rate and movement, and only while you wear them. Different methods often land a few hundred calories apart, and none is exact. Pick the one you trust and stay with it: the trend over weeks matters more than any one day.</string>
+    <string name="energy_info_profile">Check your profile</string>
+    <string name="energy_info_resting_source">Choose where it comes from</string>
+    <string name="energy_info_burned_title">Total burned (TDEE)</string>
+    <string name="energy_info_burned_body">TDEE, your total daily energy expenditure, is everything you burn in a day. Opson adds it up from these parts.</string>
+    <string name="energy_info_part_resting_line">What your body uses at rest. Usually the biggest part.</string>
+    <string name="energy_info_part_everyday_line">Walking, standing and moving about outside workouts. From your watch, or estimated from how active your days are.</string>
+    <string name="energy_info_part_exercise_line">Workouts your watch records, or ones you log.</string>
+    <string name="energy_info_part_digesting_line">About a tenth of what you eat, with Count digesting food on.</string>
+    <string name="energy_info_burned_working">How we got today's number</string>
+    <string name="energy_info_burned_logged">Exercise you logged</string>
+    <string name="energy_info_burned_estimate">With no watch, everyday activity is an estimate: your resting energy times a factor for how active your days are, from 1.2 for mostly sitting to 1.725 for physical work. That's how most TDEE calculators do it.</string>
+    <string name="energy_info_balance_title">Deficit and surplus</string>
+    <string name="energy_info_balance_body">A deficit is eating less than you burn. Your body makes up the gap from what it has stored, so over time your weight comes down. A surplus is the opposite, eating more than you burn, and it's how weight goes up.</string>
+    <string name="energy_info_balance_rule_lb">As a rough rule, about 3,500 calories under what you burn adds up to 1 lb of fat. So 500 a day under is roughly 1 lb a week.</string>
+    <string name="energy_info_balance_rule_kg">As a rough rule, about 7,700 calories under what you burn adds up to 1 kg of fat. So 500 a day under is roughly half a kilo a week.</string>
+    <string name="energy_info_balance_rough">It's only a rough rule. Water, salt and your body adjusting make the scale move unevenly, so the trend over a few weeks says more than any one day.</string>
+    <string name="energy_info_balance_working">How we got today's goal</string>
+    <string name="energy_info_balance_burned">Total burned (TDEE) today</string>
+    <string name="energy_info_balance_deficit">Your deficit</string>
+    <string name="energy_info_balance_surplus">Your surplus</string>
+    <string name="energy_info_balance_goal">Today's goal</string>
+    <string name="energy_info_balance_held">Your goal never goes below the lowest one Opson sets, so it can sit above this sum.</string>
+    <string name="energy_info_balance_moves">It moves as what you burn changes through the day.</string>
+
     <!-- Energy today (design sync 4, 13.2c) -->
     <string name="settings_energy_title">Energy today</string>
     <string name="settings_energy_eaten">Eaten</string>
@@ -313,14 +375,14 @@
     <string name="settings_energy_likely">Likely %1$s.</string>
     <string name="settings_energy_estimates">%1$d of %2$d foods are estimates.</string>
     <string name="settings_energy_nutrients">Nutrients</string>
-    <string name="settings_energy_burned">Burned</string>
+    <string name="settings_energy_burned">Total burned (TDEE)</string>
     <string name="settings_energy_burned_unknown">Add your details to see what you burn.</string>
-    <string name="settings_energy_resting">Resting energy</string>
+    <string name="settings_energy_resting">Resting energy (BMR)</string>
     <string name="settings_energy_resting_calculated">Calculated from your profile</string>
     <string name="settings_energy_resting_health">From %1$s</string>
     <string name="settings_energy_resting_own">Your own number</string>
-    <string name="settings_energy_movement">Daily movement</string>
-    <string name="settings_energy_workouts">Workouts</string>
+    <string name="settings_energy_movement">Everyday activity</string>
+    <string name="settings_energy_workouts">Exercise</string>
     <string name="settings_energy_not_counted">Not added to Burned</string>
     <string name="settings_energy_everyday_always">An ordinary day, always counted</string>
     <string name="settings_energy_no_activity">No activity app connected</string>

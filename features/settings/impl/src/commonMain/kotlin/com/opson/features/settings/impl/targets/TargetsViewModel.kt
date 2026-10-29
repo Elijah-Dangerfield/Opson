@@ -3,6 +3,7 @@ package com.opson.features.settings.impl.targets
 import androidx.lifecycle.viewModelScope
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.impl.Toast
+import com.opson.features.settings.impl.energy.EnergyTopic
 import com.opson.features.settings.impl.todayscreen.TodayScreenSettingsStateBuilder
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.MacroMode
@@ -112,6 +113,7 @@ class TargetsViewModel(
             }
             is TargetsAction.StylePicked -> pickStyle(action.kind)
             TargetsAction.RestingEnergyTapped -> sendEvent(TargetsEvent.OpenRestingEnergy)
+            is TargetsAction.ExplainTapped -> sendEvent(TargetsEvent.OpenExplainer(action.topic))
             TargetsAction.MicrosTapped -> sendEvent(TargetsEvent.OpenMicroTargets)
             TargetsAction.ActivityTapped -> if (inputs?.healthConnected == true) {
                 sendEvent(TargetsEvent.OpenIntegrations)
@@ -335,6 +337,9 @@ sealed interface TargetsEvent {
     data class ShowToast(val toast: Toast) : TargetsEvent
     data object OpenRestingEnergy : TargetsEvent
 
+    /** An (i) sheet: Burned (TDEE), or how a deficit or surplus works. */
+    data class OpenExplainer(val topic: EnergyTopic) : TargetsEvent
+
     /** Vitamins and minerals: their references and the four on Today. */
     data object OpenMicroTargets : TargetsEvent
     data object OpenModes : TargetsEvent
@@ -360,6 +365,7 @@ sealed interface TargetsAction {
     /** A row in the goal style list: written at once. */
     data class StylePicked(val kind: StyleKind) : TargetsAction
     data object RestingEnergyTapped : TargetsAction
+    data class ExplainTapped(val topic: EnergyTopic) : TargetsAction
     data object MicrosTapped : TargetsAction
 
     /** The Activity row: the health app's page when one is connected, else everyday activity's choices. */

@@ -2,6 +2,7 @@ package com.opson.libraries.diary.impl
 
 import com.opson.libraries.core.AutoInit
 import com.opson.libraries.core.Catching
+import com.opson.libraries.core.DeviceRegion
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsJson
@@ -11,6 +12,7 @@ import com.opson.libraries.diary.db.OutboxDao
 import com.opson.libraries.diary.impl.wire.SettingsRowDto
 import com.opson.libraries.diary.impl.wire.WireJson
 import com.opson.libraries.flowroutines.AppCoroutineScope
+import com.opson.libraries.nutrition.RegionUnits
 import com.opson.libraries.opson.UserScopedClearer
 import com.opson.libraries.opson.storage.db.DatabaseTransactor
 import com.opson.libraries.storage.Cache
@@ -62,6 +64,10 @@ internal const val SETTINGS_ENTITY_ID = "settings"
  * over the user's real one on the server, with a newer timestamp, and the
  * user's mode would be lost. If the pull brings no settings (a new account),
  * the local copy is queued then.
+ *
+ * **What is read is not quite what is stored.** [settings] and [update]'s result carry the weight
+ * unit the person should see ([Settings.withRegionWeightUnit], from [region]); a transform is
+ * handed the stored copy, so the region's unit is never written or synced on anyone's behalf.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = UserScopedClearer::class, multibinding = true)
@@ -73,6 +79,7 @@ class SettingsStore(
     private val clock: Clock,
     private val activeUser: ActiveUserSource,
     appScope: AppCoroutineScope,
+    private val region: DeviceRegion,
 ) : UserScopedClearer {
 
     private val logger = KLog.withTag("DiarySettings")
@@ -86,7 +93,7 @@ class SettingsStore(
     private val stored: StateFlow<StoredSettings?> = cache.updates.stateIn(appScope, SharingStarted.Eagerly, null)
 
     val settings: StateFlow<Settings> =
-        stored.map { it?.settings ?: Settings() }.stateIn(appScope, SharingStarted.Eagerly, Settings())
+        stored.map { (it?.settings ?: Settings()).shown() }.stateIn(appScope, SharingStarted.Eagerly, Settings().shown())
 
     val isKnown: StateFlow<Boolean> =
         combine(stored, activeUser.user) { record, user -> record != null && record.isKnownFor(user) }
@@ -104,11 +111,11 @@ class SettingsStore(
             val before = record.settings
             val nowMs = clock.now().toEpochMilliseconds()
             val next = transform(before).let { if (stampNumbersChange) it.stampedAgainst(before, nowMs) else it }
-            if (next == before) return UpdateResult(before, queued = false)
+            if (next == before) return UpdateResult(before.shown(), queued = false)
 
             if (!record.isKnownFor(activeUser.user.value)) {
                 cache.set(record.copy(settings = next, dirtyWhileUnknown = true))
-                return UpdateResult(next, queued = false)
+                return UpdateResult(next.shown(), queued = false)
             }
 
             val updatedAt = stamp(nowMs, record.clientUpdatedAtEpochMs)
@@ -129,8 +136,11 @@ class SettingsStore(
                 outbox.enqueue(SyncEntity.Settings, SETTINGS_ENTITY_ID, payload, base, nowMs)
             }
             cache.set(record.copy(settings = next, dirtyWhileUnknown = false, clientUpdatedAtEpochMs = updatedAt))
-            UpdateResult(next, queued = true)
+            UpdateResult(next.shown(), queued = true)
         }
+
+    /** As read: the weight unit falls back to the phone region's until one is set. */
+    private fun Settings.shown(): Settings = withRegionWeightUnit(RegionUnits.weight(region.countryCode()))
 
     /** A settings row from the server. The merge rule: a change still waiting locally wins. */
     suspend fun applyPulled(row: SettingsRowDto) = mutex.withLock {

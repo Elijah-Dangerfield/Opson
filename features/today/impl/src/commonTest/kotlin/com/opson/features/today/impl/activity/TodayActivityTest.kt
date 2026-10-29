@@ -218,6 +218,7 @@ class TodayActivityTest : CoroutineTest() {
         vm.takeAction(TodayActivityAction.AddMissedTapped)
         vm.takeAction(TodayActivityAction.EntryTapped("tomorrow"))
         vm.takeAction(TodayActivityAction.RestingEnergyTapped)
+        vm.takeAction(TodayActivityAction.BurnedInfoTapped)
         settle()
         assertEquals(
             listOf(
@@ -225,6 +226,7 @@ class TodayActivityTest : CoroutineTest() {
                 TodayActivityEvent.OpenExercise(day.plusDays(1), notOnWatch = true),
                 TodayActivityEvent.OpenExercise(day.plusDays(1), "tomorrow"),
                 TodayActivityEvent.OpenRestingEnergy,
+                TodayActivityEvent.OpenBurnedExplainer,
             ),
             events,
         )

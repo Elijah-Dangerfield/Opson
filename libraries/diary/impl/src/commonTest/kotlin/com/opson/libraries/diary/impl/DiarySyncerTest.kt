@@ -60,7 +60,7 @@ class DiarySyncerTest : CoroutineTest() {
     private val user = FakeActiveUser(ActiveUser.SignedIn("user-a"))
     private val appScope by lazy { AppCoroutineScope(dispatchers) }
     private val api = FakeSyncApi { ackEverything(it) }
-    private val settingsStore by lazy { SettingsStore(FakeCacheFactory(), db.outboxDao, db.transactor, clock, user, appScope) }
+    private val settingsStore by lazy { SettingsStore(FakeCacheFactory(), db.outboxDao, db.transactor, clock, user, appScope, { null }) }
     private val syncer by lazy { DiarySyncer(api, db.tables, settingsStore, user, appScope, clock, FakeCacheFactory()) }
     private val repo = DiaryRepositoryImpl(
         db.tables,

@@ -15,6 +15,7 @@ import com.opson.features.foods.RepeatRoute
 import com.opson.features.logger.ExerciseRoute
 import com.opson.features.logger.LoggedFoodRoute
 import com.opson.features.logger.LoggerRoute
+import com.opson.features.settings.EnergyExplainerRoute
 import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.FindSupportEnabled
@@ -323,6 +324,7 @@ class TodayFeatureEntryPoint(
                     ExerciseRoute(entryId = event.entryId, dayIso = event.day.toString(), notOnWatch = event.notOnWatch),
                 )
                 TodayActivityEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute())
+                TodayActivityEvent.OpenBurnedExplainer -> router.navigate(EnergyExplainerRoute(EnergyExplainerRoute.TOPIC_BURNED))
             }
         }
         val card = state.card ?: return null

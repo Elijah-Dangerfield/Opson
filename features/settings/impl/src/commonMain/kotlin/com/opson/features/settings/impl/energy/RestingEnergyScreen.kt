@@ -31,11 +31,15 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.BodyDetail
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.HeightUnit
+import com.opson.libraries.nutrition.Heights
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingSource
+import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
@@ -67,7 +71,12 @@ import opson.libraries.resources.generated.resources.settings_resting_needs_sex
 import opson.libraries.resources.generated.resources.settings_resting_needs_weight
 import opson.libraries.resources.generated.resources.settings_resting_profile
 import opson.libraries.resources.generated.resources.settings_resting_profile_line
+import opson.libraries.resources.generated.resources.settings_resting_profile_inputs
+import opson.libraries.resources.generated.resources.settings_resting_profile_inputs_no_weight
 import opson.libraries.resources.generated.resources.settings_resting_profile_needs
+import opson.libraries.resources.generated.resources.settings_resting_profile_unsaid
+import opson.libraries.resources.generated.resources.settings_resting_sex_female
+import opson.libraries.resources.generated.resources.settings_resting_sex_male
 import opson.libraries.resources.generated.resources.settings_resting_steps_workouts
 import opson.libraries.resources.generated.resources.settings_resting_thermic
 import opson.libraries.resources.generated.resources.settings_resting_thermic_line
@@ -92,12 +101,15 @@ fun RestingEnergyScreen(
             backLabel = stringResource(if (fromEnergyToday) Res.string.settings_back_energy else Res.string.settings_back_targets),
             onBack = { onAction(RestingEnergyAction.BackTapped) },
         )
-        Text(
-            text = stringResource(Res.string.settings_resting_intro),
-            typography = AppTheme.type.body,
-            color = AppTheme.colors.ink,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
+        Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(start = 4.dp)) {
+            Text(
+                text = stringResource(Res.string.settings_resting_intro),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.ink,
+                modifier = Modifier.weight(1f).padding(top = 8.dp),
+            )
+            EnergyInfoButton(onClick = { onAction(RestingEnergyAction.InfoTapped) })
+        }
         if (!state.loaded) {
             // The health app's resting energy is read before the choices can draw.
             DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
@@ -192,7 +204,7 @@ private fun Sources(state: RestingEnergyState, onAction: (RestingEnergyAction) -
                 selected = state.source == RestingSource.Calculate,
                 onClick = { onAction(RestingEnergyAction.SourcePicked(RestingSource.Calculate)) },
             )
-            state.profileMissing?.let { missing -> ProfileLink(missing, onAction) }
+            state.profileMissing?.let { missing -> ProfileLink(missing, state.profileInputs, onAction) }
             state.health?.let { health ->
                 HorizontalDivider(color = AppTheme.colors.line)
                 Source(
@@ -244,21 +256,41 @@ private fun Source(title: String, line: String, amount: Display, selected: Boole
     }
 }
 
-/** Under "Calculate it for me": the Profile it reads, and what it still needs from there. */
+/**
+ * Under "Calculate it for me": the Profile it reads, with what it still needs from there or, once
+ * nothing is missing, exactly what it was given ("Male, 28, 5 ft 11 in, 170 lb"), so a weight
+ * logged in the wrong unit shows up here rather than only as a strange number.
+ */
 @Composable
-private fun ProfileLink(missing: Set<BodyDetail>, onAction: (RestingEnergyAction) -> Unit) {
+private fun ProfileLink(missing: Set<BodyDetail>, inputs: ProfileInputs?, onAction: (RestingEnergyAction) -> Unit) {
     val needs = missing.sortedBy { it.ordinal }.map { stringResource(it.needs) }
     SettingsRow(
         title = stringResource(Res.string.settings_resting_profile),
         icon = null,
-        subtitle = if (needs.isEmpty()) {
-            stringResource(Res.string.settings_resting_profile_line)
-        } else {
-            stringResource(Res.string.settings_resting_profile_needs, needs.joinToString(", "))
+        subtitle = when {
+            needs.isNotEmpty() -> stringResource(Res.string.settings_resting_profile_needs, needs.joinToString(", "))
+            inputs != null -> inputs.text()
+            else -> stringResource(Res.string.settings_resting_profile_line)
         },
         chevron = true,
         onClick = { onAction(RestingEnergyAction.ProfileTapped) },
     )
+}
+
+@Composable
+private fun ProfileInputs.text(): String {
+    val sex = stringResource(
+        when (sex) {
+            BodySex.Male -> Res.string.settings_resting_sex_male
+            BodySex.Female -> Res.string.settings_resting_sex_female
+            BodySex.Unsaid -> Res.string.settings_resting_profile_unsaid
+        },
+    )
+    val height = heightText(heightCm, heightUnit)
+    return when (val shown = weight) {
+        is Display.Shown -> stringResource(Res.string.settings_resting_profile_inputs, sex, age, height, shown.text)
+        else -> stringResource(Res.string.settings_resting_profile_inputs_no_weight, sex, age, height)
+    }
 }
 
 private val BodyDetail.needs: StringResource
@@ -269,15 +301,25 @@ private val BodyDetail.needs: StringResource
         BodyDetail.Sex -> Res.string.settings_resting_needs_sex
     }
 
+/** 5 ft 11 in, born 1998, male, weighing in at 170 lb: what the inputs line reads back. */
+private val previewProfile = Settings(
+    heightCm = Heights.cm(5, 11.0),
+    heightUnit = HeightUnit.FtIn,
+    birthYear = 1998,
+    bodySex = BodySex.Male,
+    weightUnit = WeightUnit.Lb,
+)
+
 private fun previewState(
-    settings: Settings = Settings(),
-    choices: RestingChoices = RestingChoices(1610, emptySet(), 1560, HealthSource.HealthConnect, 72.0),
+    settings: Settings = previewProfile,
+    choices: RestingChoices = RestingChoices(1760, emptySet(), 1840, HealthSource.HealthConnect, 77.11),
     preset: PresetId = PresetId.Full,
 ) = RestingEnergyStateBuilder.build(
     settings,
     choices,
     SettingsFixtures.policy(NumbersSettings(preset = preset)),
     activitySource = HealthSource.HealthConnect,
+    today = SettingsFixtures.today,
 )
 
 @Preview
@@ -304,8 +346,16 @@ private fun RestingEnergyHealthSourcePreview() {
         choices,
         SettingsFixtures.policy(NumbersSettings(preset = PresetId.Full)),
         activitySource = HealthSource.AppleHealth,
+        today = SettingsFixtures.today,
     )
     SettingsPreview { RestingEnergyScreen(state, onAction = {}) }
+}
+
+/** No numbers: the choices without amounts, and the inputs line naming the weigh-in rather than the weight. */
+@Preview
+@Composable
+private fun RestingEnergyNoNumbersPreview() {
+    SettingsPreview { RestingEnergyScreen(previewState(preset = PresetId.NoNumbers), onAction = {}) }
 }
 
 @Preview

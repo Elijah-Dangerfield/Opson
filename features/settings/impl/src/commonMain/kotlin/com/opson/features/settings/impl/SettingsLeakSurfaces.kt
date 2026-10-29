@@ -1,7 +1,11 @@
 package com.opson.features.settings.impl
 
 import androidx.compose.foundation.layout.Column
+import com.opson.features.settings.impl.energy.EnergyExplainerFixtures
+import com.opson.features.settings.impl.energy.EnergyExplainerSheetContent
+import com.opson.features.settings.impl.energy.EnergyExplainerStateBuilder
 import com.opson.features.settings.impl.energy.EnergyTodayFixtures
+import com.opson.features.settings.impl.energy.EnergyTopic
 import com.opson.features.settings.impl.energy.EnergyTodayScreen
 import com.opson.features.settings.impl.energy.EnergyTodayStateBuilder
 import com.opson.features.settings.impl.energy.RestingEnergyScreen
@@ -117,7 +121,10 @@ object SettingsLeakSurfaces {
         LeakSurface(id = "resting-energy", label = "Resting energy", showsCaloriesInFull = false) { policy ->
             val choices = RestingChoices(1610, emptySet(), 1560, HealthSource.HealthConnect, 72.0)
             val settings = SettingsFixtures.settings(policy.settings).copy(restingOwnKcal = 1600)
-            RestingEnergyScreen(RestingEnergyStateBuilder.build(settings, choices, policy, activitySource = HealthSource.HealthConnect), onAction = {})
+            RestingEnergyScreen(
+                RestingEnergyStateBuilder.build(settings, choices, policy, activitySource = HealthSource.HealthConnect, today = SettingsFixtures.today),
+                onAction = {},
+            )
         },
         // Design sync 4, release.goalsAndEnergy: More › Today screen arranges, it never shows an amount.
         LeakSurface(id = "today-screen-settings", label = "Today screen", showsCaloriesInFull = false) { policy ->
@@ -145,6 +152,17 @@ object SettingsLeakSurfaces {
             val settings = SettingsFixtures.settings(policy.settings)
             // With food counted, so the line for digesting it is checked too.
             EnergyTodayScreen(EnergyTodayStateBuilder.build(EnergyTodayFixtures.inputs(settings, digesting = true), policy), onAction = {})
+        },
+        // The (i) sheets: words in every mode, the person's working only where its numbers show,
+        // and the rough 3,500 rule only where calories do.
+        LeakSurface(id = "energy-explainer-resting", label = "Resting energy (BMR) explained", showsCaloriesInFull = true) { policy ->
+            EnergyExplainerSheetContent(EnergyExplainerStateBuilder.build(EnergyTopic.Resting, EnergyExplainerFixtures.inputs(policy.settings), policy), onAction = {})
+        },
+        LeakSurface(id = "energy-explainer-burned", label = "Total burned (TDEE) explained", showsCaloriesInFull = true) { policy ->
+            EnergyExplainerSheetContent(EnergyExplainerStateBuilder.build(EnergyTopic.Burned, EnergyExplainerFixtures.inputs(policy.settings), policy), onAction = {})
+        },
+        LeakSurface(id = "energy-explainer-balance", label = "Deficit and surplus explained", showsCaloriesInFull = true) { policy ->
+            EnergyExplainerSheetContent(EnergyExplainerStateBuilder.build(EnergyTopic.Balance, EnergyExplainerFixtures.inputs(policy.settings), policy), onAction = {})
         },
         // release.goalsAndEnergy: one number, a set surplus, and a day group of each shape.
         LeakSurface(id = "targets-exact", label = "Targets, one number", showsCaloriesInFull = true) { policy ->

@@ -74,8 +74,18 @@ data class Settings(
     val glassMl: Int = WaterDefaults.GLASS_ML,
     @Serializable(with = WaterUnitSerializer::class)
     val waterUnit: WaterUnit = WaterUnit.Ml,
+    /**
+     * Kilograms until something sets it, for everyone, so read it through [withRegionWeightUnit]
+     * (the settings repository already does): until the person picks a unit, or onboarding or
+     * Profile set their units, the phone's region decides.
+     */
     @Serializable(with = WeightUnitSerializer::class)
     val weightUnit: WeightUnit = WeightUnit.Kg,
+    /**
+     * The person picked [weightUnit] on Display. Stored defaults are encoded like any other value,
+     * so a stored "kg" can't say on its own whether anyone chose it. A top-level key, like the rest.
+     */
+    val weightUnitChosen: Boolean = false,
     /** Global, as the prototype. A day can override it through `Day.mealGroups`. */
     val mealGroups: Boolean = true,
     /**
@@ -289,6 +299,22 @@ data class Settings(
      */
     fun heightUnitOr(regionDefault: HeightUnit): HeightUnit =
         heightUnit ?: if (weightUnit == WeightUnit.Lb) HeightUnit.FtIn else regionDefault
+
+    /**
+     * These settings with [weightUnit] as the person should see it: what is stored once they picked
+     * it ([weightUnitChosen]), once onboarding or Profile set their units ([heightUnit]), or when it
+     * is not the stored default; before any of that, [regionDefault]. Height has always fallen back
+     * to the region ([heightUnitOr]) and weight did not, so an American who never reached a unit
+     * question saw 5'11" on Profile and kilograms on Weight, logged "170" as 170 kg, and resting
+     * energy came out near 2,700 instead of 1,760. Nothing is written: the fallback is read, as
+     * height's is.
+     */
+    fun withRegionWeightUnit(regionDefault: WeightUnit): Settings =
+        if (weightUnitChosen || heightUnit != null || weightUnit != WeightUnit.Kg || weightUnit == regionDefault) {
+            this
+        } else {
+            copy(weightUnit = regionDefault)
+        }
 
     fun isFavorite(foodKey: String): Boolean = foodKey in favoriteFoods
 
