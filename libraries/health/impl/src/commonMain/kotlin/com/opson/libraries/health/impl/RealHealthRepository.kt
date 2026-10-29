@@ -204,6 +204,8 @@ class RealHealthRepository(
         whileConnected {
             channelFlow {
                 var last: List<HealthWorkout>? = null
+                // Unknown until the first read, which waits for the app to be in front: never hold a screen on it.
+                send(null)
                 readOnTicks {
                     val range = dayRange(day, timeZone)
                     val value = if (range == null) {

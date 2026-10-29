@@ -19,14 +19,40 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
       because an entitlement with no HealthKit UI risks guideline 2.5.1 on a
       0.1.x hotfix. The framework link and `NSHealthShareUsageDescription`
       are already in.
-- [ ] Play Console, App content › Health apps: declare the four Health
-      Connect read permissions before any Android upload that includes them.
+- [ ] Play Console, App content › Health apps: declare the six Health
+      Connect read permissions before any Android upload that includes them:
+      `READ_TOTAL_CALORIES_BURNED`, `READ_ACTIVE_CALORIES_BURNED`,
+      `READ_BASAL_METABOLIC_RATE`, `READ_EXERCISE`, `READ_WEIGHT` and
+      `READ_HEIGHT` (the manifest in `libraries/health/impl` and
+      `HealthConnectReader.PERMISSIONS`). Weight and height were added on
+      2026-10-29 for the weigh-in import and Profile's Fill in. Each needs its
+      reason: energy and exercise for what was burned and the Activity card,
+      weight for weigh-ins the person chooses to add, height for their profile.
+- [ ] Privacy before the flag flips: weigh-ins added from the health app and
+      details filled into Profile join the person's Opson log, which syncs, so
+      that data leaves the phone once the person turns it on or taps Fill in.
+      `legal/privacy.md` and `legal/health-data.md` say health data is read on
+      the phone only; add that these two, when the person asks, are stored
+      with their account like a typed weigh-in. Then decide the App Privacy
+      answer for Health and Fitness (weight, height, from HealthKit, linked to
+      the user) and the Play data safety form. Energy and workouts still never
+      leave the phone. The HealthKit usage string in `Info.plist` already says
+      which is which.
+- [ ] App Review note: Opson reads active and resting energy, workouts,
+      weight, height, date of birth and biological sex; it writes nothing; it
+      observes HealthKit only while open (no background delivery).
 - [x] The privacy paragraph is in `legal/privacy.md` ("Features that may not
       be in your version yet"), checked against the code on 2026-10-27. Health
       data stays on the device, so the App Store label doesn't change.
 - [ ] Check the rationale activity's privacy URL
       (`https://nightjarlabs.llc/opson/privacy`).
-- [ ] Try the real permission flows on an iPhone and an Android phone.
+- [ ] Try the real permission flows on an iPhone and an Android phone. On
+      the iPhone also: a phone that already shares with Opson in the Health
+      app shows Connected without tapping Connect; a build that connected
+      before workouts and weight were read shows the Allow row; Disconnect
+      stops Today reading; a workout finished while Opson is open shows on
+      the Activity card within a minute. On Android: no health read in the
+      background (Burned keeps its last value, never the everyday estimate).
 
 ## Still to build for Health
 
@@ -36,6 +62,9 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
   states the safety rule, so build it to the design and mark the numbers
   `TODO(clinician)`.
 - Wear OS / Apple Watch quick-log rows (with the watch work, wave 2).
+- Direct integrations beyond Apple Health and Health Connect (Fitbit on
+  iPhone first): `docs/research/health-integrations.md`. Each moves health
+  data to the server, so they wait for the privacy work above.
 
 ## Barcode (`release.barcode`)
 

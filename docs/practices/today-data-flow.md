@@ -6,6 +6,8 @@ Written 2026-10-29 from the code on `main` (`adc7c8ec`). Links are relative to t
 
 Today never calls the network. Everything on it is read on the device: the diary's Room tables (foods, water, day records, meal notes, weigh-ins, fasts, exercise), the persisted Settings cache, a few caches that live only on this phone, the remote-config snapshot for release flags, and the platform health store (HealthKit or Health Connect) for energy. Three view models (Today, the Activity card, and Medication's contributed card) combine those as Flows and rebuild their state through pure builders on every emission, so a local write is on screen at once. The server reaches Today only through `DiarySyncer`, which pulls into Room on sign-in, cold boot, warm foreground and reconnect; Room's flows then carry the change to the screen. Health is the one input that is not reactive. It is polled every five minutes while something collects it, with no re-read on foreground, no observer query and no background delivery. Nothing runs in the background on either platform, and there is no pull-to-refresh anywhere in the app. The cheapest real fix is to re-read health on foreground and share one health stream between its four readers.
 
+**Since then (health, 2026-10-29):** gaps 1, 2, 3 and 6 below are done. Every reader of a day's energy shares one flow in `RealHealthRepository`; it reads only while the app is in front (`HealthAppForeground`), on first collection, on every foreground, when HealthKit's observer query fires, every 5 minutes and on pull to refresh, with a 30-second floor for reads nobody asked for. A failed read keeps the last good value, and the last reading is saved (`AppData.healthEnergy`) so a cold start shows it at once; with nothing saved a screen hears "nothing yet" after 2 seconds instead of waiting on the store. Today has pull to refresh (`TodayRefreshViewModel`): `DiarySync.syncNow()` and `HealthRecords.refreshNow()` together, up to 10 seconds, with a short line when nothing new came in. The rows below that describe health are as they were on `adc7c8ec`.
+
 ## The picture
 
 ```mermaid
@@ -183,7 +185,7 @@ Two accidental ways to force a read today: leave and come back to today in the d
 
 ## Pull to refresh
 
-There is none. A search for `PullToRefresh`, `pullRefresh`, `refreshable` and `UIRefreshControl` across Kotlin and Swift finds nothing, and Today's list in [TodayScreen.kt](../../features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayScreen.kt) is a plain `LazyColumn`. `DiarySync.syncNow()` exists, but only sign-out and the data export in Settings call it.
+Added on 2026-10-29 (see the note under Summary). Before that there was none. A search for `PullToRefresh`, `pullRefresh`, `refreshable` and `UIRefreshControl` across Kotlin and Swift finds nothing, and Today's list in [TodayScreen.kt](../../features/today/impl/src/commonMain/kotlin/com/opson/features/today/impl/TodayScreen.kt) is a plain `LazyColumn`. `DiarySync.syncNow()` exists, but only sign-out and the data export in Settings call it.
 
 ## Gaps and what to do, in order
 

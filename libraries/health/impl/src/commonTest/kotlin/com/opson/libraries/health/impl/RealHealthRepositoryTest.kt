@@ -469,7 +469,9 @@ class RealHealthRepositoryTest {
         repoTest(FakeReader(workouts = listOf(run, lift))) { repository, _ ->
             repository.refresh()
             repository.workouts(today, TimeZone.UTC).test {
-                assertEquals(listOf(lift, run), awaitItem())
+                // Unknown first, so a screen never waits on the store.
+                val first = awaitItem()
+                assertEquals(listOf(lift, run), first ?: awaitItem())
                 cancelAndIgnoreRemainingEvents()
             }
         }
