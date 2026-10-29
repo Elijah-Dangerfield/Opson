@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl
 
+import com.opson.features.onboarding.OnboardingSetupEnabled
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.ProviderSummaryEnabled
 import com.opson.libraries.config.AppConfigMap
@@ -234,6 +235,13 @@ fun todaySummaryFlag(on: Boolean = false): TodaySummaryEnabled = TodaySummaryEna
 fun findSupportFlag(on: Boolean = false): FindSupportEnabled = FindSupportEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("findSupport" to on))
+    },
+)
+
+/** `release.onboardingSetup`, on or off: the weight goal and its row on Targets. */
+fun weightGoalsFlag(on: Boolean = false): OnboardingSetupEnabled = OnboardingSetupEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("onboardingSetup" to on))
     },
 )
 

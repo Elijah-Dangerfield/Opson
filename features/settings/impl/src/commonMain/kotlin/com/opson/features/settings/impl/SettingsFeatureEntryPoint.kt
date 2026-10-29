@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.home.FeedbackRoute
+import com.opson.features.onboarding.GoalSetupRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.settings.EnergyExplainerRoute
 import com.opson.features.settings.EnergyTodayRoute
@@ -271,6 +272,7 @@ class SettingsFeatureEntryPoint(
                     TargetsEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                     TargetsEvent.OpenMicroTargets -> router.navigate(MicroTargetsRoute())
                     TargetsEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
+                    TargetsEvent.OpenGoalSetup -> router.navigate(GoalSetupRoute(GoalSetupRoute.FROM_TARGETS))
                     is TargetsEvent.OpenExplainer -> router.navigate(EnergyExplainerRoute(event.topic.wire))
                     TargetsEvent.Close -> router.goBack()
                 }

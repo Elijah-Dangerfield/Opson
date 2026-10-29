@@ -4,7 +4,11 @@ import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.WeightGoal
+import com.opson.libraries.nutrition.WeightGoals
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
@@ -118,8 +122,26 @@ data class TargetsState(
     val burned: BurnedCard? = null,
     /** The Vitamins and minerals row: wherever the mode shows them, calories or not. */
     val micros: Boolean = false,
+    /** The weight goal's row at the top: whether it sets the target, or an offer to set one. Null where none is offered. */
+    val weightGoal: WeightGoalRow? = null,
 ) {
     val editingMacros: Boolean get() = macroEditor != null
+}
+
+/**
+ * Whether the weight goal sets the day's target (owner feedback, 2026-10-29: no silent conflicts).
+ * A goal stamps the aim it wrote ([WeightGoal.drives]); once the person moves the target by hand
+ * it is theirs, and the row says so instead of the goal quietly taking it back.
+ */
+sealed interface WeightGoalRow {
+    /** The goal sets it. [pace] is "0.5 lb" a week, where weight shows; null while keeping weight steady. */
+    data class Driving(val direction: GoalDirection, val pace: String?) : WeightGoalRow
+
+    /** A goal is set, and the target was changed since. [canUseGoal] once a typical day's burn is known. */
+    data class NotDriving(val canUseGoal: Boolean) : WeightGoalRow
+
+    /** No weight goal yet: an offer to set one. */
+    data object None : WeightGoalRow
 }
 
 /**
@@ -379,15 +401,19 @@ object TargetsStateBuilder {
         choosingActivity: Boolean = false,
         drafts: TargetsDrafts = TargetsDrafts(),
         findSupport: Boolean = true,
+        /** `release.onboardingSetup`: the weight goal and its flow. Off, there is no goal row. */
+        weightGoals: Boolean = false,
     ): TargetsState {
         val targets = settings.targets
         val preset = settings.numbers.preset
         val burnKcal = burned?.totalKcal
+        val goalRow = if (weightGoals) weightGoalRow(settings, policy, burned) else null
         if (!percentsShown(policy)) {
             // No calorie goal, but macros on show (Macros with grams) keep their gram targets.
             return TargetsState(
                 loaded = true,
                 visible = false,
+                weightGoal = goalRow,
                 micros = microsShown(policy),
                 macroMode = settings.macroMode,
                 macros = macros(targets, policy),
@@ -402,6 +428,7 @@ object TargetsStateBuilder {
         return TargetsState(
             loaded = true,
             visible = true,
+            weightGoal = goalRow,
             micros = microsShown(policy),
             style = style,
             styles = offered.map { kind ->
@@ -447,6 +474,36 @@ object TargetsStateBuilder {
     }
 
     private fun microsShown(policy: VisibilityPolicy): Boolean = policy.level(Metric.Micros) != Visibility.Hide
+
+    /**
+     * The weight goal's row, where a weight goal is offered at all: weight on show, numbers not
+     * hard, and not while pregnant or breastfeeding. "Just track" is an answer, so it gets the
+     * offer again rather than a goal it never set.
+     */
+    fun weightGoalRow(settings: Settings, policy: VisibilityPolicy, burned: Burned?): WeightGoalRow? {
+        if (policy.effectiveLevel(Metric.Weight, Surface.Settings) != Visibility.Show) return null
+        if (settings.onboarding.hard || settings.bodyStage != BodyStage.None) return null
+        val goal = settings.weightGoal
+        return when {
+            goal.direction == GoalDirection.Lose || goal.direction == GoalDirection.Gain || goal.direction == GoalDirection.Maintain ->
+                if (goal.drives(settings.targets)) {
+                    WeightGoalRow.Driving(
+                        goal.direction,
+                        pace = goal.kgPerWeek.takeIf { goal.direction.changesWeight && it > 0 }?.let { WeightGoals.weightText(it, settings.weightUnit) },
+                    )
+                } else {
+                    WeightGoalRow.NotDriving(canUseGoal = typicalBurnKcal(burned, settings) != null)
+                }
+            else -> WeightGoalRow.None
+        }
+    }
+
+    /**
+     * A typical day's burn: resting energy plus everyday activity, as the goal flow works it out,
+     * so "Use my goal" lands where the goal first did rather than on whatever today has synced.
+     */
+    fun typicalBurnKcal(burned: Burned?, settings: Settings): Int? =
+        burned?.resting?.kcal?.let { it + settings.everydayActivity.kcalFor(it) }
 
     /** Calories show on this page, and with them every amount and percent of the calorie goal. */
     fun percentsShown(policy: VisibilityPolicy): Boolean = policy.level(Metric.Calories) == Visibility.Show

@@ -1,5 +1,6 @@
 package com.opson.features.onboarding.impl
 
+import com.opson.features.onboarding.OnboardingSetupEnabled
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.WeighIn

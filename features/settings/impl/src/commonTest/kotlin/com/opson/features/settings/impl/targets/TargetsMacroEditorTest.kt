@@ -7,6 +7,7 @@ import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
 import com.opson.features.settings.impl.findSupportFlag
+import com.opson.features.settings.impl.weightGoalsFlag
 import com.opson.features.settings.impl.goalsAndEnergyFlag
 import com.opson.features.settings.impl.integrations.FakeCalendar
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
@@ -141,6 +142,7 @@ class TargetsMacroEditorTest : CoroutineTest() {
         FakeBurnedRepository(),
         FakeCalendar(),
         findSupportFlag(),
+        weightGoalsFlag(),
     ).also { it.takeAction(TargetsAction.MacroCardTapped) }
 
     private fun FakeSettingsRepository.targets(): Targets = state.value.targets

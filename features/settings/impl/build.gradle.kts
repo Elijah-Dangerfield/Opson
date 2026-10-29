@@ -49,6 +49,8 @@ kotlin {
         commonTest.dependencies {
             // FindSupportEnabled, and WebLinkLauncher for the fake dialer.
             implementation(projects.features.settings)
+            // OnboardingSetupEnabled, which gates Targets' weight goal row.
+            implementation(projects.features.onboarding)
             implementation(projects.libraries.navigation)
             implementation(projects.libraries.flowroutines.testing)
             // DeviceRegion, for Find support and the height unit.

@@ -65,7 +65,8 @@ kotlin {
             implementation(projects.features.today.impl)
             // BuildersEnabled (release.builders), for ConfigManifestRegistryDriftTest.
             implementation(projects.features.builder)
-            // release.onboardingSetup lives next to onboarding.
+            // release.onboardingSetup lives in onboarding's API, as Targets reads it too.
+            implementation(projects.features.onboarding)
             implementation(projects.features.onboarding.impl)
             // WidgetsEnabled (release.widgets), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.widgets)

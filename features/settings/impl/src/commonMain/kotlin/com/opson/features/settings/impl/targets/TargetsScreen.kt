@@ -227,6 +227,8 @@ fun TargetsScreen(
             DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
             return@SettingsPage
         }
+        // The weight goal comes first: it is what sets everything under it, when it does.
+        state.weightGoal?.let { WeightGoalCard(it, onAction) }
         if (!state.visible) {
             BackgroundCard(onAction)
             if (state.macros.isNotEmpty()) MacroCard(state, onAction)

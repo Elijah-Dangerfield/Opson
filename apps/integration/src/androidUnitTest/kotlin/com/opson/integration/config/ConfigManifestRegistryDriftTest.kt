@@ -11,7 +11,7 @@ import com.opson.features.logger.impl.PhotoEstimateEnabled
 import com.opson.features.logger.impl.SubmitFoodEnabled
 import com.opson.features.logger.impl.SearchOptionsEnabled
 import com.opson.features.logger.impl.VoiceLogEnabled
-import com.opson.features.onboarding.impl.OnboardingSetupEnabled
+import com.opson.features.onboarding.OnboardingSetupEnabled
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.ProviderSummaryEnabled
 import com.opson.features.today.impl.TodayFoodActionsEnabled

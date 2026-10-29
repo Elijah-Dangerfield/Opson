@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl.targets
 
 import androidx.lifecycle.viewModelScope
+import com.opson.features.onboarding.OnboardingSetupEnabled
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.energy.EnergyTopic
@@ -30,6 +31,7 @@ import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.nutrition.WeightGoals
 import com.opson.libraries.nutrition.fitMacrosTo
 import com.opson.libraries.nutrition.stepMacro
 import com.opson.libraries.nutrition.useMacroEnergy
@@ -83,6 +85,7 @@ class TargetsViewModel(
     burnedRepository: BurnedRepository,
     calendar: LocalCalendar,
     private val findSupport: FindSupportEnabled,
+    private val weightGoals: OnboardingSetupEnabled,
 ) : SEAViewModel<TargetsState, TargetsEvent, TargetsAction>(initialStateArg = TargetsState()) {
 
     private var inputs: TargetsAction.InputsArrived? = null
@@ -113,6 +116,8 @@ class TargetsViewModel(
             }
             is TargetsAction.StylePicked -> pickStyle(action.kind)
             TargetsAction.RestingEnergyTapped -> sendEvent(TargetsEvent.OpenRestingEnergy)
+            TargetsAction.ChangeGoalTapped -> sendEvent(TargetsEvent.OpenGoalSetup)
+            TargetsAction.UseGoalTapped -> settingsRepository.update { current -> withGoalTargets(current) ?: current }
             is TargetsAction.ExplainTapped -> sendEvent(TargetsEvent.OpenExplainer(action.topic))
             TargetsAction.MicrosTapped -> sendEvent(TargetsEvent.OpenMicroTargets)
             TargetsAction.ActivityTapped -> if (inputs?.healthConnected == true) {
@@ -285,6 +290,18 @@ class TargetsViewModel(
 
     private fun burnKcal(): Int? = inputs?.burned?.totalKcal
 
+    /**
+     * "Use my goal": the targets set from the weight goal again, from a typical day's burn as the
+     * goal flow first set them, and the goal stamped so it drives them. Null without a burn.
+     */
+    private fun withGoalTargets(current: Settings): Settings? {
+        val burn = TargetsStateBuilder.typicalBurnKcal(inputs?.burned, current) ?: return null
+        val goal = current.weightGoal.takeIf { it.isSet } ?: return null
+        val aim = WeightGoals.aimKcal(goal, burn, current.bodySex, current.bodyStage)
+        val (stamped, targets) = WeightGoals.apply(goal, current.targets, aim, scaleMacros = current.macroMode == MacroMode.Ratios)
+        return current.copy(weightGoal = stamped, targets = targets)
+    }
+
     private suspend fun step(action: TargetsAction.StepTapped) {
         var block: StepBlock? = null
         change { current ->
@@ -320,6 +337,7 @@ class TargetsViewModel(
                 choosingActivity = choosingActivity,
                 drafts = drafts,
                 findSupport = findSupport(),
+                weightGoals = weightGoals(),
             )
         }
     }
@@ -347,6 +365,9 @@ sealed interface TargetsEvent {
 
     /** Find support, from the note under a low goal or a fast pace. */
     data object OpenFindSupport : TargetsEvent
+
+    /** The goal flow, from the weight goal's row. */
+    data object OpenGoalSetup : TargetsEvent
     data object Close : TargetsEvent
 }
 
@@ -367,6 +388,12 @@ sealed interface TargetsAction {
     data object RestingEnergyTapped : TargetsAction
     data class ExplainTapped(val topic: EnergyTopic) : TargetsAction
     data object MicrosTapped : TargetsAction
+
+    /** "Change goal", or "Set a weight goal", on the weight goal's row. */
+    data object ChangeGoalTapped : TargetsAction
+
+    /** "Use my goal": the weight goal sets the target again. */
+    data object UseGoalTapped : TargetsAction
 
     /** The Activity row: the health app's page when one is connected, else everyday activity's choices. */
     data object ActivityTapped : TargetsAction

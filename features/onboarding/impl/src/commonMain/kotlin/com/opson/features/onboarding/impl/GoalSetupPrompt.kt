@@ -3,6 +3,7 @@
 package com.opson.features.onboarding.impl
 
 import com.opson.features.onboarding.GoalSetupRoute
+import com.opson.features.onboarding.OnboardingSetupEnabled
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.nutrition.BodyStage
