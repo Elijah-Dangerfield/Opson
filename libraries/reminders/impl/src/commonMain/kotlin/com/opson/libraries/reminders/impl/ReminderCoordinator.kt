@@ -184,7 +184,7 @@ class ReminderCoordinator(
     }
 
     private suspend fun resolve(reminder: Reminder, settings: Settings): ReminderNotification {
-        val text = ReminderCopy.text(reminder.key, settings.tone)
+        val text = ReminderCopy.text(reminder.key)
         return ReminderNotification(
             reminder = reminder,
             title = strings.get(text.title),

@@ -36,7 +36,7 @@ class DefaultReminderTestFire(
         val settings = settingsRepository.settings.value.let {
             if (it.mealReminderLevel == EventLevel.Off) it.copy(remindersChosen = true, remindersEvent = EventLevel.Full) else it
         }
-        val text = ReminderCopy.text(key, settings.tone)
+        val text = ReminderCopy.text(key)
         notifications.add(
             ReminderNotification(
                 reminder = Reminder(key, at = clock.now() + DELAY, snoozed = true),

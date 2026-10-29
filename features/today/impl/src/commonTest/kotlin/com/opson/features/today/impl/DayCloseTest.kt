@@ -40,7 +40,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.plus
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.today_dayclose_title_warm
+import opson.libraries.resources.generated.resources.today_dayclose_title
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -200,8 +200,8 @@ class DayCloseTest : CoroutineTest() {
     }
 
     @Test
-    fun warmToneRetitles() {
-        assertEquals(Res.string.today_dayclose_title_warm, build(PresetId.Full, settings = Settings(tone = Tone.Warm)).title)
+    fun aWarmToneStoredBeforeItWasRemoved_keepsThePlainTitle() {
+        assertEquals(Res.string.today_dayclose_title, build(PresetId.Full, settings = Settings(tone = Tone.Warm)).title)
     }
 
     private val diary = FakeDiaryRepository(listOf(TodayFixtures.day(dinner = true).copy(note = "Dinner at Lola's")))
@@ -505,11 +505,11 @@ class DayCloseTest : CoroutineTest() {
         val balance = assertNotNull(state.balance)
         assertEquals(BalanceDirection.Over, balance.direction)
         assertEquals("308 kcal", balance.difference.text())
-        // 1,750 less 500 is under the floor of 1,500, so the goal is 1,500: a 250 deficit.
+        // 1,750 less 500: the goal is 1,250, a 500 deficit, and the day came in 308 over.
         val plan = assertNotNull(balance.plan)
         assertEquals(PlanKind.Deficit, plan.kind)
         assertEquals(PlanResult.Opposite, plan.result)
-        assertEquals("250 kcal", plan.planned.text())
+        assertEquals("500 kcal", plan.planned.text())
         assertNotNull(state.bigDay)
     }
 

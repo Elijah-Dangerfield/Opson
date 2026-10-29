@@ -56,7 +56,7 @@ they come from:
 | `search`         | `search-preview__full-light`                 |
 | `describe`       | `logger-previews__logger-describe`           |
 | `targets-by-day` | `targets-screen__targets-by-day`             |
-| `modes`          | `modes-screen__modes`                        |
+| `modes`          | `display-screen__display`                    |
 | `trends`         | `trends-previews__trends`                    |
 | `support`        | `support-screen__support`                    |
 

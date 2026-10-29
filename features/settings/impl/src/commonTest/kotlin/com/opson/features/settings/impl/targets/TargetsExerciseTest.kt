@@ -5,6 +5,7 @@ import com.opson.features.settings.impl.FakePolicySource
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.findSupportFlag
 import com.opson.features.settings.impl.goalsAndEnergyFlag
 import com.opson.features.settings.impl.integrations.FakeCalendar
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
@@ -65,6 +66,7 @@ class TargetsExerciseTest : CoroutineTest() {
             goalsAndEnergyFlag(),
             FakeBurnedRepository(),
             FakeCalendar(),
+            findSupportFlag(),
         )
 
     @Test

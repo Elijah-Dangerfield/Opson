@@ -9,7 +9,8 @@ Day close in `day-close.md`. Read `shared.md` first.
 
 The owner's latest export is the spec now (`docs/plans/design-sync-2.md`). Ids:
 every `today-previews__*` pair plus the unpaired `today-macros`, `today-sticky`,
-`today-collapsed`, `today-select`, `today-swipe-delete`, `today-delete-confirm`.
+`today-select`, `today-swipe-delete`, `today-delete-confirm`. (`today-collapsed`
+went with the collapse, 2026-10-29.)
 The manifest notes are the behaviour spec. Where this section and the older
 ones below disagree, this section wins.
 
@@ -21,7 +22,7 @@ screens below with none of the new behaviour.
 
 | Flag | Class | What it turns on |
 |---|---|---|
-| `release.todaySummary` | `TodaySummaryEnabled` | The macros page, the stats row, pager dots, the collapse chevron and collapsed line, the sticky bar, long-press to customise, the stats section of Edit Today's cards, and the Weight row. |
+| `release.todaySummary` | `TodaySummaryEnabled` | The macros page, the stats row, pager dots, the sticky bar, long-press to customise, the stats section of Edit Today's cards, and the Weight row. |
 | `release.todaySelect` | `TodaySelectEnabled` | Long-press to select foods and the bottom bar (Move, Copy to…, Delete), dragging picked foods to another meal with Undo, swipe to delete with the inline confirmation, Undo after a removal, and "Move to…" on Uncategorized. Reworked for design sync 4: see `today-actions.md`. |
 | `release.foodActions` | `TodayFoodActionsEnabled` | A food row's ⋮ and the food's sheet with Change amount, Move, Copy to another day, Edit a copy and Add to favorites (design sync 4, `today-actions.md`). |
 | `release.checkIn` | `CheckInEnabled` | The check-in sheet (`CheckInRoute`: hunger on the 1 to 10 scale, energy, mood, sleep in the morning, mood tags), its tile on the + sheet and its row on Close the day in every mode, in place of Blind's "How did today feel?". |
@@ -66,19 +67,19 @@ screens below with none of the new behaviour.
 ### Summary card with `release.todaySummary`
 
 `TodaySummary.Energy` gains `bar: List<BarPart>`, `stats: List<StatTile>` and
-`macrosPage: MacrosPage?`. The state gains `summaryPage`, `collapsed`,
-`compact: CompactSummary?` (the sticky bar per page and the collapsed line, as
+`macrosPage: MacrosPage?`. The state gains `summaryPage`,
+`compact: CompactSummary?` (the sticky bar per page, as
 `CompactPart`s: a value with its metric, a meal count, a logged count),
 `weight: WeightRow?` and `summaryTools`.
 
 | Piece | Rule |
 |---|---|
-| Pages | Energy only, not on an empty day: page 1 energy, page 2 macros when `todayMacrosPage` and some macro is visible. Both pages compose at once and the card is as tall as the taller (`SwipePages`, `:libraries:ui`). The page left on is saved (`SummaryPageShown`). |
+| Pages | Energy only, not on an empty day: page 1 energy, page 2 macros when `todayMacrosPage` and some macro is visible, page 3 nutrients. Every page composes at once and the card is as tall as the page showing; mid-swipe its height runs between the two pages' in step with the finger, worked out in the measure pass so a swipe never recomposes (`SwipePages`, `:libraries:ui`). The page left on is saved (`SummaryPageShown`). On the nutrients page a tap anywhere on the card opens the Nutrients screen, as See all does; its rows have no tap of their own. |
 | Stats row | Up to 3 `SummaryStat`s in the person's order (`todaySummaryStats`), or the suggestion from the first onboarding goal when they never chose: changing weight → Expended, Deficit so far, Meals; eating regularly → Meals, To your range, Water; eating enough or training → Protein, Meals, To your range; anything else → Expended, To your range, Meals. A stat that resolves Hidden drops out. None on an empty day. |
 | Stat values | Expended: `EnergyOut`, today only. Deficit so far: expended less eaten, floor 0, only where `TargetStyle.deficitAllowed(preset)` and both energies Show. To your range: the gap to the low end through `Calories`, only with `Remaining` at Show; inside the range "On target", above it "Above range" (the policy's words). Meals: "3 of 4". Protein, carbs, fat, fiber: "51 g" or their soft word. Water: glasses "3 of 8" unless water is Hide. |
 | Macros page | "Macros / of 1,245 kcal", the four macros 2×2 in `GoalStyle.Slash` with bars, then the split bar with each Show macro's share of energy ("Carbs 52%"). A macro at Hide drops its row and its share. |
 | Sticky bar | Under the pinned header once the card has scrolled away. Energy page 1: "1,245 kcal · range 1,900 to 2,300" and the split bar; page 2: "P 51 · C 162 · F 44". Soft: meals and the lead macro. Focus: each nutrient's word. Locked: "3 meals logged". Everything else (Blind, Rhythm, Mindful, Explorer, revealed): "3 of 4 meals". Tap scrolls to the top. |
-| Collapsed | Chevron on the card, saved in `todaySummaryCollapsed`. The card becomes one pinned line: page 1's first value then page 2's ("1,245 kcal · P 51 · C 162 · F 44"), the bar, and a chevron to expand. Other cards collapse to their sticky line. One line, ellipsised. |
+| Collapse | Gone (owner feedback, 2026-10-29). The card only shrinks to the sticky bar as it scrolls away. `todaySummaryCollapsed` is still in Settings for 0.1 clients and is read by nothing; a card collapsed before opens whole. |
 | Customise | Long-press the card, or Edit Today's cards: the sheet gains a Summary card section ("Suggested from your goals: Changing my weight", Reset), page 1's stats with checkboxes and drag handles (Move up and Move down as accessibility actions), at most 3 ticked; a stat the levels don't allow shows a lock and "Hidden in Modes and numbers" and opens Modes; Deficit so far is listed only where deficits are offered. Then "Page 2 · Macros" with a switch, then the existing cards. Done closes. |
 | Weight row | The day's latest weigh-in, "This morning · 7:02 AM", through `Metric.Weight` on `Surface.Today` with the 14-day slope, so Soften reads "Steady" and Hide removes the row. Opens Weight. |
 
@@ -155,7 +156,7 @@ switch turns it off any more: the flag alone.
 ### Leak test
 
 New entries in `TodayLeakSurfaces`, built through the real builder and run in
-every preset: `today-sticky` (the bar for both pages), `today-collapsed`,
+every preset: `today-sticky` (the bar for both pages),
 `today-macros`, `today-select`, `today-select-remove`, `today-swipe-delete`,
 `today-weight`, `day-close-check-in`. Added to `REQUIRED_SURFACES`.
 
@@ -163,10 +164,10 @@ every preset: `today-sticky` (the bar for both pages), `today-collapsed`,
 
 - `TodayStateBuilderTest`: the split bar (a hidden macro merges), stats (each goal's
   suggestion, chosen order, hidden drops, deficit only where allowed), the macros
-  page, compact lines per layout and level, the collapsed line, weight at Show,
+  page, compact lines per layout and level, weight at Show,
   Soften and Hide, selection totals in Full and Blind, flags off.
-- `TodayViewModelTest`: each new action, including Undo after a removal, page and
-  collapsed saved to settings, one open row at a time, scroll closing it.
+- `TodayViewModelTest`: each new action, including Undo after a removal, the page
+  saved on the phone, one open row at a time, scroll closing it.
 - `TodayCardsTest`: toggle, the limit of 3, move, reset, a locked stat opens Modes,
   the page 2 switch.
 - `DayCloseTest`: the check-in row shows the day's check-in and opens the sheet,
@@ -182,7 +183,7 @@ every preset: `today-sticky` (the bar for both pages), `today-collapsed`,
 Design sync 4's 13.1, 13.2a, 13.2b and 13.6. With the flag on, in a layout
 whose card is Full numbers' (calories on show), page 1 is `EnergyCard`
 (`TodayEnergyCard.kt`, drawn in `TodayEnergyCardViews.kt`); the macros page,
-dots, collapse and sticky bar are unchanged. Off, page 1 is design sync 2's.
+dots and sticky bar are unchanged. Off, page 1 is design sync 2's.
 
 - **Presets** (`Settings.todayCard`): In and out (default: Eaten split by macro
   with the range box, Burned split resting and active), Range bar (one bar,
@@ -220,6 +221,30 @@ Previews (`TodayPreviews.kt`): `today-summary-in-out`, `-in-out-light`,
 `today-summary-equation`, `today-deficit-goal`, `today-surplus-goal`,
 `today-rings`. Leak surfaces: `today-summary-in-out`, `today-summary-range-bar`,
 `today-summary-rings`, `today-summary-equation`, `today-screen-settings`.
+
+## Activity card (`release.exercise`, 2026-10-29)
+
+Burned's section was renamed Activity and moved under the meals: food is what
+Today is for. `activity/TodayActivity.kt` builds it from `BurnedRepository`,
+its own view model, so Today's builder is untouched; `TodayScreen` places it as
+the last row.
+
+- **Lines that add up to the total**: Resting energy (and where it came from;
+  opens Resting energy), then either Active energy from the health app
+  ("Includes 330 kcal from workouts") or Everyday activity at the person's
+  level, then logged Exercise, then Digesting food when "Count digesting food"
+  is on. A rule and Total burned under them.
+- **A health app counting activity** is named under the title, "From Apple
+  Health" with a check, as Integrations' Connected pill. The store's workouts
+  are not imported as entries (`HealthReader` reads energy sums only), so they
+  show as the workouts part of Active energy. The + goes: the watch already
+  logs workouts, and a line says adding one by hand counts it twice unless the
+  watch missed it. "Add exercise your watch missed" (outlined, at the bottom)
+  opens the sheet with "My watch didn't record this" already on
+  (`ExerciseRoute.notOnWatch`). Without a health app the + stays in the header.
+- Previews `today-activity-previews__*` (manual, from Apple Health, with and
+  without entries, with digesting food); leak surfaces `today-activity` and
+  `today-activity-health`, both with digesting food counted.
 
 ## Source
 - Design v3: `today-full`, `today-empty`, `today-delayed-locked`, `today-blind`, `today-nutrient-focus`, `today-fuel`, `today-rhythm`, `today-explorer`, `today-mindful`, `today-plan-tomorrow`, `today-day-menu`, `today-added`, and the manifest notes for each.

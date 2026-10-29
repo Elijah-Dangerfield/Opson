@@ -276,7 +276,7 @@ object TodayFixtures {
     /** A busy day's Burned: 2,560 in all, so [deficit500] aims at 2,060 and the day's 2,058 sits right on it. */
     val activeBurned: Burned = Burned(RestingEnergy(1610, RestingFrom.Calculated), movementKcal = 650, workoutKcal = 300)
 
-    /** A quiet day's Burned: 1,750, so [surplus300] aims at its floor of 2,100 and the day's 2,058 is about 300 over. */
+    /** A quiet day's Burned: 1,750, so [surplus300] aims at about 2,050 and the day's 2,058 is about 300 over. */
     val quietBurned: Burned = Burned(RestingEnergy(1610, RestingFrom.Calculated), movementKcal = 140)
 
     /** v3 `today-full`'s "Expended so far 1,990 kcal": 1,580 resting and 410 active, 150 of it in a workout. */

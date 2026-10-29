@@ -250,7 +250,7 @@ object PatternsStateBuilder {
                 }
             },
         )
-        inputs.settings.askTags && facts.taggedMeals > 0 -> HungerCard(
+        facts.taggedMeals > 0 -> HungerCard(
             days = DayOfWeek.entries.map { day ->
                 HungerDay(day, facts.hungerByWeekday[day]?.let { (it / MealPatterns.HUNGER_STEPS).toFloat() })
             },

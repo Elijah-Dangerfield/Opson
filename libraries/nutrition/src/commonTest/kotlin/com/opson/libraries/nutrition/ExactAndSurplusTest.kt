@@ -47,11 +47,12 @@ class ExactAndSurplusTest {
 
     @Test
     fun oneNumber_cannotGoBelowTheFloor() {
-        val exact = base.useExact()
+        assertEquals(2050, base.useExact().stepNumber(up = false)?.energyKcal, "under where it started is fine")
+        val exact = base.withEnergy(MIN_GOAL_KCAL).useExact()
         assertFalse(exact.canStepNumber(up = false))
         assertNull(exact.stepNumber(up = false))
         val raised = requireNotNull(exact.stepNumber(up = true))
-        assertEquals(2100, raised.stepNumber(up = false)?.energyKcal, "back down to where it started, no further")
+        assertEquals(exact.energyKcal, raised.stepNumber(up = false)?.energyKcal, "back down to the minimum, no further")
     }
 
     @Test
@@ -92,8 +93,9 @@ class ExactAndSurplusTest {
     @Test
     fun surplus_isNeverBelowTheFloor_evenOnALowBurnDay() {
         val surplus = base.copy(style = TargetStyle.Surplus(100, 100))
-        // 1,500 burned plus 100 would be 1,600; the floor is where the user started, 2,100.
-        assertEquals(DayGoal.About(2100), surplus.rangeFor(monday, PresetId.Full, burnKcal = 1500))
+        assertEquals(DayGoal.About(1600), surplus.rangeFor(monday, PresetId.Full, burnKcal = 1500))
+        // 1,000 burned plus 100 would be 1,100; a goal Opson works out never goes under 1,200.
+        assertEquals(DayGoal.About(LOW_GOAL_FEMALE_KCAL), surplus.rangeFor(monday, PresetId.Full, burnKcal = 1000))
     }
 
     @Test
@@ -155,7 +157,7 @@ class ExactAndSurplusTest {
     fun aGroupsNumber_steps_andKeepsTheFloor() {
         val exact = requireNotNull(twoGroups().shapeGroup(1, GroupShape.Exact))
         assertEquals(DayGoal.Exact(2550, groupIndex = 1), exact.stepNumber(up = true, group = 1)?.rangeFor(saturday, PresetId.Full))
-        val atFloor = requireNotNull(base.useByDay().shapeGroup(0, GroupShape.Exact))
+        val atFloor = requireNotNull(base.withEnergy(MIN_GOAL_KCAL).useByDay().shapeGroup(0, GroupShape.Exact))
         assertNull(atFloor.stepNumber(up = false, group = 0))
         assertNull(exact.stepNumber(up = true, group = 5), "no such group")
     }

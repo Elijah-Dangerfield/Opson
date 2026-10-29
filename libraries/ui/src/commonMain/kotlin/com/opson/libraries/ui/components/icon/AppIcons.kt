@@ -87,6 +87,7 @@ import androidx.compose.material.icons.rounded.LunchDining
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.MonitorWeight
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PhotoLibrary
@@ -186,6 +187,7 @@ object AppIcons {
     val BookmarkAdd get() = icon("bookmark_add", MaterialIcons.Rounded.BookmarkAdd)
     val History get() = icon("history", MaterialIcons.Rounded.History)
     val MonitorWeight get() = icon("monitor_weight", MaterialIcons.Rounded.MonitorWeight)
+    val Person get() = icon("person", MaterialIcons.Rounded.Person)
     val Schedule get() = icon("schedule", MaterialIcons.Rounded.Schedule)
     val LockClock get() = icon("lock_clock", MaterialIcons.Rounded.LockClock)
 
@@ -339,7 +341,7 @@ object AppIcons {
             Fruit, Icecream, SetMeal, Egg, Bread, SoupKitchen, LocalCafe, StarOutline, Info, Add, Remove,
             AddCircle, ContentCopy, Delete, ViewAgenda, CheckCircleOutline, MoreVert, EventNote, Lock,
             DashboardCustomize, WaterDrop, LocalDrink, BarcodeScanner, PhotoCamera, PhotoLibrary, Mic, Stop,
-            EditNote, PostAdd, Edit, Bookmark, BookmarkAdd, EditOutline, History, MonitorWeight,
+            EditNote, PostAdd, Edit, Bookmark, BookmarkAdd, EditOutline, History, MonitorWeight, Person,
             Schedule, LockClock, HourglassTop, Close, Check, CheckCircle, RadioButtonUnchecked, MoreHoriz,
             ChevronLeft, ChevronRight, SwapHoriz, Tune, Search, SearchOff, Cancel, ArrowBack, ExpandMore,
             ExpandLess, DragIndicator, AutoAwesome, Settings, CalendarToday,

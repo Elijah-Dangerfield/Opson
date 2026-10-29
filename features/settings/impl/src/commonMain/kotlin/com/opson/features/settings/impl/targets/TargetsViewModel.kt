@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl.targets
 
 import androidx.lifecycle.viewModelScope
+import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.todayscreen.TodayScreenSettingsStateBuilder
 import com.opson.libraries.diary.LocalCalendar
@@ -18,6 +19,7 @@ import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.GroupShape
+import com.opson.libraries.nutrition.MAX_GOAL_KCAL
 import com.opson.libraries.nutrition.MAX_MACRO_G
 import com.opson.libraries.nutrition.MacroPreset
 import com.opson.libraries.nutrition.Metric
@@ -41,6 +43,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.settings_targets_ceiling_toast
 import opson.libraries.resources.generated.resources.settings_targets_deficit_cap_toast
 import opson.libraries.resources.generated.resources.settings_targets_floor_toast
 import opson.libraries.resources.generated.resources.settings_targets_gap_toast
@@ -49,14 +52,22 @@ import opson.libraries.resources.generated.resources.settings_targets_surplus_ca
 
 /**
  * Targets. Every change runs inside [SettingsRepository.update] against the settings it is
- * about to replace, so the floor and the deficit and surplus caps are checked in the same step as
- * the write: a refused step writes nothing and the toast says what the number is based on.
- * Picking a goal style writes it at once (design sync 4, 13.2e).
+ * about to replace, so the lowest and highest a goal goes and the deficit and surplus caps are
+ * checked in the same step as the write: a refused step writes nothing and the toast says why.
+ * Picking a goal style writes it at once (design sync 4, 13.2e). A low goal is never refused; the
+ * state carries a note instead ([TargetsState.safety]).
+ *
+ * Different by day starts with two groups, every day in the first and none in the second, so the
+ * days can be picked straight away. A tap on a day moves it into that group, or back to the first
+ * ([Targets.toggleDay]); no tap can leave a day in no group or in two.
  *
  * With `release.goalsAndEnergy` on, today's Burned ([BurnedRepository]) is what a set deficit or
  * surplus is aimed at, and what one starts from when picked; without a health app it is resting
  * energy plus everyday activity. Off, nothing reads it, and the deficit and surplus are not
  * offered.
+ *
+ * The low-goal note links to Find support only with `release.findSupport`, as the pause sheet's
+ * link does; without it the note stands alone.
  *
  * Typed fields (one number, a macro) keep what is typed on screen and write only once it is a
  * value the step rules allow, so typing "2150" writes once and "21" never reaches sync.
@@ -70,14 +81,14 @@ class TargetsViewModel(
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     burnedRepository: BurnedRepository,
     calendar: LocalCalendar,
+    private val findSupport: FindSupportEnabled,
 ) : SEAViewModel<TargetsState, TargetsEvent, TargetsAction>(initialStateArg = TargetsState()) {
 
     private var inputs: TargetsAction.InputsArrived? = null
     private val today = calendar.today()
 
     // What is open on the page. Kept here rather than read back from state, because a write
-    // (a new group) lands as new inputs after the action that opened it.
-    private var editingGroup: Int? = null
+    // lands as new inputs after the action that opened it.
     private var editingMacros: Boolean = false
     private var choosingActivity: Boolean = false
     private var drafts = TargetsDrafts()
@@ -126,10 +137,14 @@ class TargetsViewModel(
                     current.targets.stepNumber(action.up, action.group, scaleMacros = current.macroMode == MacroMode.Ratios)
                         .also { refused = it == null }
                 }
-                if (refused) toast(Toast(Res.string.settings_targets_floor_toast))
+                if (refused) toast(Toast(if (action.up) Res.string.settings_targets_ceiling_toast else Res.string.settings_targets_floor_toast))
                 rebuild(action)
             }
             is TargetsAction.NumberTyped -> typeNumber(action)
+            TargetsAction.NumberDone -> {
+                drafts = drafts.copy(numberDone = drafts.number != null)
+                rebuild(action)
+            }
             is TargetsAction.SurplusStepped -> {
                 var refused = false
                 change { current -> current.targets.stepSurplus(action.up, action.group).also { refused = it == null } }
@@ -146,21 +161,10 @@ class TargetsViewModel(
                 }
                 shape?.let { current.targets.shapeGroup(action.group, it, burnKcal()) }
             }
-            is TargetsAction.DayTapped -> change { it.targets.moveDay(action.day, action.group) }
-            TargetsAction.AddGroupTapped -> {
-                val added = change { it.targets.addDayGroup() }
-                (added.style as? TargetStyle.ByDay)?.groups?.let { editingGroup = it.lastIndex }
-                rebuild(action)
-            }
-            is TargetsAction.EditGroupTapped -> {
-                editingGroup = if (editingGroup == action.group) null else action.group
-                rebuild(action)
-            }
-            is TargetsAction.RemoveGroupTapped -> {
-                editingGroup = null
-                change { it.targets.removeDayGroup(action.group) }
-                rebuild(action)
-            }
+            is TargetsAction.DayTapped -> change { it.targets.toggleDay(action.day, action.group) }
+            TargetsAction.AddGroupTapped -> change { it.targets.addDayGroup() }
+            is TargetsAction.RemoveGroupTapped -> change { it.targets.removeDayGroup(action.group) }
+            TargetsAction.FindSupportTapped -> if (findSupport()) sendEvent(TargetsEvent.OpenFindSupport)
             TargetsAction.MacroCardTapped -> {
                 editingMacros = !editingMacros
                 rebuild(action)
@@ -209,11 +213,10 @@ class TargetsViewModel(
                 StyleKind.Exact -> current.targets.useExact()
                 StyleKind.Deficit -> current.targets.useDeficit(burnKcal())
                 StyleKind.Surplus -> current.targets.useSurplus(burnKcal())
-                StyleKind.ByDay -> current.targets.useByDay()
+                StyleKind.ByDay -> current.targets.useByDay().let { it.addDayGroup() ?: it }
             }
             current.withStyle(targets)
         }
-        editingGroup = null
     }
 
     /**
@@ -224,7 +227,7 @@ class TargetsViewModel(
     private fun forgetDrafts(action: TargetsAction) {
         if (action is TargetsAction.InputsArrived) return
         if (action !is TargetsAction.MacroTyped) drafts = drafts.copy(macros = emptyMap())
-        if (action !is TargetsAction.NumberTyped) drafts = drafts.copy(number = null)
+        if (action !is TargetsAction.NumberTyped && action !is TargetsAction.NumberDone) drafts = drafts.copy(number = null, numberDone = false)
     }
 
     private fun Settings.withStyle(targets: Targets): Settings {
@@ -248,12 +251,12 @@ class TargetsViewModel(
 
     private suspend fun typeNumber(action: TargetsAction.NumberTyped) {
         val text = NumberInput.sanitize(action.text, allowDecimal = false).take(MAX_GOAL_DIGITS)
-        drafts = drafts.copy(number = text)
+        drafts = drafts.copy(number = text, numberDone = false)
         rebuild(action)
         val kcal = text.toIntOrNull() ?: return
         change { current ->
             val targets = current.targets
-            if (targets.style != TargetStyle.Exact || kcal < targets.floorKcal || kcal == targets.energyKcal) return@change null
+            if (targets.style != TargetStyle.Exact || kcal !in targets.floorKcal..MAX_GOAL_KCAL || kcal == targets.energyKcal) return@change null
             targets.withEnergy(kcal, scaleMacros = current.macroMode == MacroMode.Ratios)
         }
     }
@@ -289,6 +292,7 @@ class TargetsViewModel(
         }
         when (block) {
             StepBlock.Floor -> toast(Toast(Res.string.settings_targets_floor_toast))
+            StepBlock.Ceiling -> toast(Toast(Res.string.settings_targets_ceiling_toast))
             StepBlock.Gap -> toast(Toast(Res.string.settings_targets_gap_toast))
             null -> Unit
         }
@@ -306,7 +310,6 @@ class TargetsViewModel(
                 settings,
                 policy,
                 burned = burned,
-                editingGroup = editingGroup,
                 editingMacros = editingMacros,
                 healthConnected = healthConnected,
                 goalsAndEnergy = goalsAndEnergy(),
@@ -314,6 +317,7 @@ class TargetsViewModel(
                 today = today,
                 choosingActivity = choosingActivity,
                 drafts = drafts,
+                findSupport = findSupport(),
             )
         }
     }
@@ -335,6 +339,9 @@ sealed interface TargetsEvent {
     data object OpenMicroTargets : TargetsEvent
     data object OpenModes : TargetsEvent
     data object OpenIntegrations : TargetsEvent
+
+    /** Find support, from the note under a low goal or a fast pace. */
+    data object OpenFindSupport : TargetsEvent
     data object Close : TargetsEvent
 }
 
@@ -372,16 +379,25 @@ sealed interface TargetsAction {
     /** The one number's field, as typed. */
     data class NumberTyped(val text: String) : TargetsAction
 
+    /** The keyboard's Done on the one number's field: a number under the minimum now says so. */
+    data object NumberDone : TargetsAction
+
     /** One step on a surplus: the style's, or day group [group]'s. */
     data class SurplusStepped(val up: Boolean, val group: Int? = null) : TargetsAction
 
     /** "Start from today's burn", for a deficit or surplus that began at 0 with nothing known. */
     data object StartFromBurnTapped : TargetsAction
     data class GroupShapePicked(val group: Int, val shape: ShapeKind) : TargetsAction
+
+    /** [day] in group [group]'s card: into that group, or back to the first ([Targets.toggleDay]). */
     data class DayTapped(val group: Int, val day: DayOfWeek) : TargetsAction
     data object AddGroupTapped : TargetsAction
-    data class EditGroupTapped(val group: Int) : TargetsAction
+
+    /** Group [group] goes, its days back to the first. The first group can't be removed. */
     data class RemoveGroupTapped(val group: Int) : TargetsAction
+
+    /** The link in the low-goal or fast-pace note. */
+    data object FindSupportTapped : TargetsAction
     data object MacroCardTapped : TargetsAction
     data class MacroModePicked(val mode: MacroMode) : TargetsAction
     data class MacroPresetPicked(val preset: MacroPreset) : TargetsAction

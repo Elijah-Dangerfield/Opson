@@ -56,12 +56,12 @@ import opson.libraries.resources.generated.resources.settings_more_about
 import opson.libraries.resources.generated.resources.settings_more_account
 import opson.libraries.resources.generated.resources.settings_more_guest
 import opson.libraries.resources.generated.resources.settings_more_log_out
-import opson.libraries.resources.generated.resources.settings_more_look
-import opson.libraries.resources.generated.resources.settings_more_look_sub
-import opson.libraries.resources.generated.resources.settings_more_modes
+import opson.libraries.resources.generated.resources.settings_more_display
 import opson.libraries.resources.generated.resources.settings_more_modes_changed
 import opson.libraries.resources.generated.resources.settings_more_plan
 import opson.libraries.resources.generated.resources.settings_more_plan_free
+import opson.libraries.resources.generated.resources.settings_more_profile
+import opson.libraries.resources.generated.resources.settings_more_profile_sub
 import opson.libraries.resources.generated.resources.settings_more_signed_in
 import opson.libraries.resources.generated.resources.settings_more_signed_in_as
 import opson.libraries.resources.generated.resources.settings_more_support
@@ -134,10 +134,10 @@ private fun List<MoreRow>.label(): StringResource? = when (val first = firstOrNu
 @Composable
 private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit) {
     when (row) {
-        is MoreRow.Modes -> {
+        is MoreRow.Display -> {
             val preset = stringResource(row.preset.label)
             SettingsRow(
-                title = stringResource(Res.string.settings_more_modes),
+                title = stringResource(Res.string.settings_more_display),
                 icon = AppIcons.Tune,
                 subtitle = if (row.changes > 0) {
                     stringResource(
@@ -153,6 +153,14 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
                 onClick = onClick,
             )
         }
+        MoreRow.Profile -> SettingsRow(
+            title = stringResource(Res.string.settings_more_profile),
+            icon = AppIcons.Person,
+            subtitle = stringResource(Res.string.settings_more_profile_sub),
+            chevron = true,
+            showDivider = showDivider,
+            onClick = onClick,
+        )
         MoreRow.Targets -> SettingsRow(
             title = stringResource(Res.string.settings_more_targets),
             icon = AppIcons.TrackChanges,
@@ -165,14 +173,6 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
             title = stringResource(Res.string.settings_more_today),
             icon = AppIcons.DashboardCustomize,
             subtitle = stringResource(Res.string.settings_more_today_sub),
-            chevron = true,
-            showDivider = showDivider,
-            onClick = onClick,
-        )
-        MoreRow.LookAndFeel -> SettingsRow(
-            title = stringResource(Res.string.settings_more_look),
-            icon = AppIcons.Palette,
-            subtitle = stringResource(Res.string.settings_more_look_sub),
             chevron = true,
             showDivider = showDivider,
             onClick = onClick,
@@ -244,6 +244,7 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         is MoreRow.LogOut -> SettingsRow(
             title = stringResource(Res.string.settings_more_log_out),
             icon = null,
+            destructive = true,
             subtitle = when {
                 row.account.guest -> stringResource(Res.string.settings_more_guest)
                 row.account.email != null -> stringResource(Res.string.settings_more_signed_in_as, row.account.email)
@@ -359,7 +360,7 @@ private val previewAccount = MoreAccount(email = "sam@example.com", guest = fals
 @Composable
 private fun MorePreview() {
     val settings = SettingsFixtures.settings().copy(quiet = true)
-    val state = MoreStateBuilder.build(settings, healthConnected = true, remindersOn = true, fastingReleased = true, widgetsOn = true)
+    val state = MoreStateBuilder.build(settings, healthConnected = true, remindersOn = true, fastingReleased = true, widgetsOn = true, goalsAndEnergyOn = true)
     SettingsPreview { MoreScreen(state, onAction = {}) }
 }
 

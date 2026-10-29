@@ -113,12 +113,12 @@ fun Targets.fitMacrosTo(goalKcal: Int): Targets {
  * The macros drive: the calorie goal becomes what they add up to, rounded to 10, the range moving
  * with it as a step does. Only for a goal that is the person's own number (a range or one
  * number); a deficit or surplus follows Burned, and day groups each have their own. Null there,
- * and null when it would put the goal under the floor, which only a dietitian can move.
+ * and null when it would put an end of the goal under the floor or over [MAX_GOAL_KCAL].
  */
 fun Targets.useMacroEnergy(): Targets? {
     if (style != TargetStyle.Range && style != TargetStyle.Exact) return null
     val kcal = (macroKcal / 10.0).roundToInt() * 10
-    if (kcal < floorKcal || minKcal + (kcal - energyKcal) < lowFloorKcal) return null
+    if (minKcal + (kcal - energyKcal) < floorKcal || maxKcal + (kcal - energyKcal) > MAX_GOAL_KCAL) return null
     return withEnergy(kcal)
 }
 

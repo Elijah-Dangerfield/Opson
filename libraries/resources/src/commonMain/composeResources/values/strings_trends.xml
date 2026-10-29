@@ -143,8 +143,8 @@
     <string name="trends_micro_coverage">%1$d of %2$d foods list it</string>
     <string name="trends_nutrient_open_foods">See which foods gave it</string>
     <string name="trends_micros_off_title">Vitamins and minerals are off</string>
-    <string name="trends_micros_off_body">Turn them on in Modes and numbers.</string>
-    <string name="trends_micros_off_link">Modes and numbers</string>
+    <string name="trends_micros_off_body">Turn them on in Display.</string>
+    <string name="trends_micros_off_link">Display</string>
     <string name="trends_nutrients_nothing">No nutrient detail in this mode. Your meals are all still logged.</string>
 
     <!-- Weight -->

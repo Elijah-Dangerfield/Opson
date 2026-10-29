@@ -98,6 +98,18 @@ object SettingsFixtures {
         ),
     )
 
+    /** Different by day just picked: every day in the first group, and an empty second one to pick days for. */
+    val newByDayTargets: Targets = requireNotNull(rangeTargets.useByDay().addDayGroup())
+
+    /** A range of 1,000 to 1,400: its low end is under the low-goal line for anyone. */
+    val lowRangeTargets: Targets = rangeTargets.copy(energyKcal = 1200, minKcal = 1000, maxKcal = 1400)
+
+    /** A set deficit of 1,200, more than a healthy pace, picked against [activeBurned]. */
+    val fastDeficitTargets: Targets = rangeTargets.copy(style = TargetStyle.Deficit(kcal = 1200, startingKcal = 1200))
+
+    /** 3,400 burned on a very active day: a 1,200 deficit still leaves a 2,200 goal. */
+    val activeBurned: Burned = Burned(RestingEnergy(1800, RestingFrom.Calculated), movementKcal = 1600)
+
     /** One number, 2,200, raised from where the user started, so it can step down as well as up. */
     val exactTargets: Targets = rangeTargets.copy(energyKcal = 2200, minKcal = 2000, maxKcal = 2400, style = TargetStyle.Exact)
 

@@ -12,12 +12,13 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
- * How the summary card was left on this phone: the page it was swiped to and whether it is
- * collapsed. A null was never set here, and the builder falls back to what synced Settings held
- * before this moved, so nobody's choice is lost on the update.
+ * How the summary card was left on this phone: the page it was swiped to. A null was never set
+ * here, and the builder falls back to what synced Settings held before this moved, so nobody's
+ * choice is lost on the update. It also held whether the card was collapsed, until the collapse
+ * went (2026-10-29); a stored value is ignored on read.
  */
 @Serializable
-data class TodayCardView(val page: Int? = null, val collapsed: Boolean? = null)
+data class TodayCardView(val page: Int? = null)
 
 /**
  * Keeps [TodayCardView] on the device. It used to live in synced Settings, where a swipe queued the

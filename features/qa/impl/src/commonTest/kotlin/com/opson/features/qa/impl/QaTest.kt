@@ -9,7 +9,6 @@ import com.opson.libraries.config.ConfigOverrideRepository
 import com.opson.libraries.config.QaConfigValue
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.foods.db.FoodCacheEntity
@@ -153,9 +152,8 @@ class QaTest : CoroutineTest() {
     }
 
     /** A config whose values follow the overrides, as the real repository merges them. */
-    private class Fixture(settings: Settings = Settings()) {
+    private class Fixture {
         val calendar = FakeCalendar()
-        val settings = FakeSettingsRepository(settings)
         val overrides = FakeOverrides()
         val appCache = FakeAppCache()
         val fire = FakeTestFire()

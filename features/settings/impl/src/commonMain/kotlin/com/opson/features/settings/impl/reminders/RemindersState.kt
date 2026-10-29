@@ -3,7 +3,6 @@ package com.opson.features.settings.impl.reminders
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
-import com.opson.libraries.diary.Tone
 import com.opson.libraries.reminders.NotificationPermission
 import com.opson.libraries.ui.time.DateCopy
 import kotlinx.datetime.LocalTime
@@ -12,6 +11,10 @@ import kotlinx.datetime.LocalTime
  * Reminders and celebrations (v3 `reminders.png`). No row carries a nutrition number, so the
  * page resolves nothing through the policy; the notification it controls carries none either
  * (`ReminderCopy`).
+ *
+ * How we talk to you and the two check-in switches (hunger and fullness when adding food, the
+ * day-close check-in) are gone: the voice is the brand's, and a question anyone can skip needs no
+ * off switch. Their `Settings` keys stay so older JSON round-trips, and nothing reads them.
  */
 data class RemindersState(
     val quiet: Boolean = true,
@@ -19,10 +22,6 @@ data class RemindersState(
     /** What will actually happen: Off until the person chose ([Settings.mealReminderLevel]). */
     val mealLevel: EventLevel = EventLevel.Off,
     val meals: List<MealReminderRow> = emptyList(),
-    val tone: Tone = Tone.Plain,
-    val askTags: Boolean = true,
-    /** "Check in at day close": `null` while `release.checkIn` is off, so the row isn't drawn. */
-    val checkIn: Boolean? = null,
     val permission: NotificationPermission = NotificationPermission.Granted,
     /** The time dialog, open on this meal. */
     val pickingTime: MealSlot? = null,
@@ -46,7 +45,6 @@ object RemindersStateBuilder {
         settings: Settings,
         permission: NotificationPermission = NotificationPermission.Granted,
         pickingTime: MealSlot? = null,
-        checkInReleased: Boolean = false,
     ): RemindersState {
         val level = settings.mealReminderLevel
         return RemindersState(
@@ -62,9 +60,6 @@ object RemindersStateBuilder {
                     timeLabel = DateCopy.time(time.hour, time.minute),
                 )
             },
-            tone = settings.tone,
-            askTags = settings.askTags,
-            checkIn = settings.checkIn.takeIf { checkInReleased },
             permission = permission,
             pickingTime = pickingTime,
         )

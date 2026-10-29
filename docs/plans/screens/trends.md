@@ -466,7 +466,7 @@ weeks`: the 28 days ending today.
 2. **How big each meal is** (calories Show): a bar split by each meal's share,
    then per meal `445 kcal · 21%`. Removed in Blind: even percentages reveal
    amounts. In its place, **How often**: `Breakfast` / `22 of 28 days` per meal.
-3. **Hunger by weekday** (hunger tags on, `settings.askTags`, and some
+3. **Hunger by weekday** (some meals
    tagged): a bar per weekday, height the average hunger of that weekday's
    tagged meals (Not hungry 0 to Very hungry 3, over 3), `From your
    check-ins`, and the optional skipped-breakfast fact. Design sync 2. With

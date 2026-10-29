@@ -10,7 +10,6 @@ import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
-import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.Burned
@@ -34,7 +33,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_dayclose_title
-import opson.libraries.resources.generated.resources.today_dayclose_title_warm
 import org.jetbrains.compose.resources.StringResource
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -246,7 +244,7 @@ object DayCloseStateBuilder {
         val balance = if (shown) balance(inputs, policy, eaten, range) else null
         return DayCloseState(
             loading = false,
-            title = if (settings.tone == Tone.Warm) Res.string.today_dayclose_title_warm else Res.string.today_dayclose_title,
+            title = Res.string.today_dayclose_title,
             day = day.date,
             backLabel = RelativeDay.of(day.date, today),
             recap = when {

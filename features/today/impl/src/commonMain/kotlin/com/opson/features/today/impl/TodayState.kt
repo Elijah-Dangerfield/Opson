@@ -63,13 +63,11 @@ data class TodayState(
     val menu: DayMenu? = null,
     /** The fasting card (0.2), from [TodayFastingCard]; null when it does not show. */
     val fasting: FastingStatus? = null,
-    /** `release.todaySummary`: the dots, the chevron, long-press to customise, the sticky bar. */
+    /** `release.todaySummary`: the dots, long-press to customise, the sticky bar. */
     val summaryTools: Boolean = false,
     /** The summary page left open, by its place in [TodaySummary.Energy.pages]. Remembered on this phone across days and restarts. */
     val summaryPage: Int = 0,
-    /** The summary shrunk to one pinned line by choice. */
-    val collapsed: Boolean = false,
-    /** The summary as one line: the sticky bar for each page, and the collapsed line. */
+    /** The summary as one line: the sticky bar for each page. */
     val compact: CompactSummary? = null,
     /** The day's latest weigh-in, through the weight level. */
     val weight: WeightRow? = null,
@@ -111,8 +109,8 @@ data class NutrientsPage(val rows: List<KeyNutrient>)
 
 /**
  * "Sodium, of a 2,300 mg limit, 38%". [reference] is the amount the percent is of, formatted.
- * [notListed]: no food today lists it, so the row says so instead of a percent. [opensFoods]: a
- * food gave some, so a tap lists them.
+ * [notListed]: no food today lists it, so the row says so instead of a percent. A row has no tap
+ * of its own: the whole page opens the Nutrients screen, where each one lists its foods.
  */
 data class KeyNutrient(
     val micro: Micronutrient,
@@ -121,13 +119,12 @@ data class KeyNutrient(
     val isLimit: Boolean,
     val display: Display,
     val notListed: Boolean = false,
-    val opensFoods: Boolean = false,
 )
 
 data class MacroShare(val metric: Metric, val label: StringResource, val share: Display, val weight: Float)
 
-/** The summary as one line (2.1c, 2.1d). [pages] are the sticky bar per page; [collapsed] joins page 1's lead to page 2's. */
-data class CompactSummary(val pages: List<CompactLine>, val collapsed: CompactLine)
+/** The summary as one line (2.1c): the sticky bar, one [pages] entry per card page. */
+data class CompactSummary(val pages: List<CompactLine>)
 
 data class CompactLine(val parts: List<CompactPart>, val bar: CompactBar? = null)
 
@@ -362,9 +359,6 @@ sealed interface TodayAction {
     data object DayLabelTapped : TodayAction
     data object NutrientsTapped : TodayAction
 
-    /** A row on the card's nutrients page: which foods gave it. */
-    data class KeyNutrientTapped(val micro: Micronutrient) : TodayAction
-
     /** The summary card's "Energy ›" (design sync 4): Energy today. */
     data object EnergyTapped : TodayAction
 
@@ -415,8 +409,6 @@ sealed interface TodayAction {
 
     // The summary card (release.todaySummary)
     data class SummaryPageShown(val page: Int) : TodayAction
-    data object CollapseTapped : TodayAction
-    data object ExpandTapped : TodayAction
     data object SummaryLongPressed : TodayAction
     data object WeightTapped : TodayAction
 
@@ -467,8 +459,6 @@ sealed interface TodayEvent {
     data class OpenDayClose(val day: LocalDate) : TodayEvent
     data class OpenNutrients(val day: LocalDate) : TodayEvent
 
-    /** The foods that gave [micro] on [day]. */
-    data class OpenNutrientFoods(val day: LocalDate, val micro: Micronutrient) : TodayEvent
     data object OpenNotes : TodayEvent
     data object OpenEnergyToday : TodayEvent
     data class OpenLogger(val day: LocalDate, val slot: MealSlot?) : TodayEvent

@@ -71,7 +71,7 @@ Reached from the header check, the Day menu, never from Note (see `shared.md`).
 ```kotlin
 data class DayCloseState(
     val loading: Boolean = true,
-    val title: StringResource,           // tone: "Close the day" / "How today went"
+    val title: StringResource,           // "Close the day"
     val backLabel: RelativeDay,
     val revealNote: Boolean,             // level(Calories) == Delay, totals shown, day is today
     val totals: DayTotals?,              // calories effectively Show on DayClose
@@ -144,7 +144,7 @@ prefix per feature); the table drops the `today_` for space.
 
 | Key | String |
 |---|---|
-| `dayclose_title` / `_title_warm` | Close the day / How today went |
+| `dayclose_title` | Close the day |
 | `dayclose_back` | ‹ %s |
 | `dayclose_reveal_note` | Your totals are open now. They'll lock again tomorrow morning. |
 | `dayclose_kcal_today` / `_kcal_that_day` (new) | kcal today / kcal that day |
@@ -175,5 +175,5 @@ prefix per feature); the table drops the `today_` for space.
 - `DayCloseStateBuilderTest`: Full under range (no card), Full over max (card, Offered), Subtle (card, Hidden buttons), Off (no card), Fuel (soft, no card), Delayed at noon today (totals, reveal note), Delayed on a past day (totals, no reveal note), Coast (meals line), Blind (meals line, no protein label), tomorrow equals `Targets.tomorrow()` whatever eaten is.
 - `DayCloseViewModelTest`: note prefills once and is not overwritten by later emissions; `CommitmentTapped` writes nothing to any repository; `DoneTapped` closes with the trimmed note and emits `Close`; `BackTapped` writes nothing.
 - Domain: `Targets.tomorrow()` ignores activity (exists), `resolveRange` (new).
-- Previews: big day Full, Delayed reveal, Fuel, Blind, past day, warm tone.
+- Previews: big day Full, Delayed reveal, Fuel, Blind, past day.
 - `SURFACES`: `day-close`, `day-close-big-day` (both `showsCaloriesInFull = true`).

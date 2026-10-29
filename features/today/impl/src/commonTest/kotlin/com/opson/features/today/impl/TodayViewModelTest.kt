@@ -11,7 +11,6 @@ import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.Display
-import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
@@ -230,16 +229,6 @@ class TodayViewModelTest : CoroutineTest() {
         vm.takeAction(TodayAction.NutrientsTapped)
 
         assertEquals(listOf<TodayEvent>(TodayEvent.OpenNutrients(today)), events)
-    }
-
-    @Test
-    fun aNutrientOnTheCard_opensItsFoodsForThisDay() = runUnitTest {
-        val vm = vm()
-        val events = events(vm)
-
-        vm.takeAction(TodayAction.KeyNutrientTapped(Micronutrient.Iron))
-
-        assertEquals(listOf<TodayEvent>(TodayEvent.OpenNutrientFoods(today, Micronutrient.Iron)), events)
     }
 
     @Test
@@ -590,50 +579,42 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun thePageLeftOpenAndTheCollapseAreSavedForNextTime() = runUnitTest {
+    fun thePageLeftOpenIsSavedForNextTime() = runUnitTest {
         val vm = vm(summaryOn = true)
 
         vm.takeAction(TodayAction.SummaryPageShown(1))
         assertEquals(1, vm.state.summaryPage)
         assertEquals(1, vm(summaryOn = true).state.summaryPage, "the next Today opens on it")
-
-        vm.takeAction(TodayAction.CollapseTapped)
-        assertTrue(vm.state.collapsed)
-
-        vm.takeAction(TodayAction.ExpandTapped)
-        assertFalse(vm.state.collapsed)
     }
 
     /**
-     * Swiping the card or collapsing it is view state. Saved in Settings, each swipe queued the whole
-     * settings object, and a phone that had not pulled yet pushed back the mode another phone had
-     * just left.
+     * Swiping the card is view state. Saved in Settings, each swipe queued the whole settings
+     * object, and a phone that had not pulled yet pushed back the mode another phone had just left.
      */
     @Test
-    fun swipingOrCollapsingTheCard_neverWritesSettings() = runUnitTest {
+    fun swipingTheCard_neverWritesSettings() = runUnitTest {
         val vm = vm(summaryOn = true)
         val before = settings.state.value
 
         vm.takeAction(TodayAction.SummaryPageShown(1))
-        vm.takeAction(TodayAction.CollapseTapped)
-        vm.takeAction(TodayAction.ExpandTapped)
 
         assertEquals(before, settings.state.value)
     }
 
-    /** A choice made before the card's view moved to the phone still holds until it is changed here. */
+    /**
+     * A choice made before the card's view moved to the phone still holds until it is changed here.
+     * A card collapsed back then opens whole: there is no collapse any more.
+     */
     @Test
-    fun aPageSavedInSettingsBeforeTheMove_stillOpens() = runUnitTest {
+    fun aPageSavedInSettingsBeforeTheMove_stillOpens_andAnOldCollapseIsIgnored() = runUnitTest {
         settings.state.value = Settings(todaySummaryPage = 1, todaySummaryCollapsed = true)
         val vm = vm(summaryOn = true)
         assertEquals(1, vm.state.summaryPage)
-        assertTrue(vm.state.collapsed)
+        assertTrue(todayRows(vm.state).any { it is TodayRow.Summary }, "the card is in the list, not shrunk to a line")
 
         vm.takeAction(TodayAction.SummaryPageShown(0))
-        vm.takeAction(TodayAction.ExpandTapped)
 
         assertEquals(0, vm.state.summaryPage)
-        assertFalse(vm.state.collapsed)
     }
 
     /** The card's view is the signed-in person's. After a user change the next account opens on its own choice. */
@@ -641,13 +622,11 @@ class TodayViewModelTest : CoroutineTest() {
     fun aUserChange_dropsTheCardViewLeftByThePreviousAccount() = runUnitTest {
         val vm = vm(summaryOn = true)
         vm.takeAction(TodayAction.SummaryPageShown(1))
-        vm.takeAction(TodayAction.CollapseTapped)
 
         cardView.clear(previousUserId = "previous")
-        settings.state.value = Settings(todaySummaryPage = 0, todaySummaryCollapsed = false)
+        settings.state.value = Settings(todaySummaryPage = 0)
 
         assertEquals(0, vm.state.summaryPage)
-        assertFalse(vm.state.collapsed)
         assertEquals(0, vm(summaryOn = true).state.summaryPage, "a fresh Today opens on the new account's page")
     }
 
