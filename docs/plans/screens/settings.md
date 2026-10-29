@@ -521,11 +521,27 @@ Everyday activity is not asked: `burnedFor` leaves it out then, so the page
 says "Apple Health measures your activity, so we don't need to guess." With
 activity switched off the everyday baseline counts again, so it is asked.
 Every amount is energy out on `Surface.Settings`; with it hidden, no amount
-shows, not even the person's own.
+shows, not even the person's own. With nothing missing, the Your profile row
+reads back what the calculation is given ("Male, 28, 5 ft 11 in, 170.0 lb",
+"your latest weigh-in" where weight is hidden), so a detail in the wrong unit
+is easy to spot.
+
+**The energy words and their (i) sheets.** One set of terms everywhere:
+Resting energy (BMR), Everyday activity, Exercise, Digesting food, and Total
+burned (TDEE) for their sum; compact places (Today's card, back labels) drop
+the abbreviation. An (i) on Resting energy's intro, Energy today's and
+Targets' Burned, a set deficit or surplus, and Today's Activity card total
+opens `EnergyExplainerRoute(topic)`, a sheet in plain words: what the term is,
+how Opson works it out, why a watch differs, the rough 3,500 calorie rule for a
+deficit, and the person's own working (Mifflin-St Jeor term by term, today's
+parts of Burned, today's goal from Burned) wherever their mode shows those
+numbers. The working needs energy out and, for resting energy, weight on show;
+the 3,500 rule needs calories; digesting food is only a part where it counts.
+Leak surfaces `energy-explainer-resting`, `-burned` and `-balance`.
 
 **Energy today (13.2c)**, `EnergyTodayRoute()`, for Today's summary card to
 link to. Eaten with its ± and "Likely 1,145 to 1,345. 5 of 7 foods are
-estimates.", Burned with resting, daily movement and workouts and where each
+estimates.", Total burned (TDEE) with resting energy, everyday activity and exercise and where each
 comes from, then "Deficit so far" (or "Surplus so far") and "To your range".
 Eaten is calories and Burned energy out, both on `Surface.Today`; the deficit
 needs both on show. The ± is `Day.eatenUncertainty(usual)` (`:libraries:diary`,
