@@ -216,6 +216,12 @@ data class Settings(
     val todayMainNumber: MainNumberChoice = MainNumberChoice.Follow,
     /** The card's toggle, remembered per goal style ([mainNumberKey] to [MainNumberChoice.wire]). */
     val todayMainNumberByStyle: Map<String, String> = emptyMap(),
+    /**
+     * How each of the card's other figures was last read ([FlipFigure.key] to [Reading.wire]): a
+     * tap on the macro row or a stat flips it, and the choice follows the person to their other
+     * phones. A top-level key like the rest; builds that predate it skip it.
+     */
+    val todayReadings: Map<String, String> = emptyMap(),
     /** "Resting 1,610 · Active 570" under the Burned bar. */
     val todayBurnedBreakdown: Boolean = true,
     /** "3 of 4 meals" on the card. */

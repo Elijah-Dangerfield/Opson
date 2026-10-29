@@ -45,7 +45,11 @@ import com.opson.libraries.nutrition.ui.currentVisibilityPolicy
 import com.opson.libraries.nutrition.ui.testTag
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.FlipContent
+import com.opson.libraries.ui.components.FlipControl
+import com.opson.libraries.ui.components.FlipIcon
 import com.opson.libraries.ui.components.HorizontalDivider
+import com.opson.libraries.ui.components.flipToggle
 import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.components.RangeBar
 import com.opson.libraries.ui.components.RangeBarDefaults
@@ -102,8 +106,11 @@ fun SummaryCard(
     TodayCard(modifier = modifier.then(press), contentPadding = contentPadding, verticalArrangement = Arrangement.Top, content = content)
 }
 
-/** One stat in the row under the energy bar: "Expended / 1,990 kcal", "Meals / 3 of 4". */
-data class StatCell(val label: String, val metric: Metric?, val display: Display, val count: String? = null)
+/**
+ * One stat in the row under the energy bar: "Expended / 1,990 kcal", "Meals / 3 of 4". With
+ * [flip] a tap reads it the other way ("Deficit so far" and "Burned so far").
+ */
+data class StatCell(val label: String, val metric: Metric?, val display: Display, val count: String? = null, val flip: FlipControl? = null)
 
 /**
  * Page 1 (2.1): "Eaten" over the figure, your range on the right, the eaten bar split by macro
@@ -167,7 +174,10 @@ fun SummaryLabel(text: String, modifier: Modifier = Modifier, color: ColorResour
     Text(text = text, typography = AppTheme.type.secondaryStrong.Bold, color = color, modifier = modifier, maxLines = 1)
 }
 
-/** The stats under the bar, a line above them, each a label over its figure. Nothing when empty. */
+/**
+ * The stats under the bar, a line above them, each a label over its figure. Nothing when empty. A
+ * stat that flips is its own button, with ⇄ after its label, and its figure cross-fades.
+ */
 @Composable
 fun SummaryStatsRow(stats: List<StatCell>, modifier: Modifier = Modifier) {
     if (stats.isEmpty()) return
@@ -175,12 +185,17 @@ fun SummaryStatsRow(stats: List<StatCell>, modifier: Modifier = Modifier) {
         HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(vertical = AppTheme.spacing.section))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
             stats.forEach { stat ->
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    SummaryLabel(stat.label)
-                    if (stat.count != null) {
-                        CountFigure(stat.count)
-                    } else if (stat.metric != null) {
-                        NutrientFigure(stat.metric, stat.display, typography = AppTheme.type.cardTitle.Tabular, restTypography = AppTheme.type.secondary)
+                Column(Modifier.weight(1f).flipToggle(stat.flip), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        SummaryLabel(stat.label, modifier = Modifier.weight(1f, fill = false))
+                        if (stat.flip != null) FlipIcon(size = 16.dp)
+                    }
+                    FlipContent(stat.copy(flip = null)) { shown ->
+                        if (shown.count != null) {
+                            CountFigure(shown.count)
+                        } else if (shown.metric != null) {
+                            NutrientFigure(shown.metric, shown.display, typography = AppTheme.type.cardTitle.Tabular, restTypography = AppTheme.type.secondary)
+                        }
                     }
                 }
             }
@@ -209,19 +224,40 @@ fun CountFigure(
 
 /**
  * The macros as columns under the bar, each its name, amount and bar. Four (fiber too) sit closer
- * with a smaller name, so "Protein" still fits a phone's quarter of the card.
+ * with a smaller name, so "Protein" still fits a phone's quarter of the card. With [flip] the row
+ * is one button that reads every macro another way at once (grams eaten, left, a percent of the
+ * goal), and the line above ends in [reading], the word for how it reads now ("Left"), and ⇄. The
+ * bars keep showing what was eaten.
  */
 @Composable
-fun SummaryMacroColumns(macros: List<SummaryMacro>, modifier: Modifier = Modifier) {
+fun SummaryMacroColumns(macros: List<SummaryMacro>, modifier: Modifier = Modifier, flip: FlipControl? = null, reading: String? = null) {
     if (macros.isEmpty()) return
     val four = macros.size > 3
-    Column(modifier.fillMaxWidth()) {
-        HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(vertical = AppTheme.spacing.section))
+    Column(modifier.fillMaxWidth().flipToggle(flip)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = if (flip != null) 4.dp else AppTheme.spacing.section),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.weight(1f))
+            if (flip != null) {
+                if (reading != null) {
+                    FlipContent(reading) { SummaryLabel(it, color = AppTheme.colors.accent) }
+                }
+                FlipIcon(size = 16.dp)
+            }
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (four) AppTheme.spacing.row else AppTheme.spacing.page)) {
             macros.forEach { macro ->
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     MacroName(macro, typography = if (four) AppTheme.type.secondaryStrong.Bold else AppTheme.type.bodyBold)
-                    NutrientFigure(macro.metric, macro.display, typography = AppTheme.type.cardTitle.Tabular, restTypography = AppTheme.type.secondary)
+                    FlipContent(macro.word to macro.display) { (word, display) ->
+                        if (word != null && display !is Display.Hidden) {
+                            Text(text = word, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink, maxLines = 1)
+                        } else {
+                            NutrientFigure(macro.metric, display, typography = AppTheme.type.cardTitle.Tabular, restTypography = AppTheme.type.secondary)
+                        }
+                    }
                     MacroBar(macro, height = 6)
                 }
             }
@@ -241,7 +277,7 @@ private fun MacroName(macro: SummaryMacro, typography: TypographyResource = AppT
 private fun MacroBar(macro: SummaryMacro, height: Int) {
     NutrientBar(
         metric = macro.metric,
-        display = macro.display,
+        display = macro.bar,
         color = macro.color.color,
         trackColor = AppTheme.colors.track.color,
         modifier = Modifier.fillMaxWidth().height(height.dp),

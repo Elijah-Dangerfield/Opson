@@ -300,6 +300,7 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
                 todayCard = SummaryCardPreset.Equation,
                 todayMainNumber = MainNumberChoice.Eaten,
                 todayMainNumberByStyle = mapOf("range" to "balance"),
+                todayReadings = mapOf("macros" to "percent"),
                 todayMealsCount = true,
                 todayWater = false,
                 todayCloseDay = false,
@@ -327,6 +328,7 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
         assertEquals(SummaryCardPreset.Equation, settings.todayCard)
         assertEquals(MainNumberChoice.Eaten, settings.todayMainNumber)
         assertEquals(mapOf("range" to "balance"), settings.todayMainNumberByStyle)
+        assertEquals(mapOf("macros" to "percent"), settings.todayReadings, "the merge kept todayReadings")
         assertEquals(true, settings.todayMealsCount)
         assertFalse(settings.todayWater)
         assertFalse(settings.todayCloseDay)
@@ -441,7 +443,7 @@ class SettingsMergeAcrossVersionsTest : IntegrationTest() {
             "restingSource", "restingOwnKcal", "activityInBurned", "everydayActivity", "birthYear", "heightCm", "bodySex",
             "todayCard", "todayMainNumber", "todayMainNumberByStyle", "todayBurnedBreakdown", "todayMealsCount",
             "todayNutrientsLink", "todayWater", "todayWeight", "todayCloseDay",
-            "mode", "modeTimerEnded", "microTargets", "todayNutrients",
+            "mode", "modeTimerEnded", "microTargets", "todayNutrients", "todayReadings",
         )
 
         /** What Coast hid that Later on its own would only delay. */

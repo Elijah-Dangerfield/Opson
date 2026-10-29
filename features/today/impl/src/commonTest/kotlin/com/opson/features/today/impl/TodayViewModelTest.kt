@@ -4,6 +4,8 @@ import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.Fast
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.FastingStatus
+import com.opson.libraries.diary.FlipFigure
+import com.opson.libraries.diary.Reading
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MinuteTicker
@@ -1130,6 +1132,33 @@ class TodayViewModelTest : CoroutineTest() {
 
         assertEquals(mapOf("range" to "balance"), settings.state.value.todayMainNumberByStyle)
         assertEquals(MainKind.Deficit, (vm.state.summary as TodaySummary.Energy).card?.main?.kind)
+    }
+
+    @Test
+    fun mainNumberToggled_twice_landsOnEaten() = runUnitTest {
+        val vm = vm(summaryOn = true, goalsAndEnergyOn = true, burnedRepository = FakeBurnedRepository(TodayFixtures.burned))
+        vm.takeAction(TodayAction.MainNumberToggled)
+        vm.takeAction(TodayAction.MainNumberToggled)
+        assertEquals(mapOf("range" to "eaten"), settings.state.value.todayMainNumberByStyle)
+        assertEquals(MainKind.Eaten, (vm.state.summary as TodaySummary.Energy).card?.main?.kind)
+    }
+
+    @Test
+    fun figureFlipped_remembersTheMacroRowsReading_inSettings() = runUnitTest {
+        val vm = vm(summaryOn = true)
+        vm.takeAction(TodayAction.FigureFlipped(FlipFigure.Macros))
+        assertEquals(mapOf("macros" to "left"), settings.state.value.todayReadings)
+        assertEquals(Reading.Left, (vm.state.summary as TodaySummary.Energy).macroFlip?.current)
+
+        vm.takeAction(TodayAction.FigureFlipped(FlipFigure.Macros))
+        assertEquals(mapOf("macros" to "percent"), settings.state.value.todayReadings)
+    }
+
+    @Test
+    fun figureFlipped_onAFigureTheCardDoesNotFlip_writesNothing() = runUnitTest {
+        val vm = vm(summaryOn = true)
+        vm.takeAction(TodayAction.FigureFlipped(FlipFigure.DeficitSoFar))
+        assertEquals(emptyMap(), settings.state.value.todayReadings, "no Deficit so far stat on this card")
     }
 
     @Test

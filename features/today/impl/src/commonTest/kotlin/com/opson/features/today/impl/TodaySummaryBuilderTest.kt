@@ -2,6 +2,9 @@ package com.opson.features.today.impl
 
 import com.opson.libraries.diary.ui.SummaryStat
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.FlipFigure
+import com.opson.libraries.diary.Reading
+import com.opson.libraries.diary.withReading
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
@@ -19,6 +22,8 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.today_flip_reached
+import opson.libraries.resources.generated.resources.today_stat_burned_so_far
 import opson.libraries.resources.generated.resources.today_stat_to_goal
 import opson.libraries.resources.generated.resources.today_stat_to_range
 import opson.libraries.resources.generated.resources.trends_micro_calcium
@@ -37,6 +42,8 @@ import kotlin.test.assertTrue
  * Design sync 2 in [TodayStateBuilder]: the split eaten bar, the stats row, the macros page, the
  * one-line summary for the sticky bar and the collapsed card, the weight row, and selecting, each
  * through the real policy in the modes that change them. With the flags off none of it exists.
+ * Also how the macro row and the stats read once flipped; which readings a mode allows at all is
+ * `TodayFlipsTest`.
  */
 class TodaySummaryBuilderTest {
     private val weightChanger = Settings(onboarding = OnboardingAnswers(why = listOf("changing_weight")))
@@ -67,6 +74,7 @@ class TodaySummaryBuilderTest {
     private fun StatTile.text(): String? = when (val v = value) {
         is StatValue.Amount -> v.display.text()
         is StatValue.Count -> "${v.done} of ${v.total}"
+        is StatValue.ToGo -> "${v.left} to go"
     }
 
     @Test
@@ -425,5 +433,80 @@ class TodaySummaryBuilderTest {
 
         assertTrue(loose(on = true).fileable)
         assertFalse(loose(on = false).fileable)
+    }
+
+    // --- figures that flip (owner feedback, 2026-10-29) ---
+
+    @Test
+    fun theMacroRow_readsGramsLeft_andAPercentOfTheGoal_withItsBarsStillOnWhatWasEaten() {
+        val eaten = build().energy()
+        assertEquals(FlipState(FlipFigure.Macros, Reading.Eaten, Reading.Left), eaten.macroFlip)
+        assertTrue(eaten.macros.all { it.word == null })
+
+        val left = build(settings = Settings().withReading(FlipFigure.Macros, Reading.Left)).energy()
+        assertEquals(listOf("69 g", "88 g", "26 g", "12 g"), left.macros.map { it.display.text() }, "120, 250, 70 and 30 g goals")
+        assertTrue(left.macros.all { it.word == null }, "the row says Left once, above the columns")
+        assertEquals(eaten.macros.map { it.display }, left.macros.map { it.bar })
+        assertEquals(Reading.Percent, left.macroFlip?.next)
+
+        val percent = build(settings = Settings().withReading(FlipFigure.Macros, Reading.Percent)).energy()
+        assertEquals(listOf("43%", "65%", "63%", "60%"), percent.macros.map { it.display.text() })
+        assertTrue(percent.macros.all { it.word == null })
+        assertEquals(Reading.Eaten, percent.macroFlip?.next, "round again")
+    }
+
+    @Test
+    fun aMacroPastItsGoal_readsReached_neverZeroOrNegativeLeft() {
+        val settings = Settings(targets = Targets.Default.copy(proteinG = 40)).withReading(FlipFigure.Macros, Reading.Left)
+        val protein = build(settings = settings).energy().macros.first { it.metric == Metric.Protein }
+        assertEquals(Res.string.today_flip_reached, protein.word)
+        assertEquals("51 g", protein.bar.text())
+    }
+
+    @Test
+    fun afterNumbersHaveBeenHard_theMacroRowNeverReadsLeft() {
+        val hard = Settings(onboarding = OnboardingAnswers(hard = true))
+        assertEquals(Reading.Percent, build(settings = hard).energy().macroFlip?.next)
+        val stored = build(settings = hard.withReading(FlipFigure.Macros, Reading.Left)).energy()
+        assertEquals(Reading.Eaten, stored.macroFlip?.current, "a stored Left falls back")
+        assertEquals(build().energy().macros, stored.macros)
+    }
+
+    @Test
+    fun aSoftenedMacro_keepsItsWord_whicheverWayTheRowReads() {
+        val softProtein = policy(PresetId.Full, overrides = mapOf(Metric.Protein to Visibility.Soften))
+        val macros = build(softProtein, settings = Settings().withReading(FlipFigure.Macros, Reading.Left)).energy().macros
+        val protein = macros.first { it.metric == Metric.Protein }
+        assertIs<Display.Soft>(protein.display)
+        assertNull(protein.word)
+        assertEquals("88 g", macros.first { it.metric == Metric.Carbs }.display.text())
+    }
+
+    @Test
+    fun withEveryMacroSoftened_theRowDoesNotFlip() {
+        val soft = policy(PresetId.Full, overrides = Metric.entries.filter { it.isMacro }.associateWith { Visibility.Soften })
+        assertNull(build(soft).energy().macroFlip)
+    }
+
+    @Test
+    fun deficitSoFar_flipsToBurnedSoFar_withItsOwnLabel() {
+        val deficit = build(settings = weightChanger).energy().stats.first { it.stat == SummaryStat.DeficitSoFar }
+        assertEquals(FlipState(FlipFigure.DeficitSoFar, Reading.Deficit, Reading.Burned), deficit.flip)
+        val burned = build(settings = weightChanger.withReading(FlipFigure.DeficitSoFar, Reading.Burned)).energy().stats
+            .first { it.stat == SummaryStat.DeficitSoFar }
+        assertEquals("1,990 kcal", burned.text())
+        assertEquals(Res.string.today_stat_burned_so_far, burned.label)
+        assertEquals(Reading.Deficit, burned.flip?.next)
+    }
+
+    @Test
+    fun water_flipsToGlassesToGo() {
+        val settings = Settings(todaySummaryStats = listOf("water", "meals"))
+        val drunk = build(settings = settings).energy().stats.first { it.stat == SummaryStat.Water }
+        assertEquals("3 of 8", drunk.text())
+        assertEquals(Reading.Left, drunk.flip?.next)
+        val toGo = build(settings = settings.withReading(FlipFigure.Water, Reading.Left)).energy().stats.first { it.stat == SummaryStat.Water }
+        assertEquals("5 to go", toGo.text())
+        assertNull(build(settings = settings).energy().stats.first { it.stat == SummaryStat.Meals }.flip, "a count of meals reads one way")
     }
 }

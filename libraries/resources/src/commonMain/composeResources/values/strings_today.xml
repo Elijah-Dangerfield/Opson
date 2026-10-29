@@ -290,7 +290,6 @@
     <string name="today_card_ring_to_range">To range</string>
     <string name="today_card_ring_left">Left</string>
     <string name="today_card_ring_to_surplus">To surplus</string>
-    <string name="today_card_switch_cd">Switch the main number</string>
     <string name="today_card_energy">Energy</string>
     <string name="today_card_kcal">kcal</string>
     <string name="today_card_range">Range %1$s</string>
@@ -308,4 +307,27 @@
     <string name="today_card_left_line">%1$s left to target</string>
     <string name="today_card_to_surplus_line">%1$s to your surplus</string>
     <string name="today_card_meals">%1$d of %2$d meals</string>
+
+    <!-- Figures that flip to another reading on a tap, and what a screen reader offers ("double tap to show ...") -->
+    <string name="today_macros_eaten">Eaten</string>
+    <string name="today_macros_left">Left</string>
+    <string name="today_macros_percent">% of goal</string>
+    <string name="today_flip_reached">Reached</string>
+    <string name="today_stat_burned_so_far">Burned so far</string>
+    <string name="today_stat_water_to_go">%1$d to go</string>
+    <string name="today_compact_deficit">Deficit %1$s</string>
+    <string name="today_compact_surplus">Surplus %1$s</string>
+    <string name="today_flip_show_to_range">Show how far to your range</string>
+    <string name="today_flip_show_left">Show what's left to target</string>
+    <string name="today_flip_show_to_surplus">Show how far to your surplus</string>
+    <string name="today_flip_show_deficit">Show your deficit</string>
+    <string name="today_flip_show_surplus">Show your surplus</string>
+    <string name="today_flip_show_eaten">Show what you've eaten</string>
+    <string name="today_flip_show_grams">Show grams eaten</string>
+    <string name="today_flip_show_grams_left">Show grams left</string>
+    <string name="today_flip_show_percent">Show a percent of your goal</string>
+    <string name="today_flip_show_burned">Show burned so far</string>
+    <string name="today_flip_show_deficit_so_far">Show deficit so far</string>
+    <string name="today_flip_show_drunk">Show glasses drunk</string>
+    <string name="today_flip_show_to_go">Show glasses to go</string>
 </resources>

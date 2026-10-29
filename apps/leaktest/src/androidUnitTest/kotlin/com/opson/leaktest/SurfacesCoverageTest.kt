@@ -115,6 +115,7 @@ class SurfacesCoverageTest {
                 "today-notes",
                 "today-closed", "day-closed-sheet", "day-close-closed", "food-actions-closed",
                 "day-close-recap-deficit", "day-close-recap-surplus", "check-in",
+                "today-flipped", "today-flipped-percent", "today-flipped-stats", "today-sticky-flipped",
             ),
             "LoggerLeakSurfaces" to listOf(
                 "add-sheet", "add-sheet-expanded", "add-sheet-uncategorized",
@@ -178,6 +179,7 @@ class SurfacesCoverageTest {
             "today-activity", "today-activity-health", "exercise-sheet", "exercise-sheet-other",
             "provider-summary", "provider-summary-warning", "provider-summary-custom",
             "today-closed", "day-close-closed", "food-actions-closed", "day-close-recap-deficit", "day-close-recap-surplus",
+            "today-flipped", "today-flipped-percent", "today-flipped-stats", "today-sticky-flipped",
             "search-unverified", "food-detail-in-review", "submit-food-save-review", "foods-add-food-pack", "foods-unverified",
             "foods-repeating", "foods-repeat", "foods-repeat-edit",
             "food-detail-entry", "food-detail-entry-changed", "food-detail-entry-more", "food-detail-entry-quick",

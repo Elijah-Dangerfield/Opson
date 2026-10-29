@@ -14,7 +14,7 @@ import androidx.compose.ui.semantics.Role
 
 /**
  * A clickable that squashes to [scaleDown] under the finger and springs back. Screen readers hear
- * it as a [Role.Button] unless [role] says otherwise.
+ * it as a [Role.Button] unless [role] says otherwise, and [onClickLabel] as what a double tap does.
  *
  * `@Composable` rather than the deprecated `composed`: the press animation needs
  * a remembered [Animatable] and a `LaunchedEffect` collecting the interaction
@@ -30,6 +30,7 @@ fun Modifier.bounceClick(
     indication: Indication? = null,
     scaleDown: Float = 0.90f,
     role: Role? = Role.Button,
+    onClickLabel: String? = null,
     onClick: () -> Unit = {}
 ): Modifier {
 
@@ -58,6 +59,7 @@ fun Modifier.bounceClick(
             interactionSource = interactionSource,
             indication = indication,
             role = role,
+            onClickLabel = onClickLabel,
             onClick = onClick
         )
 }

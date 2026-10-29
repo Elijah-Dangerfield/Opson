@@ -6,6 +6,7 @@ import com.opson.libraries.diary.ui.SummaryStat
 import androidx.compose.runtime.Immutable
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FastingStatus
+import com.opson.libraries.diary.FlipFigure
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
@@ -97,13 +98,16 @@ data class BarPart(val metric: Metric?, val weight: Float)
  * A stat on page 1 of the summary: its value is an amount through the policy, or a count. [label] is
  * the stat's own, but "To your goal" for [SummaryStat.ToRange] when the day's goal is one number.
  */
-data class StatTile(val stat: SummaryStat, val value: StatValue, val label: StringResource = stat.label)
+data class StatTile(val stat: SummaryStat, val value: StatValue, val label: StringResource = stat.label, val flip: FlipState? = null)
 
 sealed interface StatValue {
     data class Amount(val metric: Metric, val display: Display) : StatValue
 
     /** "3 of 4" meals, or glasses of water. */
     data class Count(val done: Int, val total: Int) : StatValue
+
+    /** Glasses of water still to go: "5 to go", or "Reached" at none. */
+    data class ToGo(val left: Int) : StatValue
 }
 
 /** Page 2 (2.1b): "of 1,245 kcal", the macros two by two, and each Show macro's share of the energy. */
@@ -137,8 +141,11 @@ data class CompactLine(val parts: List<CompactPart>, val bar: CompactBar? = null
 data class CompactBar(val eaten: Display, val rangeStart: Float, val rangeEnd: Float, val parts: List<BarPart>)
 
 sealed interface CompactPart {
-    /** An amount, with [label] before it ("range 1,900 to 2,300", "Protein Partway"). */
-    data class Amount(val metric: Metric, val display: Display, val label: StringResource? = null) : CompactPart
+    /**
+     * An amount, with [label] before it ("range 1,900 to 2,300", "Protein Partway"), or set in
+     * [phrase] ("655 kcal to your range").
+     */
+    data class Amount(val metric: Metric, val display: Display, val label: StringResource? = null, val phrase: StringResource? = null) : CompactPart
 
     /** The macros as the meal headers write them: "51P 162C 44F". */
     data class Macros(val parts: List<MacroPart>) : CompactPart
@@ -218,6 +225,8 @@ sealed interface TodaySummary {
         val singleGoal: Boolean = false,
         /** Design sync 4's page 1 (`release.goalsAndEnergy`, All numbers); null draws the design sync 2 page. */
         val card: EnergyCard? = null,
+        /** How a tap reads [macros] instead, on either page 1; null when the levels leave the row one reading. */
+        val macroFlip: FlipState? = null,
     ) : TodaySummary {
         /** The pages the card swipes through, in order; the dots count them. */
         val pages: List<SummaryPage>
@@ -247,7 +256,18 @@ sealed interface TodaySummary {
     data class Counted(val done: Int, val next: MealSlot?, val nextAround: LocalTime?) : TodaySummary
 }
 
-data class MacroTile(val metric: Metric, val label: StringResource, val display: Display)
+/**
+ * A macro and its amount: grams eaten, or once the row is flipped grams left or a percent of the
+ * goal. [word] stands in for the amount ("Reached", for a macro past its goal read as left);
+ * [bar] is what was eaten, which the macro's bar keeps showing whichever way it reads.
+ */
+data class MacroTile(
+    val metric: Metric,
+    val label: StringResource,
+    val display: Display,
+    val word: StringResource? = null,
+    val bar: Display = display,
+)
 
 enum class SummaryPage { Energy, Macros, Nutrients }
 
@@ -380,8 +400,11 @@ sealed interface TodayAction {
     /** The summary card's "Energy ›" (design sync 4): Energy today. */
     data object EnergyTapped : TodayAction
 
-    /** The main number's label: switches it, remembered for the goal style. */
+    /** The main number: flips it to its next reading, remembered for the goal style. */
     data object MainNumberToggled : TodayAction
+
+    /** A tap on [figure] (the macro row, a stat): its next reading, remembered across phones. */
+    data class FigureFlipped(val figure: FlipFigure) : TodayAction
     data class MealTileTapped(val slot: MealSlot) : TodayAction
     data class MealPlusTapped(val slot: MealSlot) : TodayAction
     data class PlanItTapped(val slot: MealSlot) : TodayAction

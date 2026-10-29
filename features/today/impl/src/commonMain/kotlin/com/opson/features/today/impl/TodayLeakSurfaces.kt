@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.opson.features.today.impl.dayclose.DayClosedSheetContent
 import com.opson.features.today.impl.dayclose.DayClosedState
 import com.opson.libraries.diary.MainNumberChoice
+import com.opson.libraries.diary.Reading
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.components.dialog.ModalDialogDefaults
@@ -78,6 +79,29 @@ object TodayLeakSurfaces {
         },
         LeakSurface(id = "today-summary-equation", label = "Today · Equation", showsCaloriesInFull = true) { policy ->
             V4Today(policy, Settings(todayCard = SummaryCardPreset.Equation, todayMainNumber = MainNumberChoice.Balance))
+        },
+        // Every figure flipped to its other reading, stored as a phone in All numbers would have left
+        // it: a mode that keeps calories back must show none of them, whatever was chosen.
+        LeakSurface(id = "today-flipped", label = "Today · every figure flipped", showsCaloriesInFull = true) { policy ->
+            V4Today(policy, TodayFixtures.flipped())
+        },
+        LeakSurface(id = "today-flipped-percent", label = "Today · the deficit and macros as a percent", showsCaloriesInFull = true) { policy ->
+            V4Today(policy, TodayFixtures.flipped(main = MainNumberChoice.Balance, macros = Reading.Percent))
+        },
+        LeakSurface(id = "today-flipped-stats", label = "Today · the older card's stats flipped", showsCaloriesInFull = true) { policy ->
+            TodayScreen(state = designSync(policy, TodayFixtures.flipped()), onAction = {})
+        },
+        LeakSurface(id = "today-sticky-flipped", label = "Today · the sticky bar on a flipped main number", showsCaloriesInFull = true) { policy ->
+            val compact = TodayFixtures.todayState(
+                policy,
+                settings = TodayFixtures.flipped(main = MainNumberChoice.Balance),
+                summaryOn = true,
+                goalsAndEnergyOn = true,
+                burned = TodayFixtures.burned,
+            ).compact
+            Column {
+                compact?.pages?.indices?.forEach { page -> StickyBar(compact, page, onScrollToTop = {}) }
+            }
         },
         LeakSurface(id = "today-big-day", label = "Today · big day", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.day(bigDay = true, loose = true)), onAction = {})

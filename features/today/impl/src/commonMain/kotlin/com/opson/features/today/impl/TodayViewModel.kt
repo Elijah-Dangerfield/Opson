@@ -21,6 +21,7 @@ import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.diary.valueOrNull
 import com.opson.libraries.diary.rememberMainNumber
+import com.opson.libraries.diary.withReading
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.EnergyExpended
@@ -168,6 +169,12 @@ class TodayViewModel(
             TodayAction.MainNumberToggled -> {
                 val next = ((state.summary as? TodaySummary.Energy)?.card?.next) ?: return
                 settingsRepository.update { it.rememberMainNumber(next) }
+            }
+            // Only a figure the state says flips: the levels decided its readings when it was built.
+            is TodayAction.FigureFlipped -> {
+                val energy = state.summary as? TodaySummary.Energy ?: return
+                val flip = (listOfNotNull(energy.macroFlip) + energy.stats.mapNotNull { it.flip }).firstOrNull { it.figure == action.figure } ?: return
+                settingsRepository.update { it.withReading(flip.figure, flip.next) }
             }
             TodayAction.CloseDayButtonTapped -> if (!isFuture()) sendEvent(TodayEvent.OpenDayClose(day()))
             TodayAction.ReopenTapped -> action.closeMenuThen { diary.reopenDay(day()) }
