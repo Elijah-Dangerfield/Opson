@@ -40,6 +40,8 @@ import opson.libraries.resources.generated.resources.fasting_title
 import opson.libraries.resources.generated.resources.integrations_more_connected
 import opson.libraries.resources.generated.resources.integrations_more_not_connected
 import opson.libraries.resources.generated.resources.integrations_more_title
+import opson.libraries.resources.generated.resources.reminders_more_celebrations_off
+import opson.libraries.resources.generated.resources.reminders_more_celebrations_on
 import opson.libraries.resources.generated.resources.reminders_more_quiet_off
 import opson.libraries.resources.generated.resources.reminders_more_quiet_on
 import opson.libraries.resources.generated.resources.reminders_more_row
@@ -192,7 +194,13 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
         is MoreRow.Reminders -> SettingsRow(
             title = stringResource(Res.string.reminders_more_row),
             icon = AppIcons.Notifications,
-            subtitle = stringResource(if (row.quiet) Res.string.reminders_more_quiet_on else Res.string.reminders_more_quiet_off),
+            subtitle = stringResource(
+                when (row.celebrations) {
+                    null -> if (row.quiet) Res.string.reminders_more_quiet_on else Res.string.reminders_more_quiet_off
+                    true -> Res.string.reminders_more_celebrations_on
+                    false -> Res.string.reminders_more_celebrations_off
+                },
+            ),
             chevron = true,
             showDivider = showDivider,
             onClick = onClick,

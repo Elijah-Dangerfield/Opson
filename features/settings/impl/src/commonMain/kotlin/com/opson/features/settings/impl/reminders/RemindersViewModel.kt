@@ -1,6 +1,10 @@
 package com.opson.features.settings.impl.reminders
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.core.logging.KLog
+import com.opson.libraries.core.logging.logEvent
+import com.opson.libraries.diary.CelebrationStyle
+import com.opson.libraries.diary.CelebrationsRelease
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
@@ -26,9 +30,14 @@ import me.tatarka.inject.annotations.Inject
 class RemindersViewModel(
     private val settingsRepository: SettingsRepository,
     private val permissions: NotificationPermissions,
+    celebrationsRelease: CelebrationsRelease = CelebrationsRelease.Off,
 ) : SEAViewModel<RemindersState, RemindersEvent, RemindersAction>(initialStateArg = RemindersState()) {
 
     private var model = Model()
+    private val logger = KLog.withTag("Celebrations")
+
+    // Read once, as the page opens, like every release flag.
+    private val celebrationsOn = celebrationsRelease.isOn()
 
     private data class Model(
         val settings: Settings? = null,
@@ -48,6 +57,8 @@ class RemindersViewModel(
             is RemindersAction.InputsArrived -> action.rebuild { it.copy(settings = action.settings) }
             is RemindersAction.PermissionChecked -> action.rebuild { it.copy(permission = action.permission) }
             RemindersAction.QuietToggled -> settingsRepository.update { it.copy(quiet = !it.quiet) }
+            RemindersAction.CelebrationsToggled -> celebrationsChanged { it.copy(celebrationsEnabled = !it.celebrationsEnabled) }
+            RemindersAction.CelebrationCountsToggled -> celebrationsChanged { it.copy(celebrationCounts = !(it.celebrationCounts ?: !it.onboarding.hard)) }
             is RemindersAction.BigDayPicked -> settingsRepository.update { it.copy(bigDayEvent = action.level) }
             is RemindersAction.MealLevelPicked -> mealLevelPicked(action)
             is RemindersAction.MealToggled -> mealToggled(action)
@@ -58,6 +69,12 @@ class RemindersViewModel(
             RemindersAction.ScreenResumed -> takeAction(RemindersAction.PermissionChecked(permissions.status()))
             RemindersAction.BackTapped -> sendEvent(RemindersEvent.Close)
         }
+    }
+
+    /** A plain synced write, then `celebration.setting` with what it now is. */
+    private suspend fun celebrationsChanged(change: (Settings) -> Settings) {
+        val next = settingsRepository.update(transform = change)
+        logger.logEvent("celebration.setting", "on" to next.celebrationsEnabled, "counts" to (next.celebrationStyle == CelebrationStyle.Counts))
     }
 
     private suspend fun mealLevelPicked(action: RemindersAction.MealLevelPicked) {
@@ -107,7 +124,7 @@ class RemindersViewModel(
     private suspend fun RemindersAction.rebuild(change: (Model) -> Model) {
         model = change(model)
         val settings = model.settings ?: return
-        updateState { RemindersStateBuilder.build(settings, model.permission, model.pickingTime) }
+        updateState { RemindersStateBuilder.build(settings, model.permission, model.pickingTime, celebrationsOn) }
     }
 }
 
@@ -119,6 +136,12 @@ sealed interface RemindersAction {
     data class InputsArrived(val settings: Settings) : RemindersAction
     data class PermissionChecked(val permission: NotificationPermission) : RemindersAction
     data object QuietToggled : RemindersAction
+
+    /** Celebrations on or off; synced, like every setting. */
+    data object CelebrationsToggled : RemindersAction
+
+    /** Day counts on or off. */
+    data object CelebrationCountsToggled : RemindersAction
     data class BigDayPicked(val level: EventLevel) : RemindersAction
     data class MealLevelPicked(val level: EventLevel) : RemindersAction
     data class MealToggled(val slot: MealSlot) : RemindersAction

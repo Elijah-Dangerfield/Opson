@@ -5,6 +5,7 @@ import com.opson.features.settings.MoreRowContribution
 import com.opson.libraries.diary.DiarySync
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.CelebrationsRelease
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.GoalsAndEnergyEnabled
@@ -45,6 +46,7 @@ class MoreViewModel(
     private val auth: AuthRepository,
     private val diarySync: DiarySync,
     private val contributions: Set<MoreRowContribution> = emptySet(),
+    private val celebrationsRelease: CelebrationsRelease = CelebrationsRelease.Off,
 ) : SEAViewModel<MoreState, MoreEvent, MoreAction>(initialStateArg = MoreState()) {
 
     // Read once, as the page opens: with the flag off the health store is never touched, not even to check it.
@@ -76,6 +78,7 @@ class MoreViewModel(
                     action.healthConnected,
                     remindersOn = remindersEnabled(),
                     fastingReleased = fastingRelease.isOn(),
+                    celebrationsOn = celebrationsRelease.isOn(),
                     widgetsOn = widgetsEnabled(),
                     goalsAndEnergyOn = goalsAndEnergy(),
                     account = action.account,
@@ -99,7 +102,7 @@ class MoreViewModel(
             MoreRow.Profile -> sendEvent(MoreEvent.OpenProfile)
             MoreRow.TodayScreen -> sendEvent(MoreEvent.OpenTodayScreen)
             is MoreRow.Health -> sendEvent(MoreEvent.OpenHealth)
-            is MoreRow.Reminders -> sendEvent(MoreEvent.OpenReminders)
+            is MoreRow.Reminders -> sendEvent(if (row.celebrations != null) MoreEvent.OpenCelebrations else MoreEvent.OpenReminders)
             is MoreRow.Water -> sendEvent(MoreEvent.OpenWater)
             is MoreRow.Fasting -> sendEvent(MoreEvent.OpenFasting)
             MoreRow.Widgets -> sendEvent(MoreEvent.OpenWidgets)
@@ -183,6 +186,9 @@ sealed interface MoreEvent {
     data object OpenWater : MoreEvent
     data object OpenHealth : MoreEvent
     data object OpenReminders : MoreEvent
+
+    /** Reminders and celebrations with `release.reminders` off: the Celebrations rows alone. */
+    data object OpenCelebrations : MoreEvent
     data object OpenSupport : MoreEvent
     data object OpenBugReport : MoreEvent
     data object OpenFeedback : MoreEvent

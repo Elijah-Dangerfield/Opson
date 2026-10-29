@@ -28,13 +28,25 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 @Inject
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = QaConfigValue::class, multibinding = true)
-class CelebrationsReleaseFlag(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap) {
+@ContributesBinding(AppScope::class, boundType = CelebrationsRelease::class)
+class CelebrationsReleaseFlag(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap), CelebrationsRelease {
     override val name = "Celebrations"
 
     // A literal on purpose: ConfigManifestRegistryDriftTest reads declared paths from source.
     override val path = "release.celebrations"
     override val default = false
     override val description = "Milestone celebrations, the streak on Today, Your progress, and the Celebrations rows in More"
+
+    override fun isOn(): Boolean = value
+}
+
+/** [CelebrationsReleaseFlag] as a page reads it, so a view model can default it to [Off] and its tests stay as they are. */
+fun interface CelebrationsRelease {
+    fun isOn(): Boolean
+
+    companion object {
+        val Off: CelebrationsRelease = CelebrationsRelease { false }
+    }
 }
 
 /** How celebrations speak ([Settings.celebrationStyle]). */

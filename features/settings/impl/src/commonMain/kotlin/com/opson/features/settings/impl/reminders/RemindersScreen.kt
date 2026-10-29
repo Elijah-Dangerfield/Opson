@@ -34,6 +34,10 @@ import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.reminders_big_day_body
 import opson.libraries.resources.generated.resources.reminders_big_day_title
+import opson.libraries.resources.generated.resources.reminders_celebration_counts_body
+import opson.libraries.resources.generated.resources.reminders_celebration_counts_title
+import opson.libraries.resources.generated.resources.reminders_celebrations_body
+import opson.libraries.resources.generated.resources.reminders_celebrations_title
 import opson.libraries.resources.generated.resources.reminders_level_full
 import opson.libraries.resources.generated.resources.reminders_level_off
 import opson.libraries.resources.generated.resources.reminders_level_subtle
@@ -56,7 +60,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * Reminders and celebrations (v3 `reminders.png`, `reminders--full.png`). New food tried and
+ * Reminders and celebrations (v3 `reminders.png`, `reminders--full.png`), with Celebrations on top
+ * (`release.celebrations`). New food tried and
  * Weekly recap are left out until something in the app acts on them
  * (docs/plans/screens/reminders.md).
  */
@@ -65,6 +70,8 @@ fun RemindersScreen(
     state: RemindersState,
     onAction: (RemindersAction) -> Unit,
     modifier: Modifier = Modifier,
+    /** With `release.reminders` off: the Celebrations rows alone. */
+    celebrationsOnly: Boolean = false,
 ) {
     SettingsPage(modifier = modifier) {
         SettingsHeader(
@@ -72,6 +79,24 @@ fun RemindersScreen(
             backLabel = stringResource(Res.string.settings_back_more),
             onBack = { onAction(RemindersAction.BackTapped) },
         )
+        state.celebrations?.let { CelebrationsCard(it, onAction) }
+        if (!celebrationsOnly) Reminders(state, onAction)
+    }
+    state.pickingRow?.let { row ->
+        TimePickerDialog(
+            title = stringResource(Res.string.reminders_time_title, stringResource(row.slot.label)),
+            initial = row.time,
+            okLabel = stringResource(Res.string.reminders_time_ok),
+            cancelLabel = stringResource(Res.string.reminders_time_cancel),
+            onPicked = { onAction(RemindersAction.MealTimePicked(it)) },
+            onDismiss = { onAction(RemindersAction.MealTimeDismissed) },
+        )
+    }
+}
+
+/** Quiet mode, After a big day, meal reminders and their times (`release.reminders`). */
+@Composable
+private fun Reminders(state: RemindersState, onAction: (RemindersAction) -> Unit) {
         SwitchCard(
             title = Res.string.reminders_quiet_title,
             body = Res.string.reminders_quiet_body,
@@ -114,30 +139,44 @@ fun RemindersScreen(
             color = AppTheme.colors.muted,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
-    }
-    state.pickingRow?.let { row ->
-        TimePickerDialog(
-            title = stringResource(Res.string.reminders_time_title, stringResource(row.slot.label)),
-            initial = row.time,
-            okLabel = stringResource(Res.string.reminders_time_ok),
-            cancelLabel = stringResource(Res.string.reminders_time_cancel),
-            onPicked = { onAction(RemindersAction.MealTimePicked(it)) },
-            onDismiss = { onAction(RemindersAction.MealTimeDismissed) },
+}
+
+/** Celebrations on or off, and, while on, whether they say how many days. */
+@Composable
+private fun CelebrationsCard(choice: CelebrationsChoice, onAction: (RemindersAction) -> Unit) {
+    EdgeCard(edgeToEdge = false, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+        SwitchRow(
+            title = Res.string.reminders_celebrations_title,
+            body = Res.string.reminders_celebrations_body,
+            checked = choice.on,
+            onToggle = { onAction(RemindersAction.CelebrationsToggled) },
         )
+        if (choice.on) {
+            HorizontalDivider(color = AppTheme.colors.line)
+            SwitchRow(
+                title = Res.string.reminders_celebration_counts_title,
+                body = Res.string.reminders_celebration_counts_body,
+                checked = choice.counts,
+                onToggle = { onAction(RemindersAction.CelebrationCountsToggled) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SwitchRow(title: StringResource, body: StringResource, checked: Boolean, onToggle: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = stringResource(title), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
+            Text(text = stringResource(body), typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
+        }
+        AppSwitch(checked = checked, onCheckedChange = { onToggle() })
     }
 }
 
 @Composable
 private fun SwitchCard(title: StringResource, body: StringResource, checked: Boolean, onToggle: () -> Unit) {
-    EdgeCard(edgeToEdge = false) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = stringResource(title), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
-                Text(text = stringResource(body), typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
-            }
-            AppSwitch(checked = checked, onCheckedChange = { onToggle() })
-        }
-    }
+    EdgeCard(edgeToEdge = false) { SwitchRow(title, body, checked, onToggle) }
 }
 
 @Composable
@@ -219,6 +258,22 @@ private fun RemindersBlindPreview() {
 @Composable
 private fun RemindersDarkPreview() {
     SettingsPreview(dark = true) { RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet), onAction = {}) }
+}
+
+/** With `release.celebrations` on: Celebrations and their day counts above the reminders. */
+@Preview
+@Composable
+private fun RemindersCelebrationsPreview() {
+    SettingsPreview { RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet, celebrationsOn = true), onAction = {}) }
+}
+
+/** With `release.reminders` off: the Celebrations rows alone, from More. */
+@Preview
+@Composable
+private fun RemindersCelebrationsOnlyPreview() {
+    SettingsPreview {
+        RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.settings(), celebrationsOn = true), onAction = {}, celebrationsOnly = true)
+    }
 }
 
 @Preview

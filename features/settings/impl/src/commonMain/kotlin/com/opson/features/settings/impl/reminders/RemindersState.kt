@@ -25,6 +25,8 @@ data class RemindersState(
     val permission: NotificationPermission = NotificationPermission.Granted,
     /** The time dialog, open on this meal. */
     val pickingTime: MealSlot? = null,
+    /** Celebrations (`release.celebrations`); null while the flag is off. */
+    val celebrations: CelebrationsChoice? = null,
 ) {
     /** Something is on and the system will not show it. */
     val showPermissionNote: Boolean
@@ -32,6 +34,12 @@ data class RemindersState(
 
     val pickingRow: MealReminderRow? get() = meals.firstOrNull { it.slot == pickingTime }
 }
+
+/**
+ * Celebrations on or off, and whether they say how many days. [counts] is what will happen, so after
+ * numbers have been hard it reads off until the person turns it on.
+ */
+data class CelebrationsChoice(val on: Boolean, val counts: Boolean)
 
 /** [on] is the meal's switch and a level other than Off: whether a nudge will come. */
 data class MealReminderRow(val slot: MealSlot, val on: Boolean, val time: LocalTime, val timeLabel: String)
@@ -45,6 +53,7 @@ object RemindersStateBuilder {
         settings: Settings,
         permission: NotificationPermission = NotificationPermission.Granted,
         pickingTime: MealSlot? = null,
+        celebrationsOn: Boolean = false,
     ): RemindersState {
         val level = settings.mealReminderLevel
         return RemindersState(
@@ -62,6 +71,11 @@ object RemindersStateBuilder {
             },
             permission = permission,
             pickingTime = pickingTime,
+            celebrations = if (celebrationsOn) {
+                CelebrationsChoice(on = settings.celebrationsEnabled, counts = settings.celebrationCounts ?: !settings.onboarding.hard)
+            } else {
+                null
+            },
         )
     }
 }

@@ -64,8 +64,12 @@ sealed interface MoreRow {
     /** More › Today screen (design sync 4, 13.6), always: the release flags only decide what it arranges. */
     data object TodayScreen : MoreRow
 
-    /** "Quiet mode on" or "Quiet mode off", as v3. Only with `release.reminders` on. */
-    data class Reminders(val quiet: Boolean) : MoreRow
+    /**
+     * "Quiet mode on" or "Quiet mode off", as v3, with `release.reminders` on. With it off and
+     * `release.celebrations` on, the page is Celebrations alone and [celebrations] says whether
+     * they are on ("Celebrations on").
+     */
+    data class Reminders(val quiet: Boolean, val celebrations: Boolean? = null) : MoreRow
     /** Watch and health apps (0.2): "Connected" or "Not connected", never an amount. */
     data class Health(val connected: Boolean) : MoreRow
 
@@ -107,7 +111,7 @@ object MoreStateBuilder {
     /**
      * How the app treats you, optional extras, help and plan, about, the account, and the rows
      * other modules [contributed], a card per section: after the extras for
-     * [MorePlacement.AfterExtras] (Today's Journal card), after the account for the rest. Reminders shows only with [remindersOn]; [healthConnected] is null while
+     * [MorePlacement.AfterExtras] (Today's Journal card), after the account for the rest. Reminders shows with [remindersOn], or with [celebrationsOn] (`release.celebrations`) as Celebrations alone; [healthConnected] is null while
      * `release.health` is off, and then there is no health row at all. [fastingReleased] is
      * `release.fasting`, [widgetsOn] `release.widgets`, [goalsAndEnergyOn] `release.goalsAndEnergy`, which
      * also brings Profile, first in the first card.
@@ -118,6 +122,7 @@ object MoreStateBuilder {
         healthConnected: Boolean? = null,
         remindersOn: Boolean = false,
         fastingReleased: Boolean = false,
+        celebrationsOn: Boolean = false,
         widgetsOn: Boolean = false,
         goalsAndEnergyOn: Boolean = false,
         account: MoreAccount? = null,
@@ -134,7 +139,11 @@ object MoreStateBuilder {
                     MoreRow.Display(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
                     MoreRow.Targets,
                     MoreRow.TodayScreen,
-                    MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
+                    when {
+                        remindersOn -> MoreRow.Reminders(quiet = settings.quiet)
+                        celebrationsOn -> MoreRow.Reminders(quiet = settings.quiet, celebrations = settings.celebrationsEnabled)
+                        else -> null
+                    },
                     healthConnected?.let { MoreRow.Health(connected = it) },
                 ),
                 listOfNotNull(
