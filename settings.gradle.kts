@@ -107,6 +107,8 @@ if (!serverOnly) {
     include(":libraries:diary")
     include(":libraries:diary:impl")
     include(":libraries:diary:ui")
+    include(":libraries:entitlements")
+    include(":libraries:entitlements:impl")
     include(":libraries:flowroutines")
     include(":libraries:flowroutines:testing")
     include(":libraries:foods")

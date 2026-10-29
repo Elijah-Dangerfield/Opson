@@ -30,6 +30,8 @@ import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.entitlements.Entitlement
+import com.opson.libraries.entitlements.EntitlementRepository
 import com.opson.libraries.foods.BarcodeMissReporter
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
@@ -623,3 +625,8 @@ class RecordingVoiceTelemetry : VoiceTelemetry {
 }
 
 fun fastingFlag(on: Boolean): FastingRelease = FastingRelease { on }
+
+/** What the server says this account may use; today's default unless a test says otherwise. */
+class FakeEntitlements(held: Set<Entitlement> = Entitlement.DEFAULTS) : EntitlementRepository {
+    override val entitlements = MutableStateFlow(held)
+}

@@ -23,6 +23,8 @@ kotlin {
             implementation(projects.libraries.diary)
             implementation(projects.libraries.diary.ui)
             implementation(projects.libraries.foods)
+            // Photo estimate offers itself only with the photo_estimate entitlement.
+            implementation(projects.libraries.entitlements)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
             implementation(projects.libraries.config)
@@ -47,6 +49,7 @@ kotlin {
             implementation(projects.libraries.diary)
             implementation(projects.libraries.diary.ui)
             implementation(projects.libraries.foods)
+            implementation(projects.libraries.entitlements)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.opson)
             implementation(projects.libraries.resources)

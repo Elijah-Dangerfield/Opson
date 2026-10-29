@@ -87,6 +87,8 @@ class HttpMealPhotoEstimatorTest : CoroutineTest() {
     fun statusesMapToCalmOutcomes() = runUnitTest {
         assertEquals(PhotoEstimate.Unavailable, estimator(HttpStatusCode.ServiceUnavailable).estimate(byteArrayOf(1), null))
         assertEquals(PhotoEstimate.Unavailable, estimator(HttpStatusCode.NotFound).estimate(byteArrayOf(1), null))
+        // entitlement_required: the account doesn't have photo estimates.
+        assertEquals(PhotoEstimate.Unavailable, estimator(HttpStatusCode.Forbidden).estimate(byteArrayOf(1), null))
         assertEquals(PhotoEstimate.TooMany, estimator(HttpStatusCode.TooManyRequests).estimate(byteArrayOf(1), null))
         assertEquals(PhotoEstimate.Failed(offline = false), estimator(HttpStatusCode.BadGateway).estimate(byteArrayOf(1), null))
         assertEquals(PhotoEstimate.Failed(offline = false), estimator(HttpStatusCode.PayloadTooLarge).estimate(byteArrayOf(1), null))
