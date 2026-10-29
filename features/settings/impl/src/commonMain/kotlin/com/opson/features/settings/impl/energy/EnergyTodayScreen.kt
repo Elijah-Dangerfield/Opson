@@ -38,6 +38,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingFrom
+import com.opson.libraries.nutrition.thermicEffectKcal
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.bounceClick
@@ -359,11 +360,12 @@ internal object EnergyTodayFixtures {
         ),
     )
 
-    fun inputs(settings: Settings = SettingsFixtures.settings(), burned: Boolean = true) = EnergyTodayInputs(
+    /** [digesting] counts the day's food being digested, as "Count digesting food" does. */
+    fun inputs(settings: Settings = SettingsFixtures.settings(), burned: Boolean = true, digesting: Boolean = false) = EnergyTodayInputs(
         today = today,
         day = day,
         settings = settings,
-        burned = SettingsFixtures.burned.takeIf { burned },
+        burned = SettingsFixtures.burned.takeIf { burned }?.let { if (digesting) it.copy(foodKcal = thermicEffectKcal(day.totals().kcal.known)) else it },
         activitySource = HealthSource.HealthConnect,
     )
 

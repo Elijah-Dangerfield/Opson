@@ -150,3 +150,17 @@ data class Burned(
     /** Everything on top of resting energy: activity, and digesting food when it counts. */
     val aboveRestingKcal: Int get() = totalKcal - resting.kcal
 }
+
+/**
+ * This Burned as [surface] may show it. Digesting food is a tenth of what was eaten, so a screen
+ * that shows energy out with calories short of Show would give the day's eaten away with one
+ * multiplication, as its own line or as the step it adds to the total. There it is left out of
+ * every amount. A target aimed at Burned still counts it: a calorie target only shows where
+ * calories do.
+ */
+fun Burned.shownOn(policy: VisibilityPolicy, surface: Surface, context: FormatContext = FormatContext()): Burned =
+    if (foodKcal == null || digestingShown(policy, surface, context)) this else copy(foodKcal = null)
+
+/** Whether digesting food may count in an energy out amount on [surface]: only where calories show in full. */
+fun digestingShown(policy: VisibilityPolicy, surface: Surface, context: FormatContext = FormatContext()): Boolean =
+    policy.effectiveLevel(Metric.Calories, surface, context) == Visibility.Show

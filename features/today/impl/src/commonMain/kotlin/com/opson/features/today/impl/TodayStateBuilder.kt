@@ -25,6 +25,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WaterProgress
 import com.opson.libraries.nutrition.WeightTrend
+import com.opson.libraries.nutrition.digestingShown
 import com.opson.libraries.nutrition.macroEnergy
 import com.opson.libraries.nutrition.macroEnergyShares
 import com.opson.libraries.nutrition.macroLine
@@ -263,7 +264,7 @@ object TodayStateBuilder {
         val value: StatValue = when (stat) {
             SummaryStat.Expended -> StatValue.Amount(Metric.EnergyOut, expended(inputs, policy, context))
             SummaryStat.DeficitSoFar -> {
-                val out = expendedKcal(inputs)?.takeIf { day.date == inputs.today } ?: return null
+                val out = expendedKcal(inputs, policy, context)?.takeIf { day.date == inputs.today } ?: return null
                 StatValue.Amount(Metric.EnergyOut, policy.resolve(Metric.EnergyOut, (out - eaten).coerceAtLeast(0.0), Surface.Today, energy))
             }
             SummaryStat.ToRange -> {
@@ -411,16 +412,17 @@ object TodayStateBuilder {
         if (inputs.day.date != inputs.today) {
             Display.Hidden
         } else {
-            policy.resolve(Metric.EnergyOut, expendedKcal(inputs), Surface.Today, context.copy(of = null, bare = false))
+            policy.resolve(Metric.EnergyOut, expendedKcal(inputs, policy, context), Surface.Today, context.copy(of = null, bare = false))
         }
 
     /**
      * The health app's energy so far, plus digesting the day's food with "Count digesting food" on:
-     * neither store counts it, so it is added here as it is to Burned. Null without a reading.
+     * neither store counts it, so it is added here as it is to Burned. Only where calories show in
+     * full ([digestingShown]), since it is a tenth of them. Null without a reading.
      */
-    private fun expendedKcal(inputs: TodayInputs): Double? {
+    private fun expendedKcal(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext): Double? {
         val read = inputs.expended?.totalKcal ?: return null
-        if (!inputs.settings.thermicEffectInBurned) return read
+        if (!inputs.settings.thermicEffectInBurned || !digestingShown(policy, Surface.Today, context)) return read
         return read + thermicEffectKcal(inputs.day.totals().kcal.known)
     }
 

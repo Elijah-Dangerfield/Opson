@@ -95,7 +95,11 @@ is a better question at any hour); a Reminders switch kept for the check-in
 of the day's eaten (`THERMIC_EFFECT_OF_FOOD_SHARE`) to Burned as its own part.
 It is not activity: it adds whichever source the day's activity comes from, and
 "Add activity to Burned" off keeps it. Today's Activity card shows it as its own
-line; Energy today has a row for it.
+line; Energy today has a row for it. Only where calories show in full: a tenth of
+eaten is eaten, so with calories short of Show it leaves every Burned amount on
+that screen, line and total (`Burned.shownOn`), even with energy out turned up to
+Show. A calorie target aimed at Burned still counts it, since that target only
+shows where calories do.
 
 **Why:** the owner asked for it. The objection in the 2026-10-27 entry (a deficit
 aimed at Burned moves as food is logged) still holds, so it stays off until
