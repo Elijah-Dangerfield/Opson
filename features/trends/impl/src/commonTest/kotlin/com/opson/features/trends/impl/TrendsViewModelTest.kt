@@ -15,6 +15,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * The Trends view model: inputs become state through the builder, the range
@@ -30,7 +31,7 @@ class TrendsViewModelTest : CoroutineTest() {
     private val health = FakeHealthRepository()
 
     private fun vm(healthOn: Boolean = false) =
-        TrendsViewModel(diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, health, healthFlag(healthOn), goalsAndEnergyFlag(), FakeBurnedRepository(), TrendsFixtures.timeZone)
+        TrendsViewModel(diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, health, healthFlag(healthOn), goalsAndEnergyFlag(), FakeBurnedRepository(), checkInFlag(false), TrendsFixtures.timeZone)
 
     @Test
     fun healthFlagOff_noExpendedCard_andTheStoreIsNeverRead() = runUnitTest {
@@ -54,7 +55,7 @@ class TrendsViewModelTest : CoroutineTest() {
         val notConnected = FakeHealthRepository(initial = HealthStatus.NotConnected)
         val vm = TrendsViewModel(
             diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, notConnected, healthFlag(true), goalsAndEnergyFlag(), FakeBurnedRepository(),
-            TrendsFixtures.timeZone,
+            checkInFlag(false), TrendsFixtures.timeZone,
         )
         assertNull(vm.state.expended)
         assertNotNull(vm.state.intake, "the rest of the page is there")
@@ -152,9 +153,72 @@ class TrendsViewModelTest : CoroutineTest() {
         assertEquals(false, assertNotNull(vm().state.journal).linksToNotes)
         val linked = TrendsViewModel(
             diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, health, healthFlag(false), goalsAndEnergyFlag(),
-            FakeBurnedRepository(), TrendsFixtures.timeZone, notesListLink = { PatternsRoute() },
+            FakeBurnedRepository(), checkInFlag(false), TrendsFixtures.timeZone, notesListLink = { PatternsRoute() },
         )
         assertEquals(true, assertNotNull(linked.state.journal).linksToNotes)
+    }
+
+    private fun withBurned(checkIn: Boolean = false) = TrendsViewModel(
+        diary, FakeWeightRepository(), settings, policy, TrendsFixtures.clock, health, healthFlag(false), goalsAndEnergyFlag(on = true),
+        FakeBurnedRepository(TrendsFixtures.burned().getValue(TrendsFixtures.today)), checkInFlag(checkIn), TrendsFixtures.timeZone,
+    )
+
+    @Test
+    fun goalsAndEnergyOff_noRunningTotal_butTheCalendarShows() = runUnitTest {
+        val vm = vm()
+        assertNull(vm.state.runningTotal)
+        assertEquals(CalendarMode.Plan, assertNotNull(vm.state.calendar).mode)
+    }
+
+    @Test
+    fun goalsAndEnergyOn_theRunningTotalAddsUpBurnedDays() = runUnitTest {
+        val total = assertNotNull(withBurned().state.runningTotal)
+        assertEquals(RunningSpan.Month, total.span)
+        assertTrue(total.days > 0)
+    }
+
+    @Test
+    fun runningSpanPicked_rebuildsWithTheSpan_andKeepsItForNewInputs() = runUnitTest {
+        val vm = withBurned()
+        vm.takeAction(TrendsAction.RunningSpanPicked(RunningSpan.Week))
+        assertEquals(RunningSpan.Week, vm.state.runningTotal?.span)
+        assertEquals(7, vm.state.runningTotal?.of)
+        settings.settings.value = Settings(tone = Tone.Warm)
+        assertEquals(RunningSpan.Week, vm.state.runningTotal?.span, "a new emission keeps the pick")
+    }
+
+    @Test
+    fun calendarMonthShown_andHelp_areKept() = runUnitTest {
+        val vm = vm()
+        assertEquals(OnTrack.MONTHS - 1, vm.state.calendar?.page, "this month first")
+        vm.takeAction(TrendsAction.CalendarMonthShown(0))
+        vm.takeAction(TrendsAction.CalendarHelpTapped)
+        assertEquals(0, vm.state.calendar?.page)
+        assertEquals(true, vm.state.calendar?.explained)
+        vm.takeAction(TrendsAction.CalendarHelpTapped)
+        assertEquals(false, vm.state.calendar?.explained)
+    }
+
+    @Test
+    fun calendarDayTapped_opensTheDaySheet() = runUnitTest {
+        val vm = vm()
+        val events = backgroundScope.events(vm)
+        vm.takeAction(TrendsAction.CalendarDayTapped(LocalDate(2026, 10, 22)))
+        assertEquals(listOf<TrendsEvent>(TrendsEvent.OpenDay("2026-10-22")), events)
+    }
+
+    @Test
+    fun anEnergyLink_opensTheSharedExplainer() = runUnitTest {
+        val vm = vm()
+        val events = backgroundScope.events(vm)
+        vm.takeAction(TrendsAction.EnergyExplainerTapped("balance"))
+        assertEquals(listOf<TrendsEvent>(TrendsEvent.OpenEnergyExplainer("balance")), events)
+    }
+
+    @Test
+    fun checkInFlag_chartsTheCheckInsHunger() = runUnitTest {
+        assertNull(vm().state.checkInHunger)
+        assertNotNull(withBurned(checkIn = true).state.checkInHunger)
     }
 
     @Test

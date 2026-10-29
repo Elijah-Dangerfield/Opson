@@ -28,6 +28,21 @@ data class NutrientColors(
     val water: ToneColors get() = fat
 }
 
+/**
+ * How a day went against the person's own plan, on Trends' on-track calendar: the only colors in
+ * the app that mean on or off. Each is a fill with ink on it, so the day number stays readable.
+ * [off] is a soft clay, not an alarm red: a day over plan is information, not a failure, and the
+ * calendar's words ("Over plan", never "Bad day") say the same. [logged] is the calendar where
+ * amounts are hidden, which only says a day had something in it.
+ */
+@Immutable
+data class PlanColors(
+    val on: ColorResource,
+    val near: ColorResource,
+    val off: ColorResource,
+    val logged: ColorResource,
+)
+
 /** Which nutrient a colored element belongs to. */
 enum class NutrientTone { Protein, Carbs, Fat, Fiber, Water }
 
@@ -61,6 +76,7 @@ internal data class SchemeColors(
     val restingEnergy: Color,
     val activeEnergy: Color,
     val nutrients: NutrientColors,
+    val plan: PlanColors,
 )
 
 /**
@@ -105,6 +121,7 @@ internal val SlateLight = SchemeColors(
         fat = tone("fat", 0xFF3D7FD9, 0xFFDFEAFA),
         fiber = tone("fiber", 0xFF8E6E3A, 0xFFF1E8DC),
     ),
+    plan = plan(on = 0xFFA8D8B4, near = 0xFFF3D782, off = 0xFFF2B5A0, logged = 0xFFFCE7D8),
 )
 
 /**
@@ -146,9 +163,17 @@ internal val SlateDark = SchemeColors(
         fat = tone("fat", 0xFF97BCF7, 0xFF263552),
         fiber = tone("fiber", 0xFFD9B98C, 0xFF3B3329),
     ),
+    plan = plan(on = 0xFF2E6646, near = 0xFF6B5819, off = 0xFF7A3A2B, logged = 0xFF4A2C17),
 )
 
 private fun tone(name: String, content: Long, container: Long) = ToneColors(
     content = ColorResource.FromColor(Color(content), name),
     container = ColorResource.FromColor(Color(container), "$name-tint"),
+)
+
+private fun plan(on: Long, near: Long, off: Long, logged: Long) = PlanColors(
+    on = ColorResource.FromColor(Color(on), "plan-on"),
+    near = ColorResource.FromColor(Color(near), "plan-near"),
+    off = ColorResource.FromColor(Color(off), "plan-off"),
+    logged = ColorResource.FromColor(Color(logged), "plan-logged"),
 )

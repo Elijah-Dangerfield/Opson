@@ -11,6 +11,8 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.features.trends)
             implementation(projects.features.settings)
+            // The calendar's day sheet opens that day on Today.
+            implementation(projects.features.today)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)

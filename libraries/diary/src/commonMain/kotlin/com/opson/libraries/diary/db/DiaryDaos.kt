@@ -39,6 +39,14 @@ interface LogEntryDao : ClearableDao {
     fun observeDaysWithEntries(from: String, to: String): Flow<List<String>>
 
     /**
+     * Every date with an entry the person logged themselves, for the streak (`DayMarks`). A
+     * repeat's foods (in `repeat_logs`) are left out, as in [latestUntil]: food that logged itself
+     * is not someone showing up.
+     */
+    @Query("SELECT DISTINCT day FROM log_entries WHERE deleted = 0 AND id NOT IN (SELECT entryId FROM repeat_logs)")
+    fun observeDaysLoggedByHand(): Flow<List<String>>
+
+    /**
      * The latest entry logged at or before [untilEpochMs] that the person logged: the last time
      * anything was eaten, for fasting. A repeat's foods (in `repeat_logs`) are left out, since
      * food that logged itself is not proof of eating then: a dinner repeat timed after the

@@ -11,6 +11,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.opson.features.today.impl.celebration.CelebrationScreen
+import com.opson.features.today.impl.celebration.CelebrationState
+import com.opson.features.today.impl.celebration.ProgressFixtures
+import com.opson.features.today.impl.celebration.ProgressSheetContent
+import com.opson.features.today.impl.celebration.StreakBadge
+import com.opson.features.today.impl.celebration.StreakIndicator
+import com.opson.libraries.diary.CelebrationStyle
+import com.opson.libraries.diary.Milestone
 import com.opson.features.today.impl.dayclose.DayClosedSheetContent
 import com.opson.features.today.impl.dayclose.DayClosedState
 import com.opson.libraries.diary.MainNumberChoice
@@ -152,6 +160,27 @@ object TodayLeakSurfaces {
         },
         LeakSurface(id = "day-close-closed", label = "Day close, already closed", showsCaloriesInFull = true) { policy ->
             DayCloseScreen(state = TodayFixtures.dayCloseState(policy, closed = true), onAction = {})
+        },
+        // release.celebrations: the run once today is wrapped up, a milestone's celebration, Your
+        // progress and Today with the streak in its header. They count days showed up, never an amount.
+        LeakSurface(id = "day-close-streak", label = "Day close, wrapped up, with the run", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(state = TodayFixtures.dayCloseState(policy, closed = true, celebrating = TodayFixtures.celebrating()), onAction = {})
+        },
+        LeakSurface(id = "celebration", label = "A milestone's celebration", showsCaloriesInFull = false) { _ ->
+            CelebrationScreen(state = CelebrationState(Milestone.Week1, offerTurnOff = true), onAction = {})
+        },
+        LeakSurface(id = "celebration-gentle", label = "A milestone's celebration, gently", showsCaloriesInFull = false) { _ ->
+            CelebrationScreen(state = CelebrationState(Milestone.Days30, CelebrationStyle.Gentle), onAction = {})
+        },
+        LeakSurface(id = "progress", label = "Your progress", showsCaloriesInFull = false) { _ ->
+            ProgressSheetContent(state = ProgressFixtures.counts, onAction = {})
+        },
+        LeakSurface(id = "today-streak", label = "Today, with the streak", showsCaloriesInFull = true) { policy ->
+            TodayScreen(
+                state = TodayFixtures.todayState(policy),
+                onAction = {},
+                streak = { StreakIndicator(StreakBadge.Counts(4), onClick = {}) },
+            )
         },
         LeakSurface(id = "food-actions-closed", label = "A food's ⋮ on a closed day", showsCaloriesInFull = true) { policy ->
             ItemSheetContent(state = TodayFixtures.foodActionsState(policy, closed = true), onAction = {})

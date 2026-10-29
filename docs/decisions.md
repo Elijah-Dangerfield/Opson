@@ -25,6 +25,58 @@ nav + picked, so the grid reads the same however it was opened.
 
 ---
 
+---
+
+## 2026-10-29: Celebrations count showing up, forgive a quiet day, and never count food
+
+**Decision:** behind `release.celebrations`, Opson celebrates showing up
+(owner, 2026-10-29: "create an internal dialog of 'I can do this'"). A day
+counts when the person logged anything by hand (a food, "ate, no details", a
+glass of water), wrapped the day up, or checked in; any one is enough
+(`DayMark.showedUp`). A repeat's foods do not count, since food that logged
+itself is not someone coming back. Untracked days are rests: they neither add
+nor break, however many. One quiet day between counted days is forgiven; two in
+a row end the run. Today never breaks a run until midnight. Milestones: the
+first wrap-up; 3, 7, 14, 30, 100, 182 and 365 days in a row; 1, 7 and 30
+check-ins. A milestone, once reached, stays reached, and celebrates once, only
+in the week after it was reached (`ShowingUp.FRESH_DAYS`), so a new phone or a
+sync catching up shows at most the highest fresh one. The celebration is a
+prompt (`celebration`, a new `PromptPresentation.Screen`) so it obeys the
+one-a-session and no-stacking rules: after Wrap up the day it plays as Today
+settles; after logging, the next time Today settles past the quiet start. Its
+button is "I can do this". The first one also offers "I'd rather not see
+these", which turns `celebrationsEnabled` off; More › Reminders and
+celebrations turns it back on. After numbers have been hard, celebrations are
+gentle by default (`celebrationCounts` null follows `onboarding.hard`): a kind
+title and line, no count anywhere, and no badges. The streak sits small in
+Today's header and opens Your progress. Close the day's button is now "Wrap up
+the day" everywhere; the code keeps its day close names.
+
+**Why:** "no streaks" was a rule (`docs/review/product-ideas-2026-10-27.md`)
+because people describe real distress when one breaks. So this one is built
+not to break easily, and never to reward eating less: nothing here reads an
+amount, a goal or a deficit. Asking for "enough" logged was rejected because
+it would ask someone to eat a meal to keep a run. "I can do this" beat "Keep
+going" (an instruction from the app, not something you say to yourself) and
+"Nice" (says nothing). "Wrap up the day" beat "Done for today" (wrong for a
+past day, and reads as giving up) and "Finish the day" (sounds like a chore).
+Celebrated milestones live on the phone (`CelebrationStore`), not in settings:
+a second phone may celebrate a fresh milestone once more, which costs nothing,
+where a synced list would race between phones and add an outbox write per
+celebration. Quiet mode kept its job (notification sound) and lost "no
+confetti" from its line: it defaults on for everyone from 0.1's synced
+prototype defaults, so following it would have made almost every celebration
+silent; celebrations have their own switch and follow the system's reduce
+motion instead.
+
+**Alternatives:** total days logged instead of a run (never lost, but the
+owner asked for streaks and "akin to closing the day"); streak freezes to earn
+or spend (more to explain, and a currency for showing up); celebrating from
+Day close directly (would stack on another prompt and skip the session rule);
+a synced `celebratedMilestones` key. **Before release:** the App Store listing
+says there are no streaks (`docs/app-store/listing.md`); it has to change when
+`release.celebrations` turns on in prod.
+
 ## 2026-10-29: Builders join themselves, Pro holds while active, and auto-approval starts in shadow
 
 **Decision:** Opson Builders (`release.builders`, V31) is self-serve. A claimed

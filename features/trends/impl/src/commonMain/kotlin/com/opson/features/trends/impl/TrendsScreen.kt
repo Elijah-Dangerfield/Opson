@@ -112,6 +112,8 @@ import opson.libraries.resources.generated.resources.trends_hunger_caption_days
 import opson.libraries.resources.generated.resources.trends_hunger_caption_weeks
 import opson.libraries.resources.generated.resources.trends_hunger_empty
 import opson.libraries.resources.generated.resources.trends_hunger_meal_cd
+import opson.libraries.resources.generated.resources.trends_hunger_meals
+import opson.libraries.resources.generated.resources.trends_hunger_checkins_sub
 import opson.libraries.resources.generated.resources.trends_hunger_sub
 import opson.libraries.resources.generated.resources.trends_journal
 import opson.libraries.resources.generated.resources.trends_journal_all
@@ -174,12 +176,15 @@ internal fun TrendsContent(
         state.weeklyCheck?.let { WeeklyCheckCard(it) }
         state.intake?.let { IntakeCardView(it) }
         state.week?.let { WeekDotsCard(it, onPatterns = { onAction(TrendsAction.PatternsTapped) }) }
+        state.calendar?.let { CalendarCardView(it, onAction) }
         state.recap?.let { RecapCardView(it, onPatterns = { onAction(TrendsAction.PatternsTapped) }) }
         state.lastCheck?.let { LastCheckCard(it) }
         state.nutrients?.let { NutrientsCardView(it, onClick = { onAction(TrendsAction.NutrientsCardTapped) }) }
         state.expended?.let { ExpendedCardView(it) }
+        // The running total sits on top of the weight card, so the estimate and the scale read together.
+        state.runningTotal?.let { RunningTotalCardView(it, onAction) }
         state.weight?.let { WeightCardView(it, onClick = { onAction(TrendsAction.WeightCardTapped) }) }
-        state.hunger?.let { HungerCardView(it) }
+        if (state.hunger != null || state.checkInHunger != null) HungerCardView(state.hunger, state.checkInHunger)
         state.journal?.let { JournalCardView(it, onAllNotes = { onAction(TrendsAction.AllNotesTapped) }) }
     }
 }
@@ -463,7 +468,7 @@ private fun ExpendedCardView(card: ExpendedCard) {
 }
 
 @Composable
-private fun WeightCardView(card: WeightCard, onClick: () -> Unit) {
+internal fun WeightCardView(card: WeightCard, onClick: () -> Unit) {
     TrendsCard(onClick = onClick) {
         val subtitle = when (card.subtitle) {
             WeightSubtitle.Trend -> stringResource(Res.string.trends_weight_trend)
@@ -486,44 +491,74 @@ private fun WeightCardView(card: WeightCard, onClick: () -> Unit) {
 }
 
 /**
- * Hunger from the meal notes: how it moved over the span, then where each meal usually sits from
- * stuffed to starving. One colour throughout, as on the Eaten chart: hungrier is not worse.
+ * Hunger: the check-ins' 1 to 10 level over the span when there are any ([checkIns]), then the
+ * meal notes, how hunger before meals moved and where each meal usually sits from stuffed to
+ * starving. One colour throughout, as on the Eaten chart: hungrier is not worse.
  */
 @Composable
-internal fun HungerCardView(trend: HungerTrend) {
-    when (trend) {
-        HungerTrend.Empty -> EmptyCard(message = stringResource(Res.string.trends_hunger_empty), icon = AppIcons.EditNote)
-        is HungerTrend.Chart -> TrendsCard(verticalArrangement = Arrangement.spacedBy(Dimension.D800)) {
-            Column {
-                CardTitle(stringResource(Res.string.trends_hunger))
-                Text(
-                    text = pluralStringResource(Res.plurals.trends_hunger_sub, trend.answers, trend.answers),
-                    typography = AppTheme.type.secondary,
-                    color = AppTheme.colors.muted,
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-                IntakeBarChart(bars = trend.bars, band = null, readouts = trend.readouts)
-                Text(
-                    text = stringResource(if (trend.perWeek) Res.string.trends_hunger_caption_weeks else Res.string.trends_hunger_caption_days),
-                    typography = AppTheme.type.secondary,
-                    color = AppTheme.colors.muted,
-                )
-            }
-            if (trend.meals.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+internal fun HungerCardView(trend: HungerTrend?, checkIns: CheckInHunger? = null) {
+    if (checkIns == null) {
+        when (trend) {
+            null -> Unit
+            HungerTrend.Empty -> EmptyCard(message = stringResource(Res.string.trends_hunger_empty), icon = AppIcons.EditNote)
+            is HungerTrend.Chart -> TrendsCard(verticalArrangement = Arrangement.spacedBy(Dimension.D800)) {
+                Column {
+                    CardTitle(stringResource(Res.string.trends_hunger))
                     Text(
-                        text = stringResource(Res.string.trends_hunger_by_meal),
-                        typography = AppTheme.type.secondaryStrong.Bold,
+                        text = pluralStringResource(Res.plurals.trends_hunger_sub, trend.answers, trend.answers),
+                        typography = AppTheme.type.secondary,
                         color = AppTheme.colors.muted,
                     )
-                    trend.meals.forEach { MealHungerRow(it) }
-                    Row {
-                        Spacer(Modifier.width(HUNGER_SLOT_WIDTH))
-                        TimelineAxis(HUNGER_AXIS.map { stringResource(it.label) }, Modifier.weight(1f))
-                        Spacer(Modifier.width(HUNGER_WORD_WIDTH))
-                    }
                 }
+                MealHungerSections(trend, titled = false)
+            }
+        }
+        return
+    }
+    TrendsCard(verticalArrangement = Arrangement.spacedBy(Dimension.D800)) {
+        Column {
+            CardTitle(stringResource(Res.string.trends_hunger))
+            Text(
+                text = pluralStringResource(Res.plurals.trends_hunger_checkins_sub, checkIns.answers, checkIns.answers),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+            )
+        }
+        CheckInHungerSection(checkIns)
+        if (trend is HungerTrend.Chart) MealHungerSections(trend, titled = true)
+    }
+}
+
+/** The meal notes' hunger: the bars over the span, then each meal's track. [titled] under the check-ins, which come first. */
+@Composable
+private fun MealHungerSections(trend: HungerTrend.Chart, titled: Boolean) {
+    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+        if (titled) {
+            Text(
+                text = stringResource(Res.string.trends_hunger_meals),
+                typography = AppTheme.type.secondaryStrong.Bold,
+                color = AppTheme.colors.muted,
+            )
+        }
+        IntakeBarChart(bars = trend.bars, band = null, readouts = trend.readouts)
+        Text(
+            text = stringResource(if (trend.perWeek) Res.string.trends_hunger_caption_weeks else Res.string.trends_hunger_caption_days),
+            typography = AppTheme.type.secondary,
+            color = AppTheme.colors.muted,
+        )
+    }
+    if (trend.meals.isNotEmpty()) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            Text(
+                text = stringResource(Res.string.trends_hunger_by_meal),
+                typography = AppTheme.type.secondaryStrong.Bold,
+                color = AppTheme.colors.muted,
+            )
+            trend.meals.forEach { MealHungerRow(it) }
+            Row {
+                Spacer(Modifier.width(HUNGER_SLOT_WIDTH))
+                TimelineAxis(HUNGER_AXIS.map { stringResource(it.label) }, Modifier.weight(1f))
+                Spacer(Modifier.width(HUNGER_WORD_WIDTH))
             }
         }
     }
@@ -633,7 +668,7 @@ private val HUNGER_SLOT_WIDTH = Dimension.D1600
 private val HUNGER_WORD_WIDTH = Dimension.D1500
 
 @Composable
-private fun CardTitle(text: String, modifier: Modifier = Modifier) {
+internal fun CardTitle(text: String, modifier: Modifier = Modifier) {
     Text(text = text, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink, modifier = modifier)
 }
 
@@ -656,7 +691,7 @@ private fun TitleWithChevron(title: String, subtitle: String, trailing: @Composa
 
 /** The Trends card: inside the page padding, as v3 draws this page, not edge to edge. */
 @Composable
-private fun TrendsCard(
+internal fun TrendsCard(
     onClick: (() -> Unit)? = null,
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(AppTheme.spacing.row),
     content: @Composable ColumnScope.() -> Unit,

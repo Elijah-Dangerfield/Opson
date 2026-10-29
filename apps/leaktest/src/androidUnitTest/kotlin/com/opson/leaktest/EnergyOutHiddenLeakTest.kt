@@ -67,7 +67,7 @@ class EnergyOutHiddenLeakTest(private val surface: LeakSurface) {
             "onboarding-goal-rate", "onboarding-goal-overview",
             "integrations", "today-expended", "today-exercise", "today-summary", "day-close-check-in",
             "today-macros", "today-weight", "today-select", "today-select-remove", "today-swipe-delete",
-            "today-delete-confirm", "targets-goal-style", "resting-energy", "energy-today", "trends",
+            "today-delete-confirm", "targets-goal-style", "resting-energy", "energy-today", "trends", "trends-deficit", "trends-day",
             "today-select-v4", "today-moved",
             "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
             "today-activity", "today-activity-health", "exercise-sheet",

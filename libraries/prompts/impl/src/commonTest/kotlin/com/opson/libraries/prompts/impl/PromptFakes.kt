@@ -43,6 +43,7 @@ internal class FakeCandidate(
     var eligible: Boolean = true,
     var throws: Boolean = false,
     val acceptsWith: PromptAccept = PromptAccept.Open(FakeRoute()),
+    val screenRoute: Route? = null,
 ) : PromptCandidate {
     override val content = FAKE_CONTENT
     var eligibilityChecks = 0
@@ -55,6 +56,8 @@ internal class FakeCandidate(
     }
 
     override suspend fun accept(): PromptAccept = acceptsWith
+
+    override suspend fun screen(): Route? = screenRoute
 }
 
 internal class InMemoryLedger : PromptLedgerStore {

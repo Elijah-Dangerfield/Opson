@@ -43,6 +43,12 @@ class SlateTest {
         assertContrast(c.accentTint, c.ink, AA, c)
     }
 
+    /** The on-track calendar writes the day's number in ink on its fill. */
+    @Test
+    fun dayNumbers_meetAa_onEveryPlanFill() = schemes.forEach { c ->
+        listOf(c.plan.on, c.plan.near, c.plan.off, c.plan.logged).forEach { assertContrast(c.ink, it, AA, c) }
+    }
+
     @Test
     fun energyOut_isVisibleOnACardAndItsTrack() = schemes.forEach { c ->
         listOf(c.restingEnergy, c.activeEnergy).forEach { fill ->

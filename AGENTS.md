@@ -124,8 +124,8 @@ Repositories that mirror server state don't invent their own refresh timing. Imp
 ## Prompts on Today (`:libraries:prompts`)
 
 Anything Opson offers unasked on Today (connect Health, choose reminders, try a check-in, join the
-Builder program) is a `PromptCandidate` contributed by multibinding, never a dialog a screen opens
-itself. One processor applies the anti-spam rules (one a session, a day between any two, a quiet
+Builder program, a milestone's celebration) is a `PromptCandidate` contributed by multibinding,
+never a dialog a screen opens itself. One processor applies the anti-spam rules (one a session, a day between any two, a quiet
 first two days, per-prompt caps, fewer and gentler after "numbers have been hard"), picks by
 priority, and the host in `App.kt` shows it only while Today is the top of the stack. Moments like
 a sent report go through `PromptEvents.emit`. The rules and the one-file recipe for a new prompt are

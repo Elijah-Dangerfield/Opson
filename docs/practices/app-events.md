@@ -299,9 +299,23 @@ typed.** The rules are in [prompts.md](prompts.md). A funnel is `prompt.shown` t
 
 | Event | Attributes | Fires |
 |---|---|---|
-| `prompt.shown` | `prompt` (`connect_health`, `meal_reminders`, `try_check_in`, …), `presentation` (`dialog`, `sheet`, `card`), `trigger` (`today`, `report_sent`, `day_closed`, `qa`) | A prompt was picked and is about to be drawn. Written to the counts first, so it fires once per showing. `qa` is the QA menu's Show next |
+| `prompt.shown` | `prompt` (`connect_health`, `meal_reminders`, `try_check_in`, `celebration`, …), `presentation` (`dialog`, `sheet`, `card`, `screen`), `trigger` (`today`, `report_sent`, `day_closed`, `qa`) | A prompt was picked and is about to be drawn. Written to the counts first, so it fires once per showing. `qa` is the QA menu's Show next |
 | `prompt.accepted` | `prompt` | The main button. Once per showing |
 | `prompt.dismissed` | `prompt` | Not now, a swipe, a tap outside or Back. Once per showing, never after an accept |
+
+### Celebrations (`release.celebrations`)
+
+Milestones for showing up (`docs/decisions.md`, 2026-10-29). Ids and styles only: no count of
+days, no date, nothing eaten. A funnel is `celebration.shown` to `celebration.answered` by
+`answer`; `celebration.setting` with `on` false is everyone who turned them off, from the first
+celebration or from More.
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `celebration.shown` | `milestone` (`first_wrap_up`, `days_3`, `week_1`, `weeks_2`, `days_30`, `days_100`, `months_6`, `year_1`, `first_check_in`, `check_ins_7`, `check_ins_30`), `style` (`counts`, `gentle`), `offered_turn_off` | The celebration screen opened. `prompt.shown` with `prompt` `celebration` fires just before it |
+| `celebration.answered` | `milestone`, `answer` (`can_do_this`, `turned_off`, `back`) | Once per celebration: I can do this, I'd rather not see these (first celebration only), or Back |
+| `celebration.setting` | `on`, `counts` | Celebrations or Day counts switched on More › Reminders and celebrations, with what they now are |
+| `celebration.progress_opened` | `style` | Your progress opened from the streak in Today's header |
 
 ## Warn+ log forwarding (not events)
 

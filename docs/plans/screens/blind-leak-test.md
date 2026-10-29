@@ -241,11 +241,15 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-screen-settings` | settings | design sync 4; More › Today screen and its main number sheet, no amounts | no |
 | new | | `today-low-logging` | today | the late-day card over a day with one food; the card has no numbers | yes |
 | new | | `nutrient-foods`, `nutrient-foods-week`, `nutrient-foods-protein` | trends | which foods gave a nutrient; amounts and shares only where the level shows, ranked alone where it softens, nothing where it hides (`NutrientFoodsLeakTest`) | no |
+| new | | `trends-deficit`, `trends-day` | trends | the on-track calendar, running total and the day sheet against a set deficit; the calendar says only logged or not, and the running total and the day's numbers are not drawn, wherever calories (or energy out, for a goal aimed at Burned) are short of Show. Later opens both as the week view and a past day do | yes |
 | new | | `micro-targets`, `micro-target-sheet` | settings | Vitamins and minerals: references, never an amount eaten, off where micros are hidden | no |
 | new | | `onboarding-goal` | onboarding | `onboarding-v2.md`, `release.onboardingSetup`; goal styles and the range on a stepper | yes |
 | new | | `onboarding-goal-from-burn` | onboarding | `onboarding-v2.md`; the goal step started from an ordinary day's burn, with "Based on about … burned", energy out | yes |
 | new | | `onboarding-resting-energy` | onboarding | `onboarding-v2.md`; resting energy's details and the estimate they give, energy out | yes |
 | new | | `onboarding-meal-times` | onboarding | `onboarding-v2.md`; when meals usually happen, no amounts | no |
+| new | | `day-close-streak`, `today-streak` | today | 2026-10-29, `release.celebrations`; the run once today is wrapped up, and the streak in Today's header. Days showed up, never an amount | yes |
+| new | | `celebration`, `celebration-gentle`, `progress` | today | 2026-10-29, `release.celebrations`; a milestone's celebration with counts and gently, and Your progress | no |
+| new | | `reminders-celebrations` | settings | 2026-10-29, `release.celebrations`; Celebrations and Day counts on Reminders and celebrations | no |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and

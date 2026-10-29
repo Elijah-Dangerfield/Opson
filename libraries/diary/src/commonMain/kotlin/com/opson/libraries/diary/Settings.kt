@@ -285,6 +285,21 @@ data class Settings(
     val microTargets: Map<String, Double> = emptyMap(),
     /** The nutrients page on Today, as `Micronutrient.key`s in order; empty is [DEFAULT_TODAY_NUTRIENTS]. */
     val todayNutrients: List<String> = emptyList(),
+
+    // Celebrations (`release.celebrations`): milestones for showing up, the streak on Today and
+    // Your progress. Top-level keys, because the server merges settings one level deep.
+    /**
+     * Milestone celebrations, the streak on Today and the line after wrapping up a day. On by
+     * default; the first celebration offers to turn it off, and More › Reminders and celebrations
+     * turns it back on. Onboarding may read it.
+     */
+    val celebrationsEnabled: Boolean = true,
+    /**
+     * Whether celebrations say how many days ("4 days in a row"). Null until the person picks,
+     * which follows the onboarding answer: off after numbers have been hard. Read it through
+     * [celebrationStyle].
+     */
+    val celebrationCounts: Boolean? = null,
 ) {
     /** [birthDate] while it agrees with [birthYear]: an older build that changed only the year leaves the day unknown. */
     val knownBirthDate: LocalDate? get() = birthDate?.takeIf { it.year == birthYear }
@@ -302,6 +317,18 @@ data class Settings(
         val leapDay = born.month == Month.FEBRUARY && born.day == LEAP_DAY
         return leapDay && today.month == Month.FEBRUARY && today.day == LEAP_DAY - 1 && !isLeapYear(today.year)
     }
+
+    /**
+     * How celebrations speak: [CelebrationStyle.Counts] with the day counts, [CelebrationStyle.Gentle]
+     * with a kind line and no counts (the default after numbers have been hard), or
+     * [CelebrationStyle.Off].
+     */
+    val celebrationStyle: CelebrationStyle
+        get() = when {
+            !celebrationsEnabled -> CelebrationStyle.Off
+            celebrationCounts ?: !onboarding.hard -> CelebrationStyle.Counts
+            else -> CelebrationStyle.Gentle
+        }
 
     /** [bodyFatPercent] when one was given and makes sense. */
     val bodyFat: Double? get() = BodyFat.inRange(bodyFatPercent)
@@ -483,6 +510,10 @@ data class TrendsCards(
     val weight: Boolean = true,
     /** Hunger and the Notes summary, read from the meal notes. */
     val journal: Boolean = true,
+    /** The on-track calendar: each day of the month against the person's own plan, or logged and not. */
+    val calendar: Boolean = true,
+    /** The running total: eaten against burned, added up over a few weeks, with what that might mean on the scale. */
+    val runningTotal: Boolean = true,
 )
 
 /** How the Logger orders search results. */
