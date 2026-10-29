@@ -3,7 +3,12 @@ package com.opson.libraries.health
 import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.nutrition.Burned
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 
 /**
  * What the person burns (design sync 4): resting energy for the whole day from the source they
@@ -21,6 +26,23 @@ interface BurnedRepository {
      * reading and nothing entered.
      */
     fun burned(day: LocalDate): Flow<Burned?>
+
+    /**
+     * Each day's Burned from [from] to [to], both included, the same as [burned] gives for that
+     * day: Trends' on-track calendar and running total. A day is missing when [burned] would be
+     * null for it. Past days use today's resting energy, as [burned] does for them, since
+     * resting energy comes from the latest weigh-in and today's age.
+     *
+     * The default asks [burned] once per day, which is right for a fake; the real repository
+     * reads the health app once for the whole span.
+     */
+    fun burnedBetween(from: LocalDate, to: LocalDate): Flow<Map<LocalDate, Burned>> {
+        val dates = generateSequence(from) { it.plus(1, DateTimeUnit.DAY) }.takeWhile { it <= to }.toList()
+        if (dates.isEmpty()) return flowOf(emptyMap())
+        return combine(dates.map { day -> burned(day).map { day to it } }) { days ->
+            days.mapNotNull { (day, burned) -> burned?.let { day to it } }.toMap()
+        }
+    }
 
     /** What each resting energy source would give right now, for the Resting energy page. */
     fun restingChoices(): Flow<RestingChoices>

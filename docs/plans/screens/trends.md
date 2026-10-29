@@ -206,6 +206,71 @@ hunger noted, one `EmptyCard` sentence. Notes: meals with a note out of meals
 done, then fullness and moods only where older "How it felt" rows have them,
 and only when anything was written. Note text never reaches Trends.
 
+**Check-in hunger** (`release.checkIn`) joins the Hunger card above the meal
+notes' bars: `From your check-ins`, the check-in's 1 to 10 level
+(`CheckIn.hunger`) over the page's span (`TrendsJournal.checkInHunger`). A dot
+a day on Week (one check-in a day), a dot a week on the longer ranges at the
+week's average with a bar from its fullest to its hungriest answer
+(`RangeDotChart` in `:libraries:ui`). Hungrier is higher, as on the meal bars;
+the side names the scale's anchors (Ravenous, Hungry, Neutral, Full, Stuffed),
+never a number. Untracked days are gaps. Before this, Trends charted only the
+meal notes' five-step hunger; the 1 to 10 level was only on Patterns (Hunger
+by weekday and the How you've felt bars, a fixed four weeks).
+
+### On-track calendar
+Under the Eaten chart (or Your week), behind `TrendsCards.calendar`
+(`On-track calendar` in the settings sheet, every mode). This month and the two
+before (`OnTrack.MONTHS`), swiped (`SwipePages`) or stepped with the arrows,
+laid out from the week start, today ringed in ink. Pure rules in `OnTrack`,
+tested at the band edges (`OnTrackTest`):
+
+- The day's goal is `Targets.rangeFor(date, preset, that day's Burned)`, the
+  goal Today shows, so a set deficit is judged on the day's own deficit
+  (burned less eaten) against the one set. One number gets Today's
+  `ONE_NUMBER_LEEWAY_KCAL` either side.
+- **On plan** inside it. **A bit off** up to `nearMarginKcal` past it, the
+  larger of 150 kcal and a tenth of the goal (`TODO(clinician)`). **Over** or
+  **under** beyond that.
+- The fills are `AppTheme.colors.plan` (Slate): a sage green, a wheat gold and
+  a soft clay for off, never an alarm red, with ink on each (`SlateTest`).
+  Clay is clearly off in the direction away from the goal: over for a
+  deficit, under for a surplus, either way for a range. Far past the goal the
+  other way (far under a deficit) is gold, never green: eating very little is
+  not the best day. Words are `Over plan`, `Under plan`, `Off plan`, never a
+  verdict.
+- Gray: nothing logged, untracked, a meal without an amount (unless the known
+  part is already over), today until it is closed, a day Later hasn't opened,
+  and days to come (no fill).
+- **Logged only** (`CalendarMode.LoggedOnly`): a day is logged or not, no
+  colors for how it went. Wherever calories are short of Show on the week
+  view, energy out too for a goal aimed at Burned, and always for someone who
+  said numbers have been hard (`onboarding.hard`).
+- The (i) opens `How to read this`, worded for the plan's direction and in the
+  app's energy words (Resting energy (BMR), Total burned (TDEE)); for a plan
+  aimed at Burned it links to the shared energy (i) sheets
+  (`EnergyExplainerRoute`, burned and balance), as the running total's does. A count
+  line under the month (`12 on plan · 5 a bit off · 3 over`) and a legend.
+- A day opens `TrendsDayRoute(dayIso)`, a `bottomSheet<>`: the day's word,
+  Eaten, Burned, the difference (`480 kcal under what you burned`) and the plan
+  where the mode shows them in full, and `Open this day` (selects the day and
+  switches to Today).
+
+### Running total
+Over the Weight card, behind `TrendsCards.runningTotal` and Burned
+(`release.goalsAndEnergy`, which `burnedByDay` needs). Every counted day's
+Burned (`BurnedRepository.burnedBetween`, the same Burned Today uses, digesting
+food included when it is on) less eaten, added up over `7 days` or `30 days`
+(default), or `Since you started` once the goal has a start date
+(`TrendsInputs.goalStart`, `TODO(weight-goal)` until Settings has one). A day
+with nothing logged, untracked, with a meal without amounts, or without a
+Burned is left out, and today waits until it is closed. Shown as `3,500 kcal
+under what you burned` and `Roughly 1.0 lb of body weight lost, by the rule of
+thumb of 3,500 kcal a pound` (7,700 a kilogram, `KCAL_PER_KG`), in the
+person's weight unit, then the weight trend over the same days. The (i)
+explains the estimate and its limits. Only where calories and energy out show
+in full, never after numbers have been hard; the pounds and the scale only
+where weight shows in full. `RunningTotalTest`.
+
 ### Data
 `DiaryRepository.observeDays(from, to)`, `WeightRepository.observeWeighIns(since
 = today − 120 days)`, `SettingsRepository.settings`,
@@ -222,6 +287,9 @@ Surface `Week` (with `day` = the span's last day), weight on `Weight`.
 | Recap, Your week | none (counts) | always | always | always | always |
 | Weight card | weight | trend `73.4 kg` and line | slope word and line | line | card removed |
 | Hunger, Notes | none (levels and counts) | always | always | always, before a weekly check too | always |
+| On-track calendar | calories (and energy out for a goal aimed at Burned) | colored against the plan | logged or not | each day once it opens | logged or not |
+| Running total | calories, energy out, weight | total, pounds, scale trend | card removed | days that have opened | card removed |
+| Day sheet | calories, energy out | eaten, burned, difference, plan | logged or not | once the day opens | logged or not |
 
 ### Copy (`strings_trends.xml`)
 `Week` / `Month` / `3 months`; `Eaten`; `avg`; captions `The band is your
@@ -251,7 +319,8 @@ Coast before and after its check (weekly check, two rows, last week's check;
 afterwards the Eaten card), Fuel, cards off. `TrendsViewModelTest`: each event
 and `RangePicked` writing the setting. Previews: `trends`, `trends-blind`,
 `trends-coast`, Month, empty, dark. `SURFACES`: `trends`, `trends-blind`,
-`trends-coast`.
+`trends-coast`, `trends-deficit`, `trends-day`. `OnTrackTest`, `RunningTotalTest`,
+`CheckInHungerTest`, `TrendsDayTest`.
 
 ---
 
@@ -266,7 +335,9 @@ data class CardToggle(val card: TrendsCard, val on: Boolean)   // Intake, Recap,
 ```
 
 Intake listed only when calories can show on the week view; Nutrients when a
-macro can; Weight when weight is not hidden; Recap always.
+macro can; Weight when weight is not hidden; Recap, the On-track calendar and
+Hunger and notes always; Running total with Burned (`release.goalsAndEnergy`)
+where calories and energy out show, and not after numbers have been hard.
 
 | Action | Does |
 |---|---|
@@ -276,7 +347,7 @@ macro can; Weight when weight is not hidden; Recap always.
 | `CloseTapped` | `Dismiss`. |
 
 Copy: `Trends settings`; `Week starts on`: Monday / Saturday / Sunday; `Show on
-Trends`: Eaten chart / Recap / Nutrients / Weight. `SURFACES`: `trends-settings`.
+Trends`: Eaten chart / On-track calendar / Recap / Nutrients / Expended / Running total / Weight / Hunger and notes. `SURFACES`: `trends-settings`.
 
 ---
 

@@ -40,7 +40,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -211,6 +213,39 @@ class RealBurnedRepositoryTest {
         assertEquals(0, diary.reads)
     }
 
+    @Test
+    fun aSpan_isEachDayAsBurnedWouldGiveIt() = runTest {
+        val repository = repository(
+            settings = profiled.copy(thermicEffectInBurned = true, everydayActivity = EverydayActivity.SomeWalking),
+            health = FakeHealth(connected = false),
+            exercise = listOf(entry(200)),
+            exerciseOn = true,
+            diary = FakeDiary(eatenKcal = 1245.0),
+        )
+        val from = LocalDate(2026, 10, 25)
+
+        val span = repository.burnedBetween(from, today).first()
+
+        val dates = listOf(from, LocalDate(2026, 10, 26), today)
+        assertEquals(dates.associateWith { requireNotNull(repository.burned(it).first()) }, span)
+        assertEquals(1430 + 540 + 200 + 125, span[today]?.totalKcal, "today's logged exercise, and digesting food on every day")
+        assertEquals(1430 + 540 + 125, span[from]?.totalKcal)
+    }
+
+    @Test
+    fun aSpan_readsTheHealthAppsActivityPerDay_andFallsBackWhereItHasNone() = runTest {
+        val span = repository().burnedBetween(LocalDate(2026, 10, 25), LocalDate(2026, 10, 26)).first()
+
+        assertEquals(1430 + 500, span[LocalDate(2026, 10, 25)]?.totalKcal, "the store's active energy that day")
+        assertEquals(1430 + 290, span[LocalDate(2026, 10, 26)]?.totalKcal, "nothing read that day, so everyday activity stands in")
+    }
+
+    @Test
+    fun aSpan_withNothingToCalculateFrom_isEmpty() = runTest {
+        val repository = repository(settings = Settings(), weighIns = emptyList(), health = FakeHealth(connected = false))
+        assertEquals(emptyMap(), repository.burnedBetween(LocalDate(2026, 10, 25), today).first())
+    }
+
     private fun healthFlag(on: Boolean) = HealthReleaseFlag(
         object : AppConfigMap() {
             override val map: Map<String, *> = mapOf("release" to mapOf("health" to on))
@@ -260,7 +295,10 @@ class RealBurnedRepositoryTest {
             return flowOf(Day(date, MealSlot.entries.associateWith { emptyList<LogItem>() } + (MealSlot.Lunch to listOf(item))))
         }
 
-        override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Day>> = error("not used")
+        override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Day>> {
+            val dates = generateSequence(from) { it.plus(1, DateTimeUnit.DAY) }.takeWhile { it <= to }.toList()
+            return kotlinx.coroutines.flow.combine(dates.map(::observeDay)) { it.toList() }
+        }
         override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = error("not used")
         override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>> = error("not used")
         override suspend fun updateItem(item: LogItem): DayWrite<Unit> = error("not used")

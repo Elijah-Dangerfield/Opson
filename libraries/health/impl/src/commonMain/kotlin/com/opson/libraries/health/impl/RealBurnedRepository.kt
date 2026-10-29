@@ -6,6 +6,7 @@ import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeightRepository
+import com.opson.libraries.nutrition.ExerciseTotals
 import com.opson.libraries.diary.totals
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.EnergyExpended
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -75,6 +77,48 @@ class RealBurnedRepository(
                 activityCounted = settings.activityInBurned,
                 foodKcal = food,
             )
+        }.distinctUntilChanged()
+    }
+
+    /**
+     * The span in one go: settings, the latest weigh-in and the health app's resting energy once,
+     * the health app's activity with one range read (read again when the connection changes, not
+     * every few minutes as [burned] does for today), and the diary once for digesting food. Each
+     * day is put together exactly as [burned] does it.
+     */
+    override fun burnedBetween(from: LocalDate, to: LocalDate): Flow<Map<LocalDate, Burned>> {
+        val dates = generateSequence(from) { it.plus(DatePeriod(days = 1)) }.takeWhile { it <= to }.toList()
+        if (dates.isEmpty()) return flowOf(emptyMap())
+        val logged: Flow<Map<LocalDate, ExerciseTotals>?> = if (exerciseRelease.isOn()) {
+            combine(dates.map { day -> exercise.observeDay(day).map { day to it.totals() } }) { it.toMap() }
+        } else {
+            flowOf(null)
+        }
+        val digesting: Flow<Map<LocalDate, Int>?> =
+            settingsRepository.settings.map { it.thermicEffectInBurned }.distinctUntilChanged().flatMapLatest { on ->
+                if (on) {
+                    diary.observeDays(from, to).map { days -> days.associate { it.date to thermicEffectKcal(it.totals().kcal.known) } }.distinctUntilChanged()
+                } else {
+                    flowOf(null)
+                }
+            }
+        val activity: Flow<Map<LocalDate, EnergyExpended>?> = connected().flatMapLatest { connected ->
+            if (connected) flow { emit(health.energyBetween(from, to, calendar.timeZone())) } else flowOf(null)
+        }
+        val manualSide = combine(logged, digesting) { totals, food -> totals to food }
+        return combine(settingsRepository.settings, latestWeightKg(), healthResting(), activity, manualSide) { settings, kg, healthKcal, activity, (totals, food) ->
+            val resting = resting(settings, kg, healthKcal) ?: return@combine emptyMap()
+            dates.associateWith { day ->
+                burnedFor(
+                    resting = resting,
+                    health = activity?.get(day)?.toHealthActivity(),
+                    everyday = settings.everydayActivity,
+                    exercise = totals?.get(day),
+                    activityCounted = settings.activityInBurned,
+                    // A day with nothing in the diary digested nothing, as [burned] reads it.
+                    foodKcal = food?.let { it[day] ?: 0 },
+                )
+            }
         }.distinctUntilChanged()
     }
 

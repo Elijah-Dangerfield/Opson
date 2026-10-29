@@ -10,6 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
+import com.opson.features.settings.EnergyExplainerRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.trends.NotesListLink
 import com.opson.features.trends.NutrientFoodsRoute
@@ -20,6 +21,8 @@ import com.opson.features.trends.ProgressPhotoCaptureRoute
 import com.opson.features.trends.ProgressPhotoRoute
 import com.opson.features.trends.ProgressPhotosCompareRoute
 import com.opson.features.trends.ProgressPhotosRoute
+import com.opson.features.today.TodayRoute
+import com.opson.features.trends.TrendsDayRoute
 import com.opson.features.trends.TrendsRoute
 import com.opson.features.trends.TrendsSettingsRoute
 import com.opson.features.trends.WeightRoute
@@ -64,6 +67,7 @@ import kotlin.reflect.typeOf
 class TrendsFeatureEntryPoint(
     private val trendsViewModelFactory: () -> TrendsViewModel,
     private val trendsSettingsViewModelFactory: () -> TrendsSettingsViewModel,
+    private val trendsDayViewModelFactory: (day: LocalDate) -> TrendsDayViewModel,
     private val nutrientsViewModelFactory: (day: LocalDate, range: NutrientsRange, fromTrends: Boolean) -> NutrientsViewModel,
     private val nutrientFoodsViewModelFactory: (day: LocalDate, nutrient: Nutrient, range: NutrientsRange) -> NutrientFoodsViewModel,
     private val weightViewModelFactory: () -> WeightViewModel,
@@ -90,6 +94,8 @@ class TrendsFeatureEntryPoint(
                     TrendsEvent.OpenWeight -> router.navigate(WeightRoute())
                     TrendsEvent.OpenPatterns -> router.navigate(PatternsRoute())
                     TrendsEvent.OpenNotes -> notesListLink?.let { router.navigate(it.route()) }
+                    is TrendsEvent.OpenDay -> router.navigate(TrendsDayRoute(event.dayIso))
+                    is TrendsEvent.OpenEnergyExplainer -> router.navigate(EnergyExplainerRoute(event.topic))
                 }
             }
             val scrollState = rememberScrollState()
@@ -112,6 +118,29 @@ class TrendsFeatureEntryPoint(
                 backgroundColor = AppTheme.colors.bg,
             ) {
                 TrendsSettingsSheetContent(state = state, onAction = viewModel::takeAction)
+            }
+        }
+
+        bottomSheet<TrendsDayRoute> { entry, sheetState ->
+            val route = entry.toRoute<TrendsDayRoute>()
+            val viewModel: TrendsDayViewModel = viewModel { trendsDayViewModelFactory(LocalDate.parse(route.dayIso)) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    TrendsDayEvent.Dismiss -> sheetState.dismiss()
+                    // Today already shows the day: SelectedDay moved before this event.
+                    TrendsDayEvent.OpenToday -> router.batch {
+                        goBack()
+                        switchTab(TodayRoute())
+                    }
+                }
+            }
+            BottomSheet(
+                onDismissRequest = { router.goBack() },
+                state = sheetState,
+                backgroundColor = AppTheme.colors.bg,
+            ) {
+                TrendsDaySheetContent(state = state, onAction = viewModel::takeAction)
             }
         }
 

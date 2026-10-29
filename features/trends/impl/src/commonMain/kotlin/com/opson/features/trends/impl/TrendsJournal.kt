@@ -1,7 +1,9 @@
 package com.opson.features.trends.impl
 
+import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
+import com.opson.libraries.diary.HungerLevel
 import com.opson.libraries.diary.JournalFacts
 import com.opson.libraries.diary.MealJournal
 import com.opson.libraries.diary.MealPatterns
@@ -12,8 +14,13 @@ import com.opson.libraries.diary.ui.label
 import com.opson.libraries.ui.components.ChartReading
 import com.opson.libraries.ui.components.ChartReadout
 import com.opson.libraries.ui.components.IntakeBar
+import com.opson.libraries.ui.components.RangeDot
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.trends_chart_hunger
+import kotlin.math.roundToInt
 
 /**
  * The Hunger card, read from the meal notes over the page's span. Hunger has no amount, so every
@@ -46,6 +53,21 @@ sealed interface HungerTrend {
  * the lowest to the highest answer behind it, and [usual] the answer given most.
  */
 data class MealHunger(val slot: MealSlot, val average: Float, val spread: ClosedFloatingPointRange<Float>, val usual: Hunger)
+
+/**
+ * The check-ins' hunger, 1 to 10, over the page's span (`release.checkIn`). A dot a day on Week,
+ * that day's answer (one check-in a day); on the longer ranges a dot a week, the week's average,
+ * with a bar from its fullest answer to its hungriest. Heights are `0..1`, hungrier higher, as on
+ * the meal notes' bars. [axis] is the scale's own words at their levels: no number on the side.
+ * [answers] is how many days were answered.
+ */
+data class CheckInHunger(
+    val answers: Int,
+    val dots: List<RangeDot>,
+    val perWeek: Boolean,
+    val axis: List<Pair<Float, HungerLevel>>,
+    val readouts: List<ChartReadout?> = emptyList(),
+)
 
 /** A value and how many meals had it. */
 data class Tally<T>(val value: T, val meals: Int)
@@ -105,6 +127,59 @@ internal object TrendsJournal {
             },
         )
     }
+
+    /** The levels the side of the check-in chart names: the ends, hungry, neutral and full. */
+    private val CHECK_IN_AXIS = listOf(1, 3, 5, 8, 10).mapNotNull(HungerLevel::of)
+
+    /**
+     * The check-ins' hunger over [span] up to today, or `null` with no answer in it. Untracked
+     * days are gaps, as everywhere on Trends.
+     */
+    fun checkInHunger(inputs: TrendsInputs, span: TrendsSpan, dayAt: (LocalDate) -> Day): CheckInHunger? {
+        fun level(date: LocalDate): HungerLevel? = dayAt(date).takeUnless { it.untracked || date > inputs.today }?.checkIn?.hunger
+        val answered = span.days.mapNotNull(::level)
+        if (answered.isEmpty()) return null
+        val points: List<Pair<RangeDot, ChartReadout?>> = when (span.range) {
+            TrendsRange.Week -> span.days.map { date ->
+                val answer = level(date)
+                RangeDot(TrendsCalendar.weekdayLabel(date), answer?.hungriness?.toFloat(), isCurrent = date == inputs.today) to
+                    answer?.let { ChartReadout(TrendsReadouts.day(date, inputs.today), listOf(ChartReading(word = it.label, label = Res.string.trends_chart_hunger))) }
+            }
+            TrendsRange.FourWeeks, TrendsRange.ThreeMonths -> {
+                val starts = TrendsCalendar.weekStarts(inputs.today, inputs.settings.weekStart, TrendsCalendar.barCount(span.range))
+                starts.mapIndexed { index, start ->
+                    val dates = (0 until TrendsCalendar.DAYS_IN_WEEK).map { start.plus(it, DateTimeUnit.DAY) }.filter { it <= inputs.today }
+                    val levels = dates.mapNotNull(::level)
+                    val label = TrendsStateBuilder.weekBarLabel(starts, index, span.range)
+                    if (levels.isEmpty()) {
+                        RangeDot(label, null, isCurrent = index == starts.lastIndex) to null
+                    } else {
+                        val average = levels.map { it.value }.average()
+                        RangeDot(
+                            label = label,
+                            value = hungriness(average),
+                            low = levels.minOf { it.hungriness }.toFloat(),
+                            high = levels.maxOf { it.hungriness }.toFloat(),
+                            isCurrent = index == starts.lastIndex,
+                        ) to HungerLevel.of(average.roundToInt())?.let {
+                            ChartReadout(TrendsReadouts.week(start, dates.last()), listOf(ChartReading(word = it.label, label = Res.string.trends_chart_hunger)))
+                        }
+                    }
+                }
+            }
+        }
+        return CheckInHunger(
+            answers = answered.size,
+            dots = points.map { it.first },
+            perWeek = span.range != TrendsRange.Week,
+            axis = CHECK_IN_AXIS.map { it.hungriness.toFloat() to it },
+            readouts = points.map { it.second },
+        )
+    }
+
+    /** A level on the 1 to 10 scale as a height: 0 for stuffed up to 1 for ravenous, as [HungerLevel.hungriness]. */
+    private fun hungriness(level: Double): Float =
+        ((HungerLevel.MAX - level) / (HungerLevel.MAX - HungerLevel.MIN)).toFloat()
 
     /** `null` with nothing written in the span: the Hunger card's empty sentence says enough. */
     fun journal(facts: JournalFacts, linksToNotes: Boolean): JournalCard? {

@@ -19,7 +19,9 @@ import com.opson.system.Dimension
 import com.opson.system.background
 import kotlinx.datetime.DayOfWeek
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.trends_settings_card_calendar
 import opson.libraries.resources.generated.resources.trends_settings_card_expended
+import opson.libraries.resources.generated.resources.trends_settings_card_running
 import opson.libraries.resources.generated.resources.trends_settings_card_intake
 import opson.libraries.resources.generated.resources.trends_settings_card_journal
 import opson.libraries.resources.generated.resources.trends_settings_card_nutrients
@@ -111,4 +113,6 @@ private val TrendsCard.label: StringResource
         TrendsCard.Expended -> Res.string.trends_settings_card_expended
         TrendsCard.Weight -> Res.string.trends_settings_card_weight
         TrendsCard.Journal -> Res.string.trends_settings_card_journal
+        TrendsCard.Calendar -> Res.string.trends_settings_card_calendar
+        TrendsCard.Running -> Res.string.trends_settings_card_running
     }

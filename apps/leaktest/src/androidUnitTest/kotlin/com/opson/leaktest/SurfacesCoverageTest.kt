@@ -140,7 +140,7 @@ class SurfacesCoverageTest {
                 "foods-add-food-pack", "foods-unverified", "foods-repeating", "foods-repeat", "foods-repeat-edit",
             ),
             "TrendsLeakSurfaces" to listOf(
-                "trends", "trends-blind", "trends-coast", "trends-settings", "nutrients", "nutrients-week",
+                "trends", "trends-blind", "trends-coast", "trends-deficit", "trends-day", "trends-settings", "nutrients", "nutrients-week",
                 "nutrient-foods", "nutrient-foods-week", "nutrient-foods-protein",
                 "weight", "patterns", "patterns-blind", "progress-photos", "progress-photos-compare",
             ),
@@ -166,7 +166,7 @@ class SurfacesCoverageTest {
             "logger-describe", "logger-saved", "food-detail", "logger-photo", "logger-photo-swap", "submit-food-review",
             "food-report-values", "submit-food-builder-review", "check-food-differs",
             "foods", "foods-create-meal", "foods-add-food",
-            "trends", "trends-blind", "trends-coast", "nutrients", "nutrients-week", "patterns", "patterns-blind",
+            "trends", "trends-blind", "trends-coast", "trends-deficit", "trends-day", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
             "targets-goal-style", "energy-today", "targets-deficit-estimated", "targets-macros", "targets-safety-notes",
             "energy-explainer-resting", "energy-explainer-burned", "energy-explainer-balance",

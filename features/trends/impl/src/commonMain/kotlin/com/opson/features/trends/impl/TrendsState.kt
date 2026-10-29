@@ -7,6 +7,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.DayGoal
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
@@ -54,6 +55,26 @@ data class TrendsInputs(
     val burnedKcal: Int? = null,
     /** A Notes list is bound to open ([com.opson.features.trends.NotesListLink]), so the Notes card links to it. */
     val notesLinked: Boolean = false,
+    /**
+     * Each day's Burned with `release.goalsAndEnergy`, over the calendar's months and the running
+     * total's days. `null` with the flag off, which leaves the running total off and every deficit
+     * on its range, as Today does without a burn.
+     */
+    val burnedByDay: Map<LocalDate, Burned>? = null,
+    /** `release.checkIn`: the Hunger card charts the check-ins' 1 to 10 level too. */
+    val checkInOn: Boolean = false,
+    /** When the current goal began, for the running total's "Since you started". `null` until a goal has a start date. */
+    val goalStart: LocalDate? = null,
+)
+
+/** What the person has picked on the page itself, kept by the view model across new inputs. */
+data class TrendsUi(
+    /** The calendar's month, an index into its months; `null` for this month. */
+    val calendarPage: Int? = null,
+    val calendarExplained: Boolean = false,
+    /** `null` until picked: since the goal began when it has a start, else 30 days. */
+    val runningSpan: RunningSpan? = null,
+    val runningExplained: Boolean = false,
 )
 
 /** The Trends tab, top to bottom. Each card is `null` when it is off or the mode has nothing to put on it. */
@@ -72,7 +93,13 @@ data class TrendsState(
     val expended: ExpendedCard? = null,
     val weight: WeightCard? = null,
     val hunger: HungerTrend? = null,
+    /** The check-ins' 1 to 10 hunger over the span, drawn in the Hunger card above the meal notes'. */
+    val checkInHunger: CheckInHunger? = null,
     val journal: JournalCard? = null,
+    /** The on-track calendar, under the chart. */
+    val calendar: OnTrackCalendar? = null,
+    /** Eaten against burned, added up, beside the weight trend. */
+    val runningTotal: RunningTotalCard? = null,
 )
 
 sealed interface RangeLabel {
@@ -160,7 +187,7 @@ enum class WeightSubtitle { Trend, NoWeighIns }
  */
 object TrendsStateBuilder {
 
-    fun build(inputs: TrendsInputs, policy: VisibilityPolicy): TrendsState {
+    fun build(inputs: TrendsInputs, policy: VisibilityPolicy, ui: TrendsUi = TrendsUi()): TrendsState {
         val settings = inputs.settings
         val cards = settings.trendsCards
         val window = TrendsCalendar.weekWindow(inputs.today, settings.weekStart)
@@ -207,7 +234,10 @@ object TrendsStateBuilder {
             expended = if (cards.expended && !checkPending) expended(inputs, span, dayAt, policy, weekContext) else null,
             weight = if (cards.weight && !checkPending) weight(inputs, span, policy) else null,
             hunger = journal?.let { TrendsJournal.hunger(inputs, span, it) },
+            checkInHunger = if (cards.journal && inputs.checkInOn) TrendsJournal.checkInHunger(inputs, span, dayAt) else null,
             journal = journal?.let { TrendsJournal.journal(it, inputs.notesLinked) },
+            calendar = OnTrack.calendar(inputs, policy, dayAt, { metric, day -> opens(metric, day, inputs, policy) }, ui),
+            runningTotal = if (checkPending) null else RunningTotals.card(inputs, policy, dayAt, { metric, day -> opens(metric, day, inputs, policy) }, ui),
         )
     }
 
@@ -434,12 +464,16 @@ object TrendsStateBuilder {
      * close, or, for a weekly reveal (Later, weekly), any day of a week whose check has not come. The
      * month and three-month spans reach past the week window into exactly those days.
      */
-    private fun opens(metric: Metric, day: Day, inputs: TrendsInputs, policy: VisibilityPolicy): Boolean {
+    private fun opens(metric: Metric, day: Day, inputs: TrendsInputs, policy: VisibilityPolicy): Boolean =
+        opensOn(metric, day, inputs.today, inputs.settings.weekStart, policy)
+
+    /** [opens] for one day, without the page's inputs: the day sheet asks it too. */
+    internal fun opensOn(metric: Metric, day: Day, today: LocalDate, weekStart: DayOfWeek, policy: VisibilityPolicy): Boolean {
         if (policy.level(metric) != Visibility.Delay) return true
         if (!policy.revealsWeekly) {
-            return policy.effectiveLevel(metric, Surface.Today, day.formatContext(inputs.today)) == Visibility.Show
+            return policy.effectiveLevel(metric, Surface.Today, day.formatContext(today)) == Visibility.Show
         }
-        val weekEnd = TrendsCalendar.weekStartOf(day.date, inputs.settings.weekStart)
+        val weekEnd = TrendsCalendar.weekStartOf(day.date, weekStart)
             .plus(TrendsCalendar.DAYS_IN_WEEK - 1, DateTimeUnit.DAY)
         return policy.isWeekOpen(weekEnd)
     }
