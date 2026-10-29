@@ -1,5 +1,6 @@
 package com.opson
 
+import com.opson.libraries.foods.IosDeviceSignals
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
 import com.opson.libraries.identity.auth.SecureSessionStorage
 import com.opson.libraries.navigation.FileSharePresenter
@@ -31,6 +32,9 @@ abstract class IosAppComponent(
     // `iOSApp.swift` for the home screen widgets, whatever release.widgets says. Android
     // publishes through Glance, bound via anvil.
     private val widgetBridge: WidgetBridge,
+    // The Swift `IOSDeviceSignals` (a Keychain install key and DeviceCheck tokens), passed in from
+    // `iOSApp.swift`, sent only with contribution requests. Android uses Play Integrity via anvil.
+    private val deviceSignals: IosDeviceSignals,
 ) : AppComponent {
 
     @Provides
@@ -47,6 +51,9 @@ abstract class IosAppComponent(
 
     @Provides
     fun provideWidgetBridge(): WidgetBridge = widgetBridge
+
+    @Provides
+    fun provideDeviceSignals(): IosDeviceSignals = deviceSignals
 }
 
 
@@ -58,4 +65,5 @@ expect fun create(
     fileSharePresenter: FileSharePresenter,
     nativeViewFactory: NativeViewFactory,
     widgetBridge: WidgetBridge,
+    deviceSignals: IosDeviceSignals,
 ): IosAppComponent

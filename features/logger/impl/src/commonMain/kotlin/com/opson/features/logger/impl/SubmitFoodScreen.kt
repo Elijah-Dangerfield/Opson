@@ -111,6 +111,8 @@ import opson.libraries.resources.generated.resources.submit_send_failed_body
 import opson.libraries.resources.generated.resources.submit_send_failed_body_save
 import opson.libraries.resources.generated.resources.submit_send_failed_offline
 import opson.libraries.resources.generated.resources.submit_send_failed_offline_save
+import opson.libraries.resources.generated.resources.submit_send_failed_restricted
+import opson.libraries.resources.generated.resources.submit_send_failed_restricted_save
 import opson.libraries.resources.generated.resources.submit_send_failed_title
 import opson.libraries.resources.generated.resources.submit_send_failed_too_many
 import opson.libraries.resources.generated.resources.submit_send_failed_too_many_save
@@ -201,8 +203,17 @@ fun SubmitFoodScreen(
                 is SubmitStage.SendFailed -> Calm(
                     state, Res.string.submit_send_failed_title,
                     sendFailedBody(stage, logged = state.slot != null),
-                    primary = Res.string.submit_try_again to SubmitFoodAction.TryAgainTapped,
-                    secondary = Res.string.submit_done to SubmitFoodAction.DoneTapped,
+                    // Trying again can't help a restricted account, so Done leads.
+                    primary = if (stage.restricted) {
+                        Res.string.submit_done to SubmitFoodAction.DoneTapped
+                    } else {
+                        Res.string.submit_try_again to SubmitFoodAction.TryAgainTapped
+                    },
+                    secondary = if (stage.restricted) {
+                        Res.string.submit_try_again to SubmitFoodAction.TryAgainTapped
+                    } else {
+                        Res.string.submit_done to SubmitFoodAction.DoneTapped
+                    },
                     onAction = onAction,
                 )
             }
@@ -396,6 +407,7 @@ private fun ReviewBody(state: SubmitFoodState, form: SubmitForm, onAction: (Subm
 
 /** Why the review copy did not go, said for a food that was logged or only saved. */
 private fun sendFailedBody(stage: SubmitStage.SendFailed, logged: Boolean): StringResource = when {
+    stage.restricted -> if (logged) Res.string.submit_send_failed_restricted else Res.string.submit_send_failed_restricted_save
     stage.tooMany -> if (logged) Res.string.submit_send_failed_too_many else Res.string.submit_send_failed_too_many_save
     stage.offline -> if (logged) Res.string.submit_send_failed_offline else Res.string.submit_send_failed_offline_save
     else -> if (logged) Res.string.submit_send_failed_body else Res.string.submit_send_failed_body_save

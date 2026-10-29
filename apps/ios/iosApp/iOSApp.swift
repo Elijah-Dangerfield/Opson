@@ -21,7 +21,8 @@ struct iOSApp: App {
             secureSessionStorage: secureSessionStorage,
             fileSharePresenter: fileSharePresenter,
             nativeViewFactory: nativeViewFactory,
-            widgetBridge: widgetBridge
+            widgetBridge: widgetBridge,
+            deviceSignals: IOSDeviceSignals()
         )
         iOSAppComponent.telemetry.initialize()
         // Construct every @AutoInit singleton up front — resolving the set is

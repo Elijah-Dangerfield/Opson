@@ -85,6 +85,12 @@ private fun SubmitFoodCameraOffPreview() = Submit(SubmitFoodFixtures.calmState(S
 private fun SubmitFoodSendFailedPreview() =
     Submit(SubmitFoodFixtures.calmState(SubmitStep.SendFailed(offline = true, tooMany = false), full))
 
+/** The account or phone is barred from contributing: the food is still theirs, and trying again won't help. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun SubmitFoodSendRestrictedPreview() =
+    Submit(SubmitFoodFixtures.calmState(SubmitStep.SendFailed(offline = false, tooMany = false, restricted = true), full))
+
 /** From the Foods tab: no meal, so the form ends in Save food and logs nothing. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
