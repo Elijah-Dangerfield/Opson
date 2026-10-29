@@ -19,4 +19,7 @@
     <string name="ds_loading_your_data">Loading your data</string>
     <string name="ds_loading_almost_there">Almost there</string>
 
+    <!-- BottomSheet: the grab handle's spoken action, which closes the sheet -->
+    <string name="ds_sheet_close">Close</string>
+
 </resources>
