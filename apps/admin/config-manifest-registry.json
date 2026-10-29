@@ -17,7 +17,7 @@
   { "path": "release.widgets", "type": "boolean", "default": false, "description": "0.2: the Widgets row on More. The snapshot for the widget is written whatever this says" },
   { "path": "release.searchOptions", "type": "boolean", "default": false, "description": "0.2: the Logger's search options sheet, category tabs and source badges" },
   { "path": "release.onboardingSetup", "type": "boolean", "default": false, "description": "Onboarding: the goal, resting energy details and meal times after the starting mode" },
-  { "path": "release.findSupport", "type": "boolean", "default": false, "description": "Find support: helplines by country, Support's crisis row and the pause sheet's link" },
+  { "path": "release.findSupport", "type": "boolean", "default": false, "description": "Find support: helplines by country, Support's crisis row, and the links from the pause sheet and Targets' low-goal note" },
   { "path": "release.progressPhotos", "type": "boolean", "default": false, "description": "Progress photos: the Weight row, and the private photo grid, camera and compare it opens" },
   { "path": "release.todaySummary", "type": "boolean", "default": false, "description": "Today's summary pages, stats, collapse and sticky bar, and the weight row" },
   { "path": "release.todaySelect", "type": "boolean", "default": false, "description": "Select foods on Today, drag them between meals, swipe a food to delete it, and file Uncategorized foods" },

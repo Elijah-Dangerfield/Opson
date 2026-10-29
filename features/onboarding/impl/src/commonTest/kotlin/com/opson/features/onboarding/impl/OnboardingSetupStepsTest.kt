@@ -174,7 +174,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
     fun goalStepper_raisesAndLowers_butNeverUnderTheFloor() = runUnitTest {
         val settings = FakeSettingsRepository()
         val vm = atGoal(listOf(NumbersFeel.LoveThem), settings = settings)
-        assertFalse(vm.state.goalView!!.canLower, "the starting range is the floor while no dietitian has set one")
+        assertFalse(vm.state.goalView!!.canLower, "setup never goes under the app's starting range")
 
         vm.takeAction(OnboardingAction.GoalStepped(up = false))
         runCurrent()
@@ -265,7 +265,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         runCurrent()
         val saved = settings.settings.value.targets
         assertEquals(2350, saved.energyKcal)
-        assertEquals(Targets.Default.startingKcal, saved.floorKcal, "starting higher never raises the floor")
+        assertEquals(Targets.Default.startingKcal, saved.startingKcal, "setup records where it started from")
         // Ratio mode, the default: the macros moved with the energy.
         assertEquals(134, saved.proteinG)
     }
@@ -372,7 +372,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         // The goal started at the burn, 2,350, so nothing is under it yet; and it can't grow from there.
         val targets = settings.settings.value.targets
         assertEquals(TargetStyle.Deficit(kcal = 0, startingKcal = 0), targets.style)
-        assertEquals(Targets.Default.startingKcal, targets.floorKcal)
+        assertEquals(Targets.Default.startingKcal, targets.startingKcal)
     }
 
     @Test

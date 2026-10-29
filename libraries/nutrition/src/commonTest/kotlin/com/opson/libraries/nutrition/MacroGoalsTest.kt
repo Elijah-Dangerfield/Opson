@@ -137,11 +137,12 @@ class MacroGoalsTest {
     }
 
     @Test
-    fun theMacrosNeverSetTheGoal_underTheFloor() {
+    fun theMacrosNeverSetTheGoal_pastTheLimits() {
         val less = base.withMacroGrams(Metric.Carbs, 150)
-        assertNull(less.useMacroEnergy(), "1,710 is under 2,100, where this person started")
-        val raised = base.raise().raise().raise().raise().withMacroGrams(Metric.Carbs, 225)
-        assertEquals(2010, raised.macroKcal)
-        assertNull(raised.useMacroEnergy(), "still under the floor")
+        assertEquals(1710, less.useMacroEnergy()?.energyKcal, "under where this person started is fine")
+        val tiny = base.withMacroGrams(Metric.Carbs, 0).withMacroGrams(Metric.Fat, 20).withMacroGrams(Metric.Protein, 50)
+        assertNull(tiny.useMacroEnergy(), "380 would take the low end under the minimum")
+        val huge = base.withMacroGrams(Metric.Carbs, 999).withMacroGrams(Metric.Fat, 400)
+        assertNull(huge.useMacroEnergy(), "about 8,000 would take the high end past the maximum")
     }
 }

@@ -138,12 +138,20 @@ object SettingsLeakSurfaces {
             val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.shapedByDayTargets)
             val everyShape = SettingsFixtures.settings(policy.settings, SettingsFixtures.everyShapeByDayTargets)
             Column {
-                TargetsScreen(TargetsStateBuilder.build(settings, policy, editingGroup = 1, goalsAndEnergy = true), onAction = {})
-                TargetsScreen(TargetsStateBuilder.build(settings, policy, editingGroup = 2, goalsAndEnergy = true), onAction = {})
+                TargetsScreen(TargetsStateBuilder.build(settings, policy, goalsAndEnergy = true), onAction = {})
                 TargetsScreen(
-                    TargetsStateBuilder.build(everyShape, policy, burned = SettingsFixtures.burned, editingGroup = 2, goalsAndEnergy = true),
+                    TargetsStateBuilder.build(everyShape, policy, burned = SettingsFixtures.burned, goalsAndEnergy = true),
                     onAction = {},
                 )
+            }
+        },
+        // The low-goal and fast-pace notes, which name no number but must never show without calories.
+        LeakSurface(id = "targets-safety-notes", label = "Targets, low goal and fast deficit notes", showsCaloriesInFull = true) { policy ->
+            val low = SettingsFixtures.settings(policy.settings, SettingsFixtures.lowRangeTargets)
+            val fast = SettingsFixtures.settings(policy.settings, SettingsFixtures.fastDeficitTargets)
+            Column {
+                TargetsScreen(TargetsStateBuilder.build(low, policy), onAction = {})
+                TargetsScreen(TargetsStateBuilder.build(fast, policy, burned = SettingsFixtures.activeBurned, goalsAndEnergy = true), onAction = {})
             }
         },
         // A deficit with no health app: Burned is resting energy plus everyday activity.
@@ -169,7 +177,7 @@ object SettingsLeakSurfaces {
         },
         LeakSurface(id = "targets-by-day", label = "Targets, different by day", showsCaloriesInFull = true) { policy ->
             val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.byDayTargets)
-            TargetsScreen(TargetsStateBuilder.build(settings, policy, editingGroup = 1), onAction = {})
+            TargetsScreen(TargetsStateBuilder.build(settings, policy), onAction = {})
         },
         LeakSurface(id = "water-settings", label = "Water settings", showsCaloriesInFull = false) { policy ->
             WaterSettingsScreen(

@@ -28,11 +28,13 @@ confirm from an official source are listed at the end.
   It and MacroFactor rebalance the other days to hold a weekly total, which
   would quietly lower some days. Opson keeps independent days, because a day
   must never go down because another went up.
-- **Floors are soft everywhere else; ours is not.** MyFitnessPal and Lose It
-  use 1,200 and 1,500 kcal floors and warn rather than block. Opson's floor and
-  its deficit and surplus caps stay unset until a dietitian sets them, and
-  until then nothing goes below where the person started. That is a
-  deliberate difference, not an oversight.
+- **Floors are soft, as everywhere else.** MyFitnessPal and Lose It use 1,200
+  and 1,500 kcal lines and warn rather than block. Opson did block, holding
+  every goal at or above where the person started until a dietitian set a
+  floor, and that locked everyone's low end at their first range. Since
+  2026-10-29 (`docs/decisions.md`) the only hard limits are 800 and 6,000 kcal,
+  and under the 1,200 and 1,500 lines Targets shows a gentle note with a link
+  to Find support. The deficit and surplus caps still wait on a dietitian.
 
 ## Cronometer
 

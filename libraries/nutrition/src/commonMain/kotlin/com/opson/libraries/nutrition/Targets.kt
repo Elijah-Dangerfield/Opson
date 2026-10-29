@@ -5,12 +5,20 @@ import kotlinx.datetime.LocalDate
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-// TODO(dietitian): GOAL_FLOOR_KCAL must be set by an ED-informed dietitian
-// before launch. Do not invent a value, not even a "safe-looking" one: a floor
-// picked by an engineer is exactly the unreviewed number this exists to
-// prevent. While it is null, nothing can lower the energy target below where
-// the user started, so the target can only go up.
+// TODO(dietitian): GOAL_FLOOR_KCAL is a hard floor an ED-informed dietitian may set before
+// launch. Do not invent a value, not even a "safe-looking" one. While it is null the only hard
+// limit is MIN_GOAL_KCAL, and a goal under the low-goal line (GoalSafety.lowGoalKcal) gets a soft
+// note on Targets instead of a lock. That was the owner's call on 2026-10-29, after the old rule
+// (nothing below where the person started) locked everyone's low end at their first range.
 val GOAL_FLOOR_KCAL: Int? = null
+
+// TODO(clinician): the lowest and highest any calorie goal can be. An engineer picked both, as
+// typo guards rather than advice: 800 is where a very-low-calorie diet begins (NICE CG189 counts
+// 800 kcal a day or less as one), which is only ever done under medical supervision, and 6,000 is
+// past what all but a few athletes eat. Between them nothing is refused; GoalSafety says when a
+// goal is low.
+const val MIN_GOAL_KCAL: Int = 800
+const val MAX_GOAL_KCAL: Int = 6000
 
 // TODO(dietitian): MAX_DEFICIT_KCAL caps "A set deficit" and must be set by the
 // same dietitian before launch, with the floor above. Do not invent a value.
@@ -38,11 +46,11 @@ const val EXERCISE_CAP_KCAL: Int = 1000
 const val EXERCISE_SOME_SHARE: Double = 0.5
 
 /**
- * The user's energy range and macro goals. [startingKcal] is the target the
- * user began with, and is the floor until [GOAL_FLOOR_KCAL] is set.
- * [startingMinKcal] is the low end they began with, the low end's floor until
- * then. Each end of the range steps on its own ([step]); [energyKcal], the aim,
- * is the middle of the range and never drops below [floorKcal] either.
+ * The user's energy range and macro goals. [startingKcal] and [startingMinKcal]
+ * are the target and low end the user began with. They are a record, not a
+ * limit: the only floor is [floorKcal]. Each end of the range steps on its own
+ * ([step]); [energyKcal], the aim, is the middle of the range, and no end goes
+ * under [floorKcal] or over [MAX_GOAL_KCAL].
  *
  * [style] is how the goal is shaped (a range, one number, a set deficit, a
  * surplus, different by day). Ask [rangeFor] for any one day's goal rather than
@@ -67,14 +75,11 @@ data class Targets(
     val startingMinKcal: Int = minKcal,
     val style: TargetStyle = TargetStyle.Range,
 ) {
-    /** The aim's floor. */
-    val floorKcal: Int get() = GOAL_FLOOR_KCAL ?: startingKcal
-
-    /** The low end's floor: the dietitian's floor once set, until then where the low end started. */
-    val lowFloorKcal: Int get() = GOAL_FLOOR_KCAL ?: startingMinKcal
+    /** The lowest any end of the goal can be: the dietitian's floor once set, [MIN_GOAL_KCAL] until then. */
+    val floorKcal: Int get() = GOAL_FLOOR_KCAL ?: MIN_GOAL_KCAL
 
     val canLower: Boolean
-        get() = energyKcal - STEP_KCAL >= floorKcal && minKcal - STEP_KCAL >= lowFloorKcal
+        get() = minKcal - STEP_KCAL >= floorKcal
 
     /**
      * The most a set deficit may be, the style's or day group [group]'s: the dietitian's maximum
@@ -176,31 +181,39 @@ data class Targets(
     }
 
     /**
+     * The least a goal Opson works out (a deficit or surplus against the burn) can come to: the
+     * floor, and never under the lower of the low-goal lines. Someone can still set a lower
+     * number of their own; Opson just never arrives at one for them because a day burned little.
+     */
+    val workedOutFloorKcal: Int get() = max(floorKcal, LOW_GOAL_FEMALE_KCAL)
+
+    /**
      * [surplus] over what the user burns, or over [baseKcal] (the aim, or a day group's middle)
-     * while the burn is not known, rounded to 10 and never under the floor.
+     * while the burn is not known, rounded to 10 and never under [workedOutFloorKcal].
      */
     fun surplusGoal(baseKcal: Int, burnKcal: Int?, surplus: Int): Int {
         val rounded = (((burnKcal ?: baseKcal) + surplus) / 10.0).roundToInt() * 10
-        val floor = ((floorKcal + 9) / 10) * 10
+        val floor = ((workedOutFloorKcal + 9) / 10) * 10
         return max(rounded, floor)
     }
 
-    /** What the user burns less [deficit], rounded to 10 and never under the floor. */
+    /** What the user burns less [deficit], rounded to 10 and never under [workedOutFloorKcal]. */
     fun deficitGoal(burnKcal: Int, deficit: Int): Int {
         val rounded = ((burnKcal - deficit) / 10.0).roundToInt() * 10
-        val floor = ((floorKcal + 9) / 10) * 10
+        val floor = ((workedOutFloorKcal + 9) / 10) * 10
         return max(rounded, floor)
     }
 
     /** Whether moving [end] of the range (or of day group [group]) by one step [up] is allowed. */
     fun canStep(end: RangeEnd, up: Boolean, group: Int? = null): Boolean = stepBlock(end, up, group) == null
 
-    /** Why that step is not allowed, or null when it is. The floor gets a lock; the gap does not. */
+    /** Why that step is not allowed, or null when it is: the floor, the ceiling, or ends that would touch. */
     fun stepBlock(end: RangeEnd, up: Boolean, group: Int? = null): StepBlock? {
         val (min, max) = ends(group) ?: return StepBlock.Gap
         val (nextMin, nextMax) = moved(min, max, end, up)
         return when {
-            !up && (nextMin < lowFloorKcal || (nextMin + nextMax) / 2 < floorKcal) -> StepBlock.Floor
+            !up && nextMin < floorKcal -> StepBlock.Floor
+            up && nextMax > MAX_GOAL_KCAL -> StepBlock.Ceiling
             nextMax - nextMin < STEP_KCAL -> StepBlock.Gap
             else -> null
         }
@@ -208,9 +221,9 @@ data class Targets(
 
     /**
      * Moves [end] of the base range, or of day group [group], by 50 kcal. `null` when that would
-     * break the floor rule (the low end under [lowFloorKcal], the middle under [floorKcal]) or
-     * bring the ends closer than one step. Raising the high end is always allowed. With
-     * [scaleMacros] (ratio mode) a base range step scales protein, carbs and fat with the aim.
+     * take the low end under [floorKcal], the high end over [MAX_GOAL_KCAL], or bring the ends
+     * closer than one step. With [scaleMacros] (ratio mode) a base range step scales protein,
+     * carbs and fat with the aim.
      */
     fun step(end: RangeEnd, up: Boolean, group: Int? = null, scaleMacros: Boolean = false): Targets? {
         val (min, max) = stepped(end, up, group) ?: return null
@@ -260,7 +273,10 @@ data class Targets(
         return MAX_DEFICIT_KCAL?.let { minOf(implied, it) } ?: implied
     }
 
-    /** Different by day, unless it already is: one group holding every day, on the base range. */
+    /**
+     * Different by day, unless it already is: one group holding every day, on the base range.
+     * Targets adds an empty second group straight after ([addDayGroup]) so days can be picked at once.
+     */
     fun useByDay(): Targets {
         if (style is TargetStyle.ByDay) return this
         return copy(style = TargetStyle.ByDay(listOf(DayGroup(DayOfWeek.entries.toSet(), minKcal, maxKcal))))
@@ -290,11 +306,10 @@ data class Targets(
         return withGroup(group) { it.copy(shape = GroupShape.Surplus(next, current.startingKcal)) }
     }
 
-    /** Whether one number (the aim, or day group [group]'s middle) may step [up]: lower stops at the floor, as the range does. */
+    /** Whether one number (the aim, or day group [group]'s middle) may step [up]: it stops at the floor and the ceiling, as the range does. */
     fun canStepNumber(up: Boolean, group: Int? = null): Boolean {
-        if (up) return true
         val (min, max) = ends(group) ?: return false
-        return min - STEP_KCAL >= lowFloorKcal && (min + max) / 2 - STEP_KCAL >= floorKcal
+        return if (up) max + STEP_KCAL <= MAX_GOAL_KCAL else min - STEP_KCAL >= floorKcal
     }
 
     /**
@@ -331,6 +346,22 @@ data class Targets(
         return copy(style = byDay.copy(groups = byDay.groups.mapIndexed { index, it -> if (index == group) transform(it) else it }))
     }
 
+    /**
+     * A tap on [day] in group [group]'s card. A day another group holds moves here; a day this
+     * group holds goes back to the first group, which keeps whatever no other group has. The
+     * first group's own days have nowhere else to go, so a tap on one changes nothing. Whatever
+     * is tapped, every day stays in exactly one group.
+     */
+    fun toggleDay(day: DayOfWeek, group: Int): Targets {
+        val byDay = style as? TargetStyle.ByDay ?: return this
+        val holder = byDay.groups.getOrNull(group) ?: return this
+        return when {
+            day !in holder.days -> moveDay(day, group)
+            group == 0 -> this
+            else -> moveDay(day, 0)
+        }
+    }
+
     /** Moves [day] into group [group]. A day is never removed, only moved, so it stays in exactly one group. */
     fun moveDay(day: DayOfWeek, group: Int): Targets {
         val byDay = style as? TargetStyle.ByDay ?: return this
@@ -341,7 +372,10 @@ data class Targets(
         return copy(style = byDay.copy(groups = groups))
     }
 
-    /** A new, empty group on the first group's range, as a plain range. `null` at [TargetStyle.MAX_GROUPS]. */
+    /**
+     * A new, empty group on the first group's range, as a plain range. `null` at
+     * [TargetStyle.MAX_GROUPS]. An empty group is harmless: no day reads it, and [spanGoal] skips it.
+     */
     fun addDayGroup(): Targets? {
         val byDay = style as? TargetStyle.ByDay ?: return null
         if (byDay.groups.size >= TargetStyle.MAX_GROUPS) return null
@@ -360,18 +394,26 @@ data class Targets(
     }
 
     /**
-     * Raising is always allowed. With [scaleMacros] (ratio mode) protein, carbs
-     * and fat move with the energy target so the split stays the same, the
-     * prototype's `GOAL[k] * baseT / GOAL.target`. Gram mode leaves them. Fiber
-     * is a floor for gut health, not a share of energy, so it never scales.
+     * One step up, unless the high end would pass [MAX_GOAL_KCAL]; then the targets as they are.
+     * With [scaleMacros] (ratio mode) protein, carbs and fat move with the energy target so the
+     * split stays the same, the prototype's `GOAL[k] * baseT / GOAL.target`. Gram mode leaves
+     * them. Fiber is a floor for gut health, not a share of energy, so it never scales.
      */
-    fun raise(scaleMacros: Boolean = false): Targets = shiftedBy(STEP_KCAL, scaleMacros)
+    fun raise(scaleMacros: Boolean = false): Targets =
+        if (maxKcal + STEP_KCAL > MAX_GOAL_KCAL) this else shiftedBy(STEP_KCAL, scaleMacros)
 
     /** `null` when one more step down would cross the floor. [scaleMacros] as in [raise]. */
     fun lower(scaleMacros: Boolean = false): Targets? = if (canLower) shiftedBy(-STEP_KCAL, scaleMacros) else null
 
-    /** Sets the target directly, never below the floor. The range moves with it; [scaleMacros] as in [raise]. */
-    fun withEnergy(kcal: Int, scaleMacros: Boolean = false): Targets = shiftedBy(max(kcal, floorKcal) - energyKcal, scaleMacros)
+    /**
+     * Sets the target directly, the range moving with it, held so neither end passes the floor
+     * or [MAX_GOAL_KCAL]. [scaleMacros] as in [raise].
+     */
+    fun withEnergy(kcal: Int, scaleMacros: Boolean = false): Targets {
+        val lowest = energyKcal + (floorKcal - minKcal)
+        val highest = energyKcal + (MAX_GOAL_KCAL - maxKcal)
+        return shiftedBy(kcal.coerceIn(lowest, max(lowest, highest)) - energyKcal, scaleMacros)
+    }
 
     /**
      * A day's range: [goal] plus whatever the user lets watch activity add, at most
