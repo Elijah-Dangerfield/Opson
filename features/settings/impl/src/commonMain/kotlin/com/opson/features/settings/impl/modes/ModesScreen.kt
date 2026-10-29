@@ -2,6 +2,7 @@ package com.opson.features.settings.impl.modes
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,7 +21,6 @@ import com.opson.features.settings.impl.SettingsRow
 import com.opson.features.settings.impl.label
 import com.opson.features.settings.impl.line
 import com.opson.libraries.nutrition.ModeTiming
-import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.EdgeCard
@@ -45,7 +45,6 @@ import opson.libraries.resources.generated.resources.modes_end_after_title
 import opson.libraries.resources.generated.resources.modes_reveal_weekly_body
 import opson.libraries.resources.generated.resources.modes_reveal_weekly_title
 import opson.libraries.resources.generated.resources.modes_weeks
-import opson.libraries.resources.generated.resources.settings_back_more
 import opson.libraries.resources.generated.resources.settings_modes_cell
 import opson.libraries.resources.generated.resources.settings_modes_changed
 import opson.libraries.resources.generated.resources.settings_modes_changed_from
@@ -60,67 +59,61 @@ import opson.libraries.resources.generated.resources.settings_modes_reveal_cance
 import opson.libraries.resources.generated.resources.settings_modes_reveal_ok
 import opson.libraries.resources.generated.resources.settings_modes_reveal_title
 import opson.libraries.resources.generated.resources.settings_modes_setup
-import opson.libraries.resources.generated.resources.settings_modes_title
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * Modes and numbers (design sync 4, 13.5a): the four starting points, then End after a set time,
- * Each number and the pause, and who last changed it. The reveal time shows only while something
- * is set to Later.
+ * Modes and numbers (design sync 4, 13.5a), the Numbers half of More › Display: the four
+ * starting points, then End after a set time, Each number and the pause, and who last changed it.
+ * The reveal time shows only while something is set to Later. [RevealTimeDialog] goes with it,
+ * outside the page's column.
  */
 @Composable
-fun ModesScreen(
-    state: ModesState,
-    onAction: (ModesAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    SettingsPage(modifier = modifier) {
-        SettingsHeader(
-            title = stringResource(Res.string.settings_modes_title),
-            backLabel = stringResource(Res.string.settings_back_more),
-            onBack = { onAction(ModesAction.BackTapped) },
-        )
-        SectionLabel(stringResource(Res.string.settings_modes_presets_header))
-        SettingsCard {
-            state.presets.forEachIndexed { index, row ->
-                RadioRow(
-                    title = stringResource(row.id.label),
-                    subtitle = stringResource(row.id.line),
-                    selected = row.selected,
-                    onClick = { onAction(ModesAction.PresetTapped(row.id)) },
-                    showDivider = index < state.presets.lastIndex,
-                    badge = if (row.changes > 0) {
-                        pluralStringResource(Res.plurals.settings_modes_changes, row.changes, row.changes)
-                    } else {
-                        null
-                    },
-                )
-            }
-        }
-        SettingsCard {
-            EndAfter(state.endAfter, onAction)
-            HorizontalDivider(color = AppTheme.colors.line)
-            SettingsRow(
-                title = stringResource(Res.string.modes_each_number_title),
-                subtitle = stringResource(Res.string.modes_each_number_body),
-                icon = null,
-                chevron = true,
-                showDivider = true,
-                onClick = { onAction(ModesAction.EachNumberTapped) },
-            )
-            SettingsRow(
-                title = stringResource(Res.string.settings_modes_pause_title),
-                subtitle = stringResource(Res.string.settings_modes_pause_body),
-                icon = null,
-                onClick = { onAction(ModesAction.PauseToggled) },
-                trailing = { AppSwitch(checked = state.pauseOn, onCheckedChange = { onAction(ModesAction.PauseToggled) }) },
+internal fun ColumnScope.NumbersSection(state: ModesState, onAction: (ModesAction) -> Unit) {
+    SectionLabel(stringResource(Res.string.settings_modes_presets_header))
+    SettingsCard {
+        state.presets.forEachIndexed { index, row ->
+            RadioRow(
+                title = stringResource(row.id.label),
+                subtitle = stringResource(row.id.line),
+                selected = row.selected,
+                onClick = { onAction(ModesAction.PresetTapped(row.id)) },
+                showDivider = index < state.presets.lastIndex,
+                badge = if (row.changes > 0) {
+                    pluralStringResource(Res.plurals.settings_modes_changes, row.changes, row.changes)
+                } else {
+                    null
+                },
             )
         }
-        state.reveal?.let { reveal -> RevealCard(reveal, onAction) }
-        ChangedNoteText(state.changedNote)
     }
+    SettingsCard {
+        EndAfter(state.endAfter, onAction)
+        HorizontalDivider(color = AppTheme.colors.line)
+        SettingsRow(
+            title = stringResource(Res.string.modes_each_number_title),
+            subtitle = stringResource(Res.string.modes_each_number_body),
+            icon = null,
+            chevron = true,
+            showDivider = true,
+            onClick = { onAction(ModesAction.EachNumberTapped) },
+        )
+        SettingsRow(
+            title = stringResource(Res.string.settings_modes_pause_title),
+            subtitle = stringResource(Res.string.settings_modes_pause_body),
+            icon = null,
+            onClick = { onAction(ModesAction.PauseToggled) },
+            trailing = { AppSwitch(checked = state.pauseOn, onCheckedChange = { onAction(ModesAction.PauseToggled) }) },
+        )
+    }
+    state.reveal?.let { reveal -> RevealCard(reveal, onAction) }
+    ChangedNoteText(state.changedNote)
+}
+
+/** The reveal time picker, while [ModesState.pickingRevealTime]. */
+@Composable
+internal fun RevealTimeDialog(state: ModesState, onAction: (ModesAction) -> Unit) {
     val reveal = state.reveal
     if (state.pickingRevealTime && reveal != null) {
         TimePickerDialog(
@@ -295,45 +288,6 @@ private fun LevelMatrix(matrix: List<MatrixRow>, photos: PhotosRow?, onAction: (
             text = stringResource(Res.string.settings_modes_footnote),
             typography = AppTheme.type.secondarySmall,
             color = AppTheme.colors.muted,
-        )
-    }
-}
-
-/** The design's page (13.5a): All numbers for two weeks, then No numbers, with the pause on. */
-@Preview
-@Composable
-private fun ModesV4Preview() {
-    SettingsPreview(dark = true) {
-        ModesScreen(ModesStateBuilder.build(SettingsFixtures.fullForTwoWeeks, SettingsFixtures.timeZone), onAction = {})
-    }
-}
-
-/** End after a set time open: how long, and what comes next. */
-@Preview
-@Composable
-private fun ModesEndAfterPreview() {
-    SettingsPreview {
-        ModesScreen(ModesStateBuilder.build(SettingsFixtures.fullForTwoWeeks, SettingsFixtures.timeZone, editingEndAfter = true), onAction = {})
-    }
-}
-
-/** Macros only with one change, so the badge shows. */
-@Preview
-@Composable
-private fun ModesPreview() {
-    SettingsPreview {
-        ModesScreen(ModesStateBuilder.build(SettingsFixtures.nutrientsFirstWithACarbsChange, SettingsFixtures.timeZone), onAction = {})
-    }
-}
-
-/** Every number on Later, with the reveal time and the weekly switch it brings, and the picker open. */
-@Preview
-@Composable
-private fun ModesRevealTimePreview() {
-    SettingsPreview {
-        ModesScreen(
-            ModesStateBuilder.build(NumbersSettings.later(), SettingsFixtures.timeZone, pickingRevealTime = true),
-            onAction = {},
         )
     }
 }

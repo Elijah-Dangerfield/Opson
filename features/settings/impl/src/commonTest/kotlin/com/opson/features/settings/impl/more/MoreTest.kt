@@ -32,7 +32,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * The More list (design v3): its three cards then About, Account and other modules' rows, the changes
- * count on the Modes row, the water goal, log out, and where each row goes. No row carries an
+ * count on the Display row, the water goal, log out, and where each row goes. No row carries an
  * amount, so nothing here reads the policy. Not covered: the routes the events become (the entry
  * point).
  */
@@ -44,7 +44,7 @@ class MoreTest : CoroutineTest() {
     fun theRowsAreTheDesignsThreeCards_thenAbout() {
         assertEquals(
             listOf(
-                listOf(MoreRow.Modes(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.LookAndFeel),
+                listOf(MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets),
                 listOf(MoreRow.Water(glasses = 8)),
                 listOf(MoreRow.Support, MoreRow.Plan),
                 listOf(MoreRow.Privacy, MoreRow.Terms, MoreRow.Credits),
@@ -266,9 +266,9 @@ class MoreTest : CoroutineTest() {
     }
 
     @Test
-    fun theModesRowCountsTheChanges() {
-        assertEquals(MoreRow.Modes(PresetId.MacrosOnly, changes = 1), build(SettingsFixtures.nutrientsFirstWithACarbsChange).groups[0][0])
-        assertEquals(MoreRow.Modes(PresetId.Full, changes = 2), build(SettingsFixtures.adjusted).groups[0][0])
+    fun theDisplayRowCountsTheChanges() {
+        assertEquals(MoreRow.Display(PresetId.MacrosOnly, changes = 1), build(SettingsFixtures.nutrientsFirstWithACarbsChange).groups[0][0])
+        assertEquals(MoreRow.Display(PresetId.Full, changes = 2), build(SettingsFixtures.adjusted).groups[0][0])
     }
 
     @Test
@@ -298,7 +298,7 @@ class MoreTest : CoroutineTest() {
 
         assertEquals(
             listOf(
-                MoreEvent.OpenModes, MoreEvent.OpenTargets, MoreEvent.OpenHealth, MoreEvent.OpenLookAndFeel,
+                MoreEvent.OpenDisplay, MoreEvent.OpenTargets, MoreEvent.OpenHealth,
                 MoreEvent.OpenWater, MoreEvent.OpenSupport, MoreEvent.OpenPrivacy, MoreEvent.OpenTerms, MoreEvent.OpenCredits,
             ),
             events,
@@ -435,12 +435,12 @@ class MoreTest : CoroutineTest() {
     }
 
     @Test
-    fun withBothFlagsTheFirstCardReadsAsDesignSync2_withLookAndFeelKeptLast() {
+    fun withBothFlagsTheFirstCardReadsAsDesignSync2() {
         val rows = MoreStateBuilder.build(SettingsFixtures.settings(), healthConnected = true, remindersOn = true).groups[0]
         assertEquals(
             listOf(
-                MoreRow.Modes(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.Reminders(quiet = true),
-                MoreRow.Health(connected = true), MoreRow.LookAndFeel,
+                MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.Reminders(quiet = true),
+                MoreRow.Health(connected = true),
             ),
             rows,
         )
@@ -450,7 +450,7 @@ class MoreTest : CoroutineTest() {
     fun withTheRemindersFlagTheFirstCardGainsReminders_sayingWhetherQuietModeIsOn() = runUnitTest {
         val settings = SettingsFixtures.settings().copy(quiet = false)
         assertEquals(
-            listOf(MoreRow.Modes(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.Reminders(quiet = false), MoreRow.LookAndFeel),
+            listOf(MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.Reminders(quiet = false)),
             MoreStateBuilder.build(settings, remindersOn = true).groups[0],
         )
 

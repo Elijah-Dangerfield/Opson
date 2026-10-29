@@ -11,13 +11,12 @@ import com.opson.features.settings.impl.fasting.FastingScreen
 import com.opson.features.settings.impl.integrations.IntegrationsFixtures
 import com.opson.features.settings.impl.integrations.IntegrationsScreen
 import com.opson.features.settings.impl.integrations.LeaveOutSheetContent
-import com.opson.features.settings.impl.look.LookAndFeelScreen
+import com.opson.features.settings.impl.display.DisplayScreen
 import com.opson.features.settings.impl.look.LookAndFeelStateBuilder
 import com.opson.features.settings.impl.micros.MicroTargetSheetContent
 import com.opson.features.settings.impl.micros.MicroTargetsScreen
 import com.opson.features.settings.impl.micros.MicroTargetsStateBuilder
 import com.opson.features.settings.impl.modes.EachNumberScreen
-import com.opson.features.settings.impl.modes.ModesScreen
 import com.opson.features.settings.impl.modes.ModesStateBuilder
 import com.opson.features.settings.impl.more.MoreScreen
 import com.opson.features.settings.impl.more.MoreStateBuilder
@@ -73,13 +72,25 @@ object SettingsLeakSurfaces {
         LeakSurface(id = "more", label = "More", showsCaloriesInFull = false) { policy ->
             MoreScreen(MoreStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})
         },
-        LeakSurface(id = "modes", label = "Modes and numbers", showsCaloriesInFull = false) { policy ->
-            ModesScreen(ModesStateBuilder.build(policy.settings, SettingsFixtures.timeZone, photosReleased = true), onAction = {})
+        // More › Display, the ids kept from when its Numbers half was Modes and numbers. The
+        // Appearance half (once Look and feel) is on the page, so it is scanned with it.
+        LeakSurface(id = "modes", label = "Display", showsCaloriesInFull = false) { policy ->
+            DisplayScreen(
+                modes = ModesStateBuilder.build(policy.settings, SettingsFixtures.timeZone, photosReleased = true),
+                look = LookAndFeelStateBuilder.build(SettingsFixtures.settings(policy.settings)),
+                onModesAction = {},
+                onLookAction = {},
+            )
         },
         // Design sync 4: End after a set time open, its length and next mode named, never an amount.
-        LeakSurface(id = "modes-end-after", label = "Modes and numbers, End after a set time", showsCaloriesInFull = false) { policy ->
+        LeakSurface(id = "modes-end-after", label = "Display, End after a set time", showsCaloriesInFull = false) { policy ->
             val timed = policy.settings.copy(endAfter = SettingsFixtures.fullForTwoWeeks.endAfter)
-            ModesScreen(ModesStateBuilder.build(timed, SettingsFixtures.timeZone, editingEndAfter = true), onAction = {})
+            DisplayScreen(
+                modes = ModesStateBuilder.build(timed, SettingsFixtures.timeZone, editingEndAfter = true),
+                look = LookAndFeelStateBuilder.build(SettingsFixtures.settings(policy.settings)),
+                onModesAction = {},
+                onLookAction = {},
+            )
         },
         LeakSurface(id = "modes-each-number", label = "Each number", showsCaloriesInFull = false) { policy ->
             EachNumberScreen(ModesStateBuilder.build(policy.settings, SettingsFixtures.timeZone, photosReleased = true), onAction = {})
@@ -233,9 +244,6 @@ object SettingsLeakSurfaces {
         // The Leave out a day sheet: dates and a month, never an amount.
         LeakSurface(id = "integrations-leave-out", label = "Leave out a day", showsCaloriesInFull = false) { _ ->
             LeaveOutSheetContent(IntegrationsFixtures.leaveOutState(), onAction = {})
-        },
-        LeakSurface(id = "look-and-feel", label = "Look and feel", showsCaloriesInFull = false) { policy ->
-            LookAndFeelScreen(LookAndFeelStateBuilder.build(SettingsFixtures.settings(policy.settings)), onAction = {})
         },
         // 0.2, release.widgets. The home screen widget as the platforms draw it, from the snapshot
         // the app writes for them: today and tomorrow, both sizes. The snapshot is the leak

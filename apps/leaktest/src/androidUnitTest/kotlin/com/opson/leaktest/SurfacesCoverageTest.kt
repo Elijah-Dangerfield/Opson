@@ -145,7 +145,7 @@ class SurfacesCoverageTest {
                 "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
                 "targets-deficit-estimated", "targets-macros",
                 "resting-energy", "energy-today", "today-screen-settings", "micro-targets", "micro-target-sheet",
-                "water-settings", "support", "support-delete", "support-export-numbers", "support-provider-first", "support-find", "look-and-feel",
+                "water-settings", "support", "support-delete", "support-export-numbers", "support-provider-first", "support-find",
                 "provider-summary", "provider-summary-warning", "provider-summary-custom",
                 "reminders", "reminder-notification",
                 "integrations", "integrations-leave-out", "fasting",

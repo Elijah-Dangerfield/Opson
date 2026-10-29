@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   The four modes (all numbers, macros with grams, macros only, no numbers) and End after a set
-  time, shared by Modes and numbers, onboarding's recommendation and Today. Copy is the design's word for word where it has it.
+  time, shared by More › Display, onboarding's recommendation and Today. Copy is the design's word for word where it has it.
   Same rules as strings.xml: no backslash escapes, positional format specifiers.
 -->
 <resources>
@@ -31,7 +31,7 @@
     <!-- Each number -->
     <string name="modes_each_number_title">Each number</string>
     <string name="modes_each_number_body">Fine-tune any single number</string>
-    <string name="modes_back_modes">‹ Modes and numbers</string>
+    <string name="modes_back_modes">‹ Display</string>
 
     <!-- When Later opens -->
     <string name="modes_reveal_weekly_title">Once a week</string>

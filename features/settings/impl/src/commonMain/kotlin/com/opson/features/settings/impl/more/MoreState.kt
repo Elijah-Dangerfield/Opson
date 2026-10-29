@@ -45,16 +45,17 @@ sealed interface LogOutStep {
  * "Widgets and watch face"; it says "Widgets" until the watch face ships.
  */
 sealed interface MoreRow {
-    /** "Fuel", or "Fuel, 1 change" when levels differ from the preset's. */
-    data class Modes(val preset: PresetId, val changes: Int) : MoreRow
+    /**
+     * Display: the mode and the look. "Fuel", or "Fuel, 1 change" when levels differ from the
+     * preset's, since the mode is what most people come here to change.
+     */
+    data class Display(val preset: PresetId, val changes: Int) : MoreRow
 
     /** "Energy range and macro split", never the range itself. */
     data object Targets : MoreRow
 
     /** More › Today screen (design sync 4, 13.6), with `release.goalsAndEnergy`. */
     data object TodayScreen : MoreRow
-
-    data object LookAndFeel : MoreRow
 
     /** "Quiet mode on" or "Quiet mode off", as v3. Only with `release.reminders` on. */
     data class Reminders(val quiet: Boolean) : MoreRow
@@ -109,14 +110,11 @@ object MoreStateBuilder {
     ): MoreState = MoreState(
         groups = listOfNotNull(
             listOfNotNull(
-                MoreRow.Modes(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
+                MoreRow.Display(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
                 MoreRow.Targets,
                 MoreRow.TodayScreen.takeIf { todayScreenOn },
                 MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
                 healthConnected?.let { MoreRow.Health(connected = it) },
-                // Not in the design's More (13.1), kept last on purpose: Appearance and text size
-                // have no other home.
-                MoreRow.LookAndFeel,
             ),
             listOfNotNull(
                 MoreRow.Water(glasses = settings.waterGlasses),
