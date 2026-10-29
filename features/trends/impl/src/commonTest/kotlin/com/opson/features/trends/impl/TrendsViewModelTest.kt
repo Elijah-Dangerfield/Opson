@@ -10,7 +10,11 @@ import com.opson.libraries.nutrition.PresetId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.WeightGoal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -175,6 +179,22 @@ class TrendsViewModelTest : CoroutineTest() {
         val total = assertNotNull(withBurned().state.runningTotal)
         assertEquals(RunningSpan.Month, total.span)
         assertTrue(total.days > 0)
+    }
+
+    @Test
+    fun aWeightGoal_makesSinceYouStartedTheDefault() = runUnitTest {
+        val started = TrendsFixtures.today.minus(10, DateTimeUnit.DAY)
+        settings.settings.value = Settings(
+            weightGoal = WeightGoal(
+                GoalDirection.Lose,
+                targetKg = 70.0,
+                kgPerWeek = 0.2,
+                startKg = 72.0,
+                startDate = started,
+            ),
+        )
+        val total = assertNotNull(withBurned().state.runningTotal)
+        assertEquals(RunningSpan.SinceStart, total.span)
     }
 
     @Test

@@ -68,7 +68,8 @@ class TrendsViewModel(
         // each emission and the range moves with the day.
         val span = combine(settingsRepository.settings, policySource.policy) { settings, _ ->
             val today = today
-            Span(minOf(TrendsCalendar.firstNeeded(today, settings), OnTrack.firstDay(today), runningFrom(today)), today)
+            val running = runningFrom(today, settings.weightGoal.startDate)
+            Span(minOf(TrendsCalendar.firstNeeded(today, settings), OnTrack.firstDay(today), running), today, running)
         }.distinctUntilChanged()
 
         val records = span.flatMapLatest { span ->
@@ -86,7 +87,7 @@ class TrendsViewModel(
 
         // Each day's Burned for the calendar's months and the running total's days.
         val burnedByDay: Flow<Map<LocalDate, Burned>?> = if (goalsOn) {
-            span.map { minOf(OnTrack.firstDay(it.today), runningFrom(it.today)) to it.today }
+            span.map { minOf(OnTrack.firstDay(it.today), it.runningFrom) to it.today }
                 .distinctUntilChanged()
                 .flatMapLatest { (from, to) -> burnedRepository.burnedBetween(from, to) }
         } else {
@@ -113,8 +114,8 @@ class TrendsViewModel(
                     notesLinked = notesLinked,
                     burnedByDay = energy.byDay,
                     checkInOn = checkInOn,
-                    // TODO(weight-goal): the goal's start date, once Settings has a weight goal with one.
-                    goalStart = null,
+                    // The weight goal's start: "Since you started this goal", the default once there is one.
+                    goalStart = settings.weightGoal.startDate?.takeIf { it <= records.today },
                 ),
                 policy,
             )
@@ -166,10 +167,16 @@ class TrendsViewModel(
         action.updateState { TrendsStateBuilder.build(inputs.inputs, inputs.policy, ui) }
     }
 
-    /** The first day the running total can reach back to: its longest span, ending yesterday. */
-    private fun runningFrom(today: LocalDate): LocalDate = today.minus(RunningSpan.Month.days ?: 0, DateTimeUnit.DAY)
+    /**
+     * The first day the running total can reach back to: its longest span, ending yesterday, or
+     * the weight goal's start ([goalStart]) when that is further back.
+     */
+    private fun runningFrom(today: LocalDate, goalStart: LocalDate?): LocalDate {
+        val month = today.minus(RunningSpan.Month.days ?: 0, DateTimeUnit.DAY)
+        return goalStart?.takeIf { it < month } ?: month
+    }
 
-    private data class Span(val from: LocalDate, val today: LocalDate)
+    private data class Span(val from: LocalDate, val today: LocalDate, val runningFrom: LocalDate)
 
     private class Energy(val expended: Map<LocalDate, EnergyExpended>?, val todayKcal: Int?, val byDay: Map<LocalDate, Burned>?)
 
