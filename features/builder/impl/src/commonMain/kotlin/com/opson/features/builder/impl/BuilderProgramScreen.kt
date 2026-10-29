@@ -86,6 +86,7 @@ import opson.libraries.resources.generated.resources.builder_rules_row_sub
 import opson.libraries.resources.generated.resources.builder_stats_accepted
 import opson.libraries.resources.generated.resources.builder_stats_checks
 import opson.libraries.resources.generated.resources.builder_stats_foods
+import opson.libraries.resources.generated.resources.builder_stats_percent
 import opson.libraries.resources.generated.resources.builder_status_title
 import opson.libraries.resources.generated.resources.builder_status_trusted
 import opson.libraries.resources.generated.resources.builder_status_trusted_body
@@ -267,7 +268,7 @@ private fun HomePage(page: BuilderPage.Home, state: BuilderProgramState, onActio
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Stat(page.foodsAdded.toString(), Res.string.builder_stats_foods, Modifier.weight(1f))
             Stat(page.checks.toString(), Res.string.builder_stats_checks, Modifier.weight(1f))
-            Stat(page.acceptedPercent?.let { "$it%" } ?: NO_FIGURE, Res.string.builder_stats_accepted, Modifier.weight(1f))
+            Stat(page.acceptedPercent?.let { stringResource(Res.string.builder_stats_percent, it) } ?: NO_FIGURE, Res.string.builder_stats_accepted, Modifier.weight(1f))
         }
     }
     EdgeCard(edgeToEdge = false, contentPadding = RowsInset, verticalArrangement = Arrangement.spacedBy(0.dp)) {

@@ -19,6 +19,8 @@
     <string name="qa_label_version">Version</string>
     <string name="qa_label_channel">Channel</string>
     <string name="qa_label_commit">Commit</string>
+    <!-- The commit and the branch it was built from: "4a8b4639 on main". -->
+    <string name="qa_commit_on_branch">%1$s on %2$s</string>
     <string name="qa_label_platform">Platform</string>
 
     <string name="qa_section_account">Account</string>
