@@ -13,7 +13,7 @@ import WidgetKit
 
 struct MacrosConfiguration: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Macros"
-    static var description = IntentDescription("Choose which macros to show. Your mode still decides which ones it shows.")
+    static var description = IntentDescription("Pick the macros to show. Your mode decides which ones appear.")
 
     @Parameter(title: "Protein", default: true) var protein: Bool
     @Parameter(title: "Carbs", default: true) var carbs: Bool

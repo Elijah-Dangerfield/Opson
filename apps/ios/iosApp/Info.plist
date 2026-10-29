@@ -62,7 +62,7 @@
 	<key>NSHealthShareUsageDescription</key>
 	<string>Opson reads your active energy, resting energy and workouts to show what you've burned today. These stay on your phone. If you ask it to, it also reads your weight, height, birth date and sex to fill in your profile and weight log, which sync with your Opson account.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Opson only reads from Health. It never writes or changes anything there.</string>
+	<string>Opson only reads from Health. It doesn't write or change anything there.</string>
 	<!--
 	  The export compliance answer, stated once here instead of by hand on every
 	  upload. Without it a build finishes processing and then sits in TestFlight
@@ -122,7 +122,7 @@
 	  string no longer says photos are never saved.
 	-->
 	<key>NSCameraUsageDescription</key>
-	<string>Opson uses the camera to read barcodes on food packs, to photograph a pack's label when you add or check a food, to photograph a meal when you ask for an estimate, and to take progress photos if you choose to. Meal photos are never saved. Progress photos stay on this iPhone.</string>
+	<string>Opson uses the camera to scan barcodes, photograph a food's label when you add or check it, photograph a meal when you ask for an estimate, and take progress photos if you choose to. Meal photos aren't saved. Progress photos stay on this iPhone.</string>
 	<!--
 	  Progress photos (:libraries:progressphotos:impl, LocalAuthentication from
 	  Kotlin) unlock with Face ID, Touch ID or the passcode each time they open.
@@ -141,9 +141,9 @@
 	  keys only together with the library.
 	-->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Opson listens when you tap the mic, so you can say what you ate instead of typing it. Nothing is recorded or saved.</string>
+	<string>Opson listens when you tap the mic so you can say what you ate. Nothing is recorded or saved.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Opson turns what you say into text to fill in your meal. Your iPhone does this on the device when it can; otherwise Apple processes the audio. Opson never keeps the recording.</string>
+	<string>Opson turns what you say into text to fill in your meal. Your iPhone does this on the device when it can. Otherwise Apple processes the audio, and Opson doesn't keep the recording.</string>
 	<!--
 	  The launch screen: the mark centred on the page colour, light or dark, both
 	  from the asset catalog (LaunchMark, LaunchBackground). The mark is drawn at

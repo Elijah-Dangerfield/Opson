@@ -35,7 +35,7 @@
 
     <!-- Reached in a mode without fasting -->
     <string name="fasting_not_in_mode">Fasting isn't part of this mode</string>
-    <string name="fasting_not_in_mode_body">Long gaps between meals tend to work against the goals of this mode. If regular meals are the aim, meal reminders help with that instead.</string>
+    <string name="fasting_not_in_mode_body">Long gaps between meals can work against what this mode is for. If regular meals are the aim, meal reminders can help.</string>
 
     <!-- Today's card -->
     <string name="fasting_today_running">%1$s, since %2$s</string>
@@ -43,7 +43,7 @@
     <!-- More and Edit Today's cards -->
     <string name="fasting_more_off">Off</string>
     <string name="fasting_more_on">On, %1$s</string>
-    <string name="fasting_cards_body">The timer, while it is on.</string>
+    <string name="fasting_cards_body">The timer, while it's on.</string>
 
     <string name="fasting_toast_ended">Fast ended.</string>
 </resources>

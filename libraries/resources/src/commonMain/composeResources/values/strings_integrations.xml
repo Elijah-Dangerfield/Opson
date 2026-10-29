@@ -25,8 +25,8 @@
     <string name="integrations_open_health_connect">Open Health Connect</string>
     <string name="integrations_unsupported">Not available on this phone.</string>
     <string name="integrations_needs_install">Health Connect needs installing or updating first.</string>
-    <string name="integrations_denied_health_connect">Opson can't read anything until you allow it. You can change that in Health Connect.</string>
-    <string name="integrations_denied_apple_health">Opson can't read anything until you allow it. You can change that in the Health app.</string>
+    <string name="integrations_denied_health_connect">Opson can't read anything until you allow it in Health Connect.</string>
+    <string name="integrations_denied_apple_health">Opson can't read anything until you allow it in the Health app.</string>
     <string name="integrations_failed_apple_health">Couldn't connect to Apple Health. Try again in a moment.</string>
     <string name="integrations_failed_health_connect">Couldn't connect to Health Connect. Try again in a moment.</string>
     <string name="integrations_privacy">Health data stays on this phone. Opson doesn't send it anywhere.</string>
@@ -38,8 +38,8 @@
     <string name="integrations_ask_more">Opson can read more than you've allowed so far, like workouts and weight.</string>
     <string name="integrations_ask_more_button">Allow</string>
     <string name="integrations_sources">Data from %1$s.</string>
-    <string name="integrations_sources_none_apple_health">Nothing has come in from Apple Health yet. If your watch or another app has data there, check that Opson can read it: in the Health app, tap your picture, then Apps, then Opson.</string>
-    <string name="integrations_sources_none_health_connect">Nothing has come in from Health Connect yet. Check that your watch's app shares with Health Connect, and that Opson can read it there.</string>
+    <string name="integrations_sources_none_apple_health">Nothing from Apple Health yet. If your watch or another app has data there, check that Opson can read it: in the Health app, tap your picture, then Apps, then Opson.</string>
+    <string name="integrations_sources_none_health_connect">Nothing from Health Connect yet. Check that your watch's app shares with Health Connect and that Opson can read it there.</string>
     <string name="integrations_sources_hint">Garmin, Fitbit, Oura, Whoop, Strava and most watches and scales can share with %1$s. Turn that on in their app and it shows up here.</string>
     <string name="integrations_weigh_ins_title">Add weigh-ins from %1$s</string>
     <string name="integrations_weigh_ins_body">New weigh-ins join your weight log and sync with your account. Ones you've already logged are skipped.</string>
@@ -51,7 +51,7 @@
     <string name="integrations_workouts">Exercise</string>
     <string name="integrations_total">Total burned (TDEE)</string>
     <string name="integrations_empty">Nothing from %1$s yet today.</string>
-    <string name="integrations_hidden">Your watch syncs in the background. Nothing from it shows in this mode.</string>
+    <string name="integrations_hidden">Nothing from your watch shows in this mode.</string>
 
     <!-- Should exercise change your range? (v3 integrations.png) -->
     <string name="integrations_exercise_title">Should exercise change your range?</string>
@@ -61,7 +61,7 @@
     <string name="integrations_exercise_some_line">Half of your movement and workouts is added.</string>
     <string name="integrations_exercise_all">All of it</string>
     <string name="integrations_exercise_all_line">All of your watch's active energy is added.</string>
-    <string name="integrations_exercise_note">Your range only ever goes up for movement. A quiet day never lowers it.</string>
+    <string name="integrations_exercise_note">Movement can raise your range. A quiet day won't lower it.</string>
 
     <!-- Days left out of the math (v3 integrations, full page) -->
     <string name="integrations_left_out_title">Days left out of the math</string>

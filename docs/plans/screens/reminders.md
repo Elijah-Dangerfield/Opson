@@ -190,11 +190,11 @@ Added to `app-events.md`. No meal names, no times, no free text.
 ## Copy
 
 `strings_reminders.xml`, prefix `reminders_`: `Reminders and celebrations`;
-`Quiet mode` / `Reminders arrive without sound or vibration.`; `After a big day` / `A calm
-card at day close. Full adds the two buttons.`; `Meal reminders` / `A nudge if
+`Quiet mode` / `Reminders arrive without sound or vibration.`; `After a big day` / `A short
+card when you wrap up the day. Full adds two buttons to answer it.`; `Meal reminders` / `A nudge if
 a meal isn't logged by its time.`; `Off` `Subtle` `Full`; `Meal reminder
-times`; `We don't send evening messages about what's left to eat. That isn't a
-setting, we just don't.`; permission note `Notifications are off for Opson, so
+times`; `There are no evening messages about what's left to eat, and no setting
+to turn them on.`; permission note `Notifications are off for Opson, so
 reminders can't reach you.` / `Open settings`; time dialog `%s time`, `OK`,
 `Cancel`; More `Quiet mode on` / `Quiet mode off`; Water `Reminders` / `One
 mid-morning, one mid-afternoon.`; Rhythm `%s reminder`, `%1$s, only if %2$s

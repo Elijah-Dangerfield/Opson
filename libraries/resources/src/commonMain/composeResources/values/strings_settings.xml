@@ -46,11 +46,11 @@
     <!-- Log out, confirmed from More -->
     <string name="settings_log_out_title">Log out?</string>
     <string name="settings_log_out_body">Your log stays in your account. Sign in again to pick up where you left off.</string>
-    <string name="settings_log_out_body_guest">You're using Opson as a guest. Logging out removes your log from this phone, and there's no account to sign back in to.</string>
+    <string name="settings_log_out_body_guest">You're a guest, so logging out removes your log from this phone. There's no account to sign back in to.</string>
     <string name="settings_log_out_cancel">Cancel</string>
     <!-- The sync before logging out couldn't reach the account -->
     <string name="settings_log_out_unsynced_title">Couldn't reach your account</string>
-    <string name="settings_log_out_unsynced_body">Anything you logged since Opson last synced is only on this phone, and logging out removes it. Stay, and try again when you're online.</string>
+    <string name="settings_log_out_unsynced_body">Anything you logged since the last sync is only on this phone, and logging out removes it. Stay and try again when you're online.</string>
     <string name="settings_log_out_stay">Stay</string>
     <string name="settings_log_out_anyway">Log out anyway</string>
 
@@ -147,7 +147,7 @@
     <string name="settings_targets_style_surplus_line">Eat a set amount over what you burn</string>
     <string name="settings_targets_kcal_a_day">kcal a day</string>
     <string name="settings_targets_burn_target">Today's target %1$s · moves with what you burn</string>
-    <string name="settings_targets_burn_needs_details">Your goal follows what you burn. Add your birth year, height and sex, and Opson will estimate it from those.</string>
+    <string name="settings_targets_burn_needs_details">Your goal follows what you burn. Add your birth year, height and sex so Opson can estimate it.</string>
     <string name="settings_targets_add_details">Add your details</string>
     <string name="settings_targets_burn_based">Based on about %1$s burned today</string>
     <string name="settings_targets_burn_estimated">With no health app connected, that's your resting energy plus your everyday activity.</string>
@@ -207,14 +207,14 @@
     <string name="settings_targets_macros_goal_today">today's goal of about %1$s</string>
     <string name="settings_targets_macros_fit">Fit macros to %1$s</string>
     <string name="settings_targets_macros_use">Make %1$s my goal</string>
-    <string name="settings_targets_macros_goal_floor_toast">That goal is past what Opson allows, so fit the macros instead.</string>
+    <string name="settings_targets_macros_goal_floor_toast">That goal is outside what Opson allows. Fit the macros instead.</string>
     <string name="settings_targets_deficit_less">Less under what you burn</string>
     <string name="settings_targets_deficit_more">More under what you burn</string>
     <string name="settings_targets_deficit_about">About %1$s</string>
     <string name="settings_targets_deficit_cap_toast">The deficit stays at or under where it started.</string>
     <string name="settings_targets_deficit_locked">Where it started</string>
     <string name="settings_targets_deficit_cap_note">This is the deficit you started with. It can come down, and back up to here.</string>
-    <string name="settings_targets_deficit_zero_note">Your goal was already at or above what you burn, so the deficit is 0 and your goal simply follows your burn.</string>
+    <string name="settings_targets_deficit_zero_note">Your goal was already at or above what you burn, so the deficit is 0 and your goal follows your burn.</string>
     <string name="settings_targets_deficit_title">Under what you burn, each day</string>
     <string name="settings_targets_deficit_info">How a deficit works</string>
     <string name="settings_targets_surplus_info">How a surplus works</string>
@@ -246,13 +246,13 @@
     <string name="settings_targets_group_day">%1$s, in %2$s</string>
     <string name="settings_targets_group_add">Add another day group</string>
     <string name="settings_targets_week">This week</string>
-    <string name="settings_targets_hidden_title">Targets work in the background</string>
-    <string name="settings_targets_hidden_body">They're out of view in this mode. To see or change them, show calories in Display.</string>
+    <string name="settings_targets_hidden_title">Targets are hidden in this mode</string>
+    <string name="settings_targets_hidden_body">To see or change them, show calories in Display.</string>
     <string name="settings_targets_hidden_link">Display</string>
 
     <!-- Profile: the one place the body details are edited -->
     <string name="settings_profile_title">Profile</string>
-    <string name="settings_profile_intro">Resting energy, Burned and your vitamin and mineral references all use these. Change them here and they change everywhere.</string>
+    <string name="settings_profile_intro">Resting energy, Burned and your vitamin and mineral references all use these details.</string>
     <string name="settings_profile_about">About you</string>
     <string name="settings_profile_sex">Sex for estimates</string>
     <string name="settings_profile_sex_body">The equations differ by sex. Rather not say uses the midpoint.</string>
@@ -294,7 +294,7 @@
     <string name="settings_resting_needs_height">height</string>
     <string name="settings_resting_needs_sex">sex</string>
     <string name="settings_resting_needs_weight">a weigh-in</string>
-    <string name="settings_resting_everyday_measured">%1$s measures your activity, so we don't need to guess.</string>
+    <string name="settings_resting_everyday_measured">%1$s measures your activity, so there's nothing to pick here.</string>
     <string name="settings_resting_birth_year">Year you were born</string>
     <string name="settings_resting_height">Height</string>
     <string name="settings_resting_cm">cm</string>
@@ -329,7 +329,7 @@
     <string name="energy_info_plus">+ %1$s</string>
     <string name="energy_info_minus">− %1$s</string>
     <string name="energy_info_resting_body">BMR, your basal metabolic rate, is the energy your body uses just to keep going: breathing, your heartbeat, staying warm. You'd burn it lying in bed all day. For most people it's the biggest part of what they burn.</string>
-    <string name="energy_info_resting_how">Opson works it out with the Mifflin-St Jeor equation, the one dietitians use most. It takes four things from your profile: weight, height, age and sex. It's an estimate, and a real body can be about 10% either way.</string>
+    <string name="energy_info_resting_how">Opson uses the Mifflin-St Jeor equation, the one dietitians use most, with the weight, height, age and sex on your profile. It's an estimate, and a real body can be about 10% either way.</string>
     <string name="energy_info_resting_working">How we got your number</string>
     <string name="energy_info_resting_weight">10 × your weight, %1$s</string>
     <string name="energy_info_resting_height">6.25 × your height, %1$d cm</string>
@@ -341,7 +341,7 @@
     <string name="energy_info_resting_in_use_health">You picked %1$s's number instead, so Burned uses %2$s.</string>
     <string name="energy_info_resting_in_use_own">You picked your own number instead, so Burned uses %1$s.</string>
     <string name="energy_info_watch_title">Why your watch says something different</string>
-    <string name="energy_info_watch_body">Watches and phones estimate it too, from your heart rate and movement, and only while you wear them. Different methods often land a few hundred calories apart, and none is exact. Pick the one you trust and stay with it: the trend over weeks matters more than any one day.</string>
+    <string name="energy_info_watch_body">Watches and phones estimate it too, from your heart rate and movement. Different methods often land a few hundred calories apart, and none is exact. Pick the one you trust and stick with it. The trend over weeks matters more than any one day.</string>
     <string name="energy_info_profile">Check your profile</string>
     <string name="energy_info_resting_source">Choose where it comes from</string>
     <string name="energy_info_burned_title">Total burned (TDEE)</string>
@@ -352,18 +352,18 @@
     <string name="energy_info_part_digesting_line">About a tenth of what you eat, with Count digesting food on.</string>
     <string name="energy_info_burned_working">How we got today's number</string>
     <string name="energy_info_burned_logged">Exercise you logged</string>
-    <string name="energy_info_burned_estimate">With no watch, everyday activity is an estimate: your resting energy times a factor for how active your days are, from 1.2 for mostly sitting to 1.725 for physical work. That's how most TDEE calculators do it.</string>
+    <string name="energy_info_burned_estimate">With no watch, everyday activity is an estimate: your resting energy times a factor for how active your days are, from 1.2 for mostly sitting to 1.725 for physical work.</string>
     <string name="energy_info_balance_title">Deficit and surplus</string>
-    <string name="energy_info_balance_body">A deficit is eating less than you burn. Your body makes up the gap from what it has stored, so over time your weight comes down. A surplus is the opposite, eating more than you burn, and it's how weight goes up.</string>
+    <string name="energy_info_balance_body">A deficit is eating less than you burn. Your body makes up the gap from its stores, so over time your weight comes down. A surplus is eating more than you burn, and over time your weight goes up.</string>
     <string name="energy_info_balance_rule_lb">As a rough rule, about 3,500 calories under what you burn adds up to 1 lb of fat. So 500 a day under is roughly 1 lb a week.</string>
     <string name="energy_info_balance_rule_kg">As a rough rule, about 7,700 calories under what you burn adds up to 1 kg of fat. So 500 a day under is roughly half a kilo a week.</string>
-    <string name="energy_info_balance_rough">It's only a rough rule. Water, salt and your body adjusting make the scale move unevenly, so the trend over a few weeks says more than any one day.</string>
+    <string name="energy_info_balance_rough">It's a rough rule. Water and salt move the scale from day to day, and bodies adjust. Look at the trend over a few weeks.</string>
     <string name="energy_info_balance_working">How we got today's goal</string>
     <string name="energy_info_balance_burned">Total burned (TDEE) today</string>
     <string name="energy_info_balance_deficit">Your deficit</string>
     <string name="energy_info_balance_surplus">Your surplus</string>
     <string name="energy_info_balance_goal">Today's goal</string>
-    <string name="energy_info_balance_held">Your goal never goes below the lowest one Opson sets, so it can sit above this sum.</string>
+    <string name="energy_info_balance_held">Your goal can't go below the lowest Opson allows, so it can sit above this sum.</string>
     <string name="energy_info_balance_moves">It moves as what you burn changes through the day.</string>
 
     <!-- Energy today (design sync 4, 13.2c) -->
@@ -425,7 +425,7 @@
     <string name="settings_support_export">Export everything</string>
     <string name="settings_support_export_sub">Spreadsheets of every log, note and setting, in one zip</string>
     <string name="settings_export_numbers_title">Your export has every number</string>
-    <string name="settings_export_numbers_body">It lists the calories, macros, weight and water you logged, including the ones your mode keeps out of sight. You don't have to open it yourself. You can send it on, or save it for later.</string>
+    <string name="settings_export_numbers_body">It has the calories, macros, weight and water you logged, including the ones your mode hides. You don't have to open it. You can send it on or save it for later.</string>
     <string name="settings_export_numbers_go">Make the file</string>
     <string name="settings_export_numbers_not_now">Not now</string>
     <string name="settings_support_summary">Make a summary for your provider</string>
@@ -553,9 +553,9 @@
     <string name="settings_today_weight">Weight on days you weigh in</string>
     <string name="settings_today_in_header">In the header</string>
     <string name="settings_today_close_day">Wrap up the day</string>
-    <string name="settings_today_card_from_mode">In this mode the card's layout comes from the mode.</string>
+    <string name="settings_today_card_from_mode">Your mode sets the card's layout.</string>
     <!-- What overrides a choice on Today screen, said under it, with the way to that setting -->
-    <string name="settings_today_card_later">With calories on Later, the card keeps its simpler layout. The presets need calories on show.</string>
+    <string name="settings_today_card_later">With calories on Later, the card uses its simpler layout. The presets need calories on Show.</string>
     <string name="settings_today_equation_hidden">Equation needs Burned, which is hidden in Display. Today shows In and out for now.</string>
     <string name="settings_today_equation_unknown">Equation needs Burned, and your resting energy isn't set up yet. Today shows In and out until it is.</string>
     <string name="settings_today_balance_hidden">Deficit or surplus needs Burned, which is hidden in Display. Today shows the gap to your goal.</string>
@@ -577,7 +577,7 @@
     <string name="settings_micros_basis_dv">These are the Daily Values from food labels, for adults in general.</string>
     <string name="settings_micros_add_details">Add your birth year and sex</string>
     <string name="settings_micros_add_details_line">In your profile</string>
-    <string name="settings_micros_caption">These are typical daily amounts for healthy people, not goals to hit. A dietitian or doctor can give you ones that fit you better. Tap one to set your own or to show it on Today.</string>
+    <string name="settings_micros_caption">These are typical daily amounts for healthy people, not goals to hit. A dietitian or doctor can suggest ones that fit you. Tap one to set your own or show it on Today.</string>
     <string name="settings_micros_on_today">On Today</string>
     <string name="settings_micros_own">Your own, %1$s</string>
     <string name="settings_micros_off_title">Vitamins and minerals are off</string>
@@ -595,7 +595,7 @@
 
     <!-- A summary for your provider (release.providerSummary). The screen, then the document. -->
     <string name="summary_title">A summary for your provider</string>
-    <string name="summary_intro">Pick the days and what goes in. You'll see it before you share it, and it only goes where you send it.</string>
+    <string name="summary_intro">Pick the days and what goes in. You'll see a preview first, and it only goes where you send it.</string>
     <string name="summary_range">Days</string>
     <string name="summary_range_week">Last 7 days</string>
     <string name="summary_range_two_weeks">Last 2 weeks</string>
@@ -611,15 +611,15 @@
     <string name="summary_include_check_ins">Check-ins</string>
     <string name="summary_include_weight">Weight</string>
     <string name="summary_include_numbers">Calories, macros and water</string>
-    <string name="summary_include_hidden">Your mode keeps these out of sight</string>
+    <string name="summary_include_hidden">Your mode hides these</string>
     <string name="summary_preview">Preview</string>
-    <string name="summary_preview_hidden">Some numbers you picked stay out of this preview, because your mode keeps them out of sight. They're in the PDF.</string>
+    <string name="summary_preview_hidden">Your mode hides some of the numbers you picked, so this preview leaves them out. They're in the PDF.</string>
     <string name="summary_share">Share as PDF</string>
     <string name="summary_sharing">Making the PDF…</string>
     <string name="summary_failed">Couldn't make the PDF. Try again in a moment.</string>
     <string name="summary_nothing_picked">Pick at least one thing to include.</string>
     <string name="summary_warning_title">These numbers will be in the PDF</string>
-    <string name="summary_warning_body">Your mode keeps them out of sight, so the preview here won't show them. The PDF will, for whoever you share it with. You can turn this off again before you share.</string>
+    <string name="summary_warning_body">Your mode hides them, so the preview won't show them. The PDF will, to anyone you share it with. You can turn this off before you share.</string>
     <string name="summary_warning_include">Include them</string>
     <string name="summary_warning_leave_out">Leave them out</string>
     <!-- A month and day, or a span of them, with its year: "Sep 28 to Oct 25, 2026". -->
@@ -630,7 +630,7 @@
     <string name="summary_doc_range">%1$s, %2$s</string>
     <string name="summary_doc_made">Made in the Opson app on %1$s. It holds only what the person chose to include.</string>
     <string name="summary_doc_included">Included: %1$s</string>
-    <string name="summary_doc_numbers_note">Numbers are as logged. A day's totals add up the foods that had that number, so a day with gaps reads low.</string>
+    <string name="summary_doc_numbers_note">Numbers are as logged. A day's totals only count foods that had that number, so a day with gaps reads low.</string>
     <string name="summary_doc_meal_time">%1$s · %2$s</string>
     <string name="summary_doc_ate_no_details">%1$s · ate, no details</string>
     <string name="summary_doc_hunger">Hunger: %1$s</string>

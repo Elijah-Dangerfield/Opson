@@ -30,7 +30,7 @@
 
     <!-- Each number -->
     <string name="modes_each_number_title">Each number</string>
-    <string name="modes_each_number_body">Fine-tune any single number</string>
+    <string name="modes_each_number_body">Set each number on its own</string>
     <string name="modes_back_modes">‹ Display</string>
 
     <!-- When Later opens -->

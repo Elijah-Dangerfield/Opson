@@ -8,7 +8,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opson uses the camera to read barcodes on food packs, to photograph a pack's label when you add or check a food, to photograph a meal when you ask for an estimate, and to take progress photos if you choose to. Meal photos are never saved. Progress photos stay on this iPhone."
+            "value" : "Opson uses the camera to scan barcodes, photograph a food's label when you add or check it, photograph a meal when you ask for an estimate, and take progress photos if you choose to. Meal photos aren't saved. Progress photos stay on this iPhone."
           }
         }
       }
@@ -44,7 +44,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opson only reads from Health. It never writes or changes anything there."
+            "value" : "Opson only reads from Health. It doesn't write or change anything there."
           }
         }
       }
@@ -56,7 +56,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opson listens when you tap the mic, so you can say what you ate instead of typing it. Nothing is recorded or saved."
+            "value" : "Opson listens when you tap the mic so you can say what you ate. Nothing is recorded or saved."
           }
         }
       }
@@ -68,7 +68,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opson turns what you say into text to fill in your meal. Your iPhone does this on the device when it can; otherwise Apple processes the audio. Opson never keeps the recording."
+            "value" : "Opson turns what you say into text to fill in your meal. Your iPhone does this on the device when it can. Otherwise Apple processes the audio, and Opson doesn't keep the recording."
           }
         }
       }

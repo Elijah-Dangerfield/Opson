@@ -85,7 +85,7 @@ enum class ShapeKind {
 data class TargetsState(
     /** False until the settings, the policy and Burned have all arrived; the page shows a spinner, not the background card. */
     val loaded: Boolean = false,
-    /** Calories configured to Show. Otherwise the page is the "Targets work in the background" card. */
+    /** Calories configured to Show. Otherwise the page is the "Targets are hidden in this mode" card. */
     val visible: Boolean = false,
     /** The style whose card is open: the saved one, or a range when the mode doesn't offer it. */
     val style: StyleKind = StyleKind.Range,

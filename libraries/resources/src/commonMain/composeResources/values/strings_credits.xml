@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Support › About Opson › Credits and licenses. The title is settings_about_credits. -->
-    <string name="credits_intro">Opson is built on other people's work. This page credits it and gives the licenses it comes under.</string>
+    <string name="credits_intro">Opson is built on other people's work. Here are the credits and the licenses it comes under.</string>
     <string name="credits_food_header">Food data</string>
     <string name="credits_food_note">Nutrition values come from public food databases and the people who add to them. They are estimates and can be wrong.</string>
     <string name="credits_usda">USDA FoodData Central</string>

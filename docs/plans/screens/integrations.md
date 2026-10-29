@@ -250,7 +250,7 @@ The line is decided in `TodayStateBuilder`; the screen never checks a mode.
 - `Apple Health` / `Health Connect`; `Reads energy and workouts.`
 - `Connected`, `Connect`, `Disconnect`, `Get Health Connect`, `Open Health Connect`
 - Unsupported: `Not available on this phone.`
-- Denied: `Opson can't read anything until you allow it. You can change that in Health Connect.` (iOS: `…in the Health app.`)
+- Denied: `Opson can't read anything until you allow it in Health Connect.` (iOS: `…in the Health app.`)
 - `Expended today`; `Resting`, `Everyday movement`, `Workouts`, `Total`
 - Empty: `Nothing from %1$s yet today.`
 - Hidden: `Your mode isn't showing energy numbers right now.`
@@ -411,7 +411,7 @@ Expended today, the question, days left out, the privacy footer.
 ### Copy, second pass (v3 verbatim where it has it)
 - `Should exercise change your range?`; `No` / `Your range stays the same however much you move.`;
   `Some of it` / `Half of your movement and workouts is added.`; `All of it` /
-  `All of your watch's active energy is added.`; `Your range only ever goes up for movement. A quiet day never lowers it.`
+  `All of your watch's active energy is added.`; `Movement can raise your range. A quiet day won't lower it.`
 - `Days left out of the math`; `Leave out another day`; `Leave out a day`;
   `None yet. A day you leave out doesn't count in your averages.`
 - Sheet: `Leave out a day`; `Tap a day to leave it out of your averages. Tap it again to count it.`;

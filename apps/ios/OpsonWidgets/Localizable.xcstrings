@@ -45,28 +45,6 @@
         }
       }
     },
-    "Choose the number the ring shows. Your mode still decides whether it shows one." : {
-      "comment" : "Edit Widget, calories widget: the explanation under the title.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose the number the ring shows. Your mode still decides whether it shows one."
-          }
-        }
-      }
-    },
-    "Choose which macros to show. Your mode still decides which ones it shows." : {
-      "comment" : "Edit Widget, macros widget: the explanation under the title.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose which macros to show. Your mode still decides which ones it shows."
-          }
-        }
-      }
-    },
     "Eaten so far" : {
       "comment" : "Edit Widget, calories widget: the ring shows calories eaten.",
       "localizations" : {
@@ -184,6 +162,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open Opson to start."
+          }
+        }
+      }
+    },
+    "Pick the macros to show. Your mode decides which ones appear." : {
+      "comment" : "Edit Widget, macros widget: the explanation under the title.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick the macros to show. Your mode decides which ones appear."
+          }
+        }
+      }
+    },
+    "Pick the number for the ring. Your mode decides whether it shows." : {
+      "comment" : "Edit Widget, calories widget: the explanation under the title.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick the number for the ring. Your mode decides whether it shows."
           }
         }
       }

@@ -12,11 +12,11 @@
     <string name="upgrade_maintenance_try_again">Try again</string>
 
     <!-- Maintenance, strip -->
-    <string name="upgrade_maintenance_logging_continues">You can keep logging. It saves on this phone and syncs when we are back.</string>
+    <string name="upgrade_maintenance_logging_continues">You can keep logging. It saves on this phone and syncs when we're back.</string>
 
     <!-- Update required -->
     <string name="upgrade_required_title">Time to update</string>
-    <string name="upgrade_required_body">This version of Opson can no longer sync. The update is free and keeps everything you have logged.</string>
+    <string name="upgrade_required_body">This version of Opson can't sync anymore. The update is free and keeps everything you've logged.</string>
     <string name="upgrade_required_cta">Update Opson</string>
     <string name="upgrade_required_reassurance">Your log stays on this phone until you update.</string>
 

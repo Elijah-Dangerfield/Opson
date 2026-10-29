@@ -73,7 +73,7 @@ are the behaviour spec and win over v3):
 | `targets-screen__*` | Steppers: the lock is the outlined glyph in muted, numbers one step smaller. Macro split: one bar of flush segments, amounts bold with a regular label. Deficit rules read on one line (smaller type). By day: the first group ("Other days") renders last, week bands are flat bars, the pencil is the outlined glyph. |
 | `goal-style-sheet-content__targets-goal-style` | No change. |
 | `reminders-screen__reminders`, `reminder-notification__…` | The notification lookalike sits on a lock screen (clock and date), light card, tinted action chips. |
-| `integrations-screen__integrations-connected` | In a mode that hides energy the Expended card reads `Your watch syncs in the background. Nothing from it shows in this mode.` Smaller status pill. |
+| `integrations-screen__integrations-connected` | In a mode that hides energy the Expended card reads `Nothing from your watch shows in this mode.` Smaller status pill. |
 | `fasting-screen__fasting` | Already status first; no change. |
 | `support-screen__support` | With `release.findSupport` on: `Find support near you` (accent, chevron) and the crisis row for the phone's country, which dials. Off: the 0.1 links stay. Icons outlined. |
 | `support-screen__support-delete` | Outlined trash icon, body in ink. Still a modal with Keep in accent. |
@@ -407,7 +407,7 @@ goal in disguise. Where no macro shows as an amount (Macros only) there is
 nothing to edit.
 
 Visibility (surface `Settings`): every amount appears only when calories are
-configured `Show`; otherwise the page is the `Targets work in the background`
+configured `Show`; otherwise the page is the `Targets are hidden in this mode`
 card.
 
 Copy (v3): `Goal style` / `A range` / `A set deficit` / `Different by day`;

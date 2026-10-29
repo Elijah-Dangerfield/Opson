@@ -26,7 +26,7 @@ enum CaloriesFigure: String, AppEnum {
 
 struct CaloriesConfiguration: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Calories"
-    static var description = IntentDescription("Choose the number the ring shows. Your mode still decides whether it shows one.")
+    static var description = IntentDescription("Pick the number for the ring. Your mode decides whether it shows.")
 
     @Parameter(title: "Show", default: .eaten)
     var figure: CaloriesFigure
