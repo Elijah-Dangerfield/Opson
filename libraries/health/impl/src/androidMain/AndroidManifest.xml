@@ -8,17 +8,31 @@
          screenshot tests) gets the override, not only the app's. -->
     <uses-sdk tools:overrideLibrary="androidx.health.connect.client" />
 
-    <!-- Read only, and only energy and workouts: HealthConnectReader.PERMISSIONS must match.
-         Health Connect will not prompt for a permission that is not declared here, and Play's
-         Health Connect declaration form has to list exactly these. -->
+    <!-- Read only: energy, workouts, weight and height. HealthConnectReader.PERMISSIONS must
+         match. Health Connect will not prompt for a permission that is not declared here, and
+         Play's Health Connect declaration form has to list exactly these
+         (docs/plans/0.2/release-checklist.md). No background read: Opson reads only while in
+         front. -->
     <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_BASAL_METABOLIC_RATE" />
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_WEIGHT" />
+    <uses-permission android:name="android.permission.health.READ_HEIGHT" />
 
-    <!-- Android 11+ package visibility: getSdkStatus has to see the Health Connect app. -->
+    <!-- Android 11+ package visibility: getSdkStatus has to see the Health Connect app, and
+         "Data from" names the apps that wrote the data. Apps that write to Health Connect declare
+         its permission-rationale screen (13 and lower) or the health permission usage screen
+         (14 and up), so these make them visible without asking to see every app. -->
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
+        <intent>
+            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+            <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+        </intent>
     </queries>
 
     <application>

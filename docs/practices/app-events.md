@@ -208,9 +208,11 @@ from the store.** Health values never leave the device.
 
 | Event | Attributes | Fires |
 |---|---|---|
-| `health.connected` | `source` | Connect went through: Health Connect granted every permission, or HealthKit's sheet closed without an error (iOS never says whether reading was allowed) |
-| `health.permission_denied` | `source` | Connect came back without the permissions, or the prompt failed |
+| `health.connected` | `source` | Connect went through: Health Connect granted any of the permissions, or HealthKit's sheet closed without an error (iOS never says whether reading was allowed) |
+| `health.permission_denied` | `source` | Connect came back with nothing allowed. A prompt that failed with an error is not this: it is logged at error instead, once per process |
 | `health.disconnected` | `source` | Disconnect on Watch and health apps |
+| `health.weigh_ins_on` | none | Turned on "Add weigh-ins from" the health app |
+| `health.weigh_ins_off` | none | Turned it off |
 
 ### Reminders
 

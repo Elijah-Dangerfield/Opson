@@ -34,11 +34,43 @@ data class AppData(
     val lastReviewPromptAt: Long = 0L,
 
     /**
-     * The person tapped Connect for Apple Health or Health Connect and it went through. Only
-     * the choice is kept here; health values are never stored. Account-scoped, so the next
-     * account on this phone starts disconnected.
+     * Apple Health or Health Connect has been connected on this account: Connect went through,
+     * or the store already let Opson read. Only the choice is kept here; health values are never
+     * stored. Account-scoped.
      */
     val healthConnected: Boolean = false,
+
+    /**
+     * The person tapped Disconnect. HealthKit has no way for an app to give permission back, so
+     * this is what stops Opson reading until they connect again. Account-scoped.
+     */
+    val healthPaused: Boolean = false,
+
+    /** Weigh-ins from the health store go into the weight log (off until the person turns it on). Account-scoped. */
+    val healthWeighIns: Boolean = false,
+
+    /**
+     * The store's ids of weigh-ins already brought in, newest last and capped, so one deleted
+     * from the log is never brought back. Ids only, never a weight. Account-scoped.
+     */
+    val healthImportedWeighIns: List<String> = emptyList(),
+
+    /**
+     * The last energy reading from the health store, so a cold start shows it at once instead of
+     * waiting on the store. On this phone only, never synced; dropped on Disconnect and on a user
+     * change. Account-scoped.
+     */
+    val healthEnergy: HealthEnergySnapshot? = null,
+)
+
+/** One reading of a day's energy, in kcal, and when it was read (epoch ms). [day] is ISO, `2026-10-29`. */
+@Serializable
+data class HealthEnergySnapshot(
+    val day: String,
+    val readAtMs: Long,
+    val restingKcal: Double? = null,
+    val activeKcal: Double? = null,
+    val workoutKcal: Double? = null,
 )
 
 interface AppCache : Cache<AppData>
@@ -70,4 +102,8 @@ fun AppData.resetAccountScoped(): AppData = copy(
     // onboarding rather than inheriting the previous user's completion.
     hasUserOnboarded = false,
     healthConnected = false,
+    healthPaused = false,
+    healthWeighIns = false,
+    healthImportedWeighIns = emptyList(),
+    healthEnergy = null,
 )
