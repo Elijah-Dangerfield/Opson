@@ -1,6 +1,7 @@
 package com.opson.features.today.impl
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -34,15 +35,11 @@ import com.opson.libraries.nutrition.ui.separator
 import com.opson.libraries.ui.components.PageIndicator
 import com.opson.libraries.ui.components.RangeBarSegment
 import com.opson.libraries.ui.components.SwipePages
-import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.icon.RoundIconButton
-import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.libraries.ui.time.RelativeDay
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.integrations_today_expended
-import opson.libraries.resources.generated.resources.today_collapse_cd
 import opson.libraries.resources.generated.resources.today_compact_meals
 import opson.libraries.resources.generated.resources.today_counted_four
 import opson.libraries.resources.generated.resources.today_counted_label
@@ -56,7 +53,6 @@ import opson.libraries.resources.generated.resources.today_counts_meals_one
 import opson.libraries.resources.generated.resources.today_counts_meals_other
 import opson.libraries.resources.generated.resources.today_count_value
 import opson.libraries.resources.generated.resources.today_customise_cd
-import opson.libraries.resources.generated.resources.today_expand_cd
 import opson.libraries.resources.generated.resources.today_focus_title
 import opson.libraries.resources.generated.resources.today_macros_of
 import opson.libraries.resources.generated.resources.today_macros_title
@@ -71,21 +67,20 @@ import opson.libraries.resources.generated.resources.today_summary_range
 import opson.libraries.resources.generated.resources.trends_micro_of
 import opson.libraries.resources.generated.resources.trends_micro_of_limit
 import opson.libraries.resources.generated.resources.trends_micro_not_listed
-import opson.libraries.resources.generated.resources.trends_nutrient_open_foods
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /*
  * Today's summary card in each of its forms (design sync 2, 2.1 to 2.8), and the one-line bar it
- * shrinks into while scrolled or collapsed (2.1c, 2.1d). Stateless: the page, the collapse and
- * the stats arrive in [TodayState]; taps go back as [TodayAction]s.
+ * shrinks into once scrolled away (2.1c). Stateless: the page and the stats arrive in
+ * [TodayState]; taps go back as [TodayAction]s.
  */
 
 @Composable
 internal fun Summary(summary: TodaySummary, state: TodayState, onAction: (TodayAction) -> Unit) {
     when (summary) {
         is TodaySummary.Energy -> EnergySummary(summary, state, onAction)
-        is TodaySummary.Soft -> SoftSummaryCard(summary, state, onAction)
+        is TodaySummary.Soft -> SoftSummaryCard(summary, onAction)
         is TodaySummary.Focus -> FocusSummaryCard(title = stringResource(Res.string.today_focus_title), rows = summary.rows.map { it.toSummaryMacro() })
         is TodaySummary.Locked -> LaterLockedCard(summary)
         is TodaySummary.Counted -> StatementSummaryCard(
@@ -102,8 +97,9 @@ internal fun Summary(summary: TodaySummary, state: TodayState, onAction: (TodayA
 
 /**
  * The calories-shown card (2.1, 2.1b): the energy page, then the macros page and the nutrients page
- * when there are, swiping in one card of one height, with the collapse chevron under every page
- * and the page dots centred under the card.
+ * when there are, swiping in one card that resizes to each page ([SwipePages]), with the page dots
+ * centred under the card. On the nutrients page a tap anywhere on the card opens the Nutrients
+ * screen, as See all does.
  */
 @Composable
 private fun EnergySummary(summary: TodaySummary.Energy, state: TodayState, onAction: (TodayAction) -> Unit) {
@@ -125,9 +121,18 @@ private fun EnergySummary(summary: TodaySummary.Energy, state: TodayState, onAct
 private fun EnergyCard(summary: TodaySummary.Energy, state: TodayState, onAction: (TodayAction) -> Unit) {
     val tools = state.summaryTools
     val pages = summary.pages
+    val onNutrients = pages.getOrNull(state.summaryPage) == SummaryPage.Nutrients
+    val card = summary.card
+    // Design sync 4's card carries Burned itself, so its footer has room for the meals. Expended
+    // has its own stat once there are stats; until then it is the line under the bar.
+    val footer = card?.meals != null || (card == null && summary.stats.isEmpty() && summary.expended !is Display.Hidden)
     SummaryCard(
         onLongClick = if (tools) ({ onAction(TodayAction.SummaryLongPressed) }) else null,
         longClickLabel = stringResource(Res.string.today_customise_cd),
+        onClick = if (onNutrients) ({ onAction(TodayAction.NutrientsTapped) }) else null,
+        clickLabel = stringResource(Res.string.today_nutrients_see_all),
+        // With nothing under the pages the card closes as evenly as it opens.
+        contentPadding = PaddingValues(start = CardInset, end = CardInset, top = CardInset, bottom = if (footer) FooterBottom else CardInset),
     ) {
         if (pages.size > 1) {
             SwipePages(page = state.summaryPage, pageCount = pages.size, onPageChange = { onAction(TodayAction.SummaryPageShown(it)) }) { page ->
@@ -140,21 +145,22 @@ private fun EnergyCard(summary: TodaySummary.Energy, state: TodayState, onAction
         } else {
             FirstPage(summary, onAction)
         }
-        SummaryFooter(
-            collapseIcon = if (tools && !summary.empty) AppIcons.ExpandLess.described(stringResource(Res.string.today_collapse_cd)) else null,
-            onCollapse = { onAction(TodayAction.CollapseTapped) },
-            leading = {
-                val card = summary.card
-                when {
-                    // Design sync 4's card carries Burned itself; the footer has room for the meals.
-                    card != null -> CardMeals(card)
-                    // Expended has its own stat once there are stats; until then it is the line under the bar.
-                    summary.stats.isEmpty() -> ExpendedSoFarLine(stringResource(Res.string.integrations_today_expended), summary.expended)
-                }
-            },
-        )
+        if (footer) {
+            SummaryFooter(
+                leading = {
+                    if (card != null) {
+                        CardMeals(card)
+                    } else {
+                        ExpendedSoFarLine(stringResource(Res.string.integrations_today_expended), summary.expended)
+                    }
+                },
+            )
+        }
     }
 }
+
+private val CardInset = 20.dp
+private val FooterBottom = 12.dp
 
 /** Page 1: design sync 4's card when built, else design sync 2's energy page. */
 @Composable
@@ -214,9 +220,8 @@ private fun NutrientsPageContent(page: NutrientsPage, onAction: (TodayAction) ->
                 label = stringResource(row.label),
                 reference = stringResource(if (row.isLimit) Res.string.trends_micro_of_limit else Res.string.trends_micro_of, row.reference),
                 display = row.display,
+                // No tap of its own: the whole page opens the Nutrients screen, which lists each one's foods.
                 notListed = if (row.notListed) stringResource(Res.string.trends_micro_not_listed) else null,
-                onClickLabel = stringResource(Res.string.trends_nutrient_open_foods),
-                onClick = if (row.opensFoods) ({ onAction(TodayAction.KeyNutrientTapped(row.micro)) }) else null,
             )
         },
     )
@@ -229,9 +234,8 @@ private fun StatTile.toCell(): StatCell = when (val value = value) {
 }
 
 /**
- * The summary as one line: the sticky bar (with the page dots) or the collapsed card (with the
- * chevron to open it again). Parts a level hides are dropped before they are joined, so no
- * separator stands where a number would have been.
+ * The summary as one line, the sticky bar with the page dots. Parts a level hides are dropped
+ * before they are joined, so no separator stands where a number would have been.
  */
 @Composable
 internal fun CompactLineBar(
@@ -271,29 +275,6 @@ internal fun StickyBar(compact: CompactSummary, page: Int, onScrollToTop: () -> 
         clickLabel = stringResource(Res.string.today_sticky_cd),
         modifier = modifier,
         trailing = { if (pages.size > 1) PageIndicator(pageCount = pages.size, currentPage = shown, onPageSelected = { onScrollToTop() }) },
-    )
-}
-
-/** The collapsed card: one line, pinned under the header, with the chevron that opens it again. */
-@Composable
-internal fun CollapsedSummary(compact: CompactSummary, onAction: (TodayAction) -> Unit, modifier: Modifier = Modifier) {
-    val expand = stringResource(Res.string.today_expand_cd)
-    CompactLineBar(
-        line = compact.collapsed,
-        onClick = { onAction(TodayAction.ExpandTapped) },
-        clickLabel = expand,
-        modifier = modifier,
-        trailing = {
-            RoundIconButton(
-                icon = AppIcons.ExpandMore.described(expand),
-                onClick = { onAction(TodayAction.ExpandTapped) },
-                size = 40.dp,
-                touchTarget = 48.dp,
-                modifier = Modifier.padding(start = 4.dp),
-                containerColor = AppTheme.colors.soft,
-                contentColor = AppTheme.colors.ink,
-            )
-        },
     )
 }
 

@@ -294,6 +294,20 @@ class ExerciseSheetViewModelTest : CoroutineTest() {
         assertTrue(repo.added.single().notOnWatch)
     }
 
+    /** Today's Activity card opens the sheet this way when a health app already counts the day's workouts. */
+    @Test
+    fun openedForWhatTheWatchMissed_theSwitchStartsOn() = runUnitTest {
+        val vm = vm(route = ExerciseRoute(notOnWatch = true), connected = true)
+        settle()
+        vm.takeAction(ExerciseSheetAction.ActivityPicked("swimming"))
+        settle()
+        assertEquals(true, vm.state.notOnWatch)
+
+        vm.takeAction(ExerciseSheetAction.SaveTapped)
+        settle()
+        assertTrue(repo.added.single().notOnWatch)
+    }
+
     @Test
     fun withEnergyOutHidden_noAmountShows_andNoNumberCanBeTyped() = runUnitTest {
         policySource.policy.value = policy(PresetId.NoNumbers)

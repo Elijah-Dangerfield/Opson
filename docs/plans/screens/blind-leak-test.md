@@ -174,9 +174,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-timer-ended`, `today-timer-waiting` | today | design sync 4; End after a set time ran out, said once or offered behind the pause (mode names, never an amount) | yes |
 | new | | `today-expended` | today | 0.2, `integrations.md`; the Expended so far line | yes |
 | new | | `today-exercise` | today | 0.2, `integrations.md`; exercise in the range (All of it), energy out drawn | yes |
-| new | | `today-burned` | today | `release.exercise`; Burned's parts and the day's exercise, left out where energy out is hidden | yes |
-| new | | `today-burned-health` | today | `release.exercise`; the same with a health app, an entry the watch saw counting nothing | yes |
-| new | | `today-summary`, `today-macros`, `today-sticky`, `today-collapsed`, `today-weight` | today | design sync 2, `release.todaySummary`; the stats row, the macros page, the sticky bar for every page, the collapsed line, the weight row | yes |
+| new | | `today-activity` | today | `release.exercise`; the Activity card's lines (digesting food counted) and the day's exercise, left out where energy out is hidden | yes |
+| new | | `today-activity-health` | today | `release.exercise`; the same with a health app, an entry the watch saw counting nothing | yes |
+| new | | `today-summary`, `today-macros`, `today-sticky`, `today-weight` | today | design sync 2, `release.todaySummary`; the stats row, the macros page, the sticky bar for every page, the weight row | yes |
 | new | | `today-select`, `today-select-remove`, `today-swipe-delete`, `today-delete-confirm` | today | design sync 2, `release.todaySelect`; the select panel's totals and its confirmation, a row swiped open and its confirmation | yes |
 | new | | `today-cards-summary` | today | design sync 2; Edit Today's cards with the summary section | no |
 | new | | `today-calendar`, `today-select-v4`, `today-drag-move`, `today-moved` | today | design sync 4, `today-actions.md`; the calendar over Today, select mode's bottom bar, foods mid-drag over dinner, the Undo after a move | yes |

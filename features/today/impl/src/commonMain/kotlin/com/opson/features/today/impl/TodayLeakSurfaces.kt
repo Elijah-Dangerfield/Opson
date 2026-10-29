@@ -24,8 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.opson.features.today.impl.burned.TodayBurnedFixtures
-import com.opson.features.today.impl.burned.TodayBurnedSection
+import com.opson.features.today.impl.activity.TodayActivityFixtures
+import com.opson.features.today.impl.activity.TodayActivitySection
 import com.opson.features.today.impl.calendar.CalendarDropdownContent
 import com.opson.features.today.impl.cards.TodayCardsSheetContent
 import com.opson.features.today.impl.dayclose.DayCloseScreen
@@ -95,12 +95,13 @@ object TodayLeakSurfaces {
         LeakSurface(id = "today-exercise", label = "Today, exercise in the range", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, settings = TodayFixtures.exerciseAll, expended = TodayFixtures.expended), onAction = {})
         },
-        // release.exercise: Burned with where it came from, and the day's exercise. Not drawn at all where energy out is hidden.
-        LeakSurface(id = "today-burned", label = "Today, Burned and exercise", showsCaloriesInFull = true) { policy ->
-            TodayBurnedFixtures.manual(policy)?.let { TodayBurnedSection(it, onAction = {}) }
+        // release.exercise: the Activity card, the lines that add up to Burned and the day's exercise. Not drawn at all
+        // where energy out is hidden. With food counted, so the line for digesting it is checked too.
+        LeakSurface(id = "today-activity", label = "Today, Activity and exercise", showsCaloriesInFull = true) { policy ->
+            TodayActivityFixtures.manual(policy, withFood = true)?.let { TodayActivitySection(it, onAction = {}) }
         },
-        LeakSurface(id = "today-burned-health", label = "Today, Burned with a health app", showsCaloriesInFull = true) { policy ->
-            TodayBurnedFixtures.withHealth(policy)?.let { TodayBurnedSection(it, onAction = {}) }
+        LeakSurface(id = "today-activity-health", label = "Today, Activity from a health app", showsCaloriesInFull = true) { policy ->
+            TodayActivityFixtures.withHealth(policy, withFood = true)?.let { TodayActivitySection(it, onAction = {}) }
         },
         LeakSurface(id = "today-untracked", label = "Today, marked untracked", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.untrackedDay()), onAction = {})
@@ -174,9 +175,6 @@ object TodayLeakSurfaces {
             Column {
                 compact?.pages?.indices?.forEach { page -> StickyBar(compact, page, onScrollToTop = {}) }
             }
-        },
-        LeakSurface(id = "today-collapsed", label = "Today, the summary collapsed", showsCaloriesInFull = true) { policy ->
-            TodayScreen(state = designSync(policy, Settings(todaySummaryCollapsed = true)), onAction = {})
         },
         LeakSurface(id = "today-weight", label = "Today, a weigh-in on the day", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = designSync(policy), onAction = {})

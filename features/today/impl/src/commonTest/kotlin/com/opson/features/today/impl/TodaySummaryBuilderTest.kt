@@ -157,10 +157,9 @@ class TodaySummaryBuilderTest {
         assertEquals("18 mg", rows.getValue(Micronutrient.Iron).reference)
         // Iron: 3.4 + 1.8 mg of 18.
         assertEquals("29%", assertIs<Display.Shown>(rows.getValue(Micronutrient.Iron).display).text)
-        assertTrue(rows.getValue(Micronutrient.Iron).opensFoods)
     }
 
-    /** Nothing logged today lists vitamin D: the row says Not listed, never 0%, and has no foods to open. */
+    /** Nothing logged today lists vitamin D: the row says Not listed, never 0%. */
     @Test
     fun aNutrientNoFoodLists_isNotListed() {
         val page = assertNotNull(build(settings = Settings().withTodayNutrient(Micronutrient.VitaminD, false)).energy().nutrientsPage)
@@ -171,7 +170,6 @@ class TodaySummaryBuilderTest {
         val vitaminD = withD.rows.single { it.micro == Micronutrient.VitaminD }
         assertTrue(vitaminD.notListed)
         assertEquals(Display.Hidden, vitaminD.display)
-        assertFalse(vitaminD.opensFoods)
     }
 
     @Test
@@ -338,7 +336,6 @@ class TodaySummaryBuilderTest {
         assertEquals("1,900 to 2,300", assertIs<CompactPart.Amount>(energy[1]).display.text())
         assertNotNull(compact.pages[0].bar)
         assertEquals(listOf("51P", "162C", "44F"), assertIs<CompactPart.Macros>(compact.pages[1].parts.single()).parts.map { it.text })
-        assertEquals(2, compact.collapsed.parts.size, "page 1's lead, then page 2's")
     }
 
     @Test
@@ -366,12 +363,6 @@ class TodaySummaryBuilderTest {
 
         val delayed = assertNotNull(build(policy(NumbersSettings.later())).compact).pages.single().parts
         assertEquals(listOf<CompactPart>(CompactPart.Logged(3)), delayed)
-    }
-
-    @Test
-    fun collapsedComesFromSettings_onlyWithTheFlag() {
-        assertTrue(build(settings = Settings(todaySummaryCollapsed = true)).collapsed)
-        assertFalse(build(settings = Settings(todaySummaryCollapsed = true), on = false).collapsed)
     }
 
     @Test

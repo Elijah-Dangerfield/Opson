@@ -221,8 +221,6 @@
     <string name="today_compact_range">range</string>
     <string name="today_compact_goal">goal</string>
     <string name="today_compact_meals">%1$d of %2$d meals</string>
-    <string name="today_collapse_cd">Shrink the summary to one line</string>
-    <string name="today_expand_cd">Show the whole summary</string>
     <string name="today_sticky_cd">Back to the top</string>
     <string name="today_customise_cd">Edit Today's cards</string>
     <string name="today_weight">Weight</string>

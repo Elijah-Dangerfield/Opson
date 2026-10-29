@@ -158,7 +158,6 @@ class TodayViewModel(
             TodayAction.NextDayTapped -> if (canGoForward()) selectedDay.select(day().plus(DatePeriod(days = 1)))
             TodayAction.DayLabelTapped -> sendEvent(TodayEvent.OpenCalendar(day()))
             TodayAction.NutrientsTapped -> sendEvent(TodayEvent.OpenNutrients(day()))
-            is TodayAction.KeyNutrientTapped -> sendEvent(TodayEvent.OpenNutrientFoods(day(), action.micro))
             TodayAction.EnergyTapped -> sendEvent(TodayEvent.OpenEnergyToday)
             TodayAction.MainNumberToggled -> {
                 val next = ((state.summary as? TodaySummary.Energy)?.card?.next) ?: return
@@ -220,8 +219,6 @@ class TodayViewModel(
             TodayAction.ClearDayTapped -> clearDay(action)
             // Kept on this phone, not in synced Settings: see TodayCardViewStore.
             is TodayAction.SummaryPageShown -> cardView.update { it.copy(page = action.page) }
-            TodayAction.CollapseTapped -> cardView.update { it.copy(collapsed = true) }
-            TodayAction.ExpandTapped -> cardView.update { it.copy(collapsed = false) }
             TodayAction.SummaryLongPressed -> if (state.summaryTools) sendEvent(TodayEvent.OpenTodayCards)
             TodayAction.WeightTapped -> sendEvent(TodayEvent.OpenWeight)
             else -> selectAction(action)
