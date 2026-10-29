@@ -99,7 +99,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * A food's actions (design sync 4, 13.3d), from its row or its ⋮ on Today: the food with its
+ * A food's actions (design sync 4, 13.3d), from its ⋮ on Today (its row opens its detail): the food with its
  * amount, how it was logged, its meal and its energy through the policy, then what can be done
  * with it. With `release.foodActions` off only Delete is offered, as the item sheet always did.
  * Deleting is a tombstone, so it syncs. On a day closed with Close the day only what leaves the

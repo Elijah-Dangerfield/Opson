@@ -19,7 +19,6 @@ import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.MeasureKind
 import com.opson.libraries.foods.Portion
-import com.opson.libraries.foods.amountText
 import com.opson.libraries.foods.measureUnits
 import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.PortionAmount
