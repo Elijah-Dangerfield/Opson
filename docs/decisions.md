@@ -184,7 +184,9 @@ switch, since this writes to the person's log unasked.
   meal's time from `Settings.mealTimes`, so Today's meal header and learned meal
   times read the meal, not the moment the app opened. That time can be later
   than now, so fasting's "last eaten" now ignores entries timed in the future.
-  Logging this way never ends a fast. Closed and untracked days are skipped and
+  Logging this way never ends a fast, and never stops one starting: "last
+  eaten" leaves out every entry in `repeat_logs`, so a dinner repeat timed
+  after the window closed does not cancel that evening's fast. Closed and untracked days are skipped and
   not recorded, so reopening or tracking the day again lets the next run log it.
 - **Not synced yet.** The prod server could not be redeployed for this, and
   settings JSON was ruled out: older builds drop unknown keys on save (which

@@ -166,7 +166,7 @@ class FakeDiaryDb {
             entries.observe().map { m -> m.values.filter { !it.deleted && it.day in from..to }.map { it.day }.distinct() }
 
         override suspend fun latestUntil(untilEpochMs: Long) =
-            live().filter { it.loggedAtEpochMs <= untilEpochMs }.maxByOrNull { it.loggedAtEpochMs }
+            live().filter { it.loggedAtEpochMs <= untilEpochMs && it.id !in repeatLogs.state.value }.maxByOrNull { it.loggedAtEpochMs }
 
         override fun observeLatestFoods(limit: Int) =
             entries.observe().map { m ->
