@@ -50,7 +50,7 @@ struct TodayWidgetView: View {
                     .foregroundStyle(Color(widgetHex: swatch.onAccent))
             )
             .accessibilityElement()
-            .accessibilityLabel(entry.snapshot?.logLabel ?? "Log food")
+            .accessibilityLabel(entry.snapshot?.logLabel ?? String(localized: "Log food"))
         if !small, let logURL {
             Link(destination: logURL) { button }
         } else {
@@ -69,7 +69,7 @@ struct TodayWidgetView: View {
                 noteText(note)
             }
         } else {
-            noteText("Open Opson to start.")
+            noteText(WidgetText.openApp)
         }
     }
 

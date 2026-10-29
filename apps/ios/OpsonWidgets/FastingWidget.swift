@@ -37,7 +37,7 @@ struct FastingWidgetView: View {
 
     private var theme: WidgetTheme { WidgetTheme(entry.snapshot, colorScheme) }
     private var phase: WidgetFastingPhase? { entry.snapshot?.fasting?.phase(at: entry.date) }
-    private var offText: String { entry.snapshot == nil ? "Open Opson to start." : entry.labels.fastingOff }
+    private var offText: String { entry.snapshot == nil ? WidgetText.openApp : entry.labels.fastingOff }
 
     var body: some View {
         Group {
@@ -63,7 +63,7 @@ struct FastingWidgetView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }
-                (Text(phase.caption + " ") + Text(phase.until, style: .time))
+                (Text(phase.before) + Text(phase.until, style: .time) + Text(phase.after))
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(phase.isFasting ? theme.muted : theme.ink)
                     .lineLimit(2)
@@ -81,7 +81,7 @@ struct FastingWidgetView: View {
                 if phase.isFasting, let since = phase.since {
                     Text(since, style: .timer).monospacedDigit().lineLimit(1)
                 }
-                (Text(phase.caption + " ") + Text(phase.until, style: .time)).lineLimit(1)
+                (Text(phase.before) + Text(phase.until, style: .time) + Text(phase.after)).lineLimit(1)
             } else {
                 Text(offText).lineLimit(2)
             }

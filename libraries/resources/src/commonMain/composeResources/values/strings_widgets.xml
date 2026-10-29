@@ -48,12 +48,19 @@
     <string name="widgets_macros_hidden">Your mode keeps macros in the app.</string>
     <string name="widgets_water_hidden">Your mode keeps water in the app.</string>
     <string name="widgets_fasting_off">The fasting timer is off.</string>
-    <!-- The fasting widget's phases. The widget prints the time after each caption. -->
+    <!-- The fasting widget's phases, and the line under each. %1$s is where the widget prints the
+         time, in the phone's own clock style. -->
     <string name="widgets_fasting_now">Fasting</string>
-    <string name="widgets_fasting_ends">Ends at</string>
+    <string name="widgets_fasting_ends_at">Ends at %1$s</string>
     <string name="widgets_fasting_window">Eating window</string>
-    <string name="widgets_fasting_until">Until</string>
+    <string name="widgets_fasting_until_at">Until %1$s</string>
     <string name="widgets_fasting_done">Fast done</string>
-    <string name="widgets_fasting_next">Next fast at</string>
+    <string name="widgets_fasting_next_at">Next fast at %1$s</string>
+    <!-- A figure's amount and its unit on one line, "655 to range", "1,245 kcal", "82 g" -->
+    <string name="widgets_amount_unit">%1$s %2$s</string>
+    <!-- What a screen reader says for a macro on the macros widget: its name, then "82 / 120 g" -->
+    <string name="widgets_macro_cd">%1$s, %2$s</string>
+    <!-- What a screen reader says for the water widget's add button: "Add a glass", then "250 ml" -->
+    <string name="widgets_add_glass_cd">%1$s, %2$s</string>
 
 </resources>

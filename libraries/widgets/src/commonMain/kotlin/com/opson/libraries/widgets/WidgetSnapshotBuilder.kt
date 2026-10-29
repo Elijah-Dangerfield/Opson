@@ -1,5 +1,6 @@
 package com.opson.libraries.widgets
 
+import com.opson.libraries.core.fillTemplate
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.MealSlot
@@ -75,7 +76,7 @@ object WidgetSnapshotBuilder {
         val context = FormatContext(day = day.date)
         val goal = settings.targets.rangeFor(day.date, settings.numbers.preset, burnedKcal)
         // An untracked day has nothing to read it by, as on Today.
-        val energy = if (day.untracked) null else energy(day, goal, policy, context)
+        val energy = if (day.untracked) null else energy(day, goal, policy, context, copy)
         val groupsOn = day.mealGroupsOn(settings)
         val meals = if (energy == null && !day.untracked && groupsOn) meals(day, copy) else emptyList()
         return WidgetDay(
@@ -97,7 +98,7 @@ object WidgetSnapshotBuilder {
     }
 
     /** Only when calories are shown: amount and unit as Today's ring, the bar as Today's hero. */
-    private fun energy(day: Day, goal: DayGoal, policy: VisibilityPolicy, context: FormatContext): WidgetEnergy? {
+    private fun energy(day: Day, goal: DayGoal, policy: VisibilityPolicy, context: FormatContext, copy: WidgetCopy): WidgetEnergy? {
         val eaten = day.totals().kcal.known
         val ring = policy.ringValue(Metric.Calories, eaten, Surface.Widget, context) ?: return null
         val label = policy.resolve(Metric.Calories, eaten, Surface.Widget, context) as? Display.Shown ?: return null
@@ -114,6 +115,7 @@ object WidgetSnapshotBuilder {
             rangeEnd = fractionOf(goal.maxKcal.toDouble(), scaleMax),
             ring = fractionOf(eaten, goal.maxKcal.toDouble()),
             ringRangeStart = fractionOf(goal.minKcal.toDouble(), goal.maxKcal.toDouble()),
+            line = copy.amountUnit.fillTemplate(ring.value, ring.unit),
         )
     }
 
@@ -131,10 +133,12 @@ object WidgetSnapshotBuilder {
         val label = policy.resolve(Metric.Remaining, gap, Surface.Widget, bounds) as? Display.Shown ?: return null
         val below = gap >= 1.0
         val single = goal.minKcal == goal.maxKcal
+        val unit = if (below) (if (single) copy.toGoal else copy.toRange) else ring.unit
         return WidgetFigure(
             amount = ring.value,
-            unit = if (below) (if (single) copy.toGoal else copy.toRange) else ring.unit,
+            unit = unit,
             label = label.text,
+            line = copy.amountUnit.fillTemplate(ring.value, unit),
         )
     }
 
@@ -157,13 +161,16 @@ object WidgetSnapshotBuilder {
             val ring = policy.ringValue(metric, grams, Surface.Widget, context) ?: return@mapNotNull null
             val shown = policy.resolve(metric, grams, Surface.Widget, context.copy(of = target.toDouble(), goal = GoalStyle.Slash)) as? Display.Shown
                 ?: return@mapNotNull null
+            val label = copy.macroLabels[metric.key] ?: metric.key
             WidgetMacro(
                 key = metric.key,
-                label = copy.macroLabels[metric.key] ?: metric.key,
+                label = label,
                 amount = ring.value,
                 unit = ring.unit,
                 text = shown.text,
                 fraction = (shown.fraction ?: 0f).coerceIn(0f, 1f),
+                line = copy.amountUnit.fillTemplate(ring.value, ring.unit),
+                description = copy.macroDescription.fillTemplate(label, shown.text),
             )
         }
     }
@@ -179,12 +186,14 @@ object WidgetSnapshotBuilder {
         if (display is Display.Hidden) return null
         val glasses = WaterProgress.glasses(day.waterMl.toDouble(), settings.glassMl, settings.waterGlasses)
         val text = (display as? Display.Shown)?.text
+        val glass = WaterProgress.glassSize(settings.glassMl, settings.waterUnit)
         return WidgetWater(
             text = text,
             filled = glasses.filled,
             total = glasses.total,
             label = text ?: copy.waterGlasses(glasses.filled, glasses.total),
-            glass = WaterProgress.glassSize(settings.glassMl, settings.waterUnit),
+            glass = glass,
+            addLabel = copy.addGlassDescription.fillTemplate(copy.labels.addGlass, glass),
         )
     }
 

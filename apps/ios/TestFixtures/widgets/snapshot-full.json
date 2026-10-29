@@ -12,14 +12,16 @@
                 "rangeStart": 0.6884058,
                 "rangeEnd": 0.8333333,
                 "ring": 0.54130435,
-                "ringRangeStart": 0.82608694
+                "ringRangeStart": 0.82608694,
+                "line": "1,245 kcal"
             },
             "meals": [],
             "note": null,
             "left": {
                 "amount": "655",
                 "unit": "to range",
-                "label": "655 left"
+                "label": "655 left",
+                "line": "655 to range"
             },
             "progress": {
                 "done": 3,
@@ -33,7 +35,9 @@
                     "amount": "84",
                     "unit": "g",
                     "text": "84 / 120 g",
-                    "fraction": 0.7
+                    "fraction": 0.7,
+                    "line": "84 g",
+                    "description": "Protein, 84 / 120 g"
                 },
                 {
                     "key": "carbs",
@@ -41,7 +45,9 @@
                     "amount": "210",
                     "unit": "g",
                     "text": "210 / 250 g",
-                    "fraction": 0.84
+                    "fraction": 0.84,
+                    "line": "210 g",
+                    "description": "Carbs, 210 / 250 g"
                 },
                 {
                     "key": "fat",
@@ -49,7 +55,9 @@
                     "amount": "56",
                     "unit": "g",
                     "text": "56 / 70 g",
-                    "fraction": 0.8
+                    "fraction": 0.8,
+                    "line": "56 g",
+                    "description": "Fat, 56 / 70 g"
                 },
                 {
                     "key": "fiber",
@@ -57,7 +65,9 @@
                     "amount": "21",
                     "unit": "g",
                     "text": "21 / 30 g",
-                    "fraction": 0.7
+                    "fraction": 0.7,
+                    "line": "21 g",
+                    "description": "Fiber, 21 / 30 g"
                 }
             ],
             "water": {
@@ -65,7 +75,8 @@
                 "filled": 5,
                 "total": 8,
                 "label": "1,250 of 2,000 ml",
-                "glass": "250 ml"
+                "glass": "250 ml",
+                "addLabel": "Add a glass, 250 ml"
             },
             "mealRows": [
                 {
@@ -113,14 +124,16 @@
                 "rangeStart": 0.6884058,
                 "rangeEnd": 0.8333333,
                 "ring": 0.0,
-                "ringRangeStart": 0.82608694
+                "ringRangeStart": 0.82608694,
+                "line": "0 kcal"
             },
             "meals": [],
             "note": null,
             "left": {
                 "amount": "1,900",
                 "unit": "to range",
-                "label": "1,900 left"
+                "label": "1,900 left",
+                "line": "1,900 to range"
             },
             "progress": {
                 "done": 0,
@@ -134,7 +147,9 @@
                     "amount": "0",
                     "unit": "g",
                     "text": "0 / 120 g",
-                    "fraction": 0.0
+                    "fraction": 0.0,
+                    "line": "0 g",
+                    "description": "Protein, 0 / 120 g"
                 },
                 {
                     "key": "carbs",
@@ -142,7 +157,9 @@
                     "amount": "0",
                     "unit": "g",
                     "text": "0 / 250 g",
-                    "fraction": 0.0
+                    "fraction": 0.0,
+                    "line": "0 g",
+                    "description": "Carbs, 0 / 250 g"
                 },
                 {
                     "key": "fat",
@@ -150,7 +167,9 @@
                     "amount": "0",
                     "unit": "g",
                     "text": "0 / 70 g",
-                    "fraction": 0.0
+                    "fraction": 0.0,
+                    "line": "0 g",
+                    "description": "Fat, 0 / 70 g"
                 },
                 {
                     "key": "fiber",
@@ -158,7 +177,9 @@
                     "amount": "0",
                     "unit": "g",
                     "text": "0 / 30 g",
-                    "fraction": 0.0
+                    "fraction": 0.0,
+                    "line": "0 g",
+                    "description": "Fiber, 0 / 30 g"
                 }
             ],
             "water": {
@@ -166,7 +187,8 @@
                 "filled": 0,
                 "total": 8,
                 "label": "0 of 2,000 ml",
-                "glass": "250 ml"
+                "glass": "250 ml",
+                "addLabel": "Add a glass, 250 ml"
             },
             "mealRows": [
                 {
@@ -317,7 +339,9 @@
                 "title": "Eating window",
                 "caption": "Until",
                 "untilMs": 1792954800000,
-                "sinceMs": null
+                "sinceMs": null,
+                "captionBefore": "Until ",
+                "captionAfter": ""
             },
             {
                 "fromMs": 1792954800000,
@@ -325,7 +349,9 @@
                 "title": "Fasting",
                 "caption": "Ends at",
                 "untilMs": 1793005200000,
-                "sinceMs": 1792954800000
+                "sinceMs": 1792954800000,
+                "captionBefore": "Ends at ",
+                "captionAfter": ""
             },
             {
                 "fromMs": 1793005200000,
@@ -333,7 +359,9 @@
                 "title": "Eating window",
                 "caption": "Until",
                 "untilMs": 1793041200000,
-                "sinceMs": null
+                "sinceMs": null,
+                "captionBefore": "Until ",
+                "captionAfter": ""
             },
             {
                 "fromMs": 1793041200000,
@@ -341,7 +369,9 @@
                 "title": "Fasting",
                 "caption": "Ends at",
                 "untilMs": 1793091600000,
-                "sinceMs": 1793041200000
+                "sinceMs": 1793041200000,
+                "captionBefore": "Ends at ",
+                "captionAfter": ""
             }
         ]
     },

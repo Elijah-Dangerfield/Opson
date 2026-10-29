@@ -19,6 +19,10 @@
 //
 //  Foundation and SwiftUI only, so the check script can compile it for macOS.
 //
+//  Text the app can write is in here already in the person's language, from
+//  libraries/resources. The extension's own words, for before there is a
+//  snapshot (and the gallery), are in this target's Localizable.xcstrings.
+//
 
 import Foundation
 import SwiftUI
@@ -46,7 +50,7 @@ struct WidgetSnapshot: Codable, Equatable {
         return days.first
     }
 
-    var text: WidgetLabels { labels ?? .english }
+    var text: WidgetLabels { labels ?? .fallback }
 }
 
 struct WidgetDay: Codable, Equatable {
@@ -71,12 +75,16 @@ struct WidgetEnergy: Codable, Equatable {
     let rangeEnd: Double
     let ring: Double?
     let ringRangeStart: Double?
+    /// `amount` and `unit` on one line, in the language's order. Nil from an app before it.
+    var line: String? = nil
 }
 
 struct WidgetFigure: Codable, Equatable {
     let amount: String
     let unit: String
     let label: String
+    /// `amount` and `unit` on one line, "655 to range". Nil from an app before it.
+    var line: String? = nil
 }
 
 struct WidgetProgress: Codable, Equatable {
@@ -94,6 +102,10 @@ struct WidgetMacro: Codable, Equatable, Identifiable {
     let unit: String
     let text: String
     let fraction: Double
+    /// `amount` and `unit` on one line, "84 g". Nil from an app before it.
+    var line: String? = nil
+    /// What a screen reader says, "Protein, 84 / 120 g". Nil from an app before it.
+    var description: String? = nil
 
     var id: String { key }
 }
@@ -105,6 +117,8 @@ struct WidgetWater: Codable, Equatable {
     let total: Int
     let label: String
     let glass: String
+    /// What a screen reader says for the add button, "Add a glass, 250 ml". Nil from an app before it.
+    var addLabel: String? = nil
 
     var fraction: Double { total > 0 ? min(1, Double(filled) / Double(total)) : 0 }
 }
@@ -139,6 +153,13 @@ struct WidgetFastingPhase: Codable, Equatable {
     let caption: String
     let untilMs: Int64
     let sinceMs: Int64?
+    /// The line's words before and after the time, so a language can put it anywhere. Nil
+    /// from an app before them, which wrote only `caption`, the words before it.
+    var captionBefore: String? = nil
+    var captionAfter: String? = nil
+
+    var before: String { captionBefore ?? caption + " " }
+    var after: String { captionAfter ?? "" }
 
     var from: Date { Date(timeIntervalSince1970: Double(fromMs) / 1000) }
     var until: Date { Date(timeIntervalSince1970: Double(untilMs) / 1000) }
@@ -158,13 +179,22 @@ struct WidgetLabels: Codable, Equatable {
     let fastingOff: String
     let nothingYet: String
 
-    /// For JSON from an app that wrote no labels yet, and for previews.
-    static let english = WidgetLabels(
-        calories: "Calories", macros: "Macros", water: "Water", meals: "Meals", fasting: "Fasting",
-        addGlass: "Add a glass", macrosHidden: "Your mode keeps macros in the app.",
-        waterHidden: "Your mode keeps water in the app.", fastingOff: "The fasting timer is off.",
-        nothingYet: "Nothing yet"
-    )
+    /// For JSON from an app that wrote no labels yet, and for previews: the same words as
+    /// strings_widgets.xml's, from this target's Localizable.xcstrings.
+    static var fallback: WidgetLabels {
+        WidgetLabels(
+            calories: String(localized: "Calories"),
+            macros: String(localized: "Macros"),
+            water: String(localized: "Water"),
+            meals: String(localized: "Meals"),
+            fasting: String(localized: "Fasting"),
+            addGlass: String(localized: "Add a glass"),
+            macrosHidden: String(localized: "Your mode keeps macros in the app."),
+            waterHidden: String(localized: "Your mode keeps water in the app."),
+            fastingOff: String(localized: "The fasting timer is off."),
+            nothingYet: String(localized: "Nothing yet")
+        )
+    }
 }
 
 struct WidgetMeal: Codable, Equatable, Identifiable {

@@ -251,6 +251,10 @@ CompositionLocalProvider(LocalMyService provides realService) {
 
 Default it to a noop, never `error("not provided")`. This keeps `@Preview` and unit tests trivial. They get the noop automatically.
 
+## Where strings live
+
+Everything Kotlin shows a person is in `libraries/resources/src/commonMain/composeResources/values/strings_<area>.xml`: positional args for anything interpolated, plurals for counts, read with `stringResource` or `getString`. `VerifyStrings` and `VerifyStringArguments` fail the build on a literal. Copy spelled outside a composable (nutrition numbers, food amounts, dates) goes through `NutritionCopy`, `AmountCopy` and `DateCopy`, which speak English in tests and previews and are filled from those files at start by `LocalizedCopy`; month and weekday names and the clock come from the platform. Swift only says what Kotlin can't hand it: the widget snapshot carries finished, translated text, and two String Catalogs hold the rest, `apps/ios/OpsonWidgets/Localizable.xcstrings` (before the first snapshot, the widget gallery, Edit Widget) and `apps/ios/iosApp/InfoPlist.xcstrings` (permission prompts). Both folders are synchronized groups, so a file there joins its target without a `project.pbxproj` edit.
+
 ## Coding Guidelines
 
 - Code like a staff engineer

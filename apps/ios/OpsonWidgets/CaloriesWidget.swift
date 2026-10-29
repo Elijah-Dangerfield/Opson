@@ -56,7 +56,7 @@ struct CaloriesProvider: AppIntentTimelineProvider {
 
 /// What the ring holds, decided from the snapshot alone.
 enum CaloriesFace: Equatable {
-    case figure(amount: String, unit: String, label: String, ring: Double, range: Double?)
+    case figure(amount: String, unit: String, label: String, line: String, ring: Double, range: Double?)
     case meals(WidgetProgress)
     case note(String)
 
@@ -65,9 +65,15 @@ enum CaloriesFace: Equatable {
         if let energy = day.energy {
             let ring = energy.ring ?? energy.fraction
             if figure == .left, let left = day.left {
-                return .figure(amount: left.amount, unit: left.unit, label: left.label, ring: ring, range: energy.ringRangeStart)
+                return .figure(
+                    amount: left.amount, unit: left.unit, label: left.label,
+                    line: left.line ?? "\(left.amount) \(left.unit)", ring: ring, range: energy.ringRangeStart
+                )
             }
-            return .figure(amount: energy.amount, unit: energy.unit, label: energy.label, ring: ring, range: energy.ringRangeStart)
+            return .figure(
+                amount: energy.amount, unit: energy.unit, label: energy.label,
+                line: energy.line ?? "\(energy.amount) \(energy.unit)", ring: ring, range: energy.ringRangeStart
+            )
         }
         if let progress = day.progress { return .meals(progress) }
         if let note = day.note { return .note(note) }
@@ -76,7 +82,7 @@ enum CaloriesFace: Equatable {
 
     var inline: String {
         switch self {
-        case let .figure(_, _, label, _, _): return label
+        case let .figure(_, _, label, _, _, _): return label
         case let .meals(progress): return progress.label
         case let .note(text): return text
         }
@@ -104,7 +110,7 @@ struct CaloriesWidgetView: View {
 
     private var theme: WidgetTheme { WidgetTheme(entry.snapshot, colorScheme) }
     private var face: CaloriesFace? { CaloriesFace.of(entry.day, figure: entry.figure) }
-    private var labels: WidgetLabels { entry.snapshot?.text ?? .english }
+    private var labels: WidgetLabels { entry.snapshot?.text ?? .fallback }
     private var link: URL { URL(widgetLink: entry.snapshot?.todayLink, fallback: WidgetURLs.today) }
 
     var body: some View {
@@ -123,7 +129,7 @@ struct CaloriesWidgetView: View {
         VStack(alignment: .leading, spacing: 8) {
             WidgetTitle(text: labels.calories, theme: theme)
             switch face {
-            case let .figure(amount, unit, label, ring, range):
+            case let .figure(amount, unit, label, _, ring, range):
                 ringed(fraction: ring, range: range) {
                     VStack(spacing: 0) {
                         Text(amount)
@@ -158,7 +164,7 @@ struct CaloriesWidgetView: View {
                 WidgetNote(text: text, theme: theme)
             case nil:
                 Spacer(minLength: 0)
-                WidgetNote(text: "Open Opson to start.", theme: theme)
+                WidgetNote(text: WidgetText.openApp, theme: theme)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -175,7 +181,7 @@ struct CaloriesWidgetView: View {
     @ViewBuilder
     private var circular: some View {
         switch face {
-        case let .figure(amount, _, label, ring, _):
+        case let .figure(amount, _, label, _, ring, _):
             Gauge(value: min(1, max(0, ring))) {
                 Image(systemName: "flame")
             } currentValueLabel: {
@@ -204,8 +210,8 @@ struct CaloriesWidgetView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(labels.calories).font(.headline).widgetAccentable().lineLimit(1)
             switch face {
-            case let .figure(amount, unit, label, ring, _):
-                Text("\(amount) \(unit)")
+            case let .figure(_, _, label, line, ring, _):
+                Text(line)
                     .font(.system(.body, design: .rounded).weight(.semibold))
                     .monospacedDigit()
                     .lineLimit(1)
@@ -220,7 +226,7 @@ struct CaloriesWidgetView: View {
             case let .note(text):
                 Text(text).lineLimit(2)
             case nil:
-                Text("Open Opson to start.").lineLimit(2)
+                Text(WidgetText.openApp).lineLimit(2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

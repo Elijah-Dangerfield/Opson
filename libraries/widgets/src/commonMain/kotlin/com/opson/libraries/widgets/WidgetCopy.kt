@@ -9,18 +9,21 @@ import opson.libraries.resources.generated.resources.today_macro_fat
 import opson.libraries.resources.generated.resources.today_macro_fiber
 import opson.libraries.resources.generated.resources.today_macro_protein
 import opson.libraries.resources.generated.resources.widgets_add_glass
+import opson.libraries.resources.generated.resources.widgets_add_glass_cd
 import opson.libraries.resources.generated.resources.widgets_all_food
+import opson.libraries.resources.generated.resources.widgets_amount_unit
 import opson.libraries.resources.generated.resources.widgets_calories
 import opson.libraries.resources.generated.resources.widgets_fasting
 import opson.libraries.resources.generated.resources.widgets_fasting_done
-import opson.libraries.resources.generated.resources.widgets_fasting_ends
-import opson.libraries.resources.generated.resources.widgets_fasting_next
+import opson.libraries.resources.generated.resources.widgets_fasting_ends_at
+import opson.libraries.resources.generated.resources.widgets_fasting_next_at
 import opson.libraries.resources.generated.resources.widgets_fasting_now
 import opson.libraries.resources.generated.resources.widgets_fasting_off
-import opson.libraries.resources.generated.resources.widgets_fasting_until
+import opson.libraries.resources.generated.resources.widgets_fasting_until_at
 import opson.libraries.resources.generated.resources.widgets_fasting_window
 import opson.libraries.resources.generated.resources.widgets_log
 import opson.libraries.resources.generated.resources.widgets_macros
+import opson.libraries.resources.generated.resources.widgets_macro_cd
 import opson.libraries.resources.generated.resources.widgets_macros_hidden
 import opson.libraries.resources.generated.resources.widgets_meal_done
 import opson.libraries.resources.generated.resources.widgets_meal_not_yet
@@ -64,18 +67,27 @@ data class WidgetCopy(
     val fasting: FastingCopy = FastingCopy(),
     /** By [com.opson.libraries.nutrition.Metric.key]: Today's own macro names. */
     val macroLabels: Map<String, String> = mapOf("protein" to "Protein", "carbs" to "Carbs", "fat" to "Fat", "fiber" to "Fiber"),
+    /** A figure's amount and unit on one line, "655 to range", for a Lock Screen widget. */
+    val amountUnit: String = "%1\$s %2\$s",
+    /** What a screen reader says for a macro: its name, then its amount against the target. */
+    val macroDescription: String = "%1\$s, %2\$s",
+    /** What a screen reader says for the add button: "Add a glass", then the glass. */
+    val addGlassDescription: String = "%1\$s, %2\$s",
 ) {
     /** A meal's name and what a screen reader says for its circle either way. */
     data class MealCopy(val label: String, val done: String, val notYet: String)
 
-    /** The fasting widget's phase titles and the words before each time. */
+    /**
+     * The fasting widget's phase titles, and the line under each with `%1$s` where the widget
+     * prints the time in the device's clock style.
+     */
     data class FastingCopy(
         val now: String = "Fasting",
-        val ends: String = "Ends at",
+        val endsAt: String = "Ends at %1\$s",
         val window: String = "Eating window",
-        val until: String = "Until",
+        val untilAt: String = "Until %1\$s",
         val done: String = "Fast done",
-        val next: String = "Next fast at",
+        val nextAt: String = "Next fast at %1\$s",
     )
 
     fun meal(slot: MealSlot): MealCopy = meals[slot] ?: MealCopy(slot.wire, slot.wire, slot.wire)
@@ -117,11 +129,11 @@ data class WidgetCopy(
                 waterGlasses = { filled, total -> glassesTemplate.replace(FILLED, "$filled").replace(TOTAL, "$total") },
                 fasting = FastingCopy(
                     now = strings.get(Res.string.widgets_fasting_now),
-                    ends = strings.get(Res.string.widgets_fasting_ends),
+                    endsAt = strings.get(Res.string.widgets_fasting_ends_at),
                     window = strings.get(Res.string.widgets_fasting_window),
-                    until = strings.get(Res.string.widgets_fasting_until),
+                    untilAt = strings.get(Res.string.widgets_fasting_until_at),
                     done = strings.get(Res.string.widgets_fasting_done),
-                    next = strings.get(Res.string.widgets_fasting_next),
+                    nextAt = strings.get(Res.string.widgets_fasting_next_at),
                 ),
                 macroLabels = mapOf(
                     "protein" to strings.get(Res.string.today_macro_protein),
@@ -129,6 +141,9 @@ data class WidgetCopy(
                     "fat" to strings.get(Res.string.today_macro_fat),
                     "fiber" to strings.get(Res.string.today_macro_fiber),
                 ),
+                amountUnit = strings.get(Res.string.widgets_amount_unit),
+                macroDescription = strings.get(Res.string.widgets_macro_cd),
+                addGlassDescription = strings.get(Res.string.widgets_add_glass_cd),
             )
         }
 
@@ -180,11 +195,11 @@ fun rememberWidgetCopy(): WidgetCopy {
         waterGlasses = { filled, total -> glasses.replace("\u0000f", "$filled").replace("\u0000t", "$total") },
         fasting = WidgetCopy.FastingCopy(
             now = stringResource(Res.string.widgets_fasting_now),
-            ends = stringResource(Res.string.widgets_fasting_ends),
+            endsAt = stringResource(Res.string.widgets_fasting_ends_at),
             window = stringResource(Res.string.widgets_fasting_window),
-            until = stringResource(Res.string.widgets_fasting_until),
+            untilAt = stringResource(Res.string.widgets_fasting_until_at),
             done = stringResource(Res.string.widgets_fasting_done),
-            next = stringResource(Res.string.widgets_fasting_next),
+            nextAt = stringResource(Res.string.widgets_fasting_next_at),
         ),
         macroLabels = mapOf(
             "protein" to stringResource(Res.string.today_macro_protein),
@@ -192,5 +207,8 @@ fun rememberWidgetCopy(): WidgetCopy {
             "fat" to stringResource(Res.string.today_macro_fat),
             "fiber" to stringResource(Res.string.today_macro_fiber),
         ),
+        amountUnit = stringResource(Res.string.widgets_amount_unit),
+        macroDescription = stringResource(Res.string.widgets_macro_cd),
+        addGlassDescription = stringResource(Res.string.widgets_add_glass_cd),
     )
 }

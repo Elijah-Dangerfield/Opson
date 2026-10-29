@@ -102,7 +102,8 @@ done, every mode), `macros` (only the ones shown in full), `water` (the amount
 when shown, the glasses alone when softened, absent when hidden), `mealRows`
 (names always, a meal's energy only where calories show); per snapshot
 `todayLink`, `waterLink`, `labels` and `fasting` (phases from
-`FastingPhases`, only while the timer is on and the mode offers fasting). The
+`FastingPhases`, only while the timer is on and the mode offers fasting), and
+the translated one-line forms listed under Copy. The
 options pick between what the snapshot carries; no option can show a number the
 mode leaves out. "Left" is opt-in on the calories widget only: the v3 note
 against a "left" number on the Today widget still holds for the default.
@@ -215,8 +216,13 @@ as v3.
 | `widgets_note_untracked` | Not tracking today |
 
 Android picker description and the no-snapshot fallback ("Open Opson to
-start.") are Android string resources in `:libraries:widgets:impl`; iOS keeps
-the same two lines in the extension.
+start.") are Android string resources in `:libraries:widgets:impl`. On iOS
+everything the app can say is in the snapshot already translated, including the
+pieces a widget would otherwise glue together in English (`line` for an amount
+and its unit, a macro's `description`, water's `addLabel`, and a fasting
+phase's `captionBefore` / `captionAfter` around the time). The extension's own
+words, for before there is a snapshot, the gallery and Edit Widget, are in
+`apps/ios/OpsonWidgets/Localizable.xcstrings`.
 
 ## Edge cases
 - No snapshot yet (flag never on, or cleared): "Open Opson to start." and a +.

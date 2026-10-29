@@ -21,6 +21,11 @@
 	  is INFOPLIST_KEY_CFBundleDisplayName in the target's build settings.
 	-->
 	<!--
+	  The usage descriptions below are the English the system shows. Their
+	  translations are in InfoPlist.xcstrings beside this file, keyed by the
+	  plist key: change the English there too when you change it here.
+	-->
+	<!--
 	  There is deliberately no NSUserNotificationsUsageDescription here, and
 	  adding one back needs a reason.
 

@@ -96,6 +96,7 @@ data class WidgetDay(
  * @property ring how far a ring fills, 0 to 1: eaten over the top of the range, so a full ring is
  * the top of the range and goes no further.
  * @property ringRangeStart where the range starts on that ring, 0 to 1.
+ * @property line [amount] and [unit] on one line, "1,245 kcal", in the order the language puts them.
  */
 @Serializable
 data class WidgetEnergy(
@@ -107,17 +108,20 @@ data class WidgetEnergy(
     val rangeEnd: Float,
     val ring: Float = 0f,
     val ringRangeStart: Float = 0f,
+    val line: String? = null,
 )
 
 /**
  * A figure for a ring or a line: [amount] large over [unit], and [label] whole, for a screen
- * reader and the inline Lock Screen widget. "540" over "to range", or "On" over "target".
+ * reader and the inline Lock Screen widget. "540" over "to range", or "On" over "target". [line]
+ * is [amount] and [unit] on one line, "540 to range".
  */
 @Serializable
 data class WidgetFigure(
     val amount: String,
     val unit: String,
     val label: String,
+    val line: String? = null,
 )
 
 /** Meals done today, "2 of 4 meals". A count, not a nutrition number, so every mode has it. */
@@ -135,6 +139,8 @@ data class WidgetProgress(
  * @property amount "82", over [unit] "g".
  * @property text against its target, "82 / 120 g".
  * @property fraction of the target, 0 to 1.
+ * @property line [amount] and [unit] on one line, "82 g".
+ * @property description what a screen reader says, "Protein, 82 / 120 g".
  */
 @Serializable
 data class WidgetMacro(
@@ -144,6 +150,8 @@ data class WidgetMacro(
     val unit: String,
     val text: String,
     val fraction: Float,
+    val line: String? = null,
+    val description: String? = null,
 )
 
 /**
@@ -154,6 +162,7 @@ data class WidgetMacro(
  * @property filled glasses drunk, capped at [total], as Today's segments.
  * @property label what a screen reader says: [text], or the glasses as words when softened.
  * @property glass the glass the add button adds, "250 ml". A setting, not an amount drunk.
+ * @property addLabel what a screen reader says for the add button, "Add a glass, 250 ml".
  */
 @Serializable
 data class WidgetWater(
@@ -162,6 +171,7 @@ data class WidgetWater(
     val total: Int,
     val label: String,
     val glass: String,
+    val addLabel: String? = null,
 )
 
 /**
@@ -197,6 +207,10 @@ data class WidgetFasting(
  * window, open until [untilMs]) or `done` (the fast is over; the next starts at [untilMs]).
  * @property title "Fasting", "Eating window" or "Fast done".
  * @property caption the words before the time the widget prints: "Ends at", "Until", "Next fast at".
+ * Kept for an extension from before [captionBefore] and [captionAfter], which print it, a space and
+ * the time.
+ * @property captionBefore the line's words before the time, "Ends at ", and [captionAfter] those
+ * after it, so a language can put the time anywhere in the line.
  * Times are epoch milliseconds, printed in the device's own clock style.
  */
 @Serializable
@@ -204,9 +218,11 @@ data class WidgetFastingPhase(
     val fromMs: Long,
     val kind: String,
     val title: String,
-    val caption: String,
+    val caption: String = "",
     val untilMs: Long,
     val sinceMs: Long? = null,
+    val captionBefore: String? = null,
+    val captionAfter: String? = null,
 ) {
     companion object {
         const val FASTING = "fasting"
