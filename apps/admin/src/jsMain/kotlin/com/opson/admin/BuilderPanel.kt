@@ -55,7 +55,7 @@ private fun BuilderDetail(ctx: AdminCtx, userId: String, builder: AdminBuilderDt
 
     if (builder.me.status == "none") {
         P(attrs = { classes("muted") }) {
-            Text("Not a Builder." + (builder.me.joinBlock?.let { " Can't join yet: ${joinBlockLabel(it)}." }.orEmpty()))
+            Text("Not a Builder." + ((builder.me.applyBlock ?: builder.me.joinBlock)?.let { " Can't apply now: ${joinBlockLabel(it)}." }.orEmpty()))
         }
         return
     }
@@ -164,5 +164,7 @@ internal fun joinBlockLabel(code: String): String = when (code) {
     "too_new" -> "the account is too new"
     "removed" -> "removed from the program"
     "full" -> "the program is full"
+    "pending" -> "an application is waiting in the Builders tab"
+    "declined" -> "declined, and waiting to apply again"
     else -> code
 }

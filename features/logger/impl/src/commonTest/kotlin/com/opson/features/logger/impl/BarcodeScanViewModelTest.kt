@@ -36,8 +36,8 @@ class BarcodeScanViewModelTest : CoroutineTest() {
     private val pairing = RecordingPairing()
     private val policySource = FakePolicySource()
 
-    private fun vm(overSearch: Boolean = false, addFood: Boolean = false, builder: Boolean = false) = BarcodeScanViewModel(
-        route = BarcodeScanRoute(dayIso = LoggerFixtures.today.toString(), slot = MealSlot.Dinner, overSearch = overSearch),
+    private fun vm(overSearch: Boolean = false, addFood: Boolean = false, builder: Boolean = false, checkPack: Boolean = false) = BarcodeScanViewModel(
+        route = BarcodeScanRoute(dayIso = LoggerFixtures.today.toString(), slot = MealSlot.Dinner, overSearch = overSearch, checkPack = checkPack),
         foodCatalog = catalog,
         missReporter = misses,
         permissions = permissions,
@@ -821,6 +821,24 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         settle()
 
         assertEquals(BarcodeScanEvent.OpenCheck(LoggerFixtures.scannedYogurt.id, LoggerFixtures.scannedYogurt.name), events.last())
+    }
+
+    @Test
+    fun checkingPacksStartsReadingTheLabelAndAMissAddsTheFoodWithoutLoggingIt() = runUnitTest {
+        val vm = vm(addFood = true, builder = true, checkPack = true)
+        val events = events(vm)
+        settle()
+        assertEquals(true, vm.state.readLabel)
+
+        vm.takeAction(ean13())
+        settle()
+        vm.takeAction(BarcodeScanAction.AddFoodTapped)
+        settle()
+
+        assertEquals(BarcodeScanEvent.OpenSubmitFood(LoggerFixtures.today, MealSlot.Dinner, LoggerFixtures.MISSED_CODE, logs = false), events.last())
+        vm.takeAction(BarcodeScanAction.SearchInsteadTapped)
+        settle()
+        assertEquals(BarcodeScanEvent.Close, events.last())
     }
 
     @Test

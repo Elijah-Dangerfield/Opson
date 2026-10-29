@@ -186,7 +186,7 @@ fun Application.installApp(
                     component.accessAuditRepository,
                     component.clock,
                 )
-                builderAdminRoutes(adminConfig, component.builderService, component.builderRepository)
+                builderAdminRoutes(adminConfig, component.builderService, component.builderRepository, component.builderApplicationRepository)
                 moderationAdminRoutes(
                     adminConfig,
                     component.moderationService,

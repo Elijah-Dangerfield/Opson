@@ -97,6 +97,12 @@ class DeleteEverythingTest : IntegrationTest() {
             "INSERT INTO food_verifications (id, food_id, user_id, outcome, grounded, groundable) VALUES (?::uuid, ?::uuid, ?::uuid, 'confirmed', 4, 4)",
             UUID.randomUUID().toString(), UUID.randomUUID().toString(), user,
         )
+        // Applications to Builders (V32), with what they wrote, go with the account.
+        sql(
+            "INSERT INTO builder_applications (id, user_id, terms_version, motivation, shopping, region) " +
+                "VALUES (?::uuid, ?::uuid, 'test', 'I shop weekly', 'weekly', 'uk')",
+            UUID.randomUUID().toString(), user,
+        )
         // Moderation (V30). The sighting goes with the account; the rest keep their row with the
         // user id cleared and only the keyed hash left, which is what the privacy policy says.
         val action = UUID.randomUUID().toString()

@@ -85,12 +85,21 @@ data class ContributionHistory(
     val auditsFailed30d: Int = 0,
     /** Auto-approvals since they last became Trusted: the first [BuilderRules.AUDIT_ALL_FIRST] are all audited. */
     val autoApprovedSinceTrusted: Int = 0,
+    /** Submissions rejected, ever, by anyone: with [approvedSubmissions], the rate the Builder page shows. */
+    val rejectedSubmissions: Int = 0,
+    /** Checks against the pack that matched, ever. */
+    val confirmedChecks: Int = 0,
 )
 
-/** Why someone can't join yet. */
+/**
+ * Why someone can't apply to Builders right now. [code] is what this server's apps read; [legacyCode]
+ * is what an app from before applications understands, whose Join knew only the first four and
+ * would offer Join again on any other.
+ */
 @OptIn(ExperimentalTime::class)
 sealed interface JoinBlock {
     val code: String
+    val legacyCode: String get() = code
 
     /** A guest account: guests are free to make in bulk. */
     data object Guest : JoinBlock {
@@ -106,9 +115,21 @@ sealed interface JoinBlock {
         override val code = "removed"
     }
 
-    /** The program is at [BuilderPolicy.capacity]. */
+    /** The program is at [BuilderPolicy.capacity]. Only accepting checks it now; kept for the wire. */
     data object Full : JoinBlock {
         override val code = "full"
+    }
+
+    /** An application is waiting for the owner. An older app reads it as `full`: not now, later. */
+    data object Pending : JoinBlock {
+        override val code = "pending"
+        override val legacyCode = "full"
+    }
+
+    /** Declined; they may apply again from [availableAt]. */
+    data class Declined(val availableAt: Instant) : JoinBlock {
+        override val code = "declined"
+        override val legacyCode = "full"
     }
 }
 
@@ -147,6 +168,9 @@ object BuilderRules {
 
     const val TERMS_VERSION = "2026-10-29"
 
+    /** After a decline, the wait before someone may apply again: long enough for a record to change. */
+    val REAPPLY_AFTER: Duration = 30.days
+
     /**
      * When Builder Pro runs out, as the nightly rule in builder-program.md would leave it, worked
      * out in closed form so no job has to run: while ten or more were accepted in the last 30
@@ -167,6 +191,28 @@ object BuilderRules {
         val created = history.accountCreatedAt ?: return null
         val availableAt = created + MIN_ACCOUNT_AGE
         return if (now < availableAt) JoinBlock.TooNew(availableAt) else null
+    }
+
+    /**
+     * [joinBlock], then the application: one pending at a time, and a wait of [REAPPLY_AFTER]
+     * after a decline. A withdrawn application leaves no wait.
+     */
+    fun applyBlock(
+        isAnonymous: Boolean,
+        membership: BuilderMembership?,
+        history: ContributionHistory,
+        latest: BuilderApplication?,
+        now: Instant,
+    ): JoinBlock? {
+        joinBlock(isAnonymous, membership, history, now)?.let { return it }
+        return when (latest?.status) {
+            ApplicationStatus.Pending -> JoinBlock.Pending
+            ApplicationStatus.Declined -> {
+                val availableAt = (latest.decidedAt ?: latest.createdAt) + REAPPLY_AFTER
+                if (now < availableAt) JoinBlock.Declined(availableAt) else null
+            }
+            else -> null
+        }
     }
 
     /**

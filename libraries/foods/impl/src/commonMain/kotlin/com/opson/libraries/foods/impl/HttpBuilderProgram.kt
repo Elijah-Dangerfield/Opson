@@ -2,6 +2,9 @@ package com.opson.libraries.foods.impl
 
 import com.opson.libraries.core.Catching
 import com.opson.libraries.entitlements.EntitlementRepository
+import com.opson.libraries.foods.ApplicationStatus
+import com.opson.libraries.foods.BuilderApplication
+import com.opson.libraries.foods.BuilderApplicationForm
 import com.opson.libraries.foods.BuilderProgram
 import com.opson.libraries.foods.BuilderResult
 import com.opson.libraries.foods.BuilderStanding
@@ -14,6 +17,8 @@ import com.opson.libraries.foods.LabelTextLine
 import com.opson.libraries.networking.NetworkClient
 import com.opson.libraries.networking.authedCall
 import com.opson.libraries.networking.isOfflineError
+import com.opson.libraries.opson.AppCache
+import com.opson.libraries.opson.AppData
 import com.opson.libraries.opson.UserScopedClearer
 import com.opson.libraries.opson.UserScopedSyncer
 import io.ktor.client.HttpClient
@@ -52,6 +57,10 @@ data class BuilderMeDto(
     val joinBlock: String? = null,
     val availableAtEpochMs: Long? = null,
     val termsVersion: String = "",
+    /** Why they can't apply, in codes this app knows; [joinBlock] is the same for apps from before applications. */
+    val applyBlock: String? = null,
+    val application: BuilderApplicationDto? = null,
+    val stats: BuilderStatsDto = BuilderStatsDto(),
 ) {
     fun toStanding() = BuilderStanding(
         status = BuilderStatus.fromWire(status),
@@ -61,15 +70,52 @@ data class BuilderMeDto(
         accepted30d = accepted30d,
         needed = needed,
         photoRetention = photoRetention,
-        canJoin = canJoin,
-        joinBlock = JoinBlock.fromWire(joinBlock),
+        canApply = canJoin,
+        joinBlock = JoinBlock.fromWire(applyBlock ?: joinBlock),
         availableAt = availableAtEpochMs?.let(Instant::fromEpochMilliseconds),
         termsVersion = termsVersion,
+        application = application?.toApplication(),
+        foodsAdded = stats.foodsAdded,
+        checks = stats.checks,
+        rejected = stats.rejected,
     )
 }
 
+/** The server's `BuilderApplicationResponse`. An unknown status reads as no application. */
 @Serializable
-data class BuilderJoinDto(val acceptTerms: Boolean, val termsVersion: String, val photoRetention: Boolean)
+data class BuilderApplicationDto(
+    val id: String,
+    val status: String,
+    val submittedAtEpochMs: Long,
+    val decidedAtEpochMs: Long? = null,
+    val note: String? = null,
+    val reapplyAtEpochMs: Long? = null,
+) {
+    fun toApplication(): BuilderApplication? = ApplicationStatus.fromWire(status)?.let { known ->
+        BuilderApplication(
+            id = id,
+            status = known,
+            submittedAt = Instant.fromEpochMilliseconds(submittedAtEpochMs),
+            decidedAt = decidedAtEpochMs?.let(Instant::fromEpochMilliseconds),
+            note = note?.trim()?.ifEmpty { null },
+            reapplyAt = reapplyAtEpochMs?.let(Instant::fromEpochMilliseconds),
+        )
+    }
+}
+
+@Serializable
+data class BuilderStatsDto(val foodsAdded: Int = 0, val checks: Int = 0, val rejected: Int = 0)
+
+@Serializable
+data class BuilderApplicationRequestDto(
+    val acceptTerms: Boolean,
+    val termsVersion: String,
+    val photoRetention: Boolean,
+    val motivation: String?,
+    val shopping: String,
+    val region: String,
+    val via: String,
+)
 
 @Serializable
 data class BuilderSettingsDto(val photoRetention: Boolean)
@@ -77,8 +123,10 @@ data class BuilderSettingsDto(val photoRetention: Boolean)
 /**
  * [BuilderProgram] over `/v1/builders`. Kept in memory only: the server's answer is cheap and
  * comes back on every account edge (sign-in, foreground, reconnect), and a stale "you're a
- * Builder" on disk would show Builder mode to someone who left on another phone. A join or a
- * leave also refreshes the account's entitlements, since the role brings or takes Pro.
+ * Builder" on disk would show Builder mode to someone who left on another phone. The one thing
+ * on disk is which decision this phone has shown ([AppData.builderDecisionSeen]). Every answer
+ * that finds someone newly a Builder, or no longer one, refreshes the account's entitlements,
+ * since the role brings or takes Pro; Opson's Accept happens elsewhere, so that is on any read.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = BuilderProgram::class)
@@ -88,6 +136,7 @@ data class BuilderSettingsDto(val photoRetention: Boolean)
 class HttpBuilderProgram(
     private val networkClient: NetworkClient,
     private val entitlements: EntitlementRepository,
+    private val appCache: AppCache,
 ) : BuilderProgram, UserScopedSyncer, UserScopedClearer {
 
     private val _standing = MutableStateFlow<BuilderStanding?>(null)
@@ -95,23 +144,33 @@ class HttpBuilderProgram(
 
     override suspend fun refresh(): BuilderResult = call("builders.me") { client -> client.get(ME_PATH) { expectSuccess = false } }
 
-    override suspend fun join(photoRetention: Boolean): BuilderResult {
-        val result = call("builders.join") { client ->
-            client.post(JOIN_PATH) {
-                expectSuccess = false
-                contentType(ContentType.Application.Json)
-                setBody(BuilderJoinDto(acceptTerms = true, termsVersion = TERMS_VERSION, photoRetention = photoRetention))
-            }
+    override suspend fun sendApplication(form: BuilderApplicationForm): BuilderResult = call("builders.apply") { client ->
+        client.post(APPLY_PATH) {
+            expectSuccess = false
+            contentType(ContentType.Application.Json)
+            setBody(
+                BuilderApplicationRequestDto(
+                    acceptTerms = true,
+                    termsVersion = TERMS_VERSION,
+                    photoRetention = form.photoRetention,
+                    motivation = form.motivation?.trim()?.take(MAX_MOTIVATION)?.ifEmpty { null },
+                    shopping = form.shopping.wire,
+                    region = form.region.wire,
+                    via = form.via,
+                ),
+            )
         }
-        if (result is BuilderResult.Done) entitlements.refresh()
-        return result
     }
 
-    override suspend fun leave(): BuilderResult {
-        val result = call("builders.leave") { client -> client.post(LEAVE_PATH) { expectSuccess = false } }
-        if (result is BuilderResult.Done) entitlements.refresh()
-        return result
+    override suspend fun withdraw(): BuilderResult = call("builders.withdraw") { client -> client.post(WITHDRAW_PATH) { expectSuccess = false } }
+
+    override suspend fun decisionSeen(id: String): Boolean = Catching { appCache.get().builderDecisionSeen == id }.getOrDefault(false)
+
+    override suspend fun markDecisionSeen(id: String) {
+        Catching { appCache.update { it.copy(builderDecisionSeen = id) } }
     }
+
+    override suspend fun leave(): BuilderResult = call("builders.leave") { client -> client.post(LEAVE_PATH) { expectSuccess = false } }
 
     override suspend fun setPhotoRetention(keep: Boolean): BuilderResult = call("builders.settings") { client ->
         client.put(ME_PATH) {
@@ -136,7 +195,7 @@ class HttpBuilderProgram(
         networkClient.authedCall(name) { client ->
             val response = request(client)
             when (response.status) {
-                HttpStatusCode.OK -> response.body<BuilderMeDto>().toStanding().also { _standing.value = it }.let(BuilderResult::Done)
+                HttpStatusCode.OK, HttpStatusCode.Created -> BuilderResult.Done(publish(response.body<BuilderMeDto>().toStanding()))
                 // A server from before the program.
                 HttpStatusCode.NotFound -> BuilderResult.Unavailable
                 HttpStatusCode.Forbidden, HttpStatusCode.Conflict -> blocked(response.bodyAsText())
@@ -144,13 +203,26 @@ class HttpBuilderProgram(
             }
         }.getOrElse { BuilderResult.Failed(offline = it.isOfflineError()) }
 
+    /**
+     * Holds [fresh] as the standing, and refreshes entitlements when it changes whether this
+     * account is a Builder, which only an answer can tell: Opson accepts in its console, not here.
+     */
+    private suspend fun publish(fresh: BuilderStanding): BuilderStanding {
+        val previous = _standing.value
+        _standing.value = fresh
+        if (previous != null && previous.isActive != fresh.isActive) entitlements.refresh()
+        return fresh
+    }
+
     private fun blocked(body: String): BuilderResult =
         JoinBlock.entries.firstOrNull { "\"${it.wire}\"" in body }?.let(BuilderResult::Blocked) ?: BuilderResult.Failed(offline = false)
 
     internal companion object {
         const val ME_PATH = "/v1/builders/me"
-        const val JOIN_PATH = "/v1/builders/join"
+        const val APPLY_PATH = "/v1/builders/applications"
+        const val WITHDRAW_PATH = "/v1/builders/applications/withdraw"
         const val LEAVE_PATH = "/v1/builders/leave"
+        const val MAX_MOTIVATION = 500
 
         /** The rules the app shows. The server refuses a join that accepted any other version. */
         const val TERMS_VERSION = "2026-10-29"

@@ -94,6 +94,16 @@ data class SubmitFoodRoute(
     val logs: Boolean get() = dayIso != null && slot != null
 }
 
+/**
+ * The barcode scanner for a Builder checking packs (More › Builders' "Check a food against its
+ * pack"): Also read the label starts on, so a code that finds a food opens Check against the pack
+ * instead of its detail, and a code nothing knows offers Add a packaged food without logging it.
+ * [dayIso] is only where a food goes if they turn the label reading off and add it from its
+ * detail. Show it only to an active Builder with `release.builders` on.
+ */
+@Serializable
+data class CheckPackRoute(val dayIso: String) : Route()
+
 /** Where "Add a packaged food" was opened from. */
 @Serializable
 enum class SubmitEntry(val wire: String) {

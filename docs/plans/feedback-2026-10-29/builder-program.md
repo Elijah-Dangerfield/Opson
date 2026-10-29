@@ -76,6 +76,10 @@ the Reviewer level exists (below).
 
 ### How people join
 
+Since V32 people apply and the owner accepts or declines in the console's
+Builders tab (docs/decisions.md, "Builders apply"). The entry points below open
+the application; the requirements still decide who may apply.
+
 | Entry point | When | Copy, roughly |
 |---|---|---|
 | After Report a problem | Right after a report is sent | "Want to fix foods like this yourself? Join Opson Builders." |

@@ -160,8 +160,12 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
                     audits30d = rs.getInt("audits_30d"),
                     auditsFailed30d = rs.getInt("audits_failed_30d"),
                     autoSinceTrusted = rs.getInt("auto_since_trusted"),
+                    rejected = rs.getInt("rejected"),
                 )
             }
+        }
+        query("SELECT count(*) FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed'", listOf(uuid to id)) { rs ->
+            if (rs.next()) stats = stats.copy(checks = rs.getInt(1))
         }
         var created: Instant? = null
         query("SELECT created_at FROM auth.users WHERE id = ?", listOf(uuid to id)) { rs ->
@@ -180,6 +184,8 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
             audits30d = stats.audits30d,
             auditsFailed30d = stats.auditsFailed30d,
             autoApprovedSinceTrusted = stats.autoSinceTrusted,
+            rejectedSubmissions = stats.rejected,
+            confirmedChecks = stats.checks,
         )
     }
 
@@ -192,6 +198,8 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
         val audits30d: Int = 0,
         val auditsFailed30d: Int = 0,
         val autoSinceTrusted: Int = 0,
+        val rejected: Int = 0,
+        val checks: Int = 0,
     )
 
     private fun find(userId: UserId): BuilderMembership? =
@@ -270,7 +278,8 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
               count(*) FILTER (WHERE status = 'rejected' AND $BY_A_PERSON AND reviewed_at > ?) AS rejected_30d,
               count(*) FILTER (WHERE audit IN ('passed', 'failed') AND audited_at > ?) AS audits_30d,
               count(*) FILTER (WHERE audit = 'failed' AND audited_at > ?) AS audits_failed_30d,
-              count(*) FILTER (WHERE lane = 'auto' AND reviewed_at >= ?) AS auto_since_trusted
+              count(*) FILTER (WHERE lane = 'auto' AND reviewed_at >= ?) AS auto_since_trusted,
+              count(*) FILTER (WHERE status = 'rejected') AS rejected
             FROM food_submissions WHERE user_id = ?
         """.trimIndent()
     }

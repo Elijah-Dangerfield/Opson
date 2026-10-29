@@ -9,6 +9,7 @@ import com.opson.server.data.CaptureJson
 import com.opson.server.data.CaptureLineJson
 import com.opson.server.data.LabelFactsJson
 import com.opson.server.db.AppConfigValuesTable
+import com.opson.server.db.BuilderApplicationsTable
 import com.opson.server.db.BuilderMembersTable
 import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodProvenanceTable
@@ -16,7 +17,12 @@ import com.opson.server.db.FoodVerificationsTable
 import com.opson.server.db.UserRolesTable
 import com.opson.server.di.ServerComponent
 import com.opson.server.di.create
+import com.opson.server.domain.ApplicationForm
+import com.opson.server.domain.ApplyOutcome
 import com.opson.server.domain.BuilderRules
+import com.opson.server.domain.DecideOutcome
+import com.opson.server.domain.LabelRegion
+import com.opson.server.domain.ShoppingFrequency
 import com.opson.server.domain.CarbBasis
 import com.opson.server.domain.ImageType
 import com.opson.server.domain.LabelChecks
@@ -30,7 +36,10 @@ import com.opson.server.domain.SubmissionOrigin
 import com.opson.server.domain.SubmitOutcome
 import com.opson.server.domain.UserId
 import com.opson.server.plugins.JwtVerification
+import com.opson.server.routes.AdminApplicationDecisionResponse
+import com.opson.server.routes.AdminApplicationListResponse
 import com.opson.server.routes.AdminBuilderResponse
+import com.opson.server.routes.BuilderApplicationRequest
 import com.opson.server.routes.BuilderJoinRequest
 import com.opson.server.routes.BuilderMeResponse
 import com.opson.server.routes.FoodSubmissionDetailResponse
@@ -76,10 +85,12 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 /**
- * The Builder program end to end, through the real graph and Postgres: joining gives Pro until a
- * date, a Builder's submission is routed and keeps its reasons, the owner's goes straight in, a
- * Trusted Builder's clean scan is auto-approved and audited, a failed audit takes it back out,
- * and a check against the pack counts once.
+ * The Builder program end to end, through the real graph and Postgres: applying waits for the
+ * owner, whose Accept gives the role and Pro until a date and whose Decline holds a second
+ * application off for a while; an older app's Join only applies; a Builder's submission is routed
+ * and keeps its reasons, the owner's goes straight in, a Trusted Builder's clean scan is
+ * auto-approved and audited, a failed audit takes it back out, and a check against the pack
+ * counts once.
  */
 @OptIn(ExperimentalTime::class)
 class FullStackBuilderTest : DatabaseTest() {
@@ -116,7 +127,9 @@ class FullStackBuilderTest : DatabaseTest() {
         database.blockingTransaction {
             FoodVerificationsTable.deleteAll()
             FoodProvenanceTable.deleteAll()
+            BuilderApplicationsTable.deleteAll()
             BuilderMembersTable.deleteAll()
+            TransactionManager.current().exec("DELETE FROM moderation_actions")
             UserRolesTable.deleteAll()
             AppConfigValuesTable.deleteWhere { path eq AUTO_APPROVE_PATH }
         }
@@ -167,37 +180,112 @@ class FullStackBuilderTest : DatabaseTest() {
         setBody(json.encodeToString(FoodSubmissionRequest.serializer(), request))
     }
 
-    private suspend fun HttpClient.join(user: UserId, accept: Boolean = true) = post("/v1/builders/join") {
+    /** What an app from before applications sends from Join. */
+    private suspend fun HttpClient.legacyJoin(user: UserId, accept: Boolean = true) = post("/v1/builders/join") {
         header(HttpHeaders.Authorization, "Bearer ${jwt(user)}")
         contentType(ContentType.Application.Json)
         setBody(BuilderJoinRequest(acceptTerms = accept, termsVersion = BuilderRules.TERMS_VERSION, photoRetention = true))
+    }
+
+    private suspend fun HttpClient.sendApplication(user: UserId, accept: Boolean = true, region: String? = "uk", id: String? = null) =
+        post("/v1/builders/applications") {
+            header(HttpHeaders.Authorization, "Bearer ${jwt(user)}")
+            contentType(ContentType.Application.Json)
+            setBody(
+                BuilderApplicationRequest(
+                    id = id,
+                    acceptTerms = accept,
+                    termsVersion = BuilderRules.TERMS_VERSION,
+                    photoRetention = true,
+                    motivation = "  I shop every Saturday and the cereal aisle here is missing half its packs.  ",
+                    shopping = "weekly",
+                    region = region,
+                    via = "more",
+                ),
+            )
+        }
+
+    private suspend fun HttpClient.me(user: UserId) =
+        get("/v1/builders/me") { header(HttpHeaders.Authorization, "Bearer ${jwt(user)}") }.body<BuilderMeResponse>()
+
+    private suspend fun HttpClient.queue() =
+        get("/v1/admin/builders/applications") { header("X-Admin-Token", adminToken) }.body<AdminApplicationListResponse>()
+
+    private suspend fun HttpClient.decide(id: String, decision: String, note: String? = null) =
+        post("/v1/admin/builders/applications/$id/$decision") {
+            header("X-Admin-Token", adminToken)
+            header("X-Admin-Actor", "elijah")
+            contentType(ContentType.Application.Json)
+            setBody(if (note == null) "{}" else "{\"note\": \"$note\"}")
+        }
+
+    /** Applies and is accepted, as the owner would in the console. */
+    private suspend fun becomeBuilder(component: ServerComponent, user: UserId) {
+        val applied = component.builderService.apply(user, isAnonymous = false, ApplicationForm(true, null, ShoppingFrequency.Weekly, LabelRegion.Us))
+        val standing = (applied as ApplyOutcome.Applied).standing
+        val decided = component.builderService.accept(checkNotNull(standing.application).id, actor = "test")
+        check(decided is DecideOutcome.Decided) { "accept: $decided" }
     }
 
     private suspend fun HttpClient.detail(id: String) =
         get("/v1/admin/food-submissions/$id") { header("X-Admin-Token", adminToken) }.body<FoodSubmissionDetailResponse>()
 
     @Test
-    fun joiningGivesTheBuilderRoleAndProUntilADate() = runTest {
+    fun applyingWaitsForTheOwnerAndAcceptingGivesTheRoleAndProUntilADate() = runTest {
         val user = seedUser(ageDays = 10)
         val component = component()
         testApplication {
-            application { installApp(component, JwtVerification.Static(verifier)) }
+            application { installApp(component, JwtVerification.Static(verifier), adminConfig = AdminConfig(adminToken)) }
             val client = jsonClient()
 
-            val before = client.get("/v1/builders/me") { header(HttpHeaders.Authorization, "Bearer ${jwt(user)}") }.body<BuilderMeResponse>()
+            val before = client.me(user)
             assertEquals("none", before.status)
             assertTrue(before.canJoin)
+            assertEquals(null, before.application)
 
-            assertEquals(HttpStatusCode.BadRequest, client.join(user, accept = false).status)
+            assertEquals(HttpStatusCode.BadRequest, client.sendApplication(user, accept = false).status)
+            assertEquals(HttpStatusCode.BadRequest, client.sendApplication(user, region = "atlantis").status)
 
-            val joined = client.join(user)
-            assertEquals(HttpStatusCode.OK, joined.status)
-            val me = joined.body<BuilderMeResponse>()
+            val id = UUID.randomUUID().toString()
+            val sent = client.sendApplication(user, id = id)
+            assertEquals(HttpStatusCode.Created, sent.status)
+            val pending = sent.body<BuilderMeResponse>()
+            assertEquals("none", pending.status)
+            assertEquals("pending", pending.application?.status)
+            assertEquals(id, pending.application?.id)
+            assertEquals("pending", pending.applyBlock)
+            assertFalse(pending.canJoin)
+            // Applying alone gives nothing.
+            assertEquals(Role.Member, component.userRoleRepository.roleOf(user))
+            val waiting = client.get("/v1/me/entitlements") { header(HttpHeaders.Authorization, "Bearer ${jwt(user)}") }.body<MyAccessResponse>()
+            assertFalse(waiting.entitlements.any { it.key == "recipe_import" })
+            // A second tap is the same application.
+            assertEquals(HttpStatusCode.OK, client.sendApplication(user, id = id).status)
+            assertEquals(HttpStatusCode.OK, client.sendApplication(user).status)
+
+            val queue = client.queue()
+            assertEquals(1, queue.pending)
+            val row = queue.applications.single()
+            assertEquals(id, row.id)
+            assertEquals("uk", row.region)
+            assertEquals("weekly", row.shopping)
+            assertEquals("I shop every Saturday and the cereal aisle here is missing half its packs.", row.motivation)
+            assertNotNull(row.account.accountCreatedAtEpochMs)
+            assertEquals(0, row.account.earlierApplications)
+
+            val accepted = client.decide(id, "accept")
+            assertEquals(HttpStatusCode.OK, accepted.status)
+            assertEquals(0, accepted.body<AdminApplicationDecisionResponse>().pending)
+            assertEquals(HttpStatusCode.Conflict, client.decide(id, "decline").status)
+            assertEquals(Role.Builder, component.userRoleRepository.roleOf(user))
+            assertEquals("elijah", component.userRoleRepository.assignment(user)?.grantedBy)
+
+            val me = client.me(user)
             assertEquals("active", me.status)
             assertEquals("builder", me.trust)
+            assertEquals("accepted", me.application?.status)
             assertTrue(me.photoRetention)
             val proUntil = assertNotNull(me.proUntilEpochMs)
-            assertEquals(Role.Builder, component.userRoleRepository.roleOf(user))
 
             val access = client.get("/v1/me/entitlements") { header(HttpHeaders.Authorization, "Bearer ${jwt(user)}") }.body<MyAccessResponse>()
             val recipe = access.entitlements.single { it.key == "recipe_import" }
@@ -205,11 +293,129 @@ class FullStackBuilderTest : DatabaseTest() {
 
             val left = client.post("/v1/builders/leave") { header(HttpHeaders.Authorization, "Bearer ${jwt(user)}") }.body<BuilderMeResponse>()
             assertEquals("left", left.status)
+            // Coming back is another application, not a rejoin.
             assertTrue(left.canJoin)
             assertEquals(Role.Member, component.userRoleRepository.roleOf(user))
             val after = client.get("/v1/me/entitlements") { header(HttpHeaders.Authorization, "Bearer ${jwt(user)}") }.body<MyAccessResponse>()
             assertFalse(after.entitlements.any { it.key == "recipe_import" })
+            assertEquals(HttpStatusCode.Created, client.sendApplication(user).status)
+            assertEquals(1, client.queue().applications.single().account.earlierApplications)
         }
+    }
+
+    @Test
+    fun anOlderAppsJoinOnlyAppliesAndHearsBackInCodesItKnows() = runTest {
+        val user = seedUser(ageDays = 10)
+        val component = component()
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier), adminConfig = AdminConfig(adminToken)) }
+            val client = jsonClient()
+
+            val joined = client.legacyJoin(user)
+            assertEquals(HttpStatusCode.OK, joined.status)
+            val me = joined.body<BuilderMeResponse>()
+            assertEquals("none", me.status)
+            assertFalse(me.canJoin)
+            assertEquals("full", me.joinBlock)
+            assertEquals(Role.Member, component.userRoleRepository.roleOf(user))
+            assertEquals(HttpStatusCode.OK, client.legacyJoin(user).status)
+
+            val row = client.queue().applications.single()
+            assertEquals("join", row.via)
+            assertEquals(null, row.region)
+
+            val withdrawn = client.post("/v1/builders/applications/withdraw") { header(HttpHeaders.Authorization, "Bearer ${jwt(user)}") }
+                .body<BuilderMeResponse>()
+            assertEquals("withdrawn", withdrawn.application?.status)
+            assertTrue(withdrawn.canJoin)
+            assertEquals(0, client.queue().pending)
+        }
+    }
+
+    @Test
+    fun aDeclineCarriesItsNoteAndHoldsTheNextApplicationOff() = runTest {
+        val user = seedUser(ageDays = 10)
+        val component = component()
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier), adminConfig = AdminConfig(adminToken)) }
+            val client = jsonClient()
+            val id = client.sendApplication(user).body<BuilderMeResponse>().application!!.id
+
+            assertEquals(HttpStatusCode.OK, client.decide(id, "decline", note = "We have enough Builders in the UK for now.").status)
+
+            val me = client.me(user)
+            assertEquals("declined", me.application?.status)
+            assertEquals("We have enough Builders in the UK for now.", me.application?.note)
+            assertEquals("declined", me.applyBlock)
+            assertEquals("full", me.joinBlock)
+            val decidedAt = assertNotNull(me.application?.decidedAtEpochMs)
+            val reapply = assertNotNull(me.application?.reapplyAtEpochMs)
+            assertEquals(BuilderRules.REAPPLY_AFTER.inWholeMilliseconds, reapply - decidedAt)
+            assertEquals(reapply, me.availableAtEpochMs)
+
+            val again = client.sendApplication(user)
+            assertEquals(HttpStatusCode.Forbidden, again.status)
+            assertTrue(again.body<String>().contains("declined"))
+            assertEquals(Role.Member, component.userRoleRepository.roleOf(user))
+        }
+    }
+
+    @Test
+    fun aRestrictedAccountCanNotApplyAndOneRestrictedWhileWaitingIsNotAccepted() = runTest {
+        val restricted = seedUser(ageDays = 10)
+        val waiting = seedUser(ageDays = 10)
+        val component = component()
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier), adminConfig = AdminConfig(adminToken)) }
+            val client = jsonClient()
+            val id = client.sendApplication(waiting).body<BuilderMeResponse>().application!!.id
+            listOf(restricted, waiting).forEach { restrict(it) }
+
+            val refused = client.sendApplication(restricted)
+            assertEquals(HttpStatusCode.Forbidden, refused.status)
+            assertTrue(refused.body<String>().contains("removed"))
+
+            val accept = client.decide(id, "accept")
+            assertEquals(HttpStatusCode.Conflict, accept.status)
+            assertTrue(accept.body<String>().contains("restricted"))
+            assertEquals(Role.Member, component.userRoleRepository.roleOf(waiting))
+            assertEquals("pending", client.queue().applications.single().status)
+            assertEquals(1, client.queue().applications.single().account.moderationActive)
+        }
+    }
+
+    @Test
+    fun aBuilderWhoJoinedBeforeApplicationsKeepsTheirPlace() = runTest {
+        val user = seedUser(ageDays = 40)
+        val component = component()
+        database.transaction {
+            BuilderMembersTable.insert {
+                it[userId] = user.value
+                it[status] = "active"
+                it[joinedAt] = java.time.Instant.now().minusSeconds(86_400)
+                it[termsVersion] = BuilderRules.TERMS_VERSION
+                it[photoRetention] = false
+                it[trustHold] = false
+            }
+        }
+        component.userRoleRepository.setRole(user, Role.Builder, "builder-program", "Joined the Builder program")
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier)) }
+            val me = jsonClient().me(user)
+
+            assertEquals("active", me.status)
+            assertEquals(null, me.application)
+            assertNotNull(me.proUntilEpochMs)
+            assertEquals(HttpStatusCode.OK, jsonClient().sendApplication(user).status)
+            assertEquals(null, jsonClient().me(user).application)
+        }
+    }
+
+    private fun restrict(user: UserId) = database.blockingTransaction {
+        TransactionManager.current().exec(
+            "INSERT INTO moderation_actions (id, user_id, subject_key, kind, scope, reason, created_by) " +
+                "VALUES (gen_random_uuid(), '${user.value}', 'test', 'restriction', 'contributions', 'spam', 'test')",
+        )
     }
 
     @Test
@@ -217,10 +423,11 @@ class FullStackBuilderTest : DatabaseTest() {
         val fresh = seedUser(ageDays = 0)
         testApplication {
             application { installApp(component(), JwtVerification.Static(verifier)) }
-            val response = jsonClient().join(fresh)
+            val response = jsonClient().sendApplication(fresh)
 
             assertEquals(HttpStatusCode.Forbidden, response.status)
             assertTrue(response.body<String>().contains("too_new"))
+            assertEquals(HttpStatusCode.Forbidden, jsonClient().legacyJoin(fresh).status)
         }
     }
 
@@ -233,7 +440,7 @@ class FullStackBuilderTest : DatabaseTest() {
         testApplication {
             application { installApp(component, JwtVerification.Static(verifier), adminConfig = AdminConfig(adminToken)) }
             val client = jsonClient()
-            client.join(builder)
+            becomeBuilder(component, builder)
 
             val sent = client.submit(builder, submission(withCapture = true))
             assertEquals(HttpStatusCode.Created, sent.status)
@@ -266,7 +473,7 @@ class FullStackBuilderTest : DatabaseTest() {
         testApplication {
             application { installApp(component, JwtVerification.Static(verifier), adminConfig = AdminConfig(adminToken)) }
             val client = jsonClient()
-            client.join(builder)
+            becomeBuilder(component, builder)
             // Fifty foods a reviewer approved unchanged: the record Trusted asks for.
             repeat(50) {
                 val stored = component.foodSubmissionRepository.submit(
@@ -333,7 +540,7 @@ class FullStackBuilderTest : DatabaseTest() {
             }
 
             assertEquals(HttpStatusCode.Forbidden, check(builder, panel).status)
-            client.join(builder)
+            becomeBuilder(component, builder)
 
             val first = check(builder, panel).body<VerificationResponse>()
             assertEquals("confirmed", first.outcome)
@@ -341,8 +548,9 @@ class FullStackBuilderTest : DatabaseTest() {
             val wrong = check(builder, panel.map { it.replace("Protein 3g", "Protein 9g") }).body<VerificationResponse>()
             assertEquals(listOf("protein_g"), wrong.missing)
 
-            val me = client.get("/v1/builders/me") { header(HttpHeaders.Authorization, "Bearer ${jwt(builder)}") }.body<BuilderMeResponse>()
+            val me = client.me(builder)
             assertEquals(1, me.accepted30d)
+            assertEquals(1, me.stats.checks)
         }
     }
 

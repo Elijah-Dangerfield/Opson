@@ -59,7 +59,10 @@ class BarcodeScanViewModel(
     private val day: LocalDate = LocalDate.parse(route.dayIso)
     private val slot: MealSlot = route.slot
     private val overSearch: Boolean = route.overSearch
-    private var model = ScanModel(canAddFood = submitFood(), canReadLabel = buildersEnabled.value && builders.isBuilder)
+    private val checkPack: Boolean = route.checkPack
+    private var model = (buildersEnabled.value && builders.isBuilder).let { canReadLabel ->
+        ScanModel(canAddFood = submitFood(), canReadLabel = canReadLabel, readLabel = canReadLabel && checkPack)
+    }
     private var policy: VisibilityPolicy = policySource.policy.value
     private var slowJob: Job? = null
 
@@ -120,9 +123,10 @@ class BarcodeScanViewModel(
             is BarcodeScanAction.MissNameTyped -> action.rebuild { copy(name = action.text) }
             BarcodeScanAction.SaveNameTapped -> saveName()
             BarcodeScanAction.AddFoodTapped -> (model.lookup as? Lookup.Missed)?.let { missed ->
-                if (model.canAddFood) sendEvent(BarcodeScanEvent.OpenSubmitFood(day, slot, missed.code))
+                if (model.canAddFood) sendEvent(BarcodeScanEvent.OpenSubmitFood(day, slot, missed.code, logs = !checkPack))
             }
-            BarcodeScanAction.SearchInsteadTapped -> sendEvent(if (overSearch) BarcodeScanEvent.Close else BarcodeScanEvent.OpenSearch(day, slot))
+            BarcodeScanAction.SearchInsteadTapped ->
+                sendEvent(if (overSearch || checkPack) BarcodeScanEvent.Close else BarcodeScanEvent.OpenSearch(day, slot))
             BarcodeScanAction.ScanAgainTapped -> action.rebuild { copy(lookup = Lookup.Idle, name = "", typed = null) }
             BarcodeScanAction.AllowCameraTapped -> sendEvent(BarcodeScanEvent.RequestPermission)
             BarcodeScanAction.OpenSettingsTapped -> permissions.openSettings()
