@@ -49,4 +49,15 @@ class NextMealTest {
         assertFalse(WidgetLinks.isLog("opson://login-callback#token"))
         assertFalse(WidgetLinks.isLog("opson://widget/logger"))
     }
+
+    @Test
+    fun everyWidgetLink_parses_andNothingElseDoes() {
+        assertEquals(WidgetLink.Log(null), WidgetLinks.parse(WidgetLinks.LOG))
+        assertEquals(WidgetLink.Log(MealSlot.Lunch), WidgetLinks.parse(WidgetLinks.log(MealSlot.Lunch)))
+        assertEquals(WidgetLink.Log(null), WidgetLinks.parse("${WidgetLinks.LOG}?slot=elevenses"), "an unknown meal leaves it to the Logger")
+        assertEquals(WidgetLink.Today, WidgetLinks.parse(WidgetLinks.TODAY))
+        assertEquals(WidgetLink.AddWater, WidgetLinks.parse("${WidgetLinks.WATER_ADD}/"))
+        assertNull(WidgetLinks.parse("opson://widget/water"))
+        assertNull(WidgetLinks.parse("opson://login-callback#token"))
+    }
 }

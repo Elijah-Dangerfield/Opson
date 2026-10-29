@@ -12,8 +12,12 @@ import com.opson.libraries.widgets.WidgetCopy
 import com.opson.libraries.widgets.WidgetFixtures
 import com.opson.libraries.widgets.WidgetSnapshot
 import com.opson.libraries.widgets.WidgetSnapshotBuilder
+import com.opson.libraries.widgets.WidgetSnapshotSource
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -61,9 +65,52 @@ class WidgetRefresherTest : CoroutineTest() {
         val blind = snapshot(PresetId.NoNumbers)
 
         source.snapshots.emit(full)
+        assertEquals(listOf(full), publisher.published, "the first goes out at once")
+
         source.snapshots.emit(blind)
+        advanceTimeBy(SETTLE_MS + 1)
 
         assertEquals(listOf(full, blind), publisher.published)
+    }
+
+    /** A meal of several foods, or a sync pull, lands as a burst. The widget reloads once for it. */
+    @Test
+    fun aBurstOfSnapshots_isPublishedOnce_whenItSettles() = test {
+        refresher()
+        val full = snapshot(PresetId.Full)
+        val blind = snapshot(PresetId.NoNumbers)
+        val macros = snapshot(PresetId.MacrosOnly)
+        source.snapshots.emit(full)
+
+        source.snapshots.emit(blind)
+        advanceTimeBy(SETTLE_MS / 2)
+        source.snapshots.emit(macros)
+        advanceTimeBy(SETTLE_MS / 2)
+        assertEquals(listOf(full), publisher.published, "still settling")
+
+        advanceTimeBy(SETTLE_MS)
+        assertEquals(listOf(full, macros), publisher.published)
+    }
+
+    /** A throw while building used to leave the widget on its last snapshot until the next launch. */
+    @Test
+    fun aSourceThatThrows_isReadAgain() = test {
+        val full = snapshot(PresetId.Full)
+        var calls = 0
+        val flaky = object : WidgetSnapshotSource {
+            override fun observe(): Flow<WidgetSnapshot> = flow {
+                calls++
+                if (calls == 1) error("the policy flow broke")
+                emit(full)
+            }
+        }
+        appScope = AppCoroutineScope(dispatchers)
+        WidgetRefresher(settings, flaky, publisher, appCache, { auth }, appScope)
+        assertTrue(publisher.published.isEmpty())
+
+        advanceTimeBy(RETRY_MS + 1)
+
+        assertEquals(listOf(full), publisher.published)
     }
 
     @Test
@@ -177,5 +224,11 @@ class WidgetRefresherTest : CoroutineTest() {
         source.snapshots.emit(blind)
 
         assertEquals(listOf(blind), publisher.published)
+    }
+
+    private companion object {
+        /** WidgetRefresher's settle and first retry pause. */
+        const val SETTLE_MS = 250L
+        const val RETRY_MS = 5_000L
     }
 }

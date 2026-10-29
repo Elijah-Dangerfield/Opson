@@ -204,7 +204,13 @@ More row and the Widgets page. The Android receiver is still held on
       bundles with Apple Distribution, each carrying the App Group.
 - [ ] Check one TestFlight build: the widget is in the gallery, the app and
       the extension report the same version and build, and after logging a
-      meal the widget changes within a few seconds.
+      meal the widget changes within a few seconds. Build 703 failed this (the
+      widget stayed on 0 after a log); its IPA carries the App Group on both
+      bundles, so that wasn't signing. The snapshot now goes to a file in the
+      group rather than its UserDefaults, every timeline asks again within the
+      hour, and the app reloads on foreground (`docs/plans/screens/widgets.md`,
+      Refresh). Check the new widgets on that build too: Calories with both
+      options, Macros, Water's add, Meals, and the Lock Screen ones.
 - [ ] App Privacy: nothing new leaves the device. The snapshot sits in the
       App Group container on the phone.
 

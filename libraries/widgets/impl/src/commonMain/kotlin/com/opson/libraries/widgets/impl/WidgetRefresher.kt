@@ -3,6 +3,7 @@ package com.opson.libraries.widgets.impl
 import com.opson.libraries.core.AutoInit
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
+import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.identity.auth.AuthRepository
@@ -12,17 +13,25 @@ import com.opson.libraries.opson.AppCache
 import com.opson.libraries.widgets.WidgetPublisher
 import com.opson.libraries.widgets.WidgetSnapshot
 import com.opson.libraries.widgets.WidgetSnapshotSource
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Keeps the platform's widgets showing today's snapshot: publishes each new one from
@@ -59,6 +68,8 @@ class WidgetRefresher(
 
     private enum class Show { Snapshot, Nothing, WhatWasPublished }
 
+    private val logger = KLog.withTag("Widgets")
+
     private var published = false
 
     private val auth = flow { emitAll(authRepositoryProvider().observe()) }
@@ -74,12 +85,38 @@ class WidgetRefresher(
             }.distinctUntilChanged()
             shows.collectLatest { show ->
                 when (show) {
-                    Show.Snapshot -> source.observe().collect(::publish)
+                    Show.Snapshot -> snapshots().collect(::publish)
                     Show.Nothing -> clear()
                     Show.WhatWasPublished -> if (published) clear()
                 }
             }
         }
+    }
+
+    /**
+     * The source's snapshots, the first at once and the rest once they settle ([SETTLE]): a meal
+     * of five foods, a repeat landing or a sync pull is a burst of writes, and each publish is a
+     * WidgetKit reload, which iOS budgets. A throw from the source is logged and the source read
+     * again after a pause, rather than leaving the widget on its last snapshot until the next launch.
+     */
+    @OptIn(FlowPreview::class)
+    private fun snapshots(): Flow<WidgetSnapshot> = flow {
+        var first = true
+        emitAll(
+            source.observe().debounce {
+                if (first) {
+                    first = false
+                    Duration.ZERO
+                } else {
+                    SETTLE
+                }
+            },
+        )
+    }.retryWhen { cause, attempt ->
+        // Once per run of failures: a source that keeps throwing would otherwise be an event a minute.
+        if (attempt == 0L) logger.e(cause, "Building the widget snapshot failed")
+        delay(RETRY_AFTER * (attempt + 1).coerceAtMost(MAX_BACKOFF_STEPS).toInt())
+        true
     }
 
     private fun show(auth: AuthState, settingsKnown: Boolean, onboarded: Boolean): Show = when {
@@ -98,5 +135,12 @@ class WidgetRefresher(
         Catching { publisher.clear() }
             .onSuccess { published = false }
             .logOnFailure { "Clearing the widget snapshot failed" }
+    }
+
+    private companion object {
+        /** Long enough to fold a burst of writes into one reload, short enough to land before iOS suspends a backgrounded app. */
+        val SETTLE = 250.milliseconds
+        val RETRY_AFTER = 5.seconds
+        const val MAX_BACKOFF_STEPS = 12L
     }
 }
