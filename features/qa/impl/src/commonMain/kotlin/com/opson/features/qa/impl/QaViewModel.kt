@@ -87,6 +87,7 @@ class QaViewModel(
                 toast(if (permission == NotificationPermission.Granted) Res.string.qa_fired else Res.string.qa_fire_no_permission)
             }
             QaAction.CheckInTapped -> work(action) { openCheckIn() }
+            QaAction.PromptsTapped -> sendEvent(QaEvent.OpenPrompts)
             QaAction.ResetOnboardingTapped -> work(action) {
                 appCache.update { it.copy(hasUserOnboarded = false) }
                 toast(Res.string.qa_reset_onboarding_done)

@@ -44,6 +44,7 @@ import com.opson.libraries.navigation.NavigationOptions
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.navigation.SessionExpiredRoute
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowHost
+import com.opson.libraries.prompts.PromptHost
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowNavigator
 import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.identity.auth.isSomeones
@@ -238,6 +239,7 @@ fun App(appComponent: AppComponent) {
                                 telemetry = appComponent.telemetry,
                                 jankMonitor = appComponent.jankMonitor,
                                 tabBar = appComponent.tabBar,
+                                promptHost = appComponent.promptHost,
                             )
                         } else {
                             BootLoadingScreen()
@@ -350,6 +352,7 @@ private fun AppNavigation(
     telemetry: Telemetry,
     jankMonitor: JankMonitor,
     tabBar: TabBar,
+    promptHost: PromptHost,
 ) {
     // Tag every crash/error with the route the user is currently on. Sheets
     // and dialogs are real destinations on this same back stack (see
@@ -451,6 +454,10 @@ private fun AppNavigation(
             )
 
             FloatingWindowHost(floatingWindowNavigator)
+
+            // Today's prompts. A sheet or dialog is the top entry while it is open, so Today on top
+            // means nothing is over it; sign-in and onboarding are their own routes.
+            promptHost.Host(onToday = currentBackStackEntry?.destination?.hasRoute<TodayRoute>() == true, router = router)
 
             router.Bind(navController)
         },

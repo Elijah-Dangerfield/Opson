@@ -20,6 +20,8 @@ kotlin {
             implementation(projects.libraries.identity)
             // The system photo picker, for a screenshot on a report.
             implementation(projects.libraries.scanner)
+            // PromptEvents: a report that went through is a moment a prompt can follow.
+            implementation(projects.libraries.prompts)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -39,6 +41,7 @@ kotlin {
             implementation(projects.libraries.opson)
             implementation(projects.libraries.storage)
             implementation(projects.libraries.resources)
+            implementation(projects.libraries.prompts)
             implementation(compose.components.resources)
         }
     }

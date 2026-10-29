@@ -5,6 +5,8 @@ import com.opson.libraries.core.Catching
 import com.opson.libraries.core.flatMap
 import com.opson.libraries.flowroutines.DispatcherProvider
 import com.opson.libraries.opson.Telemetry
+import com.opson.libraries.prompts.PromptEvent
+import com.opson.libraries.prompts.PromptEvents
 import kotlinx.coroutines.withContext
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
@@ -44,6 +46,7 @@ class FeedbackRepositoryImpl @Inject constructor(
     private val telemetry: Telemetry,
     private val dispatchers: DispatcherProvider,
     private val appState: AppState,
+    private val promptEvents: PromptEvents = PromptEvents.None,
 ) : FeedbackRepository {
     override suspend fun submitFeedback(
         message: String,
@@ -76,7 +79,7 @@ class FeedbackRepositoryImpl @Inject constructor(
                 appState.isOffline.value -> Catching.success(FeedbackDelivery.Queued)
                 else -> Catching.success(FeedbackDelivery.Sent)
             }
-        }
+        }.onSuccess { promptEvents.emit(PromptEvent.ReportSent) }
     }
 }
 
