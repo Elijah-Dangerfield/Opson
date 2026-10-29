@@ -23,6 +23,9 @@ import com.opson.features.settings.impl.more.MoreStateBuilder
 import com.opson.features.settings.impl.pause.PauseSheetContent
 import com.opson.features.settings.impl.pause.PauseState
 import com.opson.features.settings.impl.pause.PauseSubject
+import com.opson.features.settings.impl.profile.ProfileFixtures
+import com.opson.features.settings.impl.profile.ProfileScreen
+import com.opson.features.settings.impl.profile.ProfileStateBuilder
 import com.opson.features.settings.impl.reminders.ReminderNotifications
 import com.opson.features.settings.impl.reminders.RemindersScreen
 import com.opson.features.settings.impl.reminders.RemindersStateBuilder
@@ -224,6 +227,19 @@ object SettingsLeakSurfaces {
         LeakSurface(id = "fasting", label = "Fasting", showsCaloriesInFull = false) { policy ->
             val settings = FastingFixtures.settings(preset = policy.settings.preset)
             FastingScreen(FastingFixtures.state(settings, FastingFixtures.lastNight, FastingFixtures.morning), onAction = {})
+        },
+        // More › Profile, with release.goalsAndEnergy: the weigh-in and BMI as weight numbers, shown
+        // only where the mode shows weight in full; the year, sex and height carry no nutrition number.
+        LeakSurface(id = "profile", label = "Profile", showsCaloriesInFull = false) { policy ->
+            ProfileScreen(
+                ProfileStateBuilder.build(
+                    ProfileFixtures.filled.copy(numbers = policy.settings),
+                    ProfileFixtures.weighIn,
+                    policy,
+                    SettingsFixtures.timeZone,
+                ),
+                onAction = {},
+            )
         },
         // 0.2, release.reminders. No amounts on the page, and none can reach a notification:
         // its text is fixed resources (ReminderCopy), every one scanned here.

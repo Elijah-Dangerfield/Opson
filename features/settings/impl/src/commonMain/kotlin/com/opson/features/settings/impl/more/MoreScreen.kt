@@ -60,6 +60,8 @@ import opson.libraries.resources.generated.resources.settings_more_display
 import opson.libraries.resources.generated.resources.settings_more_modes_changed
 import opson.libraries.resources.generated.resources.settings_more_plan
 import opson.libraries.resources.generated.resources.settings_more_plan_free
+import opson.libraries.resources.generated.resources.settings_more_profile
+import opson.libraries.resources.generated.resources.settings_more_profile_sub
 import opson.libraries.resources.generated.resources.settings_more_signed_in
 import opson.libraries.resources.generated.resources.settings_more_signed_in_as
 import opson.libraries.resources.generated.resources.settings_more_support
@@ -151,6 +153,14 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
                 onClick = onClick,
             )
         }
+        MoreRow.Profile -> SettingsRow(
+            title = stringResource(Res.string.settings_more_profile),
+            icon = AppIcons.Person,
+            subtitle = stringResource(Res.string.settings_more_profile_sub),
+            chevron = true,
+            showDivider = showDivider,
+            onClick = onClick,
+        )
         MoreRow.Targets -> SettingsRow(
             title = stringResource(Res.string.settings_more_targets),
             icon = AppIcons.TrackChanges,
@@ -350,7 +360,7 @@ private val previewAccount = MoreAccount(email = "sam@example.com", guest = fals
 @Composable
 private fun MorePreview() {
     val settings = SettingsFixtures.settings().copy(quiet = true)
-    val state = MoreStateBuilder.build(settings, healthConnected = true, remindersOn = true, fastingReleased = true, widgetsOn = true)
+    val state = MoreStateBuilder.build(settings, healthConnected = true, remindersOn = true, fastingReleased = true, widgetsOn = true, goalsAndEnergyOn = true)
     SettingsPreview { MoreScreen(state, onAction = {}) }
 }
 

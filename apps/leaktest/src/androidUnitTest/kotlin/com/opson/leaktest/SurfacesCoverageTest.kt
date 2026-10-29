@@ -147,7 +147,7 @@ class SurfacesCoverageTest {
                 "resting-energy", "energy-today", "today-screen-settings", "micro-targets", "micro-target-sheet",
                 "water-settings", "support", "support-delete", "support-export-numbers", "support-provider-first", "support-find",
                 "provider-summary", "provider-summary-warning", "provider-summary-custom",
-                "reminders", "reminder-notification",
+                "reminders", "reminder-notification", "profile",
                 "integrations", "integrations-leave-out", "fasting",
                 "widget", "widgets",
             ),

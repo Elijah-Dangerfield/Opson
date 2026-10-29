@@ -34,6 +34,16 @@ class TargetsRoute : Route()
 class RestingEnergyRoute(val fromEnergyToday: Boolean = false) : Route()
 
 /**
+ * More › Profile: year of birth, sex for the estimates, height, the latest weigh-in, BMI and
+ * body fat. The one place these are edited; resting energy, Burned and the vitamin and mineral
+ * references all read the same settings. [from] picks the back label: `more`, `resting` (Resting
+ * energy) or `micros` (Vitamins and minerals). A string rather than an enum, so the route needs
+ * no type map.
+ */
+@Serializable
+class ProfileRoute(val from: String = "more") : Route()
+
+/**
  * Energy today (design sync 4, 13.2c): eaten with its ±, Burned with where each part comes from,
  * and the deficit so far against the range. `release.goalsAndEnergy`; Today's summary card links
  * here. Check `GoalsAndEnergyEnabled` before linking.

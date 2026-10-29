@@ -13,12 +13,16 @@
     <string name="settings_back_targets">‹ Targets</string>
     <string name="settings_back_today_screen">‹ Today screen</string>
     <string name="settings_back_energy">‹ Energy today</string>
+    <string name="settings_back_resting">‹ Resting energy</string>
+    <string name="settings_back_micros">‹ Vitamins and minerals</string>
     <string name="settings_saved">Saved.</string>
     <string name="settings_saved_fewer">Saved. Fewer numbers from now on.</string>
 
     <!-- More (v3: three groups, no amounts in any subtitle) -->
     <string name="settings_more_title">More</string>
     <string name="settings_more_display">Display</string>
+    <string name="settings_more_profile">Profile</string>
+    <string name="settings_more_profile_sub">Age, sex, height and weight</string>
     <string name="settings_more_modes_changed">%1$s, %2$s</string>
     <string name="settings_more_targets">Targets</string>
     <string name="settings_more_targets_sub">Energy range and macro split</string>
@@ -235,6 +239,21 @@
     <string name="settings_targets_hidden_body">They're out of view in this mode. To see or change them, show calories in Display.</string>
     <string name="settings_targets_hidden_link">Display</string>
 
+    <!-- Profile: the one place the body details are edited -->
+    <string name="settings_profile_title">Profile</string>
+    <string name="settings_profile_intro">Resting energy, Burned and your vitamin and mineral references all use these. Change them here and they change everywhere.</string>
+    <string name="settings_profile_about">About you</string>
+    <string name="settings_profile_sex">Sex for estimates</string>
+    <string name="settings_profile_sex_body">The equations differ by sex. Rather not say uses the midpoint.</string>
+    <string name="settings_profile_body">Weight and body</string>
+    <string name="settings_profile_weight">Current weight</string>
+    <string name="settings_profile_weight_on">Your weigh-in on %1$s</string>
+    <string name="settings_profile_weight_none">No weigh-in yet. Tap to add one.</string>
+    <string name="settings_profile_bmi">BMI</string>
+    <string name="settings_profile_bmi_note">BMI is a rough measure made for populations. It can't see your build or your health.</string>
+    <string name="settings_profile_body_fat">Body fat, if you know it</string>
+    <string name="settings_profile_percent">%</string>
+
     <!-- Resting energy (design sync 4, 13.2d) -->
     <string name="settings_resting_title">Resting energy</string>
     <string name="settings_resting_intro">The energy your body uses at rest. It's most of what you burn in a day.</string>
@@ -245,7 +264,14 @@
     <string name="settings_resting_own">Enter my own</string>
     <string name="settings_resting_own_line">From a lab test or a number you trust.</string>
     <string name="settings_resting_kcal_a_day">kcal a day</string>
-    <string name="settings_resting_details">For the calculation</string>
+    <string name="settings_resting_profile">Your profile</string>
+    <string name="settings_resting_profile_line">Age, sex, height and your latest weigh-in</string>
+    <string name="settings_resting_profile_needs">Still needs: %1$s</string>
+    <string name="settings_resting_needs_age">age</string>
+    <string name="settings_resting_needs_height">height</string>
+    <string name="settings_resting_needs_sex">sex</string>
+    <string name="settings_resting_needs_weight">a weigh-in</string>
+    <string name="settings_resting_everyday_measured">%1$s measures your activity, so we don't need to guess.</string>
     <string name="settings_resting_birth_year">Year you were born</string>
     <string name="settings_resting_height">Height</string>
     <string name="settings_resting_cm">cm</string>
@@ -257,7 +283,6 @@
     <string name="settings_resting_sex_female">Female</string>
     <string name="settings_resting_sex_male">Male</string>
     <string name="settings_resting_sex_unsaid">Rather not say</string>
-    <string name="settings_resting_weight_missing">Log a weight in Trends and this works it out.</string>
     <string name="settings_resting_activity">Activity</string>
     <string name="settings_resting_steps_workouts">Steps and workouts</string>
     <string name="settings_resting_activity_none">Not connected</string>
@@ -459,7 +484,7 @@
     <string name="settings_micros_basis_sex">Suggested for your sex at ages 31 to 50, since your birth year isn't set.</string>
     <string name="settings_micros_basis_dv">These are the Daily Values from food labels, for adults in general.</string>
     <string name="settings_micros_add_details">Add your birth year and sex</string>
-    <string name="settings_micros_add_details_line">In Resting energy</string>
+    <string name="settings_micros_add_details_line">In your profile</string>
     <string name="settings_micros_caption">These are typical daily amounts for healthy people, not goals to hit. A dietitian or doctor can give you ones that fit you better. Tap one to set your own or to show it on Today.</string>
     <string name="settings_micros_on_today">On Today</string>
     <string name="settings_micros_own">Your own, %1$s</string>

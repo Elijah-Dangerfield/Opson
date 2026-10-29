@@ -99,7 +99,7 @@ feature api modules never depend on each other).
 | `:features:logger` (+`impl`) | feature | Logger sheet, amount sheet, Describe, Saved. |
 | `:features:foods` (+`impl`) | feature | Foods tab, create a meal, add a custom food. |
 | `:features:trends` (+`impl`) | feature | Trends, trends settings, nutrients detail, weight. |
-| `:features:settings` (+`impl`) | feature | More, display (modes and numbers + friction sheet, appearance), targets, water, fasting, reminders, health, support. |
+| `:features:settings` (+`impl`) | feature | More, display (modes and numbers + friction sheet, appearance), profile, targets, water, fasting, reminders, health, support. |
 | `:features:onboarding` | existing | Gains the four questions and the mode recommendation. |
 | `:features:home` | existing | The template's feedback and bug report screens. Its Home landing screen is gone; the shell lives in `apps/compose` (see section 10). |
 

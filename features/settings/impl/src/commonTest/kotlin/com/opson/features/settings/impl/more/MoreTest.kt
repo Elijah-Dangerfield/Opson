@@ -461,8 +461,19 @@ class MoreTest : CoroutineTest() {
     }
 
     @Test
+    fun profile_leadsTheFirstCard_onlyWithGoalsAndEnergy_andOpensProfile() = runUnitTest {
+        assertEquals(MoreRow.Profile, MoreStateBuilder.build(SettingsFixtures.settings(), goalsAndEnergyOn = true).groups[0].first())
+        assertTrue(MoreRow.Profile !in build().groups.flatten())
+
+        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(on = true), FakeAuthRepository(), FakeDiarySync())
+        val events = eventsOf(vm)
+        vm.takeAction(MoreAction.RowTapped(MoreRow.Profile))
+        assertEquals(listOf<MoreEvent>(MoreEvent.OpenProfile), events)
+    }
+
+    @Test
     fun todayScreen_followsTheTargets_onlyWithGoalsAndEnergy() {
-        val on = MoreStateBuilder.build(SettingsFixtures.settings(), todayScreenOn = true).groups[0]
+        val on = MoreStateBuilder.build(SettingsFixtures.settings(), goalsAndEnergyOn = true).groups[0]
         assertEquals(MoreRow.TodayScreen, on[on.indexOf(MoreRow.Targets) + 1])
         assertTrue(MoreRow.TodayScreen !in build().groups.flatten())
     }

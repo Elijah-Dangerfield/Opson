@@ -22,6 +22,7 @@ import com.opson.features.settings.LookAndFeelRoute
 import com.opson.features.settings.DisplayRoute
 import com.opson.features.settings.EachNumberRoute
 import com.opson.features.settings.ModesRoute
+import com.opson.features.settings.ProfileRoute
 import com.opson.features.settings.ProviderSummaryRoute
 import com.opson.features.settings.MoreRoute
 import com.opson.features.settings.PauseBeforeMoreRoute
@@ -71,6 +72,10 @@ import com.opson.features.settings.impl.support.PRIVACY_URL
 import com.opson.features.settings.impl.support.TERMS_URL
 import com.opson.libraries.core.BuildInfo
 import com.opson.features.settings.impl.pause.PauseAction
+import com.opson.features.settings.impl.profile.ProfileBack
+import com.opson.features.settings.impl.profile.ProfileEvent
+import com.opson.features.settings.impl.profile.ProfileScreen
+import com.opson.features.settings.impl.profile.ProfileViewModel
 import com.opson.features.settings.impl.pause.PauseEvent
 import com.opson.features.settings.impl.pause.PauseSheetContent
 import com.opson.features.settings.impl.pause.PauseViewModel
@@ -110,6 +115,7 @@ import com.opson.features.settings.impl.widgets.WidgetsViewModel
 import com.opson.features.settings.toRoute
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
+import com.opson.features.trends.WeightRoute
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
@@ -138,6 +144,7 @@ class SettingsFeatureEntryPoint(
     private val pauseViewModel: (NumbersChange) -> PauseViewModel,
     private val targetsViewModel: () -> TargetsViewModel,
     private val restingEnergyViewModel: () -> RestingEnergyViewModel,
+    private val profileViewModel: (ProfileBack) -> ProfileViewModel,
     private val energyTodayViewModel: () -> EnergyTodayViewModel,
     private val todayScreenSettingsViewModel: () -> TodayScreenSettingsViewModel,
     private val todayScreenChoiceViewModel: (TodayScreenChoice) -> TodayScreenChoiceViewModel,
@@ -164,6 +171,7 @@ class SettingsFeatureEntryPoint(
                 when (event) {
                     MoreEvent.OpenDisplay -> router.navigate(DisplayRoute())
                     MoreEvent.OpenTargets -> router.navigate(TargetsRoute())
+                    MoreEvent.OpenProfile -> router.navigate(ProfileRoute(from = ProfileBack.More.wire))
                     MoreEvent.OpenTodayScreen -> router.navigate(TodayScreenSettingsRoute())
                     MoreEvent.OpenWater -> router.navigate(WaterSettingsRoute(fromMore = true))
                     MoreEvent.OpenSupport -> router.navigate(SupportRoute())
@@ -265,7 +273,7 @@ class SettingsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is MicroTargetsEvent.OpenNutrient -> router.navigate(MicroTargetRoute(event.micro.key))
-                    MicroTargetsEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute())
+                    MicroTargetsEvent.OpenProfile -> router.navigate(ProfileRoute(from = ProfileBack.Micros.wire))
                     MicroTargetsEvent.OpenModes -> router.navigate(ModesRoute())
                     MicroTargetsEvent.Close -> router.goBack()
                 }
@@ -300,11 +308,27 @@ class SettingsFeatureEntryPoint(
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event ->
                 when (event) {
+                    RestingEnergyEvent.OpenProfile -> router.navigate(ProfileRoute(from = ProfileBack.RestingEnergy.wire))
                     RestingEnergyEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                     RestingEnergyEvent.Close -> router.goBack()
                 }
             }
             RestingEnergyScreen(state = state, onAction = viewModel::takeAction, fromEnergyToday = route.fromEnergyToday)
+        }
+
+        // Registered whatever release.goalsAndEnergy says: More's row is behind it, and a stale
+        // back stack entry should land on the page rather than crash.
+        screen<ProfileRoute> { backStackEntry ->
+            val back = remember(backStackEntry) { ProfileBack.fromWire(backStackEntry.toRoute<ProfileRoute>().from) }
+            val viewModel: ProfileViewModel = viewModel { profileViewModel(back) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    ProfileEvent.OpenWeight -> router.navigate(WeightRoute())
+                    ProfileEvent.Close -> router.goBack()
+                }
+            }
+            ProfileScreen(state = state, onAction = viewModel::takeAction)
         }
 
         // Registered whatever release.goalsAndEnergy says, as the pages above.

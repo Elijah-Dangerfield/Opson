@@ -54,6 +54,12 @@ sealed interface MoreRow {
     /** "Energy range and macro split", never the range itself. */
     data object Targets : MoreRow
 
+    /**
+     * More › Profile: the body details every estimate reads. "Age, sex, height and weight", never
+     * the values. With `release.goalsAndEnergy`, which everything that reads them is behind.
+     */
+    data object Profile : MoreRow
+
     /** More › Today screen (design sync 4, 13.6), with `release.goalsAndEnergy`. */
     data object TodayScreen : MoreRow
 
@@ -95,7 +101,8 @@ object MoreStateBuilder {
      * How the app treats you, optional extras, help and plan, about, the account, then the rows
      * other modules [contributed], a card per section. Reminders shows only with [remindersOn]; [healthConnected] is null while
      * `release.health` is off, and then there is no health row at all. [fastingReleased] is
-     * `release.fasting`, [widgetsOn] `release.widgets`, [todayScreenOn] `release.goalsAndEnergy`.
+     * `release.fasting`, [widgetsOn] `release.widgets`, [goalsAndEnergyOn] `release.goalsAndEnergy`, which
+     * also brings Profile, first in the first card.
      * [account] is null with no session, and then there is no Account card.
      */
     fun build(
@@ -104,15 +111,16 @@ object MoreStateBuilder {
         remindersOn: Boolean = false,
         fastingReleased: Boolean = false,
         widgetsOn: Boolean = false,
-        todayScreenOn: Boolean = false,
+        goalsAndEnergyOn: Boolean = false,
         account: MoreAccount? = null,
         contributed: List<MoreRowContribution> = emptyList(),
     ): MoreState = MoreState(
         groups = listOfNotNull(
             listOfNotNull(
+                MoreRow.Profile.takeIf { goalsAndEnergyOn },
                 MoreRow.Display(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
                 MoreRow.Targets,
-                MoreRow.TodayScreen.takeIf { todayScreenOn },
+                MoreRow.TodayScreen.takeIf { goalsAndEnergyOn },
                 MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
                 healthConnected?.let { MoreRow.Health(connected = it) },
             ),

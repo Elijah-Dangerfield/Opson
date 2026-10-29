@@ -185,7 +185,8 @@ sealed interface MoreRow {
 | `InputsArrived(settings)` | `MoreStateBuilder.build(settings)`. |
 | `RowTapped(row)` | Event to `DisplayRoute`, `TargetsRoute`, `WaterSettingsRoute(fromMore = true)`, `SupportRoute`. `Plan` does nothing (no purchase flow in 0.1). |
 
-Groups: `[Display, Targets]`, `[Water]`, `[Support, Plan]`. Not
+Groups: `[Display, Targets]`, `[Water]`, `[Support, Plan]`. With
+`release.goalsAndEnergy`, Profile leads the first card. Not
 built in 0.1, so not rendered: Reminders and celebrations and Watch and health
 apps (group 1), Fasting and Widgets and watch face (group 2). When Fasting
 lands it is offered only where `Fasting.allowed(preset)` (Full, Sprint).
@@ -471,9 +472,9 @@ Jeor from `birthYear`, `heightCm`, `bodySex` and the latest weigh-in,
 recalculated when a weight is logged; the default), the health app (its most
 recent whole day in the last week, falling back to the calculation) or
 Enter my own (500 to 5,000). Onboarding collects age, height and sex only
-when a deficit or surplus is picked, so the Resting energy page asks for what
-is missing while Calculate is picked; until then there is no Burned and every
-page says so. `BodySex` has `Unsaid`, the midpoint of the equation's two
+when a deficit or surplus is picked, so Resting energy says what is missing
+while Calculate is picked and links to Profile (below), the one page that
+edits them; until then there is no Burned and every page says so. `BodySex` has `Unsaid`, the midpoint of the equation's two
 constants. While no health app reads activity (none connected, or
 `release.health` off), `Settings.everydayActivity` stands in for movement:
 `EverydayActivity.kcalFor`, resting energy times the standard Mifflin–St Jeor
@@ -484,17 +485,16 @@ energy (energy out) and either the health app or "Everyday activity", whose
 choices open in place; Resting energy and onboarding edit the same setting.
 
 **Resting energy (13.2d)**, `RestingEnergyRoute(fromEnergyToday)`. The three
-sources with what each gives now, the details the calculation needs, "Steps
-and workouts" (to Integrations) and "Add activity to Burned". Typed fields
-write only once sensible, so typing "1600" writes once. Height is typed in
-centimetres or in feet and inches (`HeightField`, `:libraries:diary:ui`, shared
-with onboarding), stored as `heightCm` either way; the switch saves
-`heightUnit`, and until it is picked the unit is feet and inches for someone in
-pounds, else the phone's region's (`RegionUnits`: US, Liberia, Myanmar). The
-fields stay up while a detail is being typed, because five feet is already a
-height and the inches field must not vanish under it. Every amount is
-energy out on `Surface.Settings`; with it hidden, no amount shows, not even
-the person's own.
+sources with what each gives now, a Your profile row under Calculate ("Still
+needs: height, a weigh-in", to `ProfileRoute(from = "resting")`), "Steps and
+workouts" (to Integrations), "Add activity to Burned" and Everyday activity.
+Enter my own writes only once sensible, so typing "1600" writes once. While a
+health app counts the day's activity (connected, and Add activity on),
+Everyday activity is not asked: `burnedFor` leaves it out then, so the page
+says "Apple Health measures your activity, so we don't need to guess." With
+activity switched off the everyday baseline counts again, so it is asked.
+Every amount is energy out on `Surface.Settings`; with it hidden, no amount
+shows, not even the person's own.
 
 **Energy today (13.2c)**, `EnergyTodayRoute()`, for Today's summary card to
 link to. Eaten with its ± and "Likely 1,145 to 1,345. 5 of 7 foods are
@@ -518,7 +518,7 @@ rounded to 10.
 Previews: `targets-goal-style-v4`, `targets-exact`, `targets-exact-at-floor`,
 `targets-surplus`, `targets-surplus-no-burn-yet`, `targets-surplus-large-text`,
 `targets-by-day-shapes`, `targets-by-day-surplus-dark`, `resting-energy`,
-`resting-energy-needs-details`, `resting-energy-own-dark`,
+`resting-energy-needs-details`, `resting-energy-health-source`, `resting-energy-own-dark`,
 `resting-energy-large-text`, `energy-today`, `energy-today-no-burned-dark`,
 `energy-today-large-text`. `SURFACES`: `targets-goal-style`, `targets-exact`,
 `targets-surplus`, `targets-by-day-shapes`, `resting-energy`, `energy-today`.
@@ -688,6 +688,46 @@ here: neither is a setting any more (`reminders.md`, 2026-10-29).
 Tests: `LookAndFeelViewModelTest` (each pick writes its field), `ModesTest`.
 Previews: `DisplayScreen.kt`. `SURFACES`: `modes` and `modes-end-after` (the ids
 kept from Modes and numbers) draw the whole page.
+
+---
+
+## Profile
+
+`ProfileRoute(from)`, from More (behind `release.goalsAndEnergy`, which
+everything that reads these is behind), Resting energy and Vitamins and
+minerals' "Add your birth year and sex"; `from` (`more`, `resting`, `micros`)
+picks the back label. The owner asked for Cronometer's profile (2026-10-29).
+
+It is the one place the body details are edited, and it keeps no copy of its
+own: it writes `Settings.birthYear`, `bodySex`, `heightCm` and `heightUnit`,
+which Burned (`RestingEnergies.calculate` through `Settings.bodyProfile`) and
+the vitamin and mineral references (`Settings.microReferences`) already read,
+and onboarding writes the same keys. Weight is never a setting: the row shows
+the latest weigh-in and opens Weight (`WeightRoute`) to log one. All of it
+syncs as top-level keys of the settings document, which the server stores and
+merges as it is, so nothing new is needed on the server.
+
+- **About you**: Year you were born (birth year, as Burned reads age), Sex for
+  estimates (Female / Male / Rather not say, the equation's midpoint) and
+  Height (`HeightField`, centimetres or feet and inches; until a unit is picked
+  it is feet and inches for someone in pounds, else the region's). Fields
+  write only once sensible and stay as typed until then.
+- **Weight and body**: Current weight (`Metric.Weight` on `Surface.Settings`,
+  in the weight unit; shown only where the mode shows weight in full, else the
+  row says only when it was logged), BMI (`BodyMassIndex`, one decimal, with
+  "BMI is a rough measure made for populations. It can't see your build or
+  your health.") and Body fat, if you know it (`Settings.bodyFatPercent`, 3 to
+  75, zero for none so clearing it syncs; nothing calculates from it yet). BMI
+  and body fat go with weight, and never show for someone who said numbers have
+  been hard.
+
+Not built: Fill from Apple Health. `:libraries:health` reads only energy, so
+reading height, weight, birth date and sex needs new HealthKit and Health
+Connect permissions and plumbing on both platforms.
+
+Tests: `ProfileTest` (builder per mode, each field, the latest weigh-in),
+`BodyMassIndexTest`. Previews: `ProfileScreen.kt` (empty, filled, imperial
+dark, blind, hard, large text). `SURFACES`: `profile`.
 
 ---
 

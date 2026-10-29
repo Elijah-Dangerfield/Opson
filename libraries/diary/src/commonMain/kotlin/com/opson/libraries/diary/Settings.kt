@@ -1,5 +1,6 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.BodyFat
 import com.opson.libraries.nutrition.BodyProfile
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.EverydayActivity
@@ -190,6 +191,13 @@ data class Settings(
     @Serializable(with = BodySexSerializer::class)
     val bodySex: BodySex? = null,
     /**
+     * Body fat as a percentage, optional, typed on More › Profile; read it through [bodyFat]. Zero is
+     * "not given" rather than null, because a null is left out of the write and the server's merge
+     * would keep the old value, so clearing it on one phone would never reach the others. Nothing
+     * calculates from it yet. A top-level key, like the rest of the profile.
+     */
+    val bodyFatPercent: Double = 0.0,
+    /**
      * How active an ordinary day is, outside workouts: Burned's everyday movement whenever no
      * health app reads activity, so a deficit or surplus works without one. Picked on Resting
      * energy, Targets and onboarding. A top-level key, like the rest of Burned's settings.
@@ -223,6 +231,9 @@ data class Settings(
     /** The nutrients page on Today, as `Micronutrient.key`s in order; empty is [DEFAULT_TODAY_NUTRIENTS]. */
     val todayNutrients: List<String> = emptyList(),
 ) {
+    /** [bodyFatPercent] when one was given and makes sense. */
+    val bodyFat: Double? get() = BodyFat.inRange(bodyFatPercent)
+
     /** What the resting energy calculation is told: these details and [weightKg], on [today]. */
     fun bodyProfile(weightKg: Double?, today: LocalDate): BodyProfile =
         BodyProfile(weightKg = weightKg, heightCm = heightCm, ageYears = birthYear?.let { today.year - it }, sex = bodySex)

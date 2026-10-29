@@ -13,12 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.ImeAction
-import com.opson.libraries.diary.ui.HeightField
 import com.opson.libraries.diary.ui.detail
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.EverydayActivity
-import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.ui.components.ChoiceRow
 import androidx.compose.ui.unit.dp
 import com.opson.features.settings.impl.SectionLabel
@@ -34,7 +31,6 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.BodyDetail
-import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -45,7 +41,6 @@ import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
-import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.radio.RadioDot
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.Text
@@ -57,26 +52,28 @@ import opson.libraries.resources.generated.resources.settings_resting_activity
 import opson.libraries.resources.generated.resources.settings_resting_activity_none
 import opson.libraries.resources.generated.resources.settings_resting_add_activity
 import opson.libraries.resources.generated.resources.settings_resting_add_activity_line
-import opson.libraries.resources.generated.resources.settings_resting_birth_year
 import opson.libraries.resources.generated.resources.settings_resting_calculate
 import opson.libraries.resources.generated.resources.settings_resting_calculate_line
-import opson.libraries.resources.generated.resources.settings_resting_details
 import opson.libraries.resources.generated.resources.settings_resting_health
 import opson.libraries.resources.generated.resources.settings_resting_health_line
 import opson.libraries.resources.generated.resources.settings_resting_intro
 import opson.libraries.resources.generated.resources.settings_resting_kcal_a_day
 import opson.libraries.resources.generated.resources.settings_resting_own
 import opson.libraries.resources.generated.resources.settings_resting_own_line
-import opson.libraries.resources.generated.resources.settings_resting_sex
-import opson.libraries.resources.generated.resources.settings_resting_sex_female
-import opson.libraries.resources.generated.resources.settings_resting_sex_male
-import opson.libraries.resources.generated.resources.settings_resting_sex_unsaid
+import opson.libraries.resources.generated.resources.settings_resting_everyday_measured
+import opson.libraries.resources.generated.resources.settings_resting_needs_age
+import opson.libraries.resources.generated.resources.settings_resting_needs_height
+import opson.libraries.resources.generated.resources.settings_resting_needs_sex
+import opson.libraries.resources.generated.resources.settings_resting_needs_weight
+import opson.libraries.resources.generated.resources.settings_resting_profile
+import opson.libraries.resources.generated.resources.settings_resting_profile_line
+import opson.libraries.resources.generated.resources.settings_resting_profile_needs
 import opson.libraries.resources.generated.resources.settings_resting_steps_workouts
 import opson.libraries.resources.generated.resources.settings_resting_title
-import opson.libraries.resources.generated.resources.settings_resting_weight_missing
 import opson.libraries.resources.generated.resources.settings_loading_cd
 import opson.libraries.resources.generated.resources.everyday_activity_body
 import opson.libraries.resources.generated.resources.everyday_activity_title
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -127,14 +124,29 @@ fun RestingEnergyScreen(
                 },
             )
         }
-        Everyday(state.everyday, onAction)
+        Everyday(state, onAction)
     }
 }
 
-/** Everyday activity: one of four, each with what it looks like. Targets and onboarding pick the same setting. */
+/**
+ * Everyday activity: one of four, each with what it looks like. Targets and onboarding pick the
+ * same setting. While a health app counts the day's activity the pick changes nothing, so the
+ * page says why it doesn't ask instead.
+ */
 @Composable
-private fun Everyday(picked: EverydayActivity, onAction: (RestingEnergyAction) -> Unit) {
+private fun Everyday(state: RestingEnergyState, onAction: (RestingEnergyAction) -> Unit) {
     SectionLabel(stringResource(Res.string.everyday_activity_title))
+    val measuring = state.activitySource
+    if (!state.asksEveryday && measuring != null) {
+        Text(
+            text = stringResource(Res.string.settings_resting_everyday_measured, stringResource(measuring.title)),
+            typography = AppTheme.type.secondary,
+            color = AppTheme.colors.muted,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
+        return
+    }
+    val picked = state.everyday
     Text(
         text = stringResource(Res.string.everyday_activity_body),
         typography = AppTheme.type.secondary,
@@ -165,7 +177,7 @@ private fun Sources(state: RestingEnergyState, onAction: (RestingEnergyAction) -
                 selected = state.source == RestingSource.Calculate,
                 onClick = { onAction(RestingEnergyAction.SourcePicked(RestingSource.Calculate)) },
             )
-            state.details?.let { Details(it, onAction) }
+            state.profileMissing?.let { missing -> ProfileLink(missing, onAction) }
             state.health?.let { health ->
                 HorizontalDivider(color = AppTheme.colors.line)
                 Source(
@@ -217,60 +229,30 @@ private fun Source(title: String, line: String, amount: Display, selected: Boole
     }
 }
 
-/** What the calculation still needs, while "Calculate it for me" is picked. */
+/** Under "Calculate it for me": the Profile it reads, and what it still needs from there. */
 @Composable
-private fun Details(details: BodyDetails, onAction: (RestingEnergyAction) -> Unit) {
-    Column(
-        modifier = Modifier.padding(bottom = SettingsDefaults.CardPadding),
-        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
-    ) {
-        Text(
-            text = stringResource(Res.string.settings_resting_details),
-            typography = AppTheme.type.secondarySmallStrong,
-            color = AppTheme.colors.muted,
-        )
-        NumberField(
-            value = details.birthYearText,
-            onValueChange = { onAction(RestingEnergyAction.BirthYearTyped(it)) },
-            label = stringResource(Res.string.settings_resting_birth_year),
-            allowDecimal = false,
-            imeAction = ImeAction.Next,
-        )
-        HeightField(
-            input = details.height,
-            onUnitPicked = { onAction(RestingEnergyAction.HeightUnitPicked(it)) },
-            onCmTyped = { onAction(RestingEnergyAction.HeightCmTyped(it)) },
-            onFeetTyped = { onAction(RestingEnergyAction.HeightFeetTyped(it)) },
-            onInchesTyped = { onAction(RestingEnergyAction.HeightInchesTyped(it)) },
-        )
-        Text(
-            text = stringResource(Res.string.settings_resting_sex),
-            typography = AppTheme.type.secondarySmallStrong,
-            color = AppTheme.colors.muted,
-        )
-        SegmentedControl(
-            options = BodySex.entries,
-            selected = details.sex,
-            onSelect = { sex -> sex?.let { onAction(RestingEnergyAction.SexPicked(it)) } },
-            label = { sex ->
-                stringResource(
-                    when (sex) {
-                        BodySex.Female -> Res.string.settings_resting_sex_female
-                        BodySex.Male -> Res.string.settings_resting_sex_male
-                        BodySex.Unsaid, null -> Res.string.settings_resting_sex_unsaid
-                    },
-                )
-            },
-        )
-        if (details.weightMissing) {
-            Text(
-                text = stringResource(Res.string.settings_resting_weight_missing),
-                typography = AppTheme.type.secondary,
-                color = AppTheme.colors.muted,
-            )
-        }
-    }
+private fun ProfileLink(missing: Set<BodyDetail>, onAction: (RestingEnergyAction) -> Unit) {
+    val needs = missing.sortedBy { it.ordinal }.map { stringResource(it.needs) }
+    SettingsRow(
+        title = stringResource(Res.string.settings_resting_profile),
+        icon = null,
+        subtitle = if (needs.isEmpty()) {
+            stringResource(Res.string.settings_resting_profile_line)
+        } else {
+            stringResource(Res.string.settings_resting_profile_needs, needs.joinToString(", "))
+        },
+        chevron = true,
+        onClick = { onAction(RestingEnergyAction.ProfileTapped) },
+    )
 }
+
+private val BodyDetail.needs: StringResource
+    get() = when (this) {
+        BodyDetail.Weight -> Res.string.settings_resting_needs_weight
+        BodyDetail.Height -> Res.string.settings_resting_needs_height
+        BodyDetail.Age -> Res.string.settings_resting_needs_age
+        BodyDetail.Sex -> Res.string.settings_resting_needs_sex
+    }
 
 private fun previewState(
     settings: Settings = Settings(),
@@ -289,6 +271,7 @@ private fun RestingEnergyPreview() {
     SettingsPreview { RestingEnergyScreen(previewState(), onAction = {}) }
 }
 
+/** No health app, and the profile still short of three details: the row says which, and Everyday activity is asked. */
 @Preview
 @Composable
 private fun RestingEnergyNeedsDetailsPreview() {
@@ -296,22 +279,18 @@ private fun RestingEnergyNeedsDetailsPreview() {
     SettingsPreview { RestingEnergyScreen(previewState(choices = choices).copy(activitySource = null), onAction = {}) }
 }
 
-/** Height in feet and inches, as a US phone opens it. */
+/** Apple Health counts the day's activity: no everyday activity question, and the line says why. */
 @Preview
 @Composable
-private fun RestingEnergyFeetAndInchesPreview() {
-    val choices = RestingChoices(null, setOf(BodyDetail.Height), null, null, 72.0)
-    SettingsPreview {
-        RestingEnergyScreen(
-            RestingEnergyStateBuilder.build(
-                Settings(birthYear = 1990, bodySex = BodySex.Female),
-                choices,
-                SettingsFixtures.policy(NumbersSettings(preset = PresetId.Full)),
-                regionHeight = HeightUnit.FtIn,
-            ),
-            onAction = {},
-        )
-    }
+private fun RestingEnergyHealthSourcePreview() {
+    val choices = RestingChoices(1610, emptySet(), 1560, HealthSource.AppleHealth, 72.0)
+    val state = RestingEnergyStateBuilder.build(
+        Settings(restingSource = RestingSource.Health),
+        choices,
+        SettingsFixtures.policy(NumbersSettings(preset = PresetId.Full)),
+        activitySource = HealthSource.AppleHealth,
+    )
+    SettingsPreview { RestingEnergyScreen(state, onAction = {}) }
 }
 
 @Preview
@@ -322,11 +301,13 @@ private fun RestingEnergyOwnDarkPreview() {
     }
 }
 
-/** Everyday activity under the activity card, with a pick other than the default. */
+/** Health Connect connected but "Add activity to Burned" off: the everyday baseline counts again, so it is asked. */
 @Preview
 @Composable
 private fun RestingEnergyEverydayPreview() {
-    SettingsPreview { RestingEnergyScreen(previewState().copy(everyday = EverydayActivity.SomeWalking), onAction = {}) }
+    SettingsPreview {
+        RestingEnergyScreen(previewState().copy(activityInBurned = false, everyday = EverydayActivity.SomeWalking), onAction = {})
+    }
 }
 
 @Preview

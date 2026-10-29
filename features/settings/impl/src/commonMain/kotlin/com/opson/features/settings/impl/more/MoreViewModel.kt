@@ -77,7 +77,7 @@ class MoreViewModel(
                     remindersOn = remindersEnabled(),
                     fastingReleased = fastingRelease.isOn(),
                     widgetsOn = widgetsEnabled(),
-                    todayScreenOn = goalsAndEnergy(),
+                    goalsAndEnergyOn = goalsAndEnergy(),
                     account = action.account,
                     contributed = contributions.filter { it.visible() },
                 ).copy(logOut = it.logOut)
@@ -96,6 +96,7 @@ class MoreViewModel(
         when (row) {
             is MoreRow.Display -> sendEvent(MoreEvent.OpenDisplay)
             MoreRow.Targets -> sendEvent(MoreEvent.OpenTargets)
+            MoreRow.Profile -> sendEvent(MoreEvent.OpenProfile)
             MoreRow.TodayScreen -> sendEvent(MoreEvent.OpenTodayScreen)
             is MoreRow.Health -> sendEvent(MoreEvent.OpenHealth)
             is MoreRow.Reminders -> sendEvent(MoreEvent.OpenReminders)
@@ -175,6 +176,7 @@ class MoreViewModel(
 sealed interface MoreEvent {
     data object OpenDisplay : MoreEvent
     data object OpenTargets : MoreEvent
+    data object OpenProfile : MoreEvent
     data object OpenTodayScreen : MoreEvent
     data object OpenWater : MoreEvent
     data object OpenHealth : MoreEvent
