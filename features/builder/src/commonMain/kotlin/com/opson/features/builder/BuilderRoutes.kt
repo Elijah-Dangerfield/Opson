@@ -11,10 +11,10 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
- * More › Builders: what Opson Builders is, its rules, Join, and once joined where the person
- * stands. Check [BuildersEnabled] before linking here.
+ * More › Builders: what Opson Builders is and Apply, then where the application stands, and once
+ * accepted a Builder's home. Check [BuildersEnabled] before linking here.
  *
- * @param via where it was opened from (`more`, `prompt`, `report`), for the record of how people join.
+ * @param via where it was opened from (`more`, `prompt`, `report`), sent with the application.
  */
 @Serializable
 data class BuilderProgramRoute(val via: String = VIA_MORE) : Route() {

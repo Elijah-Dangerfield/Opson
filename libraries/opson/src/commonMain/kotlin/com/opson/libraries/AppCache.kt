@@ -34,6 +34,13 @@ data class AppData(
     val lastReviewPromptAt: Long = 0L,
 
     /**
+     * The Builder application whose decision this phone last showed (the Builders page or its
+     * prompt on Today), so the news is told once. An id is one account's, so a user change needs
+     * no reset.
+     */
+    val builderDecisionSeen: String? = null,
+
+    /**
      * Apple Health or Health Connect has been connected on this account: Connect went through,
      * or the store already let Opson read. Only the choice is kept here; health values are never
      * stored. Account-scoped.

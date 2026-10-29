@@ -89,8 +89,8 @@ way.
   copied rejections, audits and failed audits, auto-approvals since Trusted).
   From there you remove someone (with a reason; it takes the builder role and
   its Pro), restore them, or hold them at Builder whatever the record says. An
-  account that never joined reads "Not a Builder". Server side it's
-  `/v1/admin/users/{id}/builder`.
+  account that never joined reads "Not a Builder". Applications are decided
+  in the Builders tab. Server side it's `/v1/admin/users/{id}/builder`.
   Below that, **Moderation**: the account's standing, how much it contributed
   and from how many devices, and the buttons to Ban, Suspend (for N days) or
   Restrict contributions, with a reason, a note, "mark their devices" and
@@ -141,6 +141,19 @@ way.
   correction history takes it back. *Reject* and *Duplicate* close the
   reports and change nothing. Server side it's `/v1/admin/food-reports` and
   `/v1/admin/food-corrections`.
+- **Builders.** Applications to Opson Builders, oldest first, with the count
+  waiting on the tab. Each shows what they wrote about why they want to help,
+  how often they buy packaged food, their label region and photo choice, and
+  the account behind it: age, how much it logs, foods sent and how they went,
+  reports accepted and turned down, checks, any moderation (in force or
+  lifted), earlier applications and whether they were a Builder before.
+  **Accept** makes them a Builder (the membership and the builder role, which
+  brings Pro while they're active; audited under your actor name). **Decline**
+  takes an optional note they see in the app; they can apply again in 30 days.
+  Below, the latest decisions, with **Remove** (and a reason) for an accepted
+  Builder. **Open account** jumps to the account under Users. Server side it's
+  `/v1/admin/builders/applications` (`apps/server/README.md`, "The Builder
+  program").
 - **Waitlist.** The website waitlist for the connected environment: how many
   addresses, the newest 50 (page back with *Older*), *Export CSV*
   (`email,source,created_at`, downloaded by the browser), and *Remove*, per

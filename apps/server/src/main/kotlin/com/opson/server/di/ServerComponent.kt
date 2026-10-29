@@ -124,6 +124,7 @@ abstract class ServerComponent(
     /** The Builder program: membership, trust, routing and checks against the pack. See builder-program.md. */
     abstract val builderRepository: com.opson.server.domain.BuilderRepository
     abstract val builderService: com.opson.server.domain.BuilderService
+    abstract val builderApplicationRepository: com.opson.server.domain.BuilderApplicationRepository
     abstract val contributionRouter: com.opson.server.domain.ContributionRouter
     abstract val foodVerificationRepository: com.opson.server.domain.FoodVerificationRepository
 

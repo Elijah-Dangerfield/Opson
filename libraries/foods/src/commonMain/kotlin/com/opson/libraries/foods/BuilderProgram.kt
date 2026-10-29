@@ -29,7 +29,7 @@ enum class BuilderTrust(val wire: String) {
     }
 }
 
-/** Why Join isn't offered. */
+/** Why Apply isn't offered. */
 enum class JoinBlock(val wire: String) {
     /** A guest account. */
     Guest("guest"),
@@ -38,8 +38,14 @@ enum class JoinBlock(val wire: String) {
     TooNew("too_new"),
     Removed("removed"),
 
-    /** The program is at its cap for now. */
+    /** The program is at its cap. Only a server from before applications says it. */
     Full("full"),
+
+    /** An application is waiting for Opson. */
+    Pending("pending"),
+
+    /** Declined; [BuilderStanding.availableAt] is when they may apply again. */
+    Declined("declined"),
     ;
 
     companion object {
@@ -47,9 +53,49 @@ enum class JoinBlock(val wire: String) {
     }
 }
 
+/** Where one application to Builders is. Wire values match the server's. */
+enum class ApplicationStatus(val wire: String) {
+    Pending("pending"),
+    Accepted("accepted"),
+    Declined("declined"),
+    Withdrawn("withdrawn"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): ApplicationStatus? = entries.firstOrNull { it.wire == value }
+    }
+}
+
+/** The person's newest application. [note] is Opson's, with a decision; [reapplyAt] follows a decline. */
+data class BuilderApplication(
+    val id: String,
+    val status: ApplicationStatus,
+    val submittedAt: Instant,
+    val decidedAt: Instant? = null,
+    val note: String? = null,
+    val reapplyAt: Instant? = null,
+)
+
+/** How often someone buys packaged food. Wire values match the server's. */
+enum class ShoppingFrequency(val wire: String) { Weekly("weekly"), Monthly("monthly"), Rarely("rarely") }
+
+/** Where they shop, by the label format they will mostly photograph. Wire values match the server's. */
+enum class LabelRegion(val wire: String) { Us("us"), Canada("ca"), Uk("uk"), Eu("eu"), AustraliaNz("au_nz"), Other("other") }
+
+/** An application as the form sends it. [motivation] is optional; [via] is where they applied from. */
+data class BuilderApplicationForm(
+    val shopping: ShoppingFrequency,
+    val region: LabelRegion,
+    val motivation: String?,
+    val photoRetention: Boolean,
+    val via: String,
+)
+
 /**
  * The person's place in the program, from `GET /v1/builders/me`. [accepted30d] of [needed]
- * accepted contributions in 30 days keeps Pro on, until [proUntil].
+ * accepted contributions in 30 days keeps Pro on, until [proUntil]. [canApply] says Apply is open
+ * to them and [joinBlock] why not; [application] is their newest. [foodsAdded], [checks] and
+ * [rejected] are their record.
  */
 data class BuilderStanding(
     val status: BuilderStatus,
@@ -59,10 +105,14 @@ data class BuilderStanding(
     val accepted30d: Int = 0,
     val needed: Int = 10,
     val photoRetention: Boolean = false,
-    val canJoin: Boolean = false,
+    val canApply: Boolean = false,
     val joinBlock: JoinBlock? = null,
     val availableAt: Instant? = null,
     val termsVersion: String = "",
+    val application: BuilderApplication? = null,
+    val foodsAdded: Int = 0,
+    val checks: Int = 0,
+    val rejected: Int = 0,
 ) {
     val isActive: Boolean get() = status == BuilderStatus.Active
 }
@@ -82,8 +132,9 @@ sealed interface BuilderResult {
 /**
  * Opson Builders (`release.builders`, `docs/plans/feedback-2026-10-29/builder-program.md`):
  * people who photograph packs they have in hand to add and check foods, and get Pro while
- * they do. [standing] is null until the server has answered for this account; it is refreshed
- * whenever the account becomes active and after every change made here.
+ * they do. They apply, and Opson says yes or no. [standing] is null until the server has
+ * answered for this account; it is refreshed whenever the account becomes active and after
+ * every change made here.
  */
 interface BuilderProgram {
     val standing: StateFlow<BuilderStanding?>
@@ -93,12 +144,20 @@ interface BuilderProgram {
 
     suspend fun refresh(): BuilderResult
 
-    /** Joins with the rules accepted. [photoRetention] is the separate, optional consent. */
-    suspend fun join(photoRetention: Boolean): BuilderResult
+    /** Sends an application with the rules accepted. Becoming a Builder waits for Opson's answer. */
+    suspend fun sendApplication(form: BuilderApplicationForm): BuilderResult
+
+    /** Takes back a pending application. */
+    suspend fun withdraw(): BuilderResult
 
     suspend fun leave(): BuilderResult
 
     suspend fun setPhotoRetention(keep: Boolean): BuilderResult
+
+    /** Whether this phone has shown Opson's decision on application [id], on the page or as a prompt. */
+    suspend fun decisionSeen(id: String): Boolean
+
+    suspend fun markDecisionSeen(id: String)
 }
 
 /** What the phone read off a label photo, sent with a Builder's submission. Nothing here is logged. */

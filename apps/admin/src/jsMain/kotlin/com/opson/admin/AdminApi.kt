@@ -358,6 +358,8 @@ data class BuilderMeDto(
     val joinBlock: String? = null,
     val availableAtEpochMs: Long? = null,
     val termsVersion: String? = null,
+    /** Why they can't apply, in this server's codes (`pending`, `declined` too); [joinBlock] is the older apps' view. */
+    val applyBlock: String? = null,
 )
 
 /** The server's `AdminBuilderResponse`: standing, trust and the record behind it. */
@@ -381,6 +383,59 @@ data class AdminBuilderDto(
 
 @Serializable
 private data class BuilderActionRequest(val action: String, val reason: String? = null)
+
+/** The server's `ApplicantSummaryResponse`: the account behind an application, in counts and dates. */
+@Serializable
+data class ApplicantSummaryDto(
+    val email: String? = null,
+    val displayName: String? = null,
+    val isGuest: Boolean = false,
+    val accountCreatedAtEpochMs: Long? = null,
+    val entries: Long = 0,
+    val daysLogged: Long = 0,
+    val lastLogDay: String? = null,
+    val submissionsApproved: Int = 0,
+    val submissionsRejected: Int = 0,
+    val submissionsPending: Int = 0,
+    val reportsAccepted: Int = 0,
+    val reportsRejected: Int = 0,
+    val reportsOpen: Int = 0,
+    val checks: Int = 0,
+    val moderationActions: Int = 0,
+    val moderationActive: Int = 0,
+    val lastModerationReason: String? = null,
+    val earlierApplications: Int = 0,
+    val earlierDeclines: Int = 0,
+    val membership: String? = null,
+)
+
+/** The server's `AdminApplicationResponse`: one application to Builders. */
+@Serializable
+data class BuilderApplicationDto(
+    val id: String,
+    val userId: String,
+    val status: String,
+    val submittedAtEpochMs: Long,
+    val termsVersion: String = "",
+    val photoRetention: Boolean = false,
+    val motivation: String? = null,
+    val shopping: String? = null,
+    val region: String? = null,
+    val via: String? = null,
+    val decidedAtEpochMs: Long? = null,
+    val decidedBy: String? = null,
+    val note: String? = null,
+    val account: ApplicantSummaryDto = ApplicantSummaryDto(),
+)
+
+@Serializable
+data class BuilderApplicationListDto(val pending: Long = 0, val applications: List<BuilderApplicationDto> = emptyList())
+
+@Serializable
+data class BuilderDecisionDto(val pending: Long = 0, val application: BuilderApplicationDto)
+
+@Serializable
+private data class BuilderDecisionRequest(val note: String? = null)
 
 @Serializable
 data class BarcodeLinkDto(
@@ -567,6 +622,18 @@ class AdminApi(
             auth()
             contentType(ContentType.Application.Json)
             setBody(BuilderActionRequest(action, reason))
+        }.require()
+
+    /** [status] is `pending` (oldest first) or `decided` (newest first). [BuilderApplicationListDto.pending] counts the whole queue. */
+    suspend fun builderApplications(status: String = "pending"): BuilderApplicationListDto =
+        client.get("$base/v1/admin/builders/applications?status=${encode(status)}") { auth() }.require()
+
+    /** [decision] is `accept` (membership and the builder role) or `decline`. [note] is shown to the applicant. */
+    suspend fun decideBuilderApplication(id: String, decision: String, note: String?): BuilderDecisionDto =
+        client.post("$base/v1/admin/builders/applications/${encode(id)}/${encode(decision)}") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(BuilderDecisionRequest(note))
         }.require()
 
     suspend fun listBarcodeLinks(status: String = "pending"): List<BarcodeLinkDto> =

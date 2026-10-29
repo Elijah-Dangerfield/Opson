@@ -3,7 +3,7 @@ package com.opson.server.db
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.timestamp
 
-/** One row per person who joined the Builder program. See `V30__builders.sql`. */
+/** One row per person who joined the Builder program. See `V31__builders.sql`. */
 object BuilderMembersTable : Table("builder_members") {
     val userId = uuid("user_id")
     val status = text("status")
@@ -44,5 +44,24 @@ object FoodProvenanceTable : Table("food_provenance") {
     val acceptedBy = text("accepted_by").nullable()
     val rolledBackAt = timestamp("rolled_back_at").nullable()
     val rolledBackBy = text("rolled_back_by").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** One application to Builders (V32). At most one pending per account. */
+object BuilderApplicationsTable : Table("builder_applications") {
+    val id = uuid("id")
+    val userId = uuid("user_id")
+    val status = text("status")
+    val createdAt = timestamp("created_at")
+    val termsVersion = text("terms_version")
+    val photoRetention = bool("photo_retention")
+    val motivation = text("motivation").nullable()
+    val shopping = text("shopping").nullable()
+    val region = text("region").nullable()
+    val via = text("via").nullable()
+    val decidedAt = timestamp("decided_at").nullable()
+    val decidedBy = text("decided_by").nullable()
+    val decisionNote = text("decision_note").nullable()
+    val withdrawnAt = timestamp("withdrawn_at").nullable()
     override val primaryKey = PrimaryKey(id)
 }

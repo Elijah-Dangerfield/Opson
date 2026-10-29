@@ -2,6 +2,15 @@ package com.opson.server.routes
 
 import com.opson.server.config.AdminConfig
 import com.opson.server.data.CaptureLineJson
+import com.opson.server.domain.ApplicantSummary
+import com.opson.server.domain.ApplicationForm
+import com.opson.server.domain.ApplicationStatus
+import com.opson.server.domain.ApplyOutcome
+import com.opson.server.domain.BuilderApplication
+import com.opson.server.domain.BuilderApplicationRepository
+import com.opson.server.domain.DecideOutcome
+import com.opson.server.domain.LabelRegion
+import com.opson.server.domain.ShoppingFrequency
 import com.opson.server.domain.BuilderRules
 import com.opson.server.domain.BuilderService
 import com.opson.server.domain.BuilderStanding
@@ -19,7 +28,6 @@ import com.opson.server.domain.FoodSubmissionRepository
 import com.opson.server.domain.FoodVerification
 import com.opson.server.domain.FoodVerificationRepository
 import com.opson.server.domain.JoinBlock
-import com.opson.server.domain.JoinOutcome
 import com.opson.server.domain.Permission
 import com.opson.server.domain.Permissions
 import com.opson.server.domain.UserId
@@ -49,13 +57,16 @@ import org.slf4j.LoggerFactory
 import java.util.UUID
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /**
  * One person's place in the Builder program, as the app's Builder page draws it. [status] is
- * `none`, `active`, `left` or `removed`; [trust] a [com.opson.server.domain.TrustLevel] wire;
- * [joinBlock] why Join is not offered (`guest`, `too_new`, `removed`, `full`), with
- * [availableAtEpochMs] for `too_new`. [accepted30d] of [needed] keeps Pro on; [proUntilEpochMs]
- * is when Builder Pro runs out.
+ * `none`, `active`, `left` or `removed`; [trust] a [com.opson.server.domain.TrustLevel] wire.
+ * [canJoin] says they may apply now (an app from before applications calls it Join, and its Join
+ * now applies). [applyBlock] is why not (`guest`, `too_new`, `removed`, `pending`, `declined`), with
+ * [availableAtEpochMs] for `too_new` and `declined`; [joinBlock] is the same in the four codes an
+ * older app knows, `pending` and `declined` reading as `full`. [application] is their newest one.
+ * [accepted30d] of [needed] keeps Pro on; [proUntilEpochMs] is when Builder Pro runs out.
  */
 @Serializable
 data class BuilderMeResponse(
@@ -70,6 +81,45 @@ data class BuilderMeResponse(
     val joinBlock: String? = null,
     val availableAtEpochMs: Long? = null,
     val termsVersion: String = BuilderRules.TERMS_VERSION,
+    val applyBlock: String? = null,
+    val application: BuilderApplicationResponse? = null,
+    val stats: BuilderStatsResponse = BuilderStatsResponse(),
+)
+
+/**
+ * An application as the applicant sees it: [status] `pending`, `accepted`, `declined` or
+ * `withdrawn`; [note] is the owner's, if they wrote one; [reapplyAtEpochMs] is when a declined
+ * applicant may try again.
+ */
+@Serializable
+data class BuilderApplicationResponse(
+    val id: String,
+    val status: String,
+    val submittedAtEpochMs: Long,
+    val decidedAtEpochMs: Long? = null,
+    val note: String? = null,
+    val reapplyAtEpochMs: Long? = null,
+)
+
+/** What someone has done, for their Builder page: foods approved, checks that matched, submissions turned down. */
+@Serializable
+data class BuilderStatsResponse(val foodsAdded: Int = 0, val checks: Int = 0, val rejected: Int = 0)
+
+/**
+ * `POST /v1/builders/applications`. [shopping] is a [ShoppingFrequency] wire and [region] a
+ * [LabelRegion] wire, both required; [motivation] is optional, at most 500 characters. [id] makes
+ * a retry the same application.
+ */
+@Serializable
+data class BuilderApplicationRequest(
+    val id: String? = null,
+    val acceptTerms: Boolean = false,
+    val termsVersion: String? = null,
+    val photoRetention: Boolean = false,
+    val motivation: String? = null,
+    val shopping: String? = null,
+    val region: String? = null,
+    val via: String? = null,
 )
 
 @Serializable
@@ -106,22 +156,78 @@ data class AdminBuilderResponse(
 @Serializable
 data class AdminBuilderActionRequest(val action: String? = null, val reason: String? = null)
 
+/** The account behind an application, as the console's Builders tab shows it. Counts and dates only. */
+@Serializable
+data class ApplicantSummaryResponse(
+    val email: String? = null,
+    val displayName: String? = null,
+    val isGuest: Boolean = false,
+    val accountCreatedAtEpochMs: Long? = null,
+    val entries: Long = 0,
+    val daysLogged: Long = 0,
+    val lastLogDay: String? = null,
+    val submissionsApproved: Int = 0,
+    val submissionsRejected: Int = 0,
+    val submissionsPending: Int = 0,
+    val reportsAccepted: Int = 0,
+    val reportsRejected: Int = 0,
+    val reportsOpen: Int = 0,
+    val checks: Int = 0,
+    val moderationActions: Int = 0,
+    val moderationActive: Int = 0,
+    val lastModerationReason: String? = null,
+    val earlierApplications: Int = 0,
+    val earlierDeclines: Int = 0,
+    val membership: String? = null,
+)
+
+@Serializable
+data class AdminApplicationResponse(
+    val id: String,
+    val userId: String,
+    val status: String,
+    val submittedAtEpochMs: Long,
+    val termsVersion: String,
+    val photoRetention: Boolean,
+    val motivation: String? = null,
+    val shopping: String? = null,
+    val region: String? = null,
+    val via: String? = null,
+    val decidedAtEpochMs: Long? = null,
+    val decidedBy: String? = null,
+    val note: String? = null,
+    val account: ApplicantSummaryResponse,
+)
+
+@Serializable
+data class AdminApplicationListResponse(val pending: Long, val applications: List<AdminApplicationResponse>)
+
+@Serializable
+data class AdminApplicationDecisionRequest(val note: String? = null)
+
+@Serializable
+data class AdminApplicationDecisionResponse(val pending: Long, val application: AdminApplicationResponse)
+
 /**
  * The Builder program (builder-program.md), behind `release.builders` in the app:
  *
- *  - `GET  /v1/builders/me`            where the caller stands
- *  - `POST /v1/builders/join {acceptTerms, termsVersion, photoRetention}` joins: the `builder`
- *    role, and Pro while active. 400 `terms_required`; 403 `guest`, `too_new`, `removed`;
- *    409 `full`.
+ *  - `GET  /v1/builders/me`            where the caller stands, with their newest application
+ *  - `POST /v1/builders/applications {id, acceptTerms, termsVersion, photoRetention, motivation?, shopping, region, via?}`
+ *    applies; the owner decides in the console. 201 with the standing, 200 for a retry or an
+ *    active Builder. 400 `terms_required`, `invalid_application`; 403 `guest`, `too_new`,
+ *    `removed`, `declined` (with `availableAtEpochMs`).
+ *  - `POST /v1/builders/applications/withdraw` takes back the pending one
+ *  - `POST /v1/builders/join {acceptTerms, termsVersion, photoRetention}` is what an app from
+ *    before applications sends from Join. It applies now, with no answers to the questions, and
+ *    answers in the codes that app knows: a pending or declined application reads as `full`.
  *  - `POST /v1/builders/leave`         leaves; the role goes, the record stays
  *  - `PUT  /v1/builders/me {photoRetention}` changes the optional photo consent
  *  - `POST /v1/foods/{foodId}/verifications {id, engine, lines}` a Builder checked a food
  *    against its pack: the label's text, read on the phone. Confirmed when every headline
  *    number of the food is in it. No photo. 403 `not_a_builder`, 404, 409 `id_conflict`, 429.
  *
- * Self-serve, as builder-program.md's open enrolment has it, bounded by `builders.capacity`
- * rather than a waitlist: the same gates keep out guests and brand-new accounts, and the owner
- * can set the cap low for a closed alpha. Nothing logged names a food or a number.
+ * Nobody becomes a Builder through these: only the owner's Accept does (docs/decisions.md,
+ * "Builders apply"). Nothing logged names a food, a number or what someone wrote.
  */
 @OptIn(ExperimentalTime::class)
 @Suppress("LongParameterList", "LongMethod")
@@ -151,23 +257,62 @@ fun Route.builderRoutes(
                 call.respond(builders.standing(userId, call.isAnonymousUser()).toMe())
             }
 
+            post("/applications") {
+                val userId = call.userId() ?: return@post call.unauthorized()
+                val request = call.receive<BuilderApplicationRequest>()
+                if (!request.acceptTerms || request.termsVersion != BuilderRules.TERMS_VERSION) {
+                    return@post call.respond(HttpStatusCode.BadRequest, problem("terms_required", "Accept the Builder rules first."))
+                }
+                val shopping = ShoppingFrequency.fromWire(request.shopping)
+                val region = LabelRegion.fromWire(request.region)
+                val motivation = request.motivation?.trim()?.ifEmpty { null }
+                val id = request.id?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                if (shopping == null || region == null || (motivation?.length ?: 0) > MAX_MOTIVATION || (request.id != null && id == null)) {
+                    return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_application", "Answer both questions, and keep the note short."))
+                }
+                val applicationId = id ?: UUID.randomUUID()
+                val form = ApplicationForm(request.photoRetention, motivation, shopping, region, request.via?.take(MAX_VIA))
+                when (val outcome = builders.apply(userId, call.isAnonymousUser(), form, applicationId)) {
+                    is ApplyOutcome.Applied -> {
+                        val created = outcome.created
+                        if (created) logger.info("builder application sent region={} shopping={}", region.wire, shopping.wire)
+                        call.respond(if (created) HttpStatusCode.Created else HttpStatusCode.OK, outcome.standing.toMe())
+                    }
+                    is ApplyOutcome.AlreadyBuilder -> call.respond(outcome.standing.toMe())
+                    is ApplyOutcome.Blocked -> {
+                        logger.info("builder application blocked code={}", outcome.block.code)
+                        call.respond(HttpStatusCode.Forbidden, outcome.block.problem(legacy = false))
+                    }
+                    ApplyOutcome.NoSuchUser -> call.unauthorized()
+                }
+            }
+
+            post("/applications/withdraw") {
+                val userId = call.userId() ?: return@post call.unauthorized()
+                if (builders.withdraw(userId)) logger.info("builder application withdrawn")
+                call.respond(builders.standing(userId, call.isAnonymousUser()).toMe())
+            }
+
+            // An app from before applications: its Join applies, and hears back in the codes it knows.
             post("/join") {
                 val userId = call.userId() ?: return@post call.unauthorized()
                 val request = call.receive<BuilderJoinRequest>()
                 if (!request.acceptTerms || request.termsVersion != BuilderRules.TERMS_VERSION) {
                     return@post call.respond(HttpStatusCode.BadRequest, problem("terms_required", "Accept the Builder rules first."))
                 }
-                when (val outcome = builders.join(userId, call.isAnonymousUser(), request.photoRetention)) {
-                    is JoinOutcome.Joined -> {
-                        logger.info("builder joined retention={}", request.photoRetention)
+                val form = ApplicationForm(photoRetention = request.photoRetention, via = VIA_LEGACY_JOIN)
+                when (val outcome = builders.apply(userId, call.isAnonymousUser(), form)) {
+                    is ApplyOutcome.Applied -> {
+                        if (outcome.created) logger.info("builder application sent from join")
                         call.respond(outcome.standing.toMe())
                     }
-                    is JoinOutcome.Blocked -> {
+                    is ApplyOutcome.AlreadyBuilder -> call.respond(outcome.standing.toMe())
+                    is ApplyOutcome.Blocked -> {
                         logger.info("builder join blocked code={}", outcome.block.code)
-                        val status = if (outcome.block == JoinBlock.Full) HttpStatusCode.Conflict else HttpStatusCode.Forbidden
-                        call.respond(status, problem(outcome.block.code, outcome.block.message()))
+                        val status = if (outcome.block.legacyCode == JoinBlock.Full.code) HttpStatusCode.Conflict else HttpStatusCode.Forbidden
+                        call.respond(status, outcome.block.problem(legacy = true))
                     }
-                    JoinOutcome.NoSuchUser -> call.unauthorized()
+                    ApplyOutcome.NoSuchUser -> call.unauthorized()
                 }
             }
 
@@ -223,14 +368,27 @@ fun Route.builderRoutes(
 }
 
 /**
- * The console's view of one Builder, under the Users › Access page:
+ * The console's view of the Builder program:
  *
- *  - `GET  /v1/admin/users/{id}/builder`  standing, trust and the record behind it
+ *  - `GET  /v1/admin/users/{id}/builder`  one account's standing, trust and the record behind it
  *  - `POST /v1/admin/users/{id}/builder {action, reason?}` `remove` (with a reason), `restore`,
  *    `hold` (keep at Builder whatever the record says) or `release`
+ *  - `GET  /v1/admin/builders/applications?status=pending|decided` the queue, oldest first, or
+ *    the latest decisions, each with the account behind it; `pending` counts the whole queue
+ *  - `POST /v1/admin/builders/applications/{id}/accept {note?}` makes them a Builder: the
+ *    membership and the `builder` role, audited under `X-Admin-Actor`. 409 `not_pending`,
+ *    `restricted`, `full`.
+ *  - `POST /v1/admin/builders/applications/{id}/decline {note?}` the note is shown to them
  */
 @OptIn(ExperimentalTime::class)
-fun Route.builderAdminRoutes(config: AdminConfig, builders: BuilderService, repository: BuilderRepository) {
+@Suppress("LongMethod")
+fun Route.builderAdminRoutes(
+    config: AdminConfig,
+    builders: BuilderService,
+    repository: BuilderRepository,
+    applications: BuilderApplicationRepository,
+) {
+    val logger = LoggerFactory.getLogger("BuilderAdminRoutes")
     route("/v1/admin/users/{id}/builder") {
         get {
             if (!call.requireAdmin(config)) return@get
@@ -242,7 +400,7 @@ fun Route.builderAdminRoutes(config: AdminConfig, builders: BuilderService, repo
             if (!call.requireAdmin(config)) return@post
             val userId = call.adminUserId() ?: return@post
             val request = call.receive<AdminBuilderActionRequest>()
-            val actor = call.request.header("X-Admin-Actor")?.trim()?.take(MAX_ACTOR)?.ifEmpty { null } ?: "admin"
+            val actor = call.adminActor()
             val reason = request.reason?.trim()?.ifEmpty { null }?.take(MAX_REASON)
             val done = when (request.action) {
                 "remove" -> builders.remove(userId, actor, reason ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_reason", "Say why.")))
@@ -255,7 +413,53 @@ fun Route.builderAdminRoutes(config: AdminConfig, builders: BuilderService, repo
             call.respond(builders.standing(userId).toAdmin())
         }
     }
+
+    route("/v1/admin/builders/applications") {
+        get {
+            if (!call.requireAdmin(config)) return@get
+            val list = when (call.request.queryParameters["status"] ?: "pending") {
+                "pending" -> applications.pending(MAX_LISTED)
+                "decided" -> applications.decided(MAX_LISTED)
+                else -> return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_status", "pending or decided"))
+            }
+            val rows = list.map { it.toAdmin(applications.summary(it.userId, excluding = it.id)) }
+            call.respond(AdminApplicationListResponse(applications.pendingCount(), rows))
+        }
+
+        post("/{applicationId}/{decision}") {
+            if (!call.requireAdmin(config)) return@post
+            val id = call.parameters["applicationId"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "Not an application id."))
+            val note = call.receive<AdminApplicationDecisionRequest>().note?.trim()?.ifEmpty { null }?.take(MAX_REASON)
+            val actor = call.adminActor()
+            val outcome = when (call.parameters["decision"]) {
+                "accept" -> builders.accept(id, actor, note)
+                "decline" -> builders.decline(id, actor, note)
+                else -> return@post call.respond(HttpStatusCode.NotFound, problem("not_found", "accept or decline"))
+            }
+            when (outcome) {
+                is DecideOutcome.Decided -> {
+                    logger.info("builder application {}", outcome.application.status.wire)
+                    val row = outcome.application.toAdmin(applications.summary(outcome.application.userId, excluding = id))
+                    call.respond(AdminApplicationDecisionResponse(applications.pendingCount(), row))
+                }
+                DecideOutcome.NotFound -> call.respond(HttpStatusCode.NotFound, problem("not_found", "No such application."))
+                DecideOutcome.NotPending -> call.respond(HttpStatusCode.Conflict, problem("not_pending", "Already decided or withdrawn."))
+                DecideOutcome.Restricted -> call.respond(
+                    HttpStatusCode.Conflict,
+                    problem("restricted", "This account is banned, restricted or on a marked device, so it can't get Builder Pro."),
+                )
+                is DecideOutcome.Full -> call.respond(
+                    HttpStatusCode.Conflict,
+                    problem("full", "Builders is at builders.capacity (${outcome.capacity}). Raise it to accept more."),
+                )
+            }
+        }
+    }
 }
+
+private fun ApplicationCall.adminActor(): String =
+    request.header("X-Admin-Actor")?.trim()?.take(MAX_ACTOR)?.ifEmpty { null } ?: "admin"
 
 private suspend fun ApplicationCall.unauthorized() = respond(HttpStatusCode.Unauthorized, problem("unauthorized", "Sign in again"))
 
@@ -267,11 +471,23 @@ private suspend fun ApplicationCall.adminUserId(): UserId? {
 
 @OptIn(ExperimentalTime::class)
 private fun JoinBlock.message(): String = when (this) {
-    JoinBlock.Guest -> "Sign in with an account to join."
+    JoinBlock.Guest -> "Sign in with an account to apply."
     is JoinBlock.TooNew -> "Add a food from its label first, or try again in a few days."
-    JoinBlock.Removed -> "This account can't join Builders."
+    JoinBlock.Removed -> "This account can't apply to Builders."
     JoinBlock.Full -> "Builders is full right now."
+    JoinBlock.Pending -> "Your application is with us. We'll let you know."
+    is JoinBlock.Declined -> "You can apply again later."
 }
+
+@OptIn(ExperimentalTime::class)
+private fun JoinBlock.availableAt(): Instant? = when (this) {
+    is JoinBlock.TooNew -> availableAt
+    is JoinBlock.Declined -> availableAt
+    else -> null
+}
+
+/** The problem envelope for a block, in an older app's codes when [legacy]. */
+private fun JoinBlock.problem(legacy: Boolean) = problem(if (legacy) legacyCode else code, message())
 
 @OptIn(ExperimentalTime::class)
 internal fun BuilderStanding.toMe() = BuilderMeResponse(
@@ -283,8 +499,64 @@ internal fun BuilderStanding.toMe() = BuilderMeResponse(
     accepted30d = history.accepted30d,
     photoRetention = membership?.photoRetention == true,
     canJoin = !isActive && joinBlock == null,
-    joinBlock = joinBlock?.code,
-    availableAtEpochMs = (joinBlock as? JoinBlock.TooNew)?.availableAt?.toEpochMilliseconds(),
+    joinBlock = joinBlock?.legacyCode,
+    availableAtEpochMs = joinBlock?.availableAt()?.toEpochMilliseconds(),
+    applyBlock = joinBlock?.code,
+    application = application?.toMe(),
+    stats = BuilderStatsResponse(
+        foodsAdded = history.approvedSubmissions,
+        checks = history.confirmedChecks,
+        rejected = history.rejectedSubmissions,
+    ),
+)
+
+@OptIn(ExperimentalTime::class)
+private fun BuilderApplication.toMe() = BuilderApplicationResponse(
+    id = id.toString(),
+    status = status.wire,
+    submittedAtEpochMs = createdAt.toEpochMilliseconds(),
+    decidedAtEpochMs = decidedAt?.toEpochMilliseconds(),
+    note = decisionNote,
+    reapplyAtEpochMs = decidedAt?.takeIf { status == ApplicationStatus.Declined }?.let { (it + BuilderRules.REAPPLY_AFTER).toEpochMilliseconds() },
+)
+
+@OptIn(ExperimentalTime::class)
+private fun BuilderApplication.toAdmin(summary: ApplicantSummary) = AdminApplicationResponse(
+    id = id.toString(),
+    userId = userId.value.toString(),
+    status = status.wire,
+    submittedAtEpochMs = createdAt.toEpochMilliseconds(),
+    termsVersion = termsVersion,
+    photoRetention = photoRetention,
+    motivation = motivation,
+    shopping = shopping?.wire,
+    region = region?.wire,
+    via = via,
+    decidedAtEpochMs = decidedAt?.toEpochMilliseconds(),
+    decidedBy = decidedBy,
+    note = decisionNote,
+    account = ApplicantSummaryResponse(
+        email = summary.email,
+        displayName = summary.displayName,
+        isGuest = summary.isGuest,
+        accountCreatedAtEpochMs = summary.accountCreatedAt?.toEpochMilliseconds(),
+        entries = summary.entries,
+        daysLogged = summary.daysLogged,
+        lastLogDay = summary.lastLogDay,
+        submissionsApproved = summary.submissionsApproved,
+        submissionsRejected = summary.submissionsRejected,
+        submissionsPending = summary.submissionsPending,
+        reportsAccepted = summary.reportsAccepted,
+        reportsRejected = summary.reportsRejected,
+        reportsOpen = summary.reportsOpen,
+        checks = summary.checks,
+        moderationActions = summary.moderationActions,
+        moderationActive = summary.moderationActive,
+        lastModerationReason = summary.lastModerationReason,
+        earlierApplications = summary.earlierApplications,
+        earlierDeclines = summary.earlierDeclines,
+        membership = summary.membership,
+    ),
 )
 
 @OptIn(ExperimentalTime::class)
@@ -310,3 +582,9 @@ private fun FoodVerification.toResponse(missing: List<String>) =
 
 private const val MAX_ACTOR = 100
 private const val MAX_REASON = 500
+private const val MAX_MOTIVATION = 500
+private const val MAX_VIA = 16
+private const val MAX_LISTED = 100
+
+/** `via` for an application sent from an older app's Join. */
+private const val VIA_LEGACY_JOIN = "join"

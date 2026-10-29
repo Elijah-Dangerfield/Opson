@@ -351,3 +351,7 @@ where the person photographs the panel themselves. Nothing is read from the
 scanner's own frames (`docs/plans/feedback-2026-10-29/passive-label-capture.md`,
 option D). A miss goes to Add a packaged food, in Builder mode.
 
+
+More › Builders' "Check a food against its pack" opens the scanner the same way
+(`CheckPackRoute`) with the switch already on. There a miss adds the food
+without logging it, and "Search instead" goes back to the Builders page.

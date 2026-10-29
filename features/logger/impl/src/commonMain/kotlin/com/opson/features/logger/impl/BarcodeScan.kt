@@ -14,10 +14,17 @@ import kotlinx.serialization.Serializable
  * The barcode scanner, a full screen: only the add sheet and search
  * open it, so the route lives in the impl like [FoodDetailRoute]. [dayIso]
  * and [slot] are where a found food is logged; [overSearch] when search opened it, so "Search
- * instead" goes back to it rather than opening another. Behind [BarcodeScanEnabled].
+ * instead" goes back to it rather than opening another. Behind [BarcodeScanEnabled]. [checkPack]
+ * is a Builder checking packs (`CheckPackRoute`): Also read the label starts on, a miss adds the
+ * food without logging it, and "Search instead" goes back to where they came from.
  */
 @Serializable
-data class BarcodeScanRoute(val dayIso: String, val slot: MealSlot, val overSearch: Boolean = false) : Route()
+data class BarcodeScanRoute(
+    val dayIso: String,
+    val slot: MealSlot,
+    val overSearch: Boolean = false,
+    val checkPack: Boolean = false,
+) : Route()
 
 /**
  * What the scanner draws. A found food leaves for the food detail before
@@ -147,7 +154,8 @@ sealed interface BarcodeScanEvent {
     data object Close : BarcodeScanEvent
 
     /** "Add this food": the pack's photos, in this screen's place, for the code that missed. */
-    data class OpenSubmitFood(val day: LocalDate, val slot: MealSlot, val code: String) : BarcodeScanEvent
+    /** [logs] is false for a Builder checking packs: the food is added, not eaten. */
+    data class OpenSubmitFood(val day: LocalDate, val slot: MealSlot, val code: String, val logs: Boolean = true) : BarcodeScanEvent
 
     /** The day is closed (Close the day, maybe on another phone): the name saved on a miss was not logged. */
     data class DayClosed(val day: LocalDate) : BarcodeScanEvent

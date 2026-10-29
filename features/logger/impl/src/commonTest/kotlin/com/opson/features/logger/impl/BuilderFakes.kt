@@ -4,6 +4,7 @@ package com.opson.features.logger.impl
 
 import com.opson.features.builder.BuildersEnabled
 import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.foods.BuilderApplicationForm
 import com.opson.libraries.foods.BuilderProgram
 import com.opson.libraries.foods.BuilderResult
 import com.opson.libraries.foods.BuilderStanding
@@ -38,9 +39,12 @@ class FakeBuilderProgram(active: Boolean = false) : BuilderProgram {
     override val standing: StateFlow<BuilderStanding?> = state
 
     override suspend fun refresh(): BuilderResult = BuilderResult.Done(checkNotNull(state.value))
-    override suspend fun join(photoRetention: Boolean): BuilderResult = refresh()
+    override suspend fun sendApplication(form: BuilderApplicationForm): BuilderResult = refresh()
+    override suspend fun withdraw(): BuilderResult = refresh()
     override suspend fun leave(): BuilderResult = refresh()
     override suspend fun setPhotoRetention(keep: Boolean): BuilderResult = refresh()
+    override suspend fun decisionSeen(id: String): Boolean = false
+    override suspend fun markDecisionSeen(id: String) = Unit
 }
 
 /** Reads [lines] off any photo, or answers [result] when set. */

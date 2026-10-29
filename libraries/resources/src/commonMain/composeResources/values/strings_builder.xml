@@ -1,28 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Copy for Opson Builders (release.builders): More › Builders, the join prompt, Builder mode
-  in Add a packaged food, Check against the pack, and the scanner's Also read the label.
-  "Opson Builders" once where someone joins, "Builder" everywhere else (builder-program.md).
-  Same rules as strings.xml: no backslash escapes, positional %1$s arguments.
+  Copy for Opson Builders (release.builders): More › Builders, the application, the prompts,
+  Builder mode in Add a packaged food, Check against the pack, and the scanner's Also read the label.
+  "Opson Builders" once where someone applies, "Builder" everywhere else (builder-program.md).
+  Short and plain: one idea a line. Same rules as strings.xml: no backslash escapes, positional
+  %1$s arguments.
 -->
 <resources>
     <!-- More -->
     <string name="builder_more_section">Opson Builders</string>
     <string name="builder_more_row">Builders</string>
-    <string name="builder_more_row_sub">Add and check foods, get Pro</string>
+    <string name="builder_more_row_sub">Add foods, get Pro</string>
     <string name="builder_more_row_sub_member">You're a Builder</string>
+    <string name="builder_more_row_sub_applied">Application sent</string>
 
-    <!-- The page -->
+    <!-- The page: before applying -->
     <string name="builder_title">Builders</string>
     <string name="builder_back">More</string>
-    <string name="builder_intro_title">Help build Opson's food database</string>
-    <string name="builder_intro_body">Opson Builders photograph packs they have at home to add missing foods and check the ones already here. Every food you add or check helps everyone who scans it after you.</string>
-    <string name="builder_get_title">What you get</string>
-    <string name="builder_get_body">Pro, free, while you're active. Ten accepted foods or checks in 30 days keeps it on. You get your first month as soon as you join.</string>
-    <string name="builder_how_title">How it works</string>
-    <string name="builder_how_add">Add a food: photograph the front, the nutrition label and, if you like, the ingredients. Your phone reads the label and fills in the numbers for you to check.</string>
-    <string name="builder_how_check">Check a food: on any food from a pack you have, choose Check against the pack and photograph its label.</string>
-    <string name="builder_how_report">See something wrong? Report it from the food, as anyone can.</string>
+    <string name="builder_intro_title">Help fill in Opson's food database</string>
+    <string name="builder_intro_body">Builders add the packaged foods in their kitchen, and get Pro free while they do.</string>
+    <string name="builder_steps_title">How it works</string>
+    <string name="builder_step_front">Photograph the front</string>
+    <string name="builder_step_label">Photograph the label</string>
+    <string name="builder_step_check">We check it</string>
+    <string name="builder_apply">Apply</string>
+    <string name="builder_apply_again">Apply again</string>
+    <string name="builder_rules_row">Read the rules</string>
+    <string name="builder_rules_row_sub">Your own photos of real packs</string>
+
+    <!-- Can't apply -->
+    <string name="builder_blocked_guest">Builders need an account. Sign in with Apple, Google or email first.</string>
+    <string name="builder_blocked_too_new">Add one food from its label first, or come back on %1$s.</string>
+    <string name="builder_blocked_removed">This account can't join Builders. If you think that's a mistake, write to support.</string>
+    <string name="builder_blocked_full">Builders is full right now. We'll open more spots soon.</string>
+    <string name="builder_blocked_declined">You can apply again a month after a decision.</string>
+    <string name="builder_unavailable">Builders isn't open yet. Check back soon.</string>
+    <string name="builder_offline">You're offline. Try again when you're back online.</string>
+    <string name="builder_failed">That didn't go through. Try again in a moment.</string>
+    <string name="builder_loading_cd">Loading</string>
+    <string name="builder_retry">Try again</string>
+
+    <!-- Applied -->
+    <string name="builder_applied_title">Application received</string>
+    <string name="builder_applied_body">We'll let you know. You sent it on %1$s.</string>
+    <string name="builder_withdraw">Withdraw application</string>
+    <string name="builder_withdraw_confirm_title">Withdraw your application?</string>
+    <string name="builder_withdraw_confirm_body">You can apply again whenever you like.</string>
+    <string name="builder_withdraw_confirm">Withdraw</string>
+    <string name="builder_withdraw_cancel">Keep it</string>
+
+    <!-- Declined -->
+    <string name="builder_declined_title">Not this time</string>
+    <string name="builder_declined_body">Thanks for offering to help. We can't add you to Builders right now.</string>
+    <string name="builder_declined_note">A note from us</string>
+    <string name="builder_declined_again_on">You can apply again on %1$s.</string>
+
+    <!-- A Builder -->
+    <string name="builder_welcome_title">You're in. Welcome to Builders.</string>
+    <string name="builder_welcome_body">Start with any pack in your kitchen. Each food you add helps the next person who scans it.</string>
+    <string name="builder_status_title">You're a Builder</string>
+    <string name="builder_status_trusted">You're a Trusted Builder</string>
+    <string name="builder_status_trusted_body">Your foods match what reviewers find, so some go in without waiting.</string>
+    <string name="builder_pro_title">Pro while you're active</string>
+    <string name="builder_pro_progress">%1$d of %2$d this month</string>
+    <string name="builder_pro_until">Pro is on until %1$s.</string>
+    <string name="builder_pro_ended">Pro ended on %1$s. Get to %2$d this month to turn it back on.</string>
+    <string name="builder_add_food">Add a food</string>
+    <string name="builder_add_food_sub">Photograph a pack Opson doesn't have</string>
+    <string name="builder_check_food">Check a food against its pack</string>
+    <string name="builder_check_food_sub">Scan the barcode, then the label</string>
+    <string name="builder_stats_foods">Foods added</string>
+    <string name="builder_stats_checks">Checks</string>
+    <string name="builder_stats_accepted">Accepted</string>
+    <string name="builder_retention_on">Keep my label photos for 2 years</string>
+    <string name="builder_retention_on_sub">So Opson can test how well it reads labels</string>
+    <string name="builder_leave">Leave Builders</string>
+    <string name="builder_leave_confirm_title">Leave Builders?</string>
+    <string name="builder_leave_confirm_body">Builder Pro ends now. The foods you added stay in Opson. To come back, you'd apply again.</string>
+    <string name="builder_leave_confirm">Leave</string>
+    <string name="builder_leave_cancel">Stay</string>
+    <string name="builder_removed_title">You're no longer a Builder</string>
+    <string name="builder_removed_body">This account was taken out of Builders. You can still log food as always. If you think that's a mistake, write to support.</string>
+
+    <!-- The application -->
+    <string name="builder_apply_title">Apply to Opson Builders</string>
+    <string name="builder_apply_intro">Two quick questions. A person reads every application.</string>
+    <string name="builder_apply_shopping">How often do you buy packaged food?</string>
+    <string name="builder_shopping_weekly">Every week</string>
+    <string name="builder_shopping_monthly">A few times a month</string>
+    <string name="builder_shopping_rarely">Less often</string>
+    <string name="builder_apply_region">Where do you shop?</string>
+    <string name="builder_apply_region_sub">Labels look different from place to place.</string>
+    <string name="builder_region_us">United States</string>
+    <string name="builder_region_ca">Canada</string>
+    <string name="builder_region_uk">United Kingdom</string>
+    <string name="builder_region_eu">European Union</string>
+    <string name="builder_region_au_nz">Australia or New Zealand</string>
+    <string name="builder_region_other">Somewhere else</string>
+    <string name="builder_apply_why">Why do you want to help? (optional)</string>
+    <string name="builder_apply_why_hint">A line or two is plenty</string>
+    <string name="builder_agree">I've read the rules and I'll follow them</string>
+    <string name="builder_rules_show">Read the rules</string>
+    <string name="builder_rules_hide">Hide the rules</string>
+    <string name="builder_retention">Keep my label photos for up to 2 years so Opson can test how well it reads labels (optional)</string>
+    <string name="builder_apply_send">Send application</string>
+    <string name="builder_apply_sending">Sending…</string>
+
+    <!-- The rules -->
     <string name="builder_rules_title">The rules</string>
     <string name="builder_rule_real">Photograph only packs you have in front of you. No photos from websites, other apps or other people.</string>
     <string name="builder_rule_copy">Don't copy numbers from other apps or databases. Type what the label says.</string>
@@ -30,47 +114,17 @@
     <string name="builder_rule_one">One account per person. There's no payment, and Opson can change or end the program with notice.</string>
     <string name="builder_rule_removal">Fake or copied data means removal from Builders, the end of Builder Pro and removal of your contributions. It can also mean a ban.</string>
     <string name="builder_terms_link">Read the full terms</string>
-    <string name="builder_agree">I've read the rules and I'll follow them</string>
-    <string name="builder_retention">Keep my label photos for up to 2 years so Opson can test how well it reads labels (optional)</string>
-    <string name="builder_join">Join Opson Builders</string>
-    <string name="builder_joining">Joining…</string>
 
-    <!-- Can't join -->
-    <string name="builder_blocked_guest">Builders need an account. Sign in with Apple, Google or email first.</string>
-    <string name="builder_blocked_too_new">Add one food from its label first, or come back on %1$s.</string>
-    <string name="builder_blocked_removed">This account can't join Builders. If you think that's a mistake, write to support.</string>
-    <string name="builder_blocked_full">Builders is full right now. We'll open more spots soon.</string>
-    <string name="builder_unavailable">Builders isn't open yet. Check back soon.</string>
-    <string name="builder_offline">You're offline. Try again when you're back online.</string>
-    <string name="builder_failed">That didn't go through. Try again in a moment.</string>
-
-    <!-- Joined -->
-    <string name="builder_status_title">You're a Builder</string>
-    <string name="builder_status_trusted">You're a Trusted Builder</string>
-    <string name="builder_status_trusted_body">Your foods have a long record of matching what reviewers found, so some go in without waiting.</string>
-    <string name="builder_progress">%1$d of %2$d accepted in the last 30 days</string>
-    <string name="builder_pro_until">Pro is on until %1$s</string>
-    <string name="builder_pro_ended">Builder Pro ended on %1$s. Ten accepted foods or checks turn it back on.</string>
-    <string name="builder_add_food">Add a food from its pack</string>
-    <string name="builder_tip_check">To check a food, open it and choose Check against the pack.</string>
-    <string name="builder_retention_on">Keep my label photos for up to 2 years</string>
-    <string name="builder_leave">Leave Builders</string>
-    <string name="builder_leave_confirm_title">Leave Builders?</string>
-    <string name="builder_leave_confirm_body">Builder Pro ends now. The foods you added stay in Opson's food database. You can join again later.</string>
-    <string name="builder_leave_confirm">Leave</string>
-    <string name="builder_leave_cancel">Stay</string>
-    <string name="builder_left_title">You've left Builders</string>
-    <string name="builder_left_body">You can join again any time.</string>
-    <string name="builder_rejoin">Join again</string>
-    <string name="builder_removed_title">You're no longer a Builder</string>
-    <string name="builder_removed_body">This account was taken out of Builders. You can still log food as always. If you think that's a mistake, write to support.</string>
-    <string name="builder_loading_cd">Loading</string>
-    <string name="builder_retry">Try again</string>
-
-    <!-- The prompt on Today -->
-    <string name="builder_prompt_title">Help build Opson's food database</string>
-    <string name="builder_prompt_body">Builders add and check foods from the packs in their kitchen, and get Pro while they do.</string>
+    <!-- Prompts on Today -->
+    <string name="builder_prompt_title">Help fill in Opson's food database</string>
+    <string name="builder_prompt_body">Builders add the foods in their kitchen from the pack, and get Pro while they do.</string>
     <string name="builder_prompt_accept">Tell me more</string>
+    <string name="builder_accepted_prompt_title">You're in. Welcome to Builders.</string>
+    <string name="builder_accepted_prompt_body">Thanks for helping. Add a food or check one you have, and Pro is yours while you're active.</string>
+    <string name="builder_accepted_prompt_accept">Start</string>
+    <string name="builder_declined_prompt_title">About your Builders application</string>
+    <string name="builder_declined_prompt_body">We can't add you right now. Thanks for offering to help.</string>
+    <string name="builder_declined_prompt_accept">See more</string>
 
     <!-- Builder mode in Add a packaged food -->
     <string name="builder_mode_badge">Builder mode</string>

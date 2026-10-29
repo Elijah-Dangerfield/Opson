@@ -27,7 +27,10 @@ fun main() {
     renderComposable(rootElementId = "root") { App() }
 }
 
-private enum class Tab(val label: String) { Flags("Flags"), Versions("Versions"), Audit("Audit"), Diff("Dev ↔ Prod"), Users("Users"), Entitlements("Entitlements"), Review("Review"), Waitlist("Waitlist") }
+private enum class Tab(val label: String) {
+    Flags("Flags"), Versions("Versions"), Audit("Audit"), Diff("Dev ↔ Prod"), Users("Users"), Entitlements("Entitlements"),
+    Review("Review"), Builders("Builders"), Waitlist("Waitlist"),
+}
 
 /** The env whose server is serving this console, when hosted at `/admin`. */
 private fun hostedEnv(): AdminEnv? =
@@ -55,6 +58,9 @@ private fun App() {
             },
         )
     }
+    var openUserId by remember { mutableStateOf(linkedUserId) }
+    // Applications to Builders waiting for a decision, for the tab's badge; null until known.
+    var buildersPending by remember { mutableStateOf<Long?>(null) }
     var pendingConfirm by remember { mutableStateOf<PendingWrite?>(null) }
     var errorLog by remember { mutableStateOf<List<ErrorEntry>>(emptyList()) }
 
@@ -84,6 +90,7 @@ private fun App() {
         manifestVersions = emptyList()
         versionsSelected = null
         versionsEntries = emptyList()
+        buildersPending = null
     }
 
     fun resolveNow() {
@@ -107,6 +114,8 @@ private fun App() {
                 .onFailure { setStatus(Status(false, it.message ?: "Failed to load flags")) }
                 .getOrNull() ?: return@launch
             flags = loaded
+            // Best-effort: a server from before applications just shows no badge.
+            buildersPending = Catching { a.builderApplications("pending").pending }.getOrNull()
 
             // The version manifest + per-target resolve are newer endpoints; if
             // the connected server predates them, keep the flag editor working
@@ -282,7 +291,7 @@ private fun App() {
                                 manifestVersions.firstOrNull()?.let { selectVersion(it.versionCode) }
                             }
                         }
-                    }) { Text(t.label) }
+                    }) { Text(if (t == Tab.Builders) buildersTabLabel(buildersPending) else t.label) }
                 }
             }
 
@@ -308,11 +317,20 @@ private fun App() {
 
                 Tab.Diff -> DiffView(ctx = ctx, connectedEnv = env)
 
-                Tab.Users -> UsersView(ctx = ctx, openId = linkedUserId)
+                Tab.Users -> UsersView(ctx = ctx, openId = openUserId)
 
                 Tab.Entitlements -> EntitlementsView(ctx = ctx)
 
                 Tab.Review -> ReviewView(ctx = ctx, openId = reviewId)
+
+                Tab.Builders -> BuildersView(
+                    ctx = ctx,
+                    onPending = { buildersPending = it },
+                    onOpenUser = {
+                        openUserId = it
+                        tab = Tab.Users
+                    },
+                )
 
                 Tab.Waitlist -> WaitlistView(ctx = ctx)
             }
