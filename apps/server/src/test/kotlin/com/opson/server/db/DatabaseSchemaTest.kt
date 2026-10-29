@@ -35,7 +35,7 @@ class DatabaseSchemaTest : DatabaseTest() {
                 CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable, ExercisesTable, WaitlistTable,
                 AppleRefreshTokensTable, SubmittedFoodsTable, FoodSubmissionsTable, FoodSubmissionPhotosTable,
                 BarcodeLinkSuggestionsTable, AppConfigValuesTable, AppConfigRulesTable, AppConfigAuditTable,
-                AppConfigManifestTable,
+                AppConfigManifestTable, UserRolesTable, EntitlementGrantsTable, AccessAuditTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }

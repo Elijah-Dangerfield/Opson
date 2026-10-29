@@ -27,7 +27,8 @@ import org.jetbrains.compose.web.dom.Tr
 
 /**
  * Support's user lookup (`/v1/admin/users`): find an account by its id, or by part of its email
- * or display name, and see what it runs, what it chose in Settings and how it logs. Read-only.
+ * or display name, and see what it runs, what it chose in Settings and how it logs. Read-only,
+ * apart from its role and entitlements ([UserAccessPanel]).
  * Everything here comes from the server's `support` views, which hold no food, amount, weight
  * or note, so neither can this tab. The Grafana User detail board has the rest: sessions, events
  * and errors, by the same id.
@@ -98,7 +99,10 @@ internal fun UsersView(ctx: AdminCtx) {
 
     val shown = detail
     when {
-        shown != null -> UserDetailPanel(shown, ctx.isProd)
+        shown != null -> {
+            UserDetailPanel(shown, ctx.isProd)
+            UserAccessPanel(ctx, shown.user.userId)
+        }
         selected != null -> P(attrs = { classes("muted") }) {
             Text(userDetailNote(detailFailed))
         }

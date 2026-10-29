@@ -56,6 +56,7 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
         telemetry = loggerTelemetry,
         scanEnabled = scanFlag(false),
         photoEnabled = photoFlag(false),
+        entitlements = FakeEntitlements(),
         submitFoodEnabled = submitFoodFlag(false),
         voice = DescribeVoice(speech, voiceFlag(voiceOn), telemetry),
         fastingRelease = fastingFlag(false),

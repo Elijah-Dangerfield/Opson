@@ -9,6 +9,8 @@ import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.FastingRelease
+import com.opson.libraries.entitlements.Entitlement
+import com.opson.libraries.entitlements.EntitlementRepository
 import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogItem
@@ -77,6 +79,7 @@ class LoggerViewModel(
     private val telemetry: LoggerTelemetry,
     scanEnabled: BarcodeScanEnabled,
     photoEnabled: PhotoEstimateEnabled,
+    entitlements: EntitlementRepository,
     submitFoodEnabled: SubmitFoodEnabled,
     private val voice: DescribeVoice,
     fastingRelease: FastingRelease,
@@ -99,7 +102,8 @@ class LoggerViewModel(
             // The nav + names no meal: the picker chooses from this person's logging times.
             slotChosen = route.slot != null,
             scanAvailable = scanEnabled(),
-            photoAvailable = photoEnabled(),
+            // The release flag, and the entitlement the server checks too. Everyone has it today.
+            photoAvailable = photoEnabled() && entitlements.has(Entitlement.PhotoEstimate),
             packAvailable = submitFoodEnabled(),
             voiceEnabled = voice.enabled(),
             fastingReleased = fastingRelease.isOn(),

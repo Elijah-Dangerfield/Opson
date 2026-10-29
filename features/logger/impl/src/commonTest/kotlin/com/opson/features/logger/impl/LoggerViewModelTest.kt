@@ -55,6 +55,7 @@ class LoggerViewModelTest : CoroutineTest() {
     private val recentLogEvents = FakeRecentLogEvents()
     private val appState = FakeAppState()
     private val submittedFoods = FakeSubmittedFoods()
+    private val entitlements = FakeEntitlements()
 
     @Suppress("LongParameterList")
     private fun vm(
@@ -84,6 +85,7 @@ class LoggerViewModelTest : CoroutineTest() {
         telemetry = telemetry,
         scanEnabled = scanFlag(scanOn),
         photoEnabled = photoFlag(photoOn),
+        entitlements = entitlements,
         submitFoodEnabled = submitFoodFlag(packOn),
         voice = DescribeVoice(FakeSpeechToText(), voiceFlag(voiceOn), RecordingVoiceTelemetry()),
         fastingRelease = fastingFlag(fastingOn),
@@ -228,6 +230,20 @@ class LoggerViewModelTest : CoroutineTest() {
         submittedFoods.reviews.value = mapOf(granola.id to ReviewStatus.Approved)
         settle()
         assertEquals(listOf(false), vm.state.recent.map { it.unverified }, "approved: the mark goes")
+    }
+
+    @Test
+    fun photoNeedsThePhotoEntitlementAsWellAsItsFlag() = runUnitTest {
+        entitlements.entitlements.value = emptySet()
+        val vm = vm(photoOn = true)
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(LoggerAction.PhotoTapped)
+        settle()
+
+        assertTrue(AddAction.Photo !in vm.state.actions)
+        assertTrue(events.none { it is LoggerEvent.OpenPhoto })
     }
 
     @Test

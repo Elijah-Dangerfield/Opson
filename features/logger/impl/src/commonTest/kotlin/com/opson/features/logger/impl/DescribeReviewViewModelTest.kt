@@ -53,6 +53,7 @@ class DescribeReviewViewModelTest : CoroutineTest() {
         telemetry = RecordingTelemetry(),
         scanEnabled = scanFlag(false),
         photoEnabled = photoFlag(false),
+        entitlements = FakeEntitlements(),
         submitFoodEnabled = submitFoodFlag(false),
         voice = DescribeVoice(FakeSpeechToText(), voiceFlag(false), RecordingVoiceTelemetry()),
         fastingRelease = fastingFlag(false),

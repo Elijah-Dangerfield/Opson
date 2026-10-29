@@ -1,10 +1,13 @@
 package com.opson.server.routes
 
 import com.opson.server.data.PhotoDescriber
+import com.opson.server.domain.Entitlement
+import com.opson.server.domain.EntitlementService
 import com.opson.server.domain.ImageType
 import com.opson.server.domain.PhotoDescribeResult
 import com.opson.server.domain.PhotoEstimateLimiter
 import com.opson.server.domain.PhotoLimits
+import com.opson.server.http.clientContext
 import com.opson.server.plugins.PHOTO_ESTIMATE_LIMIT
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
 import com.opson.server.plugins.problem
@@ -36,6 +39,10 @@ import kotlin.time.ExperimentalTime
  *    400 `invalid_note` (over [PhotoLimits.MAX_NOTE] characters),
  *    413 `image_too_large` (body or decoded image over the limits; the body
  *    size is checked before it is read, and the read itself stops at the limit),
+ *  - 403 `entitlement_required` when the caller lacks [Entitlement.PhotoEstimate]. Everyone
+ *    has it today (`entitlements.everyone`, V28). Checked before the body is read. Builds
+ *    from before entitlements show their generic "couldn't read that photo" for it,
+ *    newer ones the calm "not available" state,
  *  - 429 `rate_limited` from [PhotoEstimateLimiter], per user,
  *  - 503 `photo_estimate_unavailable` when the server has no provider key,
  *  - 502 `photo_estimate_failed` when the provider failed or refused.
@@ -45,7 +52,12 @@ import kotlin.time.ExperimentalTime
  * no food names, no amounts.
  */
 @OptIn(ExperimentalTime::class)
-fun Route.photoRoutes(describer: PhotoDescriber, limiter: PhotoEstimateLimiter, clock: Clock) {
+fun Route.photoRoutes(
+    describer: PhotoDescriber,
+    limiter: PhotoEstimateLimiter,
+    entitlements: EntitlementService,
+    clock: Clock,
+) {
     val logger = LoggerFactory.getLogger("PhotoRoutes")
     val json = Json { ignoreUnknownKeys = true }
 
@@ -56,6 +68,14 @@ fun Route.photoRoutes(describer: PhotoDescriber, limiter: PhotoEstimateLimiter, 
                 val userId = call.userId()
                     ?: return@post call.respond(HttpStatusCode.Unauthorized, problem("unauthorized", "Sign in again"))
 
+                if (!entitlements.has(userId, Entitlement.PhotoEstimate, call.clientContext())) {
+                    logger.info("photo estimate outcome=not_entitled items=0 latency_ms=0")
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        problem("entitlement_required", "Photo estimates aren't part of your plan."),
+                    )
+                }
+
                 val request = when (val read = call.readPhotoRequest(json)) {
                     is PhotoRead.Rejected -> {
                         logger.info("photo estimate outcome={} items=0 latency_ms=0", read.code)
@@ -64,7 +84,7 @@ fun Route.photoRoutes(describer: PhotoDescriber, limiter: PhotoEstimateLimiter, 
                     is PhotoRead.Ok -> read
                 }
 
-                // Plus gate: the limiter is where a Plus allowance would be checked.
+                // Fair use, Pro included: every estimate is a paid model call.
                 if (!limiter.tryAcquire(userId)) {
                     logger.info("photo estimate outcome=rate_limited items=0 latency_ms=0")
                     return@post call.respond(

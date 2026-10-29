@@ -10,6 +10,7 @@ import com.opson.server.domain.ConfigAuditRecord
 import com.opson.server.domain.ConfigChangeEvent
 import com.opson.server.domain.ConfigChangeNotifier
 import com.opson.server.domain.ConfigFlagRecord
+import com.opson.server.domain.EntitlementPolicy
 import com.opson.server.domain.ManifestEntry
 import com.opson.server.domain.ManifestVersion
 import com.opson.server.domain.RuleConditions
@@ -76,7 +77,7 @@ fun Route.configAdminRoutes(
                 ?: return@put call.respondProblem(HttpStatusCode.BadRequest, "invalid_path", "path is required.")
             val body = call.receiveOrNull<UpsertFlagRequest>()
                 ?: return@put call.respondProblem(HttpStatusCode.BadRequest, "invalid_body", "Malformed flag body.")
-            schema(manifestRepository).validateValue(path, body.value)?.let {
+            (schema(manifestRepository).validateValue(path, body.value) ?: EntitlementPolicy.validate(path, body.value))?.let {
                 return@put call.respondProblem(HttpStatusCode.BadRequest, "invalid_value", it)
             }
             val record = repository.upsertFlag(path, body.value, call.actor())
@@ -105,7 +106,7 @@ fun Route.configAdminRoutes(
             validateRuleConditions(body.conditions)?.let {
                 return@put call.respondProblem(HttpStatusCode.BadRequest, "invalid_conditions", it)
             }
-            schema(manifestRepository).validateValue(body.flagPath, body.value)?.let {
+            (schema(manifestRepository).validateValue(body.flagPath, body.value) ?: EntitlementPolicy.validate(body.flagPath, body.value))?.let {
                 return@put call.respondProblem(HttpStatusCode.BadRequest, "invalid_value", it)
             }
             // A rule needs a flag row to attach to (FK). Rather than make the admin

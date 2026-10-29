@@ -24,6 +24,8 @@ import com.opson.server.plugins.installSentry
 import com.opson.server.plugins.installSerialization
 import com.opson.server.plugins.installStatusPages
 import com.opson.server.plugins.recordInstallSightings
+import com.opson.server.routes.accessAdminRoutes
+import com.opson.server.routes.accessRoutes
 import com.opson.server.routes.appConfigRoutes
 import com.opson.server.routes.barcodeMissRoutes
 import com.opson.server.routes.configAdminRoutes
@@ -170,6 +172,14 @@ fun Application.installApp(
                 waitlistAdminRoutes(adminConfig, component.waitlistRepository)
                 userAdminRoutes(adminConfig, component.userLookupRepository)
                 foodReviewAdminRoutes(adminConfig, component.foodSubmissionRepository, component.barcodeLinkRepository, component.clock)
+                accessAdminRoutes(
+                    adminConfig,
+                    component.entitlementService,
+                    component.userRoleRepository,
+                    component.entitlementGrantRepository,
+                    component.accessAuditRepository,
+                    component.clock,
+                )
             }
             // The website's form: public, its own CORS and rate limits.
             waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
@@ -191,7 +201,8 @@ fun Application.installApp(
                 component.foodLabelLimiter,
                 component.clock,
             )
-            photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.clock)
+            accessRoutes(component.entitlementService)
+            photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.entitlementService, component.clock)
             barcodeMissRoutes(component.barcodeMissRepository)
             exportRoutes(component.exportRepository)
         }

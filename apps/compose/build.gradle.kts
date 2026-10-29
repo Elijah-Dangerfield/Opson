@@ -141,6 +141,8 @@ kotlin {
             implementation(projects.libraries.nutrition.ui)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.diary.impl)
+            implementation(projects.libraries.entitlements)
+            implementation(projects.libraries.entitlements.impl)
             implementation(projects.libraries.foods)
             implementation(projects.libraries.foods.impl)
             implementation(projects.libraries.health)
