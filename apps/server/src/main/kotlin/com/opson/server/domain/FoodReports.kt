@@ -13,7 +13,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-/** What someone says is wrong with a food. Wire values match the `food_reports.reason` CHECK (V28). */
+/** What someone says is wrong with a food. Wire values match the `food_reports.reason` CHECK (V29). */
 enum class ReportReason(val wire: String) {
     WrongCalories("wrong_calories"),
     WrongNutrients("wrong_nutrients"),
@@ -142,7 +142,7 @@ data class CorrectionMark(val id: UUID, val at: Instant, val by: String)
 
 /**
  * A reviewer's fix to a food, kept apart from the imported row (`food_corrections`,
- * V28) and laid over it whenever the food is served. A re-import of USDA or
+ * V29) and laid over it whenever the food is served. A re-import of USDA or
  * Open Food Facts rewrites the row and never this, so a human fix survives
  * it. [base] is the food as served just before, for the diff and the undo.
  * One correction per food is live at a time: a newer one supersedes it, and
@@ -317,20 +317,21 @@ object FoodReportLimits {
 }
 
 /**
- * Who may change a food directly, without review. Nobody, today: every report
- * waits for a reviewer. The roles work (owner and admin) answers true here for
- * the people it trusts, and `POST /v1/foods/{id}/reports` then applies their
- * suggested values as a correction straight away, recorded under their id.
+ * Who may change a food directly, without review. For them
+ * `POST /v1/foods/{id}/reports` applies the suggested values as a correction
+ * straight away, recorded under their account id and reversible like any
+ * other; everyone else's report waits for a reviewer.
  */
 fun interface CorrectionAuthority {
     suspend fun canApplyDirectly(userId: UserId): Boolean
 }
 
+/** Owners and admins ([Permission.FoodEditDirect]), read on every report, so a role change applies at once. */
 @SingleIn(ServerScope::class)
 @ContributesBinding(ServerScope::class)
 @Inject
-class ReviewEveryReport : CorrectionAuthority {
-    override suspend fun canApplyDirectly(userId: UserId): Boolean = false
+class RoleCorrectionAuthority(private val permissions: Permissions) : CorrectionAuthority {
+    override suspend fun canApplyDirectly(userId: UserId): Boolean = permissions.can(userId, Permission.FoodEditDirect)
 }
 
 /**

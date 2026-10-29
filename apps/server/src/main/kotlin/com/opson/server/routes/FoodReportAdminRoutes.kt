@@ -138,7 +138,7 @@ data class ClosedReportsResponse(val closed: Int)
  *  - `POST /v1/admin/food-corrections/{id}/revert`            undoes the live correction; 409 `not_live`
  *
  * A correction is laid over the food wherever it is served (`food_corrections`,
- * V28), so a re-import of the source never undoes it, and reverting it brings
+ * V29), so a re-import of the source never undoes it, and reverting it brings
  * back whatever it replaced. Each queue call also deletes the photos of
  * reports decided more than [PHOTO_RETENTION_DAYS] days ago.
  */

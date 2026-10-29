@@ -22,9 +22,10 @@ import kotlin.time.Instant
  * own. Opson runs one machine; a second would double the effective limit,
  * which is still a bounded cost.
  *
- * Plus gate: when Plus exists, [DAILY] is where its entitlement goes (a
- * larger daily allowance for Plus, or none without it). Nothing else on the
- * server needs to change.
+ * Whether someone may use photo estimates at all is the `photo_estimate`
+ * entitlement, checked by the route before this ([EntitlementService]). This
+ * is the fair-use cap on top, Pro included; a small free allowance, when
+ * there is one, would be a second limit here keyed on that entitlement.
  */
 @OptIn(ExperimentalTime::class)
 @SingleIn(ServerScope::class)

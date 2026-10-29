@@ -74,7 +74,21 @@ way.
   synced), every build each install has run, the Settings it chose and how it
   logs, in counts. It links to the Grafana User detail board and to Sentry
   for the same id. Server side it's `/v1/admin/users`, reading the `support`
-  views, so it shows no food, amount, weight or note.
+  views, so it shows no food, amount, weight or note. Under each account,
+  **Access** shows its role (and who set it, and why), its permissions, every
+  entitlement it holds with the reasons (everyone, its role's bundle, a
+  grant), its revocations, every grant ever made and the change trail. From
+  there you set the role, grant an entitlement or a bundle (Pro is the bundle
+  `pro`) with a source tag, a reason and an optional end in days, revoke one
+  entitlement, or remove a grant. Server side it's `/v1/admin/users/{id}/access`
+  and its siblings (`apps/server/README.md`, "Roles and entitlements").
+- **Entitlements.** The policy, which is remote config: `entitlements.everyone`
+  (what every account has), `entitlements.bundles` (Pro and any other bundle)
+  and `entitlements.roles` (which bundles a role brings), each edited as JSON
+  and saved through the config API, so the server refuses an unknown key and
+  the change lands in the config Audit. Taking something out of everyone asks
+  again. Below that, the entitlements and roles the server knows, who holds
+  each by policy, and the latest role and grant changes across accounts.
 - **Review.** Foods people added from photos of a pack (`release.submitFood`),
   pending oldest first, with approved and rejected a click away. A submission
   opens with the front and the label photos side by side, then every field as

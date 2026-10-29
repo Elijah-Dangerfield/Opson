@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- V28: reports about a food's data, and the corrections reviewers make.
+-- V29: reports about a food's data, and the corrections reviewers make.
 --
 -- Anyone can say a catalog food is wrong from its detail ("Report a
 -- problem"): what is wrong, optionally the numbers they read on the pack,

@@ -322,6 +322,9 @@ class AdminApi(
         install(ContentNegotiation) { json(adminJson) }
     }
 
+    /** Roles and entitlements for one account, and the policy overview. */
+    val access: AccessApi = AccessApi(baseUrl, token, actor)
+
     suspend fun listFlags(): List<ConfigFlagDto> =
         client.get("$base/v1/admin/config") { auth() }
             .require<ConfigListResponse>().flags

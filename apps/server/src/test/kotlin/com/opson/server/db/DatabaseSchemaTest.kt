@@ -35,7 +35,8 @@ class DatabaseSchemaTest : DatabaseTest() {
                 CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable, ExercisesTable, WaitlistTable,
                 AppleRefreshTokensTable, SubmittedFoodsTable, FoodSubmissionsTable, FoodSubmissionPhotosTable,
                 BarcodeLinkSuggestionsTable, AppConfigValuesTable, AppConfigRulesTable, AppConfigAuditTable,
-                AppConfigManifestTable, FoodReportsTable, FoodReportPhotosTable, FoodCorrectionsTable,
+                AppConfigManifestTable, UserRolesTable, EntitlementGrantsTable, AccessAuditTable,
+                FoodReportsTable, FoodReportPhotosTable, FoodCorrectionsTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }
@@ -225,13 +226,13 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     /**
-     * V28 is additive and safe to run twice. Deleting an account deletes its reports and their
+     * V29 is additive and safe to run twice. Deleting an account deletes its reports and their
      * photos; the server's own energy checks have no account and are one per food; a food has one
      * live correction at a time.
      */
     @Test
     fun foodReportsMigrationIsIdempotentAndCascadesFromTheUser() {
-        val migration = checkNotNull(javaClass.getResource("/db/migration/V28__food_reports.sql")).readText()
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V29__food_reports.sql")).readText()
         database.blockingTransaction { exec(migration) }
 
         val user = seedAuthUser().value

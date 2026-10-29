@@ -192,6 +192,25 @@ class FoodReportRoutesTest {
         }
     }
 
+    /** Owners and admins may edit foods directly; a moderator reviews, and a member's report waits. */
+    @Test
+    fun theRoleBackedAuthorityTrustsOwnersAndAdminsOnly() = runTest {
+        val roles = object : com.opson.server.domain.UserRoleRepository {
+            val held = mutableMapOf(alice to com.opson.server.domain.Role.Owner, bob to com.opson.server.domain.Role.Moderator)
+            override suspend fun assignment(userId: UserId) = held[userId]?.let {
+                com.opson.server.domain.RoleAssignment(userId, it, "test", kotlin.time.Instant.parse("2026-10-29T00:00:00Z"), null)
+            }
+            override suspend fun setRole(userId: UserId, role: com.opson.server.domain.Role, actor: String, reason: String?) =
+                throw UnsupportedOperationException()
+        }
+        val authority = com.opson.server.domain.RoleCorrectionAuthority(com.opson.server.domain.Permissions(roles))
+        assertTrue(authority.canApplyDirectly(alice))
+        assertEquals(false, authority.canApplyDirectly(bob))
+        assertEquals(false, authority.canApplyDirectly(UserId(UUID.randomUUID())))
+        roles.held[bob] = com.opson.server.domain.Role.Admin
+        assertTrue(authority.canApplyDirectly(bob), "a role change applies on the next report")
+    }
+
     @Test
     fun someoneTheAuthorityTrustsHasTheirValuesAppliedAtOnce() = runTest {
         withApp(authority = { it == alice }) { client ->

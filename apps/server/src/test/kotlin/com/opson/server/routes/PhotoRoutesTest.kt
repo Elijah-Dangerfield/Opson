@@ -2,6 +2,7 @@ package com.opson.server.routes
 
 import com.opson.server.data.CatalogFoodDescriber
 import com.opson.server.data.PhotoDescriber
+import com.opson.server.domain.EntitlementPolicy
 import com.opson.server.domain.EstimateResult
 import com.opson.server.domain.EstimatedFood
 import com.opson.server.domain.ImageType
@@ -14,6 +15,7 @@ import com.opson.server.plugins.installAuthentication
 import com.opson.server.plugins.installRateLimits
 import com.opson.server.plugins.installSerialization
 import com.opson.server.plugins.installStatusPages
+import com.opson.server.testing.FakeEntitlementService
 import com.opson.server.testing.FakeEstimateProvider
 import com.opson.server.testing.FakeFoodCatalog
 import com.opson.server.testing.FakeFoodCatalog.Companion.food
@@ -59,6 +61,8 @@ class PhotoRoutesTest {
         ),
     )
 
+    private val entitlements = FakeEntitlementService()
+
     private suspend fun withApp(block: suspend (HttpClient) -> Unit) {
         val describer = PhotoDescriber(provider, CatalogFoodDescriber(FakeFoodCatalog(listOf(broccoli))))
         testApplication {
@@ -67,7 +71,7 @@ class PhotoRoutesTest {
                 installRateLimits()
                 installStatusPages()
                 installAuthentication(TestJwt.verification)
-                routing { photoRoutes(describer, PhotoEstimateLimiter(Clock.System), Clock.System) }
+                routing { photoRoutes(describer, PhotoEstimateLimiter(Clock.System), entitlements, Clock.System) }
             }
             block(createClient { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } })
         }
@@ -93,6 +97,23 @@ class PhotoRoutesTest {
             assertEquals(HttpStatusCode.Unauthorized, client.post("/v1/describe/photo").status)
             assertTrue(provider.calls.isEmpty())
         }
+    }
+
+    @Test
+    fun withoutThePhotoEntitlementTheProviderIsNeverAsked() = runTest {
+        entitlements.granted = emptySet()
+        withApp { client ->
+            val response = client.photo()
+            assertEquals(HttpStatusCode.Forbidden, response.status)
+            assertEquals("entitlement_required", response.code())
+            assertTrue(provider.calls.isEmpty())
+        }
+    }
+
+    @Test
+    fun theDefaultPolicyLetsEveryoneEstimate() = runTest {
+        entitlements.granted = EntitlementPolicy.DEFAULT.everyone
+        withApp { client -> assertEquals(HttpStatusCode.OK, client.photo().status) }
     }
 
     @Test

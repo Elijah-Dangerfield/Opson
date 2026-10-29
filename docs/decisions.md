@@ -6,6 +6,61 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: Roles and entitlements, with Pro as a bundle in config
+
+**Decision:** Paid features are entitlements, named capabilities
+(`photo_estimate`, `share_professional`, `share_friends`, `adaptive_burn`,
+`long_range_reports`, `recipe_import`), resolved on the server per account as
+the union of `entitlements.everyone`, the bundles the account's role brings
+(`entitlements.roles`), and its own grants of an entitlement or a bundle
+(`entitlement_grants`, V28, with expiry, source and reason), minus its
+revocations. Pro is the bundle `pro` in `entitlements.bundles`. The three
+policy values are ordinary remote-config flags, so moving a feature between
+Free and Pro, giving it to everyone, or rolling it out to a percentage needs
+no release. Free features (barcode, package scanning, fasting, GLP-1, export)
+have no entitlement at all.
+
+Roles are `owner`, `admin`, `moderator`, `builder`, and member by default,
+one per account in `user_roles`. What a role may do is code, not config:
+`food.contribute`, `food.review`, `food.edit.direct` (owner and admin, so the
+owner's food edits are direct fixes and count as verification). Which bundles a
+role brings is config, seeded so owner, admin and builder get Pro, which is
+what the Builder program needs. Server code asks `EntitlementService.has` or
+`Permissions.can`, never a role name. The admin console sets roles and grants;
+every change is audited in `access_audit`, policy edits in `app_config_audit`.
+
+Photo estimate is the first gate: the route answers 403 `entitlement_required`
+without `photo_estimate`, and the app hides Photo without it. `everyone` is
+seeded with `photo_estimate`, so nothing changes on deploy. The app caches
+`GET /v1/me/entitlements` per account (synced on sign-in, foreground and
+reconnect) and, until it has an answer, assumes the shipped default rather
+than nothing, so a fresh install or an old server never hides a free feature.
+The owner's role is set after deploy through the admin API, not a migration,
+so no account id or email is committed.
+
+**App Store 3.1.1.** Apple wants paid features unlocked through in-app
+purchase and forbids "own mechanisms" such as licence keys. A grant made by
+Opson (founding member, builder, comp) is not something a person buys or types
+in, which is closer to what the guideline allows for grandfathered or earned
+benefits, but it is a reviewer's reading. So, as the pricing plan says: every
+Pro feature must also be purchasable in-app on iOS once Pro exists, no code
+field ever appears outside Apple's own offer-code redemption, the founding and
+builder programs are explained in the review notes of the version that
+launches Pro, and if a reviewer objects the fallback is a $0 offer code for
+the same product. Store purchases will write `pro` bundle grants with source
+`app_store` / `play`, so there is still only one question everywhere.
+
+**Alternatives:** an `is_pro` boolean or a `plan` column (can't piecemeal a
+feature or open one to everyone without a release); a separate policy table
+(remote config already has editing, targeting, audit and a console); roles as
+config (permissions are product rules that ship with the routes that check
+them); RevenueCat entitlements as the source of truth (grants that are not
+purchases would then live with a vendor). Old builds that meet the 403 show
+their generic "couldn't read that photo"; only builds with this change show
+the calm unavailable state. Acceptable, since nothing is gated yet.
+
+---
+
 ## 2026-10-29: The day's note is one note, All notes lists it, and More has a Journal card
 
 **Decision:** All notes lists each day's own note, labelled "Day note", first in

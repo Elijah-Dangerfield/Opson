@@ -70,8 +70,9 @@ data class FoodReportResponse(val reportId: String, val status: String)
  *
  * A report never changes the food. It waits in the admin console's Review
  * area for someone to accept it (a correction), reject it or mark the food a
- * duplicate. The one exception is [CorrectionAuthority]: a person it trusts
- * has their suggested values applied straight away, which today is nobody.
+ * duplicate. The one exception is [CorrectionAuthority]: an owner or admin
+ * has their suggested values applied straight away, as a correction that is
+ * recorded under their id and can be undone like any other.
  *
  * Per user, [FoodReportLimiter]; per IP, the [FOOD_REPORT_LIMIT] bucket. The
  * log line is the outcome and the reason code only: never a value, the note

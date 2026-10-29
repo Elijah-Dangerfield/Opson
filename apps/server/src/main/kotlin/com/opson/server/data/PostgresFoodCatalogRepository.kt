@@ -166,7 +166,7 @@ class PostgresFoodCatalogRepository(
 
     /**
      * Stored rows as they are served, in the current transaction: a reviewer's
-     * live correction laid over each (`food_corrections`, V28), then the
+     * live correction laid over each (`food_corrections`, V29), then the
      * energy guard ([ServedFood]). The importers only ever write the stored
      * rows, so a correction outlives every reload.
      */

@@ -3,7 +3,7 @@ package com.opson.server.db
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.timestamp
 
-/** Reports about a food's data (`V28__food_reports.sql`). */
+/** Reports about a food's data (`V29__food_reports.sql`). */
 object FoodReportsTable : Table("food_reports") {
     val id = uuid("id")
     val foodId = uuid("food_id")

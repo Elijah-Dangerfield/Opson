@@ -47,7 +47,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
- * `food_reports`, their photos and `food_corrections` (V28). Every write is one
+ * `food_reports`, their photos and `food_corrections` (V29). Every write is one
  * transaction; the report id the app made is the idempotency key, and a unique
  * violation on it is the arbiter between two copies of the same request, as
  * for submissions.
