@@ -99,7 +99,7 @@ feature api modules never depend on each other).
 | `:features:logger` (+`impl`) | feature | Logger sheet, amount sheet, Describe, Saved. |
 | `:features:foods` (+`impl`) | feature | Foods tab, create a meal, add a custom food. |
 | `:features:trends` (+`impl`) | feature | Trends, trends settings, nutrients detail, weight. |
-| `:features:settings` (+`impl`) | feature | More, modes and numbers (+ friction sheet), targets, water, fasting, reminders, health, support. |
+| `:features:settings` (+`impl`) | feature | More, display (modes and numbers + friction sheet, appearance), profile, targets, water, fasting, reminders, health, support. |
 | `:features:onboarding` | existing | Gains the four questions and the mode recommendation. |
 | `:features:home` | existing | The template's feedback and bug report screens. Its Home landing screen is gone; the shell lives in `apps/compose` (see section 10). |
 
@@ -554,7 +554,7 @@ theme.
   ligatures; `nutrition` and `barcode_scanner` have no Rounded twin and use
   the closest glyph).
 - **Access:** `AppTheme(darkTheme, largeText)` at the root, fed from
-  the user's Look and feel settings by `UserAppTheme` in `apps/compose`; tokens
+  the user's Display settings by `UserAppTheme` in `apps/compose`; tokens
   through `AppTheme.colors`, `AppTheme.type` (the handoff scale; the older
   `AppTheme.typography` stays for template screens), `AppTheme.shapes`,
   `AppTheme.spacing` and `AppTheme.shadows`. Every component and token renders
@@ -595,7 +595,7 @@ changed and what 0.1 builds is in [`docs/design/v3/CHANGES.md`](design/v3/CHANGE
   Yesterday's meal, weigh-in.
 - Foods: your foods, saved meals, recent, create a meal, custom food.
 - Trends: intake, recap, nutrients, weight. Nutrients detail and Weight screens.
-- More: Modes and numbers with friction, Targets, Water, Support (helpline,
+- More: Display (modes and numbers with friction, appearance), Targets, Water, Support (helpline,
   export, delete everything).
 
 **0.2.** Barcode scanning (camera on both platforms), fasting, reminders, Health Connect and HealthKit, voice notes, home screen

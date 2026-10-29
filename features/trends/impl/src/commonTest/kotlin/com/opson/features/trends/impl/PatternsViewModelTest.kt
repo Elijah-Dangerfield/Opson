@@ -20,10 +20,10 @@ class PatternsViewModelTest : CoroutineTest() {
         PatternsViewModel(diary, FakeSettingsRepository(settings), policy, TrendsFixtures.clock, checkInFlag(checkIn), TrendsFixtures.timeZone)
 
     @Test
-    fun hunger_fromTheCheckIns_onlyWithTheFlagAndTheSettingOn() = runUnitTest {
+    fun hunger_fromTheCheckIns_withTheFlag_whateverTheOldSwitchSaid() = runUnitTest {
         assertEquals(HungerSource.MealTags, vm(checkIn = false).state.hunger?.source)
         assertEquals(HungerSource.CheckIns, vm(checkIn = true).state.hunger?.source)
-        assertEquals(HungerSource.MealTags, vm(checkIn = true, settings = Settings(checkIn = false)).state.hunger?.source)
+        assertEquals(HungerSource.CheckIns, vm(checkIn = true, settings = Settings(checkIn = false)).state.hunger?.source)
     }
 
     @Test

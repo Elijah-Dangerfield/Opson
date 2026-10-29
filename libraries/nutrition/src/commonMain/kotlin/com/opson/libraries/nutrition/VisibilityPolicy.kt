@@ -70,6 +70,17 @@ class VisibilityPolicy(
         }
     }
 
+    /**
+     * Body mass index from [weightKg] and [heightCm], as "23.4". It is weight over height, so it
+     * goes with [Metric.Weight], and only where weight is shown in full: a softened BMI has no
+     * honest word, and a trend word would describe the weight line, not this.
+     */
+    fun bmi(weightKg: Double?, heightCm: Double?, surface: Surface): Display {
+        if (effectiveLevel(Metric.Weight, surface) != Visibility.Show) return Display.Hidden
+        val bmi = BodyMassIndex.of(weightKg, heightCm) ?: return Display.Hidden
+        return Display.Shown(BodyMassIndex.text(bmi))
+    }
+
     fun score(): Int = settings.score()
 
     fun isRaise(next: NumbersSettings): Boolean = settings.isRaise(next)

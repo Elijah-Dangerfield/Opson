@@ -13,7 +13,6 @@ import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Sleep
-import com.opson.libraries.diary.Tone
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.GoalPosition
@@ -29,7 +28,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_dayclose_title
-import opson.libraries.resources.generated.resources.today_dayclose_title_warm
 import org.jetbrains.compose.resources.StringResource
 
 /** Day close (design v3, 4.1 to 4.5): totals or a soft line or the meals, the big-day reset, a note, Close the day. */
@@ -188,7 +186,7 @@ object DayCloseStateBuilder {
         val revealed = isToday && shown && policy.level(Metric.Calories) == Visibility.Delay
         return DayCloseState(
             loading = false,
-            title = if (settings.tone == Tone.Warm) Res.string.today_dayclose_title_warm else Res.string.today_dayclose_title,
+            title = Res.string.today_dayclose_title,
             day = day.date,
             backLabel = RelativeDay.of(day.date, today),
             revealNote = revealed,

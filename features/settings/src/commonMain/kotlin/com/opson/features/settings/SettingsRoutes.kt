@@ -3,11 +3,21 @@ package com.opson.features.settings
 import com.opson.libraries.navigation.Route
 import kotlinx.serialization.Serializable
 
-/** Modes and numbers: the four presets, End after a set time, Each number and "Pause before showing more". */
+/**
+ * More › Display: the Numbers half (the four presets, End after a set time, Each number and
+ * "Pause before showing more") and the Appearance half (theme, text size, weight units).
+ */
+@Serializable
+class DisplayRoute : Route()
+
+/**
+ * Opens [DisplayRoute]'s page. Kept from when Modes and numbers was a page of its own, so the
+ * links that still name it (Targets, Vitamins and minerals) and any saved back stack land there.
+ */
 @Serializable
 class ModesRoute : Route()
 
-/** Each number: the per-metric grid, opened from Modes and numbers. */
+/** Each number: the per-metric grid, opened from Display. */
 @Serializable
 class EachNumberRoute : Route()
 
@@ -22,6 +32,16 @@ class TargetsRoute : Route()
  */
 @Serializable
 class RestingEnergyRoute(val fromEnergyToday: Boolean = false) : Route()
+
+/**
+ * More › Profile: year of birth, sex for the estimates, height, the latest weigh-in, BMI and
+ * body fat. The one place these are edited; resting energy, Burned and the vitamin and mineral
+ * references all read the same settings. [from] picks the back label: `more`, `resting` (Resting
+ * energy) or `micros` (Vitamins and minerals). A string rather than an enum, so the route needs
+ * no type map.
+ */
+@Serializable
+class ProfileRoute(val from: String = "more") : Route()
 
 /**
  * Energy today (design sync 4, 13.2c): eaten with its ±, Burned with where each part comes from,
@@ -58,7 +78,7 @@ class TodayScreenChoiceRoute(val choice: String = "main_number") : Route()
 @Serializable
 class WaterSettingsRoute(val fromMore: Boolean = false) : Route()
 
-/** Appearance, text size, weight units, tone and the hunger questions. */
+/** Opens [DisplayRoute]'s page. Kept from when Look and feel was a page of its own, for any saved back stack. */
 @Serializable
 class LookAndFeelRoute : Route()
 
@@ -68,7 +88,7 @@ class SupportRoute : Route()
 
 /**
  * Reminders and celebrations (0.2, behind `release.reminders`): quiet mode, the big-day card,
- * meal reminders and their times, tone and the hunger questions. Opened from More.
+ * and meal reminders and their times. Opened from More.
  */
 @Serializable
 class RemindersRoute : Route()

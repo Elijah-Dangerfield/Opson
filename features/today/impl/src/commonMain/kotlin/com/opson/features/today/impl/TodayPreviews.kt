@@ -24,7 +24,6 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ModeTimerEnded
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SummaryCardPreset
-import com.opson.libraries.diary.Tone
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.ui.FastingStatusFixtures
 import com.opson.libraries.health.EnergyExpended
@@ -570,10 +569,6 @@ private fun DayCloseFuelPreview() = Phone { DayCloseScreen(TodayFixtures.dayClos
 private fun DayClosePastDayPreview() = Phone {
     DayCloseScreen(TodayFixtures.dayCloseState(full, date = TodayFixtures.pastDay().date), onAction = {})
 }
-
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun DayCloseWarmPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(full, settings = Settings(tone = Tone.Warm)), onAction = {}) }
 
 // A day closed with Close the day: no + anywhere, the closed line with Reopen
 

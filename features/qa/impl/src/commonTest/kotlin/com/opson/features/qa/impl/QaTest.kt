@@ -9,7 +9,6 @@ import com.opson.libraries.config.ConfigOverrideRepository
 import com.opson.libraries.config.QaConfigValue
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.foods.db.FoodCacheEntity
@@ -110,14 +109,13 @@ class QaTest : CoroutineTest() {
 
     @Test
     fun theCheckIn_turnsOnWhatItNeeds_thenOpensTodaysDayClose() = runUnitTest {
-        val f = Fixture(settings = Settings(checkIn = false))
+        val f = Fixture()
         val vm = f.vm()
         val events = eventsOf(vm)
 
         vm.takeAction(QaAction.CheckInTapped)
 
         assertTrue(f.overrides.paths().contains("release.checkIn"))
-        assertTrue(f.settings.state.value.checkIn)
         assertEquals(listOf<QaEvent>(QaEvent.OpenDayClose(f.calendar.today().toString())), events)
     }
 
@@ -154,9 +152,8 @@ class QaTest : CoroutineTest() {
     }
 
     /** A config whose values follow the overrides, as the real repository merges them. */
-    private class Fixture(settings: Settings = Settings()) {
+    private class Fixture {
         val calendar = FakeCalendar()
-        val settings = FakeSettingsRepository(settings)
         val overrides = FakeOverrides()
         val appCache = FakeAppCache()
         val fire = FakeTestFire()
@@ -192,7 +189,6 @@ class QaTest : CoroutineTest() {
             appCache = appCache,
             testFire = fire,
             checkInEnabled = CheckInEnabled(live),
-            settingsRepository = settings,
             calendar = calendar,
             foodCache = foodCache,
         )

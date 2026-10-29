@@ -32,8 +32,8 @@ commit.
   a nutrient.
 - **Toasts are events.** `ShowToast(message: StringResource, args: List<Any> = emptyList())`,
   rendered by the entry point with `showSnackBar`.
-- **Tone is resolved in the builder.** `Settings.tone` picks between a plain and a
-  warm `StringResource`; state carries the chosen one. Warm keys end in `_warm`.
+- **One voice.** `Settings.tone` was a plain or warm choice; since 2026-10-29 it
+  is never read and every line is the plain one. Don't add `_warm` keys.
 - **Strings live in `:libraries:resources`**, prefixed by feature: `today_`,
   `logger_`, `foods_`, `trends_`, `settings_`, `onboarding_`, `shell_`.
 - **Meal names in sentences are lower case**, as the prototype does
@@ -96,8 +96,8 @@ Surface mapping from the prototype's surface strings: `today` to `Today`;
 | `waterGlasses` / `glassMl` / `waterUnit` | `Int` / `Int` / `WaterUnit` | 8 / 250 / Ml | |
 | `weightUnit` | `WeightUnit` | Kg | |
 | `mealGroups` | `Boolean` | true | Global, as the prototype. `day_records.meal_groups` stays null in 0.1. |
-| `askTags` | `Boolean` | true | Hunger and fullness chips on the amount sheet. |
-| `tone` | `Tone { Plain, Warm }` | Plain | |
+| `askTags` | `Boolean` | true | Never read since 2026-10-29: the hunger and fullness chips always show. Kept for round-trips. |
+| `tone` | `Tone { Plain, Warm }` | Plain | Never read since 2026-10-29: one voice, the plain one. Kept for round-trips. |
 | `bigDayEvent` | `EventLevel { Off, Subtle, Full }` | Full | No UI in 0.1 (Reminders is 0.2), so the default holds. |
 | `theme` / `textSize` | `ThemeMode { System, Light, Dark }` / `TextSize` | System / Normal | `theme` is Appearance. 0.1 also wrote `palette`; 0.2 no longer reads or writes it (design sync 4, Slate only). |
 | `onboarding` | `OnboardingAnswers(why, feel, notice, hard)` | empty | The setup answers as option keys, written with the preset when onboarding finishes. Never in telemetry. |

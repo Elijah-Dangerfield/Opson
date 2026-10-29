@@ -1,7 +1,7 @@
 # Settings plan
 
-More, Modes and numbers with the pause sheet, Targets, Water settings,
-Support, and a small Look and feel page. Fasting, Reminders and Watch and
+More, Display (modes and numbers with the pause sheet, then appearance),
+Targets, Water settings and Support. Fasting, Reminders and Watch and
 health apps are 0.2, sketched at the end. Read `shared.md` first.
 
 ## Source
@@ -68,7 +68,7 @@ are the behaviour spec and win over v3):
 | Screen id | Change |
 |---|---|
 | `more-screen__more` | The main preview shows every 0.2 row (flags on), as the design. Support gains the subtitle `Eating disorder helplines`. Targets uses the concentric target glyph. |
-| `modes-screen__modes` | Already matches (badge, re-pick clears, `Changed from`). **Weight's Numbers / Trend only / Hidden lives here**: it is the matrix's Weight row (Show / Soft / Hide, Later too), behind the pause like every other raise, now that the Trends agent removes the switch from Weight. Tests cover it. |
+| `display-screen__display` (was `modes-screen__modes`) | Already matches (badge, re-pick clears, `Changed from`). **Weight's Numbers / Trend only / Hidden lives here**: it is the matrix's Weight row (Show / Soft / Hide, Later too), behind the pause like every other raise, now that the Trends agent removes the switch from Weight. Tests cover it. |
 | `pause-sheet-content__modes-pause` | Already matches (Keep is primary, the countdown fills quietly). Adds `Talk to someone`, a quiet link above the buttons that opens Find support (only with `release.findSupport` on). |
 | `targets-screen__*` | Steppers: the lock is the outlined glyph in muted, numbers one step smaller. Macro split: one bar of flush segments, amounts bold with a regular label. Deficit rules read on one line (smaller type). By day: the first group ("Other days") renders last, week bands are flat bars, the pencil is the outlined glyph. |
 | `goal-style-sheet-content__targets-goal-style` | No change. |
@@ -82,8 +82,10 @@ are the behaviour spec and win over v3):
 
 Kept different on purpose:
 
-- More keeps **Look and feel** (the design drops it): Appearance and text size
-  have no other home.
+- More has one **Display** row where the design has Modes and numbers: the
+  owner folded Look and feel into it (2026-10-29), since appearance and text
+  size have no other home and two rows about what the app looks like read as
+  one. Modes and numbers is Display's first half.
 - Modes keeps `Every number visible, all day.` for Full numbers and `A meal
   checklist. Amounts optional.` for Rhythm. The design's versions advertise watch
   sync and reminders, which are behind 0.2 flags. No Progress photos row: the
@@ -170,9 +172,8 @@ extras", "help and plan".
 ```kotlin
 data class MoreState(val groups: List<List<MoreRow>>)
 sealed interface MoreRow {
-    data class Modes(val preset: PresetId, val changes: Int) : MoreRow   // "Fuel" or "Fuel, 1 change"
+    data class Display(val preset: PresetId, val changes: Int) : MoreRow // "Fuel" or "Fuel, 1 change"
     data object Targets : MoreRow                                        // "Energy range and macro split", never an amount
-    data object LookAndFeel : MoreRow
     data class Water(val glasses: Int) : MoreRow                         // trailing "8 glasses": the goal, not intake
     data object Support : MoreRow
     data object Plan : MoreRow                                           // trailing "Free", not a link in 0.1
@@ -182,9 +183,10 @@ sealed interface MoreRow {
 | Action | Does |
 |---|---|
 | `InputsArrived(settings)` | `MoreStateBuilder.build(settings)`. |
-| `RowTapped(row)` | Event to `ModesRoute`, `TargetsRoute`, `LookAndFeelRoute`, `WaterSettingsRoute(fromMore = true)`, `SupportRoute`. `Plan` does nothing (no purchase flow in 0.1). |
+| `RowTapped(row)` | Event to `DisplayRoute`, `TargetsRoute`, `WaterSettingsRoute(fromMore = true)`, `SupportRoute`. `Plan` does nothing (no purchase flow in 0.1). |
 
-Groups: `[Modes, Targets, LookAndFeel]`, `[Water]`, `[Support, Plan]`. Not
+Groups: `[Display, Targets]`, `[Water]`, `[Support, Plan]`. With
+`release.goalsAndEnergy`, Profile leads the first card. Not
 built in 0.1, so not rendered: Reminders and celebrations and Watch and health
 apps (group 1), Fasting and Widgets and watch face (group 2). When Fasting
 lands it is offered only where `Fasting.allowed(preset)` (Full, Sprint).
@@ -192,9 +194,8 @@ lands it is offered only where `Fasting.allowed(preset)` (Full, Sprint).
 Visibility: none. Subtitles never show amounts (v3), so More resolves no
 number and `MoreViewModel` no longer reads the policy.
 
-Copy: `More`; `Modes and numbers` / `%s` or `%1$s, %2$d change(s)`; `Targets` /
-`Energy range and macro split`; `Look and feel` / `Colors, text size and
-tone`; `Water` / `%d glasses`; `Support and sharing`; `Plan` / `Free`.
+Copy: `More`; `Display` / `%s` or `%1$s, %2$d change(s)`; `Targets` /
+`Energy range and macro split`; `Water` / `%d glasses`; `Support and sharing`; `Plan` / `Free`.
 
 Tests: groups and order, changes count, water glasses. `SURFACES`: `more`
 (`showsCaloriesInFull = false` now).
@@ -203,7 +204,9 @@ Tests: groups and order, changes count, water glasses. `SURFACES`: `more`
 
 ## Modes and numbers
 
-`ModesRoute()`. `ModesViewModel`. v3 (`modes.png`, `modes--full.png`).
+Display's Numbers half (`DisplayRoute()`, below). `ModesRoute()` opens the same
+page, since Targets, Vitamins and minerals, Today and Trends still link it by
+that name. `ModesViewModel`. v3 (`modes.png`, `modes--full.png`).
 
 ```kotlin
 data class ModesState(
@@ -494,9 +497,9 @@ Jeor from `birthYear`, `heightCm`, `bodySex` and the latest weigh-in,
 recalculated when a weight is logged; the default), the health app (its most
 recent whole day in the last week, falling back to the calculation) or
 Enter my own (500 to 5,000). Onboarding collects age, height and sex only
-when a deficit or surplus is picked, so the Resting energy page asks for what
-is missing while Calculate is picked; until then there is no Burned and every
-page says so. `BodySex` has `Unsaid`, the midpoint of the equation's two
+when a deficit or surplus is picked, so Resting energy says what is missing
+while Calculate is picked and links to Profile (below), the one page that
+edits them; until then there is no Burned and every page says so. `BodySex` has `Unsaid`, the midpoint of the equation's two
 constants. While no health app reads activity (none connected, or
 `release.health` off), `Settings.everydayActivity` stands in for movement:
 `EverydayActivity.kcalFor`, resting energy times the standard Mifflin–St Jeor
@@ -507,17 +510,16 @@ energy (energy out) and either the health app or "Everyday activity", whose
 choices open in place; Resting energy and onboarding edit the same setting.
 
 **Resting energy (13.2d)**, `RestingEnergyRoute(fromEnergyToday)`. The three
-sources with what each gives now, the details the calculation needs, "Steps
-and workouts" (to Integrations) and "Add activity to Burned". Typed fields
-write only once sensible, so typing "1600" writes once. Height is typed in
-centimetres or in feet and inches (`HeightField`, `:libraries:diary:ui`, shared
-with onboarding), stored as `heightCm` either way; the switch saves
-`heightUnit`, and until it is picked the unit is feet and inches for someone in
-pounds, else the phone's region's (`RegionUnits`: US, Liberia, Myanmar). The
-fields stay up while a detail is being typed, because five feet is already a
-height and the inches field must not vanish under it. Every amount is
-energy out on `Surface.Settings`; with it hidden, no amount shows, not even
-the person's own.
+sources with what each gives now, a Your profile row under Calculate ("Still
+needs: height, a weigh-in", to `ProfileRoute(from = "resting")`), "Steps and
+workouts" (to Integrations), "Add activity to Burned" and Everyday activity.
+Enter my own writes only once sensible, so typing "1600" writes once. While a
+health app counts the day's activity (connected, and Add activity on),
+Everyday activity is not asked: `burnedFor` leaves it out then, so the page
+says "Apple Health measures your activity, so we don't need to guess." With
+activity switched off the everyday baseline counts again, so it is asked.
+Every amount is energy out on `Surface.Settings`; with it hidden, no amount
+shows, not even the person's own.
 
 **Energy today (13.2c)**, `EnergyTodayRoute()`, for Today's summary card to
 link to. Eaten with its ± and "Likely 1,145 to 1,345. 5 of 7 foods are
@@ -542,7 +544,7 @@ Previews: `targets-goal-style-v4`, `targets-exact`, `targets-exact-at-floor`,
 `targets-surplus`, `targets-surplus-no-burn-yet`, `targets-surplus-large-text`,
 `targets-by-day-shapes`, `targets-by-day-surplus-dark`, `targets-by-day-new-group`,
 `targets-low-goal`, `targets-fast-deficit`, `resting-energy`,
-`resting-energy-needs-details`, `resting-energy-own-dark`,
+`resting-energy-needs-details`, `resting-energy-health-source`, `resting-energy-own-dark`,
 `resting-energy-large-text`, `energy-today`, `energy-today-no-burned-dark`,
 `energy-today-large-text`. `SURFACES`: `targets-goal-style`, `targets-exact`,
 `targets-surplus`, `targets-by-day-shapes`, `targets-safety-notes`, `resting-energy`, `energy-today`.
@@ -694,31 +696,64 @@ once, share, a failed PDF, nothing picked, ranges). Previews and `SURFACES`:
 
 ---
 
-## Look and feel (new, 0.1)
+## Display
 
-`LookAndFeelRoute()`. Not in the handoff as a page. It exists because system
-design section 11 makes appearance and large text settings, and because "Stop
-asking these" and tone need a home while Reminders is 0.2. Design sync 4 took
-the palette picker out: Slate is the only scheme.
+`DisplayRoute()`, and `ModesRoute()` and `LookAndFeelRoute()` open the same
+page: both were pages of their own, and other features and saved back stacks
+still name them. `DisplayScreen` draws two halves under headings, each with its
+own view model so each writes what it always wrote:
 
-```kotlin
-data class LookAndFeelState(
-    val theme: ThemeMode, val textSize: TextSize,
-    val weightUnit: WeightUnit, val tone: Tone, val askTags: Boolean,
-)
-```
+- **Numbers**: Modes and numbers, above (`ModesViewModel`, which also owns the
+  page's back).
+- **Appearance**: Theme (System / Light / Dark), Text size (Normal / Large) and
+  Weight units (kg / lb), plain settings writes (`LookAndFeelViewModel`).
 
-Actions: `ThemePicked`, `TextSizePicked`, `WeightUnitPicked`,
-`TonePicked`, `HungerQuestionsToggled`, `BackTapped`. Plain settings writes.
+Look and feel's How we talk to you and Hunger and fullness questions are not
+here: neither is a setting any more (`reminders.md`, 2026-10-29).
 
-Copy (new unless marked): `Look and feel`; `Appearance`: System / Light /
-Dark (design sync 4); `Text size`: Normal / Large; `Weight
-units`: kg / lb; verbatim from Reminders: `How we talk to you`, `Plain` / `Warm`,
-`Example: %s` with `"Nothing logged."` / `"Nothing here yet. Add it whenever."`,
-`Hunger and fullness questions` / `Asked when you add food. Always skippable.`
+Tests: `LookAndFeelViewModelTest` (each pick writes its field), `ModesTest`.
+Previews: `DisplayScreen.kt`. `SURFACES`: `modes` and `modes-end-after` (the ids
+kept from Modes and numbers) draw the whole page.
 
-Tests: each action writes its field. Preview: light and dark. `SURFACES`:
-`look-and-feel` (no numbers today; listed so a later row with one is covered).
+---
+
+## Profile
+
+`ProfileRoute(from)`, from More (behind `release.goalsAndEnergy`, which
+everything that reads these is behind), Resting energy and Vitamins and
+minerals' "Add your birth year and sex"; `from` (`more`, `resting`, `micros`)
+picks the back label. The owner asked for Cronometer's profile (2026-10-29).
+
+It is the one place the body details are edited, and it keeps no copy of its
+own: it writes `Settings.birthYear`, `bodySex`, `heightCm` and `heightUnit`,
+which Burned (`RestingEnergies.calculate` through `Settings.bodyProfile`) and
+the vitamin and mineral references (`Settings.microReferences`) already read,
+and onboarding writes the same keys. Weight is never a setting: the row shows
+the latest weigh-in and opens Weight (`WeightRoute`) to log one. All of it
+syncs as top-level keys of the settings document, which the server stores and
+merges as it is, so nothing new is needed on the server.
+
+- **About you**: Year you were born (birth year, as Burned reads age), Sex for
+  estimates (Female / Male / Rather not say, the equation's midpoint) and
+  Height (`HeightField`, centimetres or feet and inches; until a unit is picked
+  it is feet and inches for someone in pounds, else the region's). Fields
+  write only once sensible and stay as typed until then.
+- **Weight and body**: Current weight (`Metric.Weight` on `Surface.Settings`,
+  in the weight unit; shown only where the mode shows weight in full, else the
+  row says only when it was logged), BMI (`BodyMassIndex`, one decimal, with
+  "BMI is a rough measure made for populations. It can't see your build or
+  your health.") and Body fat, if you know it (`Settings.bodyFatPercent`, 3 to
+  75, zero for none so clearing it syncs; nothing calculates from it yet). BMI
+  and body fat go with weight, and never show for someone who said numbers have
+  been hard.
+
+Not built: Fill from Apple Health. `:libraries:health` reads only energy, so
+reading height, weight, birth date and sex needs new HealthKit and Health
+Connect permissions and plumbing on both platforms.
+
+Tests: `ProfileTest` (builder per mode, each field, the latest weigh-in),
+`BodyMassIndexTest`. Previews: `ProfileScreen.kt` (empty, filled, imperial
+dark, blind, hard, large text). `SURFACES`: `profile`.
 
 ---
 
@@ -729,5 +764,5 @@ Planned now so the 0.1 settings shape does not need a migration.
 | Page | Route | Notes |
 |---|---|---|
 | Fasting | `FastingRoute()` | Planned and built in `fasting.md` (0.2, behind `release.fasting`). Offered only in Full and Sprint, never to someone who agreed numbers have been hard. No Start button (v3: a fast starts when the window closes), End fast stays. |
-| Reminders and celebrations | `RemindersRoute()` | Built: see `reminders.md`. Behind `release.reminders`; New food tried and Weekly recap wait for the features they control. With the flag on, More shows the row and Look and feel drops tone and hunger questions (they live on Reminders). |
+| Reminders and celebrations | `RemindersRoute()` | Built: see `reminders.md`. Behind `release.reminders`; New food tried and Weekly recap wait for the features they control. With the flag on, More shows the row. |
 | Watch and health apps | `HealthRoute()` | Sources list, `Health on Today` master and per-row switches, Expended today rows (energyOut gated), `Should exercise change your target?` All of it / Some / None (never lowers tomorrow), days left out of the math. Balance ring and Expended cards light up only after `TODO(clinician)` review. No manual exercise logging, ever. |

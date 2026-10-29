@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.plus
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.today_dayclose_title_warm
+import opson.libraries.resources.generated.resources.today_dayclose_title
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -192,8 +192,8 @@ class DayCloseTest : CoroutineTest() {
     }
 
     @Test
-    fun warmToneRetitles() {
-        assertEquals(Res.string.today_dayclose_title_warm, build(PresetId.Full, settings = Settings(tone = Tone.Warm)).title)
+    fun aWarmToneStoredBeforeItWasRemoved_keepsThePlainTitle() {
+        assertEquals(Res.string.today_dayclose_title, build(PresetId.Full, settings = Settings(tone = Tone.Warm)).title)
     }
 
     private val diary = FakeDiaryRepository(listOf(TodayFixtures.day(dinner = true).copy(note = "Dinner at Lola's")))
@@ -469,14 +469,10 @@ class DayCloseTest : CoroutineTest() {
     }
 
     @Test
-    fun checkInSwitchedOffInReminders_hidesTheCard_evenWithTheFlagOn() = runUnitTest {
+    fun theCheckInShowsWithTheFlag_evenWhereTheOldSwitchWasOff() = runUnitTest {
+        // Reminders no longer offers the switch; skipping the card is how to say no.
         assertNotNull(vm(checkInOn = true).state.checkIn)
-
-        val off = vm(checkInOn = true, settings = Settings(checkIn = false))
-        assertNull(off.state.checkIn)
-        off.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
-        off.takeAction(DayCloseAction.DoneTapped)
-        assertNull(diary.closed.single().second.checkIn)
+        assertNotNull(vm(checkInOn = true, settings = Settings(checkIn = false)).state.checkIn)
     }
 
     @Test

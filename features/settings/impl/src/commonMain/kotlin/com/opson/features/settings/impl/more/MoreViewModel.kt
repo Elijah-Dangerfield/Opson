@@ -77,7 +77,7 @@ class MoreViewModel(
                     remindersOn = remindersEnabled(),
                     fastingReleased = fastingRelease.isOn(),
                     widgetsOn = widgetsEnabled(),
-                    todayScreenOn = goalsAndEnergy(),
+                    goalsAndEnergyOn = goalsAndEnergy(),
                     account = action.account,
                     contributed = contributions.filter { it.visible() },
                 ).copy(logOut = it.logOut)
@@ -94,10 +94,10 @@ class MoreViewModel(
 
     private suspend fun rowTapped(action: MoreAction, row: MoreRow) {
         when (row) {
-            is MoreRow.Modes -> sendEvent(MoreEvent.OpenModes)
+            is MoreRow.Display -> sendEvent(MoreEvent.OpenDisplay)
             MoreRow.Targets -> sendEvent(MoreEvent.OpenTargets)
+            MoreRow.Profile -> sendEvent(MoreEvent.OpenProfile)
             MoreRow.TodayScreen -> sendEvent(MoreEvent.OpenTodayScreen)
-            MoreRow.LookAndFeel -> sendEvent(MoreEvent.OpenLookAndFeel)
             is MoreRow.Health -> sendEvent(MoreEvent.OpenHealth)
             is MoreRow.Reminders -> sendEvent(MoreEvent.OpenReminders)
             is MoreRow.Water -> sendEvent(MoreEvent.OpenWater)
@@ -174,11 +174,11 @@ class MoreViewModel(
 }
 
 sealed interface MoreEvent {
-    data object OpenModes : MoreEvent
+    data object OpenDisplay : MoreEvent
     data object OpenTargets : MoreEvent
+    data object OpenProfile : MoreEvent
     data object OpenTodayScreen : MoreEvent
     data object OpenWater : MoreEvent
-    data object OpenLookAndFeel : MoreEvent
     data object OpenHealth : MoreEvent
     data object OpenReminders : MoreEvent
     data object OpenSupport : MoreEvent

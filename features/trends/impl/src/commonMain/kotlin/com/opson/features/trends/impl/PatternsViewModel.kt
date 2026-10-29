@@ -47,8 +47,7 @@ class PatternsViewModel(
         // Read once when the page opens, like every release flag.
         val checkInReleased = checkInEnabled()
         combine(settingsRepository.settings, policySource.policy, days) { settings, policy, (day, list) ->
-            val checkInOn = checkInReleased && settings.checkIn
-            PatternsAction.InputsArrived(PatternsInputs(day, settings, list, timeZone, checkInOn), policy)
+            PatternsAction.InputsArrived(PatternsInputs(day, settings, list, timeZone, checkInOn = checkInReleased), policy)
         }.collectIn(viewModelScope) { takeAction(it) }
     }
 

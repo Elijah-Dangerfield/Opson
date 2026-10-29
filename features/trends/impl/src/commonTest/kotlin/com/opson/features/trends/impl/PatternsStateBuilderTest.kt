@@ -135,8 +135,8 @@ class PatternsStateBuilderTest {
     }
 
     @Test
-    fun hunger_hiddenWithTagsOff() {
-        assertNull(build(settings = Settings(askTags = false)).hunger)
+    fun hunger_showsEvenWhereTheOldTagsSwitchWasOff() {
+        assertNotNull(build(settings = Settings(askTags = false)).hunger)
     }
 
     @Test
