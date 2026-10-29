@@ -29,9 +29,10 @@ class LogDoseViewModelTest : CoroutineTest() {
         route: LogDoseRoute = LogDoseRoute(),
         plan: MedicationPlan = MedicationFixtures.plan(),
         doses: List<MedicationDose> = MedicationFixtures.history,
+        at: Instant = now,
     ): Pair<LogDoseViewModel, FakeMedicationRepository> {
         val repository = FakeMedicationRepository(plan, doses)
-        return LogDoseViewModel(route, repository, FixedCalendar(MedicationFixtures.today), FixedClock(now)) to repository
+        return LogDoseViewModel(route, repository, FixedCalendar(MedicationFixtures.today), FixedClock(at)) to repository
     }
 
     private fun CoroutineScope.events(vm: LogDoseViewModel) = mutableListOf<LogDoseEvent>().also { list ->
@@ -148,5 +149,17 @@ class LogDoseViewModelTest : CoroutineTest() {
         val (vm, _) = vm(LogDoseRoute(dueIso = "2026-10-28", via = LogDoseRoute.VIA_REMINDER))
         assertEquals(DoseDay.Yesterday, vm.state.day)
         assertEquals(LocalTime(19, 0), vm.state.time)
+    }
+
+    @Test
+    fun anOlderReminderStartsOnNow_neverLaterToday() = runUnitTest {
+        // The dose was due at 7 PM three days ago; it is 7:30 in the morning now.
+        val morning = Instant.parse("2026-10-29T07:30:00Z")
+        val (vm, repository) = vm(LogDoseRoute(dueIso = "2026-10-26", via = LogDoseRoute.VIA_REMINDER), at = morning)
+        assertEquals(DoseDay.Today, vm.state.day)
+        assertEquals(LocalTime(7, 30), vm.state.time)
+
+        vm.takeAction(LogDoseAction.SaveTapped)
+        assertEquals(morning, repository.logged.single().first.takenAt)
     }
 }
