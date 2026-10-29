@@ -19,6 +19,7 @@ import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.db.DayRecordEntity
 import com.opson.libraries.diary.db.LogEntryEntity
 import com.opson.libraries.diary.db.MealFeelingEntity
+import com.opson.libraries.diary.db.RepeatLogEntity
 import com.opson.libraries.diary.impl.wire.DayRecordRowDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
 import com.opson.libraries.diary.impl.wire.MealFeelingRowDto
@@ -59,7 +60,8 @@ class DiaryRepositoryImpl(
             tables.entries.observeDay(key),
             tables.days.observe(key),
             tables.feelings.observeDay(key),
-        ) { entries, record, feelings -> buildDay(date, entries, record, feelings) }
+            tables.repeatLogs.observeDay(key),
+        ) { entries, record, feelings, repeats -> buildDay(date, entries, record, feelings, repeats.byEntry()) }
     }
 
     override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Day>> {
@@ -70,7 +72,9 @@ class DiaryRepositoryImpl(
             tables.entries.observeRange(fromKey, toKey),
             tables.days.observeRange(fromKey, toKey),
             tables.feelings.observeRange(fromKey, toKey),
-        ) { entries, records, feelings ->
+            tables.repeatLogs.observeRange(fromKey, toKey),
+        ) { entries, records, feelings, repeats ->
+            val repeatedBy = repeats.byEntry()
             val entriesByDay = entries.groupBy { it.day }
             val recordsByDay = records.associateBy { it.day }
             val feelingsByDay = feelings.groupBy { it.day }
@@ -78,7 +82,7 @@ class DiaryRepositoryImpl(
                 .takeWhile { it <= to }
                 .map { date ->
                     val key = date.toString()
-                    buildDay(date, entriesByDay[key].orEmpty(), recordsByDay[key], feelingsByDay[key].orEmpty())
+                    buildDay(date, entriesByDay[key].orEmpty(), recordsByDay[key], feelingsByDay[key].orEmpty(), repeatedBy)
                 }
                 .toList()
         }
@@ -375,8 +379,9 @@ class DiaryRepositoryImpl(
         entries: List<LogEntryEntity>,
         record: DayRecordEntity?,
         feelings: List<MealFeelingEntity>,
+        repeatedBy: Map<String, String>,
     ): Day {
-        val items = entries.mapNotNull { it.toDomain() }
+        val items = entries.mapNotNull { entry -> entry.toDomain()?.copy(repeatRuleId = repeatedBy[entry.id]) }
             .sortedWith(compareBy<LogItem> { it.loggedAt }.thenBy { it.id })
             .groupBy { it.slot }
         val live = record?.takeUnless { it.deleted }
@@ -410,13 +415,16 @@ class DiaryRepositoryImpl(
     }
 }
 
+/** Entry id to the rule that logged it. */
+private fun List<RepeatLogEntity>.byEntry(): Map<String, String> = associate { it.entryId to it.ruleId }
+
 internal fun LogEntryEntity.rowJson(): String = WireJson.encodeToString(LogEntryRowDto.serializer(), toRow())
 
 /** Repeats of the same food collapse on this: the catalog id, then the custom food, then the name. */
 internal fun LogItem.foodKey(): String =
     foodId?.let { "f:$it" } ?: customFoodId?.let { "c:$it" } ?: "n:${name.trim().lowercase()}"
 
-private fun LogDraft.toItem(id: String, day: LocalDate, slot: MealSlot, loggedAt: Instant, method: LogMethod): LogItem {
+internal fun LogDraft.toItem(id: String, day: LocalDate, slot: MealSlot, loggedAt: Instant, method: LogMethod): LogItem {
     require(name.isNotBlank()) { "A logged item needs a name" }
     return LogItem(
         id = id,

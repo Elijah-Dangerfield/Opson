@@ -188,6 +188,8 @@ class TestClient(
         outbox = database.outboxDao(),
         syncState = database.syncStateDao(),
         transactor = transactor,
+        repeats = database.repeatRuleDao(),
+        repeatLogs = database.repeatLogDao(),
     )
 
     // ── Auth and who is signed in ────────────────────────────────────────────

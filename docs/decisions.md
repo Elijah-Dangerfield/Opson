@@ -6,6 +6,59 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: Repeating foods log themselves through the diary, from rules kept on the phone
+
+**Decision:** a repeat (Foods tab, "Repeating") is a rule: a food, several foods
+or a saved meal, a meal, the days of the week, a start and an optional end, and
+paused or not. On the day it falls on, its foods are written as ordinary log
+entries, through `DiaryWriter` and the outbox, so they sync, edit and delete
+like anything logged by hand. Behind `release.repeats`, which is also the kill
+switch, since this writes to the person's log unasked.
+
+- **When.** `RepeatScheduler` runs `RepeatMaterializer.logDue()` once the person
+  is signed in and their settings are known, on every foreground, at each local
+  midnight while the app is open, and after every save. Only today is logged. A
+  day the app was not opened stays empty: filling it later would put food in
+  the log that may not have been eaten, and an empty day already reads as a gap
+  in Trends.
+- **Once per day.** `repeat_logs` records each entry a rule wrote, keyed by
+  entry id, and a rule with any record for a day is done for that day. The
+  record stays when the entry is removed, and the entry's tombstone keeps its id,
+  so a removed repeat stays removed that day. "Repeat this" on Today records the
+  entry it came from as the rule's today, so that food is not logged twice.
+- **Ids.** `repeatEntryId(rule, day, index)` is a deterministic version 8 UUID.
+  Two phones holding one rule write the same ids and the same rows: the server
+  keeps one row per id and a second identical write changes nothing. Each row's
+  `clientUpdatedAt` is the start of its day, deterministic too and older than
+  anything the person can do to the entry, so their edit or removal on one phone
+  always outranks the other phone's copy of the auto-logged row.
+- **Rows.** Method `saved` for a saved meal and `copy` otherwise, both of which
+  every server build accepts (an unknown method is refused). Logged at the
+  meal's time from `Settings.mealTimes`, so Today's meal header and learned meal
+  times read the meal, not the moment the app opened. That time can be later
+  than now, so fasting's "last eaten" now ignores entries timed in the future.
+  Logging this way never ends a fast. Closed and untracked days are skipped and
+  not recorded, so reopening or tracking the day again lets the next run log it.
+- **Not synced yet.** The prod server could not be redeployed for this, and
+  settings JSON was ruled out: older builds drop unknown keys on save (which
+  would erase the rules) and it would put the rules' food snapshots into a
+  64 KB blob. So `repeat_rules` (Room 12) is device-local, wiped on a user
+  change like every diary table, and lost on reinstall. It already has what an
+  outbox row needs (UUID, `clientUpdatedAt`, tombstone); syncing it is a new
+  `SyncEntity`, a server table and migration, and nothing else on the client.
+  Until then a rule set up separately on two phones has two ids and logs twice.
+- **The mark.** `LogItem.repeatRuleId` comes from `repeat_logs` when a day is
+  read. It is local, so another phone shows the entry as an ordinary one.
+
+**Alternatives:** back-filling missed days (rejected above); a new `repeat`
+log method (the prod server refuses unknown methods); a local-only column on
+`log_entries` for the mark (a pulled row would overwrite it).
+
+**Name:** "Repeating" for the section and "Repeat this" for the action. It
+describes what the person set up, in the verb they act with. "Everyday foods"
+is wrong for a weekdays-only rule, and "Auto-log" is jargon for what is, to the
+person, simply eating the same thing again.
+
 ## 2026-10-28: A packaged food is added from its label wherever a food is added, and says when it is unverified
 
 **Decision:** "Add this food" is now "Add a packaged food", and it opens from

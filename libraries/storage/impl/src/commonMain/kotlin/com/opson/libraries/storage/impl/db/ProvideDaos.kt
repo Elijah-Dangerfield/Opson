@@ -7,6 +7,8 @@ import com.opson.libraries.diary.db.FastDao
 import com.opson.libraries.diary.db.LogEntryDao
 import com.opson.libraries.diary.db.MealFeelingDao
 import com.opson.libraries.diary.db.OutboxDao
+import com.opson.libraries.diary.db.RepeatLogDao
+import com.opson.libraries.diary.db.RepeatRuleDao
 import com.opson.libraries.diary.db.SavedMealDao
 import com.opson.libraries.diary.db.SyncStateDao
 import com.opson.libraries.diary.db.WeighInDao
@@ -109,3 +111,17 @@ class ProvideFastDao @Inject constructor(
 class ProvideExerciseDao @Inject constructor(
     provider: AppDatabaseProvider
 ) : ExerciseDao by provider.database.exerciseDao()
+
+@SingleIn(AppScope::class)
+@ContributesBinding(AppScope::class, boundType = RepeatRuleDao::class)
+@ContributesBinding(AppScope::class, boundType = ClearableDao::class, multibinding = true)
+class ProvideRepeatRuleDao @Inject constructor(
+    provider: AppDatabaseProvider
+) : RepeatRuleDao by provider.database.repeatRuleDao()
+
+@SingleIn(AppScope::class)
+@ContributesBinding(AppScope::class, boundType = RepeatLogDao::class)
+@ContributesBinding(AppScope::class, boundType = ClearableDao::class, multibinding = true)
+class ProvideRepeatLogDao @Inject constructor(
+    provider: AppDatabaseProvider
+) : RepeatLogDao by provider.database.repeatLogDao()

@@ -1,0 +1,331 @@
+package com.opson.libraries.diary.impl
+
+import com.opson.libraries.diary.DayReflection
+import com.opson.libraries.diary.LogDraft
+import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.RepeatDays
+import com.opson.libraries.diary.RepeatPlan
+import com.opson.libraries.diary.RepeatsRelease
+import com.opson.libraries.diary.SavedMeal
+import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.SyncEntity
+import com.opson.libraries.diary.impl.wire.LogEntryRowDto
+import com.opson.libraries.diary.impl.wire.WireJson
+import com.opson.libraries.diary.repeatEntryId
+import com.opson.libraries.flowroutines.testing.CoroutineTest
+import kotlinx.coroutines.flow.first
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.Instant
+
+/**
+ * Repeats over the in-memory database: that a rule logs today once and only once, through the
+ * same rows and outbox a logged food uses, what it skips, and that two phones holding one rule
+ * write one set of rows. Times are UTC ([FakeCalendar]); the fixtures' today is Sunday Oct 25.
+ */
+class RepeatRepositoryImplTest : CoroutineTest() {
+    private val db = FakeDiaryDb()
+    private val clock = FakeClock(Instant.parse("2026-10-25T07:30:00Z"))
+    private val calendar = FakeCalendar()
+    private val settings = FakeSettingsRepository(Settings())
+    private var released = true
+    private val phone = Phone(db, clock, calendar, settings) { released }
+    private val repeats = phone.repeats
+    private val diary = phone.diary
+
+    private val today = LocalDate(2026, 10, 25)
+    private val porridge = LogDraft(name = "Oat porridge", precision = Precision.Estimate, foodId = "food-porridge", amountText = "1 bowl", kcal = 300.0)
+    private val coffee = LogDraft(name = "Coffee with milk", precision = Precision.Estimate, amountText = "1 mug", kcal = 40.0)
+
+    @Test
+    fun aRuleThatFallsOnTodayLogsItsFoodsWhenSaved_inItsMeal_atTheMealsTime() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge, coffee)))
+
+        assertTrue(saved.loggedToday)
+        val breakfast = diary.observeDay(today).first().items(MealSlot.Breakfast)
+        assertEquals(listOf("Oat porridge", "Coffee with milk"), breakfast.map { it.name })
+        assertEquals(listOf(repeatEntryId(saved.rule.id, today, 0), repeatEntryId(saved.rule.id, today, 1)), breakfast.map { it.id })
+        assertTrue(breakfast.all { it.repeatRuleId == saved.rule.id }, "Today can mark them as repeats")
+        assertEquals(Instant.parse("2026-10-25T08:00:00Z"), breakfast.first().loggedAt, "the meal's time, not the moment the app opened")
+        assertEquals(LogMethod.Copy, breakfast.first().method)
+    }
+
+    @Test
+    fun theFoodsGoUpThroughTheDiaryOutbox_stampedAtTheStartOfTheDay() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+
+        val id = repeatEntryId(saved.rule.id, today, 0)
+        val mutation = db.outbox.rows.single()
+        assertEquals(SyncEntity.LogEntry.wire, mutation.entity)
+        assertEquals(id, mutation.entityId)
+        assertEquals("2026-10-25", mutation.day)
+        assertNull(mutation.basePayload)
+        val row = WireJson.decodeFromString(LogEntryRowDto.serializer(), mutation.payload)
+        assertEquals("breakfast", row.slot)
+        assertEquals(300.0, row.kcal)
+        assertEquals("copy", row.method, "a method every server build takes")
+        assertEquals(Instant.parse("2026-10-25T00:00:00Z").toEpochMilliseconds(), db.entries.state.value.getValue(id).clientUpdatedAtEpochMs)
+        assertEquals(emptyList(), db.writesOutsideTransaction)
+    }
+
+    @Test
+    fun loggingAgainTheSameDayWritesNothing() = runUnitTest {
+        repeats.create(plan(listOf(porridge)))
+        val outbox = db.outbox.rows.toList()
+
+        phone.materializer.logDue()
+        phone.materializer.logDue()
+
+        assertEquals(1, db.entries.rows.size)
+        assertEquals(outbox, db.outbox.rows.toList())
+    }
+
+    @Test
+    fun aRemovedEntryStaysRemovedThatDay_andTheRuleStays() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+        diary.removeItem(repeatEntryId(saved.rule.id, today, 0))
+
+        phone.materializer.logDue()
+
+        assertTrue(diary.observeDay(today).first().allItems.isEmpty())
+        assertNotNull(repeats.get(saved.rule.id))
+    }
+
+    @Test
+    fun theNextDayLogsAgain_withItsOwnIds() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+        calendar.today = LocalDate(2026, 10, 26)
+        clock.now = Instant.parse("2026-10-26T06:00:00Z")
+
+        phone.materializer.logDue()
+
+        val monday = diary.observeDay(LocalDate(2026, 10, 26)).first().items(MealSlot.Breakfast)
+        assertEquals(listOf(repeatEntryId(saved.rule.id, LocalDate(2026, 10, 26), 0)), monday.map { it.id })
+        assertEquals(1, diary.observeDay(today).first().allItems.size, "Sunday is left as it was")
+    }
+
+    @Test
+    fun aDayTheAppWasNotOpenedIsNotFilledIn() = runUnitTest {
+        repeats.create(plan(listOf(porridge)))
+        calendar.today = LocalDate(2026, 10, 28)
+        clock.now = Instant.parse("2026-10-28T06:00:00Z")
+
+        phone.materializer.logDue()
+
+        val logged = db.entries.rows.map { it.day }.sorted()
+        assertEquals(listOf("2026-10-25", "2026-10-28"), logged, "Monday and Tuesday stay empty")
+    }
+
+    @Test
+    fun onlyTheDaysPicked_andNothingBeforeTheStartOrAfterTheEnd() = runUnitTest {
+        val weekdays = repeats.create(plan(listOf(porridge), days = RepeatDays.Weekdays))
+        val later = repeats.create(plan(listOf(coffee), start = LocalDate(2026, 10, 26)))
+        val over = repeats.create(plan(listOf(coffee), start = LocalDate(2026, 10, 1), end = LocalDate(2026, 10, 24)))
+
+        assertFalse(weekdays.loggedToday, "Sunday is not a weekday")
+        assertFalse(later.loggedToday)
+        assertFalse(over.loggedToday)
+        assertTrue(db.entries.rows.isEmpty())
+    }
+
+    @Test
+    fun aPausedRuleLogsNothing_untilItIsResumed() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge), days = setOf(DayOfWeek.MONDAY)))
+        repeats.setPaused(saved.rule.id, true)
+        calendar.today = LocalDate(2026, 10, 26)
+
+        phone.materializer.logDue()
+        assertTrue(db.entries.rows.isEmpty())
+
+        val resumed = repeats.setPaused(saved.rule.id, false)
+        assertEquals(true, resumed?.loggedToday)
+        assertEquals(1, db.entries.rows.size)
+    }
+
+    @Test
+    fun aClosedDayLogsNothing_andReopeningItLetsTheNextRunLog() = runUnitTest {
+        diary.closeDay(today, DayReflection())
+        repeats.create(plan(listOf(porridge)))
+        assertTrue(db.entries.rows.isEmpty())
+
+        diary.reopenDay(today)
+        phone.materializer.logDue()
+
+        assertEquals(1, db.entries.rows.size)
+    }
+
+    @Test
+    fun anUntrackedDayLogsNothing() = runUnitTest {
+        diary.setUntracked(today, true)
+
+        val saved = repeats.create(plan(listOf(porridge)))
+
+        assertFalse(saved.loggedToday)
+        assertTrue(db.entries.rows.isEmpty())
+    }
+
+    @Test
+    fun withMealGroupsOffTheFoodsGoToAllFood() = runUnitTest {
+        settings.state.value = Settings(mealGroups = false)
+
+        repeats.create(plan(listOf(porridge)))
+
+        assertEquals(listOf("Oat porridge"), diary.observeDay(today).first().items(MealSlot.Uncategorized).map { it.name })
+    }
+
+    @Test
+    fun theMealsOwnTimeFromSettings() = runUnitTest {
+        settings.state.value = Settings(mealTimes = Settings().mealTimes.with(MealSlot.Dinner, LocalTime(18, 15)))
+
+        repeats.create(plan(listOf(porridge), slot = MealSlot.Dinner))
+
+        assertEquals(Instant.parse("2026-10-25T18:15:00Z"), diary.observeDay(today).first().items(MealSlot.Dinner).single().loggedAt)
+    }
+
+    @Test
+    fun nothingWhileTheFlagIsOff_orBeforeTheUsersSettingsAreKnown() = runUnitTest {
+        released = false
+        repeats.create(plan(listOf(porridge)))
+        assertTrue(db.entries.rows.isEmpty())
+
+        released = true
+        settings.known.value = false
+        phone.materializer.logDue()
+        assertTrue(db.entries.rows.isEmpty())
+
+        settings.known.value = true
+        phone.materializer.logDue()
+        assertEquals(1, db.entries.rows.size)
+    }
+
+    @Test
+    fun aSavedMealLogsItsCurrentFoods_andTheSnapshotOnceItIsGone() = runUnitTest {
+        val meal = phone.savedMeals.create("Usual breakfast", MealSlot.Breakfast, listOf(porridge, coffee))
+        val saved = repeats.create(plan(listOf(porridge), savedMealId = meal.id, name = meal.name))
+
+        assertEquals(listOf("Oat porridge", "Coffee with milk"), diary.observeDay(today).first().allItems.map { it.name })
+        assertEquals(LogMethod.Saved, diary.observeDay(today).first().allItems.first().method)
+
+        phone.savedMeals.delete(meal.id)
+        calendar.today = LocalDate(2026, 10, 26)
+        phone.materializer.logDue()
+
+        val monday = diary.observeDay(LocalDate(2026, 10, 26)).first().allItems
+        assertEquals(listOf("Oat porridge"), monday.map { it.name })
+        assertEquals(saved.rule.id, monday.single().repeatRuleId)
+    }
+
+    @Test
+    fun anEntryAlreadyLoggedTodayCountsAsTodays() = runUnitTest {
+        val logged = diary.addItems(today, MealSlot.Breakfast, listOf(porridge), LogMethod.Search).written().single()
+
+        val saved = repeats.create(plan(listOf(porridge)), loggedToday = listOf(logged.id))
+
+        assertFalse(saved.loggedToday)
+        val items = diary.observeDay(today).first().allItems
+        assertEquals(listOf(logged.id), items.map { it.id })
+        assertEquals(saved.rule.id, items.single().repeatRuleId)
+    }
+
+    @Test
+    fun anEntryFromAnotherDayDoesNotCountAsTodays() = runUnitTest {
+        val yesterday = diary.addItems(LocalDate(2026, 10, 24), MealSlot.Breakfast, listOf(porridge), LogMethod.Search).written().single()
+
+        val saved = repeats.create(plan(listOf(porridge)), loggedToday = listOf(yesterday.id))
+
+        assertTrue(saved.loggedToday)
+        assertNull(diary.observeDay(LocalDate(2026, 10, 24)).first().allItems.single().repeatRuleId)
+    }
+
+    @Test
+    fun anEditStartsWithTheNextDay_andTodaysFoodsStay() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+
+        val edited = repeats.update(saved.rule.id, plan(listOf(coffee)))
+
+        assertEquals(false, edited?.loggedToday)
+        assertEquals(listOf("Oat porridge"), diary.observeDay(today).first().allItems.map { it.name })
+        assertEquals(listOf(coffee), repeats.get(saved.rule.id)?.plan?.items)
+    }
+
+    @Test
+    fun deletingARuleKeepsWhatItLogged_asOrdinaryEntries() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+
+        repeats.delete(saved.rule.id)
+
+        assertNull(repeats.get(saved.rule.id))
+        assertTrue(repeats.observeAll().first().isEmpty())
+        val entry = diary.observeDay(today).first().allItems.single()
+        assertNull(entry.repeatRuleId)
+        assertTrue(db.repeats.rows.single().deleted, "a tombstone, so the delete can sync once rules do")
+    }
+
+    @Test
+    fun anEntryPulledFromAnotherPhoneIsKept_notWrittenAgain() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge), days = setOf(DayOfWeek.MONDAY)))
+        val monday = LocalDate(2026, 10, 26)
+        val id = repeatEntryId(saved.rule.id, monday, 0)
+        val pulled = diary.addItems(monday, MealSlot.Breakfast, listOf(porridge), LogMethod.Copy).written().single()
+            .copy(id = id, name = "Oat porridge, edited on the other phone")
+        db.entries.put(id, pulled.toEntity(updatedAtEpochMs = 1))
+        db.outbox.clear()
+        calendar.today = monday
+
+        phone.materializer.logDue()
+
+        assertEquals("Oat porridge, edited on the other phone", db.entries.state.value.getValue(id).name)
+        assertTrue(db.outbox.rows.isEmpty())
+        assertEquals(saved.rule.id, diary.observeDay(monday).first().allItems.single { it.id == id }.repeatRuleId)
+    }
+
+    /** The cross-device guarantee: one rule on two phones is one set of rows on the server, which keeps one row per id. */
+    @Test
+    fun twoPhonesWithTheSameRuleWriteTheSameRows() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge, coffee)))
+        val otherDb = FakeDiaryDb()
+        otherDb.repeats.put(saved.rule.id, db.repeats.state.value.getValue(saved.rule.id))
+        // The other phone opens later in the day: its rows must still match.
+        val other = Phone(otherDb, FakeClock(Instant.parse("2026-10-25T13:10:00Z")), FakeCalendar(), FakeSettingsRepository()) { true }
+
+        other.materializer.logDue()
+
+        fun sent(of: FakeDiaryDb) = of.outbox.rows.map { it.entityId to it.payload }.toSet()
+        assertEquals(2, sent(db).size)
+        assertEquals(sent(db), sent(otherDb))
+    }
+
+    private fun plan(
+        items: List<LogDraft>,
+        slot: MealSlot = MealSlot.Breakfast,
+        days: Set<DayOfWeek> = RepeatDays.EveryDay,
+        start: LocalDate = today,
+        end: LocalDate? = null,
+        savedMealId: String? = null,
+        name: String = items.first().name,
+    ) = RepeatPlan(name = name, items = items, slot = slot, days = days, startDay = start, endDay = end, savedMealId = savedMealId)
+
+    /** One phone's diary, saved meals and repeats over [db]. */
+    private class Phone(
+        db: FakeDiaryDb,
+        clock: FakeClock,
+        calendar: FakeCalendar,
+        settings: FakeSettingsRepository,
+        release: RepeatsRelease,
+    ) {
+        private val writer = DiaryWriter(db.tables, clock, FakeScheduler())
+        val diary = DiaryRepositoryImpl(db.tables, writer, settings, calendar, FakeFastEnder())
+        val savedMeals = SavedMealRepositoryImpl(db.tables, writer)
+        val materializer = RepeatMaterializer(db.tables, writer, settings, calendar, release)
+        val repeats = RepeatRepositoryImpl(db.tables, materializer, calendar, clock)
+    }
+}
