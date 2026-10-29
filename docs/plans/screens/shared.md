@@ -94,7 +94,7 @@ Surface mapping from the prototype's surface strings: `today` to `Today`;
 | `trendsCards` | `TrendsCards(intake, recap, nutrients, expended, weight)` | all true | |
 | `weekStart` | `DayOfWeek` (Mon, Sat or Sun) | Monday | |
 | `waterGlasses` / `glassMl` / `waterUnit` | `Int` / `Int` / `WaterUnit` | 8 / 250 / Ml | |
-| `weightUnit` | `WeightUnit` | Kg | |
+| `weightUnit` / `weightUnitChosen` | `WeightUnit` / `Boolean` | Kg / false | Read through `withRegionWeightUnit` (the settings repository does): until the person picks on Display, or onboarding or Profile set units (`heightUnit`), the phone region decides, so a US phone reads pounds. The region's unit is never written. |
 | `mealGroups` | `Boolean` | true | Global, as the prototype. `day_records.meal_groups` stays null in 0.1. |
 | `askTags` | `Boolean` | true | Never read since 2026-10-29: the hunger and fullness chips always show. Kept for round-trips. |
 | `tone` | `Tone { Plain, Warm }` | Plain | Never read since 2026-10-29: one voice, the plain one. Kept for round-trips. |
