@@ -20,10 +20,23 @@ class PatternsViewModelTest : CoroutineTest() {
         PatternsViewModel(diary, FakeSettingsRepository(settings), policy, TrendsFixtures.clock, checkInFlag(checkIn), TrendsFixtures.timeZone)
 
     @Test
-    fun hunger_fromTheCheckIns_onlyWithTheFlagAndTheSettingOn() = runUnitTest {
+    fun hunger_fromTheCheckIns_withTheFlag_whateverTheOldSwitchSays() = runUnitTest {
         assertEquals(HungerSource.MealTags, vm(checkIn = false).state.hunger?.source)
+        assertNull(vm(checkIn = false).state.checkIns)
         assertEquals(HungerSource.CheckIns, vm(checkIn = true).state.hunger?.source)
-        assertEquals(HungerSource.MealTags, vm(checkIn = true, settings = Settings(checkIn = false)).state.hunger?.source)
+        assertEquals(HungerSource.CheckIns, vm(checkIn = true, settings = Settings(checkIn = false)).state.hunger?.source)
+    }
+
+    @Test
+    fun theCheckInsCardsPick_staysAsNewDaysArrive() = runUnitTest {
+        val vm = vm(checkIn = true)
+        assertEquals(CheckInAspect.Hunger, vm.state.checkIns?.picked)
+
+        vm.takeAction(PatternsAction.CheckInAspectPicked(CheckInAspect.Mood))
+        assertEquals(CheckInAspect.Mood, vm.state.checkIns?.picked)
+        policy.policy.value = TrendsFixtures.policy(PresetId.NoNumbers)
+
+        assertEquals(CheckInAspect.Mood, vm.state.checkIns?.picked)
     }
 
     @Test

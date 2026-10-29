@@ -3,7 +3,6 @@ package com.opson.features.settings.impl
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.ProviderSummaryEnabled
 import com.opson.libraries.config.AppConfigMap
-import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.diary.DiarySync
 import com.opson.libraries.diary.NumbersChanger
@@ -194,13 +193,6 @@ class FakeAuthRepository(
 fun remindersFlag(on: Boolean = false): RemindersEnabled = RemindersEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("reminders" to on))
-    },
-)
-
-/** `release.checkIn`, on or off. */
-fun checkInFlag(on: Boolean = false): CheckInEnabled = CheckInEnabled(
-    object : AppConfigMap() {
-        override val map: Map<String, *> = mapOf("release" to mapOf("checkIn" to on))
     },
 )
 

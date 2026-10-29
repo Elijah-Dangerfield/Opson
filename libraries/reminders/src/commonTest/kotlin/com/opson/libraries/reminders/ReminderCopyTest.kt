@@ -3,12 +3,9 @@ package com.opson.libraries.reminders
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
-import com.opson.libraries.diary.Tone
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertTrue
 
 /**
  * The notification's words and how loud it is. That no number reaches the text is proved on the
@@ -19,22 +16,16 @@ class ReminderCopyTest {
     private val date = LocalDate(2026, 10, 25)
 
     @Test
-    fun eachMealHasItsOwnTitle_andTheToneSwapsEveryLine() {
-        val plain = MealSlot.meals.map { ReminderCopy.text(ReminderKey.Meal(date, it), Tone.Plain).title }
-        val warm = MealSlot.meals.map { ReminderCopy.text(ReminderKey.Meal(date, it), Tone.Warm).title }
-        assertEquals(4, plain.toSet().size)
-        assertEquals(4, warm.toSet().size)
-        assertTrue(plain.intersect(warm.toSet()).isEmpty())
-
-        val water = ReminderKey.Water(date, 0)
-        assertNotEquals(ReminderCopy.text(water, Tone.Plain).body, ReminderCopy.text(water, Tone.Warm).body)
+    fun eachMealHasItsOwnTitle() {
+        val titles = MealSlot.meals.map { ReminderCopy.text(ReminderKey.Meal(date, it)).title }
+        assertEquals(4, titles.toSet().size)
     }
 
     @Test
     fun mealNudgesCarryV3sThreeButtons_waterNone() {
-        val actions = ReminderCopy.text(ReminderKey.Meal(date, MealSlot.Dinner), Tone.Plain).actions.map { it.first }
+        val actions = ReminderCopy.text(ReminderKey.Meal(date, MealSlot.Dinner)).actions.map { it.first }
         assertEquals(listOf(ReminderAction.AlreadyAte, ReminderAction.LogIt, ReminderAction.Snooze), actions)
-        assertEquals(emptyList(), ReminderCopy.text(ReminderKey.Water(date, 1), Tone.Warm).actions)
+        assertEquals(emptyList(), ReminderCopy.text(ReminderKey.Water(date, 1)).actions)
     }
 
     @Test

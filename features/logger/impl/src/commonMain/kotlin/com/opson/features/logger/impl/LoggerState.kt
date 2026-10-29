@@ -71,6 +71,9 @@ sealed interface AddAction {
     data object WeighIn : AddAction
     data object Note : AddAction
 
+    /** `release.checkIn`: hunger, energy, mood and sleep, on the day's own check-in. */
+    data object CheckIn : AddAction
+
     /** `release.fasting`, offered in this mode, and the timer on. */
     data object Fasting : AddAction
 
@@ -154,6 +157,7 @@ sealed interface LoggerAction {
     data object WaterTapped : LoggerAction
     data object WeighInTapped : LoggerAction
     data object NoteTapped : LoggerAction
+    data object CheckInTapped : LoggerAction
     data object FastingTapped : LoggerAction
     data object ExerciseTapped : LoggerAction
 
@@ -197,6 +201,7 @@ sealed interface LoggerEvent {
     data class OpenPackagedFood(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data object OpenWeighIn : LoggerEvent
     data object OpenFasting : LoggerEvent
+    data class OpenCheckIn(val day: LocalDate) : LoggerEvent
     data class OpenExercise(val day: LocalDate) : LoggerEvent
 
     /** A glass went in, [ml] of it, on [day]: the snackbar's Undo takes it off again. */

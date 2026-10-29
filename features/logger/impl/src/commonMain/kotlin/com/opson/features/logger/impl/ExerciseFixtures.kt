@@ -12,19 +12,35 @@ import kotlin.time.Instant
 object ExerciseFixtures {
     private val now = LocalDateTime(LoggerFixtures.today, LocalTime(18, 20))
 
-    private fun inputs(weightKg: Double? = 70.0, healthConnected: Boolean = false, entry: ExerciseEntry? = null) = ExerciseInputs(
+    /** Resting energy for a 34-year-old woman, 168 cm, at the 70 kg weigh-in: Mifflin–St Jeor, rounded to 10. */
+    private const val RESTING_KCAL = 1420
+
+    private fun inputs(
+        weightKg: Double? = 70.0,
+        healthConnected: Boolean = false,
+        entry: ExerciseEntry? = null,
+        restingKcal: Int? = RESTING_KCAL,
+    ) = ExerciseInputs(
         day = LoggerFixtures.today,
         now = now,
         timeZone = TimeZone.UTC,
         weightKg = weightKg,
         healthConnected = healthConnected,
         entry = entry,
+        restingKcal = restingKcal.takeIf { weightKg != null },
     )
 
-    /** Brisk walking for 45 minutes this morning, worked out from a 70 kg weigh-in. */
+    /** Brisk walking for 45 minutes this morning, worked out from Profile and a 70 kg weigh-in. */
     fun formState(policy: VisibilityPolicy, healthConnected: Boolean = false): ExerciseSheetState = ExerciseSheetStateBuilder.build(
         ExerciseForm(activity = "walking_brisk", minutes = "45", startedAt = LocalTime(7, 30)),
         inputs(healthConnected = healthConnected),
+        policy,
+    )
+
+    /** The same walk with Profile missing an age, height or sex: worked out from the weight alone, and it asks for the rest. */
+    fun weightOnlyState(policy: VisibilityPolicy): ExerciseSheetState = ExerciseSheetStateBuilder.build(
+        ExerciseForm(activity = "walking_brisk", minutes = "45", startedAt = LocalTime(7, 30)),
+        inputs(restingKcal = null),
         policy,
     )
 

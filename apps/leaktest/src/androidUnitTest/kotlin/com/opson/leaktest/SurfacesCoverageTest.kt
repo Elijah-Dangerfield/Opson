@@ -114,6 +114,7 @@ class SurfacesCoverageTest {
                 "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "food-actions-amount",
                 "today-notes",
                 "today-closed", "day-closed-sheet", "day-close-closed", "food-actions-closed",
+                "day-close-recap-deficit", "day-close-recap-surplus", "check-in",
             ),
             "LoggerLeakSurfaces" to listOf(
                 "add-sheet", "add-sheet-expanded", "add-sheet-uncategorized",
@@ -132,7 +133,7 @@ class SurfacesCoverageTest {
             ),
             "FoodsLeakSurfaces" to listOf(
                 "foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind", "edit-a-copy", "edit-a-copy-label", "edit-a-copy-sizes",
-                "foods-add-food-pack", "foods-unverified",
+                "foods-add-food-pack", "foods-unverified", "foods-repeating", "foods-repeat", "foods-repeat-edit",
             ),
             "TrendsLeakSurfaces" to listOf(
                 "trends", "trends-blind", "trends-coast", "trends-settings", "nutrients", "nutrients-week",
@@ -142,11 +143,11 @@ class SurfacesCoverageTest {
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "modes-end-after", "modes-each-number", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
                 "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
-                "targets-deficit-estimated", "targets-macros",
+                "targets-deficit-estimated", "targets-macros", "targets-safety-notes",
                 "resting-energy", "energy-today", "today-screen-settings", "today-screen-settings-stats", "micro-targets", "micro-target-sheet",
-                "water-settings", "support", "support-delete", "support-export-numbers", "support-provider-first", "support-find", "look-and-feel",
+                "water-settings", "support", "support-delete", "support-export-numbers", "support-provider-first", "support-find",
                 "provider-summary", "provider-summary-warning", "provider-summary-custom",
-                "reminders", "reminder-notification",
+                "reminders", "reminder-notification", "profile",
                 "integrations", "integrations-leave-out", "fasting",
                 "widget", "widgets",
             ),
@@ -161,7 +162,7 @@ class SurfacesCoverageTest {
             "foods", "foods-create-meal", "foods-add-food",
             "trends", "trends-blind", "trends-coast", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
-            "targets-goal-style", "energy-today", "targets-deficit-estimated", "targets-macros",
+            "targets-goal-style", "energy-today", "targets-deficit-estimated", "targets-macros", "targets-safety-notes",
             "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
             "today-timer-ended", "today-timer-waiting", "today-expended", "today-exercise", "integrations",
             "today-summary", "today-macros", "today-sticky", "today-weight", "today-select",
@@ -173,8 +174,9 @@ class SurfacesCoverageTest {
             "edit-a-copy-label", "edit-a-copy-sizes",
             "today-activity", "today-activity-health", "exercise-sheet", "exercise-sheet-other",
             "provider-summary", "provider-summary-warning", "provider-summary-custom",
-            "today-closed", "day-close-closed", "food-actions-closed",
+            "today-closed", "day-close-closed", "food-actions-closed", "day-close-recap-deficit", "day-close-recap-surplus",
             "search-unverified", "food-detail-in-review", "submit-food-save-review", "foods-add-food-pack", "foods-unverified",
+            "foods-repeating", "foods-repeat", "foods-repeat-edit",
         )
     }
 }

@@ -29,6 +29,66 @@ components to keep in step, which is how they drifted); disabling Equation
 without Burned (the pick would be lost, and it starts working once resting
 energy is set up, so it stays picked with a note instead).
 
+## 2026-10-29: The check-in is its own sheet, hunger is a 1 to 10 scale, and Close the day is a recap
+
+**Decision:** the check-in leaves Close the day. It is a sheet of its own
+(`CheckInRoute`, `release.checkIn`), opened from a Check in tile on the + sheet,
+a Check in row on Close the day and the QA menu, and written on its own
+(`DayCheckIns.setCheckIn`), never with the close. A closed day still takes one:
+how someone feels is not part of the day's log, so the 2026-10-27 rule that a
+closed day takes nothing does not reach it. `DayReflection` lost its
+`checkIn`. The Reminders switch that hid the old card is no longer read; the
+flag alone decides. A check-in reminder is not built yet: it needs a new
+reminder kind through the planner, the platform wire, both platforms' tap
+routing and a Reminders row, and delivery is still untested on real devices.
+
+Sleep moved because people close the day at night, when "how did you sleep
+last night?" is the wrong question. The sheet asks it first, as last night,
+before noon; after noon it waits behind "Add last night's sleep" unless it was
+answered. Still one check-in per day: the sheet opens on what the day holds and
+saves the whole, so the morning's sleep is there when the evening moves hunger.
+Several timestamped check-ins a day would need a table, an outbox entity and a
+server migration, and the build going out now talks to a prod server that will
+not be redeployed, so the check-in stays on the day record's `check_in` JSON,
+which prod already stores and round-trips (length checked only).
+
+**Hunger is a slider on the 1 to 10 hunger and fullness scale** used in
+intuitive-eating work (1 ravenous, 5 neutral, 10 stuffed), with each step named,
+the ends and middle labelled under the track, and a tick on each step. It asks
+"How hungry are you right now?", the question that scale is made for; the old
+row asked how often hunger came up through the day, which no slider answers
+well. Energy, mood and sleep are five labelled points in a segmented row rather
+than sliders: five words read faster than a track, the scale has no numbers to
+mean, and a tap is quicker for a lightweight check-in. Faces were left out to
+keep the app's plain-word voice. Mood is a new 5-point level; the old mood tags
+stay as an optional row.
+
+**Migration, read-time only:** `CheckInWire` gained `hungerLevel` and `mood`.
+An old row's hunger word reads as a step (rarely 6, some 5, steady 4, often 3,
+very 2): approximate, since the questions differ, but it keeps the order on the
+charts. Energy's and sleep's three old words are the middle three of the five,
+same wire values. Writes keep the nearest old word in `hunger` so a 0.2 phone
+and the server's export keep showing a hunger; a 0.2 phone reads the new top
+and bottom words as unanswered. Patterns reads the scale (taller is hungrier)
+and adds **How you've felt**, a bar a day over the four weeks for each aspect.
+
+**Close the day is a recap.** A line on how much was logged, in words, in every
+mode. Eaten and burned: Burned with `release.goalsAndEnergy`, else the watch's
+total today, the difference, and how it sits with the deficit or surplus the
+day's goal works out to (a set one, or the aim against what was burned when that
+is 100 kcal or more): on plan, more, less, or the other way, said without praise
+for eating less. The card exists only when calories and energy out are both
+shown in full, since the difference between two hidden numbers is a number.
+Then the macros against their targets in any mode that shows macros, and
+Today's four vitamins and minerals as percents of their references. Macros and
+micros step aside on a big day, as the macros did. No nutrient score: the math
+is not validated, so nothing adds the parts up.
+
+Alternatives: a separate check-ins table with times (deferred, above); hunger
+on five frequency words as before (the owner asked for a scale, and "right now"
+is a better question at any hour); a Reminders switch kept for the check-in
+(removed with the Reminders reorganization).
+
 ## 2026-10-29: Digesting food counts in Burned, if the person asks
 
 **Decision:** "Count digesting food" on Resting energy, off by default, adds 10%
@@ -45,6 +105,102 @@ someone turns it on. Neither health store includes it, so it never double counts
 whose error bars are wider than the choice); weighting by macro (protein costs
 more to digest), which is closer to the truth but makes the line jump as foods
 are edited.
+
+---
+
+## 2026-10-29: A low goal gets a note, not a lock; day groups are always open
+
+**Decision:** on Targets a calorie goal can be set anywhere from 800 to 6,000
+kcal (`MIN_GOAL_KCAL`, `MAX_GOAL_KCAL`, `TODO(clinician)`). Where the person
+started is a record, no longer a floor. Under 1,200 for a woman, 1,500 for a
+man and 1,350 when sex isn't said, a note says the goal "is lower than most
+people should go without a doctor's guidance" and links to Find support; a set
+deficit over 1,000 a day gets a gentler-pace note the same way. Nothing is
+refused. `GOAL_FLOOR_KCAL` stays null and, once a dietitian sets it, is a hard
+floor again. A goal Opson works out from the burn (a deficit or surplus) never
+comes to less than 1,200, whoever the person is. Onboarding keeps its own floor
+at the app's starting range, because setup has no note.
+
+Different by day starts with two groups, every day in the first and none in
+the second, and every group's controls are always open. A tap on a day moves it
+into that group or, for a day already there, back to the first; the first
+group's own days are not buttons. Every group but the first can be removed,
+its days going back to the first. An empty group is allowed and says how to
+fill it.
+
+**Why:** the owner found the range locked at 1,900 to 2,300 with no way down,
+and the by-day editor hard to use: an Edit tap per group, no way to delete a
+group, and on the first group no day that did anything. The old floor was the
+right instinct with the wrong mechanism: it treated whatever number someone
+started on as the safe one, which it never was, and it blocked people with a
+real reason to go lower. The trackers people know warn instead
+(`docs/research/goals-ux.md`), and a soft note keeps the person in charge while
+still saying the thing that matters. For day groups, making one group the rest
+of the week is what keeps every state valid: whatever is tapped or removed, each
+day is in exactly one group, so there is no invalid state to validate and no
+Save button to add. Starting with two groups means the first thing anyone does
+after picking the style is pick days.
+
+**Rejected:** a Save button that validates the week (more taps, and a state the
+page can be left in); pruning empty groups automatically (a group would vanish
+under the person mid-edit); an absolute floor of 1,200 (blocks the people the
+note is for from tracking what they are told to eat). The deficit and surplus
+caps are unchanged and still wait on a dietitian.
+
+---
+
+## 2026-10-29: Repeating foods log themselves through the diary, from rules kept on the phone
+
+**Decision:** a repeat (Foods tab, "Repeating") is a rule: a food, several foods
+or a saved meal, a meal, the days of the week, a start and an optional end, and
+paused or not. On the day it falls on, its foods are written as ordinary log
+entries, through `DiaryWriter` and the outbox, so they sync, edit and delete
+like anything logged by hand. Behind `release.repeats`, which is also the kill
+switch, since this writes to the person's log unasked.
+
+- **When.** `RepeatScheduler` runs `RepeatMaterializer.logDue()` once the person
+  is signed in and their settings are known, on every foreground, at each local
+  midnight while the app is open, and after every save. Only today is logged. A
+  day the app was not opened stays empty: filling it later would put food in
+  the log that may not have been eaten, and an empty day already reads as a gap
+  in Trends.
+- **Once per day.** `repeat_logs` records each entry a rule wrote, keyed by
+  entry id, and a rule with any record for a day is done for that day. The
+  record stays when the entry is removed, and the entry's tombstone keeps its id,
+  so a removed repeat stays removed that day. "Repeat this" on Today records the
+  entry it came from as the rule's today, so that food is not logged twice.
+- **Ids.** `repeatEntryId(rule, day, index)` is a deterministic version 8 UUID.
+  Two phones holding one rule write the same ids and the same rows: the server
+  keeps one row per id and a second identical write changes nothing. Each row's
+  `clientUpdatedAt` is the start of its day, deterministic too and older than
+  anything the person can do to the entry, so their edit or removal on one phone
+  always outranks the other phone's copy of the auto-logged row.
+- **Rows.** Method `saved` for a saved meal and `copy` otherwise, both of which
+  every server build accepts (an unknown method is refused). Logged at the
+  meal's time from `Settings.mealTimes`, so Today's meal header and learned meal
+  times read the meal, not the moment the app opened. That time can be later
+  than now, so fasting's "last eaten" now ignores entries timed in the future.
+  Logging this way never ends a fast. Closed and untracked days are skipped and
+  not recorded, so reopening or tracking the day again lets the next run log it.
+- **Not synced yet.** The prod server could not be redeployed for this, and
+  settings JSON was ruled out: older builds drop unknown keys on save (which
+  would erase the rules) and it would put the rules' food snapshots into a
+  64 KB blob. So `repeat_rules` (Room 12) is device-local, wiped on a user
+  change like every diary table, and lost on reinstall. It already has what an
+  outbox row needs (UUID, `clientUpdatedAt`, tombstone); syncing it is a new
+  `SyncEntity`, a server table and migration, and nothing else on the client.
+  Until then a rule set up separately on two phones has two ids and logs twice.
+- **The mark.** `LogItem.repeatRuleId` comes from `repeat_logs` when a day is
+  read. It is local, so another phone shows the entry as an ordinary one.
+
+**Alternatives:** back-filling missed days (rejected above); a new `repeat`
+log method (the prod server refuses unknown methods); a local-only column on
+`log_entries` for the mark (a pulled row would overwrite it).
+
+**Name:** "Repeating" for the section and "Repeat this" for the action. It
+describes what the person set up, in the verb they act with. "Everyday foods"
+is wrong for a weekdays-only rule, and "Auto-log" is jargon for what is, to the
+person, simply eating the same thing again.
 
 ## 2026-10-28: A packaged food is added from its label wherever a food is added, and says when it is unverified
 

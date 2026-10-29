@@ -588,6 +588,7 @@ object TodayStateBuilder {
                     precision = item.precision.takeUnless { timeline },
                     // The meal header carries the unit, so each item is a plain number (v3 2.1).
                     calories = policy.resolve(Metric.Calories, item.kcal, Surface.Today, context.copy(bare = true)),
+                    repeat = item.repeatRuleId != null,
                 )
             },
             ateNoDetails = items.isEmpty() && slot in day.ateNoDetails,

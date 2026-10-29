@@ -92,11 +92,11 @@ stats to tick and drag, a lock on what the levels hide that opens Modes).
 `:libraries:diary` so both Today and the page read them. The sheet's Water
 switch, which hid the water level through `NumbersChanger`, is gone: Water here
 is `todayWater`, the card on Today alone, and when the levels hide water the row
-says so and links to Modes and numbers.
+says so and links to Display.
 
 A choice the page offers that something else overrides says so under it, with
 a link to what decides (`OverrideNote`): Equation or Deficit or surplus without
-Burned (Resting energy, or Modes and numbers when energy out is hidden), water,
+Burned (Resting energy, or Display when energy out is hidden), water,
 weight or vitamins and minerals hidden by the levels, the card's layout set by
 the mode or by calories on Later, and Burned breakdown on a preset other than
 In and out. Today and the page read the same rule for the drawn preset

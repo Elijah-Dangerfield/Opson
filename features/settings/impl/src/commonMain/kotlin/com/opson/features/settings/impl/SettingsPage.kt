@@ -81,6 +81,7 @@ internal fun SettingsCard(modifier: Modifier = Modifier, content: @Composable Co
  * A More row (design v3): an icon, a title with an optional subtitle, then trailing text
  * or a chevron. The whole row is the tap target; a row with no [onClick] is plain text.
  * [quietIcon] draws the icon muted: v3 keeps the accent for the first group on More.
+ * [destructive] draws the title in the danger colour, for a row that ends something (Log out).
  */
 @Composable
 internal fun SettingsRow(
@@ -88,6 +89,7 @@ internal fun SettingsRow(
     icon: IconResource?,
     modifier: Modifier = Modifier,
     quietIcon: Boolean = false,
+    destructive: Boolean = false,
     subtitle: String? = null,
     trailingText: String? = null,
     chevron: Boolean = false,
@@ -109,7 +111,7 @@ internal fun SettingsRow(
         ) {
             if (icon != null) Icon(icon = icon, size = 24.dp, color = if (quietIcon) AppTheme.colors.muted else AppTheme.colors.accent)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(text = title, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+                Text(text = title, typography = AppTheme.type.cardTitle, color = if (destructive) AppTheme.colors.danger else AppTheme.colors.ink)
                 if (subtitle != null) {
                     Text(text = subtitle, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
                 }

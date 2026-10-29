@@ -7,6 +7,7 @@ import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
@@ -40,6 +41,7 @@ class MoreViewModel(
     private val remindersEnabled: RemindersEnabled,
     private val fastingRelease: FastingRelease,
     private val widgetsEnabled: WidgetsEnabled,
+    private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val auth: AuthRepository,
     private val diarySync: DiarySync,
     private val contributions: Set<MoreRowContribution> = emptySet(),
@@ -75,6 +77,7 @@ class MoreViewModel(
                     remindersOn = remindersEnabled(),
                     fastingReleased = fastingRelease.isOn(),
                     widgetsOn = widgetsEnabled(),
+                    goalsAndEnergyOn = goalsAndEnergy(),
                     account = action.account,
                     contributed = contributions.filter { it.visible() },
                 ).copy(logOut = it.logOut)
@@ -91,16 +94,18 @@ class MoreViewModel(
 
     private suspend fun rowTapped(action: MoreAction, row: MoreRow) {
         when (row) {
-            is MoreRow.Modes -> sendEvent(MoreEvent.OpenModes)
+            is MoreRow.Display -> sendEvent(MoreEvent.OpenDisplay)
             MoreRow.Targets -> sendEvent(MoreEvent.OpenTargets)
+            MoreRow.Profile -> sendEvent(MoreEvent.OpenProfile)
             MoreRow.TodayScreen -> sendEvent(MoreEvent.OpenTodayScreen)
-            MoreRow.LookAndFeel -> sendEvent(MoreEvent.OpenLookAndFeel)
             is MoreRow.Health -> sendEvent(MoreEvent.OpenHealth)
             is MoreRow.Reminders -> sendEvent(MoreEvent.OpenReminders)
             is MoreRow.Water -> sendEvent(MoreEvent.OpenWater)
             is MoreRow.Fasting -> sendEvent(MoreEvent.OpenFasting)
             MoreRow.Widgets -> sendEvent(MoreEvent.OpenWidgets)
             MoreRow.Support -> sendEvent(MoreEvent.OpenSupport)
+            MoreRow.ReportBug -> sendEvent(MoreEvent.OpenBugReport)
+            MoreRow.SendFeedback -> sendEvent(MoreEvent.OpenFeedback)
             MoreRow.Plan -> Unit
             MoreRow.Privacy -> sendEvent(MoreEvent.OpenPrivacy)
             MoreRow.Terms -> sendEvent(MoreEvent.OpenTerms)
@@ -171,14 +176,16 @@ class MoreViewModel(
 }
 
 sealed interface MoreEvent {
-    data object OpenModes : MoreEvent
+    data object OpenDisplay : MoreEvent
     data object OpenTargets : MoreEvent
+    data object OpenProfile : MoreEvent
     data object OpenTodayScreen : MoreEvent
     data object OpenWater : MoreEvent
-    data object OpenLookAndFeel : MoreEvent
     data object OpenHealth : MoreEvent
     data object OpenReminders : MoreEvent
     data object OpenSupport : MoreEvent
+    data object OpenBugReport : MoreEvent
+    data object OpenFeedback : MoreEvent
     data object OpenFasting : MoreEvent
     data object OpenWidgets : MoreEvent
     data object OpenPrivacy : MoreEvent

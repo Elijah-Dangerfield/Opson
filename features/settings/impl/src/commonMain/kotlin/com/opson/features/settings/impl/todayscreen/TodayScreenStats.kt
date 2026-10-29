@@ -62,7 +62,7 @@ import kotlin.math.roundToInt
  * The older summary card's stats on More › Today screen (design sync 2, 2.1e), which Edit Today's
  * cards used to carry: the suggestion from the onboarding goals with Reset, then page 1's stats to
  * tick, untick and drag into order. Only what the levels allow can be ticked; a stat they hide
- * shows a lock and opens Modes and numbers, so this never shows more numbers by itself.
+ * shows a lock and opens Display, so this never shows more numbers by itself.
  */
 
 @Composable
@@ -159,7 +159,7 @@ private fun StatRowItem(
         else -> null
     }
     val onTap = {
-        onAction(if (row.locked) TodayScreenSettingsAction.LinkTapped(SettingLink.Modes) else TodayScreenSettingsAction.StatToggled(row.stat))
+        onAction(if (row.locked) TodayScreenSettingsAction.LinkTapped(SettingLink.Display) else TodayScreenSettingsAction.StatToggled(row.stat))
     }
     Row(
         modifier = modifier

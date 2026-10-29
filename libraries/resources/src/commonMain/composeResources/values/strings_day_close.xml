@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for Close the day's recap: the line under the title, eaten against burned, the macros and
+  the vitamins and minerals. Same rules as strings.xml: no backslash escapes, positional %1$s
+  arguments. A recap states what happened and never grades it: no praise for eating less, no
+  alarm for eating more.
+-->
+<resources>
+    <!-- The line under the title, by how much of the day was logged. No amounts. -->
+    <string name="today_dayclose_recap_all">Every meal logged today. That's the full picture.</string>
+    <string name="today_dayclose_recap_all_other_day">Every meal logged that day. That's the full picture.</string>
+    <string name="today_dayclose_recap_some">You logged today. Each entry makes the picture clearer.</string>
+    <string name="today_dayclose_recap_some_other_day">You logged that day. Each entry makes the picture clearer.</string>
+    <string name="today_dayclose_recap_none">Nothing logged today, and that's fine.</string>
+    <string name="today_dayclose_recap_none_other_day">Nothing logged that day, and that's fine.</string>
+
+    <!-- Eaten against burned. Only where calories and energy out both show. -->
+    <string name="today_dayclose_balance_title">Eaten and burned</string>
+    <string name="today_dayclose_balance_eaten">Eaten</string>
+    <string name="today_dayclose_balance_burned">Burned</string>
+    <string name="today_dayclose_balance_burned_so_far">Burned so far</string>
+    <string name="today_dayclose_balance_under">%1$s under what you burned.</string>
+    <string name="today_dayclose_balance_over">%1$s over what you burned.</string>
+    <string name="today_dayclose_balance_even">About even with what you burned.</string>
+    <string name="today_dayclose_plan_deficit_on">Right around the %1$s deficit your goal aims for.</string>
+    <string name="today_dayclose_plan_deficit_beyond">More than the %1$s deficit your goal aims for. Your goal's pace is enough.</string>
+    <string name="today_dayclose_plan_deficit_short">Less than the %1$s deficit your goal aims for, and still under what you burned.</string>
+    <string name="today_dayclose_plan_deficit_opposite">Your goal aims for a %1$s deficit. One day over doesn't change your trend.</string>
+    <string name="today_dayclose_plan_surplus_on">Right around the %1$s surplus your goal aims for.</string>
+    <string name="today_dayclose_plan_surplus_beyond">More than the %1$s surplus your goal aims for.</string>
+    <string name="today_dayclose_plan_surplus_short">Less than the %1$s surplus your goal aims for, and still over what you burned.</string>
+    <string name="today_dayclose_plan_surplus_opposite">Your goal aims for a %1$s surplus. The day came in under what you burned.</string>
+
+    <string name="today_dayclose_macros">Macros</string>
+    <string name="today_dayclose_nutrients">Vitamins and minerals</string>
+</resources>

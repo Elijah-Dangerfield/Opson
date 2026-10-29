@@ -328,7 +328,15 @@ data class MealNoteUi(val hunger: StringResource?, val text: String?)
 
 /** A food on a meal card. [precision] is null where only the household amount shows (No numbers). */
 @Immutable
-data class ItemRowUi(val entryId: String, val name: String, val amount: String, val precision: Precision?, val calories: Display)
+/** [repeat]: a repeat logged it (`release.repeats`), marked with a small loop. */
+data class ItemRowUi(
+    val entryId: String,
+    val name: String,
+    val amount: String,
+    val precision: Precision?,
+    val calories: Display,
+    val repeat: Boolean = false,
+)
 
 /** [closed]: the day was closed with Close the day, so the button opens it to look back or reopen it. */
 data class CloseDayButton(val closed: Boolean)

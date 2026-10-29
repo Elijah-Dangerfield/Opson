@@ -9,10 +9,10 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The safety rules on targets: raising is free, lowering stops at the
- * starting target while [GOAL_FLOOR_KCAL] is null (`setGoal` and the targets
- * screen in the prototype), and exercise adjustment only ever adds to today,
- * never to tomorrow (`S.exercise === 'all'` in `renderVals`).
+ * The safety rules on targets: the goal moves freely between [MIN_GOAL_KCAL]
+ * and [MAX_GOAL_KCAL] while [GOAL_FLOOR_KCAL] is null (how low is too low is
+ * a note, `GoalSafetyTest`, not a lock), and exercise adjustment only ever adds
+ * to today, never to tomorrow (`S.exercise === 'all'` in `renderVals`).
  *
  * Not covered here: a floor set by a dietitian, because there is no such
  * value yet and inventing one for a test would be the first step to shipping it.
@@ -24,7 +24,7 @@ class TargetsTest {
     @Test
     fun floor_isUnsetUntilADietitianSetsIt() {
         assertNull(GOAL_FLOOR_KCAL)
-        assertEquals(base.startingKcal, base.floorKcal)
+        assertEquals(MIN_GOAL_KCAL, base.floorKcal)
     }
 
     @Test
@@ -43,33 +43,36 @@ class TargetsTest {
     }
 
     @Test
-    fun raise_isAlwaysAllowed() {
+    fun raise_stopsAtTheMaximum() {
         var targets = base
         repeat(40) { targets = targets.raise() }
         assertEquals(4100, targets.energyKcal)
+        repeat(100) { targets = targets.raise() }
+        assertEquals(MAX_GOAL_KCAL, targets.maxKcal)
     }
 
     @Test
-    fun lower_isBlockedAtTheStartingTarget() {
-        assertFalse(base.canLower)
-        assertNull(base.lower())
+    fun lower_goesUnderTheStartingTarget_downToTheMinimum() {
+        assertTrue(base.canLower)
+        assertEquals(2050, base.lower()?.energyKcal)
+        var targets = base
+        while (true) targets = targets.lower() ?: break
+        assertEquals(MIN_GOAL_KCAL, targets.minKcal)
+        assertEquals(base.startingKcal, targets.startingKcal, "where it started is a record, not a limit")
     }
 
     @Test
-    fun lower_canUndoARaiseButNotGoPastTheStart() {
-        val raisedTwice = base.raise().raise()
-        val once = raisedTwice.lower()
-        val twice = once?.lower()
-
-        assertEquals(base.raise(), once)
-        assertEquals(base, twice)
-        assertNull(twice?.lower())
+    fun lower_undoesARaise() {
+        assertEquals(base, base.raise().raise().lower()?.lower())
     }
 
     @Test
-    fun withEnergy_neverGoesBelowTheFloor() {
-        assertEquals(base, base.withEnergy(1500))
-        assertEquals(base, base.raise().withEnergy(2099))
+    fun withEnergy_keepsBothEndsBetweenTheMinimumAndTheMaximum() {
+        assertEquals(1500, base.withEnergy(1500).energyKcal)
+        val lowest = base.withEnergy(100)
+        assertEquals(MIN_GOAL_KCAL, lowest.minKcal)
+        assertEquals(1000, lowest.energyKcal)
+        assertEquals(MAX_GOAL_KCAL, base.withEnergy(9999).maxKcal)
     }
 
     @Test
@@ -196,7 +199,7 @@ class TargetsTest {
 
     @Test
     fun lower_ratioMode_stillStopsAtTheFloor() {
-        assertNull(base.lower(scaleMacros = true))
+        assertNull(base.withEnergy(MIN_GOAL_KCAL).lower(scaleMacros = true))
         assertEquals(base, base.raise(scaleMacros = true).lower(scaleMacros = true)?.copy(ratioBasis = null))
     }
 

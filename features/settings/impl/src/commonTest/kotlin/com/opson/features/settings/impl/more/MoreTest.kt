@@ -4,6 +4,7 @@ import com.opson.features.settings.MoreRowContribution
 import com.opson.features.settings.impl.FakeAuthRepository
 import com.opson.features.settings.impl.FakeDiarySync
 import com.opson.features.settings.impl.FakeSettingsRepository
+import com.opson.features.settings.impl.goalsAndEnergyFlag
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
@@ -31,7 +32,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * The More list (design v3): its three cards then About, Account and other modules' rows, the changes
- * count on the Modes row, the water goal, log out, and where each row goes. No row carries an
+ * count on the Display row, the water goal, log out, and where each row goes. No row carries an
  * amount, so nothing here reads the policy. Not covered: the routes the events become (the entry
  * point).
  */
@@ -43,9 +44,9 @@ class MoreTest : CoroutineTest() {
     fun theRowsAreTheDesignsThreeCards_thenAbout() {
         assertEquals(
             listOf(
-                listOf(MoreRow.Modes(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.TodayScreen, MoreRow.LookAndFeel),
+                listOf(MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.TodayScreen),
                 listOf(MoreRow.Water(glasses = 8)),
-                listOf(MoreRow.Support, MoreRow.Plan),
+                listOf(MoreRow.Support, MoreRow.ReportBug, MoreRow.SendFeedback, MoreRow.Plan),
                 listOf(MoreRow.Privacy, MoreRow.Terms, MoreRow.Credits),
             ),
             build().groups,
@@ -134,7 +135,7 @@ class MoreTest : CoroutineTest() {
         sync: FakeDiarySync = FakeDiarySync(),
     ) = MoreViewModel(
         FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(),
-        FastingRelease { false }, widgetsFlag(), auth, sync, contributions.toSet(),
+        FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), auth, sync, contributions.toSet(),
     )
 
     private fun signedIn() = FakeAuthRepository(initial = AuthState.Authenticated(userId = "u1", isAnonymous = false, email = "sam@example.com"))
@@ -265,9 +266,9 @@ class MoreTest : CoroutineTest() {
     }
 
     @Test
-    fun theModesRowCountsTheChanges() {
-        assertEquals(MoreRow.Modes(PresetId.MacrosOnly, changes = 1), build(SettingsFixtures.nutrientsFirstWithACarbsChange).groups[0][0])
-        assertEquals(MoreRow.Modes(PresetId.Full, changes = 2), build(SettingsFixtures.adjusted).groups[0][0])
+    fun theDisplayRowCountsTheChanges() {
+        assertEquals(MoreRow.Display(PresetId.MacrosOnly, changes = 1), build(SettingsFixtures.nutrientsFirstWithACarbsChange).groups[0][0])
+        assertEquals(MoreRow.Display(PresetId.Full, changes = 2), build(SettingsFixtures.adjusted).groups[0][0])
     }
 
     @Test
@@ -281,7 +282,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun settingsArriveAsState() = runUnitTest {
         val settings = FakeSettingsRepository(SettingsFixtures.settings())
-        val vm = MoreViewModel(settings, FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), FakeAuthRepository(), FakeDiarySync())
+        val vm = MoreViewModel(settings, FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
 
         settings.state.value = settings.state.value.copy(waterGlasses = 10)
 
@@ -290,15 +291,16 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun eachRowOpensItsPage_andPlanOpensNothing() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), FakeAuthRepository(), FakeDiarySync())
+        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         val events = eventsOf(vm)
 
         vm.state.groups.flatten().forEach { vm.takeAction(MoreAction.RowTapped(it)) }
 
         assertEquals(
             listOf(
-                MoreEvent.OpenModes, MoreEvent.OpenTargets, MoreEvent.OpenTodayScreen, MoreEvent.OpenHealth, MoreEvent.OpenLookAndFeel,
-                MoreEvent.OpenWater, MoreEvent.OpenSupport, MoreEvent.OpenPrivacy, MoreEvent.OpenTerms, MoreEvent.OpenCredits,
+                MoreEvent.OpenDisplay, MoreEvent.OpenTargets, MoreEvent.OpenTodayScreen, MoreEvent.OpenHealth,
+                MoreEvent.OpenWater, MoreEvent.OpenSupport, MoreEvent.OpenBugReport, MoreEvent.OpenFeedback,
+                MoreEvent.OpenPrivacy, MoreEvent.OpenTerms, MoreEvent.OpenCredits,
             ),
             events,
         )
@@ -345,7 +347,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theFastingRowOpensFasting() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { true }, widgetsFlag(), FakeAuthRepository(), FakeDiarySync())
+        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { true }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         val events = eventsOf(vm)
 
         vm.takeAction(MoreAction.RowTapped(vm.state.groups[1][1]))
@@ -378,7 +380,7 @@ class MoreTest : CoroutineTest() {
 
     @Test
     fun theWidgetsRowOpensWidgets() = runUnitTest {
-        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(on = true), FakeAuthRepository(), FakeDiarySync())
+        val vm = MoreViewModel(FakeSettingsRepository(SettingsFixtures.settings()), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(on = true), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         val events = eventsOf(vm)
 
         vm.takeAction(MoreAction.RowTapped(vm.state.groups[1].last()))
@@ -389,7 +391,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOff_noRow_andTheStoreIsNeverTouched() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.Connected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), FakeAuthRepository(), FakeDiarySync())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
 
         assertTrue(vm.state.groups.flatten().none { it is MoreRow.Health })
         assertEquals(0, health.refreshes)
@@ -398,7 +400,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOff_comingBackToMore_stillNeverTouchesTheStore() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.Connected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), FakeAuthRepository(), FakeDiarySync())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
 
         vm.takeAction(MoreAction.ScreenResumed)
 
@@ -408,7 +410,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun healthFlagOn_theRowSaysWhetherItIsConnected() = runUnitTest {
         val health = FakeHealthRepository(status = HealthStatus.NotConnected)
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), FakeAuthRepository(), FakeDiarySync())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         assertEquals(MoreRow.Health(connected = false), vm.state.groups[0].filterIsInstance<MoreRow.Health>().single())
 
         health.statusFlow.value = HealthStatus.Connected
@@ -419,7 +421,7 @@ class MoreTest : CoroutineTest() {
     @Test
     fun screenResumed_rechecksTheConnection() = runUnitTest {
         val health = FakeHealthRepository()
-        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), FakeAuthRepository(), FakeDiarySync())
+        val vm = MoreViewModel(FakeSettingsRepository(), health, healthFlag(on = true), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         val before = health.refreshes
         vm.takeAction(MoreAction.ScreenResumed)
         assertEquals(before + 1, health.refreshes)
@@ -434,12 +436,12 @@ class MoreTest : CoroutineTest() {
     }
 
     @Test
-    fun withBothFlagsTheFirstCardReadsAsDesignSync2_withLookAndFeelKeptLast() {
+    fun withBothFlagsTheFirstCardReadsAsDesignSync2() {
         val rows = MoreStateBuilder.build(SettingsFixtures.settings(), healthConnected = true, remindersOn = true).groups[0]
         assertEquals(
             listOf(
-                MoreRow.Modes(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.TodayScreen, MoreRow.Reminders(quiet = true),
-                MoreRow.Health(connected = true), MoreRow.LookAndFeel,
+                MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.TodayScreen, MoreRow.Reminders(quiet = true),
+                MoreRow.Health(connected = true),
             ),
             rows,
         )
@@ -449,14 +451,26 @@ class MoreTest : CoroutineTest() {
     fun withTheRemindersFlagTheFirstCardGainsReminders_sayingWhetherQuietModeIsOn() = runUnitTest {
         val settings = SettingsFixtures.settings().copy(quiet = false)
         assertEquals(
-            listOf(MoreRow.Modes(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.TodayScreen, MoreRow.Reminders(quiet = false), MoreRow.LookAndFeel),
+            listOf(MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets, MoreRow.TodayScreen, MoreRow.Reminders(quiet = false)),
             MoreStateBuilder.build(settings, remindersOn = true).groups[0],
         )
 
-        val vm = MoreViewModel(FakeSettingsRepository(settings), FakeHealthRepository(), healthFlag(on = false), remindersFlag(on = true), FastingRelease { false }, widgetsFlag(), FakeAuthRepository(), FakeDiarySync())
+        val vm = MoreViewModel(FakeSettingsRepository(settings), FakeHealthRepository(), healthFlag(on = false), remindersFlag(on = true), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(), FakeAuthRepository(), FakeDiarySync())
         val events = eventsOf(vm)
         vm.takeAction(MoreAction.RowTapped(MoreRow.Reminders(quiet = false)))
         assertEquals(listOf<MoreEvent>(MoreEvent.OpenReminders), events)
+    }
+
+    /** Today's ⋮ menu opens the same page, so it is there whatever the release flags say. */
+    @Test
+    fun profile_leadsTheFirstCard_onlyWithGoalsAndEnergy_andOpensProfile() = runUnitTest {
+        assertEquals(MoreRow.Profile, MoreStateBuilder.build(SettingsFixtures.settings(), goalsAndEnergyOn = true).groups[0].first())
+        assertTrue(MoreRow.Profile !in build().groups.flatten())
+
+        val vm = MoreViewModel(FakeSettingsRepository(), FakeHealthRepository(), healthFlag(on = false), remindersFlag(), FastingRelease { false }, widgetsFlag(), goalsAndEnergyFlag(on = true), FakeAuthRepository(), FakeDiarySync())
+        val events = eventsOf(vm)
+        vm.takeAction(MoreAction.RowTapped(MoreRow.Profile))
+        assertEquals(listOf<MoreEvent>(MoreEvent.OpenProfile), events)
     }
 
     /** Today's ⋮ menu opens the same page, so it is there whatever the release flags say. */

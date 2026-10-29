@@ -19,6 +19,9 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import com.opson.features.home.impl.report.ReportAttachments
+import com.opson.features.home.impl.report.ReportAttachmentsSection
+import com.opson.features.home.impl.report.Screenshot
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
 import com.opson.system.VerticalSpacerD1000
@@ -123,6 +126,13 @@ fun FeedbackScreen(
                     typography = AppTheme.typography.Body.B500
                 )
             }
+
+            VerticalSpacerD1000()
+
+            ReportAttachmentsSection(
+                attachments = state.attachments,
+                onAction = { onAction(FeedbackAction.Attachment(it)) },
+            )
 
             state.errorMessage?.let {
                 VerticalSpacerD500()

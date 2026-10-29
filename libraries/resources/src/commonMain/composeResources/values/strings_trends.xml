@@ -143,8 +143,8 @@
     <string name="trends_micro_coverage">%1$d of %2$d foods list it</string>
     <string name="trends_nutrient_open_foods">See which foods gave it</string>
     <string name="trends_micros_off_title">Vitamins and minerals are off</string>
-    <string name="trends_micros_off_body">Turn them on in Modes and numbers.</string>
-    <string name="trends_micros_off_link">Modes and numbers</string>
+    <string name="trends_micros_off_body">Turn them on in Display.</string>
+    <string name="trends_micros_off_link">Display</string>
     <string name="trends_nutrients_nothing">No nutrient detail in this mode. Your meals are all still logged.</string>
 
     <!-- Weight -->
@@ -203,7 +203,7 @@
     <string name="trends_patterns_size_line">·</string>
     <string name="trends_patterns_often">How often</string>
     <string name="trends_patterns_often_value">%1$d of %2$d days</string>
-    <string name="trends_patterns_hunger">Hunger through the day</string>
+    <string name="trends_patterns_hunger">Hunger by weekday</string>
     <string name="trends_patterns_hunger_from">From your check-ins</string>
     <string name="trends_patterns_hunger_from_tags">From your meal tags</string>
     <string name="trends_patterns_hunger_skipped">Hungrier on days you skipped breakfast (%1$s).</string>

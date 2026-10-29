@@ -153,3 +153,42 @@ private fun EditACopyWeighedPreview() = EditCopy(FoodsFixtures.creamerCopyState(
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun EditACopyWeighedDarkPreview() = EditCopy(FoodsFixtures.creamerCopyState(full), dark = true)
+
+@Composable
+private fun Repeat(state: RepeatState, dark: Boolean = false) = FoodsPreviewFrame(dark) { RepeatScreen(state, onAction = {}) }
+
+/** release.repeats: the Repeating card under Saved meals, one of its three paused. */
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
+private fun FoodsRepeatingPreview() = Foods(FoodsFixtures.foodsState(full, withRecent = false, repeatsOn = true))
+
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
+private fun FoodsRepeatingDarkPreview() = Foods(FoodsFixtures.foodsState(full, withRecent = false, repeatsOn = true), dark = true)
+
+/** No repeats yet: the card says what one is and offers New repeat. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun FoodsRepeatingEmptyPreview() = Foods(FoodsFixtures.foodsState(full, withRecent = false, repeatsOn = true, withRepeats = false))
+
+/** A new repeat of the usual breakfast on weekdays, from today. */
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
+private fun FoodsRepeatPreview() = Repeat(FoodsFixtures.repeatState(full))
+
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
+private fun FoodsRepeatDarkPreview() = Repeat(FoodsFixtures.repeatState(full), dark = true)
+
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
+private fun FoodsRepeatBlindPreview() = Repeat(FoodsFixtures.repeatState(blind))
+
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
+private fun FoodsRepeatEmptyPreview() = Repeat(FoodsFixtures.repeatState(full, empty = true))
+
+/** A saved one, paused and ending on the 31st: Pause and Delete, and the end kept as it was set. */
+@Preview(widthDp = 390, heightDp = 1300)
+@Composable
+private fun FoodsRepeatEditPreview() = Repeat(FoodsFixtures.repeatState(full, edit = true))

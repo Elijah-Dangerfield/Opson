@@ -182,7 +182,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-calendar`, `today-select-v4`, `today-drag-move`, `today-moved` | today | design sync 4, `today-actions.md`; the calendar over Today, select mode's bottom bar, foods mid-drag over dinner, the Undo after a move | yes |
 | new | | `food-actions`, `food-actions-amount` | today | design sync 4, `release.foodActions`; a food's ⋮ over Today (its energy through the policy), and Change amount | `food-actions` yes |
 | new | | `edit-a-copy` | foods | design sync 4, 13.3e; only numbers the mode shows in full, the Calories field and its "Was" tagged | yes |
-| new | | `day-close-check-in` | today | design sync 2, `release.checkIn`; the check-in and the watch's energy | yes |
+| new | | `day-close-check-in` | today | design sync 2, `release.checkIn`; the way into the check-in, and eaten against the watch's energy | yes |
+| new | | `day-close-recap-deficit`, `day-close-recap-surplus` | today | 2026-10-29; the recap's eaten against burned with a set deficit and a set surplus, the macros against targets and the vitamins and minerals. The difference is an amount, so the card goes whenever calories or energy out is anything less than shown | yes |
+| new | | `check-in` | today | 2026-10-29, `release.checkIn`; the check-in sheet, words and a 1 to 10 hunger step, never a nutrition amount | no |
 | new | | `integrations-leave-out` | settings | 0.2, `integrations.md`; the Leave out a day sheet, dates only | no |
 | new | | `logger-describe-voice` | logger | 0.2, `voice.md`; Describe it while listening, over lines already read | yes |
 | new | | `logger-photo-swap` | logger | 0.2, `photo.md`; swapping a line's food | yes |
@@ -199,6 +201,8 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `food-detail-in-review` | logger | 2026-10-28; the person's own food, sent to Opson's food database and waiting for review | yes |
 | new | | `foods-add-food-pack` | foods | 2026-10-28, `release.submitFood`; Add a food with "Packaged food?" first. Later shows the typed calories, as `foods-add-food` does | yes |
 | new | | `foods-unverified` | foods | 2026-10-28; a food of theirs waiting for review, "Unverified" under it | yes |
+| new | | `foods-repeating` | foods | 2026-10-29, `release.repeats`; the Repeating card, each repeat with its foods' calories | yes |
+| new | | `foods-repeat`, `foods-repeat-edit` | foods | 2026-10-29, `release.repeats`; a new repeat and a saved, paused one, each food with its calories | yes |
 | new | | `submit-food-review` | logger | 0.2, `release.submitFood`; the label as read, editable, with the energy check. Numbers and checks only where the mode shows calories; elsewhere a sentence says whether they add up | yes |
 | new | | `exercise-sheet` | logger | `release.exercise`; the estimate is energy out | yes |
 | new | | `exercise-sheet-other` | logger | `release.exercise`; Other's typed number, only where energy out shows | yes |
@@ -213,6 +217,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `targets-by-day-shapes` | settings | 0.2, `release.goalsAndEnergy`; a day group as one number, as a surplus, and as a deficit | yes |
 | new | | `targets-deficit-estimated` | settings | 0.2, `release.goalsAndEnergy`; a deficit against Burned with no health app (resting plus everyday activity), its choices open | yes |
 | new | | `targets-macros` | settings | 0.2; the macro editor in percents and in grams, presets, and what doesn't add up | yes |
+| new | | `targets-safety-notes` | settings | the low-goal and fast-deficit notes under the goal, with Find support; no number in them | yes |
 | new | | `resting-energy` | settings | design sync 4, `release.goalsAndEnergy`; resting energy from each source, energy out only | no |
 | new | | `energy-today` | settings | design sync 4, `release.goalsAndEnergy`; eaten with its ±, Burned and the deficit so far | yes |
 | new | | `today-summary-in-out` | today | design sync 4; the card's default preset with a set deficit's target line | yes |

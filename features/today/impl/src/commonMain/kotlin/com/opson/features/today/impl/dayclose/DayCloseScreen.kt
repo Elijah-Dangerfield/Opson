@@ -21,16 +21,12 @@ import com.opson.features.today.impl.color
 import com.opson.features.today.impl.text
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInEnabled
-import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.DayFeeling
-import com.opson.libraries.diary.DayHunger
 import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.DiaryRepository
-import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.SettingsRepository
-import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.ui.BigDayHeroCard
 import com.opson.libraries.diary.ui.DayTotalsCard
 import com.opson.libraries.diary.ui.LabelValueCard
@@ -58,7 +54,6 @@ import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.InfoBanner
 import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.Screen
-import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonDefaults
 import com.opson.libraries.ui.components.button.FlatButtonTone
@@ -79,8 +74,7 @@ import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_checkin_energy
 import opson.libraries.resources.generated.resources.today_checkin_hunger
-import opson.libraries.resources.generated.resources.today_checkin_mood
-import opson.libraries.resources.generated.resources.today_checkin_note
+import opson.libraries.resources.generated.resources.today_checkin_mood_level
 import opson.libraries.resources.generated.resources.today_checkin_sleep
 import opson.libraries.resources.generated.resources.today_checkin_title
 import opson.libraries.resources.generated.resources.today_count_value
@@ -120,14 +114,53 @@ import opson.libraries.resources.generated.resources.today_dayclose_support
 import opson.libraries.resources.generated.resources.today_dayclose_tomorrow
 import opson.libraries.resources.generated.resources.today_dayclose_tomorrow_goal
 import opson.libraries.resources.generated.resources.today_dayclose_why_not
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
+import com.opson.features.today.impl.KeyNutrient
+import com.opson.features.today.impl.MacroTile
+import com.opson.libraries.diary.ui.KeyNutrientCell
+import com.opson.libraries.diary.ui.KeyNutrientsPage
+import com.opson.libraries.diary.ui.MacrosPage
+import com.opson.libraries.diary.ui.SummaryLabel
+import com.opson.libraries.nutrition.ui.NutrientPhrase
+import opson.libraries.resources.generated.resources.today_dayclose_balance_burned
+import opson.libraries.resources.generated.resources.today_dayclose_balance_burned_so_far
+import opson.libraries.resources.generated.resources.today_dayclose_balance_eaten
+import opson.libraries.resources.generated.resources.today_dayclose_balance_even
+import opson.libraries.resources.generated.resources.today_dayclose_balance_over
+import opson.libraries.resources.generated.resources.today_dayclose_balance_title
+import opson.libraries.resources.generated.resources.today_dayclose_balance_under
+import opson.libraries.resources.generated.resources.today_dayclose_checkin_empty
+import opson.libraries.resources.generated.resources.today_dayclose_checkin_open_cd
+import opson.libraries.resources.generated.resources.today_dayclose_checkin_pair
+import opson.libraries.resources.generated.resources.today_dayclose_macros
+import opson.libraries.resources.generated.resources.today_dayclose_nutrients
+import opson.libraries.resources.generated.resources.today_dayclose_plan_deficit_beyond
+import opson.libraries.resources.generated.resources.today_dayclose_plan_deficit_on
+import opson.libraries.resources.generated.resources.today_dayclose_plan_deficit_opposite
+import opson.libraries.resources.generated.resources.today_dayclose_plan_deficit_short
+import opson.libraries.resources.generated.resources.today_dayclose_plan_surplus_beyond
+import opson.libraries.resources.generated.resources.today_dayclose_plan_surplus_on
+import opson.libraries.resources.generated.resources.today_dayclose_plan_surplus_opposite
+import opson.libraries.resources.generated.resources.today_dayclose_plan_surplus_short
+import opson.libraries.resources.generated.resources.today_dayclose_recap_all
+import opson.libraries.resources.generated.resources.today_dayclose_recap_all_other_day
+import opson.libraries.resources.generated.resources.today_dayclose_recap_none
+import opson.libraries.resources.generated.resources.today_dayclose_recap_none_other_day
+import opson.libraries.resources.generated.resources.today_dayclose_recap_some
+import opson.libraries.resources.generated.resources.today_dayclose_recap_some_other_day
+import opson.libraries.resources.generated.resources.today_nutrients_see_all
+import opson.libraries.resources.generated.resources.trends_micro_not_listed
+import opson.libraries.resources.generated.resources.trends_micro_of
+import opson.libraries.resources.generated.resources.trends_micro_of_limit
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Day close for one day. Done saves the note, the feeling and the check-in and stamps the day
- * closed, in one write; Back leaves all of it alone. On a closed day Done saves them and keeps it
- * closed, and Reopen opens it to food again. The commitment buttons change only what this screen
- * says.
+ * Day close for one day. Done saves the note and the feeling and stamps the day closed, in one
+ * write; Back leaves both alone. On a closed day Done saves them and keeps it closed, and Reopen
+ * opens it to food again. The commitment buttons change only what this screen says. The check-in
+ * row opens the check-in sheet, which saves on its own; closing never writes it.
  */
 @Inject
 class DayCloseViewModel(
@@ -151,15 +184,15 @@ class DayCloseViewModel(
         val policy: VisibilityPolicy? = null,
         val note: String = "",
         val feeling: DayFeeling? = null,
-        val checkIn: CheckIn? = null,
         val prefilled: Boolean = false,
         val committed: Boolean = false,
     )
 
     init {
+        // Read once when the page opens, like every release flag.
+        val checkInOn = checkInEnabled()
         viewModelScope.launch {
             combine(diary.observeDay(day), settingsRepository.settings, policySource.policy, expended(), burned()) { d, settings, policy, expended, burned ->
-                val checkInOn = checkInEnabled() && settings.checkIn
                 DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInOn, burned = burned), policy)
             }.collect(::takeAction)
         }
@@ -184,19 +217,12 @@ class DayCloseViewModel(
                 }
                 val note = if (model.prefilled) model.note else action.inputs.day.note.orEmpty()
                 val feeling = if (model.prefilled) model.feeling else action.inputs.day.feeling
-                val checkIn = if (model.prefilled) model.checkIn else action.inputs.day.checkIn
-                action.rebuild {
-                    copy(inputs = action.inputs, policy = action.policy, note = note, feeling = feeling, checkIn = checkIn, prefilled = true)
-                }
+                action.rebuild { copy(inputs = action.inputs, policy = action.policy, note = note, feeling = feeling, prefilled = true) }
             }
             is DayCloseAction.NoteTyped -> action.rebuild { copy(note = action.text) }
             is DayCloseAction.FeelingTapped -> action.rebuild { copy(feeling = action.feeling.takeIf { it != feeling }) }
-            is DayCloseAction.CheckInHungerTapped -> action.checkIn { it.copy(hunger = action.hunger.takeIf { h -> h != it.hunger }) }
-            is DayCloseAction.CheckInEnergyTapped -> action.checkIn { it.copy(energy = action.energy.takeIf { e -> e != it.energy }) }
-            is DayCloseAction.CheckInSleepTapped -> action.checkIn { it.copy(sleep = action.sleep.takeIf { s -> s != it.sleep }) }
-            is DayCloseAction.CheckInMoodTapped -> action.checkIn {
-                it.copy(moods = if (action.mood in it.moods) it.moods - action.mood else it.moods + action.mood)
-            }
+            DayCloseAction.CheckInTapped -> if (state.checkIn != null) sendEvent(DayCloseEvent.OpenCheckIn(day))
+            DayCloseAction.NutrientsTapped -> sendEvent(DayCloseEvent.OpenNutrients(day))
             DayCloseAction.WhyNotCutBackTapped -> sendEvent(DayCloseEvent.OpenWhyNotCutBack)
             DayCloseAction.SupportTapped -> sendEvent(DayCloseEvent.OpenSupport)
             DayCloseAction.CommitmentTapped -> action.rebuild { copy(committed = true) }
@@ -210,7 +236,6 @@ class DayCloseViewModel(
                     note = model.note.trim().ifEmpty { null },
                     // Only where it was asked: a feeling picked under another mode is left as it was.
                     feeling = if (state.feeling != null) model.feeling else stored?.feeling,
-                    checkIn = if (state.checkIn != null) model.checkIn else stored?.checkIn,
                 )
                 diary.closeDay(day, reflection)
                 sendEvent(DayCloseEvent.Close)
@@ -231,11 +256,8 @@ class DayCloseViewModel(
         val current = model
         val inputs = current.inputs ?: return
         val policy = current.policy ?: return
-        updateState { DayCloseStateBuilder.build(inputs, policy, current.note, current.committed, current.feeling, current.checkIn) }
+        updateState { DayCloseStateBuilder.build(inputs, policy, current.note, current.committed, current.feeling) }
     }
-
-    private suspend fun DayCloseAction.checkIn(change: (CheckIn) -> CheckIn) =
-        rebuild { copy(checkIn = change(checkIn ?: CheckIn()).takeUnless { it.isEmpty }) }
 }
 
 @Composable
@@ -264,6 +286,7 @@ fun DayCloseScreen(
                     DelayedLoadingIndicator(contentDescription = stringResource(Res.string.today_dayclose_loading_cd))
                     return@Column
                 }
+                state.recap?.let { RecapText(it, state.isToday) }
                 if (state.revealNote) {
                     InfoBanner(
                         icon = AppIcons.Lock,
@@ -305,6 +328,9 @@ fun DayCloseScreen(
                         value = stringResource(Res.string.today_count_value, line.done, line.total),
                     )
                 }
+                state.balance?.let { BalanceCard(it) }
+                state.macros?.let { MacrosCard(it) }
+                state.micros?.let { micros -> MicrosCard(micros, onSeeAll = { onAction(DayCloseAction.NutrientsTapped) }) }
                 ExpendedRow(state.expended)
                 state.loggedMeals?.let { done ->
                     LoggedMealsCard(
@@ -314,7 +340,7 @@ fun DayCloseScreen(
                     )
                 }
                 state.feeling?.let { choice -> Feeling(choice, onAction) }
-                state.checkIn?.let { checkIn -> CheckInCard(checkIn, onAction) }
+                state.checkIn?.let { checkIn -> CheckInEntry(checkIn, onClick = { onAction(DayCloseAction.CheckInTapped) }) }
                 Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
                     SectionLabel(
                         stringResource(if (state.isToday) Res.string.today_dayclose_note_label else Res.string.today_dayclose_note_label_other_day),
@@ -402,49 +428,146 @@ private fun ExpendedRow(expended: Display) {
     }
 }
 
-/**
- * The check-in (4.1): hunger through the day, energy and last night's sleep as segmented rows,
- * then moods as chips. Every row optional; tapping the picked one again clears it.
- */
-@OptIn(ExperimentalLayoutApi::class)
+/** The line under the title: how much of the day was logged, never an amount. */
 @Composable
-private fun CheckInCard(checkIn: CheckIn, onAction: (DayCloseAction) -> Unit) {
+private fun RecapText(recap: RecapLine, isToday: Boolean) {
+    val text = when (recap) {
+        RecapLine.AllMeals -> if (isToday) Res.string.today_dayclose_recap_all else Res.string.today_dayclose_recap_all_other_day
+        RecapLine.SomeLogged -> if (isToday) Res.string.today_dayclose_recap_some else Res.string.today_dayclose_recap_some_other_day
+        RecapLine.NothingLogged -> if (isToday) Res.string.today_dayclose_recap_none else Res.string.today_dayclose_recap_none_other_day
+    }
+    Text(text = stringResource(text), typography = AppTheme.type.body, color = AppTheme.colors.ink)
+}
+
+/**
+ * Eaten and burned side by side, then how far apart in a sentence, then how that sits with the
+ * deficit or surplus the goal aims for. Only built when every amount in it is shown.
+ */
+@Composable
+private fun BalanceCard(balance: EnergyBalance) {
     TodayCard(contentPadding = PaddingValues(AppTheme.spacing.page), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            Text(text = stringResource(Res.string.today_checkin_title), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
-            Text(text = stringResource(Res.string.today_checkin_note), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        SectionLabel(stringResource(Res.string.today_dayclose_balance_title))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            BalanceFigure(stringResource(Res.string.today_dayclose_balance_eaten), Metric.Calories, balance.eaten, Modifier.weight(1f))
+            BalanceFigure(
+                stringResource(if (balance.soFar) Res.string.today_dayclose_balance_burned_so_far else Res.string.today_dayclose_balance_burned),
+                Metric.EnergyOut,
+                balance.burned,
+                Modifier.weight(1f),
+            )
         }
-        CheckInRow(Res.string.today_checkin_hunger, DayHunger.entries, checkIn.hunger, { it.label }) { onAction(DayCloseAction.CheckInHungerTapped(it)) }
-        CheckInRow(Res.string.today_checkin_energy, Energy.entries, checkIn.energy, { it.label }) { onAction(DayCloseAction.CheckInEnergyTapped(it)) }
-        CheckInRow(Res.string.today_checkin_sleep, Sleep.entries, checkIn.sleep, { it.label }) { onAction(DayCloseAction.CheckInSleepTapped(it)) }
-        SectionLabel(stringResource(Res.string.today_checkin_mood))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-            CheckInMood.entries.forEach { mood ->
-                ChoiceChip(
-                    label = stringResource(mood.label),
-                    selected = mood in checkIn.moods,
-                    onClick = { onAction(DayCloseAction.CheckInMoodTapped(mood)) },
-                    role = Role.Checkbox,
-                    unselectedColor = AppTheme.colors.surface,
-                )
-            }
+        when (balance.direction) {
+            BalanceDirection.Even -> Text(text = stringResource(Res.string.today_dayclose_balance_even), typography = AppTheme.type.body, color = AppTheme.colors.ink)
+            BalanceDirection.Under, BalanceDirection.Over -> NutrientPhrase(
+                metric = Metric.Calories,
+                display = balance.difference,
+                phrase = {
+                    stringResource(if (balance.direction == BalanceDirection.Under) Res.string.today_dayclose_balance_under else Res.string.today_dayclose_balance_over, it)
+                },
+                typography = AppTheme.type.body.Tabular,
+                color = AppTheme.colors.ink,
+            )
+        }
+        balance.plan?.let { plan ->
+            NutrientPhrase(
+                metric = Metric.Calories,
+                display = plan.planned,
+                phrase = { stringResource(plan.text(), it) },
+                typography = AppTheme.type.secondary.Tabular,
+                color = AppTheme.colors.muted,
+            )
         }
     }
 }
 
+private fun BalancePlan.text(): StringResource = when (kind) {
+    PlanKind.Deficit -> when (result) {
+        PlanResult.OnPlan -> Res.string.today_dayclose_plan_deficit_on
+        PlanResult.Beyond -> Res.string.today_dayclose_plan_deficit_beyond
+        PlanResult.Short -> Res.string.today_dayclose_plan_deficit_short
+        PlanResult.Opposite -> Res.string.today_dayclose_plan_deficit_opposite
+    }
+    PlanKind.Surplus -> when (result) {
+        PlanResult.OnPlan -> Res.string.today_dayclose_plan_surplus_on
+        PlanResult.Beyond -> Res.string.today_dayclose_plan_surplus_beyond
+        PlanResult.Short -> Res.string.today_dayclose_plan_surplus_short
+        PlanResult.Opposite -> Res.string.today_dayclose_plan_surplus_opposite
+    }
+}
+
 @Composable
-private fun <T : Any> CheckInRow(title: StringResource, options: List<T>, picked: T?, label: (T) -> StringResource, onTap: (T) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-        SectionLabel(stringResource(title))
-        SegmentedControl<T?>(
-            options = options,
-            selected = picked,
-            onSelect = { it?.let(onTap) },
-            label = { option -> option?.let { stringResource(label(it)) }.orEmpty() },
+private fun BalanceFigure(label: String, metric: Metric, display: Display, modifier: Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SummaryLabel(label)
+        NutrientText(metric, display, typography = AppTheme.type.cardTitle.Tabular, color = AppTheme.colors.ink, maxLines = 1)
+    }
+}
+
+/** The macros two by two, each against its target with its bar, as Today's macros page draws them. */
+@Composable
+private fun MacrosCard(macros: List<MacroTile>) {
+    TodayCard(contentPadding = PaddingValues(AppTheme.spacing.page)) {
+        MacrosPage(
+            title = stringResource(Res.string.today_dayclose_macros),
+            ofLine = {},
+            macros = macros.map { SummaryMacro(it.metric, stringResource(it.label), it.display, it.metric.color()) },
+            shares = emptyList(),
         )
     }
 }
 
+/** Today's vitamins and minerals, each against its reference, with See all for the rest. */
+@Composable
+private fun MicrosCard(micros: List<KeyNutrient>, onSeeAll: () -> Unit) {
+    TodayCard(contentPadding = PaddingValues(AppTheme.spacing.page)) {
+        KeyNutrientsPage(
+            title = stringResource(Res.string.today_dayclose_nutrients),
+            seeAllLabel = stringResource(Res.string.today_nutrients_see_all),
+            onSeeAll = onSeeAll,
+            rows = micros.map { row ->
+                KeyNutrientCell(
+                    label = stringResource(row.label),
+                    reference = stringResource(if (row.isLimit) Res.string.trends_micro_of_limit else Res.string.trends_micro_of, row.reference),
+                    display = row.display,
+                    notListed = if (row.notListed) stringResource(Res.string.trends_micro_not_listed) else null,
+                )
+            },
+        )
+    }
+}
+
+/**
+ * The way into the check-in: its title, then what the day's check-in holds ("Hunger 4 · Energy
+ * Good") or an invitation when it holds nothing. A tap opens the sheet.
+ */
+@Composable
+private fun CheckInEntry(checkIn: CheckIn, onClick: () -> Unit) {
+    val answers = buildList {
+        checkIn.hunger?.let { add(stringResource(Res.string.today_dayclose_checkin_pair, stringResource(Res.string.today_checkin_hunger), it.value.toString())) }
+        checkIn.energy?.let { add(stringResource(Res.string.today_dayclose_checkin_pair, stringResource(Res.string.today_checkin_energy), stringResource(it.label))) }
+        checkIn.mood?.let { add(stringResource(Res.string.today_dayclose_checkin_pair, stringResource(Res.string.today_checkin_mood_level), stringResource(it.label))) }
+        checkIn.sleep?.let { add(stringResource(Res.string.today_dayclose_checkin_pair, stringResource(Res.string.today_checkin_sleep), stringResource(it.label))) }
+    }
+    val description = stringResource(Res.string.today_dayclose_checkin_open_cd)
+    TodayCard(
+        modifier = Modifier.semantics { onClick(label = description) { onClick(); true } },
+        contentPadding = PaddingValues(AppTheme.spacing.page),
+        onClick = onClick,
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            Icon(icon = AppIcons.Mood, size = 22.dp, color = AppTheme.colors.muted)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(text = stringResource(Res.string.today_checkin_title), typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
+                Text(
+                    text = answers.joinToString(" · ").ifEmpty { stringResource(Res.string.today_dayclose_checkin_empty) },
+                    typography = AppTheme.type.secondary,
+                    color = AppTheme.colors.muted,
+                )
+            }
+            Icon(icon = AppIcons.ChevronRight, size = 22.dp, color = AppTheme.colors.muted)
+        }
+    }
+}
 @Composable
 private fun Totals(totals: DayTotals, isToday: Boolean) {
     DayTotalsCard(
@@ -472,7 +595,7 @@ private fun Totals(totals: DayTotals, isToday: Boolean) {
                 )
             }
         },
-        macros = totals.macros.map { SummaryMacro(it.metric, stringResource(it.label), it.display, it.metric.color()) },
+        macros = emptyList(),
     )
 }
 

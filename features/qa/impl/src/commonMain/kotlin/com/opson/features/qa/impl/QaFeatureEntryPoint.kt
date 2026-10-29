@@ -8,7 +8,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import com.opson.features.qa.QaMenuRoute
 import com.opson.features.settings.MoreRowContribution
-import com.opson.features.today.DayCloseRoute
+import com.opson.features.today.CheckInRoute
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.Route
@@ -48,7 +48,7 @@ class QaFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is QaEvent.ShowToast -> showSnackBar(message = getString(event.toast.message, *event.toast.args.toTypedArray()))
-                    is QaEvent.OpenDayClose -> router.navigate(DayCloseRoute(event.dayIso))
+                    is QaEvent.OpenCheckIn -> router.navigate(CheckInRoute(event.dayIso))
                     QaEvent.Close -> router.goBack()
                 }
             }

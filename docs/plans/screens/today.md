@@ -25,7 +25,7 @@ screens below with none of the new behaviour.
 | `release.todaySummary` | `TodaySummaryEnabled` (in `:libraries:diary`) | The macros page, the stats row, pager dots, the sticky bar, long-press to customise, the stats on More › Today screen, and the Weight row. |
 | `release.todaySelect` | `TodaySelectEnabled` | Long-press to select foods and the bottom bar (Move, Copy to…, Delete), dragging picked foods to another meal with Undo, swipe to delete with the inline confirmation, Undo after a removal, and "Move to…" on Uncategorized. Reworked for design sync 4: see `today-actions.md`. |
 | `release.foodActions` | `TodayFoodActionsEnabled` | A food row's ⋮ and the food's sheet with Change amount, Move, Copy to another day, Edit a copy and Add to favorites (design sync 4, `today-actions.md`). |
-| `release.checkIn` | `CheckInEnabled` | Day close's Check in card (hunger through the day, energy, sleep, moods) in every mode, in place of Blind's "How did today feel?". |
+| `release.checkIn` | `CheckInEnabled` | The check-in sheet (`CheckInRoute`: hunger on the 1 to 10 scale, energy, mood, sleep in the morning, mood tags), its tile on the + sheet and its row on Close the day in every mode, in place of Blind's "How did today feel?". |
 
 `TodayInputs` gains `summaryOn` and `selectOn`, read per emission like
 `remindersOn`. Nothing runs at launch for any of them.
@@ -110,16 +110,25 @@ State gains `selection: Selection?` (ids, count, energy and macro totals as
 `DiaryRepositoryImpl`): `removeItems`, `restoreItems`, `moveItems`,
 `copyItems`. Separate so other modules' `DiaryRepository` fakes don't change.
 
-### Day close Check in with `release.checkIn`
+### The check-in with `release.checkIn`
 
-`Day.checkIn: CheckIn?` (hunger through the day Rarely to Very; energy Low, OK,
-Good; sleep Poor, OK, Good; moods Calm, Social, Stressed, Tired, Low, Happy),
-stored as JSON on the day record (Room 9 `day_records.checkIn`, server V18
-`day_records.check_in`, both additive; the server checks length only), written
-with the close, `closeDay(day, DayReflection(checkIn = ...))`, on Close the day, never on Back. Shown in every mode; Blind's "How did today
-feel?" steps aside while the flag is on. A row left blank stays blank. Feeding
-Patterns is Trends' work and the Reminders switch for the card is Settings'
-(TODOs there).
+`Day.checkIn: CheckIn?`: hunger now on the 1 to 10 hunger and fullness scale
+(`HungerLevel`, 1 ravenous, 5 neutral, 10 stuffed), energy, mood and sleep on
+five points (`Energy`, `MoodLevel`, `Sleep`), and the mood tags (Calm, Social,
+Stressed, Tired, Low, Happy). Stored as JSON on the day record (Room 9
+`day_records.checkIn`, server V18 `day_records.check_in`, length checked only),
+so no migration either side: `CheckInWire` gained `hungerLevel` and `mood`, and
+still writes the old `hunger` word nearest the level for 0.2 phones and the
+export. An old row's word reads as a step (rarely 6, some 5, steady 4, often 3,
+very 2); energy's and sleep's three old words are the middle of the five.
+
+Its own sheet (`checkin/CheckInSheet.kt`), opened from the + sheet's Check in
+tile and Close the day's Check in row, and from QA. One per day: it opens on
+what the day holds and saves the whole with `DayCheckIns.setCheckIn`, which a
+closed day still takes. Before noon it asks "How did you sleep last night?"
+first; later sleep waits behind "Add last night's sleep" unless it was answered.
+The hunger row is a `StepSlider` (libraries/ui) with a tick on each step. No
+switch turns it off any more: the flag alone.
 
 ### Deliberate differences kept
 
@@ -161,8 +170,13 @@ every preset: `today-sticky` (the bar for both pages),
   saved on the phone, one open row at a time, scroll closing it.
 - `TodayScreenSettingsTest` (settings): toggle, the limit of 3, move, reset, a locked stat opens Modes,
   the page 2 switch.
-- `DayCloseTest`: the check-in prefills once, saves on Close and not on Back, and
-  is absent with the flag off; the support and why-not rows only with the big-day card.
+- `DayCloseTest`: the check-in row shows the day's check-in and opens the sheet,
+  closing never writes it, and it is absent with the flag off; the recap's balance
+  (deficit, surplus, on plan, beyond, short, the other way, even) and that it goes
+  whenever calories or energy out is less than shown; macros against targets;
+  the support and why-not rows only with the big-day card.
+- `CheckInTest`: sleep first only in the morning, the hunger scale, saving the
+  whole, clearing, a closed day, Close writes nothing.
 
 ## Summary card, design sync 4 (`release.goalsAndEnergy`)
 
@@ -279,7 +293,7 @@ surface `today-low-logging`.
 | Up to six days ahead | One day ahead: "Plan, then hide". |
 | Locked card alone | Counts stay visible: "3 meals logged", "3 glasses". At 9 pm, "Your totals are open" links to Day close. |
 | Water row in every layout but Explorer | Only with the amount on show; locked shows the glasses count instead. |
-| Day menu flat list with Hide water | Grouped; the water card is switched on More › Today screen, the water level in Modes and numbers (`today-sheets.md`). |
+| Day menu flat list with Hide water | Grouped; the water card is switched on More › Today screen, the water level on Display (`today-sheets.md`). |
 | (new) | After food lands on the day, its meal is outlined for 2 s and scrolled to. |
 
 Not built, and why: **Expended so far** (0.2, watch data; now built behind

@@ -112,7 +112,7 @@ private val typedQuickAdd = Reveal.Only(
  * that no longer exists.
  */
 internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
-    listOf("day-close", "day-close-big-day", "day-close-check-in", "day-close-closed").forEach { put("later" to it, dayCloseOpens) }
+    listOf("day-close", "day-close-big-day", "day-close-check-in", "day-close-closed", "day-close-recap-deficit", "day-close-recap-surplus").forEach { put("later" to it, dayCloseOpens) }
     put("later" to "today-past", pastDayOpens)
     listOf("today-closed", "food-actions-closed").forEach { put("later" to it, closedDayOpens) }
     listOf("trends", "trends-blind", "trends-coast", "nutrients-week", "patterns", "patterns-blind")

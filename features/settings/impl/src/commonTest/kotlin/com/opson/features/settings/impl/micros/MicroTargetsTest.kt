@@ -48,17 +48,17 @@ class MicroTargetsTest : CoroutineTest() {
     }
 
     @Test
-    fun withNothingKnown_theyAreTheDailyValues_andResting_energyCanTakeTheDetails() {
+    fun withNothingKnown_theyAreTheDailyValues_andProfileCanTakeTheDetails() {
         val state = page(SettingsFixtures.settings())
         assertEquals(ReferenceBasis.DailyValue, state.basis)
         assertTrue(state.canAddDetails)
         assertEquals("900 µg", rows(SettingsFixtures.settings()).getValue(Micronutrient.VitaminA).reference)
     }
 
-    /** Resting energy only asks for them while it calculates, and only with release.goalsAndEnergy. */
+    /** Profile takes them whatever resting energy comes from, and is offered with release.goalsAndEnergy. */
     @Test
-    fun theDetailsLink_onlyWhereRestingEnergyAsks() {
-        assertFalse(page(SettingsFixtures.settings().copy(restingSource = RestingSource.Own)).canAddDetails)
+    fun theDetailsLink_followsTheFlag_notTheRestingSource() {
+        assertTrue(page(SettingsFixtures.settings().copy(restingSource = RestingSource.Own)).canAddDetails, "Profile takes them whatever the source")
         assertFalse(page(SettingsFixtures.settings(), goalsAndEnergy = false).canAddDetails)
     }
 

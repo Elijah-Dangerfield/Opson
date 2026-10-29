@@ -6,6 +6,7 @@ import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.findSupportFlag
 import com.opson.features.settings.impl.goalsAndEnergyFlag
 import com.opson.features.settings.impl.integrations.FakeCalendar
 import com.opson.features.settings.impl.integrations.FakeHealthRepository
@@ -40,7 +41,6 @@ class TargetsBurnAndDaysTest : CoroutineTest() {
     private fun build(
         targets: Targets,
         burned: Burned? = null,
-        editingGroup: Int? = null,
         goalsAndEnergy: Boolean = true,
         healthSource: HealthSource? = null,
         choosingActivity: Boolean = false,
@@ -48,7 +48,6 @@ class TargetsBurnAndDaysTest : CoroutineTest() {
         SettingsFixtures.settings(NumbersSettings(PresetId.Full), targets),
         SettingsFixtures.policy(PresetId.Full),
         burned = burned,
-        editingGroup = editingGroup,
         goalsAndEnergy = goalsAndEnergy,
         healthSource = healthSource,
         choosingActivity = choosingActivity,
@@ -101,7 +100,7 @@ class TargetsBurnAndDaysTest : CoroutineTest() {
 
     @Test
     fun aDayGroup_canBeADeficit_withItsOwnStepper() {
-        val state = build(SettingsFixtures.everyShapeByDayTargets, burned = SettingsFixtures.burned, editingGroup = 2)
+        val state = build(SettingsFixtures.everyShapeByDayTargets, burned = SettingsFixtures.burned)
         val group = state.groups[2]
 
         assertEquals(ShapeKind.Deficit, group.shape)
@@ -114,7 +113,7 @@ class TargetsBurnAndDaysTest : CoroutineTest() {
 
     @Test
     fun aDeficitDay_withNoBurnedYet_readsAsItsRange_andSaysWhy() {
-        val group = build(SettingsFixtures.everyShapeByDayTargets, editingGroup = 2).groups[2]
+        val group = build(SettingsFixtures.everyShapeByDayTargets).groups[2]
 
         assertTrue(group.waitingOnBurn)
         assertEquals(Display.Shown("1,900 to 2,300 kcal"), group.summary)
@@ -122,7 +121,7 @@ class TargetsBurnAndDaysTest : CoroutineTest() {
 
     @Test
     fun withoutGoalsAndEnergy_aDayGroupOffersNoShapes() {
-        assertEquals(emptyList(), build(SettingsFixtures.everyShapeByDayTargets, editingGroup = 2, goalsAndEnergy = false).groups[2].shapes)
+        assertEquals(emptyList(), build(SettingsFixtures.everyShapeByDayTargets, goalsAndEnergy = false).groups[2].shapes)
     }
 
     // --- view model ---
@@ -141,6 +140,7 @@ class TargetsBurnAndDaysTest : CoroutineTest() {
         goalsAndEnergyFlag(on = flag),
         burned,
         FakeCalendar(),
+        findSupportFlag(),
     )
 
     private fun FakeSettingsRepository.targets(): Targets = state.value.targets

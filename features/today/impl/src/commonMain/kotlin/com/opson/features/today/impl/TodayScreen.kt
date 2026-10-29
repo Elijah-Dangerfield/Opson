@@ -626,6 +626,7 @@ private fun FullMeal(card: MealCard, context: FoodRowContext, drag: FoodDrag, dr
                     else -> stringResource(Res.string.today_item_sub, item.amount, precision)
                 },
                 calories = item.calories,
+                repeat = item.repeat,
             )
         },
         note = card.note?.forCard(),
@@ -689,6 +690,7 @@ private fun FoodRow(item: MealCardItem, meal: String, context: FoodRowContext, d
             name = item.name,
             sub = item.sub,
             calories = item.calories,
+            repeat = item.repeat,
             open = context.swipe.open == id,
             deleteLabel = stringResource(Res.string.today_swipe_delete),
             onClick = { onAction(TodayAction.ItemTapped(id)) },

@@ -114,12 +114,19 @@ data class DayRecordRowDto(
     val checkIn: String? = null,
 )
 
-/** The check-in as it is stored and synced: wire values, each optional. */
+/**
+ * The check-in as it is stored and synced: wire values, each optional. [hungerLevel] is the 1 to
+ * 10 hunger scale. [hunger] is the first check-in's "hunger through the day" (rarely to very):
+ * still written, the nearest word to [hungerLevel], so a 0.2 phone and the export keep a hunger,
+ * and read only when [hungerLevel] is missing. [mood] is the 5-point mood, [moods] the tags.
+ */
 @Serializable
 data class CheckInWire(
     val hunger: String? = null,
+    val hungerLevel: Int? = null,
     val energy: String? = null,
     val sleep: String? = null,
+    val mood: String? = null,
     val moods: List<String> = emptyList(),
 )
 

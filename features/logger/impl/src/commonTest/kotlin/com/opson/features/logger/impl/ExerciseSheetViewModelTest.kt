@@ -7,6 +7,7 @@ import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.ExerciseRepository
+import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.testing.CoroutineTest
@@ -16,6 +17,7 @@ import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.ExerciseActivities
 import com.opson.libraries.nutrition.Metric
@@ -54,6 +56,8 @@ class ExerciseSheetViewModelTest : CoroutineTest() {
     private val policySource = FakePolicySource()
     private val today = LoggerFixtures.today
 
+    private val settings = FakeSettingsRepository()
+
     private fun vm(
         route: ExerciseRoute = ExerciseRoute(),
         kg: Double? = 70.0,
@@ -62,6 +66,7 @@ class ExerciseSheetViewModelTest : CoroutineTest() {
         route = route,
         exercise = repo,
         weights = FakeWeights(kg),
+        settings = settings,
         health = FakeHealth(connected),
         healthFlag = HealthReleaseFlag(
             object : AppConfigMap() {
@@ -102,6 +107,74 @@ class ExerciseSheetViewModelTest : CoroutineTest() {
         assertEquals("133 kcal", (vm.state.estimate as Display.Shown).text)
         assertTrue(vm.state.canSave)
         assertNull(vm.state.notOnWatch, "no health app, no switch")
+    }
+
+    @Test
+    fun withProfileFilledIn_oneMetIsTheirOwnRestingRate() = runUnitTest {
+        // 35, 180 cm, male, at 80 kg: Mifflin-St Jeor 1760 a day.
+        settings.state.value = Settings(birthYear = today.year - 35, heightCm = 180.0, bodySex = BodySex.Male)
+        val vm = vm(kg = 80.0)
+        settle()
+        vm.takeAction(ExerciseSheetAction.ActivityPicked("running_10"))
+        vm.takeAction(ExerciseSheetAction.MinutesPicked(60))
+        settle()
+
+        // (9.3 - 1) x 1760 / 24 = 609, where 80 kg alone would say 664.
+        assertEquals("609 kcal", (vm.state.estimate as Display.Shown).text)
+        assertEquals(EstimateBasis.Personal, vm.state.basis)
+
+        vm.takeAction(ExerciseSheetAction.SaveTapped)
+        settle()
+        assertEquals(609, repo.added.single().kcal)
+    }
+
+    @Test
+    fun withProfileMissingADetail_theEstimateIsFromTheWeight_andProfileIsOffered() = runUnitTest {
+        settings.state.value = Settings(birthYear = today.year - 35, bodySex = BodySex.Male)
+        val vm = vm(kg = 80.0)
+        val events = events(vm)
+        settle()
+        vm.takeAction(ExerciseSheetAction.ActivityPicked("running_10"))
+        vm.takeAction(ExerciseSheetAction.MinutesPicked(60))
+        settle()
+
+        assertEquals("664 kcal", (vm.state.estimate as Display.Shown).text)
+        assertEquals(EstimateBasis.WeightOnly, vm.state.basis)
+
+        vm.takeAction(ExerciseSheetAction.ProfileTapped)
+        settle()
+        assertEquals(listOf<ExerciseSheetEvent>(ExerciseSheetEvent.OpenProfile), events)
+    }
+
+    @Test
+    fun filledInWhileTheSheetIsOpen_theEstimateFollowsProfile() = runUnitTest {
+        val vm = vm(kg = 80.0)
+        settle()
+        vm.takeAction(ExerciseSheetAction.ActivityPicked("running_10"))
+        vm.takeAction(ExerciseSheetAction.MinutesPicked(60))
+        settle()
+        assertEquals(EstimateBasis.WeightOnly, vm.state.basis)
+
+        settings.state.value = Settings(birthYear = today.year - 35, heightCm = 180.0, bodySex = BodySex.Male)
+        settle()
+        assertEquals(EstimateBasis.Personal, vm.state.basis)
+        assertEquals("609 kcal", (vm.state.estimate as Display.Shown).text)
+    }
+
+    @Test
+    fun withNoWeighIn_theLinkOpensWeight_andProfileIsNotOffered() = runUnitTest {
+        settings.state.value = Settings(birthYear = today.year - 35, heightCm = 180.0, bodySex = BodySex.Male)
+        val vm = vm(kg = null)
+        val events = events(vm)
+        settle()
+        vm.takeAction(ExerciseSheetAction.ActivityPicked("yoga"))
+        settle()
+
+        assertNull(vm.state.basis, "no estimate, nothing to say it is from")
+        vm.takeAction(ExerciseSheetAction.ProfileTapped)
+        vm.takeAction(ExerciseSheetAction.WeighInTapped)
+        settle()
+        assertEquals(listOf<ExerciseSheetEvent>(ExerciseSheetEvent.OpenWeighIn), events)
     }
 
     @Test

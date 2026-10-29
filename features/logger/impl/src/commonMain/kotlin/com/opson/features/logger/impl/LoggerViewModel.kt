@@ -7,6 +7,7 @@ import com.opson.libraries.core.AppState
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.diary.LocalCalendar
@@ -81,6 +82,7 @@ class LoggerViewModel(
     fastingRelease: FastingRelease,
     exerciseRelease: ExerciseRelease,
     private val submittedFoods: SubmittedFoods,
+    checkInEnabled: CheckInEnabled,
 ) : SEAViewModel<LoggerState, LoggerEvent, LoggerAction>(
     initialStateArg = LoggerState(pane = route.openingPane, height = route.openingHeight),
 ) {
@@ -102,6 +104,7 @@ class LoggerViewModel(
             voiceEnabled = voice.enabled(),
             fastingReleased = fastingRelease.isOn(),
             exerciseReleased = exerciseRelease.isOn(),
+            checkInAvailable = checkInEnabled(),
         ),
         policy = policySource.policy.value,
     )
@@ -175,6 +178,7 @@ class LoggerViewModel(
                 sendEvent(LoggerEvent.OpenMealNote(day, slot()))
             }
             LoggerAction.FastingTapped -> sendEvent(LoggerEvent.OpenFasting)
+            LoggerAction.CheckInTapped -> if (model.choices.checkInAvailable) sendEvent(LoggerEvent.OpenCheckIn(day))
             LoggerAction.ExerciseTapped -> sendEvent(LoggerEvent.OpenExercise(day))
             is LoggerAction.RecentAddTapped -> recentAdd(action.row)
             is LoggerAction.RecentNameTapped -> sendEvent(LoggerEvent.OpenFoodDetail(action.row.ref, action.row.source, day, slot()))

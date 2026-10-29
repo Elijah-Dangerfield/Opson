@@ -1,7 +1,11 @@
 package com.opson.features.trends.impl
 
 import com.opson.libraries.diary.Day
-import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.CheckIn
+import com.opson.libraries.diary.Energy
+import com.opson.libraries.diary.HungerLevel
+import com.opson.libraries.diary.MoodLevel
+import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.MealPatternFacts
 import com.opson.libraries.diary.MealPatterns
 import com.opson.libraries.diary.MealSlot
@@ -28,6 +32,7 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.trends_chart_hunger
+import org.jetbrains.compose.resources.StringResource
 import kotlin.math.roundToInt
 
 /** What Patterns is built from: the last four weeks of days, oldest first, with the lookback before them for new foods. */
@@ -36,7 +41,7 @@ data class PatternsInputs(
     val settings: Settings,
     val days: List<Day>,
     val timeZone: TimeZone,
-    /** `release.checkIn` with the check-in switched on in Reminders: hunger comes from the check-ins. */
+    /** `release.checkIn`: hunger comes from the check-ins, and they are charted over the four weeks. */
     val checkInOn: Boolean = false,
 )
 
@@ -57,6 +62,8 @@ data class PatternsState(
     val newFoods: List<String> = emptyList(),
     /** No numbers: hunger sits under New foods, below the fold (design sync 2, 5.7). */
     val hungerLast: Boolean = false,
+    /** The check-ins over the four weeks, a bar a day, one of hunger, energy, mood or sleep at a time. */
+    val checkIns: CheckInsCard? = null,
     /** No meal logged in the four weeks: one card says what will show up, not four rows of zeros. */
     val empty: Boolean = false,
 )
@@ -105,6 +112,27 @@ data class HungerCard(
     /** Each weekday's bar inspected, `null` with no answer: the weekday and the nearest answer to its average. */
     val readouts: List<ChartReadout?> = emptyList(),
 )
+
+/** What the check-ins card can chart. */
+enum class CheckInAspect { Hunger, Energy, Mood, Sleep }
+
+/**
+ * One aspect over the four weeks, oldest day first: [levels] `0..1` (taller is hungrier for
+ * hunger, and better for the rest), `null` for a day with no answer; [readouts] the day and its
+ * answer in words.
+ */
+data class CheckInSeries(val aspect: CheckInAspect, val levels: List<Float?>, val readouts: List<ChartReadout?>)
+
+/**
+ * The check-ins card: [series] for each aspect someone has answered at least once, in
+ * [CheckInAspect] order, and the one showing. Words and bars only, so it stays in every mode.
+ */
+data class CheckInsCard(val series: List<CheckInSeries>, val picked: CheckInAspect, val from: LocalDate) {
+    val shown: CheckInSeries get() = series.firstOrNull { it.aspect == picked } ?: series.first()
+
+    /** [aspect] when it has answers, else as it was. */
+    fun picking(aspect: CheckInAspect): CheckInsCard = if (series.any { it.aspect == aspect }) copy(picked = aspect) else this
+}
 
 /**
  * Builds [PatternsState] from [MealPatterns], which owns the arithmetic.
@@ -171,12 +199,43 @@ object PatternsStateBuilder {
             hunger = hunger(inputs, facts),
             newFoods = NewFoods.between(inputs.days, from, inputs.today),
             hungerLast = sizes == null,
+            checkIns = if (inputs.checkInOn) checkIns(inputs.days, from, inputs.today) else null,
         )
     }
 
     /**
-     * The check-ins once they are on and someone has answered the hunger row; until then, the
-     * meal tags (with their questions on), so turning the check-in on doesn't empty the card.
+     * A bar per day from [from] to [today] for each aspect answered at least once. Untracked days
+     * are gaps, as everywhere in Trends. Null with no check-in in the four weeks.
+     */
+    fun checkIns(days: List<Day>, from: LocalDate, today: LocalDate, picked: CheckInAspect = CheckInAspect.Hunger): CheckInsCard? {
+        val byDate = days.filter { !it.untracked }.associateBy { it.date }
+        val dates = generateSequence(from) { it.plus(1, DateTimeUnit.DAY) }.takeWhile { it <= today }.toList()
+        val series = CheckInAspect.entries.mapNotNull { aspect ->
+            val answers = dates.map { date -> byDate[date]?.checkIn?.let { answer(aspect, it) } }
+            if (answers.all { it == null }) return@mapNotNull null
+            CheckInSeries(
+                aspect = aspect,
+                levels = answers.map { it?.first },
+                readouts = dates.zip(answers) { date, answer ->
+                    answer?.let { ChartReadout(DateCopy.longWeekdayMonthDay(date), listOf(ChartReading(word = it.second))) }
+                },
+            )
+        }
+        if (series.isEmpty()) return null
+        return CheckInsCard(series, picked = series.firstOrNull { it.aspect == picked }?.aspect ?: series.first().aspect, from = from)
+    }
+
+    /** One answer as a bar height and its word. */
+    private fun answer(aspect: CheckInAspect, checkIn: CheckIn): Pair<Float, StringResource>? = when (aspect) {
+        CheckInAspect.Hunger -> checkIn.hunger?.let { it.hungriness.toFloat() to it.label }
+        CheckInAspect.Energy -> checkIn.energy?.let { it.ordinal.toFloat() / Energy.entries.lastIndex to it.label }
+        CheckInAspect.Mood -> checkIn.mood?.let { it.ordinal.toFloat() / MoodLevel.entries.lastIndex to it.label }
+        CheckInAspect.Sleep -> checkIn.sleep?.let { it.ordinal.toFloat() / Sleep.entries.lastIndex to it.label }
+    }
+
+    /**
+     * The check-ins once they are released and someone has answered the hunger row; until then,
+     * the meal tags (with their questions on), so the release doesn't empty the card.
      */
     private fun hunger(inputs: PatternsInputs, facts: MealPatternFacts): HungerCard? = when {
         inputs.checkInOn && facts.checkInHungerByWeekday.isNotEmpty() -> HungerCard(
@@ -185,12 +244,13 @@ object PatternsStateBuilder {
             source = HungerSource.CheckIns,
             readouts = DayOfWeek.entries.map { day ->
                 facts.checkInHungerByWeekday[day]?.let { share ->
-                    val answer = DayHunger.entries[(share * DayHunger.entries.lastIndex).roundToInt()]
-                    ChartReadout(DateCopy.longWeekday(day), listOf(ChartReading(word = answer.label, label = Res.string.trends_chart_hunger)))
+                    // The step nearest the average, back on the 1 to 10 scale.
+                    val answer = HungerLevel.of(HungerLevel.MAX - (share * (HungerLevel.MAX - HungerLevel.MIN)).roundToInt())
+                    answer?.let { ChartReadout(DateCopy.longWeekday(day), listOf(ChartReading(word = it.label, label = Res.string.trends_chart_hunger))) }
                 }
             },
         )
-        inputs.settings.askTags && facts.taggedMeals > 0 -> HungerCard(
+        facts.taggedMeals > 0 -> HungerCard(
             days = DayOfWeek.entries.map { day ->
                 HungerDay(day, facts.hungerByWeekday[day]?.let { (it / MealPatterns.HUNGER_STEPS).toFloat() })
             },

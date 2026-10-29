@@ -57,7 +57,7 @@ Data used to track you: **No**.
 | Identifiers → User ID (account id) | Yes | Yes | App functionality |
 | Usage Data → Product interaction | Yes | Yes | Analytics |
 | Diagnostics → Crash data, Performance data | Yes | Yes | App functionality |
-| User Content → Customer support (feedback text, sent to Sentry) | Yes | Yes | App functionality |
+| User Content → Customer support (feedback text, and any screenshots attached to it, sent to Sentry) | Yes | Yes | App functionality |
 | Search History → Search history (food searches, stored without the account; can appear in a crash report about a failed search) | Yes | Yes | App functionality, Analytics |
 | Contact info → Email (from Sign in with Apple or Google, used only to sign in) | Yes | Yes | App functionality |
 

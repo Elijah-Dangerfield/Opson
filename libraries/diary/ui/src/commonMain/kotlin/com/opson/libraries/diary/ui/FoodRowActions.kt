@@ -86,12 +86,13 @@ private fun FoodRowBody(
     sub: String,
     calories: Display,
     modifier: Modifier = Modifier,
+    repeat: Boolean = false,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = name, typography = AppTheme.type.body, color = AppTheme.colors.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            if (sub.isNotEmpty()) Text(text = sub, typography = AppTheme.type.secondarySmall.Tabular, color = AppTheme.colors.muted)
+            ItemSubLine(sub, repeat)
         }
         NutrientText(metric = Metric.Calories, display = calories, typography = AppTheme.type.numericSmall, color = AppTheme.colors.ink, maxLines = 1)
         trailing()
@@ -159,6 +160,7 @@ fun SwipeFoodRow(
     onLongClick: (() -> Unit)? = null,
     longClickLabel: String? = null,
     swipeEnabled: Boolean = true,
+    repeat: Boolean = false,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     val density = LocalDensity.current
@@ -197,6 +199,7 @@ fun SwipeFoodRow(
                 name = name,
                 sub = sub,
                 calories = calories,
+                repeat = repeat,
                 trailing = trailing,
                 modifier = Modifier
                     // The row narrows rather than slides, so the name stays readable beside Delete (2.13).

@@ -102,8 +102,8 @@ sealed interface GroupShape {
 /** Which end of a range a step moves. */
 enum class RangeEnd { Low, High }
 
-/** Why a range step is refused: it would cross the floor, or bring the ends closer than one step. */
-enum class StepBlock { Floor, Gap }
+/** Why a range step is refused: it would cross the floor or [MAX_GOAL_KCAL], or bring the ends closer than one step. */
+enum class StepBlock { Floor, Ceiling, Gap }
 
 /**
  * The energy goal for one day, whatever the style. Today draws [Range] as the dashed band, and

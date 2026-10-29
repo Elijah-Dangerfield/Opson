@@ -11,6 +11,8 @@ import com.opson.libraries.diary.db.LogEntryDao
 import com.opson.libraries.diary.db.MealFeelingDao
 import com.opson.libraries.diary.db.OutboxDao
 import com.opson.libraries.diary.db.OutboxEntity
+import com.opson.libraries.diary.db.RepeatLogDao
+import com.opson.libraries.diary.db.RepeatRuleDao
 import com.opson.libraries.diary.db.SavedMealDao
 import com.opson.libraries.diary.db.SyncStateDao
 import com.opson.libraries.diary.db.WeighInDao
@@ -26,7 +28,7 @@ import kotlin.math.max
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
-/** Every diary table and the transactor that writes them together. One parameter instead of eleven. */
+/** Every diary table and the transactor that writes them together. One parameter instead of thirteen. */
 @Inject
 class DiaryTables(
     val entries: LogEntryDao,
@@ -40,6 +42,8 @@ class DiaryTables(
     val outbox: OutboxDao,
     val syncState: SyncStateDao,
     val transactor: DatabaseTransactor,
+    val repeats: RepeatRuleDao,
+    val repeatLogs: RepeatLogDao,
 )
 
 /** Asks for a sync soon after a local write. [DiarySyncer] debounces it. */

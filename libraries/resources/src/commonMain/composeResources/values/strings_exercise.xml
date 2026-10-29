@@ -31,6 +31,10 @@
     <string name="exercise_estimate_label">Burned</string>
     <string name="exercise_estimate_no_weight">Log a weight to get an estimate, or type the number below.</string>
     <string name="exercise_estimate_no_weight_only">Log a weight to get an estimate.</string>
+    <string name="exercise_estimate_weigh_action">Log a weigh-in</string>
+    <string name="exercise_estimate_basis_personal">An estimate from published averages for your age, height, weight and sex. A watch measures it more closely.</string>
+    <string name="exercise_estimate_basis_weight">An estimate from published averages for your weight. Add your age, height and sex for one closer to you.</string>
+    <string name="exercise_estimate_profile_action">Add them in Profile</string>
     <string name="exercise_typed_label">Your own number</string>
     <string name="exercise_typed_label_needed">Calories burned</string>
     <string name="exercise_typed_placeholder">From a machine or an app</string>

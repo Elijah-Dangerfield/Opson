@@ -39,6 +39,8 @@ data class LoggerChoices(
     val fastingReleased: Boolean = false,
     /** `release.exercise`, read once when the sheet opens. */
     val exerciseReleased: Boolean = false,
+    /** `release.checkIn`, read once when the sheet opens. */
+    val checkInAvailable: Boolean = false,
     val voice: VoiceCapture = VoiceCapture.Idle(),
     /** How tall the sheet is; it only ever grows. */
     val height: SheetHeight = SheetHeight.Partial,
@@ -98,8 +100,8 @@ object LoggerStateBuilder {
         )
     }
 
-    /** What a closed day still offers: a weigh-in and the fasting timer are not part of its log. */
-    private val NOT_PART_OF_THE_DAY = setOf(AddAction.WeighIn, AddAction.Fasting)
+    /** What a closed day still offers: a weigh-in, the fasting timer and a check-in are not part of its log. */
+    private val NOT_PART_OF_THE_DAY = setOf(AddAction.WeighIn, AddAction.Fasting, AddAction.CheckIn)
 
     /** The slot a log lands in: [slot], or Uncategorized when the day has meal groups off. */
     fun effectiveSlot(inputs: LoggerInputs, slot: MealSlot): MealSlot =
@@ -121,6 +123,7 @@ object LoggerStateBuilder {
         add(AddAction.Water)
         add(AddAction.WeighIn)
         add(AddAction.Note)
+        if (choices.checkInAvailable) add(AddAction.CheckIn)
         if (inputs.settings.fastingTimerOn(choices.fastingReleased)) add(AddAction.Fasting)
         if (inputs.settings.exerciseOffered(choices.exerciseReleased, policy.level(Metric.EnergyOut))) add(AddAction.Exercise)
     }

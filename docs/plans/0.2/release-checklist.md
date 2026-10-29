@@ -276,8 +276,14 @@ none. Already on `main`: `NSFaceIDUsageDescription`, the reworded
       A server without it drops the check-in silently (the row still syncs).
 - [ ] TODO(clinician): approve "Why not cut back?" (`today_dayclose_why_body`)
       and pick its citation; no study is named until then.
-- [ ] Patterns reading the check-in, and the Reminders switch that turns the
-      check-in card off, are Trends' and Settings' to build before the flag flips.
+- [x] Patterns reads the check-in (hunger by weekday, How you've felt). The
+      Reminders switch is gone: the check-in is its own sheet now
+      (`docs/decisions.md`, 2026-10-29), on whenever the flag is.
+- [ ] TODO(clinician): read the recap's eaten and burned lines
+      (`strings_day_close.xml`) and the check-in's hunger scale words.
+- [ ] The export's `check_ins.csv` has the old hunger word nearest the 1 to 10
+      level, and no mood level. Add `hunger_level` and `mood` columns with the
+      next server deploy.
 - [ ] Try swipe to delete with TalkBack and VoiceOver (the row's Delete action)
       and Undo on a phone.
 

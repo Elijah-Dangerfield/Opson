@@ -51,9 +51,9 @@ data class MealPatternFacts(
      */
     val hungrierWithoutBreakfast: List<DayOfWeek>? = null,
     /**
-     * Hunger from Close the day's check-in (design sync 2, 5.6, "From your check-ins"), one answer
-     * a day: each weekday's average, 0 for rarely hungry up to 1 for very. Weekdays with no
-     * check-in hunger are missing.
+     * Hunger from the check-ins ("From your check-ins"), one answer a day: each weekday's average
+     * [HungerLevel.hungriness], 0 for stuffed up to 1 for ravenous. Weekdays with no check-in
+     * hunger are missing.
      */
     val checkInHungerByWeekday: Map<DayOfWeek, Double> = emptyMap(),
     /** [hungrierWithoutBreakfast], read from the check-ins rather than the meal tags. */
@@ -82,8 +82,8 @@ object MealPatterns {
     private const val MIN_DAYS_EACH_WAY = 2
     private const val HUNGRIER_BY = 0.5
 
-    /** Very hungry on the check-in's scale, [DayHunger.Very]'s ordinal. */
-    private val CHECK_IN_STEPS = DayHunger.entries.lastIndex
+    /** Ravenous on the check-in's scale counted in steps of hunger: 1 on a 1 to 10 scale is 9 steps from stuffed. */
+    private const val CHECK_IN_STEPS = HungerLevel.MAX - HungerLevel.MIN
     private const val MAX_SKIPPED_DAYS = 3
 
     private const val MIN_FOR_LATER = 6
@@ -155,8 +155,8 @@ object MealPatterns {
         feelings[slot]?.hunger?.takeIf { isMealDone(slot) }?.level
     }
 
-    /** The check-in's hunger, 0 (rarely) to [CHECK_IN_STEPS] (very), when it was answered. */
-    private fun Day.checkInHunger(): Int? = checkIn?.hunger?.ordinal
+    /** The check-in's hunger in steps, 0 (stuffed) to [CHECK_IN_STEPS] (ravenous), when it was answered. */
+    private fun Day.checkInHunger(): Int? = checkIn?.hunger?.let { HungerLevel.MAX - it.value }
 
     /** [levels] are a day's hunger answers on one scale; [hungrierBy] is the difference worth saying on it. */
     private fun hungrierWithoutBreakfast(span: List<Day>, levels: (Day) -> List<Int>, hungrierBy: Double): List<DayOfWeek>? {

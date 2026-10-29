@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.ui.label
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.Screen
 import com.opson.libraries.ui.components.icon.AppIcons
@@ -39,6 +40,7 @@ import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.background
 import com.opson.system.color.ToneColors
@@ -55,13 +57,20 @@ import opson.libraries.resources.generated.resources.foods_search
 import opson.libraries.resources.generated.resources.foods_title
 import opson.libraries.resources.generated.resources.foods_yours
 import opson.libraries.resources.generated.resources.foods_yours_empty
+import opson.libraries.resources.generated.resources.repeat_empty
+import opson.libraries.resources.generated.resources.repeat_new
+import opson.libraries.resources.generated.resources.repeat_open_cd
+import opson.libraries.resources.generated.resources.repeat_paused
+import opson.libraries.resources.generated.resources.repeat_section
+import opson.libraries.resources.generated.resources.repeat_until
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * The Foods tab (design v3, 11.1): the title, a search bar that stays put while the list
- * scrolls, Create a meal and Add a food side by side, then Saved meals, Your foods and Recent,
- * and the food data credit at the end. Stateless; the entry point routes its events.
+ * scrolls, Create a meal and Add a food side by side, then Saved meals, Repeating
+ * (`release.repeats`), Your foods and Recent, and the food data credit at the end. Stateless;
+ * the entry point routes its events.
  */
 @Composable
 fun FoodsScreen(
@@ -101,6 +110,7 @@ private fun LazyListScope.foodsContent(state: FoodsState, onAction: (FoodsAction
     item(key = "tiles") { Tiles(onAction, Modifier.padding(bottom = FoodsDefaults.CardGap)) }
     if (state.loading) return
     if (state.savedMeals.isNotEmpty()) rowsCard("saved", Res.string.foods_saved, state.savedMeals, onAction)
+    if (state.repeatsOn) repeatsCard(state.repeats, onAction)
     rowsCard("yours", Res.string.foods_yours, state.yourFoods, onAction, empty = Res.string.foods_yours_empty)
     if (state.recent.isNotEmpty()) rowsCard("recent", Res.string.foods_recent, state.recent, onAction)
     // Open Food Facts rows are ODbL data, which asks for this credit wherever they show.
@@ -218,6 +228,57 @@ private fun LazyListScope.rowsCard(
         }
     }
 }
+
+/**
+ * Repeating: each repeat with its meal and days, then New repeat. Drawn even with none, since
+ * this card is the way in; it says what a repeat is until there is one.
+ */
+private fun LazyListScope.repeatsCard(rows: List<RepeatRowUi>, onAction: (FoodsAction) -> Unit) {
+    item(key = "repeats:label", contentType = "foods-card-label") {
+        CardSlice(top = true) { FoodsCardLabel(stringResource(Res.string.repeat_section)) }
+    }
+    if (rows.isEmpty()) {
+        item(key = "repeats:empty", contentType = "foods-card-note") { CardSlice { FoodsCardNote(stringResource(Res.string.repeat_empty)) } }
+    }
+    itemsIndexed(rows, key = { _, row -> "repeats:${row.id}" }, contentType = { _, _ -> "foods-row" }) { _, row ->
+        CardSlice {
+            FoodsRow(
+                name = row.name,
+                sub = repeatSub(row),
+                calories = row.calories,
+                buttonIcon = AppIcons.EditOutline,
+                buttonDescription = stringResource(Res.string.repeat_open_cd, row.name),
+                onButton = { onAction(FoodsAction.RepeatTapped(row.id)) },
+                onClick = { onAction(FoodsAction.RepeatTapped(row.id)) },
+            )
+        }
+    }
+    item(key = "repeats:new", contentType = "foods-card-action") {
+        CardSlice(bottom = true) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 52.dp)
+                    .semantics { role = Role.Button }
+                    .bounceClick(scaleDown = 0.98f, onClick = { onAction(FoodsAction.NewRepeatTapped) }),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+            ) {
+                Icon(icon = AppIcons.Add, size = 24.dp, color = AppTheme.colors.accent)
+                Text(text = stringResource(Res.string.repeat_new), typography = AppTheme.type.cardTitle, color = AppTheme.colors.accent)
+            }
+        }
+    }
+}
+
+/** "Breakfast · Weekdays · until Nov 12", or "Paused · Breakfast · Weekdays". */
+@Composable
+private fun repeatSub(row: RepeatRowUi): String = listOfNotNull(
+    stringResource(Res.string.repeat_paused).takeIf { row.paused },
+    stringResource(row.slot.label),
+    daysLabel(row.days),
+    row.endDay?.let { stringResource(Res.string.repeat_until, DateCopy.monthDay(it)) },
+).joinToString(" · ")
 
 /** One slice of a [rowsCard]: the card's surface and row inset, with its top or bottom corners when it ends the card. */
 @Composable

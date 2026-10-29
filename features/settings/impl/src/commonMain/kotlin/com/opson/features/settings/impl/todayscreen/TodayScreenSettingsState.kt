@@ -80,8 +80,8 @@ data class PresetOption(val preset: SummaryCardPreset, val selected: Boolean, va
 /** A choice here another setting overrides: what to say, and the setting that decides. */
 data class OverrideNote(val text: StringResource, val link: SettingLink)
 
-/** Where an [OverrideNote] goes: the levels and modes, or the details Burned is worked out from. */
-enum class SettingLink { Modes, RestingEnergy }
+/** Where an [OverrideNote] goes: Display, where the levels and modes are, or the details Burned is worked out from. */
+enum class SettingLink { Display, RestingEnergy }
 
 /** The older card's stats (design sync 2, 2.1e): [goal] is the onboarding goal the suggestion came from, null for the default. */
 data class StatsSection(val goal: StringResource?, val rows: List<StatRow>, val ticked: Int)
@@ -112,14 +112,14 @@ object TodayScreenSettingsStateBuilder {
         // What Today draws for the pick: Rings with a range and Equation without Burned fall back to In and out.
         val drawn = TodayCardRules.drawn(settings.todayCard, single, burnedOnShow)
         val burnedNote = { hidden: StringResource, unknown: StringResource ->
-            if (!burnedShown) OverrideNote(hidden, SettingLink.Modes) else OverrideNote(unknown, SettingLink.RestingEnergy)
+            if (!burnedShown) OverrideNote(hidden, SettingLink.Display) else OverrideNote(unknown, SettingLink.RestingEnergy)
         }
         return TodayScreenSettingsState(
             loaded = true,
             presetsOn = presetsOn,
             cardNote = when {
-                !energyPage -> OverrideNote(Res.string.settings_today_card_from_mode, SettingLink.Modes)
-                flags.goalsAndEnergy && !presetsOn -> OverrideNote(Res.string.settings_today_card_later, SettingLink.Modes)
+                !energyPage -> OverrideNote(Res.string.settings_today_card_from_mode, SettingLink.Display)
+                flags.goalsAndEnergy && !presetsOn -> OverrideNote(Res.string.settings_today_card_later, SettingLink.Display)
                 else -> null
             },
             // Rings with a range shows In and out picked, since that is what the card draws; Equation stays picked with its note.
@@ -173,7 +173,7 @@ object TodayScreenSettingsStateBuilder {
 
     /** A row the levels hide entirely: switching it on here would show nothing. */
     private fun hiddenNote(numbers: NumbersSettings, metric: Metric, text: StringResource): OverrideNote? =
-        OverrideNote(text, SettingLink.Modes).takeIf { numbers.level(metric) == Visibility.Hide }
+        OverrideNote(text, SettingLink.Display).takeIf { numbers.level(metric) == Visibility.Hide }
 
     /** Page 1's stats: the chosen ones first, in order, then the rest; one the levels hide is locked, never ticked. */
     private fun stats(settings: Settings, numbers: NumbersSettings): StatsSection {

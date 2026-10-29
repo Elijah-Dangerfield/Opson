@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -45,6 +47,7 @@ import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.icon.ToneIcon
+import com.opson.libraries.ui.components.text.FocusOnOpen
 import com.opson.libraries.ui.components.text.MaskedTextField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.MinTouchTarget
@@ -90,15 +93,21 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/** The weight page. Stateless; what shows and what is masked is decided in [WeightStateBuilder]. */
+/**
+ * The weight page. Stateless; what shows and what is masked is decided in [WeightStateBuilder].
+ * [focusInput] puts the keyboard up in the weigh-in field once the page is in (`WeightRoute.focusInput`).
+ */
 @Composable
 fun WeightScreen(
     state: WeightState,
     onAction: (WeightAction) -> Unit,
     modifier: Modifier = Modifier,
+    focusInput: Boolean = false,
 ) {
     Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { padding ->
-        WeightContent(state, onAction, Modifier.padding(padding).verticalScroll(rememberScrollState()))
+        // Room for the keyboard, so the focused field can scroll up above it rather than sit under it.
+        val content = Modifier.padding(padding).consumeWindowInsets(padding).imePadding().verticalScroll(rememberScrollState())
+        WeightContent(state, onAction, content, focusInput)
     }
 }
 
@@ -108,6 +117,7 @@ internal fun WeightContent(
     state: WeightState,
     onAction: (WeightAction) -> Unit,
     modifier: Modifier = Modifier,
+    focusInput: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -146,6 +156,8 @@ internal fun WeightContent(
         }
         if (state.hiddenCard) HiddenCard()
         LogCard(state, onAction, Modifier.focusRequester(weightField))
+        // Here and not above the loading return: the field has to be composed to take focus.
+        FocusOnOpen(weightField, enabled = focusInput)
         state.saved?.let { SavedBanner(it) }
         val refused = when {
             state.saveFailed -> Res.string.trends_weight_save_failed

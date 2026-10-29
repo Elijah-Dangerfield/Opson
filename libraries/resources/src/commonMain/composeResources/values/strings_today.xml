@@ -167,7 +167,6 @@
     <!-- Day close -->
     <string name="today_dayclose_title">Close the day</string>
     <string name="today_dayclose_loading_cd">Loading the day</string>
-    <string name="today_dayclose_title_warm">How today went</string>
     <string name="today_dayclose_back">‹ %1$s</string>
     <string name="today_dayclose_revealed_title">Your totals are open</string>
     <string name="today_dayclose_revealed_body">They lock again tomorrow morning.</string>
@@ -215,7 +214,7 @@
     <string name="today_stat_water">Water</string>
     <string name="today_stat_expended_body">From your watch</string>
     <string name="today_stat_deficit_body">All numbers only</string>
-    <string name="today_stat_hidden">Hidden in Modes and numbers</string>
+    <string name="today_stat_hidden">Hidden in Display settings</string>
     <string name="today_goal_changing_weight">Changing my weight</string>
     <string name="today_goal_eating_regularly">Eating regularly</string>
     <string name="today_goal_eating_enough">Eating enough</string>
@@ -274,29 +273,7 @@
     <string name="today_dayclose_why_body">Research on dieting finds that eating a lot less after a big day often leads to more overeating later. Going back to your usual range works better than making up for one day.</string>
     <string name="today_dayclose_why_ok">OK</string>
     <string name="today_dayclose_expended">Expended, from your watch</string>
-    <string name="today_checkin_title">Check in</string>
-    <string name="today_checkin_note">Optional · only you see this</string>
-    <string name="today_checkin_hunger">Hunger through the day</string>
-    <string name="today_checkin_hunger_rarely">Rarely</string>
-    <string name="today_checkin_hunger_some">Some</string>
-    <string name="today_checkin_hunger_steady">Steady</string>
-    <string name="today_checkin_hunger_often">Often</string>
-    <string name="today_checkin_hunger_very">Very</string>
-    <string name="today_checkin_energy">Energy</string>
-    <string name="today_checkin_energy_low">Low</string>
-    <string name="today_checkin_energy_ok">OK</string>
-    <string name="today_checkin_energy_good">Good</string>
-    <string name="today_checkin_sleep">Sleep last night</string>
-    <string name="today_checkin_sleep_poor">Poor</string>
-    <string name="today_checkin_sleep_ok">OK</string>
-    <string name="today_checkin_sleep_good">Good</string>
-    <string name="today_checkin_mood">Mood · pick any</string>
-    <string name="today_checkin_mood_calm">Calm</string>
-    <string name="today_checkin_mood_social">Social</string>
-    <string name="today_checkin_mood_stressed">Stressed</string>
-    <string name="today_checkin_mood_tired">Tired</string>
-    <string name="today_checkin_mood_low">Low</string>
-    <string name="today_checkin_mood_happy">Happy</string>
+    <!-- The check-in's own strings are in strings_checkin.xml, the recap's in strings_day_close.xml. -->
 
     <!-- Summary card, design sync 4 (13.1, 13.2a, 13.2b, 13.6c) -->
     <string name="today_card_to_range">To your range</string>

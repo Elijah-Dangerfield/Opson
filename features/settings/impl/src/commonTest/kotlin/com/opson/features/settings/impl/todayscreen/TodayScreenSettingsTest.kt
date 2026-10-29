@@ -83,7 +83,7 @@ class TodayScreenSettingsTest : CoroutineTest() {
         listOf(PresetId.MacrosWithGrams, PresetId.MacrosOnly, PresetId.NoNumbers).forEach { preset ->
             val state = TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset = preset)))
             assertFalse(state.presetsOn, "$preset")
-            assertEquals(SettingLink.Modes, state.cardNote?.link, "$preset")
+            assertEquals(SettingLink.Display, state.cardNote?.link, "$preset")
             assertNull(state.stats, "$preset")
             assertNull(state.nutrientsLink, "$preset: no energy page to add a nutrients page to")
         }
@@ -103,7 +103,7 @@ class TodayScreenSettingsTest : CoroutineTest() {
         assertEquals(SettingLink.RestingEnergy, unknown.presetNote?.link)
 
         val hidden = SettingsFixtures.settings(NumbersSettings(overrides = mapOf(Metric.EnergyOut to Visibility.Hide))).copy(todayCard = SummaryCardPreset.Equation)
-        assertEquals(SettingLink.Modes, TodayScreenSettingsStateBuilder.build(hidden).presetNote?.link)
+        assertEquals(SettingLink.Display, TodayScreenSettingsStateBuilder.build(hidden).presetNote?.link)
 
         assertNull(TodayScreenSettingsStateBuilder.build(equation, burnedKnown = true).presetNote, "with Burned, Equation draws")
     }
@@ -143,7 +143,7 @@ class TodayScreenSettingsTest : CoroutineTest() {
             NumbersSettings(overrides = mapOf(Metric.Water to Visibility.Hide, Metric.Weight to Visibility.Hide, Metric.Micros to Visibility.Hide)),
         )
         val state = TodayScreenSettingsStateBuilder.build(hidden)
-        listOf(state.waterNote, state.weightNote, state.nutrientsNote).forEach { assertEquals(SettingLink.Modes, it?.link) }
+        listOf(state.waterNote, state.weightNote, state.nutrientsNote).forEach { assertEquals(SettingLink.Display, it?.link) }
 
         val off = TodayScreenSettingsStateBuilder.build(hidden.copy(todayWater = false, todayWeight = false, todayNutrientsLink = false))
         listOf(off.waterNote, off.weightNote, off.nutrientsNote).forEach(::assertNull)
@@ -193,7 +193,7 @@ class TodayScreenSettingsTest : CoroutineTest() {
         val later = SettingsFixtures.settings(NumbersSettings(overrides = mapOf(Metric.Calories to Visibility.Delay)))
         val state = TodayScreenSettingsStateBuilder.build(later)
         assertFalse(state.presetsOn)
-        assertEquals(SettingLink.Modes, state.cardNote?.link)
+        assertEquals(SettingLink.Display, state.cardNote?.link)
         assertNotNull(state.stats)
     }
 
@@ -229,8 +229,8 @@ class TodayScreenSettingsTest : CoroutineTest() {
         vm.takeAction(TodayScreenSettingsAction.StatToggled(SummaryStat.Fiber))
         assertEquals(listOf("expended", "to_range"), repository.state.value.todaySummaryStats)
 
-        vm.takeAction(TodayScreenSettingsAction.LinkTapped(SettingLink.Modes))
-        assertEquals(listOf<TodayScreenSettingsEvent>(TodayScreenSettingsEvent.Open(SettingLink.Modes)), events)
+        vm.takeAction(TodayScreenSettingsAction.LinkTapped(SettingLink.Display))
+        assertEquals(listOf<TodayScreenSettingsEvent>(TodayScreenSettingsEvent.Open(SettingLink.Display)), events)
     }
 
     @Test

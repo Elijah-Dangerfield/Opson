@@ -242,12 +242,13 @@ private fun GlassSegments(filled: Int, total: Int, labels: List<GlassLabel>, onT
 /** Tall enough to aim at one glass without the card growing much. */
 private val GlassTapHeight = 28.dp
 
-/** One logged item on a [TodayMealCard]. */
+/** One logged item on a [TodayMealCard]. [repeat]: a repeat logged it. */
 data class MealCardItem(
     val key: String,
     val name: String,
     val sub: String,
     val calories: Display,
+    val repeat: Boolean = false,
 )
 
 /**
@@ -398,6 +399,7 @@ fun MealCardRow(item: MealCardItem, onClick: () -> Unit, trailing: @Composable R
         showDivider = false,
         dividerAbove = true,
         contentPadding = PaddingValues(vertical = AppTheme.spacing.row),
+        repeat = item.repeat,
         trailing = trailing,
     )
 }

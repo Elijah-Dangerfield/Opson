@@ -33,6 +33,11 @@ data class LogItem(
     val fiber: Double? = null,
     /** Micronutrient key (unit in the key, `sodium_mg`) to amount for the whole item. */
     val micros: Map<String, Double>? = null,
+    /**
+     * The [RepeatRule] that logged this, on the phone that holds the rule. Device-local: it is
+     * not part of the synced row, so another phone shows the same entry as an ordinary one.
+     */
+    val repeatRuleId: String? = null,
 ) {
     /**
      * The amount as a row shows it. Every screen reads this, not [amountText], so entries an

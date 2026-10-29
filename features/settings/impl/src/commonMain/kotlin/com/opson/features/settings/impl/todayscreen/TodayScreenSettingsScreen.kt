@@ -66,7 +66,7 @@ import opson.libraries.resources.generated.resources.settings_today_follow_range
 import opson.libraries.resources.generated.resources.settings_today_follow_surplus
 import opson.libraries.resources.generated.resources.settings_today_in_header
 import opson.libraries.resources.generated.resources.settings_today_in_list
-import opson.libraries.resources.generated.resources.settings_today_link_modes
+import opson.libraries.resources.generated.resources.settings_today_link_display
 import opson.libraries.resources.generated.resources.settings_today_link_resting
 import opson.libraries.resources.generated.resources.settings_today_main_balance
 import opson.libraries.resources.generated.resources.settings_today_main_eaten
@@ -118,6 +118,8 @@ fun TodayScreenSettingsScreen(
         }
         SummaryCardSection(state, onAction)
         SectionLabel(stringResource(Res.string.settings_today_in_list))
+        // Today's cards in list order. A card of its own (fasting, and others to come) is a switch
+        // here, shown while its feature is offered; the last row drops its divider.
         SettingsCard {
             Switch(Res.string.today_cards_groups, state.mealGroups, TodaySwitch.MealGroups, onAction, Res.string.today_cards_groups_body)
             Switch(Res.string.settings_today_water, state.water, TodaySwitch.Water, onAction, note = state.waterNote, last = state.fasting == null && state.weight == null)
@@ -235,7 +237,7 @@ private fun Switch(
 }
 
 /**
- * What overrides the row above, inside its card: "Water is hidden in Modes and numbers, so Today
+ * What overrides the row above, inside its card: "Water is hidden in Display, so Today
  * has no water card." and the way to that setting. Information, not a warning.
  */
 @Composable
@@ -263,7 +265,7 @@ private fun NoteLink(link: SettingLink, onAction: (TodayScreenSettingsAction) ->
     FlatButton(
         text = stringResource(
             when (link) {
-                SettingLink.Modes -> Res.string.settings_today_link_modes
+                SettingLink.Display -> Res.string.settings_today_link_display
                 SettingLink.RestingEnergy -> Res.string.settings_today_link_resting
             },
         ),
@@ -469,7 +471,7 @@ private fun TodayScreenSettingsEquationNeedsBurnedPreview() {
     }
 }
 
-/** Water hidden in Modes and numbers: the Water switch is still on, and the note says it has no effect. */
+/** Water hidden in Display: the Water switch is still on, and the note says it has no effect. */
 @Preview
 @Composable
 private fun TodayScreenSettingsWaterHiddenPreview() {

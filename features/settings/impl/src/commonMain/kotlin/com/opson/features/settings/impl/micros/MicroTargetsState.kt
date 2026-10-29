@@ -6,7 +6,6 @@ import com.opson.libraries.nutrition.MicroGroup
 import com.opson.libraries.nutrition.MicroReferences
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.ReferenceBasis
-import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.microReference
@@ -24,7 +23,7 @@ data class MicroTargetsState(
     val backToTodayScreen: Boolean = false,
     val off: Boolean = false,
     val basis: ReferenceBasis = ReferenceBasis.DailyValue,
-    /** Resting energy will take the birth year and sex these could come from. */
+    /** Profile will take the birth year and sex these could come from. */
     val canAddDetails: Boolean = false,
     val groups: List<MicroTargetGroup> = emptyList(),
 )
@@ -74,8 +73,8 @@ object MicroTargetsStateBuilder {
             loaded = true,
             backToTodayScreen = backToTodayScreen,
             basis = references.basis,
-            // The fields are on Resting energy only while it calculates, and only with the flag.
-            canAddDetails = goalsAndEnergy && settings.restingSource == RestingSource.Calculate && references.basis != ReferenceBasis.AgeAndSex,
+            // The fields are on Profile, which More offers with the flag.
+            canAddDetails = goalsAndEnergy && references.basis != ReferenceBasis.AgeAndSex,
             groups = MicroGroup.entries.map { group ->
                 MicroTargetGroup(
                     group = group,

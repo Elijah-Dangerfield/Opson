@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl
 
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -18,8 +19,10 @@ import com.opson.features.settings.FindSupportRoute
 import com.opson.features.settings.IntegrationsRoute
 import com.opson.features.settings.LeaveOutDayRoute
 import com.opson.features.settings.LookAndFeelRoute
+import com.opson.features.settings.DisplayRoute
 import com.opson.features.settings.EachNumberRoute
 import com.opson.features.settings.ModesRoute
+import com.opson.features.settings.ProfileRoute
 import com.opson.features.settings.ProviderSummaryRoute
 import com.opson.features.settings.MoreRoute
 import com.opson.features.settings.PauseBeforeMoreRoute
@@ -49,12 +52,10 @@ import com.opson.features.settings.impl.integrations.IntegrationsViewModel
 import com.opson.features.settings.impl.integrations.LeaveOutEvent
 import com.opson.features.settings.impl.integrations.LeaveOutSheetContent
 import com.opson.features.settings.impl.integrations.LeaveOutViewModel
-import com.opson.features.settings.impl.look.LookAndFeelEvent
-import com.opson.features.settings.impl.look.LookAndFeelScreen
 import com.opson.features.settings.impl.look.LookAndFeelViewModel
 import com.opson.features.settings.impl.modes.EachNumberScreen
 import com.opson.features.settings.impl.modes.ModesEvent
-import com.opson.features.settings.impl.modes.ModesScreen
+import com.opson.features.settings.impl.display.DisplayScreen
 import com.opson.features.settings.impl.modes.ModesViewModel
 import com.opson.features.settings.impl.more.MoreAction
 import com.opson.features.settings.impl.more.MoreEvent
@@ -71,6 +72,10 @@ import com.opson.features.settings.impl.support.PRIVACY_URL
 import com.opson.features.settings.impl.support.TERMS_URL
 import com.opson.libraries.core.BuildInfo
 import com.opson.features.settings.impl.pause.PauseAction
+import com.opson.features.settings.impl.profile.ProfileBack
+import com.opson.features.settings.impl.profile.ProfileEvent
+import com.opson.features.settings.impl.profile.ProfileScreen
+import com.opson.features.settings.impl.profile.ProfileViewModel
 import com.opson.features.settings.impl.pause.PauseEvent
 import com.opson.features.settings.impl.pause.PauseSheetContent
 import com.opson.features.settings.impl.pause.PauseViewModel
@@ -111,8 +116,10 @@ import com.opson.features.settings.impl.widgets.WidgetsViewModel
 import com.opson.features.settings.toRoute
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
+import com.opson.features.trends.WeightRoute
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.flowroutines.ObserveEvents
+import com.opson.libraries.navigation.BugReportRoute
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.NavigationOptions
 import com.opson.libraries.navigation.OnTabReselected
@@ -139,6 +146,7 @@ class SettingsFeatureEntryPoint(
     private val pauseViewModel: (NumbersChange) -> PauseViewModel,
     private val targetsViewModel: () -> TargetsViewModel,
     private val restingEnergyViewModel: () -> RestingEnergyViewModel,
+    private val profileViewModel: (ProfileBack) -> ProfileViewModel,
     private val energyTodayViewModel: () -> EnergyTodayViewModel,
     private val todayScreenSettingsViewModel: () -> TodayScreenSettingsViewModel,
     private val todayScreenChoiceViewModel: (TodayScreenChoice) -> TodayScreenChoiceViewModel,
@@ -163,12 +171,14 @@ class SettingsFeatureEntryPoint(
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    MoreEvent.OpenModes -> router.navigate(ModesRoute())
+                    MoreEvent.OpenDisplay -> router.navigate(DisplayRoute())
                     MoreEvent.OpenTargets -> router.navigate(TargetsRoute())
+                    MoreEvent.OpenProfile -> router.navigate(ProfileRoute(from = ProfileBack.More.wire))
                     MoreEvent.OpenTodayScreen -> router.navigate(TodayScreenSettingsRoute())
                     MoreEvent.OpenWater -> router.navigate(WaterSettingsRoute(fromMore = true))
-                    MoreEvent.OpenLookAndFeel -> router.navigate(LookAndFeelRoute())
                     MoreEvent.OpenSupport -> router.navigate(SupportRoute())
+                    MoreEvent.OpenBugReport -> router.navigate(BugReportRoute())
+                    MoreEvent.OpenFeedback -> router.navigate(FeedbackRoute())
                     MoreEvent.OpenFasting -> router.navigate(FastingRoute())
                     MoreEvent.OpenReminders -> router.navigate(RemindersRoute())
                     MoreEvent.OpenHealth -> router.navigate(IntegrationsRoute())
@@ -196,19 +206,11 @@ class SettingsFeatureEntryPoint(
             )
         }
 
-        screen<ModesRoute> {
-            val viewModel: ModesViewModel = viewModel { modesViewModel() }
-            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-            viewModel.ObserveEvents { event ->
-                when (event) {
-                    is ModesEvent.ShowToast -> show(event.toast)
-                    is ModesEvent.OpenPause -> router.navigate(event.change.toRoute())
-                    ModesEvent.OpenEachNumber -> router.navigate(EachNumberRoute())
-                    ModesEvent.Close -> router.goBack()
-                }
-            }
-            ModesScreen(state = state, onAction = viewModel::takeAction)
-        }
+        // One page, three names: ModesRoute and LookAndFeelRoute were pages of their own, and
+        // other features (and saved back stacks) still name them.
+        screen<DisplayRoute> { DisplayPage(router) }
+        screen<ModesRoute> { DisplayPage(router) }
+        screen<LookAndFeelRoute> { DisplayPage(router) }
         screen<EachNumberRoute> {
             val viewModel: ModesViewModel = viewModel { modesViewModel() }
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -262,6 +264,7 @@ class SettingsFeatureEntryPoint(
                     TargetsEvent.OpenModes -> router.navigate(ModesRoute())
                     TargetsEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                     TargetsEvent.OpenMicroTargets -> router.navigate(MicroTargetsRoute())
+                    TargetsEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
                     TargetsEvent.Close -> router.goBack()
                 }
             }
@@ -275,7 +278,7 @@ class SettingsFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is MicroTargetsEvent.OpenNutrient -> router.navigate(MicroTargetRoute(event.micro.key))
-                    MicroTargetsEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute())
+                    MicroTargetsEvent.OpenProfile -> router.navigate(ProfileRoute(from = ProfileBack.Micros.wire))
                     MicroTargetsEvent.OpenModes -> router.navigate(ModesRoute())
                     MicroTargetsEvent.Close -> router.goBack()
                 }
@@ -310,11 +313,28 @@ class SettingsFeatureEntryPoint(
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event ->
                 when (event) {
+                    RestingEnergyEvent.OpenProfile -> router.navigate(ProfileRoute(from = ProfileBack.RestingEnergy.wire))
                     RestingEnergyEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                     RestingEnergyEvent.Close -> router.goBack()
                 }
             }
             RestingEnergyScreen(state = state, onAction = viewModel::takeAction, fromEnergyToday = route.fromEnergyToday)
+        }
+
+        // Registered whatever release.goalsAndEnergy says: More's row is behind it, and a stale
+        // back stack entry should land on the page rather than crash.
+        screen<ProfileRoute> { backStackEntry ->
+            val back = remember(backStackEntry) { ProfileBack.fromWire(backStackEntry.toRoute<ProfileRoute>().from) }
+            val viewModel: ProfileViewModel = viewModel { profileViewModel(back) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    // Current weight is a weigh-in to log, not a chart to read: the field is ready.
+                    ProfileEvent.OpenWeight -> router.navigate(WeightRoute(focusInput = true))
+                    ProfileEvent.Close -> router.goBack()
+                }
+            }
+            ProfileScreen(state = state, onAction = viewModel::takeAction)
         }
 
         // Every release flag decides only which parts of Today the page arranges, never whether it is there.
@@ -328,7 +348,7 @@ class SettingsFeatureEntryPoint(
                     TodayScreenSettingsEvent.OpenMicroTargets -> router.navigate(MicroTargetsRoute(fromTodayScreen = true))
                     is TodayScreenSettingsEvent.Open -> router.navigate(
                         when (event.link) {
-                            SettingLink.Modes -> ModesRoute()
+                            SettingLink.Display -> DisplayRoute()
                             SettingLink.RestingEnergy -> RestingEnergyRoute()
                         },
                     )
@@ -390,17 +410,6 @@ class SettingsFeatureEntryPoint(
                 }
             }
             FastingScreen(state = state, onAction = viewModel::takeAction)
-        }
-
-        screen<LookAndFeelRoute> {
-            val viewModel: LookAndFeelViewModel = viewModel { lookAndFeelViewModel() }
-            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-            viewModel.ObserveEvents { event ->
-                when (event) {
-                    LookAndFeelEvent.Close -> router.goBack()
-                }
-            }
-            LookAndFeelScreen(state = state, onAction = viewModel::takeAction)
         }
 
         screen<RemindersRoute> {
@@ -531,6 +540,24 @@ class SettingsFeatureEntryPoint(
             }
             CreditsScreen(state = state, onAction = viewModel::takeAction)
         }
+    }
+
+    /** More › Display: the Numbers half's view model owns the events, back included. */
+    @Composable
+    private fun DisplayPage(router: Router) {
+        val modes: ModesViewModel = viewModel { modesViewModel() }
+        val look: LookAndFeelViewModel = viewModel { lookAndFeelViewModel() }
+        val modesState by modes.stateFlow.collectAsStateWithLifecycle()
+        val lookState by look.stateFlow.collectAsStateWithLifecycle()
+        modes.ObserveEvents { event ->
+            when (event) {
+                is ModesEvent.ShowToast -> show(event.toast)
+                is ModesEvent.OpenPause -> router.navigate(event.change.toRoute())
+                ModesEvent.OpenEachNumber -> router.navigate(EachNumberRoute())
+                ModesEvent.Close -> router.goBack()
+            }
+        }
+        DisplayScreen(modes = modesState, look = lookState, onModesAction = modes::takeAction, onLookAction = look::takeAction)
     }
 
     private suspend fun show(toast: Toast) {

@@ -38,7 +38,7 @@ class MicroTargetsViewModel(
                 MicroTargetsStateBuilder.build(action.settings, action.policy, calendar.today(), backToTodayScreen, goalsAndEnergy())
             }
             is MicroTargetsAction.NutrientTapped -> sendEvent(MicroTargetsEvent.OpenNutrient(action.micro))
-            MicroTargetsAction.AddDetailsTapped -> sendEvent(MicroTargetsEvent.OpenRestingEnergy)
+            MicroTargetsAction.AddDetailsTapped -> sendEvent(MicroTargetsEvent.OpenProfile)
             MicroTargetsAction.ModesTapped -> sendEvent(MicroTargetsEvent.OpenModes)
             MicroTargetsAction.BackTapped -> sendEvent(MicroTargetsEvent.Close)
         }
@@ -55,7 +55,8 @@ sealed interface MicroTargetsAction {
 
 sealed interface MicroTargetsEvent {
     data class OpenNutrient(val micro: Micronutrient) : MicroTargetsEvent
-    data object OpenRestingEnergy : MicroTargetsEvent
+    /** More › Profile, where the birth year and sex are set. */
+    data object OpenProfile : MicroTargetsEvent
     data object OpenModes : MicroTargetsEvent
     data object Close : MicroTargetsEvent
 }

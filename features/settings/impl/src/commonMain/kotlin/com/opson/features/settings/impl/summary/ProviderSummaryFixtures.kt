@@ -5,7 +5,8 @@ import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
-import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.HungerLevel
+import com.opson.libraries.diary.MoodLevel
 import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
@@ -76,14 +77,14 @@ object ProviderSummaryFixtures {
                     ),
                     note = "A steadier day than yesterday",
                     feeling = DayFeeling.Steady,
-                    checkIn = CheckIn(hunger = DayHunger.Steady, energy = Energy.Good, sleep = Sleep.Ok, moods = setOf(CheckInMood.Calm)),
+                    checkIn = CheckIn(hunger = HungerLevel.of(5), energy = Energy.Good, sleep = Sleep.Ok, mood = MoodLevel.Good, moods = setOf(CheckInMood.Calm)),
                 )
                 sat -> Day(
                     date = date,
                     itemsBySlot = day(date, item(date, MealSlot.Dinner, LocalTime(19, 15), "Pasta with pesto", "1 plate", 640.0, 18.0, 82.0, 24.0, 6.0)),
                     ateNoDetails = setOf(MealSlot.Lunch),
                     feelings = mapOf(MealSlot.Dinner to MealFeeling(hunger = Hunger.Starving, note = "Skipped the afternoon snack")),
-                    checkIn = CheckIn(hunger = DayHunger.Often, sleep = Sleep.Poor),
+                    checkIn = CheckIn(hunger = HungerLevel.of(3), sleep = Sleep.Poor),
                 )
                 fri -> Day(date = date, untracked = true)
                 else -> Day.empty(date)

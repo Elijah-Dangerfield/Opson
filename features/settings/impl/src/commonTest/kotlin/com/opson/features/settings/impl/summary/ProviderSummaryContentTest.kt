@@ -130,9 +130,9 @@ class ProviderSummaryContentTest {
         assertTrue("summary_doc_untracked()" in lines, "Friday was left out of tracking")
         assertTrue("summary_doc_nothing()" in lines, "an empty day says so")
         assertTrue(
-            "summary_doc_pair(today_checkin_hunger(), today_checkin_hunger_steady()). summary_doc_pair(today_checkin_energy(), " +
-                "today_checkin_energy_good()). summary_doc_pair(today_checkin_sleep(), today_checkin_sleep_ok()). " +
-                "summary_doc_moods(today_checkin_mood_calm())" in lines,
+            "summary_doc_pair(today_checkin_hunger(), today_checkin_hunger_5()). summary_doc_pair(today_checkin_energy(), " +
+                "today_checkin_energy_good()). summary_doc_pair(today_checkin_mood_level(), today_checkin_mood_good()). " +
+                "summary_doc_pair(today_checkin_sleep(), today_checkin_sleep_ok()). summary_doc_moods(today_checkin_mood_calm())" in lines,
             "$lines",
         )
     }

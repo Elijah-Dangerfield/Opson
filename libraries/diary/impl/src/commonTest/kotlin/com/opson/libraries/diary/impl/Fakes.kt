@@ -20,6 +20,10 @@ import com.opson.libraries.diary.db.MealFeelingDao
 import com.opson.libraries.diary.db.MealFeelingEntity
 import com.opson.libraries.diary.db.OutboxDao
 import com.opson.libraries.diary.db.OutboxEntity
+import com.opson.libraries.diary.db.RepeatLogDao
+import com.opson.libraries.diary.db.RepeatLogEntity
+import com.opson.libraries.diary.db.RepeatRuleDao
+import com.opson.libraries.diary.db.RepeatRuleEntity
 import com.opson.libraries.diary.db.SavedMealDao
 import com.opson.libraries.diary.db.SavedMealEntity
 import com.opson.libraries.diary.db.SyncStateDao
@@ -88,6 +92,8 @@ class FakeDiaryDb {
     val exercises = FakeTable<String, ExerciseEntity>()
     val outbox = FakeTable<String, OutboxEntity>()
     val syncState = FakeTable<Int, SyncStateEntity>()
+    val repeats = FakeTable<String, RepeatRuleEntity>()
+    val repeatLogs = FakeTable<String, RepeatLogEntity>()
 
     private var depth = 0
     val writesOutsideTransaction = mutableListOf<String>()
@@ -121,7 +127,7 @@ class FakeDiaryDb {
     private fun snapshot() = listOf(
         entries.state.value, days.state.value, feelings.state.value, weighIns.state.value,
         customFoods.state.value, savedMeals.state.value, outbox.state.value, syncState.state.value,
-        fasts.state.value, exercises.state.value,
+        fasts.state.value, exercises.state.value, repeats.state.value, repeatLogs.state.value,
     )
 
     @Suppress("UNCHECKED_CAST")
@@ -136,6 +142,8 @@ class FakeDiaryDb {
         syncState.state.value = s[7] as Map<Int, SyncStateEntity>
         fasts.state.value = s[8] as Map<String, FastEntity>
         exercises.state.value = s[9] as Map<String, ExerciseEntity>
+        repeats.state.value = s[10] as Map<String, RepeatRuleEntity>
+        repeatLogs.state.value = s[11] as Map<String, RepeatLogEntity>
     }
 
     val entryDao = object : LogEntryDao {
@@ -157,8 +165,8 @@ class FakeDiaryDb {
         override fun observeDaysWithEntries(from: String, to: String) =
             entries.observe().map { m -> m.values.filter { !it.deleted && it.day in from..to }.map { it.day }.distinct() }
 
-        override fun observeLatest(limit: Int) =
-            entries.observe().map { m -> m.values.filter { !it.deleted }.sortedByDescending { it.loggedAtEpochMs }.take(limit) }
+        override suspend fun latestUntil(untilEpochMs: Long) =
+            live().filter { it.loggedAtEpochMs <= untilEpochMs }.maxByOrNull { it.loggedAtEpochMs }
 
         override fun observeLatestFoods(limit: Int) =
             entries.observe().map { m ->
@@ -380,6 +388,44 @@ class FakeDiaryDb {
         override suspend fun deleteAll() = syncState.clear()
     }
 
+    val repeatDao = object : RepeatRuleDao {
+        override suspend fun upsert(rows: List<RepeatRuleEntity>) {
+            recordWrite("repeat_rules")
+            rows.forEach { repeats.put(it.id, it) }
+        }
+
+        override suspend fun get(id: String) = repeats.state.value[id]
+
+        override suspend fun getAll() = liveRules(repeats.state.value)
+
+        override fun observeAll() = repeats.observe().map { liveRules(it) }
+
+        override suspend fun deleteAll() = repeats.clear()
+
+        private fun liveRules(rows: Map<String, RepeatRuleEntity>) =
+            rows.values.filter { !it.deleted }.sortedWith(compareBy<RepeatRuleEntity> { it.createdAtEpochMs }.thenBy { it.id })
+    }
+
+    val repeatLogDao = object : RepeatLogDao {
+        override suspend fun insert(rows: List<RepeatLogEntity>) {
+            recordWrite("repeat_logs")
+            rows.forEach { if (it.entryId !in repeatLogs.state.value) repeatLogs.put(it.entryId, it) }
+        }
+
+        override suspend fun countFor(ruleId: String, day: String) = repeatLogs.rows.count { it.ruleId == ruleId && it.day == day }
+
+        override fun observeDay(day: String) = repeatLogs.observe().map { m -> m.values.filter { it.day == day } }
+
+        override fun observeRange(from: String, to: String) = repeatLogs.observe().map { m -> m.values.filter { it.day in from..to } }
+
+        override suspend fun deleteForRule(ruleId: String) {
+            recordWrite("repeat_logs")
+            repeatLogs.rows.filter { it.ruleId == ruleId }.forEach { repeatLogs.remove(it.entryId) }
+        }
+
+        override suspend fun deleteAll() = repeatLogs.clear()
+    }
+
     val tables = DiaryTables(
         entries = entryDao,
         days = dayDao,
@@ -392,6 +438,8 @@ class FakeDiaryDb {
         outbox = outboxDao,
         syncState = syncStateDao,
         transactor = transactor,
+        repeats = repeatDao,
+        repeatLogs = repeatLogDao,
     )
 }
 

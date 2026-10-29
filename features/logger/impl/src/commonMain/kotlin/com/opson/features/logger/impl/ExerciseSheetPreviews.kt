@@ -8,7 +8,8 @@ import com.opson.libraries.ui.components.dialog.bottomsheet.SheetFrame
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 // The exercise sheet (release.exercise), every state through ExerciseSheetStateBuilder over
-// ExerciseFixtures. No design yet; these are the screens a design sync starts from.
+// ExerciseFixtures. No design yet; these are the screens a design sync starts from. The estimate
+// has three: from Profile and the weigh-in (the default), from the weight alone, and none.
 
 private val full = previewVisibilityPolicy(PresetId.Full)
 
@@ -25,7 +26,12 @@ private fun ExerciseSheetPreview() = Exercise(ExerciseFixtures.formState(full))
 @Composable
 private fun ExerciseSheetDarkPreview() = Exercise(ExerciseFixtures.formState(full), dark = true)
 
-/** No weigh-in yet, so no estimate: the number is the answer. */
+/** Profile has no age, height or sex yet: an estimate from the weight alone, and a link to fill the rest in. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun ExerciseSheetWeightOnlyPreview() = Exercise(ExerciseFixtures.weightOnlyState(full))
+
+/** No weigh-in yet, so no estimate: the number is the answer, and Weight is a tap away. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun ExerciseSheetNoWeightPreview() = Exercise(ExerciseFixtures.noWeightState(full))
