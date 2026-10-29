@@ -117,7 +117,7 @@ private class FakeShakeDetector : ShakeDetector {
 }
 
 private object GreetingProvider : ShakeMessageProvider {
-    override fun getMessage(context: ShakeMessageContext) = ShakeMessage(headline = "Hi ${context.userName ?: "there"}")
+    override suspend fun getMessage(context: ShakeMessageContext) = ShakeMessage(headline = "Hi ${context.userName ?: "there"}")
 }
 
 /** The first profile not in yet: `/v1/me` still on the wire, or a resolve that threw. */
