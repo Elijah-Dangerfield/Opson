@@ -38,7 +38,7 @@
     <string name="repeat_end_on">On %1$s</string>
     <string name="repeat_pause">Pause</string>
     <string name="repeat_pause_body">Nothing logs while it's paused.</string>
-    <string name="repeat_how">It logs when you open Opson that day. Days you don't open it stay empty, and you can change or remove what it logs like any food.</string>
+    <string name="repeat_how">It logs when you open Opson that day, so a day you don't open it stays empty. Change or remove what it logs like any other food.</string>
     <string name="repeat_save">Save repeat</string>
     <string name="repeat_delete">Delete repeat</string>
 
@@ -49,7 +49,7 @@
     <string name="repeat_note_done_today">It won't log again today. Changes start with the next one.</string>
     <string name="repeat_note_tomorrow">The next one logs tomorrow.</string>
     <string name="repeat_note_next_on">The next one logs on %1$s.</string>
-    <string name="repeat_note_never">Its last day has passed, so it won't log again.</string>
+    <string name="repeat_note_never">It has ended and won't log again.</string>
     <string name="repeat_note_paused">Paused. Nothing logs until you turn it back on.</string>
 
     <!-- Snackbars -->

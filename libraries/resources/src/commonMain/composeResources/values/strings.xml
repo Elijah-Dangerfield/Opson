@@ -39,17 +39,17 @@
     <string name="trends_title">Trends</string>
 
     <!-- Bug report -->
-    <string name="bug_report_title">Report a Bug</string>
+    <string name="bug_report_title">Report a bug</string>
     <string name="bug_report_captured_details">Captured details</string>
     <string name="bug_report_context_shake">You shook your phone.</string>
     <string name="bug_report_error_code_label">Error code</string>
     <string name="bug_report_id_label">Report id</string>
-    <string name="bug_report_prompt">Help us understand what went wrong. We would love to fix it!</string>
+    <string name="bug_report_prompt">Tell us what went wrong so we can fix it.</string>
     <string name="bug_report_thanks">Thanks for reporting this!</string>
 
     <!-- Feedback -->
-    <string name="feedback_title">Share Your Feedback</string>
-    <string name="feedback_prompt">We'd love to hear from you</string>
+    <string name="feedback_title">Send feedback</string>
+    <string name="feedback_prompt">What's on your mind?</string>
     <string name="feedback_thanks">Got it. Thank you!</string>
     <string name="feedback_empty">Add a quick note before sending.</string>
     <string name="feedback_failed">That didn't send. Try again in a moment.</string>
@@ -107,7 +107,7 @@
     <string name="auth_verify_email_title">Verify your email</string>
     <string name="auth_verify_email_body">We sent a verification link to %1$s. Tap it, then come back here.</string>
     <string name="auth_verify_email_body_no_address">We sent you a verification link. Tap it, then come back here.</string>
-    <string name="auth_verify_still_pending">Not confirmed yet — check your inbox and tap the link.</string>
+    <string name="auth_verify_still_pending">Not confirmed yet. Check your inbox and tap the link.</string>
     <string name="auth_verify_resent">Verification email sent.</string>
     <string name="auth_checking">Checking…</string>
     <string name="auth_i_clicked_the_link">I clicked the link</string>
@@ -120,15 +120,15 @@
     <string name="auth_error_invalid_email">That doesn't look like a valid email address.</string>
     <string name="auth_error_provider_not_enabled">That sign-in method isn't available right now.</string>
     <string name="auth_error_network">Couldn't reach the server. Check your connection and try again.</string>
-    <string name="auth_error_rate_limited">Too many requests — give it a minute and try again.</string>
+    <string name="auth_error_rate_limited">Too many tries. Wait a minute and try again.</string>
     <string name="auth_error_timeout">That's taking longer than usual. Please try again.</string>
     <string name="auth_error_generic">Something went wrong. Please try again.</string>
 
     <!-- Blocking error screen and error dialog, when the route that opened them can't be read back -->
     <string name="error_blocking_default_title">Something went wrong</string>
     <string name="error_blocking_default_subtitle">Please try again.</string>
-    <string name="error_dialog_default_title">Oops</string>
-    <string name="error_dialog_default_subtitle">Looks like something broke. Please try again.</string>
+    <string name="error_dialog_default_title">That didn't work</string>
+    <string name="error_dialog_default_subtitle">Something broke. Please try again.</string>
     <string name="error_dialog_default_action">Dismiss</string>
 
     <!-- Access denied (the locked 403 envelope) -->

@@ -23,32 +23,32 @@
     <!-- Under a run's number -->
     <string name="celebrate_in_a_row">in a row</string>
 
-    <string name="celebrate_first_wrap_up_line">You logged your day and wrapped it up. That's the whole habit, done once.</string>
-    <string name="celebrate_days_3_line">Three days of showing up for yourself. Little and often is how this works.</string>
-    <string name="celebrate_week_1_line">A full week of looking after yourself. You did that.</string>
-    <string name="celebrate_weeks_2_line">Two weeks of coming back, day after day. This is becoming yours.</string>
-    <string name="celebrate_days_30_line">A month of showing up for yourself. That takes real care.</string>
-    <string name="celebrate_days_100_line">A hundred days, one at a time. Take a second to notice that.</string>
-    <string name="celebrate_months_6_line">Half a year of looking after yourself. Look how far you've come.</string>
-    <string name="celebrate_year_1_line">A whole year of showing up for yourself. That's something to be proud of.</string>
-    <string name="celebrate_first_check_in_line">You stopped to notice how you feel. That's worth doing.</string>
-    <string name="celebrate_check_ins_7_line">Seven times you've checked in with yourself. You're learning what your days feel like.</string>
-    <string name="celebrate_check_ins_30_line">Thirty check-ins. You know your days better than you did.</string>
+    <string name="celebrate_first_wrap_up_line">You logged your day and wrapped it up. That's all there is to it.</string>
+    <string name="celebrate_days_3_line">Three days running. You're getting the hang of it.</string>
+    <string name="celebrate_week_1_line">A full week, every day of it.</string>
+    <string name="celebrate_weeks_2_line">Two weeks of coming back every day.</string>
+    <string name="celebrate_days_30_line">A month of days. That's a habit now.</string>
+    <string name="celebrate_days_100_line">A hundred days, one at a time.</string>
+    <string name="celebrate_months_6_line">Half a year. That's a long time to keep at something.</string>
+    <string name="celebrate_year_1_line">A whole year of this. Be proud of that.</string>
+    <string name="celebrate_first_check_in_line">You took a minute to notice how you feel.</string>
+    <string name="celebrate_check_ins_7_line">You're getting a feel for how your days go.</string>
+    <string name="celebrate_check_ins_30_line">You know your days a lot better than you did.</string>
 
     <!-- Gentle: the same moments with a kind title and line, no counts -->
     <string name="celebrate_gentle_wrap_up">You wrapped up your day</string>
-    <string name="celebrate_gentle_wrap_up_line">Taking a moment to look back is a kind thing to do.</string>
+    <string name="celebrate_gentle_wrap_up_line">You took a minute to look back on your day.</string>
     <string name="celebrate_gentle_streak">You keep showing up</string>
-    <string name="celebrate_gentle_days_3_line">Coming back is the whole thing, and you're doing it.</string>
-    <string name="celebrate_gentle_week_1_line">Day after day, you've made a little time for yourself.</string>
-    <string name="celebrate_gentle_weeks_2_line">This is starting to feel like yours.</string>
-    <string name="celebrate_gentle_days_30_line">You've been looking after yourself for a while now. That takes care.</string>
-    <string name="celebrate_gentle_days_100_line">Steady and kind, one day at a time.</string>
-    <string name="celebrate_gentle_months_6_line">Look how far you've come, one ordinary day at a time.</string>
-    <string name="celebrate_gentle_year_1_line">All those days add up to something. Take a moment with that.</string>
+    <string name="celebrate_gentle_days_3_line">You're getting the hang of it.</string>
+    <string name="celebrate_gentle_week_1_line">You've made time for this, day after day.</string>
+    <string name="celebrate_gentle_weeks_2_line">This is turning into a habit.</string>
+    <string name="celebrate_gentle_days_30_line">You've kept at this for a while now.</string>
+    <string name="celebrate_gentle_days_100_line">Steady, one day at a time.</string>
+    <string name="celebrate_gentle_months_6_line">You've kept this going a long time.</string>
+    <string name="celebrate_gentle_year_1_line">All those days add up. Be proud of that.</string>
     <string name="celebrate_gentle_check_in">You checked in</string>
     <string name="celebrate_gentle_first_check_in_line">Noticing how you feel is worth doing.</string>
-    <string name="celebrate_gentle_check_ins_7_line">You keep checking in with yourself. That's a good habit to have.</string>
+    <string name="celebrate_gentle_check_ins_7_line">You keep checking in with yourself.</string>
     <string name="celebrate_gentle_check_ins_30_line">You know your days better than you did.</string>
 
     <!-- The buttons. The second shows on the very first celebration only. -->
@@ -71,7 +71,7 @@
     </plurals>
     <!-- Day close's run line: celebrate_run, then celebrate_more_to -->
     <string name="celebrate_run_with_next">%1$s %2$s</string>
-    <string name="celebrate_gentle_run">You've been showing up. That counts.</string>
+    <string name="celebrate_gentle_run">You've been showing up.</string>
     <string name="celebrate_wrapped_toast">Day wrapped up. That's %1$d in a row.</string>
     <string name="celebrate_wrapped_toast_plain">Day wrapped up. See you tomorrow.</string>
 
@@ -109,7 +109,7 @@
     <string name="progress_badge_ahead_cd">%1$s, ahead</string>
     <string name="progress_forgiven">One quiet day won't end a run. Two in a row start a new one.</string>
     <string name="progress_rest">Away or taking a break? Mark the day untracked from the ⋮ menu and your run waits for you.</string>
-    <string name="progress_gentle_body">You've been showing up for yourself. That counts, whatever the days looked like.</string>
+    <string name="progress_gentle_body">You've been showing up, whatever the days looked like.</string>
     <string name="progress_gentle_counts_off">Day counts are off. You can turn them on in More, under Reminders and celebrations.</string>
     <string name="progress_day_counted">%1$s, showed up</string>
     <string name="progress_day_rest">%1$s, untracked</string>
@@ -119,9 +119,9 @@
 
     <!-- More › Reminders and celebrations -->
     <string name="reminders_celebrations_title">Celebrations</string>
-    <string name="reminders_celebrations_body">A moment to mark milestones for showing up, and your run on Today.</string>
+    <string name="reminders_celebrations_body">Mark milestones and show your run on Today.</string>
     <string name="reminders_celebration_counts_title">Day counts</string>
-    <string name="reminders_celebration_counts_body">Show how many days, like 4 days in a row. Off keeps it to a kind word.</string>
+    <string name="reminders_celebration_counts_body">Show numbers, like 4 days in a row. Off uses words instead.</string>
     <string name="reminders_more_celebrations_on">Celebrations on</string>
     <string name="reminders_more_celebrations_off">Celebrations off</string>
 </resources>

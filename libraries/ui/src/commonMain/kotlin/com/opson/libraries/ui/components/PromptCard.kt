@@ -97,7 +97,7 @@ private fun PromptCardPreview() {
             icon = AppIcons.BeachAccess,
             tone = ToneColors(AppTheme.colors.accent, AppTheme.colors.accentTint),
             title = "Not tracking this day",
-            body = "Trends leaves a gap here, not a low day.",
+            body = "Trends skips this day.",
         ) {
             PromptAction(label = "Track it again", onClick = {}, modifier = Modifier.weight(1f))
         }

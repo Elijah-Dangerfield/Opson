@@ -154,7 +154,7 @@ prefix per feature); the table drops the `today_` for space.
 | `dayclose_big_day` | Big days happen. Cutting back hard tomorrow tends to backfire and makes the next big day more likely. Tomorrow's plan stays the same. |
 | `dayclose_tomorrow` | Tomorrow: %s, same as always. |
 | `dayclose_commit_normal` / `_commit_can` | Back to normal tomorrow / I can do this |
-| `dayclose_committed` | Heard. That stays between you and you. |
+| `dayclose_committed` | Noted. Only you see this. |
 | `dayclose_logged_today` / `_logged_that_day` (new) | Logged today / Logged that day |
 | `dayclose_meals_line` | %1$d of %2$d meals |
 | `dayclose_note_label` | Anything to remember about today? (optional) |

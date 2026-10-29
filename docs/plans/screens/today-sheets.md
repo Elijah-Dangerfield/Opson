@@ -70,8 +70,8 @@ Fasting is 0.2.
 
 Copy: Close the day / Close this day, This day's nutrients, Select, Copy yesterday,
 Copy this day to tomorrow, Add a note, Edit Today screen, Clear this day / Tap
-again to clear. Toasts: Copied the previous day in. / Copied. It will be
-waiting on the next day. / Cleared this day.
+again to clear. Toasts: Copied the previous day in. / Copied to the next
+day. / Cleared this day.
 
 ### Edit Today screen (was Edit Today's cards)
 
@@ -134,7 +134,7 @@ Copy:
 | `today_menu_groups_off` / `_groups_on` | Turn off meal groups / Turn on meal groups |
 | `today_menu_hide_water` / `_show_water` | Hide water / Show water |
 | `today_menu_clear` / `_clear_confirm` | Clear this day / Tap again to clear (icon tinted `c-protein` when armed) |
-| Toasts | Glass of water added. / Copied the previous day in. / Copied. It will be waiting on the next day. / Cleared this day. |
+| Toasts | Glass of water added. / Copied the previous day in. / Copied to the next day. / Cleared this day. |
 
 Icons: `restaurant`, `mic`, `water_drop`, `monitor_weight`, `edit_note`;
 `check_circle`, `monitoring`, `content_copy`, `file_copy`, `edit_note`,

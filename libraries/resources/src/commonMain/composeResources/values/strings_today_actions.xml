@@ -50,7 +50,7 @@
     <string name="foods_copy_use_body_other">This entry switches to your copy</string>
     <string name="foods_copy_saved">Saved %1$s to Your foods.</string>
     <string name="foods_copy_servings">Serving sizes</string>
-    <string name="foods_copy_servings_body">The first is the serving the label is for. Give any size its weight once and you can log it by that size or in grams.</string>
+    <string name="foods_copy_servings_body">The first is the label's serving. Give a size its weight once and you can log by that size or in grams.</string>
     <string name="foods_copy_serving_name_cd">Serving size name</string>
     <string name="foods_copy_serving_hint">1 tbsp</string>
     <string name="foods_copy_serving_grams_cd">Weight of %1$s in grams</string>
