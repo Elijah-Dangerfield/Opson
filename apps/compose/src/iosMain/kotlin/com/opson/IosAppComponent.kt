@@ -4,6 +4,7 @@ import com.opson.libraries.identity.auth.AppleSignInCoordinator
 import com.opson.libraries.identity.auth.SecureSessionStorage
 import com.opson.libraries.navigation.FileSharePresenter
 import com.opson.libraries.review.ReviewLauncher
+import com.opson.libraries.scanner.TextRecognitionBridge
 import com.opson.libraries.ui.nativeviews.NativeViewFactory
 import com.opson.libraries.widgets.WidgetBridge
 import me.tatarka.inject.annotations.Provides
@@ -31,6 +32,10 @@ abstract class IosAppComponent(
     // `iOSApp.swift` for the home screen widgets, whatever release.widgets says. Android
     // publishes through Glance, bound via anvil.
     private val widgetBridge: WidgetBridge,
+    // The Swift `IOSTextRecognitionBridge` (Vision text request), passed in from
+    // `iOSApp.swift` for reading a nutrition label on the phone. Android reads with
+    // ML Kit, bound via anvil.
+    private val textRecognitionBridge: TextRecognitionBridge,
 ) : AppComponent {
 
     @Provides
@@ -47,6 +52,9 @@ abstract class IosAppComponent(
 
     @Provides
     fun provideWidgetBridge(): WidgetBridge = widgetBridge
+
+    @Provides
+    fun provideTextRecognitionBridge(): TextRecognitionBridge = textRecognitionBridge
 }
 
 
@@ -58,4 +66,5 @@ expect fun create(
     fileSharePresenter: FileSharePresenter,
     nativeViewFactory: NativeViewFactory,
     widgetBridge: WidgetBridge,
+    textRecognitionBridge: TextRecognitionBridge,
 ): IosAppComponent

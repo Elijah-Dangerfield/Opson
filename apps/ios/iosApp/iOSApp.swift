@@ -11,6 +11,7 @@ struct iOSApp: App {
     let fileSharePresenter = IOSFileSharePresenter()
     // Kotlin writes the widget snapshot through it from launch, whatever release.widgets says.
     let widgetBridge = IOSWidgetBridge()
+    let textRecognitionBridge = IOSTextRecognitionBridge()
     private let nativeViewFactory = IOSNativeViewFactory.shared
     private let iOSAppComponent: IosAppComponent
 
@@ -21,7 +22,8 @@ struct iOSApp: App {
             secureSessionStorage: secureSessionStorage,
             fileSharePresenter: fileSharePresenter,
             nativeViewFactory: nativeViewFactory,
-            widgetBridge: widgetBridge
+            widgetBridge: widgetBridge,
+            textRecognitionBridge: textRecognitionBridge
         )
         iOSAppComponent.telemetry.initialize()
         // Construct every @AutoInit singleton up front — resolving the set is

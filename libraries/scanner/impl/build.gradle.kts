@@ -19,6 +19,10 @@ kotlin {
             implementation(compose.ui)
         }
 
+        commonTest.dependencies {
+            implementation(projects.libraries.scanner)
+        }
+
         androidMain.dependencies {
             // CameraX for the preview and frames, ML Kit's bundled model to read them.
             // See docs/plans/screens/barcode.md "Scanner choices".
@@ -26,6 +30,8 @@ kotlin {
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
             implementation(libs.mlkit.barcode.scanning)
+            // On-device text recognition, for reading a nutrition label off a still.
+            implementation(libs.mlkit.text.recognition)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.core.ktx)
         }

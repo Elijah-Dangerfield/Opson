@@ -3,6 +3,7 @@ agp = "8.13.1"
 androidx-activity = "1.12.0"
 androidx-camera = "1.5.3"
 mlkit-barcode = "17.3.0"
+mlkit-text-recognition = "19.0.2"
 androidx-core = "1.17.0"
 androidx-core-splashscreen = "1.0.1"
 androidx-metricsPerformance = "1.0.0"
@@ -137,6 +138,9 @@ androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", versi
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "androidx-camera" }
 # The bundled model: ships in the APK, so a scan never waits on a Play services download.
 mlkit-barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "mlkit-barcode" }
+# The unbundled Latin model (about 260 KB in the APK): Play services downloads it at install,
+# which is fine for a label read that falls back to typing. See docs/plans/feedback-2026-10-29/ai-options.md.
+mlkit-text-recognition = { module = "com.google.android.gms:play-services-mlkit-text-recognition", version.ref = "mlkit-text-recognition" }
 androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-viewmodel-savedstate = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }

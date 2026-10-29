@@ -8,6 +8,12 @@
         android:required="false" />
 
     <application>
+        <!-- AndroidTextRecognizer uses the unbundled ML Kit model. This asks Play services to
+             download it at install rather than on the first label read. Append to the value,
+             comma separated, if another unbundled ML Kit model is added. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
         <!-- Photo estimate: the camera app writes the meal photo here through a one-off
              write grant, so no storage permission. The authority must match
              MealPhotoFileProvider.authority(). -->
