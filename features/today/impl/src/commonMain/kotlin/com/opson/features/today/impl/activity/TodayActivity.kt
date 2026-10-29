@@ -134,12 +134,16 @@ sealed interface TodayActivityAction {
     data object AddMissedTapped : TodayActivityAction
     data class EntryTapped(val id: String) : TodayActivityAction
     data object RestingEnergyTapped : TodayActivityAction
+
+    /** The (i) beside Total burned (TDEE): what it is and how today's adds up. */
+    data object BurnedInfoTapped : TodayActivityAction
 }
 
 sealed interface TodayActivityEvent {
     /** [notOnWatch] starts a new entry with "My watch didn't record this" already on. */
     data class OpenExercise(val day: LocalDate, val entryId: String? = null, val notOnWatch: Boolean = false) : TodayActivityEvent
     data object OpenRestingEnergy : TodayActivityEvent
+    data object OpenBurnedExplainer : TodayActivityEvent
 }
 
 data class TodayActivityInputs(
@@ -283,6 +287,7 @@ class TodayActivityViewModel(
             TodayActivityAction.AddMissedTapped -> sendEvent(TodayActivityEvent.OpenExercise(day, notOnWatch = true))
             is TodayActivityAction.EntryTapped -> sendEvent(TodayActivityEvent.OpenExercise(day, action.id))
             TodayActivityAction.RestingEnergyTapped -> sendEvent(TodayActivityEvent.OpenRestingEnergy)
+            TodayActivityAction.BurnedInfoTapped -> sendEvent(TodayActivityEvent.OpenBurnedExplainer)
         }
     }
 }

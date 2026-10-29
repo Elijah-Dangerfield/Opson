@@ -390,7 +390,7 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.5, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.backgrounded\" | unwrap session_duration_sec [$__interval])",
+          "expr": "quantile_over_time(0.5, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.backgrounded\" | unwrap session_duration_sec [$__interval]) by ()",
           "refId": "A",
           "legendFormat": "p50"
         },
@@ -400,7 +400,7 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.9, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.backgrounded\" | unwrap session_duration_sec [$__interval])",
+          "expr": "quantile_over_time(0.9, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.backgrounded\" | unwrap session_duration_sec [$__interval]) by ()",
           "refId": "B",
           "legendFormat": "p90"
         }
@@ -418,7 +418,7 @@
       },
       "id": 108,
       "panels": [],
-      "title": "Cold start latency",
+      "title": "Cold start latency (Android only)",
       "type": "row"
     },
     {
@@ -463,7 +463,7 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.95, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.startup\" | unwrap startup_ms [$__range])",
+          "expr": "quantile_over_time(0.95, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.startup\" | unwrap startup_ms [$__range]) by ()",
           "refId": "A",
           "queryType": "instant"
         }
@@ -476,7 +476,7 @@
         "type": "loki",
         "uid": "grafanacloud-logs"
       },
-      "description": "Time from process start to the first foreground, per `app.startup`. Segment by platform in Explore before drawing conclusions: the two runtimes measure different things at the bottom of the stack.",
+      "description": "Time from process start to the first usable frame, per `app.startup`. Android only: iOS has no process-start clock the app trusts (`IosProcessStartTimeProvider`), so an iPhone never sends the event and an iOS-only range is empty here.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -545,7 +545,7 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.5, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.startup\" | unwrap startup_ms [$__interval])",
+          "expr": "quantile_over_time(0.5, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.startup\" | unwrap startup_ms [$__interval]) by ()",
           "refId": "A",
           "legendFormat": "p50"
         },
@@ -555,7 +555,7 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.9, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.startup\" | unwrap startup_ms [$__interval])",
+          "expr": "quantile_over_time(0.9, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.startup\" | unwrap startup_ms [$__interval]) by ()",
           "refId": "B",
           "legendFormat": "p90"
         },
@@ -565,7 +565,7 @@
             "uid": "grafanacloud-logs"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.99, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.startup\" | unwrap startup_ms [$__interval])",
+          "expr": "quantile_over_time(0.99, {service_name=\"opson-client\", deployment_environment=\"$env\"} | event_name=\"app.startup\" | unwrap startup_ms [$__interval]) by ()",
           "refId": "C",
           "legendFormat": "p99"
         }

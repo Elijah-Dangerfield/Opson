@@ -12,9 +12,6 @@ import com.opson.features.today.impl.item.ItemSheetViewModel
 import com.opson.features.today.impl.meal.MealNoteAction
 import com.opson.features.today.impl.meal.MealNoteEvent
 import com.opson.features.today.impl.meal.MealNoteViewModel
-import com.opson.features.today.impl.meal.MealSheetAction
-import com.opson.features.today.impl.meal.MealSheetEvent
-import com.opson.features.today.impl.meal.MealSheetViewModel
 import com.opson.features.today.impl.water.WaterSheetAction
 import com.opson.features.today.impl.water.WaterSheetEvent
 import com.opson.features.today.impl.water.WaterSheetViewModel
@@ -187,13 +184,8 @@ class ClosedDayTest : CoroutineTest() {
         mealNote.takeAction(MealNoteAction.NoteTyped("At Lola's"))
         mealNote.takeAction(MealNoteAction.SaveTapped)
 
-        val meal = MealSheetViewModel(today, MealSlot.Dinner, diary, FakeSettingsRepository(), FakeCalendar())
-        val mealEvents = collect(meal.eventFlow)
-        meal.takeAction(MealSheetAction.CopyFromDayBeforeTapped)
-
         assertEquals(listOf<WaterSheetEvent>(WaterSheetEvent.DayClosed(today)), waterEvents)
         assertEquals(listOf<MealNoteEvent>(MealNoteEvent.DayClosed(today)), mealNoteEvents)
-        assertEquals(listOf<MealSheetEvent>(MealSheetEvent.DayClosed(today)), mealEvents)
         assertEquals(0, diary.writes)
     }
 

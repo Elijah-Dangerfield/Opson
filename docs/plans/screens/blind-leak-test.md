@@ -152,7 +152,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | 19 | Support | `support` | settings | ported | no |
 | 20 | More | `more` | settings | ported | yes |
 | 21 | Widgets and watch | `widget` | settings | 0.2, `widgets.md`, behind `release.widgets`: the home screen widget drawn from its snapshot (today and tomorrow, both sizes). The watch is still Later. | yes |
-| 22 | Meal options | `meal-sheet` | today | ported | no |
+| 22 | Meal options | none | | removed 2026-10-29: a meal's + opens the add sheet (`add-sheet`) on that meal | |
 | 23 | How it felt | none | | merged into the meal's Note (`meal-note`) | |
 | 24 | Water options | `water-sheet` | today | ported | no |
 | 25 | Water settings | `water-settings` | settings | ported | no |
@@ -231,6 +231,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `targets-safety-notes` | settings | the low-goal and fast-deficit notes under the goal, with Find support; no number in them | yes |
 | new | | `resting-energy` | settings | design sync 4, `release.goalsAndEnergy`; resting energy from each source, energy out only | no |
 | new | | `energy-today` | settings | design sync 4, `release.goalsAndEnergy`; eaten with its ±, Burned and the deficit so far | yes |
+| new | | `energy-explainer-resting` | settings | the (i) on Resting energy: BMR in words, the Mifflin-St Jeor working where energy out and weight show | yes |
+| new | | `energy-explainer-burned` | settings | the (i) on Burned: TDEE and its parts, today's working, digesting food only where calories show | yes |
+| new | | `energy-explainer-balance` | settings | the (i) on a set deficit or surplus: the rough 3,500 rule only where calories show, today's goal from Burned | yes |
 | new | | `today-summary-in-out` | today | design sync 4; the card's default preset with a set deficit's target line | yes |
 | new | | `today-summary-range-bar` | today | design sync 4; one bar, Burned as a tick, meals count on | yes |
 | new | | `today-summary-rings` | today | design sync 4; one number as rings | yes |

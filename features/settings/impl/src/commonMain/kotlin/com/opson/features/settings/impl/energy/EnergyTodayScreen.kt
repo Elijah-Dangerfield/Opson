@@ -170,7 +170,10 @@ private fun EatenCard(eaten: EatenSection, onAction: (EnergyTodayAction) -> Unit
 @Composable
 private fun BurnedCardView(burned: BurnedSection, onAction: (EnergyTodayAction) -> Unit) {
     EdgeCard(edgeToEdge = false, contentPadding = SettingsDefaults.CardInset, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-        Label(stringResource(Res.string.settings_energy_burned))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Label(stringResource(Res.string.settings_energy_burned), modifier = Modifier.weight(1f))
+            EnergyInfoButton(onClick = { onAction(EnergyTodayAction.InfoTapped(EnergyTopic.Burned)) })
+        }
         if (!burned.known) {
             LinkRow(stringResource(Res.string.settings_energy_burned_unknown)) { onAction(EnergyTodayAction.RestingEnergyTapped) }
             return@EdgeCard
@@ -289,8 +292,8 @@ private fun BalanceCard(balance: Balance?, toGoal: ToGoal?) {
 }
 
 @Composable
-private fun Label(text: String) {
-    Text(text = text, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
+private fun Label(text: String, modifier: Modifier = Modifier) {
+    Text(text = text, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted, modifier = modifier)
 }
 
 @Composable

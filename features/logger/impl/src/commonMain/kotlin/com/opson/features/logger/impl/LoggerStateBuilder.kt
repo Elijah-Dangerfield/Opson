@@ -120,6 +120,8 @@ object LoggerStateBuilder {
         add(AddAction.SayOrType(voice = choices.voiceEnabled))
         add(AddAction.SavedMeals)
         if (inputs.dayBefore.items(slot).isNotEmpty()) add(AddAction.CopyMeal(slot))
+        // What a meal's own sheet used to offer, here now that its + opens this one.
+        if (inputs.day.items(slot).isNotEmpty()) add(AddAction.SaveAsMeal(slot))
         add(AddAction.Water)
         add(AddAction.WeighIn)
         add(AddAction.Note)

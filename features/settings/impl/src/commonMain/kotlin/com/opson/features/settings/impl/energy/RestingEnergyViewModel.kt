@@ -1,6 +1,8 @@
 package com.opson.features.settings.impl.energy
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.core.DeviceRegion
+import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
@@ -11,6 +13,7 @@ import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.RegionUnits
 import com.opson.libraries.nutrition.RestingEnergies
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -34,6 +37,8 @@ class RestingEnergyViewModel(
     policySource: VisibilityPolicySource,
     health: HealthRepository,
     healthFlag: HealthReleaseFlag,
+    private val calendar: LocalCalendar,
+    private val region: DeviceRegion,
 ) : SEAViewModel<RestingEnergyState, RestingEnergyEvent, RestingEnergyAction>(initialStateArg = RestingEnergyState()) {
 
     private var inputs: RestingEnergyAction.InputsArrived? = null
@@ -69,6 +74,7 @@ class RestingEnergyViewModel(
             is RestingEnergyAction.ThermicEffectToggled -> settingsRepository.update { it.copy(thermicEffectInBurned = action.on) }
             is RestingEnergyAction.EverydayPicked -> settingsRepository.update { it.copy(everydayActivity = action.activity) }
             RestingEnergyAction.ProfileTapped -> sendEvent(RestingEnergyEvent.OpenProfile)
+            RestingEnergyAction.InfoTapped -> sendEvent(RestingEnergyEvent.OpenExplainer)
             RestingEnergyAction.ActivityTapped -> sendEvent(RestingEnergyEvent.OpenIntegrations)
             RestingEnergyAction.BackTapped -> sendEvent(RestingEnergyEvent.Close)
         }
@@ -76,7 +82,17 @@ class RestingEnergyViewModel(
 
     private suspend fun rebuild(action: RestingEnergyAction) {
         val (settings, choices, policy, activity) = inputs ?: return
-        action.updateState { RestingEnergyStateBuilder.build(settings, choices, policy, drafts, activity) }
+        action.updateState {
+            RestingEnergyStateBuilder.build(
+                settings,
+                choices,
+                policy,
+                drafts,
+                activity,
+                today = calendar.today(),
+                regionHeight = RegionUnits.height(region.countryCode()),
+            )
+        }
     }
 }
 
@@ -84,6 +100,9 @@ sealed interface RestingEnergyEvent {
     /** More › Profile, where the calculation's details are edited. */
     data object OpenProfile : RestingEnergyEvent
     data object OpenIntegrations : RestingEnergyEvent
+
+    /** The (i): what resting energy (BMR) is, and this person's working. */
+    data object OpenExplainer : RestingEnergyEvent
     data object Close : RestingEnergyEvent
 }
 
@@ -103,6 +122,7 @@ sealed interface RestingEnergyAction {
     data class ThermicEffectToggled(val on: Boolean) : RestingEnergyAction
     data class EverydayPicked(val activity: EverydayActivity) : RestingEnergyAction
     data object ProfileTapped : RestingEnergyAction
+    data object InfoTapped : RestingEnergyAction
     data object ActivityTapped : RestingEnergyAction
     data object BackTapped : RestingEnergyAction
 }

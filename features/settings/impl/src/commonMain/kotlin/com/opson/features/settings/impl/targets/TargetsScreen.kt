@@ -45,6 +45,9 @@ import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
 import com.opson.features.settings.impl.SettingsRow
+import com.opson.features.settings.impl.energy.EnergyInfoButton
+import com.opson.features.settings.impl.energy.EnergyInfoLink
+import com.opson.features.settings.impl.energy.EnergyTopic
 import com.opson.features.settings.impl.integrations.title
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.ui.detail
@@ -108,6 +111,7 @@ import opson.libraries.resources.generated.resources.settings_targets_deficit_ca
 import opson.libraries.resources.generated.resources.settings_targets_deficit_less
 import opson.libraries.resources.generated.resources.settings_targets_deficit_locked
 import opson.libraries.resources.generated.resources.settings_targets_deficit_more
+import opson.libraries.resources.generated.resources.settings_targets_deficit_info
 import opson.libraries.resources.generated.resources.settings_targets_deficit_title
 import opson.libraries.resources.generated.resources.settings_targets_deficit_zero_note
 import opson.libraries.resources.generated.resources.settings_targets_disclosure
@@ -194,6 +198,7 @@ import opson.libraries.resources.generated.resources.settings_targets_surplus_fr
 import opson.libraries.resources.generated.resources.settings_targets_surplus_less
 import opson.libraries.resources.generated.resources.settings_targets_surplus_locked
 import opson.libraries.resources.generated.resources.settings_targets_surplus_more
+import opson.libraries.resources.generated.resources.settings_targets_surplus_info
 import opson.libraries.resources.generated.resources.settings_targets_surplus_title
 import opson.libraries.resources.generated.resources.settings_targets_title
 import opson.libraries.resources.generated.resources.settings_micros_row_line
@@ -675,6 +680,7 @@ private fun DeficitBody(deficit: BurnGoalCard, onAction: (TargetsAction) -> Unit
         deficit.down == StepState.Closed && deficit.up == StepState.Locked -> Note(stringResource(Res.string.settings_targets_deficit_zero_note))
         deficit.up == StepState.Locked -> Note(stringResource(Res.string.settings_targets_deficit_cap_note))
     }
+    EnergyInfoLink(stringResource(Res.string.settings_targets_deficit_info), onClick = { onAction(TargetsAction.ExplainTapped(EnergyTopic.Balance)) })
 }
 
 /** A set surplus: as the deficit, over what the user burns, or over the usual target until that is known. */
@@ -702,6 +708,7 @@ private fun SurplusBody(surplus: BurnGoalCard, onAction: (TargetsAction) -> Unit
     if (surplus.up == StepState.Locked && surplus.down == StepState.Open && !surplus.canStartFromBurn) {
         Note(stringResource(Res.string.settings_targets_surplus_cap))
     }
+    EnergyInfoLink(stringResource(Res.string.settings_targets_surplus_info), onClick = { onAction(TargetsAction.ExplainTapped(EnergyTopic.Balance)) })
 }
 
 /** "Today's target 1,680 · moves with what you burn". */
@@ -768,7 +775,10 @@ private fun Note(text: String) {
  */
 @Composable
 private fun BurnedSourceCard(burned: BurnedCard, onAction: (TargetsAction) -> Unit) {
-    SectionLabel(stringResource(Res.string.settings_targets_burned_title))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        SectionLabel(stringResource(Res.string.settings_targets_burned_title), modifier = Modifier.weight(1f))
+        EnergyInfoButton(onClick = { onAction(TargetsAction.ExplainTapped(EnergyTopic.Burned)) })
+    }
     SettingsCard {
         SettingsRow(
             title = stringResource(Res.string.settings_targets_resting),

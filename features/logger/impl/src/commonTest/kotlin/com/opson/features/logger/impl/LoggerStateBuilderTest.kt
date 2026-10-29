@@ -130,6 +130,17 @@ class LoggerStateBuilderTest {
     }
 
     @Test
+    fun saveAsAMealNeedsTheMealsFoodOnTheDay() {
+        val day = day(today, item("Kabsa", MealSlot.Lunch))
+        val lunch = LoggerChoices(slot = MealSlot.Lunch)
+
+        assertTrue(AddAction.SaveAsMeal(MealSlot.Lunch) in build(inputs(day = day), choices = lunch).actions)
+        assertTrue(build(inputs(day = day)).actions.none { it is AddAction.SaveAsMeal }, "dinner has nothing to save")
+        val closed = day.copy(closedAt = Instant.fromEpochSeconds(0))
+        assertTrue(build(inputs(day = closed), choices = lunch).actions.none { it is AddAction.SaveAsMeal }, "a closed day keeps only what is not its log")
+    }
+
+    @Test
     fun mealGroupsOffOffersOnlyUncategorized() {
         val state = build(inputs(settings = Settings(mealGroups = false)))
 

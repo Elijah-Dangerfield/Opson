@@ -12,7 +12,6 @@ import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.item.ItemSheetContent
 import com.opson.features.today.impl.meal.MealNoteSheetContent
-import com.opson.features.today.impl.meal.MealSheetContent
 import com.opson.features.today.impl.notes.NotesScreen
 import com.opson.features.today.impl.notes.NotesStateBuilder
 import com.opson.features.today.impl.water.WaterSheetContent
@@ -311,6 +310,14 @@ private fun TodayDeleteConfirmPreview() = Phone {
 @Composable
 private fun TodayUncategorizedPreview() = Phone { Today(full, day = TodayFixtures.day(loose = true), firstRow = BREAKFAST_ROW + 2) }
 
+/**
+ * Breakfast with a food and the meals after it empty: the header and the + of the first open the
+ * add sheet on breakfast, and each empty card is one tap target for its own meal.
+ */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayMealCardsPreview() = Phone { Today(full, day = TodayFixtures.lightDay(), firstRow = BREAKFAST_ROW) }
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayEmptyPreview() = Phone { Today(full, day = Day.empty(TodayFixtures.today), expended = TodayFixtures.morningExpended) }
@@ -522,14 +529,6 @@ private fun FoodActionsAmountPreview() = Phone(dark = true) {
 private fun FoodActionsCopyPreview() = Phone(dark = true) {
     ItemSheetContent(TodayFixtures.foodActionsState(full, ItemStep.CopyTo(CopyDay.Tomorrow, MealSlot.Snack)), onAction = {})
 }
-
-@Preview(widthDp = 390)
-@Composable
-private fun MealSheetPreview() = Phone { MealSheetContent(TodayFixtures.mealSheetState(), onAction = {}) }
-
-@Preview(widthDp = 390)
-@Composable
-private fun MealSheetDarkPreview() = Phone(dark = true) { MealSheetContent(TodayFixtures.mealSheetState(), onAction = {}) }
 
 @Preview(widthDp = 390)
 @Composable

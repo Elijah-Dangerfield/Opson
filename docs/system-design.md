@@ -95,7 +95,7 @@ feature api modules never depend on each other).
 | `:libraries:health` | kotlin.multiplatform | `HealthRepository` (connect, disconnect, status, a day's energy), `HealthRecords` (workouts, weigh-ins, body details, source apps, pull to refresh), `HealthWeighInImport`, `EnergyExpended`, `HealthSource`, and the `release.health` flag. Energy and workouts stay on the device (the last reading is cached there); weigh-ins and profile details the person chooses to bring in join their synced log (`docs/plans/screens/integrations.md`). |
 | `:libraries:health:impl` | kotlin.multiplatform | `RealHealthRepository` over a platform `HealthReader`: Health Connect (`androidMain`, with the permission rationale activity and manifest entries) and HealthKit through `platform.HealthKit` (`iosMain`, no Swift). One shared reading per day, read only in the foreground (`HealthForegroundRefresh`). `RealHealthWeighInImport`. Emits `health.*` app events with the source only. |
 | `:libraries:scanner` (+`impl`) | compose.multiplatform | The barcode camera behind `BarcodeCamera` (the composable viewfinder and permission prompt) and `CameraPermissions`. The impl binds CameraX with ML Kit's bundled model on Android and AVFoundation, from Kotlin, on iOS. 0.2, behind `release.barcode`. |
-| `:features:today` (+`impl`) | feature | Today screen, Add menu, Day menu, calendar sheet, meal sheet, water sheet, day close. |
+| `:features:today` (+`impl`) | feature | Today screen, Add menu, Day menu, calendar sheet, meal note, water sheet, day close. |
 | `:features:logger` (+`impl`) | feature | Logger sheet, amount sheet, Describe, Saved. |
 | `:features:foods` (+`impl`) | feature | Foods tab, create a meal, add a custom food. |
 | `:features:trends` (+`impl`) | feature | Trends, trends settings, nutrients detail, weight. |
@@ -589,7 +589,7 @@ changed and what 0.1 builds is in [`docs/design/v3/CHANGES.md`](design/v3/CHANGE
 
 - Onboarding: four questions, recommended mode. No pricing screen (nothing is
   for sale yet, and a price with no purchase flow is a rejection).
-- Today in every layout, with day navigation, calendar, day menu, meal sheet,
+- Today in every layout, with day navigation, calendar, day menu, meal note,
   water sheet, day close.
 - Logger with search, basket, amount sheet, Describe it, Saved meals,
   Yesterday's meal, weigh-in.

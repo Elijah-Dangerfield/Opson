@@ -77,9 +77,9 @@ stops showing it.
 - **Units.** Only Full numbers shows a weight or water amount. Weight and water
   units are in More. The resting energy step has its own height and weight
   switches, starting in the region's units (US, Liberia, Myanmar get feet and
-  pounds), and saves what was picked. A follow-up worth doing: default
-  `weightUnit` and `waterUnit` from the region for everyone, not only those who
-  see that step.
+  pounds), and saves what was picked. `weightUnit` now reads in the region's
+  unit for everyone until something sets it (`Settings.withRegionWeightUnit`);
+  `waterUnit` still starts metric for someone who never sees that step.
 - **End after a set time.** A Modes feature for people who already know a mode.
 - **Health app, activity, macros, the summary card layout, reminders.** Each
   has a page that explains itself, and none changes the first log.
@@ -242,6 +242,6 @@ it.
 4. **Changing the statement later.** Today a yes is permanent.
 5. **A `setupDone` key** for the abandoned-setup edge above.
 6. **Units from the device region** for everyone. Done for the resting energy
-   step and Resting energy's height; `weightUnit` and `waterUnit` still start
+   step, Resting energy's height and `weightUnit`; `waterUnit` still starts
    metric for someone who never sees that step.
 7. **Clinician review** of the statement copy and the reason lines.

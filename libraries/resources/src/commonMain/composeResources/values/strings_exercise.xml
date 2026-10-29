@@ -49,14 +49,14 @@
     <!-- Today's Activity card: the lines that add up to what was burned, then the exercise logged -->
     <string name="today_activity_title">Activity</string>
     <string name="today_activity_from">From %1$s</string>
-    <string name="today_activity_resting">Resting energy</string>
-    <string name="today_activity_active">Active energy</string>
-    <string name="today_activity_active_line">Movement and workouts</string>
+    <string name="today_activity_resting">Resting energy (BMR)</string>
+    <string name="today_activity_active">Everyday activity and exercise</string>
+    <string name="today_activity_active_line">Counted by your watch or phone</string>
     <string name="today_activity_workouts_included">Includes %1$s from workouts</string>
     <string name="today_burned_everyday">Everyday activity</string>
     <string name="today_burned_exercise">Exercise</string>
     <string name="today_activity_exercise_missed">What your watch missed</string>
-    <string name="today_activity_total">Total burned</string>
+    <string name="today_activity_total">Total burned (TDEE)</string>
     <string name="today_burned_add">Add exercise</string>
     <string name="today_burned_none">No exercise logged yet</string>
     <string name="today_activity_unknown">Add your details on Resting energy to see what you burn.</string>

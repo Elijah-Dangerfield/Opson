@@ -61,18 +61,23 @@ object RestingEnergies {
 
     /**
      * Mifflin–St Jeor: 10 × kg + 6.25 × cm − 5 × age + 5 (male) or − 161 (female), rounded to 10.
-     * Null while anything is missing or out of range.
+     * Null while anything is missing or out of range. Kilograms and centimetres only: a weight in
+     * pounds passed as kilograms (170 for 77.1) gives about 2,690 instead of 1,760.
      */
-    fun calculate(profile: BodyProfile): Int? {
+    fun calculate(profile: BodyProfile): Int? = working(profile)?.kcal
+
+    /** [calculate]'s working, term by term, for "How we got your number". Null where [calculate] is. */
+    fun working(profile: BodyProfile): RestingWorking? {
         val kg = profile.weightKg?.takeIf { it in WEIGHT_KG } ?: return null
         val cm = profile.heightCm?.takeIf { it in HEIGHT_CM } ?: return null
         val age = profile.ageYears?.takeIf { it in AGE_YEARS } ?: return null
-        val constant = when (profile.sex ?: return null) {
+        val sex = profile.sex ?: return null
+        val constant = when (sex) {
             BodySex.Male -> MALE
             BodySex.Female -> FEMALE
             BodySex.Unsaid -> (MALE + FEMALE) / 2
         }
-        return roundTo10(10 * kg + 6.25 * cm - 5 * age + constant)
+        return RestingWorking(weightTerm = 10 * kg, heightTerm = 6.25 * cm, ageTerm = -5.0 * age, sexTerm = constant)
     }
 
     /**
@@ -88,7 +93,17 @@ object RestingEnergies {
         }
     }
 
-    private fun roundTo10(kcal: Double): Int = (kcal / 10).roundToInt() * 10
+    internal fun roundTo10(kcal: Double): Int = (kcal / 10).roundToInt() * 10
+}
+
+/**
+ * Mifflin–St Jeor's four terms, in kcal: 10 × kg, 6.25 × cm, −5 × age, and the sex constant (+5,
+ * −161, or halfway for [BodySex.Unsaid]). [exactKcal] is their sum; [kcal] is it rounded to 10,
+ * the resting energy Burned uses.
+ */
+data class RestingWorking(val weightTerm: Double, val heightTerm: Double, val ageTerm: Double, val sexTerm: Double) {
+    val exactKcal: Double get() = weightTerm + heightTerm + ageTerm + sexTerm
+    val kcal: Int get() = RestingEnergies.roundTo10(exactKcal)
 }
 
 /**

@@ -33,7 +33,7 @@ class DiarySyncerDebounceTest : CoroutineTest() {
         DiarySyncer(
             api,
             db.tables,
-            SettingsStore(FakeCacheFactory(), db.outboxDao, db.transactor, clock, user, appScope),
+            SettingsStore(FakeCacheFactory(), db.outboxDao, db.transactor, clock, user, appScope, { null }),
             user,
             appScope,
             clock,

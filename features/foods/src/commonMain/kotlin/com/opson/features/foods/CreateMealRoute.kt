@@ -5,7 +5,7 @@ import com.opson.libraries.navigation.Route
 import kotlinx.serialization.Serializable
 
 /**
- * Create a meal (`foods.md`). From the Meal sheet's "Save as a meal" it arrives
+ * Create a meal (`foods.md`). From the add sheet's "Save as a meal" it arrives
  * pre-filled with [fromSlot]'s items on [fromDayIso] (`LocalDate.toString()`).
  * From Today's selected foods it arrives with [entryIds] instead: just those
  * entries on [fromDayIso], in the day's order, and [fromSlot] only when they all

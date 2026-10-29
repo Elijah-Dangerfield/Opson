@@ -1,22 +1,17 @@
 package com.opson.features.today.impl
 
-import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.navigation.Route
 import kotlinx.serialization.Serializable
 
 /*
  * The sheets only Today opens (`today-sheets.md`). Days travel as
- * `LocalDate.toString()`; a MealSlot argument needs its typeMap at the
+ * `LocalDate.toString()`; a MealSlot argument would need its typeMap at the
  * registration in TodayFeatureEntryPoint.
  */
 
 /** The month calendar that drops from the day's title, opened on [selectedIso]'s month. A `dialog<>`. */
 @Serializable
 data class CalendarRoute(val selectedIso: String) : Route()
-
-/** The + on a meal: add food, a Note, copy the day before's, save as a meal. */
-@Serializable
-data class MealSheetRoute(val dayIso: String, val slot: MealSlot) : Route()
 
 /** Add a glass, a custom amount, remove a glass, water settings. */
 @Serializable

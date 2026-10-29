@@ -463,7 +463,7 @@ Layout is `policy.preset.today`: Full, Meals, Rhythm, Explorer, and **Journal**
 | `NutrientsTapped` | `OpenNutrients(day)` (`NutrientsRoute(dayIso, Day)`). |
 | `RevealedTapped`, `CloseDayCardTapped` | `OpenDayClose(day)`, not on a planned day. |
 | `MealTileTapped`, `RhythmLogTapped`, `PlanItTapped` | `OpenLogger(day, slot)`. |
-| `MealPlusTapped` | `OpenMealSheet(day, slot)`. |
+| `MealPlusTapped` | `OpenLogger(day, slot)`: the add sheet on that meal. Sent by the meal's +, the header of a meal with food (not Uncategorized's, which has Move to… instead) and a tap anywhere on an empty meal's card, which is one button read as its texts with "Add to {meal}". While selecting, the header toggles the meal's foods instead and the card takes no tap. A food row still opens its detail. On a closed day there is no +, and the card and header taps say the day is closed. |
 | `CopyYesterdayMealTapped(slot)` | `copySlot(day − 1, day, slot)`, toast "Added to {meal}." |
 | `SavedMealsTapped(slot)` | `OpenLog(day, slot, Saved)`. |
 | `FeelPromptTapped(slot)` | `OpenMealFeel(day, slot)`. |

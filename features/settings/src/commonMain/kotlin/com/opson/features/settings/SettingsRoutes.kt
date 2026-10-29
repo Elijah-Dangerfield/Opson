@@ -34,6 +34,21 @@ class TargetsRoute : Route()
 class RestingEnergyRoute(val fromEnergyToday: Boolean = false) : Route()
 
 /**
+ * The (i) sheet for one energy word: what resting energy (BMR), Burned (TDEE) or a deficit and
+ * surplus are, how Opson works them out, and the person's own working where their mode shows the
+ * numbers. [topic] is [TOPIC_RESTING], [TOPIC_BURNED] or [TOPIC_BALANCE]; a string rather than an
+ * enum, so the route needs no type map. `release.goalsAndEnergy`, as the pages that open it.
+ */
+@Serializable
+class EnergyExplainerRoute(val topic: String = TOPIC_RESTING) : Route() {
+    companion object {
+        const val TOPIC_RESTING = "resting"
+        const val TOPIC_BURNED = "burned"
+        const val TOPIC_BALANCE = "balance"
+    }
+}
+
+/**
  * More › Profile: year of birth, sex for the estimates, height, the latest weigh-in, BMI and
  * body fat. The one place these are edited; resting energy, Burned, the exercise estimate and the
  * vitamin and mineral references all read the same settings. [from] picks the back label: `more`,

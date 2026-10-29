@@ -91,19 +91,26 @@ looked at one of these with data on it. Expect to adjust.
    Confirm the uid first from **Connections → Data sources → (your Loki) → the URL**, or with
    `/api/datasources` on the stack.
 
-## Is anything flowing? (checked 2026-10-27)
+## Is anything flowing? (checked 2026-10-29)
 
-- **Client events: no.** Loki holds no `opson-client` stream in the last 30
-  days, dev or prod. The release workflows read `GRAFANA_OTLP_BASE_URL`,
-  `GRAFANA_OTLP_INSTANCE_ID` and `GRAFANA_LOGS_WRITE_TOKEN` from GitHub
-  secrets, and none is set on the repo; the machine's credential store has the
-  first two and not the token. Pulse's first stat reads 0 in red until a build
-  ships with all three.
-- **Server logs: no.** Neither Fly app sets `OTEL_EXPORTER_OTLP_ENDPOINT`, so
-  the server logs to stdout and the server panels are empty.
-- **Prod Postgres panels: not yet.** `opson-prod-db` has no user or password
-  in Grafana (the query fails with "Invalid format for user"). Set them as
-  described above. Dev works.
+- **Client events: yes, from 2026-10-29.** iOS TestFlight build 1290 sends
+  `opson-client` events with `deployment_environment="prod"`, from two
+  installs. Nothing arrives as `dev` yet, so a board set to dev shows no Loki
+  data. Anything before 2026-10-29 is empty because no build carried the
+  credentials then.
+- **Server logs: no.** No `opson-server` stream exists. Neither Fly app
+  exports over OTLP, so Pulse's server error panel stays empty.
+- **Prod Postgres panels: blocked on the datasource, nothing else.**
+  `opson-prod-db` in Grafana still has an empty user and no password, so every
+  prod Postgres panel fails with "Invalid format for user or db_name". The
+  role itself is fine: `grafana_ro.qmftnivpklhhozthpxej` logs in to the prod
+  pooler with `GRAFANA_RO_DB_PASSWORD` from `apps/server/.env.prod`, reads all
+  35 `analytics` and `support` views (V9 to V31), and every panel query on
+  every board runs against it without an error. Set the user and password as
+  described above and they render. Dev (`opson-db`) works.
+- **Cold start and frame timing are Android only.** iOS never sends
+  `app.startup` or `app.jank`, so those App health rows are empty for an
+  iPhone.
 
 ## Importing
 

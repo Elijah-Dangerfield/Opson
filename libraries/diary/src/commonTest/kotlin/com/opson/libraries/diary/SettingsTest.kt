@@ -7,14 +7,17 @@ import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.HeightUnit
+import com.opson.libraries.nutrition.Heights
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RangeEnd
+import com.opson.libraries.nutrition.RestingEnergies
 import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
+import com.opson.libraries.nutrition.Units
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WaterUnit
 import com.opson.libraries.nutrition.WeightUnit
@@ -243,6 +246,29 @@ class SettingsTest {
         assertEquals(HeightUnit.FtIn, Settings().heightUnitOr(HeightUnit.FtIn), "the region, before anything is picked")
         assertEquals(HeightUnit.FtIn, Settings(weightUnit = WeightUnit.Lb).heightUnitOr(HeightUnit.Cm), "pounds kept inches")
         assertEquals(HeightUnit.Cm, Settings(weightUnit = WeightUnit.Lb, heightUnit = HeightUnit.Cm).heightUnitOr(HeightUnit.FtIn))
+    }
+
+    @Test
+    fun weightUnit_untilSomethingSetsIt_followsTheRegion() {
+        assertEquals(WeightUnit.Lb, Settings().withRegionWeightUnit(WeightUnit.Lb).weightUnit, "the stored kg is only the default")
+        assertEquals(WeightUnit.Kg, Settings().withRegionWeightUnit(WeightUnit.Kg).weightUnit)
+        assertEquals(WeightUnit.Kg, Settings(weightUnitChosen = true).withRegionWeightUnit(WeightUnit.Lb).weightUnit, "picked on Display")
+        assertEquals(WeightUnit.Kg, Settings(heightUnit = HeightUnit.Cm).withRegionWeightUnit(WeightUnit.Lb).weightUnit, "set with onboarding's units")
+        assertEquals(WeightUnit.Lb, Settings(weightUnit = WeightUnit.Lb).withRegionWeightUnit(WeightUnit.Kg).weightUnit, "pounds were never the default")
+
+        val chosen = Settings(weightUnit = WeightUnit.Kg, weightUnitChosen = true)
+        assertEquals(chosen, SettingsJson.decodeFromString(Settings.serializer(), SettingsJson.encodeToString(Settings.serializer(), chosen)))
+        assertFalse(SettingsJson.decodeFromString(Settings.serializer(), "{}").weightUnitChosen)
+    }
+
+    /** The owner's profile, as Profile and Weight store it: 5'11", born 1998, male, 170 lb. */
+    @Test
+    fun restingEnergyFromAStoredImperialProfile_isAbout1760() {
+        val settings = Settings(heightCm = Heights.cm(5, 11.0), heightUnit = HeightUnit.FtIn, birthYear = 1998, bodySex = BodySex.Male)
+        val profile = settings.bodyProfile(weightKg = Units.lbToKg(170.0), today = LocalDate(2026, 10, 29))
+
+        assertEquals(28, profile.ageYears)
+        assertEquals(1760, RestingEnergies.calculate(profile))
     }
 
     @Test
