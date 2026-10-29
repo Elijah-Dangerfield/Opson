@@ -48,6 +48,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -290,7 +291,15 @@ fun Route.foodLabelRoutes(
                 )
                 when (outcome) {
                     is SubmitOutcome.Created -> {
-                        val routed = router?.route(outcome.submission, photos)
+                        // The submission is stored whatever routing does: a failure here leaves it pending for a person.
+                        val routed = try {
+                            router?.route(outcome.submission, photos)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            logger.warn("food submission routing failed reason={}", e::class.simpleName)
+                            null
+                        }
                         val stored = routed?.let { submissions.get(id) } ?: outcome.submission
                         logger.info(
                             "food submission outcome=created origin={} checks={} parsed={} capture={} lane={} would_auto={}",

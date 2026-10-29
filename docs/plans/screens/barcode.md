@@ -342,3 +342,12 @@ orchestrator pushes it.
 - Previews: scanning, looking up, miss, miss with a name, unavailable, camera
   denied (light and dark), and the amount sheet for a scanned food in Full and
   Blind. Logger with the flag on and off.
+
+## Also read the label (`release.builders`)
+
+An active Builder sees an "Also read the label" switch under the camera. On, a
+code that finds a food opens Check against the pack instead of the food detail,
+where the person photographs the panel themselves. Nothing is read from the
+scanner's own frames (`docs/plans/feedback-2026-10-29/passive-label-capture.md`,
+option D). A miss goes to Add a packaged food, in Builder mode.
+

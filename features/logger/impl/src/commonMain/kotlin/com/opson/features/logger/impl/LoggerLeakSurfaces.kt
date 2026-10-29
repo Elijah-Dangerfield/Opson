@@ -176,6 +176,32 @@ object LoggerLeakSurfaces {
                 onClose = {},
             )
         },
+        // Builder mode (release.builders): the label read on the phone fills the same form.
+        LeakSurface(id = "submit-food-builder-review", label = "Add a packaged food, Builder mode, read on the phone", showsCaloriesInFull = true) { policy ->
+            SubmitFoodScreen(state = SubmitFoodFixtures.builderReviewState(policy), onAction = {})
+        },
+        // Check against the pack: pack and Opson side by side only where calories and macros show.
+        LeakSurface(id = "check-food-differs", label = "Check against the pack, the label differs", showsCaloriesInFull = true) { policy ->
+            CheckFoodSheetContent(
+                state = CheckFoodStateBuilder.build(
+                    CheckModel(
+                        name = "Maple granola",
+                        canTakePhoto = true,
+                        step = CheckStep.Compared(
+                            PackComparison(
+                                pack = mapOf(com.opson.libraries.foods.LabelNutrient.Energy to 418.0, com.opson.libraries.foods.LabelNutrient.Fat to 14.5),
+                                opson = mapOf(com.opson.libraries.foods.LabelNutrient.Energy to 545.0, com.opson.libraries.foods.LabelNutrient.Fat to 14.5),
+                                differing = setOf(com.opson.libraries.foods.LabelNutrient.Energy),
+                                servingGrams = 55.0,
+                            ),
+                        ),
+                    ),
+                    policy,
+                ),
+                onAction = {},
+                onClose = {},
+            )
+        },
         LeakSurface(id = "logger-photo", label = "Photo estimate", showsCaloriesInFull = true) { policy ->
             PhotoEstimateSheetContent(state = PhotoFixtures.reviewState(policy, editing = true), onAction = {})
         },

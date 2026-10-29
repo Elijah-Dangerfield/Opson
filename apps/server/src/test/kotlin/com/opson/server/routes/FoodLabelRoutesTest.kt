@@ -4,6 +4,7 @@ import com.opson.server.data.LabelFactsJson
 import com.opson.server.data.LabelParseCache
 import com.opson.server.domain.CarbBasis
 import com.opson.server.domain.FoodLabelLimiter
+import com.opson.server.domain.FoodLabelLimits
 import com.opson.server.domain.LabelCheckCode
 import com.opson.server.domain.LabelFacts
 import com.opson.server.domain.LabelParseResult
@@ -305,4 +306,31 @@ class FoodLabelRoutesTest {
             assertEquals(listOf(customFoodId, null), mine.map { it.customFoodId })
         }
     }
+
+    @Test
+    fun aBuildersCaptureAndIngredientsAreKeptAndAMalformedCaptureIsRefused() = runTest {
+        withApp { client ->
+            val capture = com.opson.server.data.CaptureJson(
+                engine = "vision",
+                source = "camera",
+                lines = listOf(com.opson.server.data.CaptureLineJson("Calories 270", 0.97)),
+                draft = LabelFactsJson.of(bar.copy(name = null)),
+                score = 0.9,
+            )
+            val sent = client.submit(request().copy(capture = capture, ingredients = front))
+            assertEquals(HttpStatusCode.Created, sent.status)
+            val stored = submissions.submissions.values.single()
+            assertEquals("vision", stored.capture?.engine)
+            assertEquals(listOf("Calories 270"), stored.capture?.lines?.map { it.text })
+            assertEquals(270.0, stored.capture?.draft?.perServing?.get(NutrientKey.Energy))
+
+            val tooMany = capture.copy(lines = List(FoodLabelLimits.MAX_CAPTURE_LINES + 1) { com.opson.server.data.CaptureLineJson("x") })
+            val refused = client.submit(request().copy(capture = tooMany))
+            assertEquals(HttpStatusCode.BadRequest, refused.status)
+            assertEquals("invalid_capture", refused.code())
+            val badScore = client.submit(request().copy(capture = capture.copy(score = 2.0)))
+            assertEquals("invalid_capture", badScore.code())
+        }
+    }
 }
+

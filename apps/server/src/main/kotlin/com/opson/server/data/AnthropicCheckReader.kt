@@ -75,7 +75,8 @@ class AnthropicCheckReader(
     internal companion object {
         /** Thinking at low effort plus the panel's JSON; ample, and a cap on a runaway answer. */
         const val MAX_TOKENS = 8_000L
-        val TIMEOUT: Duration = Duration.ofSeconds(25)
+        /** With the client's one retry, routing waits at most about 40 s: inside the app's 60 s for a submission. */
+        val TIMEOUT: Duration = Duration.ofSeconds(20)
         private const val NANOS_PER_MS = 1_000_000L
         private val logger = LoggerFactory.getLogger(AnthropicCheckReader::class.java)
 

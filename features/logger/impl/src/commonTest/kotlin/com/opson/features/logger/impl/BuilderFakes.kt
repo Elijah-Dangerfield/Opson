@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.features.logger.impl
 
 import com.opson.features.builder.BuildersEnabled
@@ -19,6 +21,8 @@ import com.opson.libraries.scanner.TextRecognition
 import com.opson.libraries.scanner.TextRecognizer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 
 fun buildersFlag(on: Boolean): BuildersEnabled = BuildersEnabled(
     object : AppConfigMap() {
@@ -40,6 +44,7 @@ class FakeBuilderProgram(active: Boolean = false) : BuilderProgram {
 }
 
 /** Reads [lines] off any photo, or answers [result] when set. */
+@HiddenFromObjC
 class FakeTextRecognizer(
     private val lines: List<String> = emptyList(),
     var result: TextRecognition? = null,

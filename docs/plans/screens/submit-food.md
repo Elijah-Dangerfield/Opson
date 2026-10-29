@@ -116,6 +116,21 @@ wiped on a user change. A server without the route (404) leaves the marks as
 the phone recorded them. The catalog row says where it stands itself:
 `reviewStatus` on the food response, sent only when it is not approved.
 
+## Builder mode (`release.builders`)
+
+For an active Builder (More › Builders) the screen adds an optional third photo,
+the ingredients, and reads the label on the phone first: text recognition
+(Vision on iOS, ML Kit on Android) and `LabelTextParser`. When the phone
+places four of the five headline fields, the form opens filled in with
+"Your phone read this label. Check every number against the pack before you
+send it." and the server is not asked to read; otherwise the server's read
+runs as before. The submission carries what the phone read (its lines, draft
+and measured signals, `SubmissionCapture`), which the server uses to ground
+the numbers and route the food. A food the server publishes at once (an
+owner's, or one the auto lane approved) closes with "is in Opson's food
+database". Check against the pack, the food detail's ⋮ item for Builders, is
+its own sheet (`CheckFoodRoute`).
+
 ## Numbers and the mode
 The label's numbers draw, editable, only when calories, protein, carbs and fat
 all show on the logger (and the label's other nutrients only when micros show
