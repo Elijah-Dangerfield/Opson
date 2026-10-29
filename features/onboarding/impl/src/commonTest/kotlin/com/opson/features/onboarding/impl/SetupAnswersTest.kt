@@ -3,13 +3,10 @@ package com.opson.features.onboarding.impl
 import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
-import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
-import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Visibility
-import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -126,21 +123,9 @@ class SetupAnswersTest {
         assertEquals(1980, nothing.birthYear)
         assertEquals(before.mealTimes, nothing.mealTimes)
 
-        val raised = Targets.Default.raise()
-        val setup = StartingSetup(
-            targets = raised,
-            birthYear = 1992,
-            heightCm = 168.0,
-            sex = BodySex.Unsaid,
-            weightUnit = WeightUnit.Lb,
-            mealTimes = MealTimes(breakfast = LocalTime(9, 30)),
-        )
-        val after = before.startingWith(PresetId.Full, SetupAnswers(), setup)
-        assertEquals(raised, after.targets)
-        assertEquals(1992, after.birthYear)
-        assertEquals(168.0, after.heightCm)
-        assertEquals(BodySex.Unsaid, after.bodySex)
-        assertEquals(WeightUnit.Lb, after.weightUnit)
+        val after = before.startingWith(PresetId.Full, SetupAnswers(), MealTimes(breakfast = LocalTime(9, 30)))
+        assertEquals(before.targets, after.targets, "the goal flow writes targets, not this")
+        assertEquals(1980, after.birthYear)
         assertEquals(MealTimes(breakfast = LocalTime(9, 30)), after.mealTimes)
     }
 

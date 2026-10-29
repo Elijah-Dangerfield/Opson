@@ -802,7 +802,6 @@ class OnboardingViewModelTest : CoroutineTest() {
         appleSignIn: Boolean = true,
         weights: FakeWeightRepository = FakeWeightRepository(),
         setupSteps: Boolean = false,
-        goalsAndEnergy: Boolean = false,
         route: OnboardingRoute = OnboardingRoute(),
     ): OnboardingViewModel = OnboardingViewModel(
         appCache = cache,
@@ -813,7 +812,8 @@ class OnboardingViewModelTest : CoroutineTest() {
         weightRepository = weights,
         calendar = FixedCalendar,
         setupEnabled = onboardingSetupFlag(setupSteps),
-        goalsAndEnergy = goalsAndEnergyFlag(goalsAndEnergy),
+        health = FakeHealthRepository(),
+        healthFlag = healthFlag(false),
         region = { "GB" },
         route = route,
         appleSignIn = appleSignIn,

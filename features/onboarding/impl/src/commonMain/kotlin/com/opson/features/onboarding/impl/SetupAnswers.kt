@@ -1,5 +1,6 @@
 package com.opson.features.onboarding.impl
 
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.NumbersSettings
@@ -117,20 +118,13 @@ data class SetupAnswers(
 
 /**
  * The settings onboarding leaves behind: [preset] with no overrides and the
- * pause off, the answers, and whatever the setup steps the person saw set
- * ([setup]; a step not shown leaves its settings as they are). Every key here is
- * already a top-level one, as settings sync needs. The caller saves this without
- * stamping `changedAt`, so Modes says "Set by you during setup".
+ * pause off, the answers, and the meal times when that step was shown. The goal
+ * flow's settings go on top ([PlanFlow.save]). Every key here is already a
+ * top-level one, as settings sync needs. The caller saves this without stamping
+ * `changedAt`, so Modes says "Set by you during setup".
  */
-fun Settings.startingWith(preset: PresetId, answers: SetupAnswers, setup: StartingSetup = StartingSetup()): Settings = copy(
+fun Settings.startingWith(preset: PresetId, answers: SetupAnswers, mealTimes: MealTimes? = null): Settings = copy(
     numbers = NumbersSettings(preset = preset),
     onboarding = answers.toSettings(),
-    targets = setup.targets ?: targets,
-    birthYear = setup.birthYear ?: birthYear,
-    heightCm = setup.heightCm ?: heightCm,
-    bodySex = setup.sex ?: bodySex,
-    weightUnit = setup.weightUnit ?: weightUnit,
-    heightUnit = setup.heightUnit ?: heightUnit,
-    mealTimes = setup.mealTimes ?: mealTimes,
-    everydayActivity = setup.everydayActivity ?: everydayActivity,
+    mealTimes = mealTimes ?: this.mealTimes,
 )

@@ -55,12 +55,6 @@ import opson.libraries.resources.generated.resources.onboarding_why_eating_regul
 import opson.libraries.resources.generated.resources.onboarding_why_medical_need
 import opson.libraries.resources.generated.resources.onboarding_why_performance
 import opson.libraries.resources.generated.resources.onboarding_why_working_with_provider
-import opson.libraries.resources.generated.resources.settings_targets_style_deficit
-import opson.libraries.resources.generated.resources.settings_targets_style_deficit_line
-import opson.libraries.resources.generated.resources.settings_targets_style_exact
-import opson.libraries.resources.generated.resources.settings_targets_style_range
-import opson.libraries.resources.generated.resources.settings_targets_style_surplus
-import opson.libraries.resources.generated.resources.settings_targets_style_surplus_line
 import org.jetbrains.compose.resources.StringResource
 
 internal val SetupQuestion.title: StringResource
@@ -146,21 +140,3 @@ internal val RecommendationReason.line: StringResource
         RecommendationReason.Gentler -> Res.string.onboarding_reason_gentler
         RecommendationReason.NotSure -> Res.string.onboarding_reason_not_sure
     }
-
-/** Targets' own names for the goal styles, so the two screens say the same thing. */
-internal val GoalChoice.label: StringResource
-    get() = when (this) {
-        GoalChoice.Range -> Res.string.settings_targets_style_range
-        GoalChoice.OneNumber -> Res.string.settings_targets_style_exact
-        GoalChoice.Deficit -> Res.string.settings_targets_style_deficit
-        GoalChoice.Surplus -> Res.string.settings_targets_style_surplus
-    }
-
-/** The line under a goal style. The range's is its amount, which the step resolves through the policy. */
-internal val GoalChoice.line: StringResource?
-    get() = when (this) {
-        GoalChoice.Range, GoalChoice.OneNumber -> null
-        GoalChoice.Deficit -> Res.string.settings_targets_style_deficit_line
-        GoalChoice.Surplus -> Res.string.settings_targets_style_surplus_line
-    }
-

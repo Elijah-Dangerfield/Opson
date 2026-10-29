@@ -6,27 +6,38 @@ import com.opson.libraries.nutrition.ui.leak.LeakSurface
  * Onboarding's entries in `CaloriesHiddenLeakTest.SURFACES`, ids as design v3 names
  * the screens. The questions, the recommendation and the sign-in step show no
  * nutrition number in any mode, so they ignore the policy and the test holds
- * each to showing none. The setup steps (onboarding v2) do: the goal step's
- * range, the burn it started from and the resting energy step's estimate are
- * built through the policy the test hands them, and show calories in Full.
+ * each to showing none. The goal flow's steps do: the profile's weight, the
+ * target weight, the pace and what it means a day, and the overview's target are
+ * built through the policy the test hands them, and the pace and the overview
+ * show calories in Full.
  */
 object OnboardingLeakSurfaces {
     val all: List<LeakSurface> = listOf(
         LeakSurface(
-            id = "onboarding-goal",
-            label = "Onboarding · goal style and range",
-            showsCaloriesInFull = true,
-        ) { policy -> OnboardingScreen(state = OnboardingFixtures.goal(policy = policy), onAction = {}) },
+            id = "onboarding-profile",
+            label = "Onboarding · a little about you",
+            showsCaloriesInFull = false,
+        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.Profile, PlanAnswers(OnboardingFixtures.ImperialBody), policy = policy), onAction = {}) },
         LeakSurface(
-            id = "onboarding-goal-from-burn",
-            label = "Onboarding · goal started from an ordinary day's burn",
-            showsCaloriesInFull = true,
-        ) { policy -> OnboardingScreen(state = OnboardingFixtures.goalFromBurn(policy = policy), onAction = {}) },
+            id = "onboarding-weight-goal",
+            label = "Onboarding · weight goal",
+            showsCaloriesInFull = false,
+        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.Goal, OnboardingFixtures.LoseTen, policy = policy), onAction = {}) },
         LeakSurface(
-            id = "onboarding-resting-energy",
-            label = "Onboarding · resting energy details",
+            id = "onboarding-goal-rate",
+            label = "Onboarding · pace",
             showsCaloriesInFull = true,
-        ) { policy -> OnboardingScreen(state = OnboardingFixtures.body(OnboardingFixtures.Body, policy = policy), onAction = {}) },
+        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.Rate, OnboardingFixtures.LoseTen, policy = policy), onAction = {}) },
+        LeakSurface(
+            id = "onboarding-goal-overview",
+            label = "Onboarding · your plan",
+            showsCaloriesInFull = true,
+        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.Overview, OnboardingFixtures.LoseTen, policy = policy), onAction = {}) },
+        LeakSurface(
+            id = "onboarding-commitment",
+            label = "Onboarding · ready to start",
+            showsCaloriesInFull = false,
+        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.Commit, OnboardingFixtures.LoseTen, policy = policy), onAction = {}) },
         LeakSurface(
             id = "onboarding-meal-times",
             label = "Onboarding · meal times",

@@ -9,12 +9,16 @@ import com.opson.libraries.core.isiOS
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.core.logging.logEvent
-import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealTimes
+import com.opson.libraries.diary.PlanCommitment
+import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeightRepository
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
 import com.opson.libraries.identity.auth.AuthOutcome
@@ -25,23 +29,22 @@ import com.opson.libraries.identity.auth.LinkIdentityOutcome
 import com.opson.libraries.identity.auth.OAuthProvider
 import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.awaitCredential
-import com.opson.libraries.nutrition.BodySex
-import com.opson.libraries.nutrition.EverydayActivity
-import com.opson.libraries.nutrition.HeightUnit
-import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.core.fixed
+import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.nutrition.TodayLayout
-import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
-import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.opson.AppCache
 import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.time.TimeSource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 
@@ -62,17 +65,19 @@ import me.tatarka.inject.annotations.Inject
  *      and what stays out of view ([ModePreview]), the other modes and All
  *      modes. All numbers is never offered to someone who agreed numbers have
  *      been hard.
- *   5. **Setup** (`release.onboardingSetup`, [OnboardingState.setupSteps]): for
- *      someone whose mode shows calories and who did not say numbers have been
- *      hard, the goal, starting from an ordinary day's burn when the resting
- *      energy step comes first (`release.goalsAndEnergy`). "Set this later" on
- *      either skips the goal and writes none. Everyone else gets no goal number
- *      at all. Then meal times where Today is built around them. Each is
- *      skippable and keeps the defaults.
+ *   5. **Setup** (`release.onboardingSetup`, [OnboardingState.setupSteps]): meal
+ *      times where Today is built around them, then the goal flow ([PlanFlow]):
+ *      the profile, a usual day's activity, a weight goal and its pace where the
+ *      mode shows weight and numbers have not been hard, an overview of what
+ *      each day aims for, and the commitment. Someone who said numbers have been
+ *      hard gets the profile without weight, the activity, a gentle overview and
+ *      the commitment: no weights and no deficits. Every step but the overview
+ *      and the commitment can be skipped.
  *
- * Saving writes the preset, the answers and the setup to settings without
- * stamping `changedAt` (so Modes says "Set by you during setup"), marks
- * `hasUserOnboarded` and goes to Today.
+ * Saving (the commitment's "I'm committed" or "Not now", or Start when the mode
+ * needs no setup) writes the preset, the answers and the setup to settings
+ * without stamping `changedAt` (so Modes says "Set by you during setup"), logs
+ * the weight as the first weigh-in, marks `hasUserOnboarded` and goes to Today.
  *
  * **Guests from older builds.** Anyone who still has an anonymous session gets
  * the sign-in step with [OnboardingState.guest] set: Apple or Google is linked
@@ -99,8 +104,9 @@ class OnboardingViewModel(
     private val weightRepository: WeightRepository,
     private val calendar: LocalCalendar,
     setupEnabled: OnboardingSetupEnabled,
-    goalsAndEnergy: GoalsAndEnergyEnabled,
-    /** The phone's region, for the units the resting energy step starts in. Never sent. */
+    private val health: HealthRepository,
+    private val healthFlag: HealthReleaseFlag,
+    /** The phone's region, for the units the profile step starts in. Never sent. */
     region: DeviceRegion,
     @Assisted private val route: OnboardingRoute,
     /** Native Sign in with Apple, which only iOS has. A parameter so tests can run either phone. */
@@ -110,9 +116,8 @@ class OnboardingViewModel(
     initialStateArg = OnboardingState(
         appleEnabled = appleSignIn,
         setupSteps = setupEnabled(),
-        goalsAndEnergy = goalsAndEnergy(),
-        currentYear = calendar.today().year,
-        body = BodyAnswer.inRegion(region.countryCode()),
+        today = calendar.today(),
+        plan = PlanAnswers(body = BodyAnswer.inRegion(region.countryCode())),
     ),
 ) {
 
@@ -135,7 +140,7 @@ class OnboardingViewModel(
      */
     private var googleAttempt: Job? = null
 
-    /** The weigh-in the resting energy step logged, so saving again after Back does not log it twice. */
+    /** The weigh-in the profile step logged, so saving again after Back does not log it twice. */
     private var weighedKg: Double? = null
 
     init {
@@ -143,6 +148,11 @@ class OnboardingViewModel(
         // updates run in an action scope, as VerifyEmail's init →
         // ResolveEmailFromSession does.
         takeAction(OnboardingAction.ResolveEntry)
+        // The activity step offers the phone's health app, and stands aside once it is connected.
+        // With release.health off the store is never asked.
+        if (healthFlag()) {
+            viewModelScope.launch { health.status.collect { takeAction(OnboardingAction.HealthChanged(it)) } }
+        }
     }
 
     override suspend fun handleAction(action: OnboardingAction) {
@@ -151,29 +161,19 @@ class OnboardingViewModel(
             OnboardingAction.GetStartedTapped -> action.handleGetStarted()
             OnboardingAction.TalkToSomeoneTapped -> sendEvent(OnboardingEvent.NavigateToSupport)
             is OnboardingAction.OptionTapped -> action.handleOptionTapped(action.option)
-            OnboardingAction.ContinueTapped, OnboardingAction.SkipQuestionTapped -> action.advance()
-            is OnboardingAction.GoalStyleTapped -> action.updateSetup(OnboardingStep.Goal) {
-                if (action.style in it.goalStyles) it.copy(goal = it.goal.copy(style = action.style)) else it
+            OnboardingAction.ContinueTapped -> action.advance()
+            OnboardingAction.SkipQuestionTapped -> action.skip()
+            is OnboardingAction.PlanChanged -> action.handlePlan(action.change)
+            is OnboardingAction.HealthChanged -> action.updateState {
+                it.copy(health = HealthOffer.from(action.status, health.source, connecting = false)).withViews(policyFor(it.chosen))
             }
-            is OnboardingAction.GoalStepped -> action.updateSetup(OnboardingStep.Goal) { it.copy(goal = it.goal.stepped(action.up)) }
-            is OnboardingAction.BirthYearTyped -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withBirthYear(action.text)) }
-            is OnboardingAction.HeightCmTyped -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withHeightCm(action.text)) }
-            is OnboardingAction.HeightFeetTyped -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withHeightFeet(action.text)) }
-            is OnboardingAction.HeightInchesTyped -> action.updateSetup(OnboardingStep.Body) {
-                it.copy(body = it.body.withHeightInches(action.text))
-            }
-            is OnboardingAction.HeightUnitPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withHeightUnit(action.unit)) }
-            is OnboardingAction.WeightTyped -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withWeight(action.text)) }
-            is OnboardingAction.SexPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.copy(sex = action.sex)) }
-            is OnboardingAction.WeightUnitPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.withWeightUnit(action.unit)) }
-            is OnboardingAction.ActivityPicked -> action.updateSetup(OnboardingStep.Body) { it.copy(body = it.body.copy(activity = action.level)) }
+            is OnboardingAction.CommitTapped -> action.handleCommit(action.committed)
             is OnboardingAction.MealTimePicked -> action.updateSetup(OnboardingStep.Meals) {
                 it.copy(mealTimes = it.mealTimes.with(action.slot, action.time))
             }
             is OnboardingAction.AlternativeTapped -> action.handleAlternativeTapped(action.preset)
             OnboardingAction.AllModesTapped -> action.handleAllModes()
             OnboardingAction.StartTapped -> action.handleStart()
-            OnboardingAction.GoalLaterTapped -> action.handleGoalLater()
             OnboardingAction.SignInWithAppleTapped -> action.handleApple(link = state.guest)
             OnboardingAction.SignInWithGoogleTapped -> action.handleGoogle(link = state.guest)
             OnboardingAction.SignInWithEmailTapped -> action.handleEmail()
@@ -357,8 +357,9 @@ class OnboardingViewModel(
     }
 
     /**
-     * Continue and Skip both move on; Skip leaves the answer as it is. Off the last setup step
-     * they save, as Start does when the mode needs no setup.
+     * Continue moves on. Off a goal step that is still waiting for an answer it does nothing (the
+     * button is greyed out). From the last setup step that is not the commitment it saves, as
+     * Start does when the mode needs no setup.
      */
     private suspend fun OnboardingAction.advance() {
         if (state.isFinishing) return
@@ -366,18 +367,63 @@ class OnboardingViewModel(
             is OnboardingStep.Question -> SetupQuestion.of(step.question.number + 1)
                 ?.let { OnboardingStep.Question(it) }
                 ?: OnboardingStep.Recommendation
-            OnboardingStep.Goal, OnboardingStep.Body, OnboardingStep.Meals -> state.setupAfter(step)
-                ?: return finish(state.chosen, state.answers)
+            OnboardingStep.Meals -> state.setupAfter(step) ?: return finish(committed = null)
+            is OnboardingStep.Plan -> {
+                if (!PlanFlow.canContinue(step.step, state.plan, state.planContext(policyFor(state.chosen)))) return
+                state.setupAfter(step) ?: return finish(committed = null)
+            }
             else -> return
         }
         goTo(next)
     }
 
+    /**
+     * Skip moves on with the answer as it is. On the goal step it means no goal: the direction
+     * goes, and the pace step with it, so nothing about a weight is saved.
+     */
+    private suspend fun OnboardingAction.skip() {
+        if (state.isFinishing) return
+        val step = state.step
+        if (step == OnboardingStep.Plan(PlanStep.Goal)) {
+            updateState { it.copy(plan = it.plan.copy(goal = GoalAnswer(target = it.plan.goal.target))) }
+        }
+        val next = when (step) {
+            is OnboardingStep.Question -> SetupQuestion.of(step.question.number + 1)?.let { OnboardingStep.Question(it) }
+                ?: OnboardingStep.Recommendation
+            OnboardingStep.Meals, is OnboardingStep.Plan -> state.setupAfter(step) ?: return finish(committed = null)
+            else -> return
+        }
+        goTo(next)
+    }
+
+    /** A change on one of the goal flow's steps. Connecting the health app is asked for here, from the tap. */
+    private suspend fun OnboardingAction.handlePlan(change: PlanAction) {
+        val step = (state.step as? OnboardingStep.Plan)?.step ?: return
+        if (state.isFinishing) return
+        when (change) {
+            PlanAction.FindSupportTapped -> sendEvent(OnboardingEvent.NavigateToSupport)
+            PlanAction.ConnectHealthTapped -> if (step == PlanStep.Activity) connectHealth()
+            else -> updateState { it.copy(plan = PlanFlow.reduce(it.plan, change, it.planContext(policyFor(it.chosen)))).withViews(policyFor(it.chosen)) }
+        }
+    }
+
+    private suspend fun OnboardingAction.connectHealth() {
+        val offer = state.health as? HealthOffer.CanConnect ?: return
+        updateState { it.copy(health = offer.copy(connecting = true)).withViews(policyFor(it.chosen)) }
+        Catching { health.connect() }.logOnFailure { "Onboarding could not connect the health app" }
+        updateState { it.copy(health = HealthOffer.from(health.status.value, health.source, connecting = false)).withViews(policyFor(it.chosen)) }
+    }
+
+    /** "I'm committed" or "Not now" on the last step: either way it saves and goes to Today. */
+    private suspend fun OnboardingAction.handleCommit(committed: Boolean) {
+        if (state.step != OnboardingStep.Plan(PlanStep.Commit) || state.isFinishing) return
+        finish(committed = committed)
+    }
+
     private suspend fun OnboardingAction.goTo(step: OnboardingStep) {
         if (step != OnboardingStep.SignIn) googleAttempt?.cancel()
         updateState {
-            val moved = it.copy(step = step, accountInFlight = null, accountError = null, conflict = null)
-            (if (step == OnboardingStep.Goal) moved.withStartingGoal() else moved).withViews(policyFor(it.chosen))
+            it.copy(step = step, accountInFlight = null, accountError = null, conflict = null).withViews(policyFor(it.chosen))
         }
         logStepViewed(step)
     }
@@ -407,46 +453,44 @@ class OnboardingViewModel(
         }
     }
 
-    /** "Start with ...": the setup steps the mode needs or, with none, save the mode. A goal put off before is offered again. */
+    /** "Start with ...": the setup steps the mode needs or, with none, save the mode. */
     private suspend fun OnboardingAction.handleStart() {
         if (state.step != OnboardingStep.Recommendation || state.isFinishing) return
-        updateState { it.copy(goalLater = false) }
-        val first = state.setupAfter(OnboardingStep.Recommendation)
-            ?: return finish(state.chosen, state.answers)
+        val first = state.setupAfter(OnboardingStep.Recommendation) ?: return finish(committed = null)
         goTo(first)
     }
 
     /**
-     * "Set this later" on the resting energy or goal step: past both, writing neither. The goal
-     * stays the app's starting range until the person sets one in Targets.
-     */
-    private suspend fun OnboardingAction.handleGoalLater() {
-        if (state.step != OnboardingStep.Body && state.step != OnboardingStep.Goal) return
-        if (state.isFinishing) return
-        updateState { it.copy(goalLater = true) }
-        val next = state.setupAfter(OnboardingStep.Recommendation) ?: return finish(state.chosen, state.answers)
-        goTo(next)
-    }
-
-    /**
-     * Saves [preset], from Start or the last setup step:
-     *  1. Save the preset and the answers. `changedAt` stays null so Modes can
-     *     say "Set by you during setup". The account exists already (sign-in
-     *     comes first), so the settings row syncs to it.
-     *  2. Log the resting energy step's weight as the first weigh-in.
+     * Saves the mode and the setup, from Start, the last setup step or the commitment:
+     *  1. Save the preset, the answers, the meal times and what the goal flow set
+     *     ([PlanFlow.save]), with the commitment when that step was reached. `changedAt`
+     *     stays null so Modes can say "Set by you during setup". The account exists
+     *     already (sign-in comes first), so the settings row syncs to it.
+     *  2. Log the profile's weight as the first weigh-in.
      *  3. Mark `hasUserOnboarded` and go to Today.
      */
-    private suspend fun OnboardingAction.finish(preset: PresetId, answers: SetupAnswers) {
+    private suspend fun OnboardingAction.finish(committed: Boolean?) {
         if (state.isFinishing) return
+        val preset = state.chosen
+        val answers = state.answers
         val tookRecommendation = preset == state.recommended
-        val setup = state.startingSetup()
+        val context = state.planContext(policyFor(preset))
+        val planned = state.setupFlow.any { it is OnboardingStep.Plan }
+        val plan = state.plan
+        val meals = state.mealTimes.takeIf { state.showsMeals }
+        val today = state.today
         updateState { it.copy(isFinishing = true) }
 
         Catching {
-            settingsRepository.update(stampNumbersChange = false) { it.startingWith(preset, answers, setup) }
+            settingsRepository.update(stampNumbersChange = false) { current ->
+                val started = current.startingWith(preset, answers, meals)
+                val withPlan = if (planned) PlanFlow.save(started, plan, context) else started
+                committed?.let { withPlan.copy(planCommitment = PlanCommitment(today, it)) } ?: withPlan
+            }
         }.logOnFailure { "Onboarding could not save the starting mode" }
-        logWeighIn()
+        if (planned) logWeighIn(context)
 
+        committed?.let { logger.logEvent("onboarding.commitment", "committed" to it) }
         logger.logEvent(
             "onboarding.completed",
             "duration_sec" to onboardingStartedAt.elapsedNow().inWholeSeconds,
@@ -459,10 +503,13 @@ class OnboardingViewModel(
         leaveForToday()
     }
 
-    /** The resting energy step's weight as a weigh-in. Weight is never a setting: Burned reads the latest weigh-in. */
-    private suspend fun logWeighIn() {
-        if (!state.showsBody) return
-        val kg = state.body.weightKgOrNull() ?: return
+    /**
+     * The profile's weight as a weigh-in, where the field was shown. Weight is never a setting:
+     * Burned reads the latest weigh-in.
+     */
+    private suspend fun logWeighIn(context: PlanContext) {
+        if (!PlanViews.profile(state.plan, context).weightShown) return
+        val kg = state.plan.body.weightKgOrNull() ?: return
         if (kg == weighedKg) return
         Catching { weightRepository.addWeighIn(kg) }
             .logOnFailure { "Onboarding could not log the first weigh-in" }
@@ -480,12 +527,14 @@ class OnboardingViewModel(
         val previous = when (val step = state.step) {
             OnboardingStep.Welcome -> return
             OnboardingStep.SignIn -> OnboardingStep.Welcome
-            OnboardingStep.Goal, OnboardingStep.Body, OnboardingStep.Meals -> state.setupBefore(step)
+            OnboardingStep.Meals, is OnboardingStep.Plan -> state.setupBefore(step)
             OnboardingStep.Recommendation -> OnboardingStep.Question(SetupQuestion.Statement)
             is OnboardingStep.Question -> SetupQuestion.of(step.question.number - 1)?.let { OnboardingStep.Question(it) } ?: return
         }
         googleAttempt?.cancel()
-        updateState { it.copy(step = previous, accountInFlight = null, accountError = null, conflict = null) }
+        updateState {
+            it.copy(step = previous, accountInFlight = null, accountError = null, conflict = null).withViews(policyFor(it.chosen))
+        }
         logStepViewed(previous)
     }
 
@@ -506,8 +555,15 @@ class OnboardingViewModel(
     }
 }
 
-/** The year previews and tests start in, the fixtures' 2026. The view model passes the real one. */
-internal const val DEFAULT_YEAR = 2026
+/** The day previews and tests start on, the fixtures' 2026-10-25. The view model passes the real one. */
+internal val DEFAULT_TODAY = LocalDate(2026, 10, 25)
+
+/**
+ * [preset]'s levels as a policy, for deciding which steps show. A preset's levels hold no Later,
+ * so neither the clock nor the time zone can change an answer; the epoch stands in for both.
+ */
+internal fun levelsOf(preset: PresetId): VisibilityPolicy =
+    VisibilityPolicy(NumbersSettings(preset = preset), Clock.fixed(Instant.fromEpochMilliseconds(0)), TimeZone.UTC)
 
 /** A way to sign in on the sign-in step. Email hands off to its own screens. */
 enum class AccountMethod(val eventName: String) {
@@ -552,24 +608,17 @@ data class OnboardingState(
     /** Native "Sign in with Apple" is iOS-only; hides the button elsewhere. */
     val appleEnabled: Boolean = false,
 
-    /** `release.onboardingSetup`: the goal, resting energy and meal times steps. Off, Start saves straight away. */
+    /** `release.onboardingSetup`: meal times and the goal flow. Off, Start saves straight away. */
     val setupSteps: Boolean = false,
-    /**
-     * `release.goalsAndEnergy`: the resting energy step before the goal, the goal starting from
-     * what it gives, and one number, a set deficit and surplus on the goal step.
-     */
-    val goalsAndEnergy: Boolean = false,
-    /** "Set this later" was tapped: no resting energy or goal step, and no goal written. Start clears it. */
-    val goalLater: Boolean = false,
-    /** For the birth year field: who could be 13 to 120. */
-    val currentYear: Int = DEFAULT_YEAR,
-    val goal: GoalAnswer = GoalAnswer(),
-    val body: BodyAnswer = BodyAnswer(),
+    /** The phone's day: for the birthday picker and when a goal starts. */
+    val today: LocalDate = DEFAULT_TODAY,
     val mealTimes: MealTimes = MealTimes(),
-    /** The goal step as drawn, through the policy of the mode being started. Null until it opens. */
-    val goalView: GoalView? = null,
-    /** The resting energy step as drawn. Null until it opens. */
-    val bodyView: BodyView? = null,
+    /** The goal flow's answers ([PlanFlow]). */
+    val plan: PlanAnswers = PlanAnswers(),
+    /** The phone's health app, as the activity step offers it. */
+    val health: HealthOffer = HealthOffer.Unavailable,
+    /** The goal flow's steps as drawn, through the policy of the mode being started. Null until set up. */
+    val planView: PlanView? = null,
 ) {
     /** The mode "Start with" will save. */
     val chosen: PresetId get() = picked ?: recommended
@@ -589,36 +638,29 @@ data class OnboardingState(
     val reason: RecommendationReason? get() = ModeRecommender.reason(answers).takeIf { chosen == recommended }
 
     /**
-     * The goal step, for someone comfortable with numbers: the mode starts with calorie amounts
-     * on show (All numbers), and they did not say numbers have been hard. All numbers is never
-     * offered to someone who did, so the second half is a guard, not a second rule. Everyone else
-     * gets no goal number in onboarding at all.
-     */
-    val showsGoal: Boolean
-        get() = setupSteps && !goalLater && !answers.hard && Presets[chosen].level(Metric.Calories) == Visibility.Show
-
-    /** The goal styles on offer, Range first. */
-    val goalStyles: List<GoalChoice> get() = GoalChoice.offered(goalsAndEnergy)
-
-    /**
-     * The resting energy step, before the goal: what it gives is where the goal starts, and what
-     * a set deficit or surplus is aimed at. Only where something reads Burned.
-     */
-    val showsBody: Boolean get() = showsGoal && goalsAndEnergy
-
-    /**
      * The meal times step: where Today is built around meal times (No numbers' timeline), or the
      * person is tracking to eat regularly.
      */
     val showsMeals: Boolean
         get() = setupSteps && (Presets[chosen].today == TodayLayout.MealTimeline || Why.EatingRegularly in answers.why)
 
-    /** The setup steps for [chosen], in order. Empty with `release.onboardingSetup` off. */
+    /** The goal flow's context for [policy], the mode being started's. Onboarding is a new account. */
+    fun planContext(policy: VisibilityPolicy): PlanContext =
+        PlanContext(today = today, hard = answers.hard, policy = policy, fresh = true, health = health)
+
+    /**
+     * The setup steps for [chosen], in order: meal times where they shape Today, then the goal
+     * flow. Empty with `release.onboardingSetup` off. Which goal steps show depends only on the
+     * mode's levels and the answers, so this reads the preset's levels rather than a clock.
+     */
     val setupFlow: List<OnboardingStep>
-        get() = buildList {
-            if (showsBody) add(OnboardingStep.Body)
-            if (showsGoal) add(OnboardingStep.Goal)
-            if (showsMeals) add(OnboardingStep.Meals)
+        get() = if (!setupSteps) {
+            emptyList()
+        } else {
+            buildList {
+                if (showsMeals) add(OnboardingStep.Meals)
+                PlanFlow.steps(plan, planContext(levelsOf(chosen))).forEach { add(OnboardingStep.Plan(it)) }
+            }
         }
 
     /** The setup step after [step] (the recommendation, or a setup step), or null when saving comes next. */
@@ -631,35 +673,9 @@ data class OnboardingState(
     fun setupBefore(step: OnboardingStep): OnboardingStep =
         setupFlow.let { flow -> flow.getOrNull(flow.indexOf(step) - 1) } ?: OnboardingStep.Recommendation
 
-    /**
-     * What the setup steps the person saw will save. Only those steps: a goal is never written
-     * for someone who never saw one, so their range stays the app's starting one. A deficit or
-     * surplus starts from an ordinary day's burn, resting energy plus everyday activity, as
-     * Burned works it out with no health app.
-     */
-    fun startingSetup(): StartingSetup {
-        val body = body.takeIf { showsBody }
-        return StartingSetup(
-            targets = goal.takeIf { showsGoal }?.resolve(burnKcal = body?.burnKcal(currentYear)),
-            birthYear = body?.birthYearOrNull(currentYear),
-            heightCm = body?.heightCmOrNull(),
-            sex = body?.sex,
-            weightUnit = body?.weightUnit,
-            heightUnit = body?.height?.unit,
-            mealTimes = mealTimes.takeIf { showsMeals },
-            everydayActivity = body?.activity,
-        )
-    }
-
-    /** The goal from what the resting energy step gives, until the person moves it ([GoalAnswer.startingFrom]). */
-    internal fun withStartingGoal(): OnboardingState =
-        copy(goal = goal.startingFrom(body.takeIf { showsBody }?.burnKcal(currentYear)))
-
-    /** The goal and resting energy views, built through [policy] (the mode being started). */
-    internal fun withViews(policy: VisibilityPolicy): OnboardingState = copy(
-        goalView = SetupViews.goal(goal, goalStyles, policy),
-        bodyView = SetupViews.body(body, currentYear, policy),
-    )
+    /** The goal flow's views, built through [policy] (the mode being started). */
+    internal fun withViews(policy: VisibilityPolicy): OnboardingState =
+        copy(planView = if (setupSteps) PlanViews.all(plan, planContext(policy), Settings()) else null)
 
     /**
      * The sign-in buttons work: on the step, not leaving, and Apple's sheet not up. A Google
@@ -673,7 +689,7 @@ data class OnboardingState(
         get() = when (step) {
             OnboardingStep.Welcome -> false
             OnboardingStep.SignIn -> !signInOnly && accountInFlight != AccountMethod.Apple && !isFinishing
-            OnboardingStep.Recommendation, OnboardingStep.Goal, OnboardingStep.Body, OnboardingStep.Meals -> !isFinishing
+            OnboardingStep.Recommendation, OnboardingStep.Meals, is OnboardingStep.Plan -> !isFinishing
             is OnboardingStep.Question -> !isFinishing && step.question != SetupQuestion.Reason
         }
 
@@ -715,14 +731,9 @@ sealed interface OnboardingStep {
         override val eventName = "recommendation"
     }
 
-    /** The goal style and range, for someone comfortable with numbers. */
-    data object Goal : OnboardingStep {
-        override val eventName = "goal"
-    }
-
-    /** Resting energy's details, before the goal. */
-    data object Body : OnboardingStep {
-        override val eventName = "resting_energy"
+    /** One of the goal flow's steps ([PlanStep]): the profile, activity, goal, pace, overview and commitment. */
+    data class Plan(val step: PlanStep) : OnboardingStep {
+        override val eventName: String get() = step.eventName
     }
 
     /** When meals usually happen. */
@@ -778,30 +789,19 @@ sealed interface OnboardingAction {
 
     /** "Talk to someone" on the statement, shown whichever answer is picked. */
     data object TalkToSomeoneTapped : OnboardingAction
-    /** "Continue", "See my starting point" on the statement, or "Start logging" on the last setup step. */
+    /** "Continue", "See my starting point" on the statement, or "Looks good" on the overview. */
     data object ContinueTapped : OnboardingAction
-    /** "Skip" on a question or a setup step: on, with the answer as it is. */
+    /** "Skip" on a question or a setup step: on, with the answer as it is. On the goal step, no goal. */
     data object SkipQuestionTapped : OnboardingAction
-    data class GoalStyleTapped(val style: GoalChoice) : OnboardingAction
-    /** The goal step's stepper, 50 kcal a tap. Lower stops at the floor. */
-    data class GoalStepped(val up: Boolean) : OnboardingAction
-    data class BirthYearTyped(val text: String) : OnboardingAction
-    data class HeightCmTyped(val text: String) : OnboardingAction
-    data class HeightFeetTyped(val text: String) : OnboardingAction
-    data class HeightInchesTyped(val text: String) : OnboardingAction
 
-    /** Centimetres, or feet and inches. A height already typed carries over. */
-    data class HeightUnitPicked(val unit: HeightUnit) : OnboardingAction
-    data class WeightTyped(val text: String) : OnboardingAction
-    data class SexPicked(val sex: BodySex) : OnboardingAction
+    /** A change on one of the goal flow's steps. */
+    data class PlanChanged(val change: PlanAction) : OnboardingAction
 
-    /** How active an ordinary day is, on the resting energy step. */
-    data class ActivityPicked(val level: EverydayActivity) : OnboardingAction
-    /** Kilograms or pounds. A weight already typed is converted. */
-    data class WeightUnitPicked(val unit: WeightUnit) : OnboardingAction
+    /** Internal: the health app's status, for the activity step. */
+    data class HealthChanged(val status: HealthStatus) : OnboardingAction
 
-    /** "Set this later" on the resting energy or goal step. */
-    data object GoalLaterTapped : OnboardingAction
+    /** "I'm committed" ([committed]) or "Not now" on the last step. Both save and go to Today. */
+    data class CommitTapped(val committed: Boolean) : OnboardingAction
     data class MealTimePicked(val slot: MealSlot, val time: LocalTime) : OnboardingAction
     data class AlternativeTapped(val preset: PresetId) : OnboardingAction
     data object AllModesTapped : OnboardingAction

@@ -2,14 +2,17 @@ package com.opson.features.onboarding.impl
 
 import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.MealTimes
-import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.HeightInput
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Units
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlin.time.Clock
@@ -41,32 +44,36 @@ object OnboardingFixtures {
         statement = StatementAnswer.Agree,
     )
 
-    /** Someone who loves numbers and is training: All numbers, so the goal step. */
-    val NumbersAnswers = SetupAnswers(why = setOf(Why.Performance), feel = NumbersFeel.LoveThem)
+    /** Someone who loves numbers and wants to change their weight: All numbers, so the goal steps. */
+    val NumbersAnswers = SetupAnswers(why = setOf(Why.ChangingWeight), feel = NumbersFeel.LoveThem)
 
     /**
-     * Resting energy's details filled in, in centimetres and kilograms: about 1,360 kcal a day at
-     * rest and 1,630 on an ordinary day, under the app's starting range.
+     * The profile filled in, in centimetres and kilograms: about 1,350 kcal a day at rest and
+     * 1,620 on a mostly sitting day.
      */
     val Body = BodyAnswer(
-        birthYear = "1992",
+        sex = SexChoice.Female,
+        birthDate = LocalDate(1992, 4, 18),
         height = HeightInput(HeightUnit.Cm, cm = "168"),
-        weight = "64",
-        sex = BodySex.Female,
-        weightUnit = WeightUnit.Kg,
+        weight = WeightInput("64", WeightUnit.Kg),
     )
 
     /**
-     * The same details as a US phone types them, 5'11.5" and 180 lb, with some walking: about
-     * 1,780 kcal at rest and 2,450 on an ordinary day, so the goal starts above the starting range.
+     * The same as a US phone types it, 5'11.5" and 180 lb, with some walking: about 1,780 kcal
+     * at rest and 2,450 on a usual day.
      */
     val ImperialBody = BodyAnswer(
-        birthYear = "1990",
+        sex = SexChoice.Male,
+        birthDate = LocalDate(1990, 7, 2),
         height = HeightInput(HeightUnit.FtIn, feet = "5", inches = "11.5"),
-        weight = "180",
-        sex = BodySex.Male,
-        weightUnit = WeightUnit.Lb,
+        weight = WeightInput("180", WeightUnit.Lb),
         activity = EverydayActivity.SomeWalking,
+    )
+
+    /** [ImperialBody] aiming for 170 lb at half a pound a week. */
+    val LoseTen = PlanAnswers(
+        body = ImperialBody,
+        goal = GoalAnswer(GoalDirection.Lose, target = WeightInput("170", WeightUnit.Lb), kgPerWeek = Units.lbToKg(0.5)),
     )
 
     /** Noon on the fixtures' day, so Later is still closed. */
@@ -94,42 +101,39 @@ object OnboardingFixtures {
     ).withRecommendation()
 
     /**
-     * The goal step after [NumbersAnswers], in All numbers. [goalsAndEnergy] adds the styles;
-     * without it the step is the range alone. [policy] is the leak test's, or All numbers'.
+     * One of the goal flow's steps after [answers] (by default [NumbersAnswers], in All numbers),
+     * with [plan] answered so far. [policy] is the leak test's, or the starting mode's.
      */
-    fun goal(
-        goal: GoalAnswer = GoalAnswer(),
-        goalsAndEnergy: Boolean = true,
-        policy: VisibilityPolicy = policy(PresetId.Full),
-    ): OnboardingState = setup(OnboardingStep.Goal, NumbersAnswers, goalsAndEnergy, policy).copy(goal = goal).withViews(policy)
+    fun plan(
+        step: PlanStep,
+        plan: PlanAnswers = PlanAnswers(),
+        answers: SetupAnswers = NumbersAnswers,
+        picked: PresetId? = null,
+        health: HealthOffer = HealthOffer.Unavailable,
+        policy: VisibilityPolicy? = null,
+    ): OnboardingState {
+        val state = OnboardingState(
+            step = OnboardingStep.Plan(step),
+            answers = answers,
+            picked = picked,
+            setupSteps = true,
+            plan = plan,
+            health = health,
+        ).withRecommendation()
+        return state.withViews(policy ?: policy(state.chosen))
+    }
 
-    /** The resting energy step, before the goal. Empty fields unless [body] says otherwise. */
-    fun body(
-        body: BodyAnswer = BodyAnswer(),
-        policy: VisibilityPolicy = policy(PresetId.Full),
-    ): OnboardingState = setup(OnboardingStep.Body, NumbersAnswers, goalsAndEnergy = true, policy)
-        .copy(body = body)
-        .withViews(policy)
-
-    /** The goal step after the resting energy step was filled in with [body]: the range starts from its burn. */
-    fun goalFromBurn(
-        body: BodyAnswer = ImperialBody,
-        policy: VisibilityPolicy = policy(PresetId.Full),
-    ): OnboardingState = setup(OnboardingStep.Goal, NumbersAnswers, goalsAndEnergy = true, policy)
-        .copy(body = body)
-        .withStartingGoal()
-        .withViews(policy)
+    /** The activity step, offering the phone's health app. */
+    fun activityConnect(): OnboardingState =
+        plan(PlanStep.Activity, PlanAnswers(body = ImperialBody), health = HealthOffer.CanConnect(HealthSource.AppleHealth))
 
     /** The meal times step after the design's answers (eating regularly), with a later breakfast. */
-    fun meals(): OnboardingState = setup(OnboardingStep.Meals, DesignAnswers, goalsAndEnergy = false, policy(PresetId.MacrosOnly))
-        .copy(mealTimes = MealTimes(breakfast = LocalTime(9, 30)))
-
-    private fun setup(step: OnboardingStep, answers: SetupAnswers, goalsAndEnergy: Boolean, policy: VisibilityPolicy) = OnboardingState(
-        step = step,
-        answers = answers,
+    fun meals(): OnboardingState = OnboardingState(
+        step = OnboardingStep.Meals,
+        answers = DesignAnswers,
         setupSteps = true,
-        goalsAndEnergy = goalsAndEnergy,
-    ).withRecommendation().withViews(policy)
+        mealTimes = MealTimes(breakfast = LocalTime(9, 30)),
+    ).withRecommendation().withViews(policy(PresetId.MacrosOnly))
 
     /**
      * The sign-in step after Welcome. Apple shows on iOS only. [guest] is someone from a build

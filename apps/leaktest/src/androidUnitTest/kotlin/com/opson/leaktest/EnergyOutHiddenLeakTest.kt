@@ -64,7 +64,7 @@ class EnergyOutHiddenLeakTest(private val surface: LeakSurface) {
     companion object {
         /** Every surface that draws energy out. [LeakTestControlTest] fails on one missing from here. */
         val ENERGY_OUT_SURFACES = setOf(
-            "onboarding-resting-energy", "onboarding-goal-from-burn",
+            "onboarding-goal-rate", "onboarding-goal-overview",
             "integrations", "today-expended", "today-exercise", "today-summary", "day-close-check-in",
             "today-macros", "today-weight", "today-select", "today-select-remove", "today-swipe-delete",
             "today-delete-confirm", "targets-goal-style", "resting-energy", "energy-today", "trends",

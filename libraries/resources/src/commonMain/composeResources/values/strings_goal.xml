@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The goal flow (features/onboarding/impl PlanFlow.kt): onboarding's setup after the starting mode,
+  and the same steps from Today for an account that never set a goal. Also the goal's rows on
+  Targets and Profile, and Today's birthday line.
+
+  Eating-disorder sensitive. Never praise eating less, never hurry anyone, and say plainly that
+  every number is an estimate. Someone who said numbers have been hard never reaches a weight, a
+  target weight or a pace; their copy is the *_gentle strings. Same rules as strings.xml: no
+  backslash escapes, positional %1$s.
+-->
+<resources>
+
+    <!-- 1. Profile -->
+    <string name="plan_profile_title">A little about you</string>
+    <string name="plan_profile_body">Opson uses these to estimate the energy your body uses in a day. Only you see them.</string>
+    <string name="plan_profile_body_gentle">Opson uses these quietly, to keep your targets sensible in the background.</string>
+    <string name="plan_sex_label">Sex, for the estimate</string>
+    <string name="plan_sex_female">Female</string>
+    <string name="plan_sex_male">Male</string>
+    <string name="plan_sex_pregnant">Pregnant</string>
+    <string name="plan_sex_breastfeeding">Breastfeeding</string>
+    <string name="plan_sex_unsaid">Rather not say</string>
+    <string name="plan_sex_note_binary">The energy formula is a little different for each. This only changes the estimate.</string>
+    <string name="plan_sex_note_pregnant">Adds the extra energy pregnancy needs to your estimate. Opson won't plan any weight change while you're pregnant.</string>
+    <string name="plan_sex_note_breastfeeding">Adds the extra energy breastfeeding needs to your estimate. Opson won't plan any weight change while you're breastfeeding.</string>
+    <string name="plan_sex_note_unsaid">Uses a point halfway between the two formulas. This only changes the estimate a little.</string>
+    <string name="plan_sex_inclusive">Trans or non-binary? Pick whichever is closer to your body's hormones right now, or what your care team suggests. It only nudges the estimate, and you can change it any time on Profile.</string>
+    <string name="plan_birthday_label">Birthday</string>
+    <string name="plan_birthday_pick">Pick your birthday</string>
+    <string name="plan_birthday_dialog">Your birthday</string>
+    <string name="plan_birthday_note">Age changes the estimate. Opson might wish you a happy birthday, too.</string>
+    <string name="plan_weight_note">Saved as your first weigh-in.</string>
+    <string name="plan_weight_label">Weight now</string>
+    <string name="plan_date_ok">Done</string>
+    <string name="plan_date_cancel">Cancel</string>
+
+    <!-- 2. Activity -->
+    <string name="plan_activity_title">How active is a usual day?</string>
+    <string name="plan_activity_body">Outside of workouts. Pick the one closest to most of your days.</string>
+    <string name="plan_activity_connected">%1$s tells Opson how active you are each day, so there's nothing to pick here.</string>
+    <string name="plan_activity_connect">Connect %1$s</string>
+    <string name="plan_activity_connecting">Waiting for %1$s…</string>
+    <string name="plan_activity_connect_note">Or connect %1$s and let your phone or watch fill this in.</string>
+
+    <!-- 3. Goal -->
+    <string name="plan_goal_title">What would you like to aim for?</string>
+    <string name="plan_goal_body">Opson works out each day's target from this. You can change it any time.</string>
+    <string name="plan_goal_lose">Lose weight</string>
+    <string name="plan_goal_lose_detail">At a slow, steady pace</string>
+    <string name="plan_goal_maintain">Keep my weight</string>
+    <string name="plan_goal_maintain_detail">Eat around what your body uses</string>
+    <string name="plan_goal_gain">Gain weight</string>
+    <string name="plan_goal_gain_detail">For building muscle or getting back to your weight</string>
+    <string name="plan_goal_track">Just track for now</string>
+    <string name="plan_goal_track_detail">No weight goal. Log and see how it goes.</string>
+    <string name="plan_goal_target">Goal weight</string>
+    <string name="plan_goal_current">You're at %1$s now.</string>
+    <string name="plan_goal_hint_needs_weight">Add your weight on the step before to set a goal weight.</string>
+    <string name="plan_goal_hint_kg">A weight in kilograms, like 70</string>
+    <string name="plan_goal_hint_lb">A weight in pounds, like 155</string>
+    <string name="plan_goal_hint_above">That's above your weight now. Pick Gain weight if that's the goal.</string>
+    <string name="plan_goal_hint_below">That's below your weight now. Pick Lose weight if that's the goal.</string>
+    <string name="plan_goal_low_note">That's below a healthy weight range for your height. Opson will still help you log, and if you'd like to talk it through with someone, support is close by.</string>
+    <string name="plan_goal_find_support">Find support</string>
+
+    <!-- 4. Pace -->
+    <string name="plan_rate_title">Pick a pace</string>
+    <string name="plan_rate_body">Slower is easier to keep up, and you can change it later.</string>
+    <string name="plan_rate_lose">Losing, each week</string>
+    <string name="plan_rate_gain">Gaining, each week</string>
+    <string name="plan_rate_kcal_lose">About %1$s a day less than you use</string>
+    <string name="plan_rate_kcal_gain">About %1$s a day more than you use</string>
+    <string name="plan_rate_forecast">At this pace, around %1$s</string>
+    <string name="plan_rate_fastest">This is the fastest pace Opson plans. Faster is harder on your body and harder to keep up.</string>
+    <string name="plan_rate_none">Opson won't plan a pace from here, so it will keep each day's target around what you use. You can talk to someone about what's right for you any time.</string>
+    <string name="plan_rate_estimate">Worked out with the usual rule of thumb, about 3,500 calories to a pound (7,700 to a kilogram). It's an estimate, and real change is usually slower.</string>
+    <string name="plan_rate_estimate_plain">Worked out with the usual rule of thumb for how much energy a pound of body weight holds. It's an estimate, and real change is usually slower.</string>
+
+    <!-- 5. Overview -->
+    <string name="plan_overview_title">Your plan</string>
+    <string name="plan_overview_body">Here's what Opson will aim for, from what you told it.</string>
+    <string name="plan_overview_goal">Goal weight</string>
+    <string name="plan_overview_keep">Keeping around</string>
+    <string name="plan_overview_forecast">Roughly when</string>
+    <string name="plan_overview_forecast_note">A rough guide, not a promise. Weight usually changes more slowly over time.</string>
+    <string name="plan_overview_daily">Each day</string>
+    <string name="plan_overview_daily_value">About %1$s</string>
+    <string name="plan_overview_less">About %1$s less than you use on a typical day</string>
+    <string name="plan_overview_more">About %1$s more than you use on a typical day</string>
+    <string name="plan_overview_same">About what you use on a typical day</string>
+    <string name="plan_overview_estimate">Every number here is an estimate. How you feel and your weight over a few weeks are the best guides, and you can adjust it any time in Targets.</string>
+    <string name="plan_overview_background">Opson sets your daily targets from this in the background, so you won't see a calorie number.</string>
+    <string name="plan_overview_needs_details">Add your birthday, height and weight on Profile and Opson can work out a daily target for you.</string>
+    <string name="plan_overview_unchanged">Your targets stay as they are. You can change them any time in Targets.</string>
+    <string name="plan_overview_no_goal">No weight goal for now. Opson starts you on a daily target from what you use on a typical day.</string>
+    <string name="plan_overview_pregnant">While you're pregnant, Opson won't plan any weight change. Your daily target includes the extra energy you need.</string>
+    <string name="plan_overview_breastfeeding">While you're breastfeeding, Opson won't plan any weight change. Your daily target includes the extra energy you need.</string>
+    <string name="plan_overview_stage_care">Your midwife or doctor can help with what's right for you.</string>
+    <string name="plan_overview_gentle_title">You're all set</string>
+    <string name="plan_overview_gentle_body">Opson will help you eat regularly and notice how meals feel. Targets work quietly in the background, and you can change what you see any time in Modes.</string>
+    <string name="plan_overview_continue">Looks good</string>
+
+    <!-- 6. Commitment -->
+    <string name="plan_commit_title">Ready to start?</string>
+    <string name="plan_commit_body">Small, steady days add up. Opson will be here for each one, the easy ones and the harder ones.</string>
+    <string name="plan_commit_body_gentle">Opson is here to help you look after yourself, one meal at a time. There's no wrong way to do this.</string>
+    <string name="plan_commit_yes">I'm committed</string>
+    <string name="plan_commit_not_now">Not now</string>
+    <string name="plan_commit_footnote">You can change any of this later.</string>
+
+    <!-- The same steps from Today, for an account that never set a goal. -->
+    <string name="goal_setup_saving">Saving…</string>
+    <string name="goal_setup_saved">Your goal is set. Targets follow it now.</string>
+    <string name="goal_setup_saved_quiet">Saved.</string>
+    <string name="prompt_goal_title">Set up your goal in a minute</string>
+    <string name="prompt_goal_body">Tell Opson a little about you and what you'd like to aim for, and it will work out each day's target.</string>
+    <string name="prompt_goal_accept">Set it up</string>
+
+    <!-- Targets: whether the weight goal sets the day's target. -->
+    <string name="targets_goal_driving">Set from your weight goal</string>
+    <string name="targets_goal_lose">Losing about %1$s a week</string>
+    <string name="targets_goal_gain">Gaining about %1$s a week</string>
+    <string name="targets_goal_keep">Keeping your weight steady</string>
+    <string name="targets_goal_change">Change goal</string>
+    <string name="targets_goal_not_driving">Your weight goal isn't setting this now</string>
+    <string name="targets_goal_not_driving_body">You changed the target yourself, so it's yours. You can set it from your goal again any time.</string>
+    <string name="targets_goal_use">Use my goal</string>
+    <string name="targets_goal_none">Set a weight goal</string>
+    <string name="targets_goal_none_body">Opson can work out this target for you from where you'd like to be.</string>
+
+    <!-- Profile -->
+    <string name="profile_birthday">Birthday</string>
+    <string name="profile_birthday_add">Add your birthday</string>
+    <string name="profile_birthday_year_only">Born in %1$s. Add the day?</string>
+
+    <!-- Today, on their birthday. -->
+    <string name="today_birthday_title">Happy birthday</string>
+    <string name="today_birthday_body">We hope today is a good one. Enjoy it, and log only if you feel like it.</string>
+    <string name="today_birthday_dismiss">Thanks</string>
+</resources>

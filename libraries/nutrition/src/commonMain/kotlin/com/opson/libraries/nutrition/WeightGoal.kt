@@ -161,7 +161,8 @@ object WeightGoals {
     fun forecast(startKg: Double, targetKg: Double, kgPerWeek: Double, startDate: LocalDate): LocalDate? {
         val distance = abs(targetKg - startKg)
         if (kgPerWeek <= 0 || distance < AT_GOAL_KG) return null
-        val days = ceil(distance / kgPerWeek * DAYS_A_WEEK).toInt()
+        // The slack keeps ten pounds at half a pound a week at 140 days, not 141, after the unit round trip.
+        val days = ceil(distance / kgPerWeek * DAYS_A_WEEK - SLACK).toInt()
         return startDate.plus(DatePeriod(days = days))
     }
 
