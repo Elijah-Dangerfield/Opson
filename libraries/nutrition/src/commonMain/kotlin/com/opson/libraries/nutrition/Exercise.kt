@@ -1,5 +1,7 @@
 package com.opson.libraries.nutrition
 
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlin.math.roundToInt
 
 /**
@@ -89,18 +91,38 @@ object ExerciseEnergy {
     const val MAX_KCAL = 5000
 
     private val WEIGHT_KG = 25.0..400.0
+
+    /** Resting energies a body has; anything else is a stray value, and the standard rate is used instead. */
+    private val RESTING_KCAL = RestingEnergies.OWN_MIN_KCAL..RestingEnergies.OWN_MAX_KCAL
     private const val MINUTES_PER_HOUR = 60.0
+    private const val HOURS_PER_DAY = 24.0
 
     /**
-     * (MET − 1) × kg × hours: what the activity burns on top of resting energy, which Burned
-     * already counts for the whole day. Null without a usable weight or duration, in which case
-     * the person types the number.
+     * What the activity burns on top of resting energy, which Burned already counts for the whole
+     * day. Null without a usable weight or duration, in which case the person types the number.
+     *
+     * With [restingKcal], the person's own resting energy for a day (Mifflin–St Jeor from their
+     * age, height, weight and sex), one MET is their own resting rate: (MET − 1) × resting kcal
+     * an hour × hours. Without it, one MET is the standard 1 kcal per kg an hour: (MET − 1) × kg ×
+     * hours. The standard one assumes a resting rate of 3.5 ml of oxygen per kg a minute, which is
+     * too high for most adults, and further off the older or heavier someone is (Byrne et al.
+     * 2005, and the corrected MET in the 2024 Compendium), so the personal one is the better guess
+     * whenever the profile has what it needs.
      */
-    fun estimateKcal(met: Double, weightKg: Double?, minutes: Int): Int? {
+    fun estimateKcal(met: Double, weightKg: Double?, minutes: Int, restingKcal: Int? = null): Int? {
         val kg = weightKg?.takeIf { it in WEIGHT_KG } ?: return null
         if (minutes !in 1..MAX_MINUTES || !met.isFinite()) return null
-        return ((met - 1).coerceAtLeast(0.0) * kg * minutes / MINUTES_PER_HOUR).roundToInt().coerceAtMost(MAX_KCAL)
+        val oneMetPerHour = if (usesResting(restingKcal)) restingKcal / HOURS_PER_DAY else kg
+        return ((met - 1).coerceAtLeast(0.0) * oneMetPerHour * minutes / MINUTES_PER_HOUR).roundToInt().coerceAtMost(MAX_KCAL)
     }
+
+    /** Whether [estimateKcal] works from this resting energy, or falls back to the standard rate for the weight. */
+    @OptIn(ExperimentalContracts::class)
+    fun usesResting(restingKcal: Int?): Boolean {
+        contract { returns(true) implies (restingKcal != null) }
+        return restingKcal != null && restingKcal in RESTING_KCAL
+    }
+
 }
 
 /**

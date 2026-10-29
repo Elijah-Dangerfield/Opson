@@ -3,6 +3,7 @@ package com.opson.features.trends.impl
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -161,7 +162,8 @@ class TrendsFeatureEntryPoint(
             }
         }
 
-        screen<WeightRoute> {
+        screen<WeightRoute> { backStackEntry ->
+            val focusInput = remember(backStackEntry) { backStackEntry.toRoute<WeightRoute>().focusInput }
             val viewModel: WeightViewModel = viewModel { weightViewModelFactory() }
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event ->
@@ -170,7 +172,7 @@ class TrendsFeatureEntryPoint(
                     WeightEvent.OpenProgressPhotos -> router.navigate(ProgressPhotosRoute())
                 }
             }
-            WeightScreen(state = state, onAction = viewModel::takeAction)
+            WeightScreen(state = state, onAction = viewModel::takeAction, focusInput = focusInput)
         }
 
         screen<PatternsRoute> {

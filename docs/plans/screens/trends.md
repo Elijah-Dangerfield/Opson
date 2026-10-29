@@ -387,7 +387,12 @@ ViewModel: range switch re-subscribes, `ModesTapped` emits `OpenModes`.
 ## Weight
 
 ### Route
-`WeightRoute()`, `screen<>`, from Trends, the logger's Weigh-in chip and More.
+`WeightRoute(focusInput)`, `screen<>`, from Trends, the + sheet's Weigh-in,
+Today's weight row, Profile's Current weight and the exercise sheet's "Log a
+weigh-in". `focusInput` (a plain Boolean, no type map) focuses the weigh-in
+field with the keyboard up once the screen is in; the + sheet, Profile and the
+exercise sheet pass it, since they open Weight only to log one. The page pads
+for the keyboard so the focused field scrolls above it.
 
 The **Numbers / Trend only / Hidden switch is gone** from this screen: it lives
 in Modes and numbers, behind the pause. Sending weigh-ins to a provider is v2

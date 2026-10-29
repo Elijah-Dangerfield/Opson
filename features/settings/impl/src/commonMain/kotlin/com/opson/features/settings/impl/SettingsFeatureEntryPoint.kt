@@ -328,7 +328,8 @@ class SettingsFeatureEntryPoint(
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event ->
                 when (event) {
-                    ProfileEvent.OpenWeight -> router.navigate(WeightRoute())
+                    // Current weight is a weigh-in to log, not a chart to read: the field is ready.
+                    ProfileEvent.OpenWeight -> router.navigate(WeightRoute(focusInput = true))
                     ProfileEvent.Close -> router.goBack()
                 }
             }

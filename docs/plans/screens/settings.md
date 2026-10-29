@@ -729,7 +729,10 @@ own: it writes `Settings.birthYear`, `bodySex`, `heightCm` and `heightUnit`,
 which Burned (`RestingEnergies.calculate` through `Settings.bodyProfile`) and
 the vitamin and mineral references (`Settings.microReferences`) already read,
 and onboarding writes the same keys. Weight is never a setting: the row shows
-the latest weigh-in and opens Weight (`WeightRoute`) to log one. All of it
+the latest weigh-in and opens Weight (`WeightRoute(focusInput = true)`, the
+field ready) to log one. The exercise sheet's estimate reads the same details
+and links here when one is missing, opening Profile in its place with
+`from = ProfileRoute.FROM_ELSEWHERE` ("‹ Back"). All of it
 syncs as top-level keys of the settings document, which the server stores and
 merges as it is, so nothing new is needed on the server.
 

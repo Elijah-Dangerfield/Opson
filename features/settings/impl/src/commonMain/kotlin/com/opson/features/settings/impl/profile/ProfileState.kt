@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl.profile
 
+import com.opson.features.settings.ProfileRoute
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.nutrition.BodyFat
@@ -21,6 +22,9 @@ enum class ProfileBack(val wire: String) {
     More("more"),
     RestingEnergy("resting"),
     Micros("micros"),
+
+    /** A sheet outside settings opened it in its place, so the back label names no page. */
+    Elsewhere(ProfileRoute.FROM_ELSEWHERE),
     ;
 
     companion object {

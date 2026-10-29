@@ -27,6 +27,7 @@ import com.opson.features.logger.LoggerStart
 import com.opson.features.logger.SubmitEntry
 import com.opson.features.logger.SubmitFoodRoute
 import com.opson.features.settings.FastingRoute
+import com.opson.features.settings.ProfileRoute
 import com.opson.features.today.CheckInRoute
 import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
@@ -146,7 +147,7 @@ class LoggerFeatureEntryPoint(
             PhotoEstimateSheet(backStackEntry.toRoute<PhotoEstimateRoute>(), sheetState, router)
         }
 
-        // Only the add sheet's Exercise and Today's Burned section open it, both behind release.exercise.
+        // Only the add sheet's Exercise and Today's Activity card open it, both behind release.exercise.
         bottomSheet<ExerciseRoute> { backStackEntry, sheetState ->
             val route = backStackEntry.toRoute<ExerciseRoute>()
             val viewModel: ExerciseSheetViewModel = viewModel { exerciseViewModelFactory(route) }
@@ -159,6 +160,15 @@ class LoggerFeatureEntryPoint(
                     is ExerciseSheetEvent.DayClosed -> router.batch {
                         goBack()
                         navigate(DayClosedRoute(event.day.toString()))
+                    }
+                    // Both take the sheet's place, as the + sheet's tiles do, so Back lands where it was opened.
+                    ExerciseSheetEvent.OpenProfile -> router.batch {
+                        goBack()
+                        navigate(ProfileRoute(from = ProfileRoute.FROM_ELSEWHERE))
+                    }
+                    ExerciseSheetEvent.OpenWeighIn -> router.batch {
+                        goBack()
+                        navigate(WeightRoute(focusInput = true))
                     }
                     ExerciseSheetEvent.Dismiss -> sheetState.dismiss()
                 }
@@ -244,9 +254,10 @@ class LoggerFeatureEntryPoint(
                     goBack()
                     navigate(SubmitFoodRoute(event.day.toString(), event.slot, entry = SubmitEntry.AddSheet))
                 }
+                // Weigh-in is only ever opened to log one, so the field is ready with the keyboard up.
                 LoggerEvent.OpenWeighIn -> router.batch {
                     goBack()
-                    navigate(WeightRoute())
+                    navigate(WeightRoute(focusInput = true))
                 }
                 LoggerEvent.OpenFasting -> router.batch {
                     goBack()

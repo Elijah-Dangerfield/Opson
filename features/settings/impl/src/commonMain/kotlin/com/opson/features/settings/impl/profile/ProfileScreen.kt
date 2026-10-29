@@ -38,6 +38,7 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_back_micros
+import opson.libraries.resources.generated.resources.settings_back_plain
 import opson.libraries.resources.generated.resources.settings_back_more
 import opson.libraries.resources.generated.resources.settings_back_resting
 import opson.libraries.resources.generated.resources.settings_loading_cd
@@ -192,6 +193,7 @@ private val ProfileBack.label: StringResource
         ProfileBack.More -> Res.string.settings_back_more
         ProfileBack.RestingEnergy -> Res.string.settings_back_resting
         ProfileBack.Micros -> Res.string.settings_back_micros
+        ProfileBack.Elsewhere -> Res.string.settings_back_plain
     }
 
 /** Previews and the leak test: everything filled in, and a weigh-in on the fixtures' today. */
