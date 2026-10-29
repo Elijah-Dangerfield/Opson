@@ -490,7 +490,7 @@
     <string name="settings_today_water">Water</string>
     <string name="settings_today_weight">Weight on days you weigh in</string>
     <string name="settings_today_in_header">In the header</string>
-    <string name="settings_today_close_day">Close the day</string>
+    <string name="settings_today_close_day">Wrap up the day</string>
     <string name="settings_today_card_from_mode">In this mode the card's layout comes from the mode.</string>
     <!-- What overrides a choice on Today screen, said under it, with the way to that setting -->
     <string name="settings_today_card_later">With calories on Later, the card keeps its simpler layout. The presets need calories on show.</string>

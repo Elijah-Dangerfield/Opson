@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.CelebrationStyle
 import com.opson.libraries.diary.LoggingHabits
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -687,6 +688,23 @@ private fun TodayClosedBlindPreview() = Phone { Today(policy(PresetId.NoNumbers)
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun DayCloseClosedPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(full, note = "Dinner at Lola's", closed = true), onAction = {}) }
+
+/** Wrapped up with celebrations on (`release.celebrations`): the run so far and the next milestone. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun DayCloseClosedStreakPreview() = Phone {
+    DayCloseScreen(TodayFixtures.dayCloseState(full, closed = true, celebrating = TodayFixtures.celebrating()), onAction = {})
+}
+
+/** After numbers have been hard: a kind line, no count. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun DayCloseClosedStreakGentlePreview() = Phone {
+    DayCloseScreen(
+        TodayFixtures.dayCloseState(policy(PresetId.NoNumbers), closed = true, celebrating = TodayFixtures.celebrating(CelebrationStyle.Gentle)),
+        onAction = {},
+    )
+}
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

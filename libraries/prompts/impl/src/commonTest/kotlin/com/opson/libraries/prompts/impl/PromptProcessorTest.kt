@@ -281,6 +281,23 @@ class PromptProcessorTest : CoroutineTest() {
     }
 
     @Test
+    fun `a screen prompt names its own destination and is the session's one prompt`() = runUnitTest {
+        val route = FakeRoute()
+        val processor = processor(
+            FakeCandidate("celebration", priority = 500, presentation = PromptPresentation.Screen, screenRoute = route),
+            FakeCandidate("ordinary"),
+        )
+
+        val showing = processor.next()
+        assertEquals("celebration", showing?.id)
+        assertEquals(PromptPresentation.Screen, showing?.presentation)
+        assertEquals(route, processor.screen("celebration"))
+        assertNull(processor.card.value, "a screen is not drawn in the list")
+        assertNull(processor.next(), "nothing stacks on it in the same session")
+        assertEquals("shown:celebration:screen:today", telemetry.events.first())
+    }
+
+    @Test
     fun `a card is up until it is answered or the session ends`() = runUnitTest {
         val processor = processor(FakeCandidate("card", presentation = PromptPresentation.Card, frequency = PromptFrequency(maxShows = 2, minGap = 1.days)))
 

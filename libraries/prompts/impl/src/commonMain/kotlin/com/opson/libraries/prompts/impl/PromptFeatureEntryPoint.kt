@@ -167,6 +167,7 @@ class PromptHostImpl(private val processor: PromptProcessor) : PromptHost {
                         PromptPresentation.Sheet -> router.navigate(PromptSheetRoute(showing.id))
                         // Today's list draws it (PromptTodayCardContribution).
                         PromptPresentation.Card -> Unit
+                        PromptPresentation.Screen -> processor.screen(showing.id)?.let { router.navigate(it) }
                     }
                 }
             }

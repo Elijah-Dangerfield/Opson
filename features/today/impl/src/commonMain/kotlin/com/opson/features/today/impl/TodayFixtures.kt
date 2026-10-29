@@ -1,5 +1,10 @@
 package com.opson.features.today.impl
 
+import kotlinx.datetime.DateTimeUnit
+import com.opson.features.today.impl.celebration.Celebrating
+import com.opson.libraries.diary.CelebrationStyle
+import com.opson.libraries.diary.DayMark
+import com.opson.libraries.diary.ShowingUp
 import com.opson.features.today.NotesOrigin
 import com.opson.features.today.impl.calendar.CalendarState
 import com.opson.features.today.impl.calendar.CalendarStateBuilder
@@ -390,6 +395,7 @@ object TodayFixtures {
         checkIn: CheckIn? = null,
         burned: Burned? = null,
         closed: Boolean = false,
+        celebrating: Celebrating? = null,
     ): DayCloseState = DayCloseStateBuilder.build(
         DayCloseInputs(
             today = today,
@@ -403,6 +409,13 @@ object TodayFixtures {
         note = note,
         committed = committed,
         feeling = feeling,
+        celebrating = celebrating,
+    )
+
+    /** Four days in a row, today wrapped up: three more to a week. */
+    fun celebrating(style: CelebrationStyle = CelebrationStyle.Counts): Celebrating = Celebrating(
+        ShowingUp.compute((0..3).map { DayMark(today.minus(it, DateTimeUnit.DAY), logged = true, closed = it == 0) }, today),
+        style,
     )
 
     fun calendarState(): CalendarState {

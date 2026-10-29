@@ -125,6 +125,19 @@ import com.opson.libraries.diary.ui.SummaryLabel
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.prompts.PromptEvent
 import com.opson.libraries.prompts.PromptEvents
+import com.opson.features.today.impl.Toast
+import com.opson.features.today.impl.celebration.Celebrating
+import com.opson.features.today.impl.celebration.CelebrationsSource
+import com.opson.features.today.impl.celebration.nextName
+import com.opson.libraries.diary.CelebrationStyle
+import com.opson.libraries.diary.Milestone
+import com.opson.libraries.diary.MilestoneFamily
+import opson.libraries.resources.generated.resources.celebrate_gentle_run
+import opson.libraries.resources.generated.resources.celebrate_more_to
+import opson.libraries.resources.generated.resources.celebrate_run
+import opson.libraries.resources.generated.resources.celebrate_wrapped_toast
+import opson.libraries.resources.generated.resources.celebrate_wrapped_toast_plain
+import org.jetbrains.compose.resources.pluralStringResource
 import opson.libraries.resources.generated.resources.today_dayclose_balance_burned
 import opson.libraries.resources.generated.resources.today_dayclose_balance_burned_so_far
 import opson.libraries.resources.generated.resources.today_dayclose_balance_eaten
@@ -182,6 +195,7 @@ class DayCloseViewModel(
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val burnedRepository: BurnedRepository,
     private val promptEvents: PromptEvents = PromptEvents.None,
+    private val celebrations: CelebrationsSource = CelebrationsSource.None,
 ) : SEAViewModel<DayCloseState, DayCloseEvent, DayCloseAction>(initialStateArg = DayCloseState()) {
 
     private var model = Model()
@@ -194,6 +208,7 @@ class DayCloseViewModel(
         val feeling: DayFeeling? = null,
         val prefilled: Boolean = false,
         val committed: Boolean = false,
+        val celebrating: Celebrating? = null,
     )
 
     init {
@@ -204,6 +219,7 @@ class DayCloseViewModel(
                 DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInOn, burned = burned), policy)
             }.collect(::takeAction)
         }
+        viewModelScope.launch { celebrations.observe().collect { takeAction(DayCloseAction.CelebratingArrived(it)) } }
     }
 
     /** Today's energy, so the range here is the one Today showed. With `release.health` off the store is never touched. */
@@ -227,6 +243,7 @@ class DayCloseViewModel(
                 val feeling = if (model.prefilled) model.feeling else action.inputs.day.feeling
                 action.rebuild { copy(inputs = action.inputs, policy = action.policy, note = note, feeling = feeling, prefilled = true) }
             }
+            is DayCloseAction.CelebratingArrived -> action.rebuild { copy(celebrating = action.celebrating) }
             is DayCloseAction.NoteTyped -> action.rebuild { copy(note = action.text) }
             is DayCloseAction.FeelingTapped -> action.rebuild { copy(feeling = action.feeling.takeIf { it != feeling }) }
             DayCloseAction.CheckInTapped -> if (state.checkIn != null) sendEvent(DayCloseEvent.OpenCheckIn(day))
@@ -245,8 +262,11 @@ class DayCloseViewModel(
                     // Only where it was asked: a feeling picked under another mode is left as it was.
                     feeling = if (state.feeling != null) model.feeling else stored?.feeling,
                 )
+                // Read before the write lands, so it says where the run stood and whether a milestone was waiting.
+                val wrapped = if (day == calendar.today()) wrappedToast(model.celebrating, celebrations.pending()) else null
                 diary.closeDay(day, reflection)
                 promptEvents.emit(PromptEvent.DayClosed)
+                wrapped?.let { sendEvent(DayCloseEvent.ShowToast(it)) }
                 sendEvent(DayCloseEvent.Close)
             }
             DayCloseAction.ReopenTapped -> {
@@ -265,7 +285,32 @@ class DayCloseViewModel(
         val current = model
         val inputs = current.inputs ?: return
         val policy = current.policy ?: return
-        updateState { DayCloseStateBuilder.build(inputs, policy, current.note, current.committed, current.feeling) }
+        updateState { DayCloseStateBuilder.build(inputs, policy, current.note, current.committed, current.feeling, current.celebrating) }
+    }
+
+    internal companion object {
+        /**
+         * What Today says once today is wrapped up: "Day wrapped up. That's 4 in a row." Nothing
+         * when celebrations are off, or when a celebration is about to play (one was [waiting],
+         * or this wrap-up reaches a milestone), so the two never say the same thing twice.
+         */
+        fun wrappedToast(celebrating: Celebrating?, waiting: Milestone?): Toast? {
+            val progress = celebrating?.progress ?: return null
+            if (waiting != null) return null
+            val run = if (progress.todayCounted) progress.current else progress.current + 1
+            val reaches = Milestone.entries.any { milestone ->
+                milestone !in progress.reached && when (milestone.family) {
+                    MilestoneFamily.WrapUp -> true
+                    MilestoneFamily.Streak -> milestone.threshold == run
+                    MilestoneFamily.CheckIn -> false
+                }
+            }
+            return when {
+                reaches -> null
+                celebrating.style == CelebrationStyle.Counts && run >= 2 -> Toast(Res.string.celebrate_wrapped_toast, listOf(run))
+                else -> Toast(Res.string.celebrate_wrapped_toast_plain)
+            }
+        }
     }
 }
 
@@ -296,6 +341,7 @@ fun DayCloseScreen(
                     return@Column
                 }
                 state.recap?.let { RecapText(it, state.isToday) }
+                state.streak?.let { StreakLineCard(it) }
                 if (state.revealNote) {
                     InfoBanner(
                         icon = AppIcons.Lock,
@@ -399,6 +445,29 @@ fun DayCloseScreen(
                     color = AppTheme.colors.muted,
                 )
             }
+        }
+    }
+}
+
+/** The run so far, once today is wrapped up: quiet, one line, and no number in the gentle style. */
+@Composable
+private fun StreakLineCard(line: StreakLine) {
+    val text = when (line) {
+        is StreakLine.Counts -> buildString {
+            append(pluralStringResource(Res.plurals.celebrate_run, line.days, line.days))
+            val next = line.next
+            val toNext = line.toNext
+            if (next != null && toNext != null) {
+                append(' ')
+                append(pluralStringResource(Res.plurals.celebrate_more_to, toNext, toNext, stringResource(next.nextName)))
+            }
+        }
+        StreakLine.Gentle -> stringResource(Res.string.celebrate_gentle_run)
+    }
+    TodayCard(contentPadding = PaddingValues(horizontal = AppTheme.spacing.page, vertical = AppTheme.spacing.section)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
+            Icon(icon = AppIcons.AutoAwesome, size = 20.dp, color = AppTheme.colors.accent)
+            Text(text = text, typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
         }
     }
 }

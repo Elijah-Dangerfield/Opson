@@ -71,13 +71,24 @@ interface PromptCandidate {
 
     /** The main button was tapped. Do the work, if any, then say where the person goes. */
     suspend fun accept(): PromptAccept
+
+    /**
+     * For [PromptPresentation.Screen] only: the destination that draws the prompt itself, asked
+     * once it has been picked. That screen owns its buttons, so [accept] and [content]'s words are
+     * not used, and nothing counts as accepted or dismissed. Null shows nothing.
+     */
+    suspend fun screen(): Route? = null
 }
 
-/** How a prompt is drawn. Dialog and sheet go over Today; a card sits in Today's list. */
+/**
+ * How a prompt is drawn. Dialog and sheet go over Today; a card sits in Today's list; a screen is
+ * the candidate's own full-screen destination ([PromptCandidate.screen]), such as a celebration.
+ */
 enum class PromptPresentation(val wire: String) {
     Dialog("dialog"),
     Sheet("sheet"),
     Card("card"),
+    Screen("screen"),
 }
 
 /**
@@ -121,6 +132,9 @@ sealed interface PromptAccept {
 
 /** Shared scale for [PromptCandidate.priority], so a new prompt can say where it sits. */
 object PromptPriority {
+    /** A milestone the person just reached. Above a moment's offer: it is about them, not something to try. */
+    const val CELEBRATION = 500
+
     /** Follows a moment the person just had (a report sent). The moment does not come back. */
     const val MOMENT = 400
 

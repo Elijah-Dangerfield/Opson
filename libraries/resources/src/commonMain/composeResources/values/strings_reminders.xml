@@ -13,7 +13,7 @@
     <!-- The page -->
     <string name="reminders_title">Reminders and celebrations</string>
     <string name="reminders_quiet_title">Quiet mode</string>
-    <string name="reminders_quiet_body">No confetti, sounds or vibration.</string>
+    <string name="reminders_quiet_body">Reminders arrive without sound or vibration.</string>
     <string name="reminders_big_day_title">After a big day</string>
     <string name="reminders_big_day_body">A calm card at day close. Full adds the two buttons.</string>
     <string name="reminders_meals_title">Meal reminders</string>

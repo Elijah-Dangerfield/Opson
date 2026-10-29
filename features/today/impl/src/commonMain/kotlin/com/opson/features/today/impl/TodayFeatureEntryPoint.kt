@@ -25,7 +25,21 @@ import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
 import com.opson.features.medication.MedicationRoute
+import com.opson.features.today.CelebrationRoute
 import com.opson.features.today.CheckInRoute
+import com.opson.features.today.ProgressRoute
+import com.opson.features.today.impl.celebration.CelebrationEvent
+import com.opson.features.today.impl.celebration.CelebrationScreen
+import com.opson.features.today.impl.celebration.CelebrationViewModel
+import com.opson.features.today.impl.celebration.ProgressEvent
+import com.opson.features.today.impl.celebration.ProgressSheetContent
+import com.opson.features.today.impl.celebration.ProgressViewModel
+import com.opson.features.today.impl.celebration.StreakIndicator
+import com.opson.features.today.impl.celebration.StreakIndicatorAction
+import com.opson.features.today.impl.celebration.StreakIndicatorEvent
+import com.opson.features.today.impl.celebration.StreakIndicatorViewModel
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.celebrate_turned_off
 import com.opson.features.today.DayCloseRoute
 import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
@@ -98,7 +112,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import kotlin.reflect.typeOf
 
 /**
- * Today and everything that opens from it: the tab root, Day close, the calendar that drops from
+ * Today and everything that opens from it: the tab root, Day close, a milestone's celebration and
+ * Your progress, the calendar that drops from
  * the title, the Notes list, and the meal, meal Note (hunger and words), water, food actions, day
  * note, check-in and day closed sheets. Arranging Today is More › Today screen's, which the ⋮ menu opens.
  * View models send events; only this class navigates.
@@ -120,6 +135,9 @@ class TodayFeatureEntryPoint(
     private val todayActivityViewModelFactory: () -> TodayActivityViewModel,
     private val checkInViewModelFactory: (LocalDate?) -> CheckInViewModel,
     private val refreshViewModelFactory: () -> TodayRefreshViewModel,
+    private val celebrationViewModelFactory: (String, Boolean) -> CelebrationViewModel,
+    private val progressViewModelFactory: () -> ProgressViewModel,
+    private val streakViewModelFactory: () -> StreakIndicatorViewModel,
     private val tabBar: TabBar,
     private val findSupportEnabled: FindSupportEnabled,
     /** Cards other modules add to the list, such as Medication's. */
@@ -158,7 +176,36 @@ class TodayFeatureEntryPoint(
                 contributed = contributedCards(state.day, router),
                 refreshing = refreshState.refreshing,
                 onRefresh = { refresh.takeAction(TodayRefreshAction.Pulled) },
+                streak = streakIndicator(router),
             )
+        }
+
+        // A milestone's celebration (release.celebrations). Only the prompt host opens it.
+        screen<CelebrationRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<CelebrationRoute>()
+            val viewModel: CelebrationViewModel = viewModel { celebrationViewModelFactory(route.milestone, route.offerTurnOff) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    CelebrationEvent.Close -> router.goBack()
+                    CelebrationEvent.TurnedOff -> {
+                        router.goBack()
+                        showToast(Toast(Res.string.celebrate_turned_off))
+                    }
+                }
+            }
+            CelebrationScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        bottomSheet<ProgressRoute> { _, sheetState ->
+            val viewModel: ProgressViewModel = viewModel { progressViewModelFactory() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    ProgressEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            TodaySheet(router, sheetState) { ProgressSheetContent(state = state, onAction = viewModel::takeAction) }
         }
 
         screen<NotesRoute>(typeMap = mapOf(typeOf<NotesOrigin>() to serializableType<NotesOrigin>())) { backStackEntry ->
@@ -187,6 +234,7 @@ class TodayFeatureEntryPoint(
                     DayCloseEvent.OpenSupport -> router.navigate(if (findSupportEnabled()) FindSupportRoute() else SupportRoute())
                     is DayCloseEvent.OpenCheckIn -> router.navigate(CheckInRoute(event.day.toString()))
                     is DayCloseEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
+                    is DayCloseEvent.ShowToast -> showToast(event.toast)
                 }
             }
             DayCloseScreen(state = state, onAction = viewModel::takeAction)
@@ -341,6 +389,20 @@ class TodayFeatureEntryPoint(
             }
             TodaySheet(router, sheetState) { DayNoteSheetContent(state = state, onAction = viewModel::takeAction) }
         }
+    }
+
+    /** The streak in Today's header (`release.celebrations`), or null while there is no run to show. */
+    @Composable
+    private fun streakIndicator(router: Router): (@Composable () -> Unit)? {
+        val viewModel: StreakIndicatorViewModel = viewModel { streakViewModelFactory() }
+        val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+        viewModel.ObserveEvents { event ->
+            when (event) {
+                StreakIndicatorEvent.OpenProgress -> router.navigate(ProgressRoute())
+            }
+        }
+        val badge = state.badge ?: return null
+        return remember(badge) { { StreakIndicator(badge, onClick = { viewModel.takeAction(StreakIndicatorAction.Tapped) }) } }
     }
 
     /** Today's Activity card (`release.exercise`), or null while it has nothing to show. */
