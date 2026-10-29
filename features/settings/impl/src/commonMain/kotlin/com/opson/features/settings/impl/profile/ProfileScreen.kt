@@ -18,6 +18,7 @@ import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.ui.HeightField
+import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.HeightUnit
@@ -29,6 +30,8 @@ import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.SegmentedControl
+import com.opson.libraries.ui.components.button.ButtonGhost
+import com.opson.libraries.ui.components.button.ButtonSize
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
@@ -37,6 +40,11 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.integrations_apple_health
+import opson.libraries.resources.generated.resources.integrations_health_connect
+import opson.libraries.resources.generated.resources.integrations_profile_fill
+import opson.libraries.resources.generated.resources.integrations_profile_fill_note_apple_health
+import opson.libraries.resources.generated.resources.integrations_profile_fill_note_health_connect
 import opson.libraries.resources.generated.resources.settings_back_micros
 import opson.libraries.resources.generated.resources.settings_back_plain
 import opson.libraries.resources.generated.resources.settings_back_more
@@ -92,6 +100,7 @@ fun ProfileScreen(
         }
         SectionLabel(stringResource(Res.string.settings_profile_about))
         AboutYou(state, onAction)
+        state.fillFrom?.let { FillFromHealth(it, state.filling, onAction) }
         SectionLabel(stringResource(Res.string.settings_profile_body))
         Body(state, onAction)
     }
@@ -139,6 +148,23 @@ private fun AboutYou(state: ProfileState, onAction: (ProfileAction) -> Unit) {
             onCmTyped = { onAction(ProfileAction.HeightCmTyped(it)) },
             onFeetTyped = { onAction(ProfileAction.HeightFeetTyped(it)) },
             onInchesTyped = { onAction(ProfileAction.HeightInchesTyped(it)) },
+        )
+    }
+}
+
+/** "Fill in from Apple Health", under the details it fills, and what it uses. */
+@Composable
+private fun FillFromHealth(source: HealthSource, filling: Boolean, onAction: (ProfileAction) -> Unit) {
+    val apple = source == HealthSource.AppleHealth
+    val name = stringResource(if (apple) Res.string.integrations_apple_health else Res.string.integrations_health_connect)
+    Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        ButtonGhost(onClick = { onAction(ProfileAction.FillFromHealthTapped) }, size = ButtonSize.Small, enabled = !filling) {
+            Text(stringResource(Res.string.integrations_profile_fill, name))
+        }
+        Text(
+            text = stringResource(if (apple) Res.string.integrations_profile_fill_note_apple_health else Res.string.integrations_profile_fill_note_health_connect),
+            typography = AppTheme.type.secondarySmall,
+            color = AppTheme.colors.muted,
         )
     }
 }
@@ -205,8 +231,8 @@ internal object ProfileFixtures {
         kg = 64.2,
     )
 
-    fun state(settings: Settings = filled, latest: WeighIn? = weighIn, preset: PresetId = PresetId.Full): ProfileState =
-        ProfileStateBuilder.build(settings, latest, SettingsFixtures.policy(NumbersSettings(preset = preset)), SettingsFixtures.timeZone)
+    fun state(settings: Settings = filled, latest: WeighIn? = weighIn, preset: PresetId = PresetId.Full, fillFrom: HealthSource? = null): ProfileState =
+        ProfileStateBuilder.build(settings, latest, SettingsFixtures.policy(NumbersSettings(preset = preset)), SettingsFixtures.timeZone, fillFrom = fillFrom)
 }
 
 /** Never filled in: no weigh-in, no BMI, empty fields. */
@@ -214,6 +240,19 @@ internal object ProfileFixtures {
 @Composable
 private fun ProfileEmptyPreview() {
     SettingsPreview { ProfileScreen(ProfileFixtures.state(Settings(), latest = null), onAction = {}) }
+}
+
+/** Never filled in, with Apple Health on the phone: "Fill in from Apple Health" under About you. */
+@Preview
+@Composable
+private fun ProfileFillFromHealthPreview() {
+    SettingsPreview { ProfileScreen(ProfileFixtures.state(Settings(), latest = null, fillFrom = HealthSource.AppleHealth), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun ProfileFillFromHealthConnectDarkPreview() {
+    SettingsPreview(dark = true) { ProfileScreen(ProfileFixtures.state(fillFrom = HealthSource.HealthConnect), onAction = {}) }
 }
 
 /** Filled in, All numbers: the weigh-in, BMI with its note, and body fat. */

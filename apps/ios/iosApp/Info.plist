@@ -38,12 +38,15 @@
 	  something specific to declare; a placeholder is worse than its absence.
 	-->
 	<!--
-	  Read-only HealthKit: active energy, resting energy and workouts, for
-	  "Expended so far" (HealthKitReader). The prompt only appears when someone
-	  taps Connect under More, Watch and health apps, which ships behind the
+	  Read-only HealthKit (HealthKitReader): active and resting energy and
+	  workouts for Expended so far, Burned and the Activity card; weight,
+	  height, date of birth and biological sex only for what the person asks
+	  for (More, Profile, Fill in from Apple Health, and the opt-in Add
+	  weigh-ins switch on Watch and health apps). The string names each type
+	  and says which leaves the phone: App Review checks it against the types
+	  requested (5.1.3). The prompt only appears from a tap, behind the
 	  release.health flag. The entitlement, com.apple.developer.healthkit, is
-	  only in iosAppDebug.entitlements until 0.2 ships: Release signing fails
-	  until the bundle id has the HealthKit capability in the developer portal.
+	  in both iosApp.entitlements and iosAppDebug.entitlements.
 
 	  NSHealthUpdateUsageDescription is here although Opson never writes to
 	  Health. HealthKitReader calls requestAuthorizationToShareTypes (with no
@@ -52,7 +55,7 @@
 	  string says plainly that nothing is written.
 	-->
 	<key>NSHealthShareUsageDescription</key>
-	<string>Opson reads your active energy, resting energy and workouts to show what you've expended today. It stays on your phone.</string>
+	<string>Opson reads your active energy, resting energy and workouts to show what you've burned today. These stay on your phone. If you ask it to, it also reads your weight, height, birth date and sex to fill in your profile and weight log, which sync with your Opson account.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Opson only reads from Health. It never writes or changes anything there.</string>
 	<!--

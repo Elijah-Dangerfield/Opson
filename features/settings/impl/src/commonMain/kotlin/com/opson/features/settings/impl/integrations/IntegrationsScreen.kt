@@ -24,6 +24,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
+import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.button.ButtonGhost
@@ -36,6 +37,18 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.integrations_apple_health
+import opson.libraries.resources.generated.resources.integrations_weigh_ins_title
+import opson.libraries.resources.generated.resources.integrations_weigh_ins_body
+import opson.libraries.resources.generated.resources.integrations_sources_none_health_connect
+import opson.libraries.resources.generated.resources.integrations_sources_none_apple_health
+import opson.libraries.resources.generated.resources.integrations_sources_hint
+import opson.libraries.resources.generated.resources.integrations_sources
+import opson.libraries.resources.generated.resources.integrations_privacy_weigh_ins
+import opson.libraries.resources.generated.resources.integrations_open_apple_health
+import opson.libraries.resources.generated.resources.integrations_failed_health_connect
+import opson.libraries.resources.generated.resources.integrations_failed_apple_health
+import opson.libraries.resources.generated.resources.integrations_ask_more_button
+import opson.libraries.resources.generated.resources.integrations_ask_more
 import opson.libraries.resources.generated.resources.integrations_connect
 import opson.libraries.resources.generated.resources.integrations_connected
 import opson.libraries.resources.generated.resources.integrations_denied_apple_health
@@ -61,7 +74,8 @@ import opson.libraries.resources.generated.resources.integrations_left_out_title
 import opson.libraries.resources.generated.resources.integrations_needs_install
 import opson.libraries.resources.generated.resources.integrations_open_health_connect
 import opson.libraries.resources.generated.resources.integrations_privacy
-import opson.libraries.resources.generated.resources.integrations_reads
+import opson.libraries.resources.generated.resources.integrations_reads_apple_health
+import opson.libraries.resources.generated.resources.integrations_reads_health_connect
 import opson.libraries.resources.generated.resources.integrations_remove_apple_health
 import opson.libraries.resources.generated.resources.integrations_title
 import opson.libraries.resources.generated.resources.integrations_total
@@ -93,12 +107,17 @@ fun IntegrationsScreen(
         state.expended?.let { ExpendedCard(it, state.source) }
         state.exercise?.let { ExerciseCard(it, onAction) }
         LeftOutCard(state.leftOut, onAction)
-        Note(stringResource(Res.string.integrations_privacy), Modifier.padding(horizontal = 4.dp))
+        Note(
+            stringResource(if (state.weighIns == true) Res.string.integrations_privacy_weigh_ins else Res.string.integrations_privacy),
+            Modifier.padding(horizontal = 4.dp),
+        )
     }
 }
 
 @Composable
 private fun SourceCard(state: IntegrationsState, onAction: (IntegrationsAction) -> Unit) {
+    val apple = state.source == HealthSource.AppleHealth
+    val name = stringResource(state.source.title)
     SettingsCard {
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = AppTheme.spacing.section),
@@ -106,13 +125,13 @@ private fun SourceCard(state: IntegrationsState, onAction: (IntegrationsAction) 
             horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(text = stringResource(state.source.title), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+                Text(text = name, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
                 Text(
                     text = stringResource(
                         when (state.connection) {
                             Connection.Unsupported -> Res.string.integrations_unsupported
                             Connection.NeedsInstall -> Res.string.integrations_needs_install
-                            else -> Res.string.integrations_reads
+                            else -> if (apple) Res.string.integrations_reads_apple_health else Res.string.integrations_reads_health_connect
                         },
                     ),
                     typography = AppTheme.type.secondary,
@@ -134,34 +153,102 @@ private fun SourceCard(state: IntegrationsState, onAction: (IntegrationsAction) 
                 Connection.Unsupported -> Unit
             }
         }
-        if (state.denied) {
+        if (state.denied || state.failed) {
             HorizontalDivider(color = AppTheme.colors.line)
             Column(Modifier.padding(vertical = AppTheme.spacing.row), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
                 Text(
                     text = stringResource(
-                        if (state.source == HealthSource.AppleHealth) Res.string.integrations_denied_apple_health else Res.string.integrations_denied_health_connect,
+                        when {
+                            state.failed -> if (apple) Res.string.integrations_failed_apple_health else Res.string.integrations_failed_health_connect
+                            apple -> Res.string.integrations_denied_apple_health
+                            else -> Res.string.integrations_denied_health_connect
+                        },
                     ),
                     typography = AppTheme.type.body,
                     color = AppTheme.colors.ink,
                 )
-                if (state.canOpenSource) {
-                    ButtonGhost(onClick = { onAction(IntegrationsAction.OpenSourceTapped) }, size = ButtonSize.Small) {
-                        Text(stringResource(Res.string.integrations_open_health_connect))
-                    }
-                }
+                if (state.denied && state.canOpenSource) OpenSourceButton(state, onAction)
             }
         }
-        if (state.connection == Connection.Connected) {
-            HorizontalDivider(color = AppTheme.colors.line)
-            Column(Modifier.padding(vertical = AppTheme.spacing.chip)) {
-                ButtonGhost(onClick = { onAction(IntegrationsAction.DisconnectTapped) }, size = ButtonSize.Small) {
-                    Text(stringResource(Res.string.integrations_disconnect))
-                }
-                if (state.source == HealthSource.AppleHealth) {
-                    Note(stringResource(Res.string.integrations_remove_apple_health), Modifier.padding(bottom = AppTheme.spacing.chip))
-                }
+        if (state.connection == Connection.Connected) Connected(state, name, onAction)
+    }
+}
+
+/** Under a connection: more to allow, where the data comes from, weigh-ins, then the ways out. */
+@Composable
+private fun Connected(state: IntegrationsState, name: String, onAction: (IntegrationsAction) -> Unit) {
+    val apple = state.source == HealthSource.AppleHealth
+    if (state.canAskForMore) {
+        HorizontalDivider(color = AppTheme.colors.line)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = AppTheme.spacing.row),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+        ) {
+            Text(
+                text = stringResource(Res.string.integrations_ask_more),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.ink,
+                modifier = Modifier.weight(1f),
+            )
+            ButtonPrimary(onClick = { onAction(IntegrationsAction.AllowMoreTapped) }, size = ButtonSize.Small) {
+                Text(stringResource(Res.string.integrations_ask_more_button))
             }
         }
+    }
+    state.sources?.let { sources ->
+        HorizontalDivider(color = AppTheme.colors.line)
+        Column(Modifier.padding(vertical = AppTheme.spacing.row), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+            Text(
+                text = when (sources) {
+                    is SourcesLine.From -> stringResource(Res.string.integrations_sources, sources.names.joinToString(", "))
+                    SourcesLine.NoneYet -> stringResource(
+                        if (apple) Res.string.integrations_sources_none_apple_health else Res.string.integrations_sources_none_health_connect,
+                    )
+                },
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.ink,
+            )
+            Note(stringResource(Res.string.integrations_sources_hint, name))
+        }
+    }
+    state.weighIns?.let { on ->
+        HorizontalDivider(color = AppTheme.colors.line)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = AppTheme.spacing.section),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(text = stringResource(Res.string.integrations_weigh_ins_title, name), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+                Text(text = stringResource(Res.string.integrations_weigh_ins_body), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            }
+            AppSwitch(checked = on, onCheckedChange = { onAction(IntegrationsAction.WeighInsToggled(it)) })
+        }
+    }
+    HorizontalDivider(color = AppTheme.colors.line)
+    Column(Modifier.padding(vertical = AppTheme.spacing.chip)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+            if (state.canOpenSource) OpenSourceButton(state, onAction)
+            ButtonGhost(onClick = { onAction(IntegrationsAction.DisconnectTapped) }, size = ButtonSize.Small) {
+                Text(stringResource(Res.string.integrations_disconnect))
+            }
+        }
+        if (apple) {
+            Note(stringResource(Res.string.integrations_remove_apple_health), Modifier.padding(bottom = AppTheme.spacing.chip))
+        }
+    }
+}
+
+/** Health Connect's own screen, or the Health app. */
+@Composable
+private fun OpenSourceButton(state: IntegrationsState, onAction: (IntegrationsAction) -> Unit) {
+    ButtonGhost(onClick = { onAction(IntegrationsAction.OpenSourceTapped) }, size = ButtonSize.Small) {
+        Text(
+            stringResource(
+                if (state.source == HealthSource.AppleHealth) Res.string.integrations_open_apple_health else Res.string.integrations_open_health_connect,
+            ),
+        )
     }
 }
 
@@ -399,6 +486,64 @@ private fun IntegrationsNumbersHardPreview() {
                 settings = IntegrationsFixtures.settings.copy(onboarding = OnboardingAnswers(hard = true)),
                 days = emptyList(),
             ),
+            onAction = {},
+        )
+    }
+}
+
+/** Connected, with where the data comes from and weigh-ins coming in. */
+@Preview
+@Composable
+private fun IntegrationsSourcesPreview() {
+    SettingsPreview {
+        IntegrationsScreen(
+            IntegrationsFixtures.state(
+                SettingsFixtures.policy(PresetId.Full),
+                source = HealthSource.AppleHealth,
+                sources = listOf("Apple Watch", "Garmin Connect", "Oura"),
+                weighInsOn = true,
+            ),
+            onAction = {},
+        )
+    }
+}
+
+/** Connected on an older permission: the Allow row for workouts and weight, and nothing in yet. */
+@Preview
+@Composable
+private fun IntegrationsAskForMorePreview() {
+    SettingsPreview {
+        IntegrationsScreen(
+            IntegrationsFixtures.state(
+                SettingsFixtures.policy(PresetId.Full),
+                source = HealthSource.AppleHealth,
+                energy = null,
+                canAskForMore = true,
+                sources = emptyList(),
+            ),
+            onAction = {},
+        )
+    }
+}
+
+/** Connect answered with an error (a build without the HealthKit entitlement did this). */
+@Preview
+@Composable
+private fun IntegrationsFailedPreview() {
+    SettingsPreview {
+        IntegrationsScreen(
+            IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.Full), status = HealthStatus.NotConnected, source = HealthSource.AppleHealth, failed = true),
+            onAction = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun IntegrationsSourcesDarkPreview() {
+    SettingsPreview(dark = true) {
+        IntegrationsScreen(
+            IntegrationsFixtures.state(SettingsFixtures.policy(PresetId.Full), sources = listOf("Fitbit", "Samsung Health")),
             onAction = {},
         )
     }

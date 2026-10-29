@@ -40,19 +40,34 @@ sealed interface HealthStatus {
     /** Health Connect is missing or out of date (Android 9 to 13). */
     data object NeedsInstall : HealthStatus
 
+    /** Never asked, nothing allowed (Health Connect), or turned off in Opson with Disconnect. */
     data object NotConnected : HealthStatus
 
+    /**
+     * Opson may read. On iOS that means the permission sheet has been shown for what Opson reads
+     * (or the person connected before): HealthKit never says whether reading was allowed, so a
+     * refusal there looks like a store with no data.
+     */
     data object Connected : HealthStatus
 }
 
-enum class ConnectOutcome { Connected, Denied, NeedsInstall, Unsupported }
+/**
+ * What Connect came to. [Failed] is the store answering with an error rather than a choice (a
+ * build without the HealthKit entitlement, Health Connect unbound): nothing was asked, so it is
+ * not [Denied].
+ */
+enum class ConnectOutcome { Connected, Denied, NeedsInstall, Unsupported, Failed }
 
 /**
  * Reads energy from the platform's health store, on the device. Values never leave it: nothing
  * here writes them to disk, the server, logs or telemetry.
  *
  * Permission is only ever requested by [connect], which a screen calls from a tap. [refresh]
- * re-checks without prompting, so returning from the store's own settings updates [status].
+ * re-checks without prompting, so returning from the store's own settings updates [status]; the
+ * app also refreshes on every foreground.
+ *
+ * [disconnect] is Opson's own switch: it stops reading. Health Connect also gives the permission
+ * back; HealthKit has no way for an app to do that, so on iOS the person removes it in Health.
  */
 interface HealthRepository {
     val source: HealthSource
@@ -79,6 +94,6 @@ interface HealthRepository {
      */
     suspend fun energyBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Map<LocalDate, EnergyExpended>?
 
-    /** Opens the store's own permission screen. False where the platform has none to open. */
+    /** Opens the store's own app or permission screen: Health Connect's, or the Health app. False where there is none. */
     fun openSourceSettings(): Boolean
 }

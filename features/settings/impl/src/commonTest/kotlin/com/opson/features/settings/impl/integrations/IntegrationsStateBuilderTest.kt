@@ -119,9 +119,40 @@ class IntegrationsStateBuilderTest {
     }
 
     @Test
-    fun onlyHealthConnect_hasItsOwnScreenToOpen() {
+    fun bothStores_haveSomewhereToOpen_HealthConnectsScreenOrTheHealthApp() {
         assertTrue(build().canOpenSource)
-        assertFalse(build(source = HealthSource.AppleHealth).canOpenSource)
+        assertTrue(build(source = HealthSource.AppleHealth).canOpenSource)
+    }
+
+    @Test
+    fun sources_weighIns_andMoreToAllow_onlyShowWhileConnected() {
+        val connected = IntegrationsStateBuilder.build(
+            IntegrationsFixtures.inputs(sources = listOf("Oura"), weighInsOn = true, canAskForMore = true),
+            policy(PresetId.Full),
+        )
+        assertEquals(SourcesLine.From(listOf("Oura")), connected.sources)
+        assertEquals(true, connected.weighIns)
+        assertTrue(connected.canAskForMore)
+        val not = IntegrationsStateBuilder.build(
+            IntegrationsFixtures.inputs(status = HealthStatus.NotConnected, sources = listOf("Oura"), weighInsOn = true, canAskForMore = true),
+            policy(PresetId.Full),
+        )
+        assertEquals(null, not.sources)
+        assertEquals(null, not.weighIns)
+        assertFalse(not.canAskForMore)
+    }
+
+    @Test
+    fun noSourcesYet_isItsOwnLine_notAnEmptyList() {
+        assertEquals(SourcesLine.NoneYet, IntegrationsStateBuilder.build(IntegrationsFixtures.inputs(sources = emptyList()), policy(PresetId.Full)).sources)
+        assertEquals(null, IntegrationsStateBuilder.build(IntegrationsFixtures.inputs(sources = null), policy(PresetId.Full)).sources, "not read yet")
+    }
+
+    @Test
+    fun failed_onlyShowsWhileStillNotConnected() {
+        val inputs = IntegrationsFixtures.inputs(status = HealthStatus.NotConnected)
+        assertTrue(IntegrationsStateBuilder.build(inputs, policy(PresetId.Full), failed = true).failed)
+        assertFalse(IntegrationsStateBuilder.build(IntegrationsFixtures.inputs(), policy(PresetId.Full), failed = true).failed)
     }
 
     private fun policy(preset: PresetId) = SettingsFixtures.policy(preset)

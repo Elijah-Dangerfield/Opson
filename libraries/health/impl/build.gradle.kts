@@ -16,6 +16,8 @@ kotlin {
             // AppData carries the one thing persisted: that the person connected.
             implementation(projects.libraries.opson)
             implementation(projects.libraries.storage)
+            // AppCoroutineScope, for the foreground re-check.
+            implementation(projects.libraries.flowroutines)
             implementation(libs.kotlinx.datetime)
         }
         commonTest.dependencies {

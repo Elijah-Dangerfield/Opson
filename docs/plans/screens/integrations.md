@@ -5,6 +5,46 @@ energy, and show it on the Integrations page and as **Expended so far** on
 Today. Everything sits behind `release.health` (default off). Read `shared.md`
 and `docs/plans/0.2/README.md` first.
 
+## Third pass (2026-10-29): connected on the store's terms, and reading more of the hubs
+
+This section supersedes what the passes below say about what is read and how
+connected is decided.
+
+**Connected** is what the store says. HealthKit never says whether reading was
+allowed, so on iOS it means `getRequestStatusForAuthorization` reports the
+sheet has been shown for what Opson reads (`HealthAccess.All`), or at least for
+the energy types (`Partly`: a build that connected before workouts and weight
+were read, which shows an Allow row). Health Connect reports what is granted:
+any of it is connected, part of it is `Partly`. A grant made in the store
+itself, or one that outlived a sign-out, counts without tapping Connect.
+`AppData.healthPaused` is Opson's own off switch: Disconnect sets it, because
+HealthKit has no way for an app to give permission back; Health Connect also
+revokes. The status is re-checked on every foreground
+(`HealthForegroundRefresh`), when Integrations resumes, and when a read
+starts. A Connect that errors (a build without the entitlement) is
+`ConnectOutcome.Failed`, logged at error once per process, and the page says
+so instead of showing the refusal copy.
+
+**What is read now**: energy, workouts (each with the app that recorded it),
+weight, height, and on iOS date of birth and biological sex. The hubs are where
+Garmin, Oura, Whoop, Strava, Withings and the rest write; direct APIs are in
+`docs/research/health-integrations.md`. Weight and height are read only for
+what the person asks: the opt-in **Add weigh-ins from** switch (into the
+weight log, deduped within ten minutes of a logged weigh-in, ids remembered so
+a deleted one never returns) and **Fill in from** on Profile. Those two leave
+the phone with the log; energy and workouts never do.
+
+**One reading, shared** (`docs/practices/today-data-flow.md`): one flow per
+day for every reader, reads only in the foreground, an HKObserverQuery while
+open, the last reading saved in `AppData.healthEnergy` for a cold start, a
+failed read keeping the last good value, and pull to refresh on Today.
+
+**The page, connected**: the source row with Connected; an Allow row when
+there is more to ask for; "Data from Apple Watch, Garmin Connect, Oura." or,
+with nothing in yet, where to check (on iOS that is also what a refused read
+looks like); the Add weigh-ins switch; Open the Health app / Open Health
+Connect and Disconnect, with iOS's note on removing access in Health.
+
 ## Source
 - Design v3: `integrations.png`, `integrations--full.png`, `today-full.png`
   (the "Expended so far" line in the summary card), `more.png` (the "Watch and

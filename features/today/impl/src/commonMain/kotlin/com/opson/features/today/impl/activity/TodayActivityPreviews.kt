@@ -7,6 +7,8 @@ import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.HealthWorkout
+import com.opson.libraries.health.WorkoutKind
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseActivities
@@ -70,9 +72,46 @@ object TodayActivityFixtures {
     /** Resting energy not known yet: no total, and the way to fix that. */
     fun unknown(policy: VisibilityPolicy): TodayActivityCard? = card(policy, burned = null, entries = emptyList())
 
-    private fun card(policy: VisibilityPolicy, burned: Burned?, entries: List<ExerciseEntry>, health: HealthSource? = null): TodayActivityCard? =
+    /** A morning run from Garmin and an evening class on the watch, as the health app has them. */
+    val workouts: List<HealthWorkout> = listOf(
+        HealthWorkout(
+            id = "garmin-run",
+            kind = WorkoutKind.Running,
+            title = "Morning run",
+            start = Instant.parse("2026-10-25T07:10:00Z"),
+            end = Instant.parse("2026-10-25T07:45:00Z"),
+            activeKcal = 320.0,
+            sourceName = "Garmin Connect",
+        ),
+        HealthWorkout(
+            id = "watch-hiit",
+            kind = WorkoutKind.Hiit,
+            title = null,
+            start = Instant.parse("2026-10-25T18:00:00Z"),
+            end = Instant.parse("2026-10-25T18:25:00Z"),
+            activeKcal = 210.0,
+            sourceName = "Apple Watch",
+        ),
+    )
+
+    /** Apple Health counts the day, with its workouts listed and nothing logged by hand. */
+    fun withWorkouts(policy: VisibilityPolicy): TodayActivityCard? = card(
+        policy,
+        burnedFor(resting, HealthActivity(movementKcal = 380, workoutKcal = 530), EverydayActivity.MostlySitting, ExerciseTotals(0, 0), activityCounted = true),
+        emptyList(),
+        HealthSource.AppleHealth,
+        workouts,
+    )
+
+    private fun card(
+        policy: VisibilityPolicy,
+        burned: Burned?,
+        entries: List<ExerciseEntry>,
+        health: HealthSource? = null,
+        workouts: List<HealthWorkout> = emptyList(),
+    ): TodayActivityCard? =
         TodayActivityStateBuilder.build(
-            TodayActivityInputs(day, Settings(), burned, entries, policy, released = true, timeZone = TimeZone.UTC, healthSource = health),
+            TodayActivityInputs(day, Settings(), burned, entries, policy, released = true, timeZone = TimeZone.UTC, healthSource = health, workouts = workouts),
         ).card
 }
 
@@ -114,6 +153,15 @@ private fun TodayActivityHealthWithFoodDarkPreview() = Section(TodayActivityFixt
 @Preview(widthDp = 390)
 @Composable
 private fun TodayActivityEmptyPreview() = Section(TodayActivityFixtures.manual(full, entries = emptyList()))
+
+/** The health app's workouts as rows: what each was, which app recorded it, and its energy. */
+@Preview(widthDp = 390)
+@Composable
+private fun TodayActivityWorkoutsPreview() = Section(TodayActivityFixtures.withWorkouts(full))
+
+@Preview(widthDp = 390)
+@Composable
+private fun TodayActivityWorkoutsDarkPreview() = Section(TodayActivityFixtures.withWorkouts(full), dark = true)
 
 @Preview(widthDp = 390)
 @Composable

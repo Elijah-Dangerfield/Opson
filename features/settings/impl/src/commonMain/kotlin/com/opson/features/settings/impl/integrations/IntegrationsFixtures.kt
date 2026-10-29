@@ -39,7 +39,20 @@ object IntegrationsFixtures {
         energy: EnergyExpended? = this.energy,
         settings: Settings = this.settings,
         days: List<Day> = this.days,
-    ): IntegrationsInputs = IntegrationsInputs(source = source, status = status, energy = energy, today = today, settings = settings, days = days)
+        canAskForMore: Boolean = false,
+        sources: List<String>? = null,
+        weighInsOn: Boolean = false,
+    ): IntegrationsInputs = IntegrationsInputs(
+        source = source,
+        status = status,
+        energy = energy,
+        today = today,
+        settings = settings,
+        days = days,
+        canAskForMore = canAskForMore,
+        sources = sources,
+        weighInsOn = weighInsOn,
+    )
 
     fun state(
         policy: VisibilityPolicy,
@@ -49,7 +62,16 @@ object IntegrationsFixtures {
         denied: Boolean = false,
         settings: Settings = this.settings,
         days: List<Day> = this.days,
-    ): IntegrationsState = IntegrationsStateBuilder.build(inputs(status, source, energy, settings, days), policy, denied = denied)
+        canAskForMore: Boolean = false,
+        sources: List<String>? = null,
+        weighInsOn: Boolean = false,
+        failed: Boolean = false,
+    ): IntegrationsState = IntegrationsStateBuilder.build(
+        inputs(status, source, energy, settings, days, canAskForMore, sources, weighInsOn),
+        policy,
+        denied = denied,
+        failed = failed,
+    )
 
     /** The Leave out a day sheet on October, with the family visit left out. */
     fun leaveOutState(): LeaveOutState =
