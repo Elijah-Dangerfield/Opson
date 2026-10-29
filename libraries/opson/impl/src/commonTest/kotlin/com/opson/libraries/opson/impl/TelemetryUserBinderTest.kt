@@ -182,6 +182,7 @@ class TelemetryUserBinderTest : CoroutineTest() {
             errorCode: Int?,
             email: String?,
             screenshots: List<ByteArray>,
+            sessionLog: String?,
         ) = true
     }
 

@@ -63,6 +63,7 @@ import com.opson.libraries.ui.debug.RecompositionCounter
 import com.opson.libraries.ui.snackbar.PresenterSnackbarHost
 import com.opson.libraries.ui.snackbar.showDebugSnackBar
 import com.opson.libraries.ui.system.clearFocusOnTapOutside
+import com.opson.libraries.ui.system.screenCaptureSource
 import com.opson.system.AppTheme
 import kotlinx.coroutines.launch
 import kotlin.reflect.typeOf
@@ -187,6 +188,8 @@ fun App(appComponent: AppComponent) {
                         // Tapping empty space closes the keyboard on every screen and hosted
                         // dialog. Bottom sheets are their own window and do the same themselves.
                         .clearFocusOnTapOutside()
+                        // What a shake's bug report shows: drawn through a layer only when asked.
+                        .screenCaptureSource(shakeHandler.screenCapture)
                 ) {
                     // Maintenance, the version floor and the update offer cover or sit above
                     // everything below. The guard collects its own state, so a change there

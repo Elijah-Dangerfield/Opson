@@ -9,7 +9,11 @@ import com.opson.libraries.identity.profile.ProfileRepository
 import com.opson.libraries.identity.profile.displayNameOrNull
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.ShakeDialogRoute
+import com.opson.libraries.core.Catching
+import com.opson.libraries.ui.system.ScreenCapture
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -35,6 +39,8 @@ class ShakeHandler(
     private val profileRepository: ProfileRepository,
     private val router: Router,
     private val appScope: AppCoroutineScope,
+    /** Internal so App.kt can install its source at the root without the iOS header seeing it. */
+    internal val screenCapture: ScreenCapture,
 ) {
     private var collectJob: Job? = null
     private var isShowingDialog = false
@@ -70,9 +76,13 @@ class ShakeHandler(
         isShowingDialog = false
     }
 
-    private suspend fun handleShake(event: ShakeEvent) {
-        if (isShowingDialog) return
+    private suspend fun handleShake(event: ShakeEvent) = coroutineScope {
+        if (isShowingDialog) return@coroutineScope
 
+        // The picture first, before the dialog covers what the person was looking at, alongside
+        // the name lookup so neither waits on the other. Held for the bug report Report a bug opens.
+        // A capture that fails or never answers costs the report its picture, never the dialog.
+        val screenshot = async { Catching { screenCapture.capture() }.getOrNull() }
         // The name only flavours the copy. The first profile is a /v1/me round trip, and a resolve
         // that throws never emits, so an unbounded wait here left shake-to-report dead for the
         // session, the moment someone most wants to report something.
@@ -85,6 +95,7 @@ class ShakeHandler(
         )
 
         val message = shakeMessageProvider.getMessage(context)
+        screenCapture.hold(screenshot.await())
 
         isShowingDialog = true
         router.navigate(

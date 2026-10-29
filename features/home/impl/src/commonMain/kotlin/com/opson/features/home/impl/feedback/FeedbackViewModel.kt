@@ -1,6 +1,11 @@
 package com.opson.features.home.impl.feedback
 
+import androidx.lifecycle.viewModelScope
+import com.opson.features.home.impl.report.AttachmentAction
+import com.opson.features.home.impl.report.ReportAttachments
+import com.opson.features.home.impl.report.ReportAttachmentsSource
 import com.opson.libraries.flowroutines.SEAViewModel
+import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.common_send
@@ -13,15 +18,29 @@ import org.jetbrains.compose.resources.StringResource
 @Inject
 class FeedbackViewModel(
     private val repository: FeedbackRepository,
+    attachmentsSource: ReportAttachmentsSource,
 ) : SEAViewModel<FeedbackState, FeedbackEvent, FeedbackAction>(
     initialStateArg = FeedbackState()
 ) {
+
+    init {
+        viewModelScope.launch { takeAction(FeedbackAction.AttachmentsArrived(attachmentsSource.initial())) }
+    }
 
     override suspend fun handleAction(action: FeedbackAction) {
         when (action) {
             FeedbackAction.Back -> sendEvent(FeedbackEvent.Close)
             is FeedbackAction.MessageChanged -> action.updateState { it.copy(message = action.value, errorMessage = null) }
             FeedbackAction.Submit -> action.submitFeedback()
+            is FeedbackAction.AttachmentsArrived -> action.updateState {
+                it.copy(attachments = action.attachments.mergedWith(it.attachments))
+            }
+            is FeedbackAction.Attachment -> {
+                if (action.action == AttachmentAction.AddScreenshotTapped && state.attachments.canAddScreenshot) {
+                    sendEvent(FeedbackEvent.PickScreenshot)
+                }
+                action.updateState { it.copy(attachments = it.attachments.reduce(action.action)) }
+            }
         }
     }
 
@@ -38,13 +57,18 @@ class FeedbackViewModel(
             return
         }
         updateState { it.copy(isSubmitting = true, errorMessage = null) }
-        val sent = repository.submitFeedback(message = current.message.trim(), isBugReport = false).isSuccess
-        if (!sent) {
+        val delivery = repository.submitFeedback(
+            message = current.message.trim(),
+            isBugReport = false,
+            screenshots = current.attachments.screenshots.map { it.jpeg },
+            sessionLog = current.attachments.sentLog,
+        ).getOrNull()
+        if (delivery == null) {
             updateState { it.copy(isSubmitting = false, errorMessage = Res.string.feedback_failed) }
             return
         }
         updateState { it.copy(isSubmitting = false, isSent = true) }
-        sendEvent(FeedbackEvent.Sent)
+        sendEvent(FeedbackEvent.Sent(queued = delivery == FeedbackDelivery.Queued))
     }
 }
 
@@ -53,6 +77,7 @@ data class FeedbackState(
     val isSubmitting: Boolean = false,
     val errorMessage: StringResource? = null,
     val isSent: Boolean = false,
+    val attachments: ReportAttachments = ReportAttachments(),
 ) {
     val canSubmit: Boolean get() = message.isNotBlank() && !isSubmitting && !isSent
 
@@ -69,13 +94,18 @@ data class FeedbackState(
 }
 
 sealed interface FeedbackEvent {
-    /** Thank them and close. */
-    data object Sent : FeedbackEvent
+    /** Thank them and close. [queued]: offline, so the thanks says it goes out later. */
+    data class Sent(val queued: Boolean = false) : FeedbackEvent
     data object Close : FeedbackEvent
+
+    /** Open the system photo picker; the answer comes back as an [AttachmentAction]. */
+    data object PickScreenshot : FeedbackEvent
 }
 
 sealed interface FeedbackAction {
     data object Back : FeedbackAction
     data class MessageChanged(val value: String) : FeedbackAction
     data object Submit : FeedbackAction
+    data class AttachmentsArrived(val attachments: ReportAttachments) : FeedbackAction
+    data class Attachment(val action: AttachmentAction) : FeedbackAction
 }

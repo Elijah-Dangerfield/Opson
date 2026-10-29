@@ -46,7 +46,7 @@ class MoreTest : CoroutineTest() {
             listOf(
                 listOf(MoreRow.Display(PresetId.Full, changes = 0), MoreRow.Targets),
                 listOf(MoreRow.Water(glasses = 8)),
-                listOf(MoreRow.Support, MoreRow.Plan),
+                listOf(MoreRow.Support, MoreRow.ReportBug, MoreRow.SendFeedback, MoreRow.Plan),
                 listOf(MoreRow.Privacy, MoreRow.Terms, MoreRow.Credits),
             ),
             build().groups,
@@ -299,7 +299,8 @@ class MoreTest : CoroutineTest() {
         assertEquals(
             listOf(
                 MoreEvent.OpenDisplay, MoreEvent.OpenTargets, MoreEvent.OpenHealth,
-                MoreEvent.OpenWater, MoreEvent.OpenSupport, MoreEvent.OpenPrivacy, MoreEvent.OpenTerms, MoreEvent.OpenCredits,
+                MoreEvent.OpenWater, MoreEvent.OpenSupport, MoreEvent.OpenBugReport, MoreEvent.OpenFeedback,
+                MoreEvent.OpenPrivacy, MoreEvent.OpenTerms, MoreEvent.OpenCredits,
             ),
             events,
         )

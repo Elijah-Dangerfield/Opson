@@ -53,6 +53,26 @@
     <string name="feedback_thanks">Got it. Thank you!</string>
     <string name="feedback_empty">Add a quick note before sending.</string>
     <string name="feedback_failed">That didn't send. Try again in a moment.</string>
+    <!-- Offline: crash reporting keeps the report on the phone and sends it later -->
+    <string name="feedback_queued">Saved. It sends when you're back online.</string>
+
+    <!-- What a bug report or feedback carries, shown before it is sent -->
+    <string name="report_attachments_title">Sent with it</string>
+    <string name="report_screenshot_add">Add a screenshot</string>
+    <string name="report_screenshot_cd">Screenshot %1$d</string>
+    <string name="report_screenshot_remove">Remove screenshot %1$d</string>
+    <string name="report_screenshot_note">A screenshot shows whatever was on screen, your log included. Remove it if you'd rather not send it.</string>
+    <string name="report_screenshot_failed">That picture didn't load. Try another one.</string>
+    <string name="report_log_title">Recent app activity</string>
+    <string name="report_log_lines">Technical events from this session, %1$d lines</string>
+    <string name="report_log_empty">Nothing recorded yet</string>
+    <string name="report_log_off">Not sent</string>
+    <string name="report_log_view">View</string>
+    <string name="report_log_include">Send recent app activity</string>
+    <string name="report_log_sheet_body">This is the exact text that goes with your report. Web addresses have their search words taken out.</string>
+    <string name="report_device_title">App and phone</string>
+    <string name="report_device_line">Version %1$s · %2$s</string>
+    <string name="report_device_note">Always sent, so we know where to look.</string>
 
     <!-- Sign in / sign up / password reset / email verification -->
     <string name="auth_email_label">Email</string>

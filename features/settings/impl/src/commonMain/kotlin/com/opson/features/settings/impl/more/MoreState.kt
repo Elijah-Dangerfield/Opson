@@ -80,6 +80,12 @@ sealed interface MoreRow {
     /** Help: helplines, export, feedback and deleting the account. */
     data object Support : MoreRow
 
+    /** Straight to the bug report, the same page shaking the phone offers. */
+    data object ReportBug : MoreRow
+
+    /** Straight to feedback, also on Support. */
+    data object SendFeedback : MoreRow
+
     /** "Free". There is no purchase flow in 0.1, so it opens nothing. */
     data object Plan : MoreRow
 
@@ -130,7 +136,7 @@ object MoreStateBuilder {
                     .takeIf { FastingAccess.of(settings, fastingReleased) == FastingAccess.Offered },
                 MoreRow.Widgets.takeIf { widgetsOn },
             ),
-            listOf(MoreRow.Support, MoreRow.Plan),
+            listOf(MoreRow.Support, MoreRow.ReportBug, MoreRow.SendFeedback, MoreRow.Plan),
             listOf(MoreRow.Privacy, MoreRow.Terms, MoreRow.Credits),
             account?.let { listOf(MoreRow.LogOut(it)) },
         ) + contributed.groupBy { it.section }.values.map { rows -> rows.map(MoreRow::Contributed) },

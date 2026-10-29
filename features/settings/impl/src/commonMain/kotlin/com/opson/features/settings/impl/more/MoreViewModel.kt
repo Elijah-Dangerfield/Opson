@@ -104,6 +104,8 @@ class MoreViewModel(
             is MoreRow.Fasting -> sendEvent(MoreEvent.OpenFasting)
             MoreRow.Widgets -> sendEvent(MoreEvent.OpenWidgets)
             MoreRow.Support -> sendEvent(MoreEvent.OpenSupport)
+            MoreRow.ReportBug -> sendEvent(MoreEvent.OpenBugReport)
+            MoreRow.SendFeedback -> sendEvent(MoreEvent.OpenFeedback)
             MoreRow.Plan -> Unit
             MoreRow.Privacy -> sendEvent(MoreEvent.OpenPrivacy)
             MoreRow.Terms -> sendEvent(MoreEvent.OpenTerms)
@@ -182,6 +184,8 @@ sealed interface MoreEvent {
     data object OpenHealth : MoreEvent
     data object OpenReminders : MoreEvent
     data object OpenSupport : MoreEvent
+    data object OpenBugReport : MoreEvent
+    data object OpenFeedback : MoreEvent
     data object OpenFasting : MoreEvent
     data object OpenWidgets : MoreEvent
     data object OpenPrivacy : MoreEvent

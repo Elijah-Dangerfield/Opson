@@ -3,6 +3,9 @@ package com.opson.features.home.impl.feedback
 import com.opson.features.home.impl.bugreport.BugReportAction
 import com.opson.features.home.impl.bugreport.BugReportEvent
 import com.opson.features.home.impl.bugreport.BugReportViewModel
+import com.opson.features.home.impl.report.ReportAttachments
+import com.opson.features.home.impl.report.ReportAttachmentsSource
+import com.opson.features.home.impl.report.Screenshot
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import kotlinx.coroutines.launch
@@ -25,14 +28,14 @@ class FeedbackViewModelTest : CoroutineTest() {
     @Test
     fun aSentMessage_thanksAndCloses() = runUnitTest {
         val repository = FakeFeedbackRepository()
-        val vm = FeedbackViewModel(repository)
+        val vm = FeedbackViewModel(repository, FakeAttachmentsSource())
         val events = eventsOf(vm)
 
         vm.takeAction(FeedbackAction.MessageChanged("  Love the water card  "))
         vm.takeAction(FeedbackAction.Submit)
 
         assertEquals(listOf("Love the water card"), repository.sent)
-        assertEquals(listOf<FeedbackEvent>(FeedbackEvent.Sent), events)
+        assertEquals(listOf<FeedbackEvent>(FeedbackEvent.Sent()), events)
     }
 
     /**
@@ -43,7 +46,7 @@ class FeedbackViewModelTest : CoroutineTest() {
     @Test
     fun aDoubleTapOnSend_sendsOnceAndClosesOnce() = runUnitTest {
         val repository = FakeFeedbackRepository()
-        val vm = FeedbackViewModel(repository)
+        val vm = FeedbackViewModel(repository, FakeAttachmentsSource())
         val events = eventsOf(vm)
 
         vm.takeAction(FeedbackAction.MessageChanged("Love the water card"))
@@ -51,7 +54,7 @@ class FeedbackViewModelTest : CoroutineTest() {
         vm.takeAction(FeedbackAction.Submit)
 
         assertEquals(listOf("Love the water card"), repository.sent)
-        assertEquals(listOf<FeedbackEvent>(FeedbackEvent.Sent), events)
+        assertEquals(listOf<FeedbackEvent>(FeedbackEvent.Sent()), events)
     }
 
     /**
@@ -60,7 +63,7 @@ class FeedbackViewModelTest : CoroutineTest() {
      */
     @Test
     fun aSentPage_saysSentOnItsDisabledButton() = runUnitTest {
-        val vm = FeedbackViewModel(FakeFeedbackRepository())
+        val vm = FeedbackViewModel(FakeFeedbackRepository(), FakeAttachmentsSource())
 
         vm.takeAction(FeedbackAction.MessageChanged("Love the water card"))
         vm.takeAction(FeedbackAction.Submit)
@@ -72,7 +75,7 @@ class FeedbackViewModelTest : CoroutineTest() {
     @Test
     fun aBlankMessage_isNotSent_andSaysWhy() = runUnitTest {
         val repository = FakeFeedbackRepository()
-        val vm = FeedbackViewModel(repository)
+        val vm = FeedbackViewModel(repository, FakeAttachmentsSource())
 
         vm.takeAction(FeedbackAction.MessageChanged("   "))
         vm.takeAction(FeedbackAction.Submit)
@@ -83,7 +86,7 @@ class FeedbackViewModelTest : CoroutineTest() {
 
     @Test
     fun aFailedSend_keepsTheMessage_andSaysSo() = runUnitTest {
-        val vm = FeedbackViewModel(FakeFeedbackRepository(fails = true))
+        val vm = FeedbackViewModel(FakeFeedbackRepository(fails = true), FakeAttachmentsSource())
         val events = eventsOf(vm)
 
         vm.takeAction(FeedbackAction.MessageChanged("Love the water card"))
@@ -97,7 +100,7 @@ class FeedbackViewModelTest : CoroutineTest() {
 
     @Test
     fun typingAgain_clearsTheFailure() = runUnitTest {
-        val vm = FeedbackViewModel(FakeFeedbackRepository(fails = true))
+        val vm = FeedbackViewModel(FakeFeedbackRepository(fails = true), FakeAttachmentsSource())
         vm.takeAction(FeedbackAction.MessageChanged("Hi"))
         vm.takeAction(FeedbackAction.Submit)
 
@@ -111,6 +114,7 @@ class FeedbackViewModelTest : CoroutineTest() {
         val repository = FakeFeedbackRepository()
         val vm = BugReportViewModel(
             repository,
+            FakeAttachmentsSource(),
             logId = "log-1",
             errorCode = 1200,
             contextMessage = "We couldn't load your day.",
@@ -122,13 +126,13 @@ class FeedbackViewModelTest : CoroutineTest() {
 
         assertEquals(listOf<Pair<String?, Int?>>("log-1" to 1200), repository.ids)
         assertEquals(listOf<String?>("We couldn't load your day."), repository.contexts)
-        assertEquals(listOf<BugReportEvent>(BugReportEvent.Sent), events)
+        assertEquals(listOf<BugReportEvent>(BugReportEvent.Sent()), events)
     }
 
     @Test
     fun aDoubleTapOnSend_sendsTheBugReportOnceAndClosesOnce() = runUnitTest {
         val repository = FakeFeedbackRepository()
-        val vm = BugReportViewModel(repository)
+        val vm = BugReportViewModel(repository, FakeAttachmentsSource())
         val events = eventsOf(vm)
 
         vm.takeAction(BugReportAction.MessageChanged("The sheet would not open"))
@@ -136,12 +140,12 @@ class FeedbackViewModelTest : CoroutineTest() {
         vm.takeAction(BugReportAction.Submit)
 
         assertEquals(listOf("The sheet would not open"), repository.sent)
-        assertEquals(listOf<BugReportEvent>(BugReportEvent.Sent), events)
+        assertEquals(listOf<BugReportEvent>(BugReportEvent.Sent()), events)
     }
 
     @Test
     fun aSentBugReport_saysSentOnItsDisabledButton() = runUnitTest {
-        val vm = BugReportViewModel(FakeFeedbackRepository())
+        val vm = BugReportViewModel(FakeFeedbackRepository(), FakeAttachmentsSource())
 
         vm.takeAction(BugReportAction.MessageChanged("The sheet would not open"))
         vm.takeAction(BugReportAction.Submit)
@@ -152,7 +156,7 @@ class FeedbackViewModelTest : CoroutineTest() {
 
     @Test
     fun aFailedBugReport_staysOnThePage() = runUnitTest {
-        val vm = BugReportViewModel(FakeFeedbackRepository(fails = true))
+        val vm = BugReportViewModel(FakeFeedbackRepository(fails = true), FakeAttachmentsSource())
         val events = eventsOf(vm)
 
         vm.takeAction(BugReportAction.MessageChanged("The sheet would not open"))
@@ -169,10 +173,15 @@ class FeedbackViewModelTest : CoroutineTest() {
     }
 }
 
-private class FakeFeedbackRepository(private val fails: Boolean = false) : FeedbackRepository {
+internal class FakeFeedbackRepository(
+    private val fails: Boolean = false,
+    private val delivery: FeedbackDelivery = FeedbackDelivery.Sent,
+) : FeedbackRepository {
     val sent = mutableListOf<String>()
     val ids = mutableListOf<Pair<String?, Int?>>()
     val contexts = mutableListOf<String?>()
+    val screenshots = mutableListOf<List<ByteArray>>()
+    val logs = mutableListOf<String?>()
 
     override suspend fun submitFeedback(
         message: String,
@@ -180,11 +189,23 @@ private class FakeFeedbackRepository(private val fails: Boolean = false) : Feedb
         logId: String?,
         errorCode: Int?,
         contextMessage: String?,
-    ): Result<Unit> {
+        screenshots: List<ByteArray>,
+        sessionLog: String?,
+    ): Result<FeedbackDelivery> {
         if (fails) return Result.failure(IllegalStateException("telemetry is down"))
         sent += message
         ids += logId to errorCode
         contexts += contextMessage
-        return Result.success(Unit)
+        this.screenshots += screenshots
+        logs += sessionLog
+        return Result.success(delivery)
     }
+}
+
+internal class FakeAttachmentsSource(
+    private val attachments: ReportAttachments = ReportAttachments(),
+    private val held: ByteArray? = null,
+) : ReportAttachmentsSource {
+    override suspend fun initial(shakeScreenshot: Boolean): ReportAttachments =
+        if (shakeScreenshot && held != null) attachments.copy(screenshots = listOf(Screenshot(held))) else attachments
 }

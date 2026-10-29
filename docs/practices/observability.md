@@ -111,7 +111,10 @@ Start from wherever the report landed and pivot on the id:
    Loki, the app events and Warn+ logs for that session, each stamped with `is_offline` *at emit
    time* (a record that shipped later from the disk buffer still says what connectivity looked
    like when it happened). Feedback reports also carry a `session-log.txt` attachment, the
-   in-memory ring buffer of fine-grained logs that never left the device.
+   in-memory ring buffer of fine-grained logs that never left the device, unless the reporter
+   switched it off on the page, which shows them that exact text first. A report opened from a
+   shake usually has `screenshot-1.jpg`, taken the moment before the shake dialog appeared (the
+   app's own Compose content only: a sheet or dialog open at the time is not in it).
 3. **Backend side:** `{service_name="opson-server"} | session_id="<uuid>"` for logs;
    `{ .session_id = "<uuid>" }` in Tempo for every request trace the session produced.
 4. **The reverse direction works too:** a server error in Sentry carries `trace_id` (paste into
