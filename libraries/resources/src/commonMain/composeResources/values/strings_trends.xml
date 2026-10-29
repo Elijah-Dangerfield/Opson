@@ -16,11 +16,11 @@
     <string name="trends_eaten">Eaten</string>
     <string name="trends_avg">avg</string>
     <string name="trends_intake_caption_plain">The band is your range. A gap is a day you left untracked.</string>
-    <string name="trends_intake_caption_today">The band is your range. Today is striped because it's still in progress, so it isn't in the average.</string>
-    <string name="trends_intake_caption_week">The band is your range. This week is striped because it's still in progress, so it isn't in the average.</string>
+    <string name="trends_intake_caption_today">The band is your range. Today is striped while it's in progress and isn't in the average yet.</string>
+    <string name="trends_intake_caption_week">The band is your range. This week is striped while it's in progress and isn't in the average yet.</string>
     <string name="trends_intake_caption_plain_goal">The line is your goal. A gap is a day you left untracked.</string>
-    <string name="trends_intake_caption_today_goal">The line is your goal. Today is striped because it's still in progress, so it isn't in the average.</string>
-    <string name="trends_intake_caption_week_goal">The line is your goal. This week is striped because it's still in progress, so it isn't in the average.</string>
+    <string name="trends_intake_caption_today_goal">The line is your goal. Today is striped while it's in progress and isn't in the average yet.</string>
+    <string name="trends_intake_caption_week_goal">The line is your goal. This week is striped while it's in progress and isn't in the average yet.</string>
     <string name="trends_check_tonight">Your weekly check opens tonight</string>
     <string name="trends_check_on">Your weekly check opens %1$s</string>
     <string name="trends_check_body">%1$s at %2$s. You'll see your weekly average and how weight is trending.</string>
@@ -59,7 +59,7 @@
     <string name="trends_hunger_caption_weeks">Each bar is a week's average. Taller means hungrier.</string>
     <string name="trends_hunger_by_meal">Before each meal</string>
     <string name="trends_hunger_meal_cd">%1$s, usually %2$s</string>
-    <string name="trends_hunger_empty">Add a hunger level to a meal's note, and it shows up here.</string>
+    <string name="trends_hunger_empty">Add a hunger level to a meal's note to see it here.</string>
     <string name="trends_journal">Notes</string>
     <string name="trends_journal_all">All notes</string>
     <string name="trends_journal_noted">Meals with a note</string>
@@ -140,19 +140,19 @@
     <string name="trends_micro_selenium">Selenium</string>
     <string name="trends_micro_of">of %1$s</string>
     <string name="trends_micro_of_limit">of a %1$s</string>
-    <string name="trends_micros_caption">Percent of a daily reference for your age and sex, which you can change in More, Targets. Most people land under on some and over on others, and that's fine. A week tells you more than a day does. Not listed means none of the foods say how much they have.</string>
+    <string name="trends_micros_caption">Percent of a daily reference for your age and sex, set in More, Targets. Most people are under on some and over on others, and a week says more than a day. Not listed means none of your foods give an amount.</string>
     <string name="trends_micro_not_listed">Not listed</string>
     <string name="trends_micro_coverage">%1$d of %2$d foods list it</string>
     <string name="trends_nutrient_open_foods">See which foods gave it</string>
     <string name="trends_micros_off_title">Vitamins and minerals are off</string>
     <string name="trends_micros_off_body">Turn them on in Display.</string>
     <string name="trends_micros_off_link">Display</string>
-    <string name="trends_nutrients_nothing">No nutrient detail in this mode. Your meals are all still logged.</string>
+    <string name="trends_nutrients_nothing">This mode doesn't show nutrient detail. Your meals are still logged.</string>
 
     <!-- Weight -->
     <string name="trends_weight_title">Weight</string>
     <string name="trends_weight_save_failed">That weigh-in didn't save. Try again.</string>
-    <string name="trends_weight_not_a_weight">That doesn't look like a weight, so it wasn't saved. Check the number and save again.</string>
+    <string name="trends_weight_not_a_weight">That doesn't look like a weight. Check the number and save again.</string>
     <string name="trends_weight_trend_label">Trend</string>
     <string name="trends_weight_now">This morning</string>
     <string name="trends_weight_range_1w">Last week</string>
@@ -161,19 +161,19 @@
     <string name="trends_weight_chip_1w">1W</string>
     <string name="trends_weight_chip_1m">1M</string>
     <string name="trends_weight_chip_3m">3M</string>
-    <string name="trends_weight_caption">The dots are weigh-ins. The line is a smoothed trend, so a day of water weight doesn't steer you.</string>
+    <string name="trends_weight_caption">The dots are weigh-ins. The line is the smoothed trend.</string>
     <string name="trends_weight_hidden_title">Weight is hidden</string>
-    <string name="trends_weight_hidden_body">You can still log it. Digits turn into dots as you type, and nothing shows afterwards.</string>
+    <string name="trends_weight_hidden_body">You can still log it. The number shows as dots while you type, and it isn't shown after you save.</string>
     <string name="trends_weight_log">Log a weigh-in</string>
     <!-- Empty states: what shows up here, and when. -->
-    <string name="trends_weight_empty">Once you start weighing in, your graph shows up here.</string>
+    <string name="trends_weight_empty">Your graph starts with your first weigh-in.</string>
     <string name="trends_weight_empty_action">Add a weigh-in</string>
     <string name="trends_weight_none_in_range">No weigh-ins in this stretch. Try a longer range.</string>
     <string name="trends_weight_one_reading">One more weigh-in and the line starts.</string>
-    <string name="trends_eaten_empty">Once you log a day, your week shows up here.</string>
-    <string name="trends_patterns_empty">Your patterns show up here after a few days of logging.</string>
-    <string name="trends_nutrients_empty_day">Nothing logged on this day yet. Its nutrients show up here once you do.</string>
-    <string name="trends_nutrients_empty_week">Nothing logged this week yet. Your averages show up here once you do.</string>
+    <string name="trends_eaten_empty">Log a day and your week fills in here.</string>
+    <string name="trends_patterns_empty">Patterns need a few days of logging.</string>
+    <string name="trends_nutrients_empty_day">Nothing logged on this day yet.</string>
+    <string name="trends_nutrients_empty_week">Nothing logged this week yet.</string>
     <string name="trends_weight_unit_kg">kg</string>
     <string name="trends_weight_unit_lb">lb</string>
     <string name="trends_weight_save">Save</string>
@@ -218,10 +218,10 @@
     <string name="trends_calendar_title_logged">Your month</string>
     <string name="trends_calendar_sub_logged">Days with something logged</string>
     <string name="trends_calendar_help_cd">How to read this</string>
-    <string name="trends_calendar_help_lose">Your plan is a deficit: eating a set amount less than your total burned (TDEE), which is your resting energy (BMR) plus your activity, so it moves a little from day to day. On plan means the day landed close to that gap. A bit off means close, but not quite, either way. Over plan means you ate enough that most of the gap closed. Eating far under your plan shows as a bit off too, because that isn't the aim either.</string>
-    <string name="trends_calendar_help_gain">Your plan is a surplus: eating a set amount more than your total burned (TDEE), which is your resting energy (BMR) plus your activity, so it moves a little from day to day. On plan means the day landed close to that. A bit off means close, but not quite, either way. Under plan means you ate well short of it. Going far past your plan shows as a bit off too, because that isn't the aim either.</string>
-    <string name="trends_calendar_help_hold">Your plan is the range you eat in each day. On plan means the day landed inside it. A bit off means just outside it, either way. Off plan means well outside it.</string>
-    <string name="trends_calendar_help_gray">Gray days had nothing logged, were marked untracked, or haven't happened yet, and today waits until you close it. One day doesn't decide anything. The weeks are what count.</string>
+    <string name="trends_calendar_help_lose">Your plan is to eat a set amount under your total burned (TDEE). That's your resting energy (BMR) plus your activity, so it shifts a little each day. On plan means the day landed close to that gap. A bit off means near it, over or under. Over plan means most of the gap closed. Eating far under your plan also shows as a bit off, because that isn't the aim either.</string>
+    <string name="trends_calendar_help_gain">Your plan is to eat a set amount over your total burned (TDEE). That's your resting energy (BMR) plus your activity, so it shifts a little each day. On plan means the day landed close to that. A bit off means near it, over or under. Under plan means you ate well short of it. Going far past your plan also shows as a bit off, because that isn't the aim either.</string>
+    <string name="trends_calendar_help_hold">Your plan is your daily range. On plan means the day landed inside it. A bit off means just outside it. Off plan means well outside it.</string>
+    <string name="trends_calendar_help_gray">Gray days had nothing logged, were marked untracked, or haven't happened yet. Today stays gray until you wrap up the day. No single day decides much. Look at the weeks.</string>
     <string name="trends_calendar_help_logged">Each day with something logged is filled in. Gray days had nothing logged, were marked untracked, or haven't happened yet.</string>
     <string name="trends_calendar_counts">%1$d on plan · %2$d a bit off · %3$d %4$s</string>
     <string name="trends_calendar_counts_over">over</string>
@@ -254,8 +254,8 @@
     <string name="trends_day_plan">Your plan</string>
     <string name="trends_day_plan_about">About %1$s</string>
     <string name="trends_day_open">Open this day</string>
-    <string name="trends_day_note_partial">Some of what you logged has no amount, so this day isn't judged.</string>
-    <string name="trends_day_note_in_progress">Today is still going. It's judged once you close the day.</string>
+    <string name="trends_day_note_partial">Some of what you logged has no amount, so this day isn't marked on or off plan.</string>
+    <string name="trends_day_note_in_progress">Today is still going. It's marked once you wrap up the day.</string>
     <string name="trends_day_note_not_yet">Your numbers for this day open later.</string>
     <string name="trends_day_note_untracked">You marked this day untracked, so it's left out.</string>
     <string name="trends_day_note_not_logged">Nothing was logged this day.</string>
@@ -270,18 +270,18 @@
     <string name="trends_running_under">%1$s under what you burned</string>
     <string name="trends_running_over">%1$s over what you burned</string>
     <string name="trends_running_even">About even with what you burned</string>
-    <string name="trends_running_lost_lb">Roughly %1$s of body weight lost, by the rule of thumb of 3,500 kcal a pound.</string>
-    <string name="trends_running_lost_kg">Roughly %1$s of body weight lost, by the rule of thumb of 7,700 kcal a kilogram.</string>
-    <string name="trends_running_gained_lb">Roughly %1$s of body weight gained, by the rule of thumb of 3,500 kcal a pound.</string>
-    <string name="trends_running_gained_kg">Roughly %1$s of body weight gained, by the rule of thumb of 7,700 kcal a kilogram.</string>
+    <string name="trends_running_lost_lb">Roughly %1$s of body weight lost, using the rule of thumb of 3,500 kcal a pound.</string>
+    <string name="trends_running_lost_kg">Roughly %1$s of body weight lost, using the rule of thumb of 7,700 kcal a kilogram.</string>
+    <string name="trends_running_gained_lb">Roughly %1$s of body weight gained, using the rule of thumb of 3,500 kcal a pound.</string>
+    <string name="trends_running_gained_kg">Roughly %1$s of body weight gained, using the rule of thumb of 7,700 kcal a kilogram.</string>
     <string name="trends_running_scale">Your weight trend</string>
     <string name="trends_running_scale_down">Down %1$s</string>
     <string name="trends_running_scale_up">Up %1$s</string>
     <string name="trends_running_scale_steady">About the same</string>
     <string name="trends_running_days">Counted from %1$d of %2$d days.</string>
-    <string name="trends_running_empty">Log a full day, and it adds up here.</string>
+    <string name="trends_running_empty">Log a full day to start the total.</string>
     <string name="trends_running_help_cd">How this is worked out</string>
-    <string name="trends_running_help">Each day it takes your total burned (TDEE) and subtracts what you ate, then adds the days up. Total burned is your resting energy (BMR) plus your activity, and both are estimates: a watch or a formula can be off by a few hundred a day. The weight uses a rough rule of thumb, and real change is usually slower. Water can move the scale a few pounds from one day to the next, so compare this with your weight trend over weeks, not days. A day with nothing logged, or a meal without an amount, is left out rather than guessed.</string>
+    <string name="trends_running_help">Each day, what you ate is taken away from your total burned (TDEE), and the days are added up. Total burned is your resting energy (BMR) plus your activity. Both are estimates, and a watch or a formula can be off by a few hundred a day. The weight uses a rough rule of thumb, and real change is usually slower. Water can move the scale a few pounds from one day to the next, so compare this with your weight trend over weeks. Days with nothing logged, and meals without an amount, are left out.</string>
 
     <!-- The shared energy (i) sheets, opened from the calendar's and the running total's explanations. -->
     <string name="trends_energy_link_burned">What total burned (TDEE) is</string>
@@ -291,7 +291,7 @@
     <!-- Hunger from the check-ins. -->
     <string name="trends_hunger_checkins">From your check-ins</string>
     <string name="trends_hunger_checkins_caption_days">A dot for each day's check-in. Higher means hungrier.</string>
-    <string name="trends_hunger_checkins_caption_weeks">Each dot is a week's average, the bar behind it the range. Higher means hungrier.</string>
+    <string name="trends_hunger_checkins_caption_weeks">Each dot is a week's average, and the bar behind it is the range. Higher means hungrier.</string>
     <string name="trends_hunger_meals">Before meals, from your notes</string>
     <plurals name="trends_hunger_checkins_sub">
         <item quantity="one">From %1$d check-in</item>

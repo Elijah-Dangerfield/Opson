@@ -18,7 +18,7 @@
 
     <!-- First visit -->
     <string name="medication_intro_title">Keep a record of your medication</string>
-    <string name="medication_intro_body">Keep a record of your medication next to your food and how you feel. Opson doesn't check doses or give medical advice; your prescriber does.</string>
+    <string name="medication_intro_body">Log doses next to your food and how you feel. Opson doesn't check doses or give medical advice. Your prescriber does.</string>
     <string name="medication_intro_set_up">Set up</string>
 
     <!-- Setup -->
@@ -69,9 +69,9 @@
 
     <!-- How are you feeling -->
     <string name="medication_feeling_title">How are you feeling today?</string>
-    <string name="medication_feeling_body">Any side effects. Tap one to add it, then say how bad.</string>
+    <string name="medication_feeling_body">Tap a side effect to add it, then pick how bad it is.</string>
     <string name="medication_feeling_remove_cd">Remove %1$s</string>
-    <string name="medication_care_line">Severe stomach pain that doesn't go away, or vomiting you can't keep fluids down through, can be serious. Contact your prescriber or get urgent care.</string>
+    <string name="medication_care_line">Severe stomach pain that won't go away, or vomiting so bad you can't keep fluids down, can be serious. Contact your prescriber or get urgent care.</string>
 
     <!-- Footer and turning off -->
     <string name="medication_disclosure">Opson keeps a record for you. It doesn't check your dose, timing or what to do if you miss one. Follow your prescriber's instructions and the leaflet that came with your medication.</string>

@@ -37,7 +37,7 @@ wins.
 | "2 of 4" text, round back button, Skip | A top bar: back arrow (48 dp), a **segmented progress bar** (four segments), Skip. "n of 4" stays as a small label above the title. |
 | Option rows with a trailing check | **Checkbox rows** (leading box) for multi-select, **radio rows** for single choice; selected rows are tinted |
 | Question 3 multi-select | Question 3 is single choice ("uses this same layout" as question 2) |
-| Recommendation: one sentence | "Your starting point", the mode, one line, then a **You'll see** card and a **Kept out of view** card, then three alternatives and **All modes** |
+| Recommendation: one sentence | "Your starting point", the mode, one line, then a **You'll see** card and a **Hidden** card, then three alternatives and **All modes** |
 | Start finished onboarding | Start saves the mode, creates the guest, then shows the **account step**. Claimed identities and a guest that could not be created go straight to Today. |
 | New OAuth or Apple account from Welcome ran the questions | Gone with the Welcome buttons. A brand-new email account confirmed through `VerifyEmail` still lands on question 1 with `identityClaimed`. |
 
@@ -269,7 +269,7 @@ Verbatim from the v3 images except where noted. `strings_onboarding.xml`.
 | `onboarding_talk_to_someone` | Talk to someone |
 | `onboarding_see_starting_point` | See my starting point |
 | `onboarding_reco_kicker` | Your starting point |
-| `onboarding_reco_see` / `onboarding_reco_kept_out` | You'll see / Kept out of view |
+| `onboarding_reco_see` / `onboarding_reco_kept_out` | You'll see / Hidden |
 | `onboarding_preview_*` | the ModePreview lines above |
 | `onboarding_reco_or`, `onboarding_all_modes` | Or start with / All modes |
 | `onboarding_start_with`, `onboarding_reco_change` | Start with %1$s / Change it any time under More, then Modes and numbers. |

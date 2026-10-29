@@ -500,7 +500,7 @@ private fun ColumnScope.RecommendationStep(
     )
 }
 
-/** "You'll see" or "Kept out of view": one line per subject, the icon saying how it shows. */
+/** "You'll see" or "Hidden": one line per subject, the icon saying how it shows. */
 @Composable
 private fun PreviewCard(title: String, lines: List<PreviewLine>, seen: Boolean) {
     EdgeCard(

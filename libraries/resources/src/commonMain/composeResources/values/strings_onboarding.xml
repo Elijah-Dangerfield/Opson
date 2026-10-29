@@ -70,7 +70,7 @@
     <!-- Recommendation -->
     <string name="onboarding_reco_kicker">Your starting point</string>
     <string name="onboarding_reco_see">You'll see</string>
-    <string name="onboarding_reco_kept_out">Kept out of view</string>
+    <string name="onboarding_reco_kept_out">Hidden</string>
     <string name="onboarding_reco_or">Or start with</string>
     <string name="onboarding_all_modes">All modes</string>
     <string name="onboarding_reco_change">Change it any time under More, then Display.</string>
@@ -97,10 +97,10 @@
     <string name="onboarding_meals_title">When do you usually eat?</string>
     <string name="onboarding_meals_body">Today shows what's next from these. Tap a time to change it.</string>
 
-    <!-- What a mode shows and keeps out of view, built from its levels (ModePreview). -->
+    <!-- What a mode shows and hides, built from its levels (ModePreview). -->
     <string name="onboarding_preview_calorie_amounts">Calorie amounts</string>
     <string name="onboarding_preview_energy_word">A word for energy, like “partway”</string>
-    <string name="onboarding_preview_calories_later">Calories, once the day is closed</string>
+    <string name="onboarding_preview_calories_later">Calories, once you wrap up the day</string>
     <string name="onboarding_preview_calories_hidden">Calorie amounts and watch energy</string>
     <string name="onboarding_preview_macro_amounts">Protein, carbs, fat and fiber amounts</string>
     <string name="onboarding_preview_protein_fiber_amounts">Protein and fiber amounts</string>
@@ -108,8 +108,8 @@
     <string name="onboarding_preview_macro_bars">Protein, carbs, fat and fiber as fill bars</string>
     <string name="onboarding_preview_protein_fiber_bars">Protein and fiber as fill bars</string>
     <string name="onboarding_preview_some_nutrient_bars">Some nutrients as fill bars</string>
-    <string name="onboarding_preview_macros_later">Protein, carbs, fat and fiber, once the day is closed</string>
-    <string name="onboarding_preview_some_nutrients_later">Some nutrients, once the day is closed</string>
+    <string name="onboarding_preview_macros_later">Protein, carbs, fat and fiber, once you wrap up the day</string>
+    <string name="onboarding_preview_some_nutrients_later">Some nutrients, once you wrap up the day</string>
     <string name="onboarding_preview_macros_hidden">Protein, carbs, fat and fiber</string>
     <string name="onboarding_preview_carbs_fat_hidden">Carbs and fat</string>
     <string name="onboarding_preview_other_nutrients_hidden">Other nutrients</string>
@@ -128,7 +128,7 @@
       required: signing in moves what they logged into the account.
     -->
     <string name="onboarding_sign_in_title">Sign in to get started</string>
-    <string name="onboarding_sign_in_body">Your log is saved to your account, so it's backed up and there on a new phone. New here? This makes your account.</string>
+    <string name="onboarding_sign_in_body">Your log is saved to your account, so it's backed up and there on a new phone. New here? Signing in creates your account.</string>
     <string name="onboarding_sign_in_guest_title">Keep your log</string>
     <string name="onboarding_sign_in_guest_body">Opson needs an account now. Sign in and everything you've logged on this phone moves into it.</string>
     <string name="onboarding_sign_in_waiting_for_google">Waiting for Google…</string>
