@@ -91,8 +91,8 @@ class RepeatRepositoryImpl(
         return saved(rule)
     }
 
-    override suspend fun update(id: String, plan: RepeatPlan): RepeatSaved? =
-        change(id) { it.copy(plan = plan.cleaned()) }
+    override suspend fun update(id: String, plan: RepeatPlan, paused: Boolean): RepeatSaved? =
+        change(id) { it.copy(plan = plan.cleaned(), paused = paused) }
 
     override suspend fun setPaused(id: String, paused: Boolean): RepeatSaved? =
         change(id) { it.copy(paused = paused) }

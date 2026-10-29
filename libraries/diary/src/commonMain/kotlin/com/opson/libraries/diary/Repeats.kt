@@ -94,7 +94,7 @@ interface RepeatRepository {
     suspend fun create(plan: RepeatPlan, loggedToday: List<String> = emptyList()): RepeatSaved
 
     /** Changes take effect from the next day the rule logs; what it logged already stays. */
-    suspend fun update(id: String, plan: RepeatPlan): RepeatSaved?
+    suspend fun update(id: String, plan: RepeatPlan, paused: Boolean): RepeatSaved?
 
     suspend fun setPaused(id: String, paused: Boolean): RepeatSaved?
 

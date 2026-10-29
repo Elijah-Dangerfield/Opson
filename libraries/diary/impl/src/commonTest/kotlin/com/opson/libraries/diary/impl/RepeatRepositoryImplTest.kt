@@ -250,7 +250,7 @@ class RepeatRepositoryImplTest : CoroutineTest() {
     fun anEditStartsWithTheNextDay_andTodaysFoodsStay() = runUnitTest {
         val saved = repeats.create(plan(listOf(porridge)))
 
-        val edited = repeats.update(saved.rule.id, plan(listOf(coffee)))
+        val edited = repeats.update(saved.rule.id, plan(listOf(coffee)), paused = false)
 
         assertEquals(false, edited?.loggedToday)
         assertEquals(listOf("Oat porridge"), diary.observeDay(today).first().allItems.map { it.name })

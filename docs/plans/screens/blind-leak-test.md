@@ -199,6 +199,8 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `food-detail-in-review` | logger | 2026-10-28; the person's own food, sent to Opson's food database and waiting for review | yes |
 | new | | `foods-add-food-pack` | foods | 2026-10-28, `release.submitFood`; Add a food with "Packaged food?" first. Later shows the typed calories, as `foods-add-food` does | yes |
 | new | | `foods-unverified` | foods | 2026-10-28; a food of theirs waiting for review, "Unverified" under it | yes |
+| new | | `foods-repeating` | foods | 2026-10-29, `release.repeats`; the Repeating card, each repeat with its foods' calories | yes |
+| new | | `foods-repeat`, `foods-repeat-edit` | foods | 2026-10-29, `release.repeats`; a new repeat and a saved, paused one, each food with its calories | yes |
 | new | | `submit-food-review` | logger | 0.2, `release.submitFood`; the label as read, editable, with the energy check. Numbers and checks only where the mode shows calories; elsewhere a sentence says whether they add up | yes |
 | new | | `exercise-sheet` | logger | `release.exercise`; the estimate is energy out | yes |
 | new | | `exercise-sheet-other` | logger | `release.exercise`; Other's typed number, only where energy out shows | yes |
