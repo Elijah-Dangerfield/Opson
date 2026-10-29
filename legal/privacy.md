@@ -141,6 +141,17 @@ Some features are switched on over time. When they are, this is how they work.
 - **Progress photos** stay on your phone, behind Face ID or your passcode. They
   are left out of phone backups, never uploaded, and deleted when you delete
   everything.
+- **Medication.** If you track a medication, what you take, your doses,
+  injection sites, notes and side effects are kept on your phone only. They are
+  not copied to our server, so they are not in Export everything and don't come
+  back on a new phone, and signing out or deleting everything removes them. Like
+  your log, they are left out of phone backups. They go into the provider
+  summary only while Medication is switched on there (it starts on while you
+  track one); the summary is made on your phone and goes only where you send
+  it. A dose reminder says "Dose day", never the medicine or the dose. Usage
+  events can say that a dose was logged or that tracking was turned on, never
+  which medicine, how much, where, or how you felt, and none of it is written
+  to the app's technical log or crash reports.
 
 ## What we look at
 

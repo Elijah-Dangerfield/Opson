@@ -63,6 +63,8 @@ Data used to track you: **No**.
 
 The app's privacy manifest, `apps/ios/iosApp/PrivacyInfo.xcprivacy`, declares the same types. Change it with this table.
 
+Medication tracking (`release.medication`) adds no row. Doses, sites, notes and side effects stay on the phone, and Apple counts only data that leaves it as collected. Its usage events (`medication.dose_logged`, `medication.dose_deleted`, `medication.tracking`) say only that something happened, so they sit under Product interaction. If medication ever syncs, it becomes Health & Fitness → Health, linked, and this table and `legal/privacy.md` change with it.
+
 Diagnostics count as linked because `TelemetryUserBinder` attaches the account id to crash reports and feedback. It never sends the email. Usage events carry an install id rather than the account id, but server logs pair the two, so they are declared as linked too. Search history is declared as linked for the same conservative reason, until crash reports stop carrying failed search URLs (docs/legal-review-2026-10.md).
 
 ## App Review information
