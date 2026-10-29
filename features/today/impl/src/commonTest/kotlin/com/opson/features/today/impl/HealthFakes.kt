@@ -3,7 +3,12 @@ package com.opson.features.today.impl
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.health.ConnectOutcome
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.HealthProfile
+import com.opson.libraries.health.HealthRecords
+import com.opson.libraries.health.HealthRefresh
 import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthWeighIn
+import com.opson.libraries.health.HealthWorkout
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
@@ -13,11 +18,23 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlin.time.Instant
 
-/** Today only reads [energy]; it never connects, disconnects or opens anything. */
-class FakeHealthRepository(connected: Boolean = false, energy: EnergyExpended? = null) : HealthRepository {
+/**
+ * Today only reads [energy] and [workouts], and pulls to refresh; it never connects, disconnects
+ * or opens anything. [refreshAnswer] is what a pull finds.
+ */
+class FakeHealthRepository(
+    connected: Boolean = false,
+    energy: EnergyExpended? = null,
+    workouts: List<HealthWorkout> = emptyList(),
+    var refreshAnswer: HealthRefresh = HealthRefresh.NothingNew,
+) : HealthRepository, HealthRecords {
     val energyFlow = MutableStateFlow(energy)
+    val workoutsFlow = MutableStateFlow(workouts)
     val energyDays = mutableListOf<LocalDate>()
+    val workoutDays = mutableListOf<LocalDate>()
+    var refreshes = 0
 
     override val source = HealthSource.HealthConnect
     override val status: StateFlow<HealthStatus> =
@@ -38,6 +55,24 @@ class FakeHealthRepository(connected: Boolean = false, energy: EnergyExpended? =
         error("Today reads one day at a time")
 
     override fun openSourceSettings(): Boolean = error("Today never opens the store")
+
+    override val canAskForMore: StateFlow<Boolean> = MutableStateFlow(false)
+
+    override fun workouts(day: LocalDate, timeZone: TimeZone): Flow<List<HealthWorkout>?> {
+        workoutDays += day
+        return workoutsFlow.map { it.takeIf { status.value == HealthStatus.Connected } }
+    }
+
+    override suspend fun profile(): HealthProfile? = error("Today never reads the profile")
+
+    override suspend fun weighIns(since: Instant): List<HealthWeighIn>? = error("Today never reads weigh-ins")
+
+    override suspend fun sources(): List<String>? = error("Today never lists sources")
+
+    override suspend fun refreshNow(day: LocalDate, timeZone: TimeZone): HealthRefresh {
+        refreshes++
+        return refreshAnswer
+    }
 }
 
 fun healthFlag(on: Boolean): HealthReleaseFlag = HealthReleaseFlag(

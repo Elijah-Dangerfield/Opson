@@ -24,6 +24,7 @@ else.
 | Meal photos, if you use photo estimates | To list the foods in the photo. Not kept |
 | Photos of a pack and the food's details, if you add a food from its pack | To read the label, and so we can check the food before adding it to the database everyone searches. The photos are seen only by you and our reviewer and deleted 30 days after review; an approved food's details are shared with everyone, without the photos or any link to you |
 | Energy and workouts from Apple Health or Health Connect, if you connect them | To show them in the app. Read on your phone only; never sent to us |
+| Weigh-ins, height, birth year and sex copied from Apple Health or Health Connect, only if you turn on the import or tap Fill in | To keep your log and your energy estimates up to date. Saved and synced like the same details typed in |
 | Medication, doses, injection sites and side effects, if you track a medication | To show them back to you, and in the provider summary if you include them. Kept on your phone only; never sent to us |
 
 Totals, trends and patterns the app works out from these are consumer health

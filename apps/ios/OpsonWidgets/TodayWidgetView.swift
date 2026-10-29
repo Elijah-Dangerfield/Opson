@@ -10,7 +10,7 @@ import SwiftUI
 import WidgetKit
 
 struct TodayWidgetView: View {
-    let entry: TodayEntry
+    let entry: SnapshotEntry
 
     @Environment(\.widgetFamily) private var family
     @Environment(\.colorScheme) private var colorScheme
@@ -34,8 +34,9 @@ struct TodayWidgetView: View {
             content
         }
         .containerBackground(for: .widget) { Color(widgetHex: swatch.background) }
-        // A small widget is one tap target, so the whole of it is the +.
-        .widgetURL(small ? logURL : nil)
+        // A small widget is one tap target, so the whole of it is the +. On the medium one the
+        // + is its own link and the rest opens Today.
+        .widgetURL(small ? logURL : URL(widgetLink: entry.snapshot?.todayLink, fallback: WidgetURLs.today))
     }
 
     @ViewBuilder
@@ -183,92 +184,37 @@ private struct MealCircle: View {
     }
 }
 
-extension WidgetColors {
-    /// Slate, for the moment before the app has written a snapshot: the
-    /// placeholder, a widget added from the gallery before sign-in, and after
-    /// sign-out. Every colour after that comes from the snapshot, which reads
-    /// the app's theme (`WidgetPalette` in :libraries:widgets).
-    static let fallback = WidgetColors(
-        light: WidgetSwatch(
-            background: "#EEF1F6", ink: "#18202E", muted: "#5A6478", track: "#E0E5ED",
-            bar: "#18202E", accent: "#A3500A", onAccent: "#FFFFFF", meals: [:]
-        ),
-        dark: WidgetSwatch(
-            background: "#161B27", ink: "#E6EAF2", muted: "#98A2B4", track: "#323B4D",
-            bar: "#E6EAF2", accent: "#FA9E5C", onAccent: "#1F120A", meals: [:]
-        )
-    )
-}
-
 // MARK: - Previews
 //
-// What the app's builder writes for the design's day (v3 widgets.png):
-// breakfast, lunch and a snack, 1,245 kcal against 1,900 to 2,300. Sample
-// data for the canvas only; the real widget never builds a number itself.
-
-extension WidgetSnapshot {
-    static func preview(numbers: Bool) -> WidgetSnapshot {
-        let today = WidgetDates.iso(.now)
-        let tones: [String: WidgetTone] = [
-            "breakfast": WidgetTone(content: "#E0892B", container: "#FCEBD8"),
-            "lunch": WidgetTone(content: "#3D7FD9", container: "#DFEAFA"),
-            "snack": WidgetTone(content: "#8E6E3A", container: "#F1E8DC"),
-            "dinner": WidgetTone(content: "#D1477A", container: "#FAE3EC"),
-        ]
-        let meals = [
-            WidgetMeal(slot: "breakfast", label: "Breakfast", done: true, description: "Breakfast, done"),
-            WidgetMeal(slot: "lunch", label: "Lunch", done: true, description: "Lunch, done"),
-            WidgetMeal(slot: "snack", label: "Snack", done: true, description: "Snack, done"),
-            WidgetMeal(slot: "dinner", label: "Dinner", done: false, description: "Dinner, not yet"),
-        ]
-        let energy = WidgetEnergy(
-            amount: "1,245", unit: "kcal", label: "1,245 kcal",
-            fraction: 1245.0 / 2760, rangeStart: 1900.0 / 2760, rangeEnd: 2300.0 / 2760
-        )
-        let slate = WidgetColors.fallback
-        let light = WidgetSwatch(
-            background: slate.light.background, ink: slate.light.ink, muted: slate.light.muted,
-            track: slate.light.track, bar: slate.light.bar, accent: slate.light.accent,
-            onAccent: slate.light.onAccent, meals: tones
-        )
-        return WidgetSnapshot(
-            version: WidgetSnapshot.supportedVersion,
-            days: [
-                WidgetDay(day: today, title: "Today", energy: numbers ? energy : nil, meals: numbers ? [] : meals, note: nil),
-            ],
-            logLabel: "Log food",
-            logLink: "opson://widget/log",
-            colors: WidgetColors(light: light, dark: slate.dark)
-        )
-    }
-}
+// The sample day (WidgetParts.swift) for the canvas only; the real widget
+// never builds a number itself.
 
 #Preview("Full numbers", as: .systemMedium) {
     TodayWidget()
 } timeline: {
-    TodayEntry(date: .now, snapshot: .preview(numbers: true))
+    SnapshotEntry(date: .now, snapshot: .sample(numbers: true))
 }
 
 #Preview("No numbers", as: .systemMedium) {
     TodayWidget()
 } timeline: {
-    TodayEntry(date: .now, snapshot: .preview(numbers: false))
+    SnapshotEntry(date: .now, snapshot: .sample(numbers: false))
 }
 
 #Preview("Small, full numbers", as: .systemSmall) {
     TodayWidget()
 } timeline: {
-    TodayEntry(date: .now, snapshot: .preview(numbers: true))
+    SnapshotEntry(date: .now, snapshot: .sample(numbers: true))
 }
 
 #Preview("Small, no numbers", as: .systemSmall) {
     TodayWidget()
 } timeline: {
-    TodayEntry(date: .now, snapshot: .preview(numbers: false))
+    SnapshotEntry(date: .now, snapshot: .sample(numbers: false))
 }
 
 #Preview("Before the app has run", as: .systemMedium) {
     TodayWidget()
 } timeline: {
-    TodayEntry(date: .now, snapshot: nil)
+    SnapshotEntry(date: .now, snapshot: nil)
 }

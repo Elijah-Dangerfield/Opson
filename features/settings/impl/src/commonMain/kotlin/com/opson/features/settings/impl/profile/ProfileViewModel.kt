@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl.profile
 
 import androidx.lifecycle.viewModelScope
+import com.opson.features.settings.impl.Toast
 import com.opson.libraries.core.DeviceRegion
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.Settings
@@ -8,6 +9,12 @@ import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.health.ConnectOutcome
+import com.opson.libraries.health.HealthRecords
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.BodyFat
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.HeightInput
@@ -22,6 +29,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.integrations_profile_empty
+import opson.libraries.resources.generated.resources.integrations_profile_failed
+import opson.libraries.resources.generated.resources.integrations_profile_filled
+import opson.libraries.resources.generated.resources.integrations_profile_not_connected
 
 /**
  * More › Profile. A typed field writes its setting only once it holds a sensible value (a year a
@@ -30,6 +42,7 @@ import me.tatarka.inject.annotations.Inject
  * here: the row opens Weight, where weigh-ins are logged.
  */
 @Inject
+@Suppress("LongParameterList")
 class ProfileViewModel(
     @Assisted private val back: ProfileBack,
     private val settingsRepository: SettingsRepository,
@@ -37,10 +50,17 @@ class ProfileViewModel(
     policySource: VisibilityPolicySource,
     private val calendar: LocalCalendar,
     private val region: DeviceRegion,
+    private val health: HealthRepository,
+    private val records: HealthRecords,
+    healthFlag: HealthReleaseFlag,
 ) : SEAViewModel<ProfileState, ProfileEvent, ProfileAction>(initialStateArg = ProfileState(back = back)) {
 
     private var inputs: ProfileAction.InputsArrived? = null
     private var drafts = ProfileDrafts()
+    private var filling = false
+
+    /** Offered with `release.health` on; tapping it connects first if need be. */
+    private val fillFrom: HealthSource? = health.source.takeIf { healthFlag() }
 
     init {
         val latest = weights.observeWeighIns().map { list -> list.maxByOrNull { it.measuredAt } }.distinctUntilChanged()
@@ -79,6 +99,7 @@ class ProfileViewModel(
                 val percent = if (text.isBlank()) 0.0 else text.toDoubleOrNull()?.let(BodyFat::inRange)
                 if (percent != null) settingsRepository.update { it.copy(bodyFatPercent = percent) }
             }
+            ProfileAction.FillFromHealthTapped -> fillFromHealth(action)
             ProfileAction.WeightTapped -> sendEvent(ProfileEvent.OpenWeight)
             ProfileAction.BackTapped -> sendEvent(ProfileEvent.Close)
         }
@@ -96,12 +117,38 @@ class ProfileViewModel(
         if (cm != null) settingsRepository.update { it.copy(heightCm = cm) }
     }
 
+    /**
+     * Connects first when it isn't (the prompt comes from this tap), then writes what the store
+     * has through [ProfileFill]. Drafts of the fields it fills go, so the new values show.
+     */
+    private suspend fun fillFromHealth(action: ProfileAction) {
+        if (filling || fillFrom == null) return
+        filling = true
+        rebuild(action)
+        val connected = health.status.value == HealthStatus.Connected || health.connect() == ConnectOutcome.Connected
+        val profile = if (connected) records.profile() else null
+        var filled = false
+        if (profile != null) {
+            settingsRepository.update { current -> ProfileFill.apply(current, profile, birthYears())?.also { filled = true } ?: current }
+            if (filled) drafts = drafts.copy(birthYear = null, height = null)
+        }
+        filling = false
+        rebuild(action)
+        val toast = when {
+            !connected -> Res.string.integrations_profile_not_connected
+            profile == null -> Res.string.integrations_profile_failed
+            !filled -> Res.string.integrations_profile_empty
+            else -> Res.string.integrations_profile_filled
+        }
+        sendEvent(ProfileEvent.ShowToast(Toast(toast)))
+    }
+
     /** Someone at least 13, since the equation is for adults and teenagers, and no older than 120. */
     private fun birthYears(): IntRange = calendar.today().year.let { (it - MAX_AGE)..(it - MIN_AGE) }
 
     private suspend fun rebuild(action: ProfileAction) {
         val (settings, latest, policy) = inputs ?: return
-        action.updateState { ProfileStateBuilder.build(settings, latest, policy, calendar.timeZone(), drafts, region.height(), back) }
+        action.updateState { ProfileStateBuilder.build(settings, latest, policy, calendar.timeZone(), drafts, region.height(), back, fillFrom, filling) }
     }
 
     private companion object {
@@ -117,6 +164,7 @@ private fun DeviceRegion.height(): HeightUnit = RegionUnits.height(countryCode()
 sealed interface ProfileEvent {
     /** Weight, in Trends, where a weigh-in is logged. */
     data object OpenWeight : ProfileEvent
+    data class ShowToast(val toast: Toast) : ProfileEvent
     data object Close : ProfileEvent
 }
 
@@ -131,6 +179,9 @@ sealed interface ProfileAction {
     data class HeightFeetTyped(val text: String) : ProfileAction
     data class HeightInchesTyped(val text: String) : ProfileAction
     data class BodyFatTyped(val text: String) : ProfileAction
+
+    /** "Fill in from Apple Health" (or Health Connect). */
+    data object FillFromHealthTapped : ProfileAction
     data object WeightTapped : ProfileAction
     data object BackTapped : ProfileAction
 }

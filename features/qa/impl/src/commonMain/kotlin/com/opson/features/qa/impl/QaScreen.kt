@@ -41,6 +41,8 @@ import opson.libraries.resources.generated.resources.qa_flags_body
 import opson.libraries.resources.generated.resources.qa_none
 import opson.libraries.resources.generated.resources.qa_notifications_body
 import opson.libraries.resources.generated.resources.qa_overridden
+import opson.libraries.resources.generated.resources.qa_prompts
+import opson.libraries.resources.generated.resources.qa_prompts_sub
 import opson.libraries.resources.generated.resources.qa_reset_onboarding
 import opson.libraries.resources.generated.resources.qa_reset_onboarding_sub
 import opson.libraries.resources.generated.resources.qa_section_account
@@ -87,6 +89,7 @@ fun QaScreen(state: QaState, onAction: (QaAction) -> Unit, modifier: Modifier = 
         QaSectionLabel(stringResource(Res.string.qa_section_shortcuts))
         QaCard {
             ToolRow(Res.string.qa_check_in, Res.string.qa_check_in_sub, state.busy, divider = true) { onAction(QaAction.CheckInTapped) }
+            ToolRow(Res.string.qa_prompts, Res.string.qa_prompts_sub, busy = false, divider = true) { onAction(QaAction.PromptsTapped) }
             ToolRow(Res.string.qa_reset_onboarding, Res.string.qa_reset_onboarding_sub, state.busy, divider = true) {
                 onAction(QaAction.ResetOnboardingTapped)
             }

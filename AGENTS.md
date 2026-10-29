@@ -121,6 +121,16 @@ Supabase auth with accounts required. Sessions are never minted implicitly and n
 
 Repositories that mirror server state don't invent their own refresh timing. Implement one idempotent `sync(): Result<Unit>`, contribute to the `UserScopedSyncer` multibinding (its KDoc has the two-line registration recipe), and `UserScopedSyncCoordinator` runs it on every edge that matters: account became active (sign-in, cold-boot resolve, switch, claim), warm foreground, and connectivity regained. With exponential retry that parks as success while offline (re-armed by the reconnect edge). The level-keyed `runWhen` core means a subscriber can't miss an edge that fired before it attached. For offline *writes*, use the outbox pattern instead. `docs/practices/outbox.md`.
 
+## Prompts on Today (`:libraries:prompts`)
+
+Anything Opson offers unasked on Today (connect Health, choose reminders, try a check-in, join the
+Builder program) is a `PromptCandidate` contributed by multibinding, never a dialog a screen opens
+itself. One processor applies the anti-spam rules (one a session, a day between any two, a quiet
+first two days, per-prompt caps, fewer and gentler after "numbers have been hard"), picks by
+priority, and the host in `App.kt` shows it only while Today is the top of the stack. Moments like
+a sent report go through `PromptEvents.emit`. The rules and the one-file recipe for a new prompt are
+in [`docs/practices/prompts.md`](docs/practices/prompts.md); QA menu › Prompts lists and resets them.
+
 ## Server (`:apps:server`)
 
 A Ktor + Postgres backend with Supabase JWT auth. It reuses the client's conventions, kotlin-inject + anvil DI (`ServerScope` / `ServerComponent`), the `domain/` interface + `data/` impl split, one `fun Route.xRoutes(deps)` per resource, and degrades gracefully (boots with no DB / no Supabase). It's a plain JVM module, so it applies plugins directly rather than via a convention plugin.

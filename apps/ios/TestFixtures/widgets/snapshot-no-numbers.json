@@ -1,0 +1,282 @@
+{
+    "version": 1,
+    "days": [
+        {
+            "day": "2026-10-25",
+            "title": "Today",
+            "energy": null,
+            "meals": [
+                {
+                    "slot": "breakfast",
+                    "label": "Breakfast",
+                    "done": true,
+                    "description": "Breakfast, done"
+                },
+                {
+                    "slot": "lunch",
+                    "label": "Lunch",
+                    "done": true,
+                    "description": "Lunch, done"
+                },
+                {
+                    "slot": "snack",
+                    "label": "Snack",
+                    "done": true,
+                    "description": "Snack, done"
+                },
+                {
+                    "slot": "dinner",
+                    "label": "Dinner",
+                    "done": false,
+                    "description": "Dinner, not yet"
+                }
+            ],
+            "note": null,
+            "left": null,
+            "progress": {
+                "done": 3,
+                "total": 4,
+                "label": "3 of 4 meals"
+            },
+            "macros": [],
+            "water": {
+                "text": null,
+                "filled": 5,
+                "total": 8,
+                "label": "5 of 8 glasses",
+                "glass": "250 ml"
+            },
+            "mealRows": [
+                {
+                    "slot": "breakfast",
+                    "label": "Breakfast",
+                    "done": true,
+                    "foods": "Oat porridge with milk, banana, coffee with milk",
+                    "calories": null,
+                    "link": "opson://widget/log?slot=breakfast"
+                },
+                {
+                    "slot": "lunch",
+                    "label": "Lunch",
+                    "done": true,
+                    "foods": "Chicken adobo, jasmine rice, cooked",
+                    "calories": null,
+                    "link": "opson://widget/log?slot=lunch"
+                },
+                {
+                    "slot": "snack",
+                    "label": "Snack",
+                    "done": true,
+                    "foods": "Apple, peanut butter",
+                    "calories": null,
+                    "link": "opson://widget/log?slot=snack"
+                },
+                {
+                    "slot": "dinner",
+                    "label": "Dinner",
+                    "done": false,
+                    "foods": "Nothing yet",
+                    "calories": null,
+                    "link": "opson://widget/log?slot=dinner"
+                }
+            ]
+        },
+        {
+            "day": "2026-10-26",
+            "title": "Today",
+            "energy": null,
+            "meals": [
+                {
+                    "slot": "breakfast",
+                    "label": "Breakfast",
+                    "done": false,
+                    "description": "Breakfast, not yet"
+                },
+                {
+                    "slot": "lunch",
+                    "label": "Lunch",
+                    "done": false,
+                    "description": "Lunch, not yet"
+                },
+                {
+                    "slot": "snack",
+                    "label": "Snack",
+                    "done": false,
+                    "description": "Snack, not yet"
+                },
+                {
+                    "slot": "dinner",
+                    "label": "Dinner",
+                    "done": false,
+                    "description": "Dinner, not yet"
+                }
+            ],
+            "note": null,
+            "left": null,
+            "progress": {
+                "done": 0,
+                "total": 4,
+                "label": "0 of 4 meals"
+            },
+            "macros": [],
+            "water": {
+                "text": null,
+                "filled": 0,
+                "total": 8,
+                "label": "0 of 8 glasses",
+                "glass": "250 ml"
+            },
+            "mealRows": [
+                {
+                    "slot": "breakfast",
+                    "label": "Breakfast",
+                    "done": false,
+                    "foods": "Nothing yet",
+                    "calories": null,
+                    "link": "opson://widget/log?slot=breakfast"
+                },
+                {
+                    "slot": "lunch",
+                    "label": "Lunch",
+                    "done": false,
+                    "foods": "Nothing yet",
+                    "calories": null,
+                    "link": "opson://widget/log?slot=lunch"
+                },
+                {
+                    "slot": "snack",
+                    "label": "Snack",
+                    "done": false,
+                    "foods": "Nothing yet",
+                    "calories": null,
+                    "link": "opson://widget/log?slot=snack"
+                },
+                {
+                    "slot": "dinner",
+                    "label": "Dinner",
+                    "done": false,
+                    "foods": "Nothing yet",
+                    "calories": null,
+                    "link": "opson://widget/log?slot=dinner"
+                }
+            ]
+        }
+    ],
+    "logLabel": "Log food",
+    "logLink": "opson://widget/log",
+    "colors": {
+        "light": {
+            "background": "#EEF1F6",
+            "ink": "#18202E",
+            "muted": "#5A6478",
+            "track": "#E0E5ED",
+            "bar": "#18202E",
+            "accent": "#A3500A",
+            "onAccent": "#FFFFFF",
+            "meals": {
+                "breakfast": {
+                    "content": "#C4920A",
+                    "container": "#FBF0D0"
+                },
+                "lunch": {
+                    "content": "#3D7FD9",
+                    "container": "#DFEAFA"
+                },
+                "snack": {
+                    "content": "#8E6E3A",
+                    "container": "#F1E8DC"
+                },
+                "dinner": {
+                    "content": "#D1477A",
+                    "container": "#FAE3EC"
+                }
+            },
+            "nutrients": {
+                "protein": {
+                    "content": "#D1477A",
+                    "container": "#FAE3EC"
+                },
+                "carbs": {
+                    "content": "#C4920A",
+                    "container": "#FBF0D0"
+                },
+                "fat": {
+                    "content": "#3D7FD9",
+                    "container": "#DFEAFA"
+                },
+                "fiber": {
+                    "content": "#8E6E3A",
+                    "container": "#F1E8DC"
+                },
+                "water": {
+                    "content": "#3D7FD9",
+                    "container": "#DFEAFA"
+                }
+            }
+        },
+        "dark": {
+            "background": "#161B27",
+            "ink": "#E6EAF2",
+            "muted": "#98A2B4",
+            "track": "#323B4D",
+            "bar": "#E6EAF2",
+            "accent": "#FA9E5C",
+            "onAccent": "#1F120A",
+            "meals": {
+                "breakfast": {
+                    "content": "#F7D67A",
+                    "container": "#3F3822"
+                },
+                "lunch": {
+                    "content": "#97BCF7",
+                    "container": "#263552"
+                },
+                "snack": {
+                    "content": "#D9B98C",
+                    "container": "#3B3329"
+                },
+                "dinner": {
+                    "content": "#F59CBD",
+                    "container": "#43293A"
+                }
+            },
+            "nutrients": {
+                "protein": {
+                    "content": "#F59CBD",
+                    "container": "#43293A"
+                },
+                "carbs": {
+                    "content": "#F7D67A",
+                    "container": "#3F3822"
+                },
+                "fat": {
+                    "content": "#97BCF7",
+                    "container": "#263552"
+                },
+                "fiber": {
+                    "content": "#D9B98C",
+                    "container": "#3B3329"
+                },
+                "water": {
+                    "content": "#97BCF7",
+                    "container": "#263552"
+                }
+            }
+        }
+    },
+    "todayLink": "opson://widget/today",
+    "waterLink": "opson://widget/water/add",
+    "fasting": null,
+    "labels": {
+        "calories": "Calories",
+        "macros": "Macros",
+        "water": "Water",
+        "meals": "Meals",
+        "fasting": "Fasting",
+        "addGlass": "Add a glass",
+        "macrosHidden": "Your mode keeps macros in the app.",
+        "waterHidden": "Your mode keeps water in the app.",
+        "fastingOff": "The fasting timer is off.",
+        "nothingYet": "Nothing yet"
+    }
+}

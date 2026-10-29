@@ -14,4 +14,14 @@ object WidgetEvents {
     fun logTapped(nextMeal: Boolean) {
         logger.logEvent("widget.log_tapped", "next_meal" to nextMeal)
     }
+
+    /** Any other widget tap opened the app. [target] is `today` or `water`. */
+    fun opened(target: String) {
+        logger.logEvent("widget.opened", "target" to target)
+    }
+
+    /** The water widget's add wrote a glass, or [added] false when it couldn't. */
+    fun waterAdded(added: Boolean) {
+        logger.logEvent("widget.water_added", "added" to added)
+    }
 }

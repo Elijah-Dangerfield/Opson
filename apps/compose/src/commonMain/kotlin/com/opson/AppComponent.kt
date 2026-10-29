@@ -12,6 +12,7 @@ import com.opson.libraries.telemetry.impl.JankMonitor
 import com.opson.libraries.telemetry.impl.StartupReporter
 import com.opson.libraries.opson.AppCache
 import com.opson.libraries.opson.Telemetry
+import com.opson.libraries.prompts.PromptHost
 import com.opson.libraries.reminders.ReminderActions
 import com.opson.libraries.reminders.ReminderOpens
 import com.opson.libraries.navigation.FeatureEntryPoint
@@ -75,6 +76,9 @@ interface AppComponent {
 
     /** The guard's debug-only way out when a QA override is what is holding the app. */
     val configOverrideRepository: ConfigOverrideRepository
+
+    /** Today's prompts (docs/practices/prompts.md), drawn by App.kt beside the nav host. */
+    val promptHost: PromptHost
 
     /**
      * Singletons that need to construct at app boot rather than lazily

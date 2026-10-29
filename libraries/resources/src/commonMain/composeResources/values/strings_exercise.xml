@@ -139,4 +139,24 @@
     <string name="exercise_activity_mowing">Mowing the lawn</string>
     <string name="exercise_activity_housework">Housework</string>
     <string name="exercise_activity_snow_shoveling">Shoveling snow</string>
+
+    <!-- Activity card: a workout from the health app, by kind when the app gave it no name -->
+    <string name="today_workout_running">Run</string>
+    <string name="today_workout_walking">Walk</string>
+    <string name="today_workout_hiking">Hike</string>
+    <string name="today_workout_cycling">Ride</string>
+    <string name="today_workout_swimming">Swim</string>
+    <string name="today_workout_strength">Strength training</string>
+    <string name="today_workout_hiit">HIIT</string>
+    <string name="today_workout_yoga">Yoga</string>
+    <string name="today_workout_pilates">Pilates</string>
+    <string name="today_workout_rowing">Rowing</string>
+    <string name="today_workout_elliptical">Elliptical</string>
+    <string name="today_workout_stairs">Stair climbing</string>
+    <string name="today_workout_dance">Dance</string>
+    <string name="today_workout_martial_arts">Martial arts</string>
+    <string name="today_workout_sports">Sport</string>
+    <string name="today_workout_snow">Snow sports</string>
+    <string name="today_workout_water">Water sports</string>
+    <string name="today_workout_other">Workout</string>
 </resources>

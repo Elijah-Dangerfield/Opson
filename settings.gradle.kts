@@ -125,6 +125,8 @@ if (!serverOnly) {
     include(":libraries:pdf:impl")
     include(":libraries:progressphotos")
     include(":libraries:progressphotos:impl")
+    include(":libraries:prompts")
+    include(":libraries:prompts:impl")
     include(":libraries:identity")
     include(":libraries:identity:impl")
     include(":libraries:reminders")

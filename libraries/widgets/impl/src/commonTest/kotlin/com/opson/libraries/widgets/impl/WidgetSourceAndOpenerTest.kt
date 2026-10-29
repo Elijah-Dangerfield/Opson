@@ -11,13 +11,17 @@ import com.opson.libraries.opson.AppData
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEvents
 import com.opson.libraries.widgets.WidgetFixtures
+import com.opson.libraries.widgets.WidgetJson
 import com.opson.libraries.widgets.WidgetLinks
 import com.opson.libraries.widgets.WidgetLogOpen
+import com.opson.libraries.widgets.WidgetOpen
+import com.opson.libraries.widgets.WidgetTodayOpen
 import com.opson.libraries.widgets.WidgetSnapshot
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
@@ -57,13 +61,18 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
         strings = KeyStrings,
         burnedRepository = FakeBurnedRepository(),
         goalsAndEnergy = goalsAndEnergyFlag(),
+        fastingRepository = fasts,
+        fastingRelease = { fastingOn },
     )
 
     private val auth = FakeAuth()
+    private val fasts = FakeFastingRepository()
+    private var fastingOn = true
+    private val selectedDay = FakeSelectedDay(LocalDate(2026, 10, 20))
 
     private val appCache = FakeAppCache(AppData(hasUserOnboarded = true))
 
-    private fun opener(): WidgetOpener = WidgetOpener(diary, settings, calendar, clock, appCache, { auth }, appScope)
+    private fun opener(): WidgetOpener = WidgetOpener(diary, settings, calendar, clock, appCache, { auth }, selectedDay, appScope)
 
     private fun test(block: suspend TestScope.() -> Unit) = runUnitTest {
         appScope = AppCoroutineScope(dispatchers)
@@ -182,7 +191,7 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
     fun theLogLink_signedOut_opensNothing() = test {
         auth.state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
         val opener = opener()
-        val asked = mutableListOf<WidgetLogOpen>()
+        val asked = mutableListOf<WidgetOpen>()
         appScope.launch { opener.requests.collect { asked += it } }
 
         assertTrue(opener.opened(WidgetLinks.LOG), "still the widget's link, so it goes no further")
@@ -199,7 +208,7 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
 
         opener.opened(WidgetLinks.LOG)
 
-        assertEquals(today, opener.requests.first().day)
+        assertEquals(today, (opener.requests.first() as WidgetLogOpen).day)
     }
 
     @Test
@@ -207,12 +216,110 @@ class WidgetSourceAndOpenerTest : CoroutineTest() {
         appCache.state.value = AppData(hasUserOnboarded = false)
         auth.state.value = AuthState.Unauthenticated()
         val opener = opener()
-        val asked = mutableListOf<WidgetLogOpen>()
+        val asked = mutableListOf<WidgetOpen>()
         appScope.launch { opener.requests.collect { asked += it } }
 
         opener.opened(WidgetLinks.LOG)
         runCurrent()
 
         assertTrue(asked.isEmpty())
+    }
+
+    /**
+     * The owner's report: food logged, the widget still said 0. The whole Kotlin side end to end,
+     * the real source into the real refresher: what reaches the platform after a log is today's
+     * day, under today's date, with the amount eaten.
+     */
+    @Test
+    fun aLogAfterLaunch_reachesThePlatform_asTodaysAmount() = test {
+        val publisher = FakePublisher()
+        WidgetRefresher(settings, source(), publisher, appCache, { auth }, appScope)
+        assertEquals("0", publisher.published.last().dayFor(today)?.energy?.amount, "launch, nothing logged yet")
+
+        diary.days.value = mapOf(today to WidgetFixtures.day)
+        advanceTimeBy(SETTLE_MS)
+
+        val written = assertNotNull(WidgetJson.decode(WidgetJson.encode(publisher.published.last())))
+        assertEquals(today.toString(), written.days.first().day)
+        assertEquals("1,245", written.dayFor(today)?.energy?.amount)
+        assertEquals(2, publisher.published.size, "one publish for the launch, one for the log")
+    }
+
+    @Test
+    fun theFastingTimer_isInTheSnapshot_onlyWhileItIsOnAndOffered() = test {
+        settings.update { it.copy(fasting = true) }
+        val seen = collect()
+        assertNotNull(seen.last().fasting, "on, in All numbers")
+
+        settings.update { it.copy(numbers = NumbersSettings(preset = PresetId.NoNumbers)) }
+        assertNull(seen.last().fasting, "fasting is only offered in All numbers")
+    }
+
+    @Test
+    fun theFastingTimer_withTheReleaseOff_isNeverRead() = test {
+        fastingOn = false
+        settings.update { it.copy(fasting = true) }
+        val seen = collect()
+        assertNull(seen.last().fasting)
+    }
+
+    @Test
+    fun aMealRow_opensTheLoggerOnItsOwnMeal() = test {
+        val opener = opener()
+
+        assertTrue(opener.opened(WidgetLinks.log(MealSlot.Lunch)))
+
+        assertEquals(WidgetLogOpen(MealSlot.Lunch, today), opener.requests.first())
+    }
+
+    @Test
+    fun theBodyOfAWidget_opensToday_onToday() = test {
+        val opener = opener()
+
+        assertTrue(opener.opened(WidgetLinks.TODAY))
+
+        assertEquals(WidgetTodayOpen, opener.requests.first())
+        assertEquals(today, selectedDay.date.value, "Today shows the day the widget showed")
+    }
+
+    @Test
+    fun theWaterAdd_putsOneGlassOnToday_thenOpensToday() = test {
+        settings.update { it.copy(glassMl = 330) }
+        val opener = opener()
+
+        assertTrue(opener.opened(WidgetLinks.WATER_ADD))
+
+        assertEquals(WidgetTodayOpen, opener.requests.first())
+        assertEquals(listOf(today to 330), diary.waterAdded)
+    }
+
+    @Test
+    fun theWaterAdd_onAClosedDay_writesNothing_andStillOpensToday() = test {
+        diary.closed += today
+        val opener = opener()
+
+        opener.opened(WidgetLinks.WATER_ADD)
+
+        assertEquals(WidgetTodayOpen, opener.requests.first())
+        assertTrue(diary.waterAdded.isEmpty())
+    }
+
+    @Test
+    fun theWaterAdd_signedOut_writesNothing() = test {
+        auth.state.value = AuthState.Unauthenticated(reason = AuthState.Unauthenticated.Reason.SignedOut)
+        val opener = opener()
+        val asked = mutableListOf<WidgetOpen>()
+        appScope.launch { opener.requests.collect { asked += it } }
+
+        assertTrue(opener.opened(WidgetLinks.WATER_ADD))
+        runCurrent()
+
+        assertTrue(diary.waterAdded.isEmpty())
+        assertTrue(asked.isEmpty())
+    }
+
+    private companion object {
+        /** Past WidgetRefresher's settle. */
+        const val SETTLE_MS = 300L
     }
 }

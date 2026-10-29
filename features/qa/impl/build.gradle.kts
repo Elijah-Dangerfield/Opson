@@ -27,6 +27,8 @@ kotlin {
             implementation(projects.libraries.opson)
             implementation(projects.libraries.networking)
             implementation(projects.libraries.foods)
+            // PromptDebug, for the Prompts page.
+            implementation(projects.libraries.prompts)
 
             implementation(libs.kotlinx.datetime)
 
@@ -48,7 +50,10 @@ kotlin {
             implementation(projects.libraries.opson)
             implementation(projects.libraries.networking)
             implementation(projects.libraries.foods)
+            implementation(projects.libraries.prompts)
+            implementation(projects.libraries.resources)
             implementation(libs.kotlinx.datetime)
+            implementation(compose.components.resources)
         }
     }
 }

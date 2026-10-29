@@ -1,0 +1,124 @@
+# Prompts on Today
+
+Opson sometimes offers one thing on Today: connect Apple Health, choose meal reminders, try a
+check-in. Every such offer is a **prompt candidate**, and one processor decides whether Today shows
+one and which. Nothing else in the app should open an unasked-for dialog or sheet over Today. The
+design is ported from Cards' Home arbiter, where five surfaces that each raced their own "seen"
+flag were folded into one pure pass, and from its review coordinator (a quiet start and a floor
+between asks).
+
+Code: the contract in `:libraries:prompts`, the processor, its host, the dialog and sheet
+destinations, the card slot on Today and the three shipped prompts in `:libraries:prompts:impl`.
+
+## The rules
+
+Checked in this order by `PromptRules.check`; the QA menu shows the first one holding each prompt
+back.
+
+1. **Signed in, onboarded, settings known.** Sign-in and onboarding are their own routes, so the
+   host never asks there; this covers the edges around them, and waits for the account's own
+   "numbers have been hard" answer rather than a default.
+2. **The prompt's own record** (`PromptFrequency`): accepted once ends it; `maxDismissals` Not
+   nows end it (default 1); `maxShows` showings end it (default 1, "never more than once"); two
+   showings are at least `minGap` apart. Nothing skips these.
+3. **Asked for this trigger.** `onTodayOpen` for Today settling; `events` for moments.
+4. **Numbers have been hard** means only prompts with `offerWhenNumbersHard = true`.
+5. **One prompt a session** (`SessionTracker`: a cold start, or 15 minutes in the background).
+6. **On Today opening only:** none in an account's first two days on this phone, and a day between
+   any two prompts (three days after numbers have been hard).
+
+A **moment** (`PromptEvent`: a report sent, the day closed) lets a prompt that lists it show as
+Today next settles, within ten minutes. It skips rule 6, because the moment does not come back,
+but never rules 1 to 5. A moment nobody could use is dropped.
+
+Among the candidates that pass, the highest `priority` whose own `isEligible()` says yes shows
+(`PromptPriority`; a tie goes by id). Eligibility is asked only after the rules pass, so it may read
+the database.
+
+**What a prompt may say.** Never anything that nudges toward eating less, and nothing that asks
+someone to log more. Respect the modes: a prompt about energy or calories checks that calories are
+on show. Keep `offerWhenNumbersHard` false unless the offer is gentle without any number in it.
+
+## When it asks, and where it draws
+
+`PromptHost.Host` sits beside the nav host in `App.kt`. While Today is the top of the back stack
+(sheets and dialogs are back stack entries, so nothing is open over it) and the app is resumed, it
+waits two seconds, asks `PromptProcessor.next()`, and asks again whenever a moment arrives. A
+dialog or sheet then opens as its own destination (`PromptDialogRoute`, `PromptSheetRoute`), so it
+can never stack on another sheet, and Today is no longer on top until it closes. A card is drawn in
+Today's list through `TodayCardContribution`, on today only, until it is answered or the session
+ends.
+
+A showing is written down before it is drawn, and takes one answer: Accept, or Not now (a swipe, a
+tap outside and Back count as Not now). Counts live on the phone, per account, in the
+`prompt_ledger` cache. They survive signing out and back in, and are never synced.
+
+## The shipped prompts
+
+| id | Presentation | Shows when | Opens | Flag |
+|---|---|---|---|---|
+| `connect_health` | sheet | the phone has a health store, it is not connected, calories are on show; not after numbers have been hard | Watch and health apps | `release.health` |
+| `meal_reminders` | dialog | no reminder level was ever chosen and notifications were not refused; not after numbers have been hard | Reminders and celebrations | `release.reminders` |
+| `try_check_in` | card, up to 3 times, 3 days apart | 3 logged days in the last 14 and no check-in in them | Today's check-in | `release.checkIn` |
+
+## Adding a prompt (the Builder program, for example)
+
+One file in the feature that owns what the prompt offers, plus a dependency and the copy.
+
+1. In that feature's `impl/build.gradle.kts`: `implementation(projects.libraries.prompts)`.
+2. The copy in `libraries/resources/.../values/`, in the app's voice. `prompt_not_now` is there to
+   reuse.
+3. The candidate:
+
+```kotlin
+@file:OptIn(ExperimentalObjCRefinement::class)
+
+package com.opson.features.builder.impl
+
+@HiddenFromObjC
+@ContributesBinding(AppScope::class, multibinding = true)
+@Inject
+class JoinBuilderPrompt(
+    private val flag: BuilderProgramEnabled, // the program's release flag
+    private val builder: BuilderRepository, // whatever knows whether they joined
+) : PromptCandidate {
+    override val id = "join_builder" // never rename: it keys the counts and the app events
+    override val priority = PromptPriority.MOMENT
+    override val presentation = PromptPresentation.Sheet
+    override val content = PromptContent(
+        icon = AppIcons.Science,
+        title = Res.string.builder_prompt_title,
+        body = Res.string.builder_prompt_body,
+        accept = Res.string.builder_prompt_accept,
+        dismiss = Res.string.prompt_not_now,
+    )
+
+    // Right after someone sends a report, and only then.
+    override val onTodayOpen = false
+    override val events = setOf(PromptEvent.ReportSent)
+
+    // Twice at most, a month apart, until they say no once.
+    override val frequency = PromptFrequency(maxShows = 2, maxDismissals = 1, minGap = 30.days)
+
+    override suspend fun isEligible(): Boolean = flag() && !builder.isMember()
+
+    override suspend fun accept(): PromptAccept = PromptAccept.Open(BuilderProgramRoute())
+}
+```
+
+That is all: the multibinding puts it in front of the processor, the QA menu lists it, and the app
+events carry its id. `PromptAccept.OpenLink(url)` opens a page instead, and `PromptAccept.Done`
+closes after `accept()` did the work itself (a join call, say).
+
+**Emitting a moment.** Inject `PromptEvents` and call `emit(PromptEvent.X)` where the moment
+happens, after it succeeded. `FeedbackRepositoryImpl` emits `ReportSent` for bug reports and
+feedback, and Close the day's Done emits `DayClosed`. A new kind of report (a food report, say)
+emits `ReportSent` too; a new kind of moment is a new `PromptEvent` value. A constructor that must
+not grow a required argument can default it to `PromptEvents.None`.
+
+## Testing a prompt
+
+QA menu › Prompts lists every candidate with the rule holding it back, its own answer and its
+counts. **Show next** shows it the next time Today settles, past every rule but being signed in and onboarded; **Reset** forgets one
+prompt's counts, and **Reset all prompts** forgets them all and ends the waits, including the first
+two days. The rules themselves are pinned in `PromptProcessorTest`.

@@ -172,6 +172,9 @@ sealed interface QaEvent {
 
     /** The check-in for [dayIso], today. */
     data class OpenCheckIn(val dayIso: String) : QaEvent
+
+    /** QA menu › Prompts. */
+    data object OpenPrompts : QaEvent
     data object Close : QaEvent
 }
 
@@ -180,6 +183,7 @@ sealed interface QaAction {
     data class Copied(val label: StringResource) : QaAction
     data class FireTapped(val reminder: QaReminder) : QaAction
     data object CheckInTapped : QaAction
+    data object PromptsTapped : QaAction
     data object ResetOnboardingTapped : QaAction
     data object ClearCachesTapped : QaAction
     data class FlagToggled(val path: String, val on: Boolean) : QaAction

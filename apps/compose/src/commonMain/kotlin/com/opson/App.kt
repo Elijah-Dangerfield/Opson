@@ -31,6 +31,7 @@ import com.opson.features.medication.LogDoseRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.upgrade.impl.AppGuardLayer
 import com.opson.features.settings.FindSupportRoute
+import com.opson.features.today.TodayRoute
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.BuildInfo
@@ -43,6 +44,7 @@ import com.opson.libraries.navigation.NavigationOptions
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.navigation.SessionExpiredRoute
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowHost
+import com.opson.libraries.prompts.PromptHost
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowNavigator
 import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.identity.auth.isSomeones
@@ -51,6 +53,8 @@ import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.navigation.toEnterTransition
 import com.opson.libraries.navigation.toExitTransition
 import com.opson.libraries.navigation.toRouteOrNull
+import com.opson.libraries.widgets.WidgetLogOpen
+import com.opson.libraries.widgets.WidgetTodayOpen
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.nutrition.ui.LocalVisibilityPolicy
 import com.opson.libraries.opson.Telemetry
@@ -153,11 +157,15 @@ fun App(appComponent: AppComponent) {
         }
     }
 
-    // A home screen widget's + opens the Logger on the next meal, today. Through the router for
-    // the same reason as a reminder: a tap that cold-starts the app still lands.
+    // A widget tap: its + opens the Logger on the next meal, today, and the rest of a widget opens
+    // Today. Through the router for the same reason as a reminder: a tap that cold-starts the app
+    // still lands.
     LaunchedEffect(router) {
         appComponent.widgetOpens.requests.collect { open ->
-            router.navigate(LoggerRoute(slot = open.slot, dayIso = open.day.toString()))
+            when (open) {
+                is WidgetLogOpen -> router.navigate(LoggerRoute(slot = open.slot, dayIso = open.day.toString()))
+                WidgetTodayOpen -> router.switchTab(TodayRoute())
+            }
         }
     }
 
@@ -231,6 +239,7 @@ fun App(appComponent: AppComponent) {
                                 telemetry = appComponent.telemetry,
                                 jankMonitor = appComponent.jankMonitor,
                                 tabBar = appComponent.tabBar,
+                                promptHost = appComponent.promptHost,
                             )
                         } else {
                             BootLoadingScreen()
@@ -343,6 +352,7 @@ private fun AppNavigation(
     telemetry: Telemetry,
     jankMonitor: JankMonitor,
     tabBar: TabBar,
+    promptHost: PromptHost,
 ) {
     // Tag every crash/error with the route the user is currently on. Sheets
     // and dialogs are real destinations on this same back stack (see
@@ -444,6 +454,10 @@ private fun AppNavigation(
             )
 
             FloatingWindowHost(floatingWindowNavigator)
+
+            // Today's prompts. A sheet or dialog is the top entry while it is open, so Today on top
+            // means nothing is over it; sign-in and onboarding are their own routes.
+            promptHost.Host(onToday = currentBackStackEntry?.destination?.hasRoute<TodayRoute>() == true, router = router)
 
             router.Bind(navController)
         },

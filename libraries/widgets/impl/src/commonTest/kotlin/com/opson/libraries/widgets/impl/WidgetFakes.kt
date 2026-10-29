@@ -4,6 +4,9 @@ import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.Fast
+import com.opson.libraries.diary.FastingRepository
+import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
@@ -146,7 +149,16 @@ class FakeDiary : DiaryRepository {
     override suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>> = unused()
     override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> = unused()
     override suspend fun clearDay(day: LocalDate): DayWrite<Unit> = unused()
-    override suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit> = unused()
+    /** Water added, by day; a day in [closed] refuses it. */
+    val waterAdded = mutableListOf<Pair<LocalDate, Int>>()
+    val closed = mutableSetOf<LocalDate>()
+
+    override suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit> {
+        if (day in closed) return DayWrite.DayClosed(day)
+        waterAdded += day to ml
+        days.value = days.value + (day to (days.value[day] ?: Day.empty(day)).let { it.copy(waterMl = it.waterMl + ml) })
+        return DayWrite.Written(Unit)
+    }
     override suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit> = unused()
     override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = unused()
     override suspend fun closeDay(day: LocalDate, reflection: DayReflection) = unused()
@@ -160,6 +172,24 @@ class FakeDiary : DiaryRepository {
     override fun frequentFoods(limit: Int, days: Int): Flow<List<LogItem>> = unused()
 
     private fun unused(): Nothing = error("Widgets never call this")
+}
+
+/** The latest fast, as a test sets it. */
+class FakeFastingRepository(latest: Fast? = null) : FastingRepository {
+    val latest = MutableStateFlow(latest)
+    override fun observeLatest(): Flow<Fast?> = latest
+    override suspend fun startDue() = Unit
+    override suspend fun end() = Unit
+    override suspend fun endForTimerOff() = Unit
+}
+
+/** The day Today shows. */
+class FakeSelectedDay(initial: LocalDate) : SelectedDay {
+    private val state = MutableStateFlow(initial)
+    override val date: StateFlow<LocalDate> = state
+    override fun select(day: LocalDate) {
+        state.value = day
+    }
 }
 
 class FixedCalendar(var date: LocalDate) : LocalCalendar {

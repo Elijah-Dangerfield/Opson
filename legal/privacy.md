@@ -21,8 +21,9 @@ also applies to you.
 - Your log is kept on your phone and copied to our server so it survives a lost
   phone.
 - You can export everything or delete everything from inside the app.
-- Anything the app reads from Apple Health or Health Connect stays on your
-  phone.
+- What the app reads from Apple Health or Health Connect stays on your phone,
+  unless you choose to copy weigh-ins or your height, birth year or sex into
+  your Opson log, which is then saved like anything else you enter.
 
 ## What you put in
 
@@ -99,12 +100,17 @@ them.
 Some features are switched on over time. When they are, this is how they work.
 
 - **Apple Health and Health Connect.** If you connect them, Opson reads
-  active energy, resting energy and workouts (Apple Health), or calories
-  burned, active calories, basal metabolic rate and exercise (Health Connect).
-  It reads them on your phone when it needs to show them. They are never sent
-  to our server or anyone else, never stored by Opson, and never written back.
-  Only your choices about connecting and showing them are saved with your
-  settings.
+  active energy, resting energy and workouts, including the name of the app
+  that recorded each workout (Apple Health), or calories burned, active
+  calories, basal metabolic rate and exercise (Health Connect). It reads them
+  on your phone when it needs to show them, keeps the latest day's reading on
+  your phone so the app opens quickly, and never sends them to our server or
+  anyone else or writes anything back. Two things are copied into your log only
+  if you ask: weigh-ins, when you turn on importing them, and your height,
+  birth year and sex (height only on Health Connect), when you tap Fill in on
+  your profile. Once copied they are part of your log and are saved and synced
+  like a weigh-in or profile detail you typed. Your choices about connecting
+  and showing them are saved with your settings.
 - **Barcode scanning.** The barcode is sent to our server. If our database has
   no match, our server asks [Open Food Facts](https://world.openfoodfacts.org/privacy)
   and, where we have switched it on, Nutritionix, sending only the barcode. We

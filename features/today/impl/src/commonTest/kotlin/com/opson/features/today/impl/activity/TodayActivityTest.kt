@@ -8,6 +8,7 @@ import com.opson.features.today.impl.FakePolicySource
 import com.opson.features.today.impl.FakeSelectedDay
 import com.opson.features.today.impl.FakeSettingsRepository
 import com.opson.features.today.impl.TodayFixtures
+import com.opson.features.today.impl.healthFlag
 import com.opson.features.today.impl.policy
 import com.opson.features.today.impl.text
 import com.opson.libraries.diary.Day
@@ -20,6 +21,8 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.HealthWorkout
+import com.opson.libraries.health.WorkoutKind
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
@@ -174,7 +177,12 @@ class TodayActivityTest : CoroutineTest() {
 
     private val diary = FakeDiaryRepository()
 
-    private fun TestScope.vm(released: Boolean = true, selected: FakeSelectedDay = FakeSelectedDay()) = TodayActivityViewModel(
+    private fun TestScope.vm(
+        released: Boolean = true,
+        selected: FakeSelectedDay = FakeSelectedDay(),
+        health: FakeHealthRepository = FakeHealthRepository(),
+        healthOn: Boolean = false,
+    ) = TodayActivityViewModel(
         selectedDay = selected,
         settingsRepository = FakeSettingsRepository(),
         policySource = FakePolicySource(),
@@ -183,7 +191,9 @@ class TodayActivityTest : CoroutineTest() {
         diary = diary,
         release = ExerciseRelease { released },
         calendar = FakeCalendar(),
-        health = FakeHealthRepository(),
+        health = health,
+        records = health,
+        healthFlag = healthFlag(healthOn),
     )
 
     private fun TestScope.settle() {
@@ -240,6 +250,50 @@ class TodayActivityTest : CoroutineTest() {
         val vm = vm(released = false)
         settle()
         assertNull(vm.state.card)
+    }
+
+    // --- the health app's workouts ---
+
+    private val garminRun = HealthWorkout(
+        id = "garmin",
+        kind = WorkoutKind.Running,
+        title = "Morning run",
+        start = Instant.parse("${day}T07:10:00Z"),
+        end = Instant.parse("${day}T07:45:00Z"),
+        activeKcal = 320.4,
+        sourceName = "Garmin Connect",
+    )
+
+    private fun withWorkouts(preset: PresetId) = TodayActivityStateBuilder.build(
+        TodayActivityInputs(day, Settings(), null, emptyList(), policy(preset), released = true, timeZone = TimeZone.UTC, workouts = listOf(garminRun)),
+    ).card
+
+    @Test
+    fun workouts_areRows_withTheirAppTimeLengthAndEnergy() {
+        val row = assertNotNull(withWorkouts(PresetId.Full)).workouts.single()
+        assertEquals("Morning run", row.title)
+        assertEquals("Garmin Connect", row.source)
+        assertEquals(35, row.minutes)
+        assertEquals(LocalTime(7, 10), row.startedAt)
+        assertEquals("320", row.amount.text()?.filter(Char::isDigit))
+    }
+
+    @Test
+    fun workouts_hideTheirEnergy_whereEnergyOutIsHidden() {
+        withWorkouts(PresetId.NoNumbers)?.workouts?.forEach { assertEquals(Display.Hidden, it.amount) }
+    }
+
+    @Test
+    fun theViewModel_readsWorkouts_onlyWithReleaseHealthOn() = runUnitTest {
+        val health = FakeHealthRepository(connected = true, workouts = listOf(garminRun))
+        val off = vm(health = health)
+        settle()
+        assertTrue(health.workoutDays.isEmpty())
+        assertEquals(emptyList(), off.state.card?.workouts.orEmpty())
+
+        val on = vm(health = health, healthOn = true)
+        settle()
+        assertEquals(listOf("garmin"), on.state.card?.workouts?.map { it.id })
     }
 
     private class FakeExercise(entries: List<ExerciseEntry>) : ExerciseRepository {

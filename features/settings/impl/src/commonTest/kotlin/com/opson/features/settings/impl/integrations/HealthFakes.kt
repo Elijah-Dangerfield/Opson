@@ -13,7 +13,13 @@ import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.health.ConnectOutcome
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.HealthProfile
+import com.opson.libraries.health.HealthRecords
+import com.opson.libraries.health.HealthRefresh
 import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.HealthWeighIn
+import com.opson.libraries.health.HealthWeighInImport
+import com.opson.libraries.health.HealthWorkout
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
@@ -26,14 +32,24 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
+import kotlin.time.Instant
 
-/** A health store in memory: [connectOutcome] is what Connect answers, [energy] what a read returns. */
+/**
+ * A health store in memory: [connectOutcome] is what Connect answers, [energy] what a read returns,
+ * [sources] the apps it names and [profile] the body details it has.
+ */
 class FakeHealthRepository(
     status: HealthStatus = HealthStatus.NotConnected,
     var connectOutcome: ConnectOutcome = ConnectOutcome.Connected,
     energy: EnergyExpended? = null,
     override val source: HealthSource = HealthSource.HealthConnect,
-) : HealthRepository {
+    var sources: List<String> = emptyList(),
+    var profile: HealthProfile = HealthProfile(null, null, null),
+    canAskForMore: Boolean = false,
+) : HealthRepository, HealthRecords {
+    override val canAskForMore = MutableStateFlow(canAskForMore)
+    var sourceReads = 0
+    var profileReads = 0
     val statusFlow = MutableStateFlow(status)
     val energyFlow = MutableStateFlow(energy)
     var refreshes = 0
@@ -55,6 +71,7 @@ class FakeHealthRepository(
             ConnectOutcome.Denied -> HealthStatus.NotConnected
             ConnectOutcome.NeedsInstall -> HealthStatus.NeedsInstall
             ConnectOutcome.Unsupported -> HealthStatus.Unsupported
+            ConnectOutcome.Failed -> statusFlow.value
         }
         return connectOutcome
     }
@@ -76,6 +93,39 @@ class FakeHealthRepository(
         settingsOpened++
         return true
     }
+
+    override fun workouts(day: LocalDate, timeZone: TimeZone): Flow<List<HealthWorkout>?> = error("Settings shows no workouts")
+
+    override suspend fun profile(): HealthProfile? {
+        profileReads++
+        return profile.takeIf { statusFlow.value == HealthStatus.Connected }
+    }
+
+    override suspend fun weighIns(since: Instant): List<HealthWeighIn>? = error("the import reads these, not settings")
+
+    override suspend fun sources(): List<String>? {
+        sourceReads++
+        return sources.takeIf { statusFlow.value == HealthStatus.Connected }
+    }
+
+    override suspend fun refreshNow(day: LocalDate, timeZone: TimeZone): HealthRefresh = error("Settings never pulls to refresh")
+}
+
+/** The weigh-in switch: [added] is what turning it on brings in, null for a store that can't be read. */
+class FakeWeighInImport(on: Boolean = false, var added: Int? = 2) : HealthWeighInImport {
+    val onFlow = MutableStateFlow(on)
+    override val on: Flow<Boolean> = onFlow
+
+    override suspend fun turnOn(): Int? {
+        onFlow.value = true
+        return added
+    }
+
+    override suspend fun turnOff() {
+        onFlow.value = false
+    }
+
+    override suspend fun importNew(): Int? = added
 }
 
 class FakeCalendar(private val today: LocalDate = IntegrationsFixtures.today) : LocalCalendar {

@@ -4,8 +4,8 @@
   itself, the More row and the Widgets page. The More row and the Widgets page
   are behind release.widgets; the widget itself is in every build. Same
   rules as strings.xml: no backslash escapes, positional %1$s arguments. No
-  string here takes a number: the only number a widget shows comes from the
-  visibility policy.
+  string here takes a nutrition number: those come from the visibility policy.
+  The only numbers passed in are counts of meals and glasses.
 -->
 <resources>
 
@@ -24,5 +24,36 @@
     <!-- With meal groups off there are no circles to show. -->
     <string name="widgets_note_log">Tap + to log</string>
     <string name="widgets_note_untracked">Not tracking today</string>
+
+    <!-- The other widgets' titles. -->
+    <string name="widgets_calories">Calories</string>
+    <string name="widgets_macros">Macros</string>
+    <string name="widgets_water">Water</string>
+    <string name="widgets_meals">Meals</string>
+    <string name="widgets_fasting">Fasting</string>
+    <!-- Under what is left on the calories widget: "540" over "to range". Only in a mode that shows it. -->
+    <string name="widgets_to_range">to range</string>
+    <string name="widgets_to_goal">to goal</string>
+    <!-- Meals done, the neutral figure: "2 of 4 meals". A count of meals, never a nutrition number. -->
+    <string name="widgets_meals_done">%1$s of %2$s meals</string>
+    <!-- The water widget's button. -->
+    <string name="widgets_add_glass">Add a glass</string>
+    <!-- What a screen reader says for softened water, which shows glasses and no amount. -->
+    <string name="widgets_water_glasses">%1$s of %2$s glasses</string>
+    <!-- A meal with nothing logged on the meals widget. -->
+    <string name="widgets_nothing_yet">Nothing yet</string>
+    <!-- The meals widget's one row with meal groups off. -->
+    <string name="widgets_all_food">All food</string>
+    <!-- When the mode keeps a widget's numbers in the app. -->
+    <string name="widgets_macros_hidden">Your mode keeps macros in the app.</string>
+    <string name="widgets_water_hidden">Your mode keeps water in the app.</string>
+    <string name="widgets_fasting_off">The fasting timer is off.</string>
+    <!-- The fasting widget's phases. The widget prints the time after each caption. -->
+    <string name="widgets_fasting_now">Fasting</string>
+    <string name="widgets_fasting_ends">Ends at</string>
+    <string name="widgets_fasting_window">Eating window</string>
+    <string name="widgets_fasting_until">Until</string>
+    <string name="widgets_fasting_done">Fast done</string>
+    <string name="widgets_fasting_next">Next fast at</string>
 
 </resources>

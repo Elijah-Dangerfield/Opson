@@ -4,7 +4,14 @@ import com.opson.features.settings.impl.FakePolicySource
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.Toast
 import com.opson.features.settings.impl.integrations.FakeCalendar
+import com.opson.features.settings.impl.integrations.FakeHealthRepository
+import com.opson.features.settings.impl.integrations.healthFlag
+import com.opson.libraries.health.ConnectOutcome
+import com.opson.libraries.health.HealthProfile
+import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.core.DeviceRegion
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
@@ -22,6 +29,11 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.datetime.LocalDate
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.integrations_profile_empty
+import opson.libraries.resources.generated.resources.integrations_profile_filled
+import opson.libraries.resources.generated.resources.integrations_profile_not_connected
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -129,7 +141,19 @@ class ProfileTest : CoroutineTest() {
         weights: FakeWeights = FakeWeights(null),
         region: String? = "GB",
         back: ProfileBack = ProfileBack.More,
-    ) = ProfileViewModel(back, repository, weights, FakePolicySource(full), FakeCalendar(SettingsFixtures.today), DeviceRegion { region })
+        health: FakeHealthRepository = FakeHealthRepository(),
+        healthOn: Boolean = false,
+    ) = ProfileViewModel(
+        back,
+        repository,
+        weights,
+        FakePolicySource(full),
+        FakeCalendar(SettingsFixtures.today),
+        DeviceRegion { region },
+        health,
+        health,
+        healthFlag(healthOn),
+    )
 
     @Test
     fun theLatestWeighInIsTheOneShown() = runUnitTest {
@@ -222,5 +246,72 @@ class ProfileTest : CoroutineTest() {
         vm.takeAction(ProfileAction.BackTapped)
 
         assertEquals(listOf(ProfileEvent.OpenWeight, ProfileEvent.Close), events)
+    }
+    @Test
+    fun fillFromHealth_isOfferedOnlyWithTheReleaseOn() = runUnitTest {
+        assertNull(viewModel().state.fillFrom)
+        assertEquals(HealthSource.AppleHealth, viewModel(health = FakeHealthRepository(source = HealthSource.AppleHealth), healthOn = true).state.fillFrom)
+    }
+
+    @Test
+    fun fillFromHealth_writesWhatTheStoreHas_overWhatWasThere() = runUnitTest {
+        val repository = FakeSettingsRepository(ProfileFixtures.filled)
+        val health = FakeHealthRepository(
+            status = HealthStatus.Connected,
+            profile = HealthProfile(heightCm = 181.27, birthDate = LocalDate(1986, 4, 2), sex = BodySex.Male),
+        )
+        val vm = viewModel(repository, health = health, healthOn = true)
+        val events = eventsOf(vm)
+
+        vm.takeAction(ProfileAction.FillFromHealthTapped)
+
+        val saved = repository.settings.value
+        assertEquals(1986, saved.birthYear)
+        assertEquals(181.3, saved.heightCm)
+        assertEquals(BodySex.Male, saved.bodySex)
+        assertEquals("1986", vm.state.birthYearText)
+        assertEquals(listOf<ProfileEvent>(ProfileEvent.ShowToast(Toast(Res.string.integrations_profile_filled))), events)
+        assertEquals(0, health.connects)
+    }
+
+    @Test
+    fun fillFromHealth_keepsWhatTheStoreDoesntHave() = runUnitTest {
+        // Health Connect has a height and nothing else.
+        val repository = FakeSettingsRepository(ProfileFixtures.filled)
+        val health = FakeHealthRepository(status = HealthStatus.Connected, profile = HealthProfile(heightCm = 175.0, birthDate = null, sex = null))
+        viewModel(repository, health = health, healthOn = true).takeAction(ProfileAction.FillFromHealthTapped)
+        assertEquals(ProfileFixtures.filled.copy(heightCm = 175.0), repository.settings.value)
+    }
+
+    @Test
+    fun fillFromHealth_notConnected_asksFirst() = runUnitTest {
+        val health = FakeHealthRepository(connectOutcome = ConnectOutcome.Connected, profile = HealthProfile(heightCm = 175.0, birthDate = null, sex = null))
+        val repository = FakeSettingsRepository(Settings())
+        viewModel(repository, health = health, healthOn = true).takeAction(ProfileAction.FillFromHealthTapped)
+        assertEquals(1, health.connects)
+        assertEquals(175.0, repository.settings.value.heightCm)
+    }
+
+    @Test
+    fun fillFromHealth_refused_changesNothing_andSaysToConnect() = runUnitTest {
+        val health = FakeHealthRepository(connectOutcome = ConnectOutcome.Denied)
+        val repository = FakeSettingsRepository(ProfileFixtures.filled)
+        val vm = viewModel(repository, health = health, healthOn = true)
+        val events = eventsOf(vm)
+        vm.takeAction(ProfileAction.FillFromHealthTapped)
+        assertEquals(ProfileFixtures.filled, repository.settings.value)
+        assertEquals(listOf<ProfileEvent>(ProfileEvent.ShowToast(Toast(Res.string.integrations_profile_not_connected))), events)
+    }
+
+    @Test
+    fun fillFromHealth_nothingUsable_saysSo() = runUnitTest {
+        // A birth year that would make someone 5 is left out, like a typed one.
+        val health = FakeHealthRepository(status = HealthStatus.Connected, profile = HealthProfile(heightCm = 12.0, birthDate = LocalDate(2021, 1, 1), sex = null))
+        val repository = FakeSettingsRepository(ProfileFixtures.filled)
+        val vm = viewModel(repository, health = health, healthOn = true)
+        val events = eventsOf(vm)
+        vm.takeAction(ProfileAction.FillFromHealthTapped)
+        assertEquals(ProfileFixtures.filled, repository.settings.value)
+        assertEquals(listOf<ProfileEvent>(ProfileEvent.ShowToast(Toast(Res.string.integrations_profile_empty))), events)
     }
 }
