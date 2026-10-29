@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for Repeating (release.repeats): the Foods tab's card, the repeat editor, and Repeat this
+  on a food's sheet on Today. Same rules as strings.xml: no backslash escapes, positional %1$s
+  arguments.
+-->
+<resources>
+
+    <!-- The Foods tab's card -->
+    <string name="repeat_section">Repeating</string>
+    <string name="repeat_empty">Foods you have most days can log themselves on the days you pick.</string>
+    <string name="repeat_new">New repeat</string>
+    <string name="repeat_open_cd">Edit %1$s</string>
+    <string name="repeat_paused">Paused</string>
+    <string name="repeat_until">until %1$s</string>
+    <string name="repeat_days_every">Every day</string>
+    <string name="repeat_days_weekdays">Weekdays</string>
+    <string name="repeat_days_weekends">Weekends</string>
+
+    <!-- The editor -->
+    <string name="repeat_title_new">New repeat</string>
+    <string name="repeat_title_edit">Edit repeat</string>
+    <string name="repeat_what">What</string>
+    <string name="repeat_what_empty">Add a food, or pick one of your saved meals.</string>
+    <string name="repeat_add_food">Add a food</string>
+    <string name="repeat_saved_meals">Or a saved meal</string>
+    <string name="repeat_remove_cd">Remove %1$s</string>
+    <string name="repeat_meal">Meal</string>
+    <string name="repeat_days">Days</string>
+    <string name="repeat_starts">Starts</string>
+    <string name="repeat_start_today">Today</string>
+    <string name="repeat_start_tomorrow">Tomorrow</string>
+    <string name="repeat_ends">Ends</string>
+    <string name="repeat_end_never">No end</string>
+    <string name="repeat_end_week">After a week</string>
+    <string name="repeat_end_two_weeks">After 2 weeks</string>
+    <string name="repeat_end_month">After a month</string>
+    <string name="repeat_end_on">On %1$s</string>
+    <string name="repeat_pause">Pause</string>
+    <string name="repeat_pause_body">Nothing logs while it's paused.</string>
+    <string name="repeat_how">It logs when you open Opson that day. Days you don't open it stay empty, and you can change or remove what it logs like any food.</string>
+    <string name="repeat_save">Save repeat</string>
+    <string name="repeat_delete">Delete repeat</string>
+
+    <!-- What saving does, under the form -->
+    <string name="repeat_note_logs_today">Saving logs it for today too.</string>
+    <string name="repeat_note_counts_today">The one you logged today counts for today.</string>
+    <string name="repeat_note_logged_today">Today's is in your log. Changes start with the next one.</string>
+    <string name="repeat_note_tomorrow">The next one logs tomorrow.</string>
+    <string name="repeat_note_next_on">The next one logs on %1$s.</string>
+    <string name="repeat_note_never">Its last day has passed, so it won't log again.</string>
+    <string name="repeat_note_paused">Paused. Nothing logs until you turn it back on.</string>
+
+    <!-- Snackbars -->
+    <string name="repeat_toast_saved">Repeat saved.</string>
+    <string name="repeat_toast_saved_logged">Repeat saved. Today's %1$s is logged.</string>
+    <string name="repeat_toast_deleted">Repeat deleted. What it logged stays in your log.</string>
+
+    <!-- A food's sheet on Today, and its row -->
+    <string name="repeat_this">Repeat this</string>
+    <string name="repeat_this_body">Log it on the days you pick</string>
+    <string name="repeat_edit">Edit repeat</string>
+    <string name="repeat_badge_cd">Repeats</string>
+</resources>

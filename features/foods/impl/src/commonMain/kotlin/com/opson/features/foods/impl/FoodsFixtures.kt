@@ -6,6 +6,9 @@ import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.RepeatDays
+import com.opson.libraries.diary.RepeatPlan
+import com.opson.libraries.diary.RepeatRule
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodSource
@@ -14,6 +17,7 @@ import com.opson.libraries.foods.Portion
 import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.VisibilityPolicy
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
@@ -84,20 +88,85 @@ object FoodsFixtures {
         )
     }
 
-    fun foodsInputs(withRecent: Boolean = true, empty: Boolean = false, inReview: Boolean = false): FoodsInputs = if (empty) {
-        FoodsInputs(customFoods = emptyList(), savedMeals = emptyList(), recent = emptyList())
-    } else {
-        FoodsInputs(
-            customFoods = listOf(pandesal),
-            savedMeals = savedMeals,
-            recent = if (withRecent) recent else emptyList(),
-            reviews = if (inReview) mapOf(pandesal.id to ReviewStatus.Pending) else emptyMap(),
-        )
+    /**
+     * Repeating: the usual breakfast on weekdays, a coffee every day, and a yogurt that is paused
+     * and ends on Nov 3.
+     */
+    val repeats: List<RepeatRule> = listOf(
+        RepeatRule(
+            id = "repeat-breakfast",
+            plan = RepeatPlan(
+                name = "Usual breakfast",
+                items = savedMeals.first().items,
+                slot = MealSlot.Breakfast,
+                days = RepeatDays.Weekdays,
+                startDay = today,
+                savedMealId = savedMeals.first().id,
+            ),
+        ),
+        RepeatRule(
+            id = "repeat-coffee",
+            plan = RepeatPlan(name = "Coffee with milk", items = listOf(coffee), slot = MealSlot.Snack, days = RepeatDays.EveryDay, startDay = today),
+        ),
+        RepeatRule(
+            id = "repeat-yogurt",
+            plan = RepeatPlan(
+                name = "Greek yogurt",
+                items = listOf(yogurt),
+                slot = MealSlot.Snack,
+                days = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+                startDay = today,
+                endDay = LocalDate(2026, 11, 3),
+            ),
+            paused = true,
+        ),
+    )
+
+    /** [repeats]: `release.repeats` on, with these rules ([withRepeats]) or none yet. */
+    fun foodsInputs(
+        withRecent: Boolean = true,
+        empty: Boolean = false,
+        inReview: Boolean = false,
+        repeatsOn: Boolean = false,
+        withRepeats: Boolean = true,
+    ): FoodsInputs {
+        val rules = if (!repeatsOn) null else if (withRepeats && !empty) repeats else emptyList()
+        return if (empty) {
+            FoodsInputs(customFoods = emptyList(), savedMeals = emptyList(), recent = emptyList(), repeats = rules)
+        } else {
+            FoodsInputs(
+                customFoods = listOf(pandesal),
+                savedMeals = savedMeals,
+                recent = if (withRecent) recent else emptyList(),
+                reviews = if (inReview) mapOf(pandesal.id to ReviewStatus.Pending) else emptyMap(),
+                repeats = rules,
+            )
+        }
     }
 
     /** [inReview]: the pandesal was sent to Opson's food database and nobody has checked it yet. */
-    fun foodsState(policy: VisibilityPolicy, withRecent: Boolean = true, empty: Boolean = false, inReview: Boolean = false): FoodsState =
-        FoodsStateBuilder.build(foodsInputs(withRecent, empty, inReview), policy)
+    @Suppress("LongParameterList")
+    fun foodsState(
+        policy: VisibilityPolicy,
+        withRecent: Boolean = true,
+        empty: Boolean = false,
+        inReview: Boolean = false,
+        repeatsOn: Boolean = false,
+        withRepeats: Boolean = true,
+    ): FoodsState = FoodsStateBuilder.build(foodsInputs(withRecent, empty, inReview, repeatsOn, withRepeats), policy)
+
+    /** A new repeat of the usual breakfast on weekdays, from today; [empty] is the form as it opens. */
+    fun repeatDraft(empty: Boolean = false): RepeatDraft = if (empty) {
+        RepeatDraft(start = today)
+    } else {
+        RepeatDraft(items = savedMeals.first().items, savedMealId = savedMeals.first().id, slot = MealSlot.Breakfast, days = RepeatDays.Weekdays, start = today)
+    }
+
+    /** The paused yogurt, saved, from the Foods tab: Pause and Delete show. */
+    fun repeatEditDraft(): RepeatDraft = RepeatDraft.of(repeats.last())
+
+    fun repeatState(policy: VisibilityPolicy, empty: Boolean = false, edit: Boolean = false): RepeatState =
+        RepeatStateBuilder.build(if (edit) repeatEditDraft() else repeatDraft(empty), savedMeals, today, policy)
 
     /** 11.2: "Usual breakfast" at breakfast, three foods. */
     fun mealDraft(empty: Boolean = false): MealDraft = if (empty) {

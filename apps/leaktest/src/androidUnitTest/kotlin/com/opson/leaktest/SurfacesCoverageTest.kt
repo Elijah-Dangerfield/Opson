@@ -134,7 +134,7 @@ class SurfacesCoverageTest {
             ),
             "FoodsLeakSurfaces" to listOf(
                 "foods", "foods-create-meal", "foods-add-food", "foods-add-food-blind", "edit-a-copy", "edit-a-copy-label", "edit-a-copy-sizes",
-                "foods-add-food-pack", "foods-unverified",
+                "foods-add-food-pack", "foods-unverified", "foods-repeating", "foods-repeat", "foods-repeat-edit",
             ),
             "TrendsLeakSurfaces" to listOf(
                 "trends", "trends-blind", "trends-coast", "trends-settings", "nutrients", "nutrients-week",
@@ -177,6 +177,7 @@ class SurfacesCoverageTest {
             "provider-summary", "provider-summary-warning", "provider-summary-custom",
             "today-closed", "day-close-closed", "food-actions-closed", "day-close-recap-deficit", "day-close-recap-surplus",
             "search-unverified", "food-detail-in-review", "submit-food-save-review", "foods-add-food-pack", "foods-unverified",
+            "foods-repeating", "foods-repeat", "foods-repeat-edit",
         )
     }
 }

@@ -67,6 +67,9 @@ Edit a copy.
 - Favorites: `Settings.toggleFavorite` with the food ref key; only for an item
   logged from a food.
 - Delete: as before, a tombstone and a toast.
+- Repeat this (`release.repeats`, independent of `release.foodActions`): just
+  above Delete, it opens a new repeat from the entry (`foods.md`, Repeating).
+  On a food a repeat logged it reads Edit repeat and opens that repeat.
 
 ## Edit a copy (13.3e)
 `EditCopyRoute(dayIso, entryId)` in `:features:foods`, a `screen<>`.

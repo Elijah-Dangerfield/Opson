@@ -155,6 +155,41 @@ data class ExerciseEntity(
 )
 
 /**
+ * A repeating food or meal (`RepeatRule`). Schema 12. Device-local for now: nothing enqueues it,
+ * but it carries what a synced row needs (a UUID, [clientUpdatedAtEpochMs], a tombstone) so it
+ * can join the outbox once the server has a table for it.
+ *
+ * [days] is a bitmask of ISO days, Monday bit 0. [itemsJson] is the snapshot a saved meal keeps.
+ */
+@Entity(tableName = "repeat_rules")
+data class RepeatRuleEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val itemsJson: String,
+    val savedMealId: String?,
+    val slot: String,
+    val days: Int,
+    val startDay: String,
+    val endDay: String?,
+    val paused: Boolean,
+    val createdAtEpochMs: Long,
+    val clientUpdatedAtEpochMs: Long,
+    val deleted: Boolean,
+)
+
+/**
+ * One entry a repeat logged, and the ledger that says a rule has had its day. Schema 12, never
+ * synced. A row stays when its entry is removed, which is what keeps a removed entry from being
+ * logged again that day. Entry ids are `repeatEntryId(rule, day, index)`.
+ */
+@Entity(tableName = "repeat_logs", indices = [Index(value = ["ruleId", "day"]), Index("day")])
+data class RepeatLogEntity(
+    @PrimaryKey val entryId: String,
+    val ruleId: String,
+    val day: String,
+)
+
+/**
  * A change waiting to reach the server. There is at most one per
  * (`entity`, `entityId`): a newer change to the same row replaces the older
  * mutation under a fresh [id], so the server's `applied` list for the old id

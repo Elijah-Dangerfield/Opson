@@ -340,3 +340,47 @@ uses the trimmed name. Previews: `FoodsAddFood` (Full), dark, Nutrient focus,
 `FoodsAddFoodBlind`. Leak surfaces `foods-add-food` (Calories field holding
 120, so Full reads `120 kcal`; `showsCaloriesInFull = true`) and
 `foods-add-food-blind` (`false`).
+
+## Repeating
+
+Behind `release.repeats`. The owner asked for foods that log themselves every
+day or on chosen days; the storage, timing and sync decisions are in
+`docs/decisions.md`, 2026-10-29.
+
+### Where it is
+- The Foods tab: a **Repeating** card under Saved meals. Each repeat is a row,
+  its name over "Breakfast · Weekdays · until Nov 3" ("Paused · ..." when it is),
+  with its foods' calories through the policy, and the row or its pencil opens
+  it. **New repeat** ends the card. With none yet the card says what a repeat is.
+- Today: a food's sheet offers **Repeat this** above Delete (also with
+  `release.foodActions` off, and on a closed day, since it changes nothing on
+  the day), or **Edit repeat** for a food a repeat logged. A food a repeat
+  logged carries a small loop (`AppIcons.Repeat`, "Repeats") before its line.
+
+### The editor (`RepeatRoute(ruleId?, fromDayIso?, fromEntryId?)`, a `screen<>`)
+- What: the foods, each removable, and Add a food, which opens search in
+  pick-for-this-meal mode like Create a meal. Or a saved meal, one of the chips
+  below: then the meal's current foods log while it exists. Adding or removing
+  a food makes the list the repeat's own.
+- Meal (the four meals), Days (Every day, Weekdays, Weekends, and a toggle per
+  day), Starts (Today or Tomorrow, until it has started), Ends (No end, after a
+  week, 2 weeks or a month from the start, or the date it already had).
+- A saved repeat adds Pause and Delete repeat. Delete keeps what it logged.
+- Under the form, what saving does: "Saving logs it for today too.", "The one
+  you logged today counts for today." (Repeat this from today), "Today's is in
+  your log. Changes start with the next one." (an edit), the next day it logs,
+  or that it is paused or past its end. Then how it works: it logs when Opson
+  is opened that day, missed days stay empty, and its foods edit and delete
+  like any.
+- Saved: "Repeat saved. Today's breakfast is logged." when saving logged today.
+- From Repeat this: the entry's food and amount, its meal (Uncategorized takes
+  the meal its time falls in), every day from today. On today it counts as
+  today's, so the food is not logged twice.
+
+### Tests
+`RepeatRepositoryImplTest` (diary impl) for the logging rules, `RepeatsTest`
+for the ids and schedules, `RepeatTest` and `FoodsTabTest` here,
+`ItemSheetRepeatTest` on Today. Previews `FoodsRepeating` (and dark, empty),
+`FoodsRepeat` (dark, Blind, empty, edit), `FoodActionsRepeat` and
+`FoodActionsEditRepeat`. Leak surfaces `foods-repeating`, `foods-repeat` and
+`foods-repeat-edit`, all `showsCaloriesInFull = true`.

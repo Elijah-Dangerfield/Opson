@@ -5,6 +5,7 @@ import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.RepeatRule
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.foodRef
@@ -17,6 +18,9 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 /** The Foods tab (design v3, 11.1). Built by [FoodsStateBuilder]; every number in it is policy-resolved. */
 data class FoodsState(
     val loading: Boolean = true,
+    /** `release.repeats`: the Repeating card, under Saved meals. */
+    val repeatsOn: Boolean = false,
+    val repeats: List<RepeatRowUi> = emptyList(),
     val savedMeals: List<FoodsRowUi> = emptyList(),
     val yourFoods: List<FoodsRowUi> = emptyList(),
     val recent: List<FoodsRowUi> = emptyList(),
@@ -55,6 +59,9 @@ sealed interface FoodsAction {
 
     /** The row or its +: a food opens its detail, a saved meal the + sheet on Saved meals. */
     data class RowTapped(val target: FoodsTarget) : FoodsAction
+
+    data object NewRepeatTapped : FoodsAction
+    data class RepeatTapped(val id: String) : FoodsAction
 }
 
 sealed interface FoodsEvent {
@@ -62,6 +69,9 @@ sealed interface FoodsEvent {
     data class OpenLogger(val route: Route) : FoodsEvent
     data object OpenCreateMeal : FoodsEvent
     data object OpenAddFood : FoodsEvent
+
+    /** A repeat to edit, or a new one when [ruleId] is null. */
+    data class OpenRepeat(val ruleId: String?) : FoodsEvent
 }
 
 /** Everything the tab reads, so [FoodsStateBuilder] is a pure function of it. */
@@ -71,6 +81,8 @@ data class FoodsInputs(
     val recent: List<LogItem>,
     /** Review status by custom food id, for the person's foods they sent to Opson's food database. */
     val reviews: Map<String, ReviewStatus> = emptyMap(),
+    /** Null while `release.repeats` is off, so the card is not drawn at all. */
+    val repeats: List<RepeatRule>? = null,
 )
 
 /**
@@ -85,6 +97,8 @@ object FoodsStateBuilder {
         fun calories(kcal: Double?) = policy.resolve(Metric.Calories, kcal, Surface.Foods, bare)
         return FoodsState(
             loading = false,
+            repeatsOn = inputs.repeats != null,
+            repeats = inputs.repeats.orEmpty().map { RepeatStateBuilder.row(it, inputs.savedMeals, policy) },
             savedMeals = inputs.savedMeals.map { meal ->
                 FoodsRowUi(
                     key = "meal:${meal.id}",

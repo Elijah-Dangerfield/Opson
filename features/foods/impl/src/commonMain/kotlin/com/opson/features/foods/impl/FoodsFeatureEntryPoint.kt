@@ -10,6 +10,7 @@ import com.opson.features.foods.AddFoodRoute
 import com.opson.features.foods.CreateMealRoute
 import com.opson.features.foods.EditCopyRoute
 import com.opson.features.foods.FoodsRoute
+import com.opson.features.foods.RepeatRoute
 import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.SubmitEntry
@@ -43,6 +44,7 @@ class FoodsFeatureEntryPoint(
     private val createMealViewModelFactory: (CreateMealRoute, String?) -> CreateMealViewModel,
     private val addFoodViewModelFactory: () -> AddFoodViewModel,
     private val editCopyViewModelFactory: (EditCopyRoute, String) -> EditCopyViewModel,
+    private val repeatViewModelFactory: (RepeatRoute) -> RepeatViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -55,6 +57,7 @@ class FoodsFeatureEntryPoint(
                         is FoodsEvent.OpenLogger -> event.route
                         FoodsEvent.OpenCreateMeal -> CreateMealRoute()
                         FoodsEvent.OpenAddFood -> AddFoodRoute()
+                        is FoodsEvent.OpenRepeat -> RepeatRoute(ruleId = event.ruleId)
                     },
                 )
             }
@@ -93,6 +96,20 @@ class FoodsFeatureEntryPoint(
                 }
             }
             AddFoodScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        screen<RepeatRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<RepeatRoute>()
+            val viewModel: RepeatViewModel = viewModel { repeatViewModelFactory(route) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is RepeatEvent.OpenPicker -> router.navigate(FoodSearchRoute(pickForMeal = event.requestId))
+                    is RepeatEvent.ShowToast -> show(event.toast)
+                    RepeatEvent.Close -> router.goBack()
+                }
+            }
+            RepeatScreen(state = state, onAction = viewModel::takeAction)
         }
 
         screen<EditCopyRoute>(

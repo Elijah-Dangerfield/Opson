@@ -11,6 +11,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.foods.CreateMealRoute
 import com.opson.features.foods.EditCopyRoute
+import com.opson.features.foods.RepeatRoute
 import com.opson.features.logger.ExerciseRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.settings.EnergyTodayRoute
@@ -277,6 +278,16 @@ class TodayFeatureEntryPoint(
                     is ItemSheetEvent.OpenEditCopy -> router.batch {
                         goBack()
                         navigate(EditCopyRoute(dayIso = event.day.toString(), entryId = event.entryId))
+                    }
+                    is ItemSheetEvent.OpenRepeat -> router.batch {
+                        goBack()
+                        navigate(
+                            if (event.ruleId != null) {
+                                RepeatRoute(ruleId = event.ruleId)
+                            } else {
+                                RepeatRoute(fromDayIso = event.day.toString(), fromEntryId = event.entryId)
+                            },
+                        )
                     }
                     is ItemSheetEvent.DayClosed -> router.showDayClosed(event.day)
                     ItemSheetEvent.Dismiss -> sheetState.dismiss()
