@@ -77,6 +77,11 @@ fun SwipePages(
             if (width > 0) animate(drag, -(wanted - current) * width.toFloat()) { value, _ -> drag = value }
             current = wanted
             drag = 0f
+        } else if (drag != 0f) {
+            // Back to the page it started from before a slide landed: that slide was cancelled part
+            // way, so ease the pages back rather than leave them where it stopped.
+            animate(drag, 0f) { value, _ -> drag = value }
+            drag = 0f
         }
     }
     val dragState = rememberDraggableState { delta ->

@@ -48,11 +48,43 @@ class ExactAndSurplusTest {
     @Test
     fun oneNumber_cannotGoBelowTheFloor() {
         assertEquals(2050, base.useExact().stepNumber(up = false)?.energyKcal, "under where it started is fine")
-        val exact = base.withEnergy(MIN_GOAL_KCAL).useExact()
+        val exact = base.useExact().withEnergy(MIN_GOAL_KCAL)
+        assertEquals(MIN_GOAL_KCAL, exact.energyKcal)
         assertFalse(exact.canStepNumber(up = false))
         assertNull(exact.stepNumber(up = false))
         val raised = requireNotNull(exact.stepNumber(up = true))
-        assertEquals(exact.energyKcal, raised.stepNumber(up = false)?.energyKcal, "back down to the minimum, no further")
+        assertEquals(MIN_GOAL_KCAL, raised.stepNumber(up = false)?.energyKcal, "back down to the minimum, no further")
+    }
+
+    @Test
+    fun oneNumber_stepsRightDownToTheFloor_notHalfTheHiddenRangeAboveIt() {
+        var exact = base.useExact()
+        while (exact.canStepNumber(up = false)) exact = requireNotNull(exact.stepNumber(up = false))
+        assertEquals(MIN_GOAL_KCAL, exact.energyKcal)
+        assertEquals(DayGoal.Exact(MIN_GOAL_KCAL), exact.rangeFor(monday, PresetId.Full))
+        assertEquals(MIN_GOAL_KCAL to MIN_GOAL_KCAL + 400, exact.minKcal to exact.maxKcal, "the range behind it keeps its width, inside the bounds")
+    }
+
+    @Test
+    fun oneNumber_stepsRightUpToTheCeiling() {
+        var exact = base.useExact()
+        while (exact.canStepNumber(up = true)) exact = requireNotNull(exact.stepNumber(up = true))
+        assertEquals(MAX_GOAL_KCAL, exact.energyKcal)
+        assertEquals(MAX_GOAL_KCAL - 400 to MAX_GOAL_KCAL, exact.minKcal to exact.maxKcal)
+        assertNull(exact.stepNumber(up = true))
+    }
+
+    @Test
+    fun oneNumber_typedNearTheBounds_isTheNumberTyped() {
+        val exact = base.useExact()
+        assertEquals(800, exact.withEnergy(800).energyKcal)
+        assertEquals(900, exact.withEnergy(900).energyKcal)
+        assertEquals(800 to 1200, exact.withEnergy(900).let { it.minKcal to it.maxKcal }, "pushed up to the floor, still 400 wide")
+        assertEquals(6000, exact.withEnergy(6000).energyKcal)
+        assertEquals(MIN_GOAL_KCAL, exact.withEnergy(100).energyKcal, "held at the floor")
+        assertEquals(MAX_GOAL_KCAL, exact.withEnergy(9999).energyKcal, "held at the ceiling")
+        val backToRange = exact.withEnergy(2500).useRange()
+        assertEquals(DayGoal.Range(2300, 2700, 2500), backToRange.rangeFor(monday, PresetId.Full), "away from the bounds it is centred again")
     }
 
     @Test
@@ -157,9 +189,22 @@ class ExactAndSurplusTest {
     fun aGroupsNumber_steps_andKeepsTheFloor() {
         val exact = requireNotNull(twoGroups().shapeGroup(1, GroupShape.Exact))
         assertEquals(DayGoal.Exact(2550, groupIndex = 1), exact.stepNumber(up = true, group = 1)?.rangeFor(saturday, PresetId.Full))
-        val atFloor = requireNotNull(base.withEnergy(MIN_GOAL_KCAL).useByDay().shapeGroup(0, GroupShape.Exact))
+        var atFloor = requireNotNull(base.withEnergy(MIN_GOAL_KCAL).useByDay().shapeGroup(0, GroupShape.Exact))
+        while (atFloor.canStepNumber(up = false, group = 0)) atFloor = requireNotNull(atFloor.stepNumber(up = false, group = 0))
+        assertEquals(DayGoal.Exact(MIN_GOAL_KCAL, groupIndex = 0), atFloor.rangeFor(monday, PresetId.Full), "the number itself reaches the floor")
         assertNull(atFloor.stepNumber(up = false, group = 0))
         assertNull(exact.stepNumber(up = true, group = 5), "no such group")
+    }
+
+    @Test
+    fun aGroupsNumber_reachesTheCeiling_andWidensAgainOnTheWayBack() {
+        var exact = requireNotNull(twoGroups().shapeGroup(1, GroupShape.Exact))
+        while (exact.canStepNumber(up = true, group = 1)) exact = requireNotNull(exact.stepNumber(up = true, group = 1))
+        assertEquals(DayGoal.Exact(MAX_GOAL_KCAL, groupIndex = 1), exact.rangeFor(saturday, PresetId.Full))
+        repeat(20) { exact = requireNotNull(exact.stepNumber(up = false, group = 1)) }
+        val group = (exact.style as TargetStyle.ByDay).groups[1]
+        assertEquals(5000, group.midKcal)
+        assertEquals(400, group.maxKcal - group.minKcal, "back to the base range's width")
     }
 
     @Test

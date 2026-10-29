@@ -306,23 +306,56 @@ data class Targets(
         return withGroup(group) { it.copy(shape = GroupShape.Surplus(next, current.startingKcal)) }
     }
 
-    /** Whether one number (the aim, or day group [group]'s middle) may step [up]: it stops at the floor and the ceiling, as the range does. */
+    /**
+     * Whether one number (the aim, or day group [group]'s middle) may step [up]. The number itself
+     * stops at the floor and the ceiling; the range kept behind it never holds it back.
+     */
     fun canStepNumber(up: Boolean, group: Int? = null): Boolean {
-        val (min, max) = ends(group) ?: return false
-        return if (up) max + STEP_KCAL <= MAX_GOAL_KCAL else min - STEP_KCAL >= floorKcal
+        val number = if (group == null) energyKcal else groupAt(group)?.midKcal ?: return false
+        val next = number + if (up) STEP_KCAL else -STEP_KCAL
+        return next in floorKcal..MAX_GOAL_KCAL
     }
 
     /**
-     * Moves one number by 50 kcal: the aim under [TargetStyle.Exact] (the whole range moving
-     * with it, macros scaling in ratio mode as [raise] does), or day group [group]'s middle,
-     * both its ends with it. `null` where [canStepNumber] says no.
+     * Moves one number by 50 kcal: the aim under [TargetStyle.Exact] (macros scaling in ratio
+     * mode as [raise] does), or day group [group]'s middle. The range kept behind it follows
+     * ([withNumber], [groupAround]). `null` where [canStepNumber] says no.
      */
     fun stepNumber(up: Boolean, group: Int? = null, scaleMacros: Boolean = false): Targets? {
         if (!canStepNumber(up, group)) return null
         val delta = if (up) STEP_KCAL else -STEP_KCAL
-        if (group == null) return shiftedBy(delta, scaleMacros)
-        return withGroup(group) { it.copy(minKcal = it.minKcal + delta, maxKcal = it.maxKcal + delta) }
+        if (group == null) return withNumber(energyKcal + delta, scaleMacros)
+        return withGroup(group) { groupAround(it, it.midKcal + delta) }
     }
+
+    /**
+     * One number set to [kcal], held between the floor and [MAX_GOAL_KCAL]. The range kept for
+     * a switch back keeps its width, centred on the number where the bounds allow and pushed
+     * inside them where they don't, so the number can go right to either bound. [scaleMacros]
+     * as in [raise].
+     */
+    fun withNumber(kcal: Int, scaleMacros: Boolean = false): Targets {
+        val number = kcal.coerceIn(floorKcal, MAX_GOAL_KCAL)
+        val width = (maxKcal - minKcal).coerceIn(0, MAX_GOAL_KCAL - floorKcal)
+        val low = (number - width / 2).coerceIn(floorKcal, MAX_GOAL_KCAL - width)
+        val moved = copy(energyKcal = number, minKcal = low, maxKcal = low + width, ratioBasis = null)
+        return if (scaleMacros) scaledTo(moved, number) else moved
+    }
+
+    /**
+     * [group] with its middle at [number]. A group's one number is its middle, so near a bound
+     * the range narrows around it rather than stopping it. A group already squeezed against a
+     * bound widens back towards the base range's width as it leaves.
+     */
+    private fun groupAround(group: DayGroup, number: Int): DayGroup {
+        val own = group.maxKcal - group.minKcal
+        val squeezed = group.minKcal <= floorKcal || group.maxKcal >= MAX_GOAL_KCAL
+        val width = if (squeezed) max(own, maxKcal - minKcal) else own
+        val half = minOf(width / 2, number - floorKcal, MAX_GOAL_KCAL - number)
+        return group.copy(minKcal = number - half, maxKcal = number + half)
+    }
+
+    private fun groupAt(group: Int): DayGroup? = (style as? TargetStyle.ByDay)?.groups?.getOrNull(group)
 
     /**
      * Gives day group [group] its own [shape]. A deficit or surplus starts at what the group's
@@ -407,9 +440,11 @@ data class Targets(
 
     /**
      * Sets the target directly, the range moving with it, held so neither end passes the floor
-     * or [MAX_GOAL_KCAL]. [scaleMacros] as in [raise].
+     * or [MAX_GOAL_KCAL]. Under [TargetStyle.Exact] the number is what is held, not the range
+     * kept behind it ([withNumber]). [scaleMacros] as in [raise].
      */
     fun withEnergy(kcal: Int, scaleMacros: Boolean = false): Targets {
+        if (style == TargetStyle.Exact) return withNumber(kcal, scaleMacros)
         val lowest = energyKcal + (floorKcal - minKcal)
         val highest = energyKcal + (MAX_GOAL_KCAL - maxKcal)
         return shiftedBy(kcal.coerceIn(lowest, max(lowest, highest)) - energyKcal, scaleMacros)

@@ -55,6 +55,16 @@ class MedicationCardTest : CoroutineTest() {
     }
 
     @Test
+    fun withTheFlagOff_theCardReadsNothing() = runUnitTest {
+        val repository = FakeMedicationRepository(MedicationFixtures.plan(), MedicationFixtures.history)
+        val vm = MedicationCardViewModel(repository, FixedCalendar(today), medicationFlag(false))
+
+        vm.takeAction(MedicationCardAction.DayShown(today))
+        assertNull(vm.state.card)
+        assertEquals(0, repository.reads, "the plan and the doses are never read while the flag is off")
+    }
+
+    @Test
     fun theCardShowsOnlyOnToday_andSkippedPutsThePromptAwayWritingNoDose() = runUnitTest {
         val repository = FakeMedicationRepository(MedicationFixtures.plan(), MedicationFixtures.history)
         val saturday = today.plus(DatePeriod(days = 2))

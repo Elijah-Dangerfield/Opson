@@ -9,10 +9,13 @@ import com.opson.libraries.medication.MedicationRepository
 import com.opson.libraries.medication.SiteRotation
 import com.opson.libraries.reminders.DoseNudge
 import com.opson.libraries.reminders.DoseReminders
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Inject
@@ -23,7 +26,11 @@ import kotlin.time.Instant
 /**
  * The medication plan's dose days for the reminder planner. A day a dose covers is still listed,
  * marked covered, so a nudge already on the screen is taken off it.
+ *
+ * The planner subscribes at app start whatever the flag says, so with `release.medication` off
+ * this answers nothing without reading the plan or the doses at all.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @ContributesBinding(AppScope::class)
 @Inject
 class MedicationDoseReminders(
@@ -32,16 +39,21 @@ class MedicationDoseReminders(
 ) : DoseReminders {
 
     override fun upcoming(from: LocalDate, days: Int): Flow<List<DoseNudge>> =
-        combine(config.map(MedicationEnabled::isOn).distinctUntilChanged(), repository.plan, repository.observeDoses()) { on, plan, doses ->
+        config.map(MedicationEnabled::isOn).distinctUntilChanged().flatMapLatest { on ->
+            if (!on) flowOf(emptyList()) else nudges(from, days)
+        }.distinctUntilChanged()
+
+    private fun nudges(from: LocalDate, days: Int): Flow<List<DoseNudge>> =
+        combine(repository.plan, repository.observeDoses()) { plan, doses ->
             val medication = plan.medication
-            if (!on || !plan.tracking || medication == null || !medication.reminder) {
+            if (!plan.tracking || medication == null || !medication.reminder) {
                 emptyList()
             } else {
                 DoseDays.upcoming(medication, doses, from, days).map { due ->
                     DoseNudge(medication.id, due.date, due.time, covered = due.covered, quickLog = medication.currentDose != null)
                 }
             }
-        }.distinctUntilChanged()
+        }
 
     /** Writes nothing when the day is already covered, so a second tap can't log a second dose. */
     override suspend fun alreadyDid(medicationId: String, date: LocalDate, at: Instant) {
@@ -49,7 +61,7 @@ class MedicationDoseReminders(
         val medication = plan.medication?.takeIf { it.id == medicationId } ?: return
         val amount = medication.currentDose ?: return
         val doses = repository.observeDoses().first()
-        if (DoseDays.covered(medication.schedule, date, date, medication.id, doses)) return
+        if (DoseDays.covered(medication, date, doses)) return
         val site = if (medication.injected) SiteRotation.next(plan.sites, doses) else null
         repository.logDose(DoseDraft(medication.id, amount, medication.doseUnit, at, site), DoseVia.AlreadyDid)
     }

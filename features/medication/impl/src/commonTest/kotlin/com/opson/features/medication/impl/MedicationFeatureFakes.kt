@@ -32,13 +32,17 @@ class FakeMedicationRepository(plan: MedicationPlan = MedicationPlan(), doses: L
     val logged = mutableListOf<Pair<DoseDraft, DoseVia>>()
     private var next = 0
 
-    override val plan: Flow<MedicationPlan> get() = planFlow
+    /** Reads of [plan] or [observeDoses], for proving nothing runs while the flag is off. */
+    var reads = 0
+        private set
+
+    override val plan: Flow<MedicationPlan> get() = planFlow.also { reads++ }
 
     override suspend fun currentPlan(): MedicationPlan = planFlow.value
 
     override suspend fun updatePlan(change: (MedicationPlan) -> MedicationPlan): MedicationPlan = change(planFlow.value).also { planFlow.value = it }
 
-    override fun observeDoses(): Flow<List<MedicationDose>> = doses
+    override fun observeDoses(): Flow<List<MedicationDose>> = doses.also { reads++ }
 
     override fun observeDoses(from: LocalDate, to: LocalDate): Flow<List<MedicationDose>> =
         doses.map { all -> all.filter { it.day in from..to }.sortedBy { it.takenAt } }

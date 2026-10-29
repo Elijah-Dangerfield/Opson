@@ -8,6 +8,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.time.Instant
 
+/**
+ * The dose-day rules the Today card and the reminder plan share: which day a dose is for, early
+ * and late doses, and the card's status. The card's wording and the reminder planner's own rules
+ * are tested in their modules.
+ */
 class DoseDaysTest {
 
     // Thursday, October 29 2026.
@@ -29,9 +34,57 @@ class DoseDaysTest {
 
     @Test
     fun aDoseTakenAFewDaysEarlyCoversTheDoseDay() {
+        val lastWeek = dose(LocalDate(2026, 10, 22))
         val tuesday = dose(LocalDate(2026, 10, 27))
-        val status = DoseDays.status(weekly, plan, listOf(tuesday), thursday)
+        val status = DoseDays.status(weekly, plan, listOf(lastWeek, tuesday), thursday)
         assertEquals(DoseStatus.Between(tuesday, next = LocalDate(2026, 11, 5)), status)
+    }
+
+    @Test
+    fun anEarlyFirstDoseRightAfterSetUpCoversTheDoseDay() {
+        val setUpMonday = weekly.copy(addedOn = LocalDate(2026, 10, 26))
+        val tuesday = dose(LocalDate(2026, 10, 27))
+        val status = DoseDays.status(setUpMonday, plan.copy(medications = listOf(setUpMonday)), listOf(tuesday), thursday)
+        assertEquals(DoseStatus.Between(tuesday, next = LocalDate(2026, 11, 5)), status)
+    }
+
+    @Test
+    fun anOnTimeDoseCoversItsDayAndNotTheNext() {
+        val onTime = dose(LocalDate(2026, 10, 22))
+        assertIs<DoseStatus.Between>(DoseDays.status(weekly, plan, listOf(onTime), LocalDate(2026, 10, 26)))
+        assertIs<DoseStatus.Due>(DoseDays.status(weekly, plan, listOf(onTime), thursday))
+    }
+
+    @Test
+    fun aLateDoseNearTheNextDoseDayIsForTheMissedOne() {
+        // Weekly on Monday. Monday the 19th was missed and the dose came on Friday the 23rd.
+        val mondays = medication(DoseSchedule.Weekly(DayOfWeek.MONDAY, LocalTime(9, 0)))
+        val mondayPlan = plan.copy(medications = listOf(mondays))
+        val friday = dose(LocalDate(2026, 10, 23))
+        val nextMonday = LocalDate(2026, 10, 26)
+
+        assertEquals(DoseStatus.Due(InjectionSite.AbdomenUpperLeft), DoseDays.status(mondays, mondayPlan, listOf(friday), nextMonday))
+        assertEquals(
+            listOf(DoseDays.DueDay(nextMonday, LocalTime(9, 0), covered = false)),
+            DoseDays.upcoming(mondays, listOf(friday), LocalDate(2026, 10, 23), days = 7),
+        )
+    }
+
+    @Test
+    fun twoDosesInOneWeekCoverTheMissedDayAndTheNextOne() {
+        val mondays = medication(DoseSchedule.Weekly(DayOfWeek.MONDAY, LocalTime(9, 0)))
+        val friday = dose(LocalDate(2026, 10, 23))
+        val saturday = dose(LocalDate(2026, 10, 24))
+        val nextMonday = LocalDate(2026, 10, 26)
+        val upcoming = DoseDays.upcoming(mondays, listOf(saturday, friday), nextMonday, days = 1)
+        assertEquals(listOf(DoseDays.DueDay(nextMonday, LocalTime(9, 0), covered = true)), upcoming)
+    }
+
+    @Test
+    fun aSecondDoseInTheSameWeekCoversNothingMore() {
+        val onTime = dose(LocalDate(2026, 10, 22))
+        val again = dose(LocalDate(2026, 10, 23))
+        assertIs<DoseStatus.Due>(DoseDays.status(weekly, plan, listOf(onTime, again), thursday))
     }
 
     @Test
@@ -79,6 +132,14 @@ class DoseDaysTest {
     }
 
     @Test
+    fun aDailyDoseCoversOnlyItsOwnDay() {
+        val daily = medication(DoseSchedule.Daily(LocalTime(8, 0)), product = MedicationProduct.Rybelsus)
+        val wednesday = dose(LocalDate(2026, 10, 28), site = null)
+        val days = DoseDays.upcoming(daily, listOf(wednesday), LocalDate(2026, 10, 28), days = 2)
+        assertEquals(listOf(true, false), days.map { it.covered })
+    }
+
+    @Test
     fun whenNeededHasNoDoseDays() {
         val asNeeded = medication(DoseSchedule.AsNeeded)
         val last = dose(LocalDate(2026, 10, 20))
@@ -94,7 +155,8 @@ class DoseDaysTest {
 
     @Test
     fun upcomingListsDoseDaysWithWhetherADoseCoversThem() {
-        val upcoming = DoseDays.upcoming(weekly, listOf(dose(LocalDate(2026, 10, 28))), LocalDate(2026, 10, 26), days = 14)
+        val doses = listOf(dose(LocalDate(2026, 10, 22)), dose(LocalDate(2026, 10, 28)))
+        val upcoming = DoseDays.upcoming(weekly, doses, LocalDate(2026, 10, 26), days = 14)
         assertEquals(
             listOf(
                 DoseDays.DueDay(thursday, LocalTime(19, 0), covered = true),

@@ -67,6 +67,10 @@ class LogDoseViewModel(
         val suggested = if (medication.injected) SiteRotation.next(plan.sites, doses) else null
         val due = route.dueIso?.let { Catching { LocalDate.parse(it) }.getOrNull() }
         val now = clock.now().toLocalDateTime(zone)
+        // A reminder tapped the next morning logs against yesterday's dose day, at its time. One
+        // older than that starts on now, as any new dose does: today at the schedule's time could
+        // be later than now, and a dose is never put in the future.
+        val forYesterday = due != null && due == today.minus(DatePeriod(days = 1))
         val loaded = state.let {
             if (existing != null) {
                 val local = existing.takenAt.toLocalDateTime(zone)
@@ -91,9 +95,8 @@ class LogDoseViewModel(
                     doseText = medication.currentDose?.let(DoseFormat::number).orEmpty(),
                     unit = medication.doseUnit,
                     chips = medication.product.chips,
-                    // A reminder tapped the next morning logs against yesterday's dose day, at its time.
-                    day = if (due != null && due == today.minus(DatePeriod(days = 1))) DoseDay.Yesterday else DoseDay.Today,
-                    time = if (due != null && due < today) medication.schedule.reminderTime ?: now.time.toMinute() else now.time.toMinute(),
+                    day = if (forYesterday) DoseDay.Yesterday else DoseDay.Today,
+                    time = medication.schedule.reminderTime?.takeIf { forYesterday } ?: now.time.toMinute(),
                     site = suggested,
                     suggested = suggested,
                     sites = plan.sites.takeIf { medication.injected },

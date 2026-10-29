@@ -7,9 +7,11 @@ import com.opson.libraries.medication.MedicationAccess
 import com.opson.libraries.medication.MedicationEnabled
 import com.opson.libraries.medication.MedicationRepository
 import com.opson.libraries.medication.MedicationTodaySwitch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
@@ -19,6 +21,7 @@ import kotlin.native.HiddenFromObjC
 
 /** The plan's "Show on Today", for More › Today screen, while medication is released and tracked. Hidden as [MedicationTodaySwitch] is. */
 @HiddenFromObjC
+@OptIn(ExperimentalCoroutinesApi::class)
 @ContributesBinding(AppScope::class)
 @Inject
 class MedicationTodayCardSwitch(
@@ -26,8 +29,8 @@ class MedicationTodayCardSwitch(
     private val config: AppConfigFlow,
 ) : MedicationTodaySwitch {
     override val shown: Flow<Boolean?>
-        get() = combine(config.map(MedicationEnabled::isOn).distinctUntilChanged(), repository.plan) { on, plan ->
-            plan.todayCard.takeIf { MedicationAccess.of(on, plan) == MedicationAccess.Tracking }
+        get() = config.map(MedicationEnabled::isOn).distinctUntilChanged().flatMapLatest { on ->
+            if (!on) flowOf(null) else repository.plan.map { plan -> plan.todayCard.takeIf { MedicationAccess.of(on, plan) == MedicationAccess.Tracking } }
         }.distinctUntilChanged()
 
     override suspend fun set(on: Boolean) {

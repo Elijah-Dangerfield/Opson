@@ -1419,7 +1419,7 @@ private fun TargetsExactPreview() {
 @Preview
 @Composable
 private fun TargetsExactAtFloorPreview() {
-    val settings = SettingsFixtures.settings(targets = SettingsFixtures.rangeTargets.withEnergy(MIN_GOAL_KCAL).useExact())
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.rangeTargets.useExact().withEnergy(MIN_GOAL_KCAL))
     SettingsPreview { TargetsScreen(TargetsStateBuilder.build(settings, SettingsFixtures.policy(settings.numbers)), onAction = {}) }
 }
 
