@@ -68,7 +68,7 @@ are the behaviour spec and win over v3):
 | Screen id | Change |
 |---|---|
 | `more-screen__more` | The main preview shows every 0.2 row (flags on), as the design. Support gains the subtitle `Eating disorder helplines`. Targets uses the concentric target glyph. |
-| `modes-screen__modes` | Already matches (badge, re-pick clears, `Changed from`). **Weight's Numbers / Trend only / Hidden lives here**: it is the matrix's Weight row (Show / Soft / Hide, Later too), behind the pause like every other raise, now that the Trends agent removes the switch from Weight. Tests cover it. |
+| `display-screen__display` (was `modes-screen__modes`) | Already matches (badge, re-pick clears, `Changed from`). **Weight's Numbers / Trend only / Hidden lives here**: it is the matrix's Weight row (Show / Soft / Hide, Later too), behind the pause like every other raise, now that the Trends agent removes the switch from Weight. Tests cover it. |
 | `pause-sheet-content__modes-pause` | Already matches (Keep is primary, the countdown fills quietly). Adds `Talk to someone`, a quiet link above the buttons that opens Find support (only with `release.findSupport` on). |
 | `targets-screen__*` | Steppers: the lock is the outlined glyph in muted, numbers one step smaller. Macro split: one bar of flush segments, amounts bold with a regular label. Deficit rules read on one line (smaller type). By day: the first group ("Other days") renders last, week bands are flat bars, the pencil is the outlined glyph. |
 | `goal-style-sheet-content__targets-goal-style` | No change. |
