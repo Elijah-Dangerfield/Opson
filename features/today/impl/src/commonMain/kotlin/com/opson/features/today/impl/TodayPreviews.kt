@@ -1,5 +1,7 @@
 package com.opson.features.today.impl
 
+import com.opson.features.today.impl.celebration.StreakBadge
+import com.opson.features.today.impl.celebration.StreakIndicator
 import com.opson.libraries.diary.CelebrationStyle
 import com.opson.libraries.diary.LoggingHabits
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -85,6 +87,7 @@ private fun Today(
     activity: (@Composable () -> Unit)? = null,
     habits: LoggingHabits? = null,
     now: LocalTime? = null,
+    streak: (@Composable () -> Unit)? = null,
 ) {
     TodayScreen(
         state = TodayFixtures.todayState(
@@ -108,6 +111,7 @@ private fun Today(
         drag = drag,
         listState = rememberLazyListState(initialFirstVisibleItemIndex = firstRow),
         activity = activity,
+        streak = streak,
     )
 }
 
@@ -123,6 +127,13 @@ private fun TodayFullPreview() = Phone { TodayFull() }
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun TodayFullDarkPreview() = Phone(dark = true) { TodayFull() }
+
+/** `release.celebrations`: the streak in the header, beside Wrap up the day. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodayStreakPreview() = Phone {
+    Today(full, streak = { StreakIndicator(StreakBadge.Counts(4), onClick = {}) })
+}
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
