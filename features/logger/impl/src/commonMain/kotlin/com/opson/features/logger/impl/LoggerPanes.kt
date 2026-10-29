@@ -38,6 +38,7 @@ import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.Text
+import com.opson.libraries.ui.components.text.FocusOnOpen
 import com.opson.libraries.ui.components.text.TextArea
 import com.opson.libraries.ui.components.text.TextInput
 import com.opson.system.AppTheme
@@ -118,6 +119,10 @@ private fun DescribeBox(describe: DescribeUi, onAction: (LoggerAction) -> Unit) 
         // "Type instead": the keyboard comes up where the words go. No window in a preview, nothing to focus.
         if (voice?.focusText == true && !inPreview) Catching { focusRequester.requestFocus() }
     }
+    // Without voice, Describe it is a box to type in, so it opens ready. Not when it opens holding
+    // words already (search's "Describe it" on a miss): those are being read, and the keyboard would
+    // cover what comes back. They can land a moment after the pane, which cancels the request.
+    FocusOnOpen(focusRequester, enabled = voice == null && describe.text.isEmpty())
     val shape = AppTheme.shapes.inputLarge
     Column(
         modifier = Modifier
