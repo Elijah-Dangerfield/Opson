@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Delete as OutlinedDelete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.EventAvailable
 import androidx.compose.material.icons.rounded.EventRepeat
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.DragIndicator
@@ -253,6 +254,9 @@ object AppIcons {
     // Goals and checks
     val EventRepeat get() = icon("event_repeat", MaterialIcons.Rounded.EventRepeat)
 
+    /** Two arrows in a loop: a food that logs itself (Repeating). */
+    val Repeat get() = icon("repeat", MaterialIcons.Rounded.Repeat)
+
     /** A calendar with a check: the weekly check on Trends (numbers on Later, weekly). */
     val EventAvailable get() = icon("event_available", MaterialIcons.Rounded.EventAvailable)
 
@@ -344,7 +348,7 @@ object AppIcons {
             EventRepeat, EventAvailable, Star, Favorite, Science,
             FormatListBulleted, BeachAccess, Watch, Widgets, Call, Sms, Public, SupportAgent,
             DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove, FitnessCenter,
-            FlashlightOn, FlashlightOff,
+            FlashlightOn, FlashlightOff, Repeat,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

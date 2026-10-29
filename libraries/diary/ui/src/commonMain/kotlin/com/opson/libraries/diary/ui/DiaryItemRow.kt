@@ -26,9 +26,15 @@ import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.HorizontalDivider
+import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.Icon
+import com.opson.libraries.ui.components.icon.described
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.thenIf
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.repeat_badge_cd
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
@@ -39,6 +45,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * A list of rows draws a line under each ([showDivider]). Today's meal card
  * draws the line above each row instead, after its header, so it passes
  * [dividerAbove] and its own padding. [trailing] follows the energy: a food's ⋮.
+ * [repeat] marks a food a repeat logged, with a small loop before the line.
  */
 @Composable
 fun DiaryItemRow(
@@ -50,6 +57,7 @@ fun DiaryItemRow(
     showDivider: Boolean = true,
     dividerAbove: Boolean = false,
     contentPadding: PaddingValues = DiaryItemRowDefaults.ListPadding,
+    repeat: Boolean = false,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -71,9 +79,7 @@ fun DiaryItemRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (sub.isNotEmpty()) {
-                    Text(text = sub, typography = AppTheme.type.secondarySmall.Tabular, color = AppTheme.colors.muted)
-                }
+                ItemSubLine(sub, repeat)
             }
             NutrientText(
                 metric = Metric.Calories,
@@ -85,6 +91,20 @@ fun DiaryItemRow(
             trailing()
         }
         if (showDivider) HorizontalDivider(color = AppTheme.colors.line)
+    }
+}
+
+/** A row's muted line, after the repeat loop when a repeat logged it. */
+@Composable
+internal fun ItemSubLine(sub: String, repeat: Boolean) {
+    if (!repeat) {
+        if (sub.isNotEmpty()) Text(text = sub, typography = AppTheme.type.secondarySmall.Tabular, color = AppTheme.colors.muted)
+        return
+    }
+    val description = stringResource(Res.string.repeat_badge_cd)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(icon = AppIcons.Repeat.described(description), size = 14.dp, color = AppTheme.colors.muted)
+        if (sub.isNotEmpty()) Text(text = sub, typography = AppTheme.type.secondarySmall.Tabular, color = AppTheme.colors.muted)
     }
 }
 
@@ -104,6 +124,13 @@ private fun DiaryItemRowPreview() {
                 sub = "1 package · Weighed",
                 calories = policy.resolve(Metric.Calories, 100.0, Surface.Today),
                 onClick = {},
+            )
+            DiaryItemRow(
+                name = "Oat porridge",
+                sub = "1 bowl · Estimate",
+                calories = policy.resolve(Metric.Calories, 300.0, Surface.Today),
+                onClick = {},
+                repeat = true,
             )
             DiaryItemRow(
                 name = "Lola's pancit",

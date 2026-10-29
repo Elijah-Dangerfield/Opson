@@ -32,6 +32,7 @@ import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.RepeatsRelease
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.ui.DayClosedNotice
@@ -71,6 +72,9 @@ import kotlinx.datetime.plus
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.repeat_edit
+import opson.libraries.resources.generated.resources.repeat_this
+import opson.libraries.resources.generated.resources.repeat_this_body
 import opson.libraries.resources.generated.resources.today_food_amount_cd
 import opson.libraries.resources.generated.resources.today_food_amount_save
 import opson.libraries.resources.generated.resources.today_food_change_amount
@@ -100,7 +104,9 @@ import org.jetbrains.compose.resources.stringResource
  * with it. With `release.foodActions` off only Delete is offered, as the item sheet always did.
  * Deleting is a tombstone, so it syncs. On a day closed with Close the day only what leaves the
  * day as it is stays (copying it to another day, starring the food), with the closed line and
- * Reopen under them.
+ * Reopen under them. With `release.repeats` on, Repeat this (or Edit repeat, for a food a
+ * repeat logged) is offered whatever `release.foodActions` says, closed day or not: it changes
+ * nothing on the day.
  */
 data class ItemSheetState(
     val loading: Boolean = true,
@@ -118,7 +124,7 @@ data class ItemSheetState(
     val isToday: Boolean = true,
 )
 
-enum class FoodAction { ChangeAmount, Move, CopyToDay, EditCopy, Favorite, Unfavorite, Delete }
+enum class FoodAction { ChangeAmount, Move, CopyToDay, EditCopy, Favorite, Unfavorite, Repeat, EditRepeat, Delete }
 
 sealed interface ItemStep {
     data object Actions : ItemStep
@@ -145,6 +151,7 @@ sealed interface ItemSheetAction {
     data object CopyConfirmed : ItemSheetAction
     data object EditCopyTapped : ItemSheetAction
     data object FavoriteTapped : ItemSheetAction
+    data object RepeatTapped : ItemSheetAction
     data object DeleteTapped : ItemSheetAction
     data object ReopenTapped : ItemSheetAction
     data object BackTapped : ItemSheetAction
@@ -156,6 +163,9 @@ sealed interface ItemSheetEvent {
 
     /** Edit a copy of the entry; the sheet gives way to it. */
     data class OpenEditCopy(val day: LocalDate, val entryId: String) : ItemSheetEvent
+
+    /** Repeat it: [ruleId]'s editor for a food a repeat logged, else a new repeat from the entry. */
+    data class OpenRepeat(val day: LocalDate, val entryId: String, val ruleId: String?) : ItemSheetEvent
 
     /** A change the closed day refused, closed since the sheet opened (maybe on another phone). */
     data class DayClosed(val day: LocalDate) : ItemSheetEvent
@@ -173,10 +183,14 @@ object ItemSheetStateBuilder {
         settings: Settings = Settings(),
         actionsOn: Boolean = false,
         step: ItemStep = ItemStep.Actions,
+        repeatsOn: Boolean = false,
     ): ItemSheetState? {
         val item = day.allItems.firstOrNull { it.id == entryId } ?: return null
         val closed = day.closedByUser
-        val offered = if (actionsOn) actions(item, settings) else listOf(FoodAction.Delete)
+        val repeat = if (item.repeatRuleId != null) FoodAction.EditRepeat else FoodAction.Repeat
+        val base = if (actionsOn) actions(item, settings) else listOf(FoodAction.Delete)
+        // Just above Delete, which stays last.
+        val offered = if (repeatsOn) base.dropLast(1) + repeat + base.last() else base
         return ItemSheetState(
             loading = false,
             name = item.name,
@@ -215,7 +229,13 @@ object ItemSheetStateBuilder {
     private const val TIMES = "×"
 
     /** What a closed day still offers: copying out and starring change nothing on it. */
-    private val LEAVE_THE_DAY_AS_IT_IS = setOf(FoodAction.CopyToDay, FoodAction.Favorite, FoodAction.Unfavorite)
+    private val LEAVE_THE_DAY_AS_IT_IS = setOf(
+        FoodAction.CopyToDay,
+        FoodAction.Favorite,
+        FoodAction.Unfavorite,
+        FoodAction.Repeat,
+        FoodAction.EditRepeat,
+    )
 }
 
 @Inject
@@ -228,6 +248,7 @@ class ItemSheetViewModel(
     policySource: VisibilityPolicySource,
     private val calendar: LocalCalendar,
     private val foodActions: TodayFoodActionsEnabled,
+    private val repeats: RepeatsRelease = RepeatsRelease { false },
 ) : SEAViewModel<ItemSheetState, ItemSheetEvent, ItemSheetAction>(initialStateArg = ItemSheetState()) {
 
     private var dismissed = false
@@ -255,6 +276,11 @@ class ItemSheetViewModel(
             ItemSheetAction.ReopenTapped -> diary.reopenDay(day)
             ItemSheetAction.CloseTapped -> dismissOnce()
             ItemSheetAction.BackTapped -> action.go(ItemStep.Actions)
+            ItemSheetAction.RepeatTapped -> if (repeats.isOn() && !dismissed) {
+                val item = item() ?: return
+                dismissed = true
+                sendEvent(ItemSheetEvent.OpenRepeat(day, entryId, item.repeatRuleId))
+            }
             else -> if (foodActions()) foodAction(action)
         }
     }
@@ -331,7 +357,7 @@ class ItemSheetViewModel(
 
     private suspend fun ItemSheetAction.rebuild() {
         val input = arrived ?: return
-        val next = ItemSheetStateBuilder.build(entryId, input.day, input.today, input.policy, input.settings, foodActions(), step)
+        val next = ItemSheetStateBuilder.build(entryId, input.day, input.today, input.policy, input.settings, foodActions(), step, repeats.isOn())
         if (next != null) updateState { next } else dismissOnce()
     }
 
@@ -379,6 +405,8 @@ private fun Actions(state: ItemSheetState, onAction: (ItemSheetAction) -> Unit) 
                 }
                 FoodAction.Favorite -> ActionRow(AppIcons.StarOutline, Res.string.today_food_favorite) { onAction(ItemSheetAction.FavoriteTapped) }
                 FoodAction.Unfavorite -> ActionRow(AppIcons.Star, Res.string.today_food_unfavorite) { onAction(ItemSheetAction.FavoriteTapped) }
+                FoodAction.Repeat -> ActionRow(AppIcons.Repeat, Res.string.repeat_this, Res.string.repeat_this_body) { onAction(ItemSheetAction.RepeatTapped) }
+                FoodAction.EditRepeat -> ActionRow(AppIcons.Repeat, Res.string.repeat_edit) { onAction(ItemSheetAction.RepeatTapped) }
                 FoodAction.Delete -> ActionRow(AppIcons.DeleteOutline, Res.string.today_food_delete) { onAction(ItemSheetAction.DeleteTapped) }
             }
         }
