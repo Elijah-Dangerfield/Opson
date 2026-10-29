@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.DateTimeUnit
@@ -158,13 +159,36 @@ class DiaryRepositoryImpl(
     }
 
     override suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>> {
-        val source = tables.entries.getDay(from.toString()).mapNotNull { it.toDomain() }
+        val source = copyable(from, to)
         return logFood(to, ate = source.isNotEmpty()) { insertDrafts(to, source.map { it.slot to it.toDraft() }, LogMethod.Copy) }
     }
 
     override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> {
-        val source = tables.entries.getDay(fromDay.toString()).mapNotNull { it.toDomain() }.filter { it.slot == slot }
+        val source = copyable(fromDay, toDay).filter { it.slot == slot }
         return logFood(toDay, ate = source.isNotEmpty()) { insertDrafts(toDay, source.map { slot to it.toDraft() }, LogMethod.Copy) }
+    }
+
+    /**
+     * [from]'s foods to copy onto [to], less the ones a repeat logged that logs them on [to] as
+     * well: copied, they would sit beside the repeat's own on that day. A rule that skips [to],
+     * or is paused, or is gone, leaves its foods to the copy like any others.
+     */
+    private suspend fun copyable(from: LocalDate, to: LocalDate): List<LogItem> {
+        val source = tables.entries.getDay(from.toString()).mapNotNull { it.toDomain() }
+        val ruleOf = tables.repeatLogs.observeDay(from.toString()).first().byEntry()
+        if (ruleOf.isEmpty()) return source
+        val logsTo = ruleOf.values.toSet().filterTo(HashSet()) { repeatLogs(it, to) }
+        return source.filterNot { ruleOf[it.id] in logsTo }
+    }
+
+    /**
+     * Whether rule [ruleId] logs its foods on [day]: it falls on it, and the day is today or
+     * still to come, which the materializer reaches, or the rule has already logged there.
+     */
+    private suspend fun repeatLogs(ruleId: String, day: LocalDate): Boolean {
+        val rule = tables.repeats.get(ruleId)?.takeUnless { it.deleted }?.toDomain() ?: return false
+        if (!rule.isDue(day)) return false
+        return day >= calendar.today() || tables.repeatLogs.countFor(ruleId, day.toString()) > 0
     }
 
     override suspend fun clearDay(day: LocalDate): DayWrite<Unit> = writer.write {

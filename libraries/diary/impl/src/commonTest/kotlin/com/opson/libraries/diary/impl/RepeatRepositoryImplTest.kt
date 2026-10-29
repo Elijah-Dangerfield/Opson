@@ -304,6 +304,48 @@ class RepeatRepositoryImplTest : CoroutineTest() {
         assertEquals(sent(db), sent(otherDb))
     }
 
+    // Copy yesterday and copy to tomorrow, over a day a repeat logged
+
+    @Test
+    fun copyingADayOntoTheNext_leavesARepeatsFoodsToTheRepeat() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+        diary.addItems(today, MealSlot.Lunch, listOf(coffee), LogMethod.Search)
+        val tomorrow = LocalDate(2026, 10, 26)
+
+        diary.copyDay(today, tomorrow)
+        calendar.today = tomorrow
+        clock.now = Instant.parse("2026-10-26T06:00:00Z")
+        phone.materializer.logDue()
+
+        val monday = diary.observeDay(tomorrow).first().allItems
+        assertEquals(setOf("Oat porridge", "Coffee with milk"), monday.map { it.name }.toSet())
+        assertEquals(2, monday.size, "one porridge, the repeat's")
+        assertEquals(saved.rule.id, monday.single { it.name == "Oat porridge" }.repeatRuleId)
+    }
+
+    @Test
+    fun copyYesterday_ontoADayTheRepeatAlreadyLogged_addsNoSecondCopy() = runUnitTest {
+        repeats.create(plan(listOf(porridge)))
+        val tomorrow = LocalDate(2026, 10, 26)
+        calendar.today = tomorrow
+        clock.now = Instant.parse("2026-10-26T06:00:00Z")
+        phone.materializer.logDue()
+
+        diary.copyDay(today, tomorrow)
+        diary.copySlot(today, tomorrow, MealSlot.Breakfast)
+
+        assertEquals(1, diary.observeDay(tomorrow).first().allItems.size)
+    }
+
+    @Test
+    fun aRepeatThatSkipsTheDayCopiedOnto_isCopiedLikeAnyFood() = runUnitTest {
+        repeats.create(plan(listOf(porridge), days = setOf(DayOfWeek.SUNDAY)))
+
+        diary.copyDay(today, LocalDate(2026, 10, 26))
+
+        assertEquals(listOf("Oat porridge"), diary.observeDay(LocalDate(2026, 10, 26)).first().allItems.map { it.name })
+    }
+
     private fun plan(
         items: List<LogDraft>,
         slot: MealSlot = MealSlot.Breakfast,
