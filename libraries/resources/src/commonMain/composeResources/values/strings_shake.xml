@@ -13,7 +13,7 @@
     <string name="shake_first_4">Hello to you too.</string>
     <string name="shake_first_5">Oh.</string>
     <string name="shake_first_5_sub">We're doing this.</string>
-    <string name="shake_first_6">Interesting introduction.</string>
+    <string name="shake_first_6">That's one way to say hi.</string>
     <string name="shake_first_7">Well then.</string>
     <string name="shake_first_8">A shake.</string>
     <string name="shake_first_8_sub">Bold choice.</string>
@@ -28,7 +28,7 @@
     <string name="shake_first_14_sub">Testing the waters?</string>
     <string name="shake_first_15">Soft.</string>
     <string name="shake_first_15_sub">I barely felt that.</string>
-    <string name="shake_first_16">A whisper of a shake.</string>
+    <string name="shake_first_16">Was that a shake?</string>
     <string name="shake_first_17">Whoa, easy.</string>
     <string name="shake_first_17_sub">I'm fragile.</string>
     <string name="shake_first_18">Aggressive.</string>
@@ -62,7 +62,7 @@
     <string name="shake_early_15">Still going hard.</string>
     <string name="shake_early_15_sub">I can take it.</string>
     <string name="shake_early_16">More intense now.</string>
-    <string name="shake_early_16_sub">Interesting progression.</string>
+    <string name="shake_early_16_sub">Escalating, I see.</string>
     <string name="shake_repeat_2">Still shaking.</string>
     <string name="shake_repeat_2_sub">Becoming a habit.</string>
     <string name="shake_repeat_4">Shake #%1$d.</string>
@@ -98,7 +98,7 @@
     <string name="shake_frequent_2_sub">I've lost count.</string>
     <string name="shake_frequent_3_sub">I expect it.</string>
     <string name="shake_frequent_4">The shaker returns.</string>
-    <string name="shake_frequent_5_sub">Impressive commitment.</string>
+    <string name="shake_frequent_5_sub">Someone's been busy.</string>
     <string name="shake_frequent_6">We've been through a lot.</string>
     <string name="shake_frequent_6_sub">You and me.</string>
     <string name="shake_frequent_7">Old friends now.</string>
@@ -114,9 +114,9 @@
     <string name="shake_frequent_12">What are we doing?</string>
     <string name="shake_frequent_12_sub">Besides shaking.</string>
     <string name="shake_frequent_13">You're committed.</string>
-    <string name="shake_frequent_13_sub">I admire that.</string>
+    <string name="shake_frequent_13_sub">Worryingly so.</string>
     <string name="shake_frequent_14">%1$d.</string>
-    <string name="shake_frequent_14_sub">A number that means something now.</string>
+    <string name="shake_frequent_14_sub">And counting.</string>
     <string name="shake_frequent_15">Legend says...</string>
     <string name="shake_frequent_15_sub">They never stopped shaking.</string>
     <string name="shake_frequent_16">Some things never change.</string>
@@ -149,9 +149,9 @@
     <string name="shake_frequent_31">Fifty shakes.</string>
     <string name="shake_frequent_31_sub">Gold tier achieved.</string>
     <string name="shake_frequent_32">One hundred shakes.</string>
-    <string name="shake_frequent_32_sub">You're remarkable. I mean that.</string>
+    <string name="shake_frequent_32_sub">I need to lie down.</string>
     <string name="shake_frequent_33">Beyond 100.</string>
-    <string name="shake_frequent_33_sub">You're in uncharted territory.</string>
+    <string name="shake_frequent_33_sub">I've stopped counting. Kidding.</string>
     <plurals name="shake_frequent_5">
         <item quantity="one">%1$d shake.</item>
         <item quantity="other">%1$d shakes.</item>

@@ -294,9 +294,9 @@ Surface `Week` (with `day` = the span's last day), weight on `Weight`.
 ### Copy (`strings_trends.xml`)
 `Week` / `Month` / `3 months`; `Eaten`; `avg`; captions `The band is your
 range. A gap is a day you left untracked.` / `The band is your range. Today is
-striped because it's still in progress, so it isn't in the average.` / `The
-band is your range. This week is striped because it's still in progress, so it
-isn't in the average.`; `Recap`; `Patterns`; `Days logged` / `%1$d of %2$d`;
+striped while it's in progress and isn't in the average yet.` / `The band is
+your range. This week is striped while it's in progress and isn't in the
+average yet.`; `Recap`; `Patterns`; `Days logged` / `%1$d of %2$d`;
 `Breakfast` / `%1$d of %2$d days`; `Meals logged`; `New foods`; `Your week`;
 legend from the meal labels; weekly check `Your weekly check opens tonight` /
 `Your weekly check opens %1$s` and `%1$s at %2$s. You'll see your weekly average
@@ -441,11 +441,12 @@ surfaces `nutrient-foods`, `nutrient-foods-week`, `nutrient-foods-protein`.
 
 ### Copy
 `Nutrients`; `This day` / `Week average`; `· range %1$s`; group titles; `of
-%1$s` (`of a %1$s limit` for sodium); caption `Percent of a typical daily
-target. Most people land under on some and over on others, and that's fine. A
-week tells you more than a day.`; off card `Vitamins and minerals are off` /
-`Turn them on in Modes and numbers.` / `Modes and numbers`; nothing `No nutrient
-detail in this mode. Your meals are all still logged.`
+%1$s` (`of a %1$s limit` for sodium); caption `Percent of a daily reference
+for your age and sex, set in More, Targets. Most people are under on some and
+over on others, and a week says more than a day. Not listed means none of your
+foods give an amount.`; off card `Vitamins and minerals are off` /
+`Turn them on in Modes and numbers.` / `Modes and numbers`; nothing `This mode
+doesn't show nutrient detail. Your meals are still logged.`
 
 ### Tests
 Builder: Full day (micros shown), Full with micros hidden (off card), micros shown on Week average, Delayed week (open),
@@ -474,8 +475,7 @@ and not built.
   and `This morning` (or `Yesterday`, `Thu, Oct 22`) with today's reading small
   on the right. Chart card: `Last month` with `1W` / `1M` / `3M`, weigh-in dots,
   the trend line, the first and last dates under it, caption `The dots are
-  weigh-ins. The line is a smoothed trend, so a day of water weight doesn't
-  steer you.`
+  weigh-ins. The line is the smoothed trend.`
 - **Soften** (Trend only): one card, `Last month`, the slope word large
   (`Steady`, `Rising slowly`, `Falling slowly`), the line. No numbers, no dots.
 - **Hide**: `Weight is hidden` card with an eye-off tile, `You can still log it.
