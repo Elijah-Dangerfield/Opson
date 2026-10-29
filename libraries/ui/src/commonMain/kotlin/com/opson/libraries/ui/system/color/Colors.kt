@@ -353,6 +353,8 @@ private fun HeroPanel(colors: Colors) {
     }
 }
 
+// Palette gallery sample copy, as HeroPanel.
+@Suppress("VerifyStrings")
 @Composable
 private fun AccentPalette(colors: Colors) {
     Column(
@@ -421,6 +423,8 @@ private fun RowScope.AccentChip(
     }
 }
 
+// Palette gallery sample copy, as HeroPanel.
+@Suppress("VerifyStrings")
 @Composable
 private fun SurfaceStack(colors: Colors) {
     Column(

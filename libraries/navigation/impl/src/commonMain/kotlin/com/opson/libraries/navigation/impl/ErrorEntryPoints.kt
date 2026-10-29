@@ -1,5 +1,6 @@
 package com.opson.libraries.navigation.impl
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +26,13 @@ import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.navigation.toRouteOrNull
 import kotlinx.datetime.TimeZone
 import me.tatarka.inject.annotations.Inject
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.error_blocking_default_subtitle
+import opson.libraries.resources.generated.resources.error_blocking_default_title
+import opson.libraries.resources.generated.resources.error_dialog_default_action
+import opson.libraries.resources.generated.resources.error_dialog_default_subtitle
+import opson.libraries.resources.generated.resources.error_dialog_default_title
+import org.jetbrains.compose.resources.stringResource
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
@@ -78,16 +86,16 @@ class ErrorEntryPoints(
         screen<BlockingErrorRoute>(
             typeMap = mapOf()
         ) { backStackEntry ->
-            val route = backStackEntry.toRouteOrNull<BlockingErrorRoute>() ?: DEFAULT_BLOCKING_ERROR
+            val route = backStackEntry.toRouteOrNull<BlockingErrorRoute>() ?: defaultBlockingError()
             BlockingErrorScreen(
                 title = route.title,
                 subtitle = route.subtitle,
-                errorCode = route.errorCode ?: DEFAULT_BLOCKING_ERROR.errorCode,
+                errorCode = route.errorCode ?: DEFAULT_ERROR_CODE,
                 onReportToDevelopers = {
                     router.navigate(
                         BugReportRoute(
                             logId = route.logId,
-                            errorCode = route.errorCode ?: DEFAULT_BLOCKING_ERROR.errorCode,
+                            errorCode = route.errorCode ?: DEFAULT_ERROR_CODE,
                             contextMessage = route.contextMessage ?: route.subtitle,
                         )
                     )
@@ -99,7 +107,7 @@ class ErrorEntryPoints(
             typeMap = mapOf(typeOf<ErrorDialogAction>() to serializableType<ErrorDialogAction>(),
             )
         ) { backStackEntry, dialogState ->
-            val route = backStackEntry.toRouteOrNull<ErrorDialogRoute>() ?: DEFAULT_ERROR_DIALOG
+            val route = backStackEntry.toRouteOrNull<ErrorDialogRoute>() ?: defaultErrorDialog()
             var pendingAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
             fun dismissWithAction(action: () -> Unit) {
@@ -112,7 +120,7 @@ class ErrorEntryPoints(
                 title = route.title,
                 subtitle = route.subtitle,
                 actionTitle = route.actionTitle,
-                errorCode = route.errorCode ?: DEFAULT_ERROR_DIALOG.errorCode,
+                errorCode = route.errorCode ?: DEFAULT_ERROR_CODE,
                 onDismissRequest = {
                     val action = pendingAction ?: router::goBack
                     pendingAction = null
@@ -126,7 +134,7 @@ class ErrorEntryPoints(
                         router.navigate(
                             BugReportRoute(
                                 logId = route.logId,
-                                errorCode = route.errorCode ?: DEFAULT_ERROR_DIALOG.errorCode,
+                                errorCode = route.errorCode ?: DEFAULT_ERROR_CODE,
                                 contextMessage = route.contextMessage ?: route.subtitle,
                             )
                         )
@@ -149,17 +157,23 @@ private fun handleDialogAction(action: ErrorDialogAction, router: Router) {
     }
 }
 
-private val DEFAULT_BLOCKING_ERROR = BlockingErrorRoute(
-    title = "Something went wrong",
-    subtitle = "Please try again.",
-    errorCode = 1000,
+private const val DEFAULT_ERROR_CODE = 1000
+
+/** What the blocking screen says when its route can't be read back. */
+@Composable
+private fun defaultBlockingError() = BlockingErrorRoute(
+    title = stringResource(Res.string.error_blocking_default_title),
+    subtitle = stringResource(Res.string.error_blocking_default_subtitle),
+    errorCode = DEFAULT_ERROR_CODE,
     contextMessage = null,
 )
 
-private val DEFAULT_ERROR_DIALOG = ErrorDialogRoute(
-    title = "Oops",
-    subtitle = "Looks like something broke. Please try again.",
-    actionTitle = "Dismiss",
-    errorCode = 1000,
+/** What the error dialog says when its route can't be read back. */
+@Composable
+private fun defaultErrorDialog() = ErrorDialogRoute(
+    title = stringResource(Res.string.error_dialog_default_title),
+    subtitle = stringResource(Res.string.error_dialog_default_subtitle),
+    actionTitle = stringResource(Res.string.error_dialog_default_action),
+    errorCode = DEFAULT_ERROR_CODE,
     contextMessage = null,
 )

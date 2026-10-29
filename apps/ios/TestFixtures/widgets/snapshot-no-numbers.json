@@ -44,7 +44,8 @@
                 "filled": 5,
                 "total": 8,
                 "label": "5 of 8 glasses",
-                "glass": "250 ml"
+                "glass": "250 ml",
+                "addLabel": "Add a glass, 250 ml"
             },
             "mealRows": [
                 {
@@ -124,7 +125,8 @@
                 "filled": 0,
                 "total": 8,
                 "label": "0 of 8 glasses",
-                "glass": "250 ml"
+                "glass": "250 ml",
+                "addLabel": "Add a glass, 250 ml"
             },
             "mealRows": [
                 {

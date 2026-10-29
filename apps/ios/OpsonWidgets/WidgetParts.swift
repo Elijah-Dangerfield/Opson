@@ -48,6 +48,13 @@ struct WidgetTitle: View {
     }
 }
 
+/// The extension's own words for before the app has written a snapshot, from
+/// this target's Localizable.xcstrings. Anything the app can say, it writes
+/// into the snapshot instead, in the person's language.
+enum WidgetText {
+    static var openApp: String { String(localized: "Open Opson to start.", comment: "A widget before the app has run, or while nobody is signed in.") }
+}
+
 /// What a widget says when there is nothing it may draw: before the app has
 /// run, or when the mode keeps this widget's number in the app.
 struct WidgetNote: View {
@@ -227,7 +234,7 @@ extension WidgetSnapshot {
             todayLink: WidgetURLs.today,
             waterLink: WidgetURLs.water,
             fasting: fasting ? fastingTimer : nil,
-            labels: .english
+            labels: .fallback
         )
     }
 }

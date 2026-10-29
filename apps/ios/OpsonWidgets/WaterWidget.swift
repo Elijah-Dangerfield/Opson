@@ -41,7 +41,7 @@ struct WaterWidgetView: View {
 
     /// Why there is nothing to draw, when there isn't.
     private var emptyText: String? {
-        guard let snapshot = entry.snapshot else { return "Open Opson to start." }
+        guard let snapshot = entry.snapshot else { return WidgetText.openApp }
         if water != nil { return nil }
         if entry.day?.mealRows?.isEmpty == true, let note = entry.day?.note { return note }
         return snapshot.text.waterHidden
@@ -88,7 +88,7 @@ struct WaterWidgetView: View {
                 .padding(.vertical, 6)
                 .background(Capsule().fill(theme.accent))
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("\(entry.labels.addGlass), \(water.glass)")
+                .accessibilityLabel(water.addLabel ?? "\(entry.labels.addGlass), \(water.glass)")
             } else if let emptyText {
                 Spacer(minLength: 0)
                 WidgetNote(text: emptyText, theme: theme)

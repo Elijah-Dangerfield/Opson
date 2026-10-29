@@ -16,6 +16,7 @@ class OpsonRuleSetProvider : RuleSetProvider {
         ruleSetId,
         listOf(
             ::VerifyStrings,
+            ::VerifyStringArguments,
             ::AnimatedStateReadInComposition,
             ::ClassNameInTelemetryAttribute,
             ::ScrollInsideBottomSheet,

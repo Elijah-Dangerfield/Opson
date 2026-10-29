@@ -124,6 +124,13 @@
     <string name="auth_error_timeout">That's taking longer than usual. Please try again.</string>
     <string name="auth_error_generic">Something went wrong. Please try again.</string>
 
+    <!-- Blocking error screen and error dialog, when the route that opened them can't be read back -->
+    <string name="error_blocking_default_title">Something went wrong</string>
+    <string name="error_blocking_default_subtitle">Please try again.</string>
+    <string name="error_dialog_default_title">Oops</string>
+    <string name="error_dialog_default_subtitle">Looks like something broke. Please try again.</string>
+    <string name="error_dialog_default_action">Dismiss</string>
+
     <!-- Access denied (the locked 403 envelope) -->
     <string name="access_denied_title">Access denied</string>
     <string name="access_denied_message">This account can't access the app right now.</string>

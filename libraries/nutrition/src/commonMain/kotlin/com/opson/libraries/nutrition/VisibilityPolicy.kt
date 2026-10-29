@@ -19,7 +19,7 @@ class VisibilityPolicy(
     val settings: NumbersSettings,
     private val clock: Clock,
     private val timeZone: TimeZone,
-    internal val formatter: NutritionFormatter = EnglishNutritionFormatter,
+    internal val formatter: NutritionFormatter = NutritionCopy,
 ) {
     val preset: ModePreset get() = Presets[settings.preset]
 

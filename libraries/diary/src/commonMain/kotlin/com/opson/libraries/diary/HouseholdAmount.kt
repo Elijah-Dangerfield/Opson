@@ -1,5 +1,6 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.AmountCopy
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.round
@@ -63,6 +64,18 @@ object HouseholdAmount {
             return ofPortion(trimmed.substring(times + TIMES.length), count)
         }
         return ofPortion(trimmed)
+    }
+
+    /**
+     * [text] as a row shows it: [tidy], then an amount in a unit the app writes itself ("150 g",
+     * "8 fl oz") in the device's language ([AmountCopy]). What is stored stays as [tidy] writes it,
+     * the same in every language, which is what [of] and [ofPortion] return. A catalog's own
+     * portion names ("1 cup, sliced") are the food's data and are shown as they are.
+     */
+    fun display(text: String): String {
+        val tidied = tidy(text)
+        val match = MEASURED.matchEntire(tidied.trim()) ?: return tidied
+        return AmountCopy.measure(match.groupValues[1], match.groupValues[2]) ?: tidied
     }
 
     /** The label without its leading amount: "1 cup" is "cup", "1/2 cup, sliced" is "cup, sliced". */
@@ -161,6 +174,9 @@ object HouseholdAmount {
     private const val GROUP_FRACTION_NUM = 5
     private const val GROUP_FRACTION_DEN = 6
     private const val GROUP_LONE_GLYPH = 7
+
+    // An amount in one of the units [AmountCopy] spells: "150 g", "2.5 fl oz", "0.25 lb".
+    private val MEASURED = Regex("^(\\d+(?:\\.\\d+)?)\\s+(g|kg|mg|mcg|µg|ml|oz|lb|fl oz)$", RegexOption.IGNORE_CASE)
 
     private val METRIC = setOf(
         "g", "gram", "grams", "kg", "mg", "mcg", "µg", "ml", "l", "cl", "dl",

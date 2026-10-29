@@ -98,25 +98,36 @@ object FastingPhases {
             fromMs = from.toEpochMilliseconds(),
             kind = WidgetFastingPhase.FASTING,
             title = copy.now,
-            caption = copy.ends,
             untilMs = state.until.toEpochMilliseconds(),
             sinceMs = state.since.toEpochMilliseconds(),
-        )
+        ).around(copy.endsAt)
         is State.Window -> WidgetFastingPhase(
             fromMs = from.toEpochMilliseconds(),
             kind = WidgetFastingPhase.WINDOW,
             title = copy.window,
-            caption = copy.until,
             untilMs = state.until.toEpochMilliseconds(),
-        )
+        ).around(copy.untilAt)
         is State.Done -> WidgetFastingPhase(
             fromMs = from.toEpochMilliseconds(),
             kind = WidgetFastingPhase.DONE,
             title = copy.done,
-            caption = copy.next,
             untilMs = state.nextFast.toEpochMilliseconds(),
-        )
+        ).around(copy.nextAt)
     }
+
+    /**
+     * The line under the title, split where the widget prints the time: [WidgetFastingPhase.captionBefore]
+     * and [WidgetFastingPhase.captionAfter], so a language can put the time anywhere in it. [WidgetFastingPhase.caption]
+     * is the words before it, which an extension from before the split prints followed by the time.
+     */
+    private fun WidgetFastingPhase.around(template: String): WidgetFastingPhase {
+        val at = template.indexOf(TIME)
+        val before = if (at < 0) template else template.substring(0, at)
+        val after = if (at < 0) "" else template.substring(at + TIME.length)
+        return copy(caption = before.trimEnd(), captionBefore = before, captionAfter = after)
+    }
+
+    private const val TIME = "%1${'$'}s"
 
     private fun closeOn(date: LocalDate, plan: FastingPlan, zone: TimeZone): Instant = LocalDateTime(date, plan.closes).toInstant(zone)
 

@@ -55,6 +55,14 @@ if let full = load("snapshot-full.json") {
     expect(full.waterLink == "opson://widget/water/add", "full: the water link")
     expect(full.fasting?.phase(at: fixtureDay)?.kind == "window", "full: the fasting phase at noon")
     expect(full.colors.light.nutrients?["water"] != nil, "full: the water colour")
+    // Words the app writes so the extension never composes them in English.
+    expect(today?.energy?.line == "1,245 kcal", "full: the calories line")
+    expect(today?.left?.line == "655 to range", "full: what is left, on one line")
+    expect(today?.macros?.first?.line == "84 g", "full: a macro's line")
+    expect(today?.macros?.first?.description == "Protein, 84 / 120 g", "full: a macro for a screen reader")
+    expect(today?.water?.addLabel == "Add a glass, 250 ml", "full: the add button for a screen reader")
+    let window = full.fasting?.phase(at: fixtureDay)
+    expect(window?.before == "Until " && window?.after == "", "full: the words around the fasting time")
     let tomorrow = full.day(for: fixtureDay.addingTimeInterval(24 * 3600), calendar: utc)
     expect(tomorrow?.day == "2026-10-26" && tomorrow?.energy?.amount == "0", "full: tomorrow is an empty day")
 }
@@ -77,7 +85,8 @@ let legacy = """
 """
 let old = WidgetStore.decode(Data(legacy.utf8))
 expect(old?.days.first?.energy?.amount == "0", "the first release's JSON still decodes")
-expect(old?.text == WidgetLabels.english, "and falls back to English labels")
+expect(old?.text == WidgetLabels.fallback, "and falls back to the extension's own labels")
+expect(old?.days.first?.energy?.line == nil, "and has no lines, which the widgets compose themselves")
 
 if failures > 0 {
     FileHandle.standardError.write(Data("\(failures) widget snapshot check(s) failed\n".utf8))

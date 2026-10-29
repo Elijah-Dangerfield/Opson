@@ -1,5 +1,7 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.AmountCopy
+import com.opson.libraries.nutrition.AmountWords
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -128,5 +130,23 @@ class HouseholdAmountTest {
         assertEquals("2 bars", bar.toDraft(servings = 2.0).amountText)
         assertEquals("½ bar", bar.toDraft(servings = 0.5).amountText)
         assertEquals("45 g", granola.toDraft(servings = 1.5).amountText)
+    }
+
+    @Test
+    fun displaySpellsTheAppsOwnUnitsAndLeavesCatalogPortionsAlone() {
+        assertEquals("150 g", HouseholdAmount.display("150 g"))
+        assertEquals("1½ cups", HouseholdAmount.display("1.5 × 1 cup"))
+
+        val stored = HouseholdAmount.of(150.0, "g")
+        try {
+            AmountCopy.install(AmountWords(grams = "%1${'$'}s г", fluidOunces = "%1${'$'}s жидк. унц."))
+            assertEquals("150 г", HouseholdAmount.display(stored))
+            assertEquals("8 жидк. унц.", HouseholdAmount.display("8 fl oz"))
+            assertEquals("1 cup (240 ml)", HouseholdAmount.display("1 cup (240 ml)"))
+            // What is stored does not change with the language.
+            assertEquals("150 g", HouseholdAmount.of(150.0, "g"))
+        } finally {
+            AmountCopy.install(AmountWords())
+        }
     }
 }

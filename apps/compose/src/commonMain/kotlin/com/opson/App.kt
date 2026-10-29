@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -96,6 +97,11 @@ fun App(appComponent: AppComponent) {
     // for the contract. (Android also resolves this in Application.onCreate,
     // before the first Activity; resolving twice is a no-op.)
     remember { appComponent.autoInits }
+
+    // Numbers and dates spelled outside a composable follow the language too. Boot loads them
+    // (LocalizedCopy is an AutoInit); this reloads them when the locale changes under a running app.
+    val locale = Locale.current.toLanguageTag()
+    LaunchedEffect(locale) { appComponent.localizedCopy.reload() }
 
     // Lifecycle-scoped, not composition-scoped. A DisposableEffect here only
     // tears down when the composition goes away, which backgrounding does not
@@ -187,6 +193,8 @@ fun App(appComponent: AppComponent) {
             appRecomposeLogger.e {
                 "Rapid recompositions: ${info.countInWindow} in ${info.windowMillis}ms (total=${info.totalCount})"
             }
+            // Debug builds only (showDebugSnackBar is a no-op in release): a note to the developer, not copy.
+            @Suppress("VerifyStringArguments")
             showDebugSnackBar(
                 title = "Performance hiccup",
                 message = "App recomposed ${info.countInWindow}× in ${info.windowMillis}ms.",

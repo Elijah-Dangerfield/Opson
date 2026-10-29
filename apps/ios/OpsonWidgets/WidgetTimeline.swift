@@ -19,7 +19,7 @@ struct SnapshotEntry: TimelineEntry {
     let snapshot: WidgetSnapshot?
 
     var day: WidgetDay? { snapshot?.day(for: date) }
-    var labels: WidgetLabels { snapshot?.text ?? .english }
+    var labels: WidgetLabels { snapshot?.text ?? .fallback }
 }
 
 enum WidgetTimeline {

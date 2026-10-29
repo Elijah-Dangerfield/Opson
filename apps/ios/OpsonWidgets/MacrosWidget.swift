@@ -72,12 +72,12 @@ struct MacrosWidgetView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private var theme: WidgetTheme { WidgetTheme(entry.snapshot, colorScheme) }
-    private var labels: WidgetLabels { entry.snapshot?.text ?? .english }
+    private var labels: WidgetLabels { entry.snapshot?.text ?? .fallback }
     private var link: URL { URL(widgetLink: entry.snapshot?.todayLink, fallback: WidgetURLs.today) }
 
     /// Why there is nothing to draw, when there isn't.
     private var emptyText: String? {
-        if entry.snapshot == nil { return "Open Opson to start." }
+        if entry.snapshot == nil { return WidgetText.openApp }
         // An untracked day has no rows at all, and its note says so.
         if entry.day?.mealRows?.isEmpty == true, let note = entry.day?.note { return note }
         return entry.macros.isEmpty ? labels.macrosHidden : nil
@@ -109,7 +109,7 @@ struct MacrosWidgetView: View {
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(theme.ink)
                             Spacer(minLength: 4)
-                            Text("\(macro.amount) \(macro.unit)")
+                            Text(macro.line ?? "\(macro.amount) \(macro.unit)")
                                 .font(.system(size: 12, weight: .bold))
                                 .monospacedDigit()
                                 .foregroundStyle(theme.muted)
@@ -118,7 +118,7 @@ struct MacrosWidgetView: View {
                         bar(macro)
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(macro.label), \(macro.text)")
+                    .accessibilityLabel(macro.description ?? "\(macro.label), \(macro.text)")
                 }
             }
         }
@@ -170,7 +170,7 @@ struct MacrosWidgetView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("\(macro.label), \(macro.text)")
+                        .accessibilityLabel(macro.description ?? "\(macro.label), \(macro.text)")
                     }
                 }
                 .frame(maxHeight: .infinity)

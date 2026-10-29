@@ -51,7 +51,7 @@ struct MealsWidgetView: View {
             }
             if entry.snapshot == nil {
                 Spacer(minLength: 0)
-                WidgetNote(text: "Open Opson to start.", theme: theme)
+                WidgetNote(text: WidgetText.openApp, theme: theme)
                 Spacer(minLength: 0)
             } else if rows.isEmpty {
                 Spacer(minLength: 0)

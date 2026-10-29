@@ -1,5 +1,6 @@
 package com.opson.libraries.ui.time
 
+import com.opson.libraries.core.fillTemplate
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -7,6 +8,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Month
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlin.concurrent.Volatile
 
 /**
  * A day as the app names it: relative when it is today or next to it, a date
@@ -30,87 +32,99 @@ sealed interface RelativeDay {
 }
 
 /**
- * Date and time copy, in English, spelled by hand rather than through a
- * platform formatter so the JVM and iOS print the same thing whatever the
- * device locale is (the same reason `EnglishNutritionFormatter` exists). Pure,
- * so builders and tests call it directly. Not for nutrition numbers.
+ * Date and time copy. Pure and synchronous, so builders and tests call it directly. Not for
+ * nutrition numbers.
+ *
+ * Two parts, installed once at app start: the [DateFormats] (names, the order of a date's parts,
+ * the clock), which on a device are the platform's own and follow its language and region, and
+ * the [DateWords] ("Today", "Oct 19 to 25"), from `strings_ui.xml`. Until then, and in every test
+ * and preview, it is US English spelled by hand ([EnglishDateFormats], [DateWords]' defaults), the
+ * same on the JVM and on iOS.
  */
 object DateCopy {
+    @Volatile
+    private var formats: DateFormats = EnglishDateFormats
+
+    @Volatile
+    private var words: DateWords = DateWords()
+
+    fun install(formats: DateFormats) {
+        this.formats = formats
+    }
+
+    fun install(words: DateWords) {
+        this.words = words
+    }
 
     /** `Today`, `Yesterday`, `Tomorrow`, or `Thu, Oct 22`. */
     fun label(day: RelativeDay): String = when (day) {
-        RelativeDay.Today -> "Today"
-        RelativeDay.Yesterday -> "Yesterday"
-        RelativeDay.Tomorrow -> "Tomorrow"
+        RelativeDay.Today -> words.today
+        RelativeDay.Yesterday -> words.yesterday
+        RelativeDay.Tomorrow -> words.tomorrow
         is RelativeDay.Date -> weekdayMonthDay(day.date)
     }
 
     /** `Thu, Oct 22`. */
-    fun weekdayMonthDay(date: LocalDate): String = "${shortWeekday(date.dayOfWeek)}, ${monthDay(date)}"
+    fun weekdayMonthDay(date: LocalDate): String = formats.weekdayMonthDay(date)
 
     /** `Sunday, Oct 25`, for subtitles that name the day in full. */
-    fun longWeekdayMonthDay(date: LocalDate): String = "${longWeekday(date.dayOfWeek)}, ${monthDay(date)}"
+    fun longWeekdayMonthDay(date: LocalDate): String = formats.longWeekdayMonthDay(date)
 
     /** `Oct 22`. */
-    fun monthDay(date: LocalDate): String = "${shortMonth(date.month)} ${date.day}"
+    fun monthDay(date: LocalDate): String = formats.monthDay(date)
 
     /** `October 25`, the calendar cell's spoken label. */
-    fun longMonthDay(date: LocalDate): String = "${longMonth(date.month)} ${date.day}"
+    fun longMonthDay(date: LocalDate): String = formats.longMonthDay(date)
 
     /** `May 11, 1998`: a birthday, or the day a goal is forecast for. */
-    fun monthDayYear(date: LocalDate): String = "${longMonth(date.month)} ${date.day}, ${date.year}"
+    fun monthDayYear(date: LocalDate): String = formats.monthDayYear(date)
+
+    /** `Aug 1, 2026`: a day far enough off to need its year, said briefly. */
+    fun shortMonthDayYear(date: LocalDate): String = formats.shortMonthDayYear(date)
 
     /** `October 2026`, the calendar title. */
-    fun monthYear(date: LocalDate): String = "${longMonth(date.month)} ${date.year}"
+    fun monthYear(date: LocalDate): String = formats.monthYear(date)
+
+    /** `10/19`: a short axis label, month and day in the order the region writes them as numbers. */
+    fun numericMonthDay(date: LocalDate): String = formats.numericMonthDay(date)
 
     /** `Oct 19 to 25`, or `Oct 29 to Nov 4` across a month. */
     fun range(start: LocalDate, end: LocalDate): String =
         if (start.month == end.month && start.year == end.year) {
-            "${monthDay(start)} to ${end.day}"
+            words.rangeSameMonth.fillTemplate(monthDay(start), end.day)
         } else {
-            "${monthDay(start)} to ${monthDay(end)}"
+            words.range.fillTemplate(monthDay(start), monthDay(end))
         }
 
     /** `Oct 25, 9:41 PM`. */
-    fun timestamp(dateTime: LocalDateTime): String = "${monthDay(dateTime.date)}, ${time(dateTime.hour, dateTime.minute)}"
+    fun timestamp(dateTime: LocalDateTime): String = formats.timestamp(dateTime)
 
-    /** `9:41 PM`, `12:05 AM`, `12:00 PM`. */
-    fun time(hour: Int, minute: Int): String {
-        require(hour in 0..23 && minute in 0..59) { "Not a time: $hour:$minute" }
-        val half = if (hour < 12) "AM" else "PM"
-        val clock = when (val h = hour % 12) {
-            0 -> 12
-            else -> h
-        }
-        return "$clock:${minute.toString().padStart(2, '0')} $half"
-    }
+    /** `9:41 PM`, `12:05 AM`, `12:00 PM`; `21:41` where the clock runs to 24. */
+    fun time(hour: Int, minute: Int): String = formats.time(hour, minute)
 
-    fun shortWeekday(day: DayOfWeek): String = longWeekday(day).take(3)
+    fun shortWeekday(day: DayOfWeek): String = formats.shortWeekday(day)
 
-    fun longWeekday(day: DayOfWeek): String = when (day) {
-        DayOfWeek.MONDAY -> "Monday"
-        DayOfWeek.TUESDAY -> "Tuesday"
-        DayOfWeek.WEDNESDAY -> "Wednesday"
-        DayOfWeek.THURSDAY -> "Thursday"
-        DayOfWeek.FRIDAY -> "Friday"
-        DayOfWeek.SATURDAY -> "Saturday"
-        DayOfWeek.SUNDAY -> "Sunday"
-    }
+    /** `M`, `T`: for a row of days too narrow for [shortWeekday]. Not `shortWeekday(day).take(1)`. */
+    fun narrowWeekday(day: DayOfWeek): String = formats.narrowWeekday(day)
 
-    fun shortMonth(month: Month): String = longMonth(month).take(3)
+    fun longWeekday(day: DayOfWeek): String = formats.longWeekday(day)
 
-    fun longMonth(month: Month): String = when (month) {
-        Month.JANUARY -> "January"
-        Month.FEBRUARY -> "February"
-        Month.MARCH -> "March"
-        Month.APRIL -> "April"
-        Month.MAY -> "May"
-        Month.JUNE -> "June"
-        Month.JULY -> "July"
-        Month.AUGUST -> "August"
-        Month.SEPTEMBER -> "September"
-        Month.OCTOBER -> "October"
-        Month.NOVEMBER -> "November"
-        Month.DECEMBER -> "December"
-    }
+    fun shortMonth(month: Month): String = formats.shortMonth(month)
+
+    fun longMonth(month: Month): String = formats.longMonth(month)
 }
+
+/**
+ * The words [DateCopy] puts around dates, as `strings_ui.xml` has them. The defaults are its
+ * English, for tests and previews; `DateWordsDriftTest` fails when the two differ.
+ *
+ * @property rangeSameMonth `Oct 19 to 25`: the start's month and day, then the end's day number.
+ * @property range `Oct 29 to Nov 4`: both as month and day.
+ */
+data class DateWords(
+    val today: String = "Today",
+    val yesterday: String = "Yesterday",
+    val tomorrow: String = "Tomorrow",
+    val rangeSameMonth: String = "%1\$s to %2\$s",
+    val range: String = "%1\$s to %2\$s",
+)

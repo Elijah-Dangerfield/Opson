@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  How a nutrition number is spelled wherever the visibility policy lets it be seen: Today, the
+  Logger, Trends, widgets, the provider summary. NutritionWords (libraries/nutrition) carries the
+  same English as its defaults for tests and previews, and NutritionWordsDriftTest fails when the
+  two differ, so change both. %1$s and %2$s are numbers the app has already grouped ("1,245").
+-->
+<resources>
+
+    <!-- Amounts with their unit -->
+    <string name="nutrition_energy">%1$s kcal</string>
+    <string name="nutrition_grams">%1$s g</string>
+    <string name="nutrition_grams_of">%1$s of %2$s g</string>
+    <string name="nutrition_percent">%1$s%</string>
+    <string name="nutrition_weight_kg">%1$s kg</string>
+    <string name="nutrition_weight_lb">%1$s lb</string>
+    <string name="nutrition_water_ml">%1$s of %2$s ml</string>
+    <string name="nutrition_water_floz">%1$s of %2$s fl oz</string>
+    <string name="nutrition_energy_of">%1$s kcal of %2$s</string>
+    <string name="nutrition_energy_of_bare">%1$s of %2$s</string>
+    <string name="nutrition_energy_slash">%1$s / %2$s kcal</string>
+    <string name="nutrition_grams_slash">%1$s / %2$s g</string>
+    <!-- A range of two numbers, "1,900 to 2,300", before its unit is added -->
+    <string name="nutrition_range">%1$s to %2$s</string>
+    <!-- A glass or a daily water goal, not an amount drunk -->
+    <string name="nutrition_glass_ml">%1$s ml</string>
+    <string name="nutrition_glass_floz">%1$s fl oz</string>
+    <!-- Micronutrients: an amount, and a daily reference that is a ceiling, like sodium -->
+    <string name="nutrition_micro_mg">%1$s mg</string>
+    <string name="nutrition_micro_ug">%1$s µg</string>
+    <string name="nutrition_micro_limit">%1$s limit</string>
+
+    <!-- What is left to the range -->
+    <string name="nutrition_left">%1$s left</string>
+    <string name="nutrition_on_target">On target</string>
+    <string name="nutrition_above_range">Above your range today</string>
+
+    <!-- A macro in a sentence, "47 g protein", and as a compact letter, "47P" -->
+    <string name="nutrition_macro_long">%1$s g %2$s</string>
+    <string name="nutrition_macro_protein">protein</string>
+    <string name="nutrition_macro_carbs">carbs</string>
+    <string name="nutrition_macro_fat">fat</string>
+    <string name="nutrition_macro_fiber">fiber</string>
+    <string name="nutrition_macro_letter_protein">P</string>
+    <string name="nutrition_macro_letter_carbs">C</string>
+    <string name="nutrition_macro_letter_fat">F</string>
+    <string name="nutrition_macro_letter_fiber">Fb</string>
+
+    <!-- A ring's label: the number large over its unit, or two words in the same places -->
+    <string name="nutrition_unit_kcal">kcal</string>
+    <string name="nutrition_unit_g">g</string>
+    <string name="nutrition_ring_on_target_value">On</string>
+    <string name="nutrition_ring_on_target_unit">target</string>
+    <string name="nutrition_ring_above_range_value">Past</string>
+    <string name="nutrition_ring_above_range_unit">range</string>
+
+    <!-- An amount of food in a unit the app writes itself, as shown. What is stored stays "150 g"
+         in every language; these only spell it. AmountWords carries the same English. -->
+    <string name="nutrition_amount_grams">%1$s g</string>
+    <string name="nutrition_amount_kilograms">%1$s kg</string>
+    <string name="nutrition_amount_milligrams">%1$s mg</string>
+    <string name="nutrition_amount_micrograms">%1$s mcg</string>
+    <string name="nutrition_amount_millilitres">%1$s ml</string>
+    <string name="nutrition_amount_fluid_ounces">%1$s fl oz</string>
+    <string name="nutrition_amount_ounces">%1$s oz</string>
+    <string name="nutrition_amount_pounds">%1$s lb</string>
+    <!-- The grams chip on the amount sheet, spelled out -->
+    <string name="nutrition_amount_grams_word">grams</string>
+    <!-- A unit on its own: a column of a label's nutrients, a unit chip -->
+    <string name="nutrition_symbol_kcal">kcal</string>
+    <string name="nutrition_symbol_grams">g</string>
+    <string name="nutrition_symbol_milligrams">mg</string>
+    <string name="nutrition_symbol_micrograms">mcg</string>
+    <string name="nutrition_symbol_millilitres">ml</string>
+    <string name="nutrition_symbol_fluid_ounces">fl oz</string>
+    <string name="nutrition_symbol_ounces">oz</string>
+    <string name="nutrition_symbol_pounds">lb</string>
+
+    <!-- The soft words a mode shows instead of a number -->
+    <string name="nutrition_soft_early_in_the_day">Early in the day</string>
+    <string name="nutrition_soft_partway_through">Partway through</string>
+    <string name="nutrition_soft_most_of_the_way">Most of the way</string>
+    <string name="nutrition_soft_in_your_range">In your range</string>
+    <string name="nutrition_soft_a_bigger_day">A bigger day</string>
+    <string name="nutrition_soft_building">Building</string>
+    <string name="nutrition_soft_getting_there">Getting there</string>
+    <string name="nutrition_soft_plenty_today">Plenty today</string>
+    <string name="nutrition_soft_some">Some</string>
+    <string name="nutrition_soft_most">Most</string>
+    <string name="nutrition_soft_plenty">Plenty</string>
+    <string name="nutrition_soft_trend_only">Trend only</string>
+    <!-- Which way the smoothed weight line is going -->
+    <string name="nutrition_soft_steady">Steady</string>
+    <string name="nutrition_soft_rising_slowly">Rising slowly</string>
+    <string name="nutrition_soft_falling_slowly">Falling slowly</string>
+
+</resources>

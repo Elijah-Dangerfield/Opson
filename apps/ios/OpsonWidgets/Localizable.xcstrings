@@ -1,0 +1,325 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "A ring for today, the way your mode shows it." : {
+      "comment" : "Widget gallery description of the calories widget.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A ring for today, the way your mode shows it."
+          }
+        }
+      }
+    },
+    "Add a glass" : {
+      "comment" : "The water widget's add button, before the app has written its own.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a glass"
+          }
+        }
+      }
+    },
+    "Calories" : {
+      "comment" : "Widget gallery name of the calories widget, its configuration title, and its heading before the app has written its own.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Calories"
+          }
+        }
+      }
+    },
+    "Carbs" : {
+      "comment" : "Edit Widget, macros widget: show carbohydrates.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carbs"
+          }
+        }
+      }
+    },
+    "Choose the number the ring shows. Your mode still decides whether it shows one." : {
+      "comment" : "Edit Widget, calories widget: the explanation under the title.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the number the ring shows. Your mode still decides whether it shows one."
+          }
+        }
+      }
+    },
+    "Choose which macros to show. Your mode still decides which ones it shows." : {
+      "comment" : "Edit Widget, macros widget: the explanation under the title.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose which macros to show. Your mode still decides which ones it shows."
+          }
+        }
+      }
+    },
+    "Eaten so far" : {
+      "comment" : "Edit Widget, calories widget: the ring shows calories eaten.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eaten so far"
+          }
+        }
+      }
+    },
+    "Fasting" : {
+      "comment" : "Widget gallery name of the fasting widget, and its heading before the app has written its own.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fasting"
+          }
+        }
+      }
+    },
+    "Fat" : {
+      "comment" : "Edit Widget, macros widget: show fat.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fat"
+          }
+        }
+      }
+    },
+    "Fiber" : {
+      "comment" : "Edit Widget, macros widget: show fiber.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fiber"
+          }
+        }
+      }
+    },
+    "Left to your range" : {
+      "comment" : "Edit Widget, calories widget: the ring shows what is left to the range.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left to your range"
+          }
+        }
+      }
+    },
+    "Log food" : {
+      "comment" : "What a screen reader says for the + button, before the app has written its own.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log food"
+          }
+        }
+      }
+    },
+    "Macros" : {
+      "comment" : "Widget gallery name of the macros widget, its configuration title, and its heading before the app has written its own.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Macros"
+          }
+        }
+      }
+    },
+    "Meals" : {
+      "comment" : "Widget gallery name of the meals widget, and its heading before the app has written its own.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meals"
+          }
+        }
+      }
+    },
+    "Nothing yet" : {
+      "comment" : "The meals widget for a meal with nothing logged.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing yet"
+          }
+        }
+      }
+    },
+    "Number" : {
+      "comment" : "Edit Widget, calories widget: what the choice of figure is called.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Number"
+          }
+        }
+      }
+    },
+    "Open Opson to start." : {
+      "comment" : "A widget before the app has run, or while nobody is signed in.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Opson to start."
+          }
+        }
+      }
+    },
+    "Protein" : {
+      "comment" : "Edit Widget, macros widget: show protein.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protein"
+          }
+        }
+      }
+    },
+    "Show" : {
+      "comment" : "Edit Widget, calories widget: the label of the figure picker.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show"
+          }
+        }
+      }
+    },
+    "The fasting timer is off." : {
+      "comment" : "The fasting widget while the timer is off.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The fasting timer is off."
+          }
+        }
+      }
+    },
+    "The macros you pick, the way your mode shows them." : {
+      "comment" : "Widget gallery description of the macros widget.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The macros you pick, the way your mode shows them."
+          }
+        }
+      }
+    },
+    "Today" : {
+      "comment" : "Widget gallery name of the Today widget.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        }
+      }
+    },
+    "Today at a glance, the way your mode shows it. Tap + to log." : {
+      "comment" : "Widget gallery description of the Today widget.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today at a glance, the way your mode shows it. Tap + to log."
+          }
+        }
+      }
+    },
+    "Today's glasses. Tap to add one." : {
+      "comment" : "Widget gallery description of the water widget.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's glasses. Tap to add one."
+          }
+        }
+      }
+    },
+    "Water" : {
+      "comment" : "Widget gallery name of the water widget, and its heading before the app has written its own.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Water"
+          }
+        }
+      }
+    },
+    "What you've logged today. Tap a meal to add to it." : {
+      "comment" : "Widget gallery description of the meals widget.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What you've logged today. Tap a meal to add to it."
+          }
+        }
+      }
+    },
+    "Your fasting timer, when it's on." : {
+      "comment" : "Widget gallery description of the fasting widget.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your fasting timer, when it's on."
+          }
+        }
+      }
+    },
+    "Your mode keeps macros in the app." : {
+      "comment" : "The macros widget when the person's mode keeps macros off the home screen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your mode keeps macros in the app."
+          }
+        }
+      }
+    },
+    "Your mode keeps water in the app." : {
+      "comment" : "The water widget when the person's mode keeps water off the home screen.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your mode keeps water in the app."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
