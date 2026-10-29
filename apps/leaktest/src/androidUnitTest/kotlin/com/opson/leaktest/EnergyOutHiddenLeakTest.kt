@@ -73,6 +73,7 @@ class EnergyOutHiddenLeakTest(private val surface: LeakSurface) {
             "today-activity", "today-activity-health", "exercise-sheet",
             "targets-deficit", "targets-surplus", "targets-deficit-estimated", "targets-by-day-shapes",
             "day-close-recap-deficit", "day-close-recap-surplus", "targets-safety-notes",
+            "today-flipped", "today-flipped-percent", "today-flipped-stats", "today-sticky-flipped",
         )
 
         @JvmStatic

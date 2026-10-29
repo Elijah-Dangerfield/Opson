@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.FlipFigure
+import com.opson.libraries.diary.Reading
 import com.opson.libraries.diary.ui.CompactAmount
 import com.opson.libraries.diary.ui.CompactSummaryBar
 import com.opson.libraries.diary.ui.CompactText
@@ -32,6 +34,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.MacroLine
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.separator
+import com.opson.libraries.ui.components.FlipControl
 import com.opson.libraries.ui.components.PageIndicator
 import com.opson.libraries.ui.components.RangeBarSegment
 import com.opson.libraries.ui.components.SwipePages
@@ -53,10 +56,22 @@ import opson.libraries.resources.generated.resources.today_counts_meals_one
 import opson.libraries.resources.generated.resources.today_counts_meals_other
 import opson.libraries.resources.generated.resources.today_count_value
 import opson.libraries.resources.generated.resources.today_customise_cd
+import opson.libraries.resources.generated.resources.today_flip_reached
+import opson.libraries.resources.generated.resources.today_flip_show_burned
+import opson.libraries.resources.generated.resources.today_flip_show_deficit_so_far
+import opson.libraries.resources.generated.resources.today_flip_show_drunk
+import opson.libraries.resources.generated.resources.today_flip_show_grams
+import opson.libraries.resources.generated.resources.today_flip_show_grams_left
+import opson.libraries.resources.generated.resources.today_flip_show_percent
+import opson.libraries.resources.generated.resources.today_flip_show_to_go
 import opson.libraries.resources.generated.resources.today_focus_title
+import opson.libraries.resources.generated.resources.today_macros_eaten
+import opson.libraries.resources.generated.resources.today_macros_left
 import opson.libraries.resources.generated.resources.today_macros_of
+import opson.libraries.resources.generated.resources.today_macros_percent
 import opson.libraries.resources.generated.resources.today_macros_title
 import opson.libraries.resources.generated.resources.today_nutrients_see_all
+import opson.libraries.resources.generated.resources.today_stat_water_to_go
 import opson.libraries.resources.generated.resources.today_sticky_cd
 import opson.libraries.resources.generated.resources.today_summary_eaten
 import opson.libraries.resources.generated.resources.today_summary_kcal
@@ -167,14 +182,48 @@ private val FooterBottom = 12.dp
 private fun FirstPage(summary: TodaySummary.Energy, onAction: (TodayAction) -> Unit) {
     val card = summary.card
     if (card != null) {
-        EnergyCardContent(card, onAction, macros = { SummaryMacroColumns(summary.macros.map { it.toSummaryMacro() }) })
+        EnergyCardContent(card, onAction, macros = { MacroRow(summary, onAction) })
     } else {
-        EnergyPageContent(summary)
+        EnergyPageContent(summary, onAction)
     }
 }
 
+/** The macros under the bar; a tap reads the whole row another way when [TodaySummary.Energy.macroFlip] says it can. */
 @Composable
-private fun EnergyPageContent(summary: TodaySummary.Energy) {
+private fun MacroRow(summary: TodaySummary.Energy, onAction: (TodayAction) -> Unit) {
+    val flip = summary.macroFlip
+    SummaryMacroColumns(
+        macros = summary.macros.map { it.toSummaryMacro() },
+        flip = flip?.control(onAction),
+        reading = flip?.let {
+            stringResource(
+                when (it.current) {
+                    Reading.Left -> Res.string.today_macros_left
+                    Reading.Percent -> Res.string.today_macros_percent
+                    else -> Res.string.today_macros_eaten
+                },
+            )
+        },
+    )
+}
+
+/** What a tap on a flipping figure does, and what a screen reader offers after the figure's text. */
+@Composable
+private fun FlipState.control(onAction: (TodayAction) -> Unit): FlipControl =
+    FlipControl(stringResource(showLabel())) { onAction(TodayAction.FigureFlipped(figure)) }
+
+private fun FlipState.showLabel(): StringResource = when (figure) {
+    FlipFigure.Macros -> when (next) {
+        Reading.Left -> Res.string.today_flip_show_grams_left
+        Reading.Percent -> Res.string.today_flip_show_percent
+        else -> Res.string.today_flip_show_grams
+    }
+    FlipFigure.DeficitSoFar -> if (next == Reading.Burned) Res.string.today_flip_show_burned else Res.string.today_flip_show_deficit_so_far
+    FlipFigure.Water -> if (next == Reading.Left) Res.string.today_flip_show_to_go else Res.string.today_flip_show_drunk
+}
+
+@Composable
+private fun EnergyPageContent(summary: TodaySummary.Energy, onAction: (TodayAction) -> Unit) {
     EnergyPage(
         eatenLabel = stringResource(Res.string.today_summary_eaten),
         eaten = summary.eaten,
@@ -186,8 +235,8 @@ private fun EnergyPageContent(summary: TodaySummary.Energy) {
         segments = summary.bar.toSegments(),
         emptyTitle = if (summary.empty) stringResource(Res.string.today_summary_nothing_yet) else null,
     ) {
-        SummaryMacroColumns(summary.macros.map { it.toSummaryMacro() })
-        SummaryStatsRow(summary.stats.map { it.toCell() })
+        MacroRow(summary, onAction)
+        SummaryStatsRow(summary.stats.map { it.toCell(onAction) })
     }
 }
 
@@ -228,9 +277,25 @@ private fun NutrientsPageContent(page: NutrientsPage, onAction: (TodayAction) ->
 }
 
 @Composable
-private fun StatTile.toCell(): StatCell = when (val value = value) {
-    is StatValue.Amount -> StatCell(stringResource(label), value.metric, value.display)
-    is StatValue.Count -> StatCell(stringResource(label), null, Display.Hidden, count = stringResource(Res.string.today_count_value, value.done, value.total))
+private fun StatTile.toCell(onAction: (TodayAction) -> Unit): StatCell {
+    val control = flip?.control(onAction)
+    return when (val value = value) {
+        is StatValue.Amount -> StatCell(stringResource(label), value.metric, value.display, flip = control)
+        is StatValue.Count -> StatCell(
+            stringResource(label),
+            null,
+            Display.Hidden,
+            count = stringResource(Res.string.today_count_value, value.done, value.total),
+            flip = control,
+        )
+        is StatValue.ToGo -> StatCell(
+            stringResource(label),
+            null,
+            Display.Hidden,
+            count = if (value.left > 0) stringResource(Res.string.today_stat_water_to_go, value.left) else stringResource(Res.string.today_flip_reached),
+            flip = control,
+        )
+    }
 }
 
 /**
@@ -283,7 +348,18 @@ private fun CompactPartText(part: CompactPart) {
     when (part) {
         is CompactPart.Amount -> {
             part.label?.let { CompactText(text = stringResource(it) + " ", strong = false) }
-            CompactAmount(part.metric, part.display)
+            val phrase = part.phrase
+            if (phrase == null) {
+                CompactAmount(part.metric, part.display)
+            } else {
+                NutrientPhrase(
+                    metric = part.metric,
+                    display = part.display,
+                    phrase = { stringResource(phrase, it) },
+                    typography = AppTheme.type.bodyBold.ExtraBold.Tabular,
+                    color = AppTheme.colors.ink,
+                )
+            }
         }
         is CompactPart.Macros -> MacroLine(
             parts = part.parts,
@@ -312,7 +388,8 @@ internal fun countWord(done: Int): StringResource = when (done) {
 }
 
 @Composable
-internal fun MacroTile.toSummaryMacro(): SummaryMacro = SummaryMacro(metric, stringResource(label), display, metric.color())
+internal fun MacroTile.toSummaryMacro(): SummaryMacro =
+    SummaryMacro(metric, stringResource(label), display, metric.color(), bar = bar, word = word?.let { stringResource(it) })
 
 @Composable
 internal fun Metric.color(): ColorResource = when (this) {

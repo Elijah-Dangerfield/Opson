@@ -191,16 +191,18 @@ dots and sticky bar are unchanged. Off, page 1 is design sync 2's.
   target, else In and out) and Equation (Eaten − Burned = the main number; needs
   Burned, else In and out). Picking a range goal on Targets while on Rings
   saves In and out.
-- **Main number** and its toggle: the goal view (To your range, Left to target
-  or To your surplus, by the day's goal) or the balance (Deficit, or Surplus
-  once eaten passes Burned), and Eaten when More › Today screen picks it. Its
-  default follows the goal style (a set deficit starts on Deficit) unless More ›
-  Today screen sets one; a tap on the label switches it and is remembered per
-  goal style (`todayMainNumberByStyle`). Picking a goal style on Targets forgets
-  that style's choice; picking a main number forgets every style's.
+- **Main number** and its flip: the goal view (To your range, Left to target
+  or To your surplus, by the day's goal), the balance (Deficit, or Surplus
+  once eaten passes Burned), and Eaten, in that order (see "Figures that flip"
+  below). Its default follows the goal style (a set deficit starts on Deficit)
+  unless More › Today screen sets one; a tap on the number or its label flips
+  it and is remembered per goal style (`todayMainNumberByStyle`). Picking a
+  goal style on Targets forgets that style's choice; picking a main number
+  forgets every style's.
 - **Burned** (`BurnedRepository.burned(day)`) is read only with the flag on, and
-  shows (bars, balance, the toggle) only with Watch energy on show as well as
-  calories. Without Burned the card has no Burned bar and no toggle.
+  shows (bars, balance) only with Watch energy on show as well as calories.
+  Without Burned the card has no Burned bar and the main number flips between
+  the goal view and Eaten.
 - **Target line** for a set deficit or surplus: "Target 1,680 · 435 kcal left at
   your goal", "Target 2,480 · follows what you burn".
 - **Goal against Burned everywhere:** Today, Close the day (today's Burned also
@@ -221,6 +223,48 @@ Previews (`TodayPreviews.kt`): `today-summary-in-out`, `-in-out-light`,
 `today-summary-equation`, `today-deficit-goal`, `today-surplus-goal`,
 `today-rings`. Leak surfaces: `today-summary-in-out`, `today-summary-range-bar`,
 `today-summary-rings`, `today-summary-equation`, `today-screen-settings`.
+
+## Figures that flip (no flag, 2026-10-29)
+
+Owner feedback: a figure with another honest reading shows it on a tap, as
+Cronometer swaps remaining and deficit, and the choice is remembered. The whole
+figure is the button and a small ⇄ beside it says so; the two readings
+cross-fade (`FlipContent` in `:libraries:ui`, still under Reduce Motion and in
+previews). A screen reader hears the figure, then "double tap to show your
+deficit" (`flipToggle`'s click label).
+
+| Figure | Readings, in tap order | Where |
+|---|---|---|
+| Main number | the goal view, Deficit or Surplus, Eaten | design sync 4's card, every preset |
+| Macro row | grams eaten, grams left, % of goal ("Eaten", "Left" or "% of goal" with the ⇄ on the line above); a macro past its goal reads "Reached"; the bars always show eaten | page 1, both cards |
+| Deficit so far | Deficit so far, Burned so far (the label changes with it) | the older card's stats |
+| Water | "3 of 8", "5 to go" | the older card's stats |
+
+- **Modes** (`TodayFlips`, pure): a reading is offered only at Show on Today.
+  The goal view needs the remainder on show, the balance needs Burned with
+  energy out on show, a macro reads another way only at Show with a goal (a
+  softened one keeps its word). One reading left means no ⇄ and no button.
+  After "numbers have been hard" the balance is offered only for a set deficit
+  or surplus (their own goal), and the macro row never reads "left".
+- **Remembered** in Settings, so it follows the person to their other phones:
+  the main number as before, the rest in `todayReadings` (new top-level key,
+  `FlipFigure.key` to `Reading.wire`; unknown values read as no choice). A
+  stored reading the mode no longer allows falls back to the first one.
+- **Sticky bar** leads with the main number on design sync 4's card: "655 kcal
+  to your range", "Deficit 935 kcal", or eaten bare as before.
+- **Not flipped**: the macros page (it already reads "51 / 120 g"), the Soft
+  and Focus cards (words), Meals (a count), and the fasting card (its tap opens
+  Fasting, and a running fast has no length to count down from). The widget
+  keeps its own figures: each widget is a figure the person picked by adding it,
+  so a "left to range" widget showing eaten after a tap in the app would be
+  wrong.
+
+Previews: `TodaySummaryFlippedPreview`, `TodaySummaryFlippedPercentPreview`,
+`TodaySummaryFlipWatchHiddenPreview`, `TodaySummaryFlipMacrosSoftPreview`,
+`TodayStatsFlippedPreview`, `TodayStickyFlippedPreview`. Leak surfaces:
+`today-flipped`, `today-flipped-percent`, `today-flipped-stats`,
+`today-sticky-flipped`. Tests: `TodayFlipsTest` (per mode), `TodayEnergyCardTest`,
+`TodaySummaryBuilderTest`, `TodayViewModelTest`, `TodayReadingsTest` (Settings).
 
 ## Activity card (`release.exercise`, 2026-10-29)
 
