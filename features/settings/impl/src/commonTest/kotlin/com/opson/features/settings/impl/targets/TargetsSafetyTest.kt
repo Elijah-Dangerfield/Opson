@@ -181,4 +181,15 @@ class TargetsSafetyTest : CoroutineTest() {
         assertFalse(vm.state.number!!.tooLow)
         assertEquals(1300, repository.state.value.targets.energyKcal, "a goal under where it started is written")
     }
+
+    @Test
+    fun aTypedNumberNearTheBounds_isWrittenAsTyped() = runUnitTest {
+        val repository = FakeSettingsRepository(SettingsFixtures.settings(targets = SettingsFixtures.exactTargets))
+        val vm = viewModel(repository)
+
+        for (kcal in listOf(900, 800, 6000)) {
+            vm.takeAction(TargetsAction.NumberTyped(kcal.toString()))
+            assertEquals(kcal, repository.state.value.targets.energyKcal, "$kcal is saved as $kcal, not moved by the range kept behind it")
+        }
+    }
 }

@@ -71,8 +71,9 @@ class TargetsGoalStylesTest : CoroutineTest() {
 
     @Test
     fun oneNumber_atTheFloor_locksItsDownStep() {
-        val atFloor = SettingsFixtures.rangeTargets.withEnergy(MIN_GOAL_KCAL).useExact()
+        val atFloor = SettingsFixtures.rangeTargets.useExact().withEnergy(MIN_GOAL_KCAL)
         assertEquals(StepState.Locked, build(atFloor).number?.stepper?.down)
+        assertEquals("800", build(atFloor).number?.text)
         assertEquals(StepState.Open, build(SettingsFixtures.rangeTargets.useExact()).number?.stepper?.down, "under where it started is fine")
     }
 
@@ -294,7 +295,7 @@ class TargetsGoalStylesTest : CoroutineTest() {
 
     @Test
     fun numberStepped_pastTheFloor_writesNothingAndSaysWhy() = runUnitTest {
-        val repository = repositoryWith(SettingsFixtures.rangeTargets.withEnergy(MIN_GOAL_KCAL).useExact())
+        val repository = repositoryWith(SettingsFixtures.rangeTargets.useExact().withEnergy(MIN_GOAL_KCAL))
         val vm = viewModel(repository)
         val events = eventsOf(vm)
         val writes = repository.writes

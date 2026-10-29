@@ -21,8 +21,9 @@ sealed interface TargetStyle {
 
     /**
      * One number instead of a range: the aim, [Targets.energyKcal]. The range's ends are kept and
-     * move with it ([Targets.stepNumber]), so going back to a range lands around the number, and
-     * the floor under the range is the floor under the number.
+     * move with it ([Targets.withNumber]), so going back to a range lands around the number. The
+     * number itself goes from the floor to [MAX_GOAL_KCAL]; near either, the range behind it is
+     * pushed inside them rather than holding the number back.
      */
     data object Exact : TargetStyle
 
@@ -83,7 +84,10 @@ sealed interface GroupShape {
     /** The group's low and high end. */
     data object Range : GroupShape
 
-    /** One number, the group's middle. Its ends move with it, as [TargetStyle.Exact]'s do. */
+    /**
+     * One number, the group's middle. Its ends move with it, as [TargetStyle.Exact]'s do; near the
+     * floor or the ceiling they close in around it, so the number reaches either.
+     */
     data object Exact : GroupShape
 
     /**

@@ -446,9 +446,10 @@ numbers only (`TargetStyle.surplusAllowed` is `deficitAllowed`).
 
 - `TargetStyle.Exact`: one number, the aim (`energyKcal`). The range's ends
   are kept and move with it (`stepNumber`, 50 kcal, macros scaling in ratio
-  mode), so switching back to a range lands around the number and the floor
-  under the range is the floor under the number. `rangeFor` answers
-  `DayGoal.Exact(kcal)`.
+  mode), so switching back to a range lands around the number. The number
+  itself goes from the floor to the ceiling, stepped or typed (`withNumber`);
+  near either the kept range is pushed inside them, its width kept, rather
+  than holding the number back. `rangeFor` answers `DayGoal.Exact(kcal)`.
 - `TargetStyle.Deficit` and `Surplus(kcal, startingKcal)` aim at Burned:
   `rangeFor(date, preset, burnKcal = burned.totalKcal)`, never under
   `workedOutFloorKcal`. Either can be picked with or
@@ -465,7 +466,8 @@ numbers only (`TargetStyle.surplusAllowed` is `deficitAllowed`).
 - A surplus does not wait on Burned: until it is known it goes on top of the
   aim (it can only put the goal above it), and the card says so.
 - Day groups: `DayGroup.shape` is `GroupShape.Range`, `Exact` (the group's
-  middle, both ends moving with it), `Deficit(kcal, startingKcal)` (under
+  middle, both ends moving with it and closing in around it near the floor
+  or the ceiling, so the number reaches either), `Deficit(kcal, startingKcal)` (under
   Burned, the group's range until it is known) or `Surplus(kcal,
   startingKcal)` (over Burned, or the group's middle until it is known), the
   last two capped as the styles are and Full numbers only. So Monday can be a

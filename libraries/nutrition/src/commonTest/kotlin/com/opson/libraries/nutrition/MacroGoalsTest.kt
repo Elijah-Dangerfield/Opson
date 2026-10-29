@@ -131,6 +131,8 @@ class MacroGoalsTest {
         assertEquals(2110 to 2510, goal.minKcal to goal.maxKcal, "the range moves with it")
         assertTrue(goal.macroFit(goal.energyKcal).fits)
         assertEquals(2310, requireNotNull(more.useExact().useMacroEnergy()).energyKcal)
+        val lowMacros = base.useExact().withMacroGrams(Metric.Carbs, 0).withMacroGrams(Metric.Fat, 0).withMacroGrams(Metric.Protein, 225)
+        assertEquals(900, requireNotNull(lowMacros.useMacroEnergy()).energyKcal, "one number near the floor is not held back by the range behind it")
         assertNull(more.useDeficit(2600).useMacroEnergy(), "a deficit follows Burned")
         assertNull(more.useSurplus(null).useMacroEnergy(), "so does a surplus")
         assertNull(more.useByDay().useMacroEnergy(), "each day group has its own")
