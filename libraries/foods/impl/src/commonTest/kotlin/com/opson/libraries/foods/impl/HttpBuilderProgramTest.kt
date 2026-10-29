@@ -21,6 +21,13 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
+import com.opson.libraries.foods.ApplicationStatus
+import com.opson.libraries.foods.BuilderApplicationForm
+import com.opson.libraries.foods.LabelRegion
+import com.opson.libraries.foods.ShoppingFrequency
+import com.opson.libraries.opson.AppCache
+import com.opson.libraries.opson.AppData
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.json.Json
@@ -58,13 +65,46 @@ class HttpBuilderProgramTest : CoroutineTest() {
 
     private val entitlements = CountingEntitlements()
 
-    private fun program(status: HttpStatusCode, body: String, seen: MutableList<String>? = null) = HttpBuilderProgram(
+    private class FakeAppCache : AppCache {
+        private val state = MutableStateFlow(AppData())
+        override val updates: Flow<AppData> = state
+        override suspend fun get(): AppData = state.value
+        override suspend fun set(value: AppData) {
+            state.value = value
+        }
+        override suspend fun clear() {
+            state.value = AppData()
+        }
+    }
+
+    private val appCache = FakeAppCache()
+
+    /** Answers [status] with [body]; change [body] between calls to stand in for the server moving on. */
+    private class Server(var status: HttpStatusCode, var body: String)
+
+    private fun program(status: HttpStatusCode, body: String, seen: MutableList<String>? = null) = program(Server(status, body), seen)
+
+    private fun program(server: Server, seen: MutableList<String>? = null) = HttpBuilderProgram(
         FakeNetworkClient { request ->
             seen?.add("${request.method.value} ${request.url.encodedPath}")
             (request.body as? OutgoingContent.ByteArrayContent)?.let { seen?.add(it.bytes().decodeToString()) }
-            respond(body, status, headersOf(HttpHeaders.ContentType, "application/json"))
+            respond(server.body, server.status, headersOf(HttpHeaders.ContentType, "application/json"))
         },
         entitlements,
+        appCache,
+    )
+
+    private val pending = """
+        {"status":"none","trust":"anyone","canJoin":false,"joinBlock":"full","applyBlock":"pending",
+         "application":{"id":"a1","status":"pending","submittedAtEpochMs":1800000000000}}
+    """.trimIndent()
+
+    private val form = BuilderApplicationForm(
+        shopping = ShoppingFrequency.Weekly,
+        region = LabelRegion.AustraliaNz,
+        motivation = "  The muesli aisle here is a mess.  ",
+        photoRetention = true,
+        via = "more",
     )
 
     private val joined = """
@@ -73,27 +113,79 @@ class HttpBuilderProgramTest : CoroutineTest() {
     """.trimIndent()
 
     @Test
-    fun joiningSendsTheAcceptedTermsAndRefreshesWhatTheAccountHolds() = runUnitTest {
+    fun applyingSendsTheAnswersAndTheRulesAndReadsThePendingApplication() = runUnitTest {
         val seen = mutableListOf<String>()
-        val builders = program(HttpStatusCode.OK, joined, seen)
+        val builders = program(HttpStatusCode.Created, pending, seen)
 
-        val result = assertIs<BuilderResult.Done>(builders.join(photoRetention = true))
+        val result = assertIs<BuilderResult.Done>(builders.sendApplication(form))
 
-        assertEquals(BuilderStatus.Active, result.standing.status)
-        assertEquals(true, builders.isBuilder)
-        assertEquals("POST /v1/builders/join", seen[0])
+        assertEquals(BuilderStatus.None, result.standing.status)
+        assertEquals(ApplicationStatus.Pending, result.standing.application?.status)
+        // The precise code wins over the one older apps read.
+        assertEquals(JoinBlock.Pending, result.standing.joinBlock)
+        assertEquals(false, builders.isBuilder)
+        assertEquals("POST /v1/builders/applications", seen[0])
         val body = Json.parseToJsonElement(seen[1]).jsonObject
         assertEquals("true", body.getValue("acceptTerms").jsonPrimitive.content)
         assertEquals(HttpBuilderProgram.TERMS_VERSION, body.getValue("termsVersion").jsonPrimitive.content)
-        assertEquals(1, entitlements.refreshed)
+        assertEquals("weekly", body.getValue("shopping").jsonPrimitive.content)
+        assertEquals("au_nz", body.getValue("region").jsonPrimitive.content)
+        assertEquals("The muesli aisle here is a mess.", body.getValue("motivation").jsonPrimitive.content)
+        assertEquals(0, entitlements.refreshed)
     }
 
     @Test
-    fun aRefusedJoinSaysWhy() = runUnitTest {
-        val builders = program(HttpStatusCode.Forbidden, """{"error":"too_new","message":"Add a food first."}""")
-
-        assertEquals(BuilderResult.Blocked(JoinBlock.TooNew), builders.join(photoRetention = false))
+    fun beingAcceptedElsewhereRefreshesWhatTheAccountHoldsOnTheNextRead() = runUnitTest {
+        val server = Server(HttpStatusCode.OK, pending)
+        val builders = program(server)
+        builders.refresh()
         assertEquals(0, entitlements.refreshed)
+
+        server.body = joined
+        builders.refresh()
+
+        assertEquals(true, builders.isBuilder)
+        assertEquals(1, entitlements.refreshed)
+        builders.refresh()
+        assertEquals(1, entitlements.refreshed, "only when it changes")
+    }
+
+    @Test
+    fun aRefusedApplicationSaysWhy() = runUnitTest {
+        val builders = program(HttpStatusCode.Forbidden, """{"error":"declined","message":"You can apply again later."}""")
+
+        assertEquals(BuilderResult.Blocked(JoinBlock.Declined), builders.sendApplication(form))
+        assertEquals(BuilderResult.Blocked(JoinBlock.TooNew), program(HttpStatusCode.Forbidden, """{"error":"too_new"}""").sendApplication(form))
+    }
+
+    @Test
+    fun aDeclineCarriesItsNoteAndADecisionIsSeenOnce() = runUnitTest {
+        val declined = """
+            {"status":"none","trust":"anyone","canJoin":false,"applyBlock":"declined","availableAtEpochMs":1802592000000,
+             "application":{"id":"a2","status":"declined","submittedAtEpochMs":1800000000000,"decidedAtEpochMs":1800000000000,
+              "note":"  Not this month.  ","reapplyAtEpochMs":1802592000000}}
+        """.trimIndent()
+        val builders = program(HttpStatusCode.OK, declined)
+
+        val standing = assertIs<BuilderResult.Done>(builders.refresh()).standing
+
+        assertEquals("Not this month.", standing.application?.note)
+        assertEquals(JoinBlock.Declined, standing.joinBlock)
+        assertEquals(false, builders.decisionSeen("a2"))
+        builders.markDecisionSeen("a2")
+        assertEquals(true, builders.decisionSeen("a2"))
+        assertEquals(false, builders.decisionSeen("a3"))
+    }
+
+    @Test
+    fun withdrawingPostsAndAnOlderServerAnswerStillParses() = runUnitTest {
+        val seen = mutableListOf<String>()
+        val older = """{"status":"none","trust":"anyone","canJoin":true}"""
+        val result = assertIs<BuilderResult.Done>(program(HttpStatusCode.OK, older, seen).withdraw())
+
+        assertEquals("POST /v1/builders/applications/withdraw", seen[0])
+        assertEquals(true, result.standing.canApply)
+        assertNull(result.standing.application)
     }
 
     @Test

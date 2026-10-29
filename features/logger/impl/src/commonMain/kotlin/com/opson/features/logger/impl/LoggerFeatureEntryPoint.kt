@@ -25,6 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.logger.ExerciseRoute
+import com.opson.features.logger.CheckPackRoute
 import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
 import com.opson.features.logger.LoggerStart
@@ -158,6 +159,12 @@ class LoggerFeatureEntryPoint(
             typeMap = mapOf(typeOf<MealSlot>() to serializableType<MealSlot>()),
         ) { backStackEntry ->
             BarcodeScanner(backStackEntry.toRoute<BarcodeScanRoute>(), router)
+        }
+
+        // More › Builders' "Check a food against its pack", for an active Builder.
+        screen<CheckPackRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<CheckPackRoute>()
+            BarcodeScanner(BarcodeScanRoute(route.dayIso, MealSlot.Snack, checkPack = true), router)
         }
 
         // Only Photo on the + sheet opens it, behind release.photo. Packaged foods go through "Add this food" instead.
@@ -504,7 +511,13 @@ class LoggerFeatureEntryPoint(
                 // The pack's photos take the scanner's place, for the code that missed.
                 is BarcodeScanEvent.OpenSubmitFood -> router.batch {
                     goBack()
-                    navigate(SubmitFoodRoute(event.day.toString(), event.slot, barcode = event.code, entry = SubmitEntry.BarcodeMiss))
+                    navigate(
+                        if (event.logs) {
+                            SubmitFoodRoute(event.day.toString(), event.slot, barcode = event.code, entry = SubmitEntry.BarcodeMiss)
+                        } else {
+                            SubmitFoodRoute(barcode = event.code, entry = SubmitEntry.Builders)
+                        },
+                    )
                 }
                 is BarcodeScanEvent.OpenSearch -> router.batch {
                     goBack()

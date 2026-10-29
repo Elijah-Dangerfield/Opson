@@ -138,9 +138,15 @@ Some features are switched on over time. When they are, this is how they work.
   keep a private record of which account sent it (see "Keeping the food
   database honest" below). If you only read the label and don't submit,
   nothing from it is kept.
-- **Opson Builders.** If you join, we keep that you joined, when, which
-  version of the Builder rules you accepted and your photo choice below, and
-  we count the foods and checks we accept from you to keep Builder Pro on.
+- **Opson Builders.** If you apply, we keep your application: how often you
+  buy packaged food, where you shop, anything you write about why you want to
+  help, when you sent it, what we decided and any note we sent you. We read it
+  with your account's history (how long you've had it, how much you log, the
+  foods and reports you've sent and how they went) to decide. If you join, we
+  keep that you joined, when, which version of the Builder rules you accepted
+  and your photo choice below, and we count the foods and checks we accept
+  from you to keep Builder Pro on. Your applications are deleted with your
+  account.
   - *Adding a food as a Builder.* Your phone reads the label photo itself
     (Apple's Vision on iPhone, Google's ML Kit on Android, which may send
     Google usage metrics but not the image). With the food we receive the text

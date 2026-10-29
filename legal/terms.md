@@ -63,7 +63,9 @@ your photos for review and to use and publish the food data you send (names,
 brands, barcodes, servings and nutrition values) in Opson's food database. The
 photos are handled as the Privacy Policy says.
 
-Opson Builders is optional. If you join, these rules apply on top of the rest:
+Opson Builders is optional, and you join by applying. We read every
+application and may say no; you can apply again a month after we decide. If you
+join, these rules apply on top of the rest:
 
 - Photograph only packs you have in front of you. No photos from websites,
   other apps or other people.
