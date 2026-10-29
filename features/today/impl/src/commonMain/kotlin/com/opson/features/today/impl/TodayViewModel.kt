@@ -176,6 +176,7 @@ class TodayViewModel(
             }
             is TodayAction.ItemMenuTapped -> if (state.foodMenus) sendEvent(TodayEvent.OpenItemSheet(day(), action.entryId))
             TodayAction.WaterPlusTapped -> ifOpen { sendEvent(TodayEvent.OpenWaterSheet(day())) }
+            is TodayAction.WaterGlassTapped -> ifOpen { glassTapped(action.index) }
             TodayAction.HighlightFaded -> action.rebuild { copy(highlight = null) }
             is TodayAction.LoggedArrived -> loggedArrived(action)
             TodayAction.UndoTapped -> model.added?.let { event ->
@@ -385,6 +386,15 @@ class TodayViewModel(
     private fun picking(): Boolean = !state.selection?.ids.isNullOrEmpty()
 
     private fun Set<String>.toggle(id: String): Set<String> = if (id in this) this - id else this + id
+
+    /** Sets the day's water to the glasses the tap leaves full, so the bar shows exactly what was tapped. */
+    private suspend fun glassTapped(index: Int) {
+        val inputs = model.inputs ?: return
+        val water = state.water ?: return
+        if (index !in 0 until water.total) return
+        val glasses = WaterTaps.glassesAfter(filled = water.filled, tapped = index)
+        written(diary.setWater(inputs.day.date, glasses * inputs.settings.glassMl))
+    }
 
     /** "Clear this day" asks for a second tap. */
     private suspend fun clearDay(action: TodayAction) {

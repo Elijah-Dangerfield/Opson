@@ -378,6 +378,9 @@ sealed interface TodayAction {
     /** A food row's ⋮ (`release.foodActions`). */
     data class ItemMenuTapped(val entryId: String) : TodayAction
     data object WaterPlusTapped : TodayAction
+
+    /** A tap on glass [index] (from 0) of the water card: fills up to it, or empties the last full one. */
+    data class WaterGlassTapped(val index: Int) : TodayAction
     data object CloseDayButtonTapped : TodayAction
 
     /** Reopen on the closed line or in the ⋮ menu: the day takes food again. */

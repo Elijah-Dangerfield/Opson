@@ -54,6 +54,7 @@ import com.opson.libraries.diary.ui.SwipeFoodRow
 import com.opson.libraries.diary.ui.TodayCard
 import com.opson.libraries.diary.ui.TodayCardPadding
 import com.opson.libraries.diary.ui.TodayMealCard
+import com.opson.libraries.diary.ui.GlassLabel
 import com.opson.libraries.diary.ui.WaterCard
 import com.opson.libraries.diary.ui.icon
 import com.opson.libraries.diary.ui.label
@@ -151,6 +152,11 @@ import opson.libraries.resources.generated.resources.today_untracked_body
 import opson.libraries.resources.generated.resources.today_untracked_title
 import opson.libraries.resources.generated.resources.today_water
 import opson.libraries.resources.generated.resources.today_water_cd
+import opson.libraries.resources.generated.resources.today_water_glass_cd
+import opson.libraries.resources.generated.resources.today_water_glass_empty
+import opson.libraries.resources.generated.resources.today_water_glass_fill
+import opson.libraries.resources.generated.resources.today_water_glass_full
+import opson.libraries.resources.generated.resources.today_water_glass_take_off
 import opson.libraries.resources.generated.resources.today_weight
 import opson.libraries.resources.generated.resources.today_weight_this_morning
 import opson.libraries.resources.generated.resources.today_weight_today
@@ -421,11 +427,29 @@ private fun TodayListItem(row: TodayRow, state: TodayState, context: FoodRowCont
             showSegments = row.water.showSegments,
             onAdd = if (state.closed) null else ({ onAction(TodayAction.WaterPlusTapped) }),
             addIcon = AppIcons.Add.described(stringResource(Res.string.today_water_cd)),
+            onGlassTap = if (state.closed) null else ({ onAction(TodayAction.WaterGlassTapped(it)) }),
+            glassLabels = glassLabels(row.water),
         )
         is TodayRow.Weight -> WeightCard(row.weight, state.dayLabel, onAction)
         // Drawn by the slot the entry point passes in; see TodayScreen.
         TodayRow.Activity -> Unit
         is TodayRow.Meal -> Meal(row.entry, context, drag, onAction)
+    }
+}
+
+/** "Glass 3 of 8", full or empty, and what a tap on it does, for each of the water card's glasses. */
+@Composable
+private fun glassLabels(water: WaterRow): List<GlassLabel> {
+    val full = stringResource(Res.string.today_water_glass_full)
+    val empty = stringResource(Res.string.today_water_glass_empty)
+    val fill = stringResource(Res.string.today_water_glass_fill)
+    val takeOff = stringResource(Res.string.today_water_glass_take_off)
+    return List(water.total) { index ->
+        GlassLabel(
+            name = stringResource(Res.string.today_water_glass_cd, index + 1, water.total),
+            state = if (index < water.filled) full else empty,
+            action = if (index + 1 == water.filled) takeOff else fill,
+        )
     }
 }
 

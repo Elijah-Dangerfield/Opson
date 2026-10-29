@@ -685,6 +685,42 @@ class TodayViewModelTest : CoroutineTest() {
         assertNull(vm.state.selection)
     }
 
+    // The water card's glasses (owner feedback, 2026-10-29)
+
+    @Test
+    fun aGlassTap_fillsUpToIt_andATapOnTheLastFullOneEmptiesIt() = runUnitTest {
+        val vm = vm()
+        val glass = settings.state.value.glassMl
+        assertEquals(3, vm.state.water?.filled, "750 ml of 250 ml glasses")
+
+        vm.takeAction(TodayAction.WaterGlassTapped(5))
+        vm.takeAction(TodayAction.WaterGlassTapped(2))
+        vm.takeAction(TodayAction.WaterGlassTapped(0))
+
+        assertEquals(listOf(today to 6 * glass, today to 2 * glass, today to glass), diary.setWater)
+    }
+
+    @Test
+    fun aGlassTapOnAClosedDay_addsNothing_andSaysTheDayIsClosed() = runUnitTest {
+        diary.days.value = diary.days.value + (today to TodayFixtures.day().copy(closedAt = clock.now))
+        val vm = vm()
+        val events = events(vm)
+
+        vm.takeAction(TodayAction.WaterGlassTapped(4))
+
+        assertTrue(diary.setWater.isEmpty())
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenDayClosed(today)), events)
+    }
+
+    @Test
+    fun waterTaps_fillUpToTheGlass_orTakeTheLastFullOneOff() {
+        assertEquals(5, WaterTaps.glassesAfter(filled = 3, tapped = 4))
+        assertEquals(2, WaterTaps.glassesAfter(filled = 3, tapped = 2), "the last full glass: one off")
+        assertEquals(1, WaterTaps.glassesAfter(filled = 3, tapped = 0), "an earlier full glass: down to it")
+        assertEquals(0, WaterTaps.glassesAfter(filled = 1, tapped = 0))
+        assertEquals(1, WaterTaps.glassesAfter(filled = 0, tapped = 0))
+    }
+
     @Test
     fun theMenusSelect_startsWithNothingPicked_andTheBarWaitsForAFood() = runUnitTest {
         val vm = vm(selectOn = true)

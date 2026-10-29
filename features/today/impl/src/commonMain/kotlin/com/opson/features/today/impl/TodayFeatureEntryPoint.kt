@@ -239,7 +239,8 @@ class TodayFeatureEntryPoint(
                     WaterSheetEvent.Dismiss -> sheetState.dismiss()
                 }
             }
-            TodaySheet(router, sheetState) { WaterSheetContent(state = state, onAction = viewModel::takeAction) }
+            // Half height: a few rows, and Today's water card stays in view above it.
+            TodaySheet(router, sheetState, heightFraction = WATER_SHEET_HEIGHT) { WaterSheetContent(state = state, onAction = viewModel::takeAction) }
         }
 
         bottomSheet<ItemSheetRoute> { backStackEntry, sheetState ->
@@ -323,19 +324,26 @@ class TodayFeatureEntryPoint(
 
 private const val TAB_BAR_OWNER = "today-select"
 
+/** The water sheet's height, a share of the screen's. */
+private const val WATER_SHEET_HEIGHT = 0.5f
+
 /** A Today sheet whose write the closed day refused gives way to the closed sheet, so Back lands on Today. */
 private fun Router.showDayClosed(day: LocalDate) = batch {
     goBack()
     navigate(DayClosedRoute(day.toString()))
 }
 
-/** Every Today sheet: the page colour, a grab handle, its own scroll. */
+/**
+ * Every Today sheet: the page colour, a grab handle, its own scroll. The sheet owns the scroll, so
+ * it is pinned to the full height unless [heightFraction] pins it lower (BottomSheet's KDoc).
+ */
 @Composable
-private fun TodaySheet(router: Router, sheetState: BottomSheetState, content: @Composable () -> Unit) {
+private fun TodaySheet(router: Router, sheetState: BottomSheetState, heightFraction: Float? = null, content: @Composable () -> Unit) {
     BottomSheet(
         onDismissRequest = { router.goBack() },
         state = sheetState,
         scrollableContent = true,
+        heightFraction = heightFraction,
         showDragHandle = true,
         backgroundColor = AppTheme.colors.bg,
     ) {

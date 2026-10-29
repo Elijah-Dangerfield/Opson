@@ -51,6 +51,11 @@
     <!-- Water and meal cards -->
     <string name="today_water">Water</string>
     <string name="today_water_cd">Water options</string>
+    <string name="today_water_glass_cd">Glass %1$d of %2$d</string>
+    <string name="today_water_glass_full">Full</string>
+    <string name="today_water_glass_empty">Empty</string>
+    <string name="today_water_glass_fill">Fill to here</string>
+    <string name="today_water_glass_take_off">Take this glass off</string>
     <string name="today_add_to_cd">Add to %1$s</string>
     <string name="today_all_food">All food</string>
     <string name="today_item_sub">%1$s · %2$s</string>
