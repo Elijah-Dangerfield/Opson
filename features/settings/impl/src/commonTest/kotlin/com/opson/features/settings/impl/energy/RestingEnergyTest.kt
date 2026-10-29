@@ -29,6 +29,7 @@ import com.opson.libraries.nutrition.WeightUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
@@ -217,6 +218,18 @@ class RestingEnergyTest : CoroutineTest() {
         vm.takeAction(RestingEnergyAction.ActivityInBurnedToggled(false))
         assertFalse(repository.state.value.activityInBurned)
         assertFalse(vm.state.activityInBurned)
+    }
+
+    @Test
+    fun countingDigestingFood_isOffUntilSwitchedOn_andSaved() = runUnitTest {
+        val repository = FakeSettingsRepository()
+        val vm = viewModel(repository)
+        assertFalse(vm.state.thermicEffectInBurned)
+
+        vm.takeAction(RestingEnergyAction.ThermicEffectToggled(true))
+
+        assertTrue(repository.state.value.thermicEffectInBurned)
+        assertTrue(vm.state.thermicEffectInBurned)
     }
 
     @Test

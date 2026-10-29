@@ -72,6 +72,8 @@ data class BurnedSection(
     /** Everyday activity, and logged exercise (`release.exercise`); Hidden when the day does not count them. */
     val everyday: Display = Display.Hidden,
     val exercise: Display = Display.Hidden,
+    /** Digesting the day's food, with "Count digesting food" on; Hidden with it off. */
+    val food: Display = Display.Hidden,
     /** "Add activity to Burned" is on. */
     val activityCounted: Boolean = true,
 )
@@ -171,7 +173,8 @@ object EnergyTodayStateBuilder {
             known = true,
             total = energy(burned.totalKcal),
             restingShare = (burned.resting.kcal / scale).toFloat().coerceIn(0f, 1f),
-            activeShare = (burned.activityKcal / scale).toFloat().coerceIn(0f, 1f),
+            // Digesting food rides on the active part, so the bar still ends at the total.
+            activeShare = (burned.aboveRestingKcal / scale).toFloat().coerceIn(0f, 1f),
             resting = energy(burned.resting.kcal),
             restingFrom = burned.resting.from,
             activitySource = inputs.activitySource,
@@ -179,6 +182,7 @@ object EnergyTodayStateBuilder {
             workouts = energy(burned.workoutKcal),
             everyday = energy(burned.everydayKcal),
             exercise = energy(burned.exerciseKcal?.takeIf { it > 0 }),
+            food = energy(burned.foodKcal),
             activityCounted = burned.activityCounted,
         )
     }

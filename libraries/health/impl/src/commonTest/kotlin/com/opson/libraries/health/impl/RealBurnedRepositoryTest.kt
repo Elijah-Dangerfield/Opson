@@ -1,7 +1,16 @@
 package com.opson.libraries.health.impl
 
 import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.DayWrite
+import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.LogDraft
+import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.MealFeeling
+import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.ExerciseRepository
@@ -56,6 +65,7 @@ class RealBurnedRepositoryTest {
         healthOn: Boolean = true,
         exercise: List<ExerciseEntry> = emptyList(),
         exerciseOn: Boolean = false,
+        diary: FakeDiary = FakeDiary(),
     ) = RealBurnedRepository(
         FakeSettings(settings),
         FakeWeights(weighIns),
@@ -64,6 +74,7 @@ class RealBurnedRepositoryTest {
         FixedCalendar(today),
         FakeExercise(exercise),
         ExerciseRelease { exerciseOn },
+        diary,
     )
 
     private fun entry(kcal: Int, notOnWatch: Boolean = false) =
@@ -173,6 +184,33 @@ class RealBurnedRepositoryTest {
         assertEquals(RestingEnergy(1600, RestingFrom.Own), own?.resting)
     }
 
+    @Test
+    fun countingDigestingFood_addsATenthOfWhatWasEaten() = runTest {
+        val diary = FakeDiary(eatenKcal = 1245.0)
+        val burned = repository(settings = profiled.copy(thermicEffectInBurned = true), health = FakeHealth(connected = false), diary = diary).burned(today).first()
+
+        assertEquals(125, burned?.foodKcal)
+        assertEquals(1430 + 290 + 125, burned?.totalKcal)
+    }
+
+    @Test
+    fun countingDigestingFood_isAlsoAddedOnTopOfTheHealthApp() = runTest {
+        val diary = FakeDiary(eatenKcal = 2000.0)
+        val burned = repository(settings = profiled.copy(thermicEffectInBurned = true), diary = diary).burned(today).first()
+
+        assertEquals(200, burned?.foodKcal)
+        assertEquals(1430 + 570 + 200, burned?.totalKcal, "the store's active energy never includes digestion")
+    }
+
+    @Test
+    fun digestingFood_off_neverReadsTheDiary() = runTest {
+        val diary = FakeDiary(eatenKcal = 1245.0)
+        val burned = repository(health = FakeHealth(connected = false), diary = diary).burned(today).first()
+
+        assertNull(burned?.foodKcal)
+        assertEquals(0, diary.reads)
+    }
+
     private fun healthFlag(on: Boolean) = HealthReleaseFlag(
         object : AppConfigMap() {
             override val map: Map<String, *> = mapOf("release" to mapOf("health" to on))
@@ -201,6 +239,49 @@ class RealBurnedRepositoryTest {
         override suspend fun add(draft: ExerciseDraft): DayWrite<ExerciseEntry> = error("not used")
         override suspend fun update(id: String, draft: ExerciseDraft): DayWrite<Unit> = error("not used")
         override suspend fun delete(id: String): DayWrite<Unit> = error("not used")
+    }
+
+    /** One day with one food of [eatenKcal]; counts the reads, so a test can say it was never asked. */
+    private inner class FakeDiary(private val eatenKcal: Double = 0.0) : DiaryRepository {
+        var reads = 0
+
+        override fun observeDay(date: LocalDate): Flow<Day> {
+            reads++
+            val item = LogItem(
+                id = "lunch",
+                day = date,
+                slot = MealSlot.Lunch,
+                loggedAt = Instant.parse("2026-10-27T12:00:00Z"),
+                name = "lunch",
+                precision = Precision.Estimate,
+                method = LogMethod.Search,
+                kcal = eatenKcal,
+            )
+            return flowOf(Day(date, MealSlot.entries.associateWith { emptyList<LogItem>() } + (MealSlot.Lunch to listOf(item))))
+        }
+
+        override fun observeDays(from: LocalDate, to: LocalDate): Flow<List<Day>> = error("not used")
+        override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = error("not used")
+        override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>> = error("not used")
+        override suspend fun updateItem(item: LogItem): DayWrite<Unit> = error("not used")
+        override suspend fun removeItem(id: String): DayWrite<Unit> = error("not used")
+        override suspend fun moveItem(id: String, slot: MealSlot): DayWrite<Unit> = error("not used")
+        override suspend fun copyDay(from: LocalDate, to: LocalDate): DayWrite<List<LogItem>> = error("not used")
+        override suspend fun copySlot(fromDay: LocalDate, toDay: LocalDate, slot: MealSlot): DayWrite<List<LogItem>> = error("not used")
+        override suspend fun clearDay(day: LocalDate): DayWrite<Unit> = error("not used")
+        override suspend fun addWater(day: LocalDate, ml: Int): DayWrite<Unit> = error("not used")
+        override suspend fun removeWater(day: LocalDate, ml: Int): DayWrite<Unit> = error("not used")
+        override suspend fun setWater(day: LocalDate, ml: Int): DayWrite<Unit> = error("not used")
+        override suspend fun closeDay(day: LocalDate, reflection: DayReflection) = error("not used")
+        override suspend fun reopenDay(day: LocalDate) = error("not used")
+        override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = error("not used")
+        override suspend fun setUntracked(day: LocalDate, untracked: Boolean) = error("not used")
+        override suspend fun setAteNoDetails(day: LocalDate, slot: MealSlot, ate: Boolean): DayWrite<Unit> = error("not used")
+        override suspend fun setFeeling(day: LocalDate, slot: MealSlot, feeling: MealFeeling?): DayWrite<Unit> = error("not used")
+        override suspend fun setMealGroups(day: LocalDate, on: Boolean?) = error("not used")
+        override fun recentFoods(limit: Int): Flow<List<LogItem>> = error("not used")
+        override fun usualAt(slot: MealSlot, limit: Int, days: Int): Flow<List<LogItem>> = error("not used")
+        override fun frequentFoods(limit: Int, days: Int): Flow<List<LogItem>> = error("not used")
     }
 
     private class FixedCalendar(private val today: LocalDate) : LocalCalendar {

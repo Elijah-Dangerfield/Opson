@@ -72,6 +72,8 @@ import opson.libraries.resources.generated.resources.settings_resting_sex_female
 import opson.libraries.resources.generated.resources.settings_resting_sex_male
 import opson.libraries.resources.generated.resources.settings_resting_sex_unsaid
 import opson.libraries.resources.generated.resources.settings_resting_steps_workouts
+import opson.libraries.resources.generated.resources.settings_resting_thermic
+import opson.libraries.resources.generated.resources.settings_resting_thermic_line
 import opson.libraries.resources.generated.resources.settings_resting_title
 import opson.libraries.resources.generated.resources.settings_resting_weight_missing
 import opson.libraries.resources.generated.resources.settings_loading_cd
@@ -119,10 +121,23 @@ fun RestingEnergyScreen(
                 title = stringResource(Res.string.settings_resting_add_activity),
                 icon = null,
                 subtitle = stringResource(Res.string.settings_resting_add_activity_line),
+                showDivider = true,
                 trailing = {
                     AppSwitch(
                         checked = state.activityInBurned,
                         onCheckedChange = { onAction(RestingEnergyAction.ActivityInBurnedToggled(it)) },
+                    )
+                },
+            )
+            // Not activity, so it sits beside the switch rather than under it: turning activity off leaves it on.
+            SettingsRow(
+                title = stringResource(Res.string.settings_resting_thermic),
+                icon = null,
+                subtitle = stringResource(Res.string.settings_resting_thermic_line),
+                trailing = {
+                    AppSwitch(
+                        checked = state.thermicEffectInBurned,
+                        onCheckedChange = { onAction(RestingEnergyAction.ThermicEffectToggled(it)) },
                     )
                 },
             )

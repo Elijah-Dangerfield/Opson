@@ -63,6 +63,19 @@ class EnergyTodayTest : CoroutineTest() {
         assertTrue(burned.restingShare > burned.activeShare)
     }
 
+    /** "Count digesting food" on: its own row, and in the total and the deficit. */
+    @Test
+    fun digestingFood_isItsOwnRow_andCountsInTheDeficit() {
+        val inputs = EnergyTodayFixtures.inputs().copy(burned = SettingsFixtures.burned.copy(foodKcal = 125))
+        val state = EnergyTodayStateBuilder.build(inputs, SettingsFixtures.policy(NumbersSettings(preset = PresetId.Full)))
+        val burned = assertNotNull(state.burned)
+
+        assertEquals(Display.Shown("125"), burned.food)
+        assertEquals(Display.Shown("2,305"), burned.total)
+        assertEquals(Balance(surplus = false, amount = Display.Shown("1,060")), state.balance)
+        assertEquals(Display.Hidden, assertNotNull(build().burned).food, "off, there is no row")
+    }
+
     @Test
     fun theDeficitSoFar_andTheGapToTheRange() {
         val state = build()
