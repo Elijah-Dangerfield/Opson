@@ -33,6 +33,7 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
+import kotlinx.datetime.LocalDate
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.photos_compare
 import opson.libraries.resources.generated.resources.photos_delete_all
@@ -168,7 +169,7 @@ private fun Header(state: ProgressPhotosState, onAction: (ProgressPhotosAction) 
 @Composable
 private fun MonthLabel(month: PhotoMonth, modifier: Modifier = Modifier) {
     Text(
-        text = if (month.showYear) "${DateCopy.longMonth(month.month)} ${month.year}" else DateCopy.longMonth(month.month),
+        text = if (month.showYear) DateCopy.monthYear(LocalDate(month.year, month.month, 1)) else DateCopy.longMonth(month.month),
         typography = AppTheme.type.sectionLabel,
         color = AppTheme.colors.muted,
         modifier = modifier,

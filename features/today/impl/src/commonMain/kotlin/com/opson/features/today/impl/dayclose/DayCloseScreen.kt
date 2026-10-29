@@ -135,6 +135,7 @@ import com.opson.libraries.diary.MilestoneFamily
 import opson.libraries.resources.generated.resources.celebrate_gentle_run
 import opson.libraries.resources.generated.resources.celebrate_more_to
 import opson.libraries.resources.generated.resources.celebrate_run
+import opson.libraries.resources.generated.resources.celebrate_run_with_next
 import opson.libraries.resources.generated.resources.celebrate_wrapped_toast
 import opson.libraries.resources.generated.resources.celebrate_wrapped_toast_plain
 import org.jetbrains.compose.resources.pluralStringResource
@@ -453,13 +454,15 @@ fun DayCloseScreen(
 @Composable
 private fun StreakLineCard(line: StreakLine) {
     val text = when (line) {
-        is StreakLine.Counts -> buildString {
-            append(pluralStringResource(Res.plurals.celebrate_run, line.days, line.days))
+        is StreakLine.Counts -> {
+            val run = pluralStringResource(Res.plurals.celebrate_run, line.days, line.days)
             val next = line.next
             val toNext = line.toNext
             if (next != null && toNext != null) {
-                append(' ')
-                append(pluralStringResource(Res.plurals.celebrate_more_to, toNext, toNext, stringResource(next.nextName)))
+                val more = pluralStringResource(Res.plurals.celebrate_more_to, toNext, toNext, stringResource(next.nextName))
+                stringResource(Res.string.celebrate_run_with_next, run, more)
+            } else {
+                run
             }
         }
         StreakLine.Gentle -> stringResource(Res.string.celebrate_gentle_run)

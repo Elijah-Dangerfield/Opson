@@ -541,7 +541,7 @@ private fun Header(state: TodayState, onAction: (TodayAction) -> Unit, streak: (
         onPrevious = { onAction(TodayAction.PreviousDayTapped) },
         onNext = { onAction(TodayAction.NextDayTapped) },
         onTitleClick = { onAction(TodayAction.DayLabelTapped) },
-        titleDescription = stringResource(Res.string.today_pick_day_cd) + ", " + label,
+        titleDescription = stringResource(Res.string.today_pick_day_cd, label),
         nextEnabled = state.canGoForward,
     ) {
         streak?.invoke()

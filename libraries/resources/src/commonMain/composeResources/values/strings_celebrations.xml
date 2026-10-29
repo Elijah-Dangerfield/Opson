@@ -69,6 +69,8 @@
         <item quantity="one">%1$d more to %2$s.</item>
         <item quantity="other">%1$d more to %2$s.</item>
     </plurals>
+    <!-- Day close's run line: celebrate_run, then celebrate_more_to -->
+    <string name="celebrate_run_with_next">%1$s %2$s</string>
     <string name="celebrate_gentle_run">You've been showing up. That counts.</string>
     <string name="celebrate_wrapped_toast">Day wrapped up. That's %1$d in a row.</string>
     <string name="celebrate_wrapped_toast_plain">Day wrapped up. See you tomorrow.</string>

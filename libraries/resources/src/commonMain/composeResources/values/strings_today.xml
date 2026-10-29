@@ -13,7 +13,8 @@
     <string name="today_label_yesterday">Yesterday</string>
     <string name="today_label_tomorrow">Tomorrow</string>
     <string name="today_prev_day_cd">Previous day</string>
-    <string name="today_pick_day_cd">Pick a day</string>
+    <!-- The day title's spoken label: "Pick a day, Today" -->
+    <string name="today_pick_day_cd">Pick a day, %1$s</string>
     <string name="today_next_day_cd">Next day</string>
     <string name="today_day_menu_cd">More for this day</string>
 
