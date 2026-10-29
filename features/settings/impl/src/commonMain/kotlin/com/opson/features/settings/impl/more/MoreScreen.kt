@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.opson.features.settings.MorePlacement
+import com.opson.features.settings.MoreRowContribution
 import com.opson.features.settings.impl.SectionLabel
 import com.opson.features.settings.impl.SettingsCard
 import com.opson.features.settings.impl.SettingsFixtures
@@ -19,6 +21,7 @@ import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
 import com.opson.features.settings.impl.SettingsRow
 import com.opson.features.settings.impl.label
+import com.opson.libraries.navigation.Route
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.ui.components.button.FlatButton
@@ -69,6 +72,11 @@ import opson.libraries.resources.generated.resources.settings_more_report_bug_su
 import opson.libraries.resources.generated.resources.settings_more_send_feedback_sub
 import opson.libraries.resources.generated.resources.settings_more_support
 import opson.libraries.resources.generated.resources.settings_send_feedback
+import opson.libraries.resources.generated.resources.today_more_checkin
+import opson.libraries.resources.generated.resources.today_more_checkin_sub
+import opson.libraries.resources.generated.resources.today_more_journal
+import opson.libraries.resources.generated.resources.today_more_notes
+import opson.libraries.resources.generated.resources.today_more_notes_sub
 import opson.libraries.resources.generated.resources.settings_more_support_sub
 import opson.libraries.resources.generated.resources.settings_more_targets
 import opson.libraries.resources.generated.resources.settings_more_targets_sub
@@ -375,12 +383,36 @@ internal const val PREVIEW_VERSION = "0.2.0 (702) · beta · 4a8b463"
 
 private val previewAccount = MoreAccount(email = "sam@example.com", guest = false)
 
-/** Every 0.2 row on, as design sync 2 draws More. */
+/** Today's Journal rows as More draws them; the real ones live in Today, which settings cannot see. */
+private class PreviewJournalRow(
+    override val title: StringResource,
+    override val subtitle: StringResource,
+    override val icon: IconResource,
+) : MoreRowContribution {
+    override val section = Res.string.today_more_journal
+    override val placement = MorePlacement.AfterExtras
+    override fun route(): Route = Route()
+}
+
+private val previewJournal = listOf(
+    PreviewJournalRow(Res.string.today_more_checkin, Res.string.today_more_checkin_sub, AppIcons.Mood),
+    PreviewJournalRow(Res.string.today_more_notes, Res.string.today_more_notes_sub, AppIcons.EditNote),
+)
+
+/** Every 0.2 row on, as design sync 2 draws More, with Today's Journal card under the extras. */
 @Preview
 @Composable
 private fun MorePreview() {
     val settings = SettingsFixtures.settings().copy(quiet = true)
-    val state = MoreStateBuilder.build(settings, healthConnected = true, remindersOn = true, fastingReleased = true, widgetsOn = true, goalsAndEnergyOn = true)
+    val state = MoreStateBuilder.build(
+        settings,
+        healthConnected = true,
+        remindersOn = true,
+        fastingReleased = true,
+        widgetsOn = true,
+        goalsAndEnergyOn = true,
+        contributed = previewJournal,
+    )
     SettingsPreview { MoreScreen(state, onAction = {}) }
 }
 

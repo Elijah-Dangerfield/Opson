@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl.more
 
+import com.opson.features.settings.MorePlacement
 import com.opson.features.settings.MoreRowContribution
 import com.opson.libraries.diary.FastingAccess
 import com.opson.libraries.diary.Settings
@@ -97,15 +98,16 @@ sealed interface MoreRow {
     /** "Signed in as …", or "Guest on this phone". Only while there is a session to end. */
     data class LogOut(val account: MoreAccount) : MoreRow
 
-    /** A row another module added ([MoreRowContribution]), in a card of its own after Account. */
+    /** A row another module added ([MoreRowContribution]), in a card of its own where its placement puts it. */
     data class Contributed(val row: MoreRowContribution) : MoreRow
 }
 
 object MoreStateBuilder {
 
     /**
-     * How the app treats you, optional extras, help and plan, about, the account, then the rows
-     * other modules [contributed], a card per section. Reminders shows only with [remindersOn]; [healthConnected] is null while
+     * How the app treats you, optional extras, help and plan, about, the account, and the rows
+     * other modules [contributed], a card per section: after the extras for
+     * [MorePlacement.AfterExtras] (Today's Journal card), after the account for the rest. Reminders shows only with [remindersOn]; [healthConnected] is null while
      * `release.health` is off, and then there is no health row at all. [fastingReleased] is
      * `release.fasting`, [widgetsOn] `release.widgets`, [goalsAndEnergyOn] `release.goalsAndEnergy`, which
      * also brings Profile, first in the first card.
@@ -120,27 +122,34 @@ object MoreStateBuilder {
         goalsAndEnergyOn: Boolean = false,
         account: MoreAccount? = null,
         contributed: List<MoreRowContribution> = emptyList(),
-    ): MoreState = MoreState(
-        groups = listOfNotNull(
-            listOfNotNull(
-                MoreRow.Profile.takeIf { goalsAndEnergyOn },
-                MoreRow.Display(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
-                MoreRow.Targets,
-                MoreRow.TodayScreen,
-                MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
-                healthConnected?.let { MoreRow.Health(connected = it) },
-            ),
-            listOfNotNull(
-                MoreRow.Water(glasses = settings.waterGlasses),
-                MoreRow.Fasting(on = settings.fasting, plan = settings.fastPlan)
-                    .takeIf { FastingAccess.of(settings, fastingReleased) == FastingAccess.Offered },
-                MoreRow.Widgets.takeIf { widgetsOn },
-            ),
-            listOf(MoreRow.Support, MoreRow.ReportBug, MoreRow.SendFeedback, MoreRow.Plan),
-            listOf(MoreRow.Privacy, MoreRow.Terms, MoreRow.Credits),
-            account?.let { listOf(MoreRow.LogOut(it)) },
-        ) + contributed.groupBy { it.section }.values.map { rows -> rows.map(MoreRow::Contributed) },
-    )
+    ): MoreState {
+        val cards = contributed.groupBy { it.section }.values
+            .map { rows -> rows.sortedBy { it.order } }
+            .groupBy { it.first().placement }
+        fun cardsAt(placement: MorePlacement) = cards[placement].orEmpty().map { rows -> rows.map(MoreRow::Contributed) }
+        return MoreState(
+            groups = listOfNotNull(
+                listOfNotNull(
+                    MoreRow.Profile.takeIf { goalsAndEnergyOn },
+                    MoreRow.Display(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
+                    MoreRow.Targets,
+                    MoreRow.TodayScreen,
+                    MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
+                    healthConnected?.let { MoreRow.Health(connected = it) },
+                ),
+                listOfNotNull(
+                    MoreRow.Water(glasses = settings.waterGlasses),
+                    MoreRow.Fasting(on = settings.fasting, plan = settings.fastPlan)
+                        .takeIf { FastingAccess.of(settings, fastingReleased) == FastingAccess.Offered },
+                    MoreRow.Widgets.takeIf { widgetsOn },
+                ),
+            ) + cardsAt(MorePlacement.AfterExtras) + listOfNotNull(
+                listOf(MoreRow.Support, MoreRow.ReportBug, MoreRow.SendFeedback, MoreRow.Plan),
+                listOf(MoreRow.Privacy, MoreRow.Terms, MoreRow.Credits),
+                account?.let { listOf(MoreRow.LogOut(it)) },
+            ) + cardsAt(MorePlacement.End),
+        )
+    }
 }
 
 /**

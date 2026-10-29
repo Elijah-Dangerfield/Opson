@@ -327,14 +327,16 @@ Edge: entry already gone (removed on another device) dismisses. `SURFACES`: `ite
 
 ## Day note sheet (new)
 
-`DayNoteRoute(dayIso)`. Same field as Day close, so the copy matches it.
+`DayNoteRoute(dayIso)`. Same field as Day close, so the copy matches it: one
+day note, whichever saved it last. Opened from Today's ⋮ menu, a day note in
+the Notes list, and the list's "Write a note for today".
 `DayNoteState(draft, isToday)`.
 
 | Action | Does |
 |---|---|
 | `NoteLoaded(text)` | Prefills once. |
 | `NoteTyped(text)` | `draft = text`. |
-| `SaveTapped` | `DiaryRepository.setDayNote(day, trimmed or null)`, toast when non-empty, `Dismiss`. Does not close the day. |
+| `SaveTapped` | `DiaryRepository.setDayNote(day, trimmed or null)`, toast when non-empty, `Dismiss`. Does not close or reopen the day; a closed day takes it, as Close the day's Save does (decisions.md, 2026-10-29). |
 
 Copy: label `Anything to remember about today? (optional)`, or (new) `Anything
 to remember about this day? (optional)` for other days; placeholder `Dinner at

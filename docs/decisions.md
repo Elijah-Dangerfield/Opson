@@ -6,6 +6,41 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: The day's note is one note, All notes lists it, and More has a Journal card
+
+**Decision:** All notes lists each day's own note, labelled "Day note", first in
+its day, above that day's meal Notes; a tap opens the Note sheet. Close the day
+and the Note sheet already wrote the same field (`day_records.note`), so there
+was nothing to unify or migrate: the list simply never read it. That is why a
+note written while closing the day never showed. Items and the check-in carry
+no note of their own.
+
+The day's note is no longer refused on a closed day. `setDayNote` writes it
+closed or not, Today's ⋮ menu keeps Add a note on a closed day, and the Note
+sheet no longer gives way to the closed sheet. Close the day's Save already
+edited the note on a closed day, so the old rule blocked the same note in one
+place and allowed it in another, and opening a closed day's note from All notes
+would have asked to reopen the day. Like the check-in, what someone writes about
+the day is not its log. Meal Notes stay with their meal and are still refused.
+
+Close the day keeps the check-in as a row that opens the check-in sheet, now
+under its own "How are you feeling? · optional" label beside the note's. One
+sheet is the one editor: an inline copy would be a second set of controls and a
+second save rule to keep in step, the drift the Edit Today merge above removed.
+
+More gets a Journal card under the extras, from Today through
+`MoreRowContribution`: Check in (with `release.checkIn`) and Notes. The
+contribution gained `placement` and `order` so a feature's card can sit higher
+than the end of the list. `NotesRoute` now takes a `NotesOrigin` (Today, Trends,
+More) for its back label. Close the day was already reachable from Today's
+header check as well as the menu, so it needs no new button.
+
+**Alternatives:** a separate close note (two notes for one day); the check-in
+inline on Close the day (a second editor); the Journal card at the end of More
+with Medication (too far down for something used daily). Patterns' "How you've
+felt" was left alone: its chart label floats over the card's header and is too
+small for a whole check-in and a note.
+
 ## 2026-10-29: Today is arranged in one place, and an overridden choice says so
 
 **Decision:** Edit Today's cards (a sheet in `:features:today:impl`) folded into

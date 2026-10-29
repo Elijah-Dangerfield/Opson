@@ -229,7 +229,11 @@ class DiaryRepositoryImpl(
         changeDay(day) { it.copy(closedAtEpochMs = null) }
     }
 
-    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = changeOpenDay(day) { it.copy(note = note.cleanNote()) }
+    // Not changeOpenDay: the day's note is the one Close the day saves, closed or not, so a closed day takes it (docs/decisions.md, 2026-10-29).
+    override suspend fun setDayNote(day: LocalDate, note: String?): DayWrite<Unit> = writer.write {
+        changeDay(day) { it.copy(note = note.cleanNote()) }
+        written
+    }
 
     override suspend fun setUntracked(day: LocalDate, untracked: Boolean) = writer.write {
         changeDay(day) { it.copy(untracked = untracked) }

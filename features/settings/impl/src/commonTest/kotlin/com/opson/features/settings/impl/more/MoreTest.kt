@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl.more
 
+import com.opson.features.settings.MorePlacement
 import com.opson.features.settings.MoreRowContribution
 import com.opson.features.settings.impl.FakeAuthRepository
 import com.opson.features.settings.impl.FakeDiarySync
@@ -24,6 +25,8 @@ import com.opson.libraries.ui.components.icon.AppIcons
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.settings_more_support
 import opson.libraries.resources.generated.resources.settings_more_support_sub
+import opson.libraries.resources.generated.resources.settings_more_water
+import org.jetbrains.compose.resources.StringResource
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -61,6 +64,18 @@ class MoreTest : CoroutineTest() {
         assertEquals(listOf(MoreRow.LogOut(account)), groups[4])
         assertEquals(listOf<MoreRow>(MoreRow.Contributed(contribution)), groups[5])
         assertEquals(listOf(null, null, null, MoreSection.About, MoreSection.Account, null), groups.map { it.section() })
+    }
+
+    @Test
+    fun aCardPlacedAfterTheExtras_sitsAboveSupport_inItsRowsOrder() {
+        val notes = FakeContribution(section = Res.string.settings_more_water, order = 1, placement = MorePlacement.AfterExtras)
+        val checkIn = FakeContribution(section = Res.string.settings_more_water, order = 0, placement = MorePlacement.AfterExtras)
+        val groups = MoreStateBuilder.build(SettingsFixtures.settings(), contributed = listOf(notes, checkIn, contribution)).groups
+
+        assertEquals(MoreRow.Water(glasses = SettingsFixtures.settings().waterGlasses), groups[1].first(), "the extras card")
+        assertEquals(listOf<MoreRow>(MoreRow.Contributed(checkIn), MoreRow.Contributed(notes)), groups[2])
+        assertEquals(MoreRow.Support, groups[3].first())
+        assertEquals(listOf<MoreRow>(MoreRow.Contributed(contribution)), groups.last(), "the rest still come last")
     }
 
     @Test
@@ -256,8 +271,13 @@ class MoreTest : CoroutineTest() {
 
     private val contribution = FakeContribution()
 
-    private data class FakeContribution(val visible: Boolean = true, val route: Route = Route()) : MoreRowContribution {
-        override val section = Res.string.settings_more_support
+    private data class FakeContribution(
+        val visible: Boolean = true,
+        val route: Route = Route(),
+        override val section: StringResource = Res.string.settings_more_support,
+        override val order: Int = 0,
+        override val placement: MorePlacement = MorePlacement.End,
+    ) : MoreRowContribution {
         override val title = Res.string.settings_more_support
         override val subtitle = Res.string.settings_more_support_sub
         override val icon = AppIcons.Support

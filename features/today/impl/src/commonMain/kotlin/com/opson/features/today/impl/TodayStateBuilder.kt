@@ -620,7 +620,8 @@ object TodayStateBuilder {
                 DayMenuItem.Select.takeIf { inputs.selectTools && inputs.day.allItems.isNotEmpty() },
                 DayMenuItem.CopyYesterday.takeUnless { closed },
                 if (past) DayMenuItem.CopyToTomorrow else null,
-                DayMenuItem.AddNote.takeUnless { closed },
+                // The day's note stays: a closed day takes it (DiaryRepository.setDayNote).
+                DayMenuItem.AddNote,
                 DayMenuItem.Untracked(marked = untracked),
             ),
             listOfNotNull(DayMenuItem.EditCards, DayMenuItem.ClearDay.takeUnless { closed }),

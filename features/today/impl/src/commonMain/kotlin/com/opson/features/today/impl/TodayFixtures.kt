@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import com.opson.features.today.NotesOrigin
 import com.opson.features.today.impl.calendar.CalendarState
 import com.opson.features.today.impl.calendar.CalendarStateBuilder
 import com.opson.features.today.impl.dayclose.DayCloseInputs
@@ -400,13 +401,17 @@ object TodayFixtures {
     fun mealNoteState(): MealNoteState =
         MealNoteState(MealSlot.Lunch, hunger = Hunger.Hungry, draft = "Ate outside with Sam. Felt relaxed.", loaded = true)
 
-    /** Notes over three days: today's two, a dinner note two days back, and one from last year. */
+    /**
+     * Notes over three days: today's two, the note written when closing the day two days back and
+     * its dinner note, and one from last year. Today has no day note, so Write a note for today shows.
+     */
     fun notesState(): NotesState {
         val twoDaysBack = pastDay().copy(
+            note = "Quiet evening. Bed early, felt better for it.",
             feelings = mapOf(MealSlot.Dinner to MealFeeling(hunger = Hunger.Starving, note = "Long day, skipped the afternoon snack.")),
         )
         val lastYear = Day.empty(LocalDate(2025, 12, 31)).copy(feelings = mapOf(MealSlot.Dinner to MealFeeling(note = "New Year's Eve with the family.")))
-        return NotesStateBuilder.build(listOf(lastYear, twoDaysBack, day()), today, NotesStateBuilder.PAGE_DAYS, fromTrends = false)
+        return NotesStateBuilder.build(listOf(lastYear, twoDaysBack, day()), today, NotesStateBuilder.PAGE_DAYS, NotesOrigin.Today)
     }
 
     /** A meal with no Note yet: nothing picked, the placeholder showing. */

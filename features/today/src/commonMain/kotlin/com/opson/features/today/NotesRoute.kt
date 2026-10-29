@@ -4,9 +4,14 @@ import com.opson.libraries.navigation.Route
 import kotlinx.serialization.Serializable
 
 /**
- * Every meal's Note, newest first: the day, the meal, the hunger level and the words. A
- * `screen<>` Today registers; Today's ⋮ menu opens it, and Trends' Notes card through
- * `NotesListLink` with [fromTrends], so the back label names where it came from.
+ * Every note, newest first: each day's own note (the one Close the day and the Note sheet both
+ * write) and each meal's Note, under the day and labelled by where it was written. A `screen<>`
+ * Today registers, with a typeMap for [NotesOrigin]; Today's ⋮ menu opens it, Trends' Notes card
+ * through `NotesListLink`, and More's Journal card, and [from] names the back label.
  */
 @Serializable
-data class NotesRoute(val fromTrends: Boolean = false) : Route()
+data class NotesRoute(val from: NotesOrigin = NotesOrigin.Today) : Route()
+
+/** Where the Notes list was opened from, for its back label. */
+@Serializable
+enum class NotesOrigin { Today, Trends, More }
