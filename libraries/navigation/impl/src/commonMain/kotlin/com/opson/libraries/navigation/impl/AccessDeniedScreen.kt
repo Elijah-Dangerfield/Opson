@@ -140,4 +140,4 @@ private fun AccessDeniedScreenPreview_Suspended_WithUntil() {
 internal fun accessRestoredDate(until: String, timeZone: TimeZone): String? =
     Catching { Instant.parse(until) }.getOrNull()
         ?.toLocalDateTime(timeZone)?.date
-        ?.let { "${DateCopy.monthDay(it)}, ${it.year}" }
+        ?.let(DateCopy::shortMonthDayYear)

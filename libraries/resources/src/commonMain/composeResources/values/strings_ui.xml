@@ -19,6 +19,16 @@
     <string name="ds_loading_your_data">Loading your data</string>
     <string name="ds_loading_almost_there">Almost there</string>
 
+    <!-- DateCopy: the days next to today, and a span of days. The month and weekday names come
+         from the phone's own language settings. DateWords carries the same English for tests. -->
+    <string name="ds_date_today">Today</string>
+    <string name="ds_date_yesterday">Yesterday</string>
+    <string name="ds_date_tomorrow">Tomorrow</string>
+    <!-- "Oct 19 to 25": the first day's month and day, then the last day's number -->
+    <string name="ds_date_range_same_month">%1$s to %2$s</string>
+    <!-- "Oct 29 to Nov 4" -->
+    <string name="ds_date_range">%1$s to %2$s</string>
+
     <!-- BottomSheet: the grab handle's spoken action, which closes the sheet -->
     <string name="ds_sheet_close">Close</string>
 

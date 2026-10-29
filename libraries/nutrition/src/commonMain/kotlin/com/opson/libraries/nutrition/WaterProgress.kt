@@ -31,7 +31,7 @@ object WaterProgress {
      * `8 fl oz`. A setting, not an amount drunk, so it does not go through the
      * policy; Water settings shows it whatever the water level is.
      */
-    fun glassSize(ml: Int, unit: WaterUnit, formatter: NutritionFormatter = EnglishNutritionFormatter): String =
+    fun glassSize(ml: Int, unit: WaterUnit, formatter: NutritionFormatter = NutritionCopy): String =
         when (unit) {
             WaterUnit.Ml -> formatter.glassSize(ml.toDouble(), WaterUnit.Ml)
             WaterUnit.FlOz -> formatter.glassSize(Units.mlToFlOz(ml.toDouble()), WaterUnit.FlOz)

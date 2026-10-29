@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson
 
 import com.opson.features.upgrade.AppGuard
@@ -23,6 +25,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesTo
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import kotlin.time.Clock
 
 @ContributesTo(AppScope::class)
@@ -99,6 +103,10 @@ interface AppComponent {
      * registers its lifecycle listener at boot.
      */
     val autoInits: Set<AutoInit>
+
+    /** For `App.kt` to reload the words when the locale changes. Swift never uses it. */
+    @HiddenFromObjC
+    val localizedCopy: LocalizedCopy
 
     @Provides
     fun provideClock(): Clock = Clock.System

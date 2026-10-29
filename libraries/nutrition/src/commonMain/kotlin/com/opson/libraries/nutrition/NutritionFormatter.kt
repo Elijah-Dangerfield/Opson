@@ -1,5 +1,7 @@
 package com.opson.libraries.nutrition
 
+import com.opson.libraries.core.fillTemplate
+import kotlin.concurrent.Volatile
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
@@ -26,9 +28,9 @@ enum class SoftWord {
 
 /**
  * Turns numbers the policy has already decided to show into copy. Kept apart
- * from [VisibilityPolicy] so the UI can supply localized strings later without
- * touching any visibility rule. Implementations only spell; they never decide
- * whether something is shown, softened or hidden.
+ * from [VisibilityPolicy] so the words change language ([NutritionWords],
+ * [NutritionCopy]) without touching any visibility rule. Implementations only
+ * spell; they never decide whether something is shown, softened or hidden.
  *
  * Amounts arrive in the unit they are displayed in (fl oz, lb), unrounded.
  */
@@ -84,120 +86,216 @@ interface NutritionFormatter {
     fun microAmount(micro: Micronutrient, amount: Double): String
 }
 
-/** The prototype's strings, word for word. */
-object EnglishNutritionFormatter : NutritionFormatter {
+/**
+ * The words a [WordsNutritionFormatter] spells numbers with: whole phrases with positional
+ * placeholders (`%1$s`), so a language can put the unit and the "of" where it belongs.
+ *
+ * The defaults are `strings_nutrition.xml`'s English, which tests and previews read. The app
+ * installs the device language's at start ([NutritionCopy.install]); `NutritionWordsDriftTest`
+ * fails when the two stop matching, so change the resource and the default together.
+ */
+data class NutritionWords(
+    val energy: String = "%1\$s kcal",
+    val grams: String = "%1\$s g",
+    val gramsOf: String = "%1\$s of %2\$s g",
+    val percent: String = "%1\$s%",
+    val weightKg: String = "%1\$s kg",
+    val weightLb: String = "%1\$s lb",
+    val waterMl: String = "%1\$s of %2\$s ml",
+    val waterFlOz: String = "%1\$s of %2\$s fl oz",
+    val left: String = "%1\$s left",
+    val onTarget: String = "On target",
+    val aboveRange: String = "Above your range today",
+    val energyOf: String = "%1\$s kcal of %2\$s",
+    val energyOfBare: String = "%1\$s of %2\$s",
+    val energySlash: String = "%1\$s / %2\$s kcal",
+    val gramsSlash: String = "%1\$s / %2\$s g",
+    val range: String = "%1\$s to %2\$s",
+    val macroLong: String = "%1\$s g %2\$s",
+    val protein: String = "protein",
+    val carbs: String = "carbs",
+    val fat: String = "fat",
+    val fiber: String = "fiber",
+    val proteinLetter: String = "P",
+    val carbsLetter: String = "C",
+    val fatLetter: String = "F",
+    val fiberLetter: String = "Fb",
+    val kcalUnit: String = "kcal",
+    val gramsUnit: String = "g",
+    val ringOnTargetValue: String = "On",
+    val ringOnTargetUnit: String = "target",
+    val ringAboveRangeValue: String = "Past",
+    val ringAboveRangeUnit: String = "range",
+    val glassMl: String = "%1\$s ml",
+    val glassFlOz: String = "%1\$s fl oz",
+    val microLimit: String = "%1\$s limit",
+    val microMg: String = "%1\$s mg",
+    val microUg: String = "%1\$s µg",
+    val soft: Map<SoftWord, String> = ENGLISH_SOFT,
+) {
+    companion object {
+        val ENGLISH_SOFT: Map<SoftWord, String> = mapOf(
+            SoftWord.EarlyInTheDay to "Early in the day",
+            SoftWord.PartwayThrough to "Partway through",
+            SoftWord.MostOfTheWay to "Most of the way",
+            SoftWord.InYourRange to "In your range",
+            SoftWord.ABiggerDay to "A bigger day",
+            SoftWord.Building to "Building",
+            SoftWord.GettingThere to "Getting there",
+            SoftWord.PlentyToday to "Plenty today",
+            SoftWord.Some to "Some",
+            SoftWord.Most to "Most",
+            SoftWord.Plenty to "Plenty",
+            SoftWord.TrendOnly to "Trend only",
+            // TODO(clinician): the slope words, reviewed before 1.0.
+            SoftWord.Steady to "Steady",
+            SoftWord.RisingSlowly to "Rising slowly",
+            SoftWord.FallingSlowly to "Falling slowly",
+        )
+    }
+}
+
+/** Spells numbers with [words]. The digits themselves are grouped by hand; see [wholeNumber]. */
+class WordsNutritionFormatter(private val words: NutritionWords) : NutritionFormatter {
 
     override fun energy(kcal: Double, bare: Boolean): String =
-        if (bare) wholeNumber(kcal) else "${wholeNumber(kcal)} kcal"
+        if (bare) wholeNumber(kcal) else words.energy.fill(wholeNumber(kcal))
 
     override fun grams(grams: Double, of: Double?): String =
-        if (of == null) "${wholeNumber(grams)} g" else "${wholeNumber(grams)} of ${wholeNumber(of)} g"
+        if (of == null) words.grams.fill(wholeNumber(grams)) else words.gramsOf.fill(wholeNumber(grams), wholeNumber(of))
 
-    override fun percent(percent: Double): String = "${wholeNumber(percent)}%"
+    override fun percent(percent: Double): String = words.percent.fill(wholeNumber(percent))
 
     override fun weight(amount: Double, unit: WeightUnit, bare: Boolean): String = when {
         bare -> oneDecimal(amount)
-        unit == WeightUnit.Kg -> "${oneDecimal(amount)} kg"
-        else -> "${oneDecimal(amount)} lb"
+        unit == WeightUnit.Kg -> words.weightKg.fill(oneDecimal(amount))
+        else -> words.weightLb.fill(oneDecimal(amount))
     }
 
     override fun water(amount: Double, of: Double, unit: WaterUnit): String = when (unit) {
-        WaterUnit.Ml -> "${wholeNumber(amount)} of ${wholeNumber(of)} ml"
-        WaterUnit.FlOz -> "${wholeNumber(amount)} of ${wholeNumber(of)} fl oz"
+        WaterUnit.Ml -> words.waterMl.fill(wholeNumber(amount), wholeNumber(of))
+        WaterUnit.FlOz -> words.waterFlOz.fill(wholeNumber(amount), wholeNumber(of))
     }
 
-    override fun left(kcal: Double): String = "${wholeNumber(kcal)} left"
+    override fun left(kcal: Double): String = words.left.fill(wholeNumber(kcal))
 
-    override fun onTarget(): String = "On target"
+    override fun onTarget(): String = words.onTarget
 
-    override fun aboveRange(): String = "Above your range today"
+    override fun aboveRange(): String = words.aboveRange
 
-    override fun soft(word: SoftWord): String = when (word) {
-        SoftWord.EarlyInTheDay -> "Early in the day"
-        SoftWord.PartwayThrough -> "Partway through"
-        SoftWord.MostOfTheWay -> "Most of the way"
-        SoftWord.InYourRange -> "In your range"
-        SoftWord.ABiggerDay -> "A bigger day"
-        SoftWord.Building -> "Building"
-        SoftWord.GettingThere -> "Getting there"
-        SoftWord.PlentyToday -> "Plenty today"
-        SoftWord.Some -> "Some"
-        SoftWord.Most -> "Most"
-        SoftWord.Plenty -> "Plenty"
-        SoftWord.TrendOnly -> "Trend only"
-        // TODO(clinician): the slope words, reviewed before 1.0.
-        SoftWord.Steady -> "Steady"
-        SoftWord.RisingSlowly -> "Rising slowly"
-        SoftWord.FallingSlowly -> "Falling slowly"
-    }
+    override fun soft(word: SoftWord): String = words.soft[word] ?: NutritionWords.ENGLISH_SOFT.getValue(word)
 
     override fun energyOf(kcal: Double, of: Double, bare: Boolean): String =
-        if (bare) "${wholeNumber(kcal)} of ${wholeNumber(of)}" else "${wholeNumber(kcal)} kcal of ${wholeNumber(of)}"
+        (if (bare) words.energyOfBare else words.energyOf).fill(wholeNumber(kcal), wholeNumber(of))
 
+    // The bare slash is two numbers and a glyph, the same in every language.
     override fun energySlash(kcal: Double, of: Double, bare: Boolean): String =
-        if (bare) "${wholeNumber(kcal)} / ${wholeNumber(of)}" else "${wholeNumber(kcal)} / ${wholeNumber(of)} kcal"
+        if (bare) "${wholeNumber(kcal)} / ${wholeNumber(of)}" else words.energySlash.fill(wholeNumber(kcal), wholeNumber(of))
 
-    override fun gramsSlash(grams: Double, of: Double): String = "${wholeNumber(grams)} / ${wholeNumber(of)} g"
+    override fun gramsSlash(grams: Double, of: Double): String = words.gramsSlash.fill(wholeNumber(grams), wholeNumber(of))
 
     override fun energyRange(min: Double, max: Double, bare: Boolean): String {
-        val amount = if (wholeNumber(min) == wholeNumber(max)) wholeNumber(min) else "${wholeNumber(min)} to ${wholeNumber(max)}"
-        return if (bare) amount else "$amount kcal"
+        val amount = if (wholeNumber(min) == wholeNumber(max)) wholeNumber(min) else words.range.fill(wholeNumber(min), wholeNumber(max))
+        return if (bare) amount else words.energy.fill(amount)
     }
 
-    override fun macroLong(metric: Metric, grams: Double): String = "${wholeNumber(grams)} g ${macroWord(metric)}"
+    override fun macroLong(metric: Metric, grams: Double): String = words.macroLong.fill(wholeNumber(grams), macroWord(metric))
 
     override fun macroCompact(metric: Metric, grams: Double): String = "${wholeNumber(grams)}${macroLetter(metric)}"
 
-    override fun ringEnergy(kcal: Double): RingValue = RingValue(wholeNumber(kcal), "kcal")
+    override fun ringEnergy(kcal: Double): RingValue = RingValue(wholeNumber(kcal), words.kcalUnit)
 
-    override fun ringGrams(grams: Double): RingValue = RingValue(wholeNumber(grams), "g")
+    override fun ringGrams(grams: Double): RingValue = RingValue(wholeNumber(grams), words.gramsUnit)
 
-    override fun ringOnTarget(): RingValue = RingValue("On", "target")
+    override fun ringOnTarget(): RingValue = RingValue(words.ringOnTargetValue, words.ringOnTargetUnit)
 
-    override fun ringAboveRange(): RingValue = RingValue("Past", "range")
+    override fun ringAboveRange(): RingValue = RingValue(words.ringAboveRangeValue, words.ringAboveRangeUnit)
 
     override fun glassSize(amount: Double, unit: WaterUnit): String = when (unit) {
-        WaterUnit.Ml -> "${wholeNumber(amount)} ml"
-        WaterUnit.FlOz -> "${wholeNumber(amount)} fl oz"
+        WaterUnit.Ml -> words.glassMl.fill(wholeNumber(amount))
+        WaterUnit.FlOz -> words.glassFlOz.fill(wholeNumber(amount))
     }
 
     override fun microReference(micro: Micronutrient, amount: Double): String {
         val text = microAmount(micro, amount)
-        return if (micro.isLimit) "$text limit" else text
+        return if (micro.isLimit) words.microLimit.fill(text) else text
     }
 
     override fun microAmount(micro: Micronutrient, amount: Double): String {
-        val unit = when (micro.unit) {
-            MicroUnit.Mg -> "mg"
-            MicroUnit.Ug -> "\u00B5g"
-        }
         // A trace that rounds to nothing is still something the food lists, so it is not "0".
         val number = if (amount > 0.0 && (amount * HUNDREDTHS).roundToLong() == 0L) "<0.01" else upToTwoDecimals(amount)
-        return "$number $unit"
+        return when (micro.unit) {
+            MicroUnit.Mg -> words.microMg.fill(number)
+            MicroUnit.Ug -> words.microUg.fill(number)
+        }
     }
 
-    private const val HUNDREDTHS = 100.0
-
     private fun macroWord(metric: Metric): String = when (metric) {
-        Metric.Protein -> "protein"
-        Metric.Carbs -> "carbs"
-        Metric.Fat -> "fat"
-        Metric.Fiber -> "fiber"
+        Metric.Protein -> words.protein
+        Metric.Carbs -> words.carbs
+        Metric.Fat -> words.fat
+        Metric.Fiber -> words.fiber
         else -> throw IllegalArgumentException("$metric is not a macro")
     }
 
     private fun macroLetter(metric: Metric): String = when (metric) {
-        Metric.Protein -> "P"
-        Metric.Carbs -> "C"
-        Metric.Fat -> "F"
-        Metric.Fiber -> "Fb"
+        Metric.Protein -> words.proteinLetter
+        Metric.Carbs -> words.carbsLetter
+        Metric.Fat -> words.fatLetter
+        Metric.Fiber -> words.fiberLetter
         else -> throw IllegalArgumentException("$metric is not a macro")
+    }
+
+    private fun String.fill(vararg args: String): String = fillTemplate(*args)
+
+    private companion object {
+        const val HUNDREDTHS = 100.0
     }
 }
 
+/** The prototype's strings, word for word: [NutritionWords]' English defaults. */
+object EnglishNutritionFormatter : NutritionFormatter by WordsNutritionFormatter(NutritionWords())
+
+/**
+ * The formatter every [VisibilityPolicy] spells with unless it is handed another: English until
+ * the app installs the device language's words, then those. Looked up on every call rather than
+ * captured, so a policy built at boot, before the words load, speaks the language once they have.
+ */
+object NutritionCopy : NutritionFormatter {
+    @Volatile
+    private var current: NutritionFormatter = EnglishNutritionFormatter
+
+    fun install(words: NutritionWords) {
+        current = WordsNutritionFormatter(words)
+    }
+
+    override fun energy(kcal: Double, bare: Boolean) = current.energy(kcal, bare)
+    override fun grams(grams: Double, of: Double?) = current.grams(grams, of)
+    override fun percent(percent: Double) = current.percent(percent)
+    override fun weight(amount: Double, unit: WeightUnit, bare: Boolean) = current.weight(amount, unit, bare)
+    override fun water(amount: Double, of: Double, unit: WaterUnit) = current.water(amount, of, unit)
+    override fun left(kcal: Double) = current.left(kcal)
+    override fun onTarget() = current.onTarget()
+    override fun aboveRange() = current.aboveRange()
+    override fun soft(word: SoftWord) = current.soft(word)
+    override fun energyOf(kcal: Double, of: Double, bare: Boolean) = current.energyOf(kcal, of, bare)
+    override fun energySlash(kcal: Double, of: Double, bare: Boolean) = current.energySlash(kcal, of, bare)
+    override fun gramsSlash(grams: Double, of: Double) = current.gramsSlash(grams, of)
+    override fun energyRange(min: Double, max: Double, bare: Boolean) = current.energyRange(min, max, bare)
+    override fun macroLong(metric: Metric, grams: Double) = current.macroLong(metric, grams)
+    override fun macroCompact(metric: Metric, grams: Double) = current.macroCompact(metric, grams)
+    override fun ringEnergy(kcal: Double) = current.ringEnergy(kcal)
+    override fun ringGrams(grams: Double) = current.ringGrams(grams)
+    override fun ringOnTarget() = current.ringOnTarget()
+    override fun ringAboveRange() = current.ringAboveRange()
+    override fun glassSize(amount: Double, unit: WaterUnit) = current.glassSize(amount, unit)
+    override fun microReference(micro: Micronutrient, amount: Double) = current.microReference(micro, amount)
+    override fun microAmount(micro: Micronutrient, amount: Double) = current.microAmount(micro, amount)
+}
+
 // Written by hand rather than through a platform locale formatter so output is
-// identical on the JVM and on iOS whatever the device locale is. Localized
-// formatters can make their own choice.
+// identical on the JVM and on iOS whatever the device locale is. The words around
+// the digits are localized (NutritionWords); the grouping is not yet.
 
 /** Rounds half up (like JS `Math.round`) and groups thousands with commas: `1,245`. */
 internal fun wholeNumber(value: Double): String = groupThousands(value.roundToLong())

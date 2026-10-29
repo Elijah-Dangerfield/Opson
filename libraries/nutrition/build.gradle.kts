@@ -9,6 +9,8 @@ android {
 kotlin {
     sourceSets {
         commonMain.dependencies {
+            // `fillTemplate`, which NutritionWords' phrases are filled with.
+            implementation(projects.libraries.core)
             api(libs.kotlinx.datetime)
             // `NumbersChange` is passed through the pause sheet's route, so its serializer is
             // part of this module's API.
