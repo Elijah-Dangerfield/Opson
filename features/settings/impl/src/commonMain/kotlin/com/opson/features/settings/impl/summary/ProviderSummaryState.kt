@@ -17,6 +17,9 @@ import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlin.time.Clock
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.summary_date_with_year
+import opson.libraries.resources.generated.resources.summary_file_name
 
 /** The range chips. [days] is null for Pick dates. */
 enum class SummaryRangeChoice(val days: Int?) {
@@ -36,7 +39,7 @@ enum class SummaryRangeChoice(val days: Int?) {
 data class ProviderSummaryState(
     val range: SummaryRangeChoice,
     val dates: SummaryRange,
-    val rangeLabel: String,
+    val rangeLabel: SummaryText,
     val calendar: SummaryCalendar?,
     val parts: List<SummaryPartRow>,
     val preview: List<SummaryLine>,
@@ -99,7 +102,10 @@ object ProviderSummaryStateBuilder {
         return ProviderSummaryState(
             range = input.range,
             dates = input.dates,
-            rangeLabel = "${DateCopy.range(input.dates.start, input.dates.end)}, ${input.dates.end.year}",
+            rangeLabel = SummaryText.Res(
+                Res.string.summary_date_with_year,
+                listOf(SummaryText.Plain(DateCopy.range(input.dates.start, input.dates.end)), SummaryText.Plain(input.dates.end.year.toString())),
+            ),
             calendar = if (input.range == SummaryRangeChoice.Custom) calendar(input) else null,
             parts = SummaryPart.entries.filter { it != SummaryPart.Medication || input.medication != null }
                 .map { SummaryPartRow(it, input.choices.has(it), hiddenByMode = hides(it, numbers)) },
@@ -129,7 +135,8 @@ object ProviderSummaryStateBuilder {
 
     fun hides(part: SummaryPart, numbers: NumbersSettings): Boolean = part.metrics.any { numbers.level(it) != Visibility.Show }
 
-    fun fileName(range: SummaryRange): String = "opson-summary-${range.start}-to-${range.end}.pdf"
+    suspend fun fileName(range: SummaryRange, strings: SummaryStrings): String =
+        strings.get(Res.string.summary_file_name, listOf(range.start.toString(), range.end.toString()))
 
     private fun units(settings: Settings) = SummaryUnits(settings.weightUnit, settings.waterUnit, settings.waterGoalMl)
 

@@ -122,7 +122,7 @@ fun ProviderSummaryScreen(
                     )
                 }
             }
-            Text(text = state.rangeLabel, typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
+            Text(text = state.rangeLabel.resolve(), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
             state.calendar?.let { RangeCalendar(it, onAction) }
         }
 

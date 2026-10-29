@@ -7,6 +7,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
+import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -105,7 +106,7 @@ class ProviderSummaryContentTest {
         val pdf = ProviderSummaryStateBuilder.pdfLines(fixtures.input(fixtures.policy(PresetId.NoNumbers)), SettingsFixtures.clock)
         val numbers = pdf.flatMap { it.parts }.mapNotNull { part -> part.metric?.let { it to part.text.text() } }
         assertTrue(numbers.any { it == Metric.Calories to "summary_doc_calories(575 kcal)" }, "$numbers")
-        assertTrue(numbers.any { it.first == Metric.Weight && it.second.endsWith("62.1 kg") }, "$numbers")
+        assertTrue(numbers.any { it.first == Metric.Weight && it.second.startsWith("summary_doc_weigh_in(") && it.second.endsWith(", 62.1 kg)") }, "$numbers")
         assertTrue(numbers.any { it.first == Metric.Water && "1,500" in it.second }, "$numbers")
     }
 
@@ -122,6 +123,7 @@ class ProviderSummaryContentTest {
         val lines = fixtures.state().preview.map { it.text() }
         assertEquals("summary_doc_title()", lines[0])
         assertEquals("summary_doc_range(Oct 19 to 25, 2026)", lines[1])
+        assertEquals("summary_doc_made(summary_date_with_year(Oct 25, 2026))", lines[2])
         assertTrue("Sunday, Oct 25" in lines)
         assertTrue("summary_doc_meal_time(diary_slot_breakfast(), 8:05 AM)" in lines, "$lines")
         assertTrue("Porridge, 1 bowl; Coffee with milk, 1 mug" in lines)
@@ -138,8 +140,9 @@ class ProviderSummaryContentTest {
     }
 
     @Test
-    fun theFileIsNamedForItsRange() {
-        assertEquals("opson-summary-2026-10-19-to-2026-10-25.pdf", ProviderSummaryStateBuilder.fileName(range))
+    fun theFileIsNamedForItsRange() = runTest {
+        val keys = SummaryStrings { resource, args -> "${resource.key}(${args.joinToString(", ")})" }
+        assertEquals("summary_file_name(2026-10-19, 2026-10-25)", ProviderSummaryStateBuilder.fileName(range, keys))
     }
 }
 

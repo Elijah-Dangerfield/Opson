@@ -31,7 +31,10 @@ import opson.libraries.resources.generated.resources.summary_doc_feeling
 import opson.libraries.resources.generated.resources.summary_doc_fiber
 import opson.libraries.resources.generated.resources.summary_doc_hunger
 import opson.libraries.resources.generated.resources.summary_doc_included
+import opson.libraries.resources.generated.resources.summary_date_with_year
 import opson.libraries.resources.generated.resources.summary_doc_made
+import opson.libraries.resources.generated.resources.summary_doc_dose_when
+import opson.libraries.resources.generated.resources.summary_doc_weigh_in
 import opson.libraries.resources.generated.resources.summary_doc_meal_note
 import opson.libraries.resources.generated.resources.summary_doc_meal_time
 import opson.libraries.resources.generated.resources.summary_doc_moods
@@ -123,7 +126,20 @@ object SummaryLines {
                 PdfStyle.Subtitle,
             ),
         )
-        add(line(SummaryText.Res(Res.string.summary_doc_made, listOf(SummaryText.Plain(DateCopy.monthDay(madeOn) + ", " + madeOn.year))), PdfStyle.Small))
+        add(
+            line(
+                SummaryText.Res(
+                    Res.string.summary_doc_made,
+                    listOf(
+                        SummaryText.Res(
+                            Res.string.summary_date_with_year,
+                            listOf(SummaryText.Plain(DateCopy.monthDay(madeOn)), SummaryText.Plain(madeOn.year.toString())),
+                        ),
+                    ),
+                ),
+                PdfStyle.Small,
+            ),
+        )
         add(line(SummaryText.Res(Res.string.summary_doc_included, listOf(SummaryText.Joined(included(content.choices)))), PdfStyle.Small))
         if (content.choices.numbers && shown.isNotEmpty()) add(line(SummaryText.Res(Res.string.summary_doc_numbers_note), PdfStyle.Small))
 
@@ -166,7 +182,15 @@ object SummaryLines {
                     ?: return@forEach
                 add(
                     SummaryLine(
-                        listOf(SummaryLinePart(SummaryText.Plain("${DateCopy.weekdayMonthDay(weighIn.date)}: $text"), Metric.Weight)),
+                        listOf(
+                            SummaryLinePart(
+                                SummaryText.Res(
+                                    Res.string.summary_doc_weigh_in,
+                                    listOf(SummaryText.Plain(DateCopy.weekdayMonthDay(weighIn.date)), SummaryText.Plain(text)),
+                                ),
+                                Metric.Weight,
+                            ),
+                        ),
                     ),
                 )
             }
@@ -190,7 +214,16 @@ object SummaryLines {
                 line(
                     SummaryText.Res(
                         Res.string.summary_doc_medication_dose,
-                        listOf(SummaryText.Plain("${DateCopy.weekdayMonthDay(dose.date)}, ${DateCopy.time(dose.time.hour, dose.time.minute)}"), what),
+                        listOf(
+                            SummaryText.Res(
+                                Res.string.summary_doc_dose_when,
+                                listOf(
+                                    SummaryText.Plain(DateCopy.weekdayMonthDay(dose.date)),
+                                    SummaryText.Plain(DateCopy.time(dose.time.hour, dose.time.minute)),
+                                ),
+                            ),
+                            what,
+                        ),
                     ),
                     indented = true,
                 ),
