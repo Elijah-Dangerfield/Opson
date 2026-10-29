@@ -29,6 +29,8 @@ kotlin {
             // OnboardingSetupEnabled, the setup steps' release flag.
             implementation(projects.libraries.config)
             implementation(projects.libraries.health)
+            // "Set up your goal in a minute", the card Today offers an account that never set one.
+            implementation(projects.libraries.prompts)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)

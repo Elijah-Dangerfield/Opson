@@ -6,6 +6,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.today.TodayRoute
 import com.opson.features.onboarding.ForgotPasswordRoute
+import com.opson.features.onboarding.GoalSetupRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.onboarding.SignInRoute
 import com.opson.features.onboarding.SignUpRoute
@@ -33,10 +34,26 @@ class OnboardingFeatureEntryPoint(
     private val signUpViewModelFactory: () -> SignUpViewModel,
     private val verifyEmailViewModelFactory: (email: String?, guestLink: Boolean) -> VerifyEmailViewModel,
     private val forgotPasswordViewModelFactory: () -> ForgotPasswordViewModel,
+    private val goalSetupViewModelFactory: (GoalSetupRoute) -> GoalSetupViewModel,
     private val findSupportEnabled: FindSupportEnabled,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
+        screen<GoalSetupRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<GoalSetupRoute>()
+            val viewModel: GoalSetupViewModel = viewModel { goalSetupViewModelFactory(route) }
+            val state = viewModel.stateFlow.collectAsStateWithLifecycle().value
+
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    GoalSetupEvent.Close -> router.goBack()
+                    GoalSetupEvent.OpenSupport -> router.navigate(if (findSupportEnabled()) FindSupportRoute() else SupportRoute())
+                }
+            }
+
+            GoalSetupScreen(state = state, onAction = viewModel::takeAction)
+        }
+
         screen<OnboardingRoute> { backStackEntry ->
             val route = backStackEntry.toRoute<OnboardingRoute>()
             val viewModel: OnboardingViewModel = viewModel { onboardingViewModelFactory(route) }
