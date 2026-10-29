@@ -27,6 +27,8 @@ kotlin {
             implementation(projects.libraries.reminders)
             implementation(projects.libraries.config)
             implementation(projects.libraries.health)
+            // The first-run tips registry (Tips), for the weight goal row's tip.
+            implementation(projects.libraries.prompts)
             // The Widgets page and its More row, and the widget's leak surface.
             implementation(projects.libraries.widgets)
             // ProgressPhotosEnabled: Modes' Progress photos row.

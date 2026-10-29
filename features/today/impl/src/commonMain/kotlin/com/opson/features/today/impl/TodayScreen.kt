@@ -64,7 +64,11 @@ import com.opson.libraries.diary.ui.sentenceName
 import com.opson.libraries.diary.ui.tileColors
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.prompts.Tip
+import com.opson.libraries.prompts.Tips
 import com.opson.libraries.ui.components.Banner
+import com.opson.libraries.ui.components.CoachMarkAnchor
+import com.opson.libraries.ui.components.CoachMarkScreen
 import com.opson.libraries.ui.components.PullRefreshIndicator
 import com.opson.libraries.ui.components.pullRefresh
 import com.opson.libraries.ui.components.rememberPullRefresh
@@ -100,6 +104,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalTime
 import kotlin.math.roundToInt
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.tip_got_it
 import opson.libraries.resources.generated.resources.today_add_to_cd
 import opson.libraries.resources.generated.resources.today_added_one
 import opson.libraries.resources.generated.resources.today_added_other
@@ -244,64 +249,82 @@ internal fun TodayScreen(
     if (selection != null) FoodDragEffects(drag, listState, dropTargets, selection.slots)
     // Off while selecting: a pull there is the start of a drag.
     val pull = rememberPullRefresh(refreshing, onRefresh = { onRefresh?.invoke() }, enabled = onRefresh != null && selection == null)
-    Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { insets ->
-        Column(Modifier.fillMaxSize().padding(insets)) {
-            if (selection != null) {
-                SelectHeader(selection, onAction)
-            } else {
-                Box(Modifier.padding(horizontal = AppTheme.spacing.row)) { Header(state, onAction, streak) }
-            }
-            // Clipped so the sticky bar slides out from under the header rather than over it. The box
-            // follows a drag once a row's handle starts one (13.3c).
-            Box(
-                Modifier.weight(1f).fillMaxWidth().clipToBounds().pullRefresh(pull).followsFoodDrag(drag) { slot ->
-                    haptics.confirm()
-                    onAction(TodayAction.FoodsDropped(slot))
-                },
-            ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    state = listState,
-                    contentPadding = PaddingValues(
-                        start = AppTheme.spacing.row,
-                        end = AppTheme.spacing.row,
-                        top = if (selection != null) AppTheme.spacing.section else 0.dp,
-                        bottom = if (selection != null) SelectPanelRoom else AppTheme.spacing.section * 2,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
-                ) {
-                    // A slot scrolled off is reused for a row of the same kind: a meal card for a meal card.
-                    items(rows, key = { it.key }, contentType = { it::class }) { row ->
-                        when (row) {
-                            TodayRow.Activity -> activity?.invoke()
-                            is TodayRow.Contributed -> contributed.firstOrNull { it.key == row.cardKey }?.content?.invoke()
-                            else -> TodayListItem(row, state, rowContext, drag, onAction)
-                        }
+    // At most one first-run tip a visit to Today (Tips.kt).
+    CoachMarkScreen {
+        Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { insets ->
+            Column(Modifier.fillMaxSize().padding(insets)) {
+                if (selection != null) {
+                    SelectHeader(selection, onAction)
+                } else {
+                    TipAnchor(Tips.PullToRefresh, offered = onRefresh != null, modifier = Modifier.padding(horizontal = AppTheme.spacing.row)) {
+                        Header(state, onAction, streak)
                     }
                 }
-                if (selection != null && drag.active) {
-                    DragGhost(
-                        selection = selection,
-                        modifier = Modifier
-                            .padding(horizontal = AppTheme.spacing.row + GhostInset)
-                            .offset { IntOffset(0, (drag.y - GhostGrab.toPx()).roundToInt()) },
+                // Clipped so the sticky bar slides out from under the header rather than over it. The box
+                // follows a drag once a row's handle starts one (13.3c).
+                Box(
+                    Modifier.weight(1f).fillMaxWidth().clipToBounds().pullRefresh(pull).followsFoodDrag(drag) { slot ->
+                        haptics.confirm()
+                        onAction(TodayAction.FoodsDropped(slot))
+                    },
+                ) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        state = listState,
+                        contentPadding = PaddingValues(
+                            start = AppTheme.spacing.row,
+                            end = AppTheme.spacing.row,
+                            top = if (selection != null) AppTheme.spacing.section else 0.dp,
+                            bottom = if (selection != null) SelectPanelRoom else AppTheme.spacing.section * 2,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
+                    ) {
+                        // A slot scrolled off is reused for a row of the same kind: a meal card for a meal card.
+                        items(rows, key = { it.key }, contentType = { it::class }) { row ->
+                            when (row) {
+                                TodayRow.Activity -> activity?.invoke()
+                                is TodayRow.Contributed -> contributed.firstOrNull { it.key == row.cardKey }?.content?.invoke()
+                                else -> TodayListItem(row, state, rowContext, drag, onAction)
+                            }
+                        }
+                    }
+                    if (selection != null && drag.active) {
+                        DragGhost(
+                            selection = selection,
+                            modifier = Modifier
+                                .padding(horizontal = AppTheme.spacing.row + GhostInset)
+                                .offset { IntOffset(0, (drag.y - GhostGrab.toPx()).roundToInt()) },
+                        )
+                    }
+                    PullRefreshIndicator(pull, Modifier.align(Alignment.TopCenter))
+                    StickyLayer(
+                        compact = compact?.takeIf { selection == null },
+                        visible = scrolledPast,
+                        page = state.summaryPage,
+                        onScrollToTop = { scope.launch { listState.animateScrollToItem(0) } },
+                        modifier = Modifier.align(Alignment.TopCenter).padding(horizontal = AppTheme.spacing.row),
                     )
-                }
-                PullRefreshIndicator(pull, Modifier.align(Alignment.TopCenter))
-                StickyLayer(
-                    compact = compact?.takeIf { selection == null },
-                    visible = scrolledPast,
-                    page = state.summaryPage,
-                    onScrollToTop = { scope.launch { listState.animateScrollToItem(0) } },
-                    modifier = Modifier.align(Alignment.TopCenter).padding(horizontal = AppTheme.spacing.row),
-                )
-                Column(Modifier.align(Alignment.BottomCenter)) {
-                    BottomBars(state, onAction)
-                    selection?.let { SelectPanel(it, onAction) }
+                    Column(Modifier.align(Alignment.BottomCenter)) {
+                        BottomBars(state, onAction)
+                        selection?.let { SelectPanel(it, onAction) }
+                    }
                 }
             }
         }
     }
+}
+
+/**
+ * [content] with first-run tip [tip] pointing at it, while [offered]; otherwise just [content].
+ * Today's tips go through here so each is one line where it sits.
+ */
+@Composable
+internal fun TipAnchor(tip: Tip, offered: Boolean = true, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    if (!offered) {
+        Box(modifier) { content() }
+        return
+    }
+    CoachMarkAnchor(id = tip.id, text = stringResource(tip.text), gotIt = stringResource(Res.string.tip_got_it), modifier = modifier, content = content)
 }
 
 /**
@@ -712,41 +735,44 @@ private fun FoodRow(item: MealCardItem, meal: String, context: FoodRowContext, d
             )
         }
     }
-    when {
-        selected != null -> SelectableFoodRow(
-            name = item.name,
-            sub = item.sub,
-            calories = item.calories,
-            selected = id in selected,
-            onToggle = { onAction(TodayAction.FoodToggled(id)) },
-            dimmed = drag.active && id in selected,
-            moveLabel = stringResource(Res.string.today_move_row),
-            onMove = { onAction(TodayAction.MoveRowRequested(id)) },
-            handle = { FoodDragHandle(drag, id, onAction) },
-        )
-        context.swipe.confirming == id -> RemoveConfirmRow(
-            question = stringResource(Res.string.today_remove_one, TodayStateBuilder.inSentence(item.name), meal),
-            keepLabel = stringResource(Res.string.today_remove_keep),
-            removeLabel = stringResource(Res.string.today_remove_action),
-            onKeep = { onAction(TodayAction.RowRemoveKept) },
-            onRemove = { onAction(TodayAction.RowRemoveConfirmed(id)) },
-        )
-        context.selectTools -> SwipeFoodRow(
-            name = item.name,
-            sub = item.sub,
-            calories = item.calories,
-            repeat = item.repeat,
-            open = context.swipe.open == id,
-            deleteLabel = stringResource(Res.string.today_swipe_delete),
-            onClick = { onAction(TodayAction.ItemTapped(id)) },
-            onOpened = { onAction(TodayAction.RowSwipedOpen(id)) },
-            onClosed = { onAction(TodayAction.RowClosed) },
-            onDelete = { onAction(TodayAction.DeleteRequested(id)) },
-            onLongClick = { onAction(TodayAction.FoodLongPressed(id)) },
-            longClickLabel = stringResource(Res.string.today_select_start),
-            trailing = menu,
-        )
-        else -> MealCardRow(item, onClick = { onAction(TodayAction.ItemTapped(id)) }, trailing = menu)
+    // The tip on every plain row shows on the first one on screen, once.
+    TipAnchor(Tips.FoodDetails, offered = selected == null && context.swipe.confirming != id) {
+        when {
+            selected != null -> SelectableFoodRow(
+                name = item.name,
+                sub = item.sub,
+                calories = item.calories,
+                selected = id in selected,
+                onToggle = { onAction(TodayAction.FoodToggled(id)) },
+                dimmed = drag.active && id in selected,
+                moveLabel = stringResource(Res.string.today_move_row),
+                onMove = { onAction(TodayAction.MoveRowRequested(id)) },
+                handle = { FoodDragHandle(drag, id, onAction) },
+            )
+            context.swipe.confirming == id -> RemoveConfirmRow(
+                question = stringResource(Res.string.today_remove_one, TodayStateBuilder.inSentence(item.name), meal),
+                keepLabel = stringResource(Res.string.today_remove_keep),
+                removeLabel = stringResource(Res.string.today_remove_action),
+                onKeep = { onAction(TodayAction.RowRemoveKept) },
+                onRemove = { onAction(TodayAction.RowRemoveConfirmed(id)) },
+            )
+            context.selectTools -> SwipeFoodRow(
+                name = item.name,
+                sub = item.sub,
+                calories = item.calories,
+                repeat = item.repeat,
+                open = context.swipe.open == id,
+                deleteLabel = stringResource(Res.string.today_swipe_delete),
+                onClick = { onAction(TodayAction.ItemTapped(id)) },
+                onOpened = { onAction(TodayAction.RowSwipedOpen(id)) },
+                onClosed = { onAction(TodayAction.RowClosed) },
+                onDelete = { onAction(TodayAction.DeleteRequested(id)) },
+                onLongClick = { onAction(TodayAction.FoodLongPressed(id)) },
+                longClickLabel = stringResource(Res.string.today_select_start),
+                trailing = menu,
+            )
+            else -> MealCardRow(item, onClick = { onAction(TodayAction.ItemTapped(id)) }, trailing = menu)
+        }
     }
 }
 

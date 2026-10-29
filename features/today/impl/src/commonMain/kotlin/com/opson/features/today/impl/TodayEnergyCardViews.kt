@@ -32,6 +32,7 @@ import com.opson.libraries.nutrition.ui.NutrientVisible
 import com.opson.libraries.ui.components.FlipContent
 import com.opson.libraries.ui.components.FlipControl
 import com.opson.libraries.ui.components.FlipIcon
+import com.opson.libraries.prompts.Tips
 import com.opson.libraries.ui.components.flipToggle
 import com.opson.libraries.ui.components.RangeBar
 import com.opson.libraries.ui.components.RangeBarDefaults
@@ -273,7 +274,7 @@ private fun MainLabel(kind: MainKind, switchable: Boolean, short: Boolean = fals
             typography = AppTheme.type.bodyBold.ExtraBold,
             color = if (switchable) AppTheme.colors.accent else AppTheme.colors.muted,
         )
-        if (switchable) FlipIcon(size = 22.dp)
+        if (switchable) TipAnchor(Tips.FlipFigure) { FlipIcon(size = 22.dp) }
     }
 }
 

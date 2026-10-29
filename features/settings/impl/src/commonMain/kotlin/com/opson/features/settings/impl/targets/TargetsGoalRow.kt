@@ -17,12 +17,16 @@ import com.opson.libraries.nutrition.Units
 import com.opson.libraries.nutrition.WeightGoal
 import com.opson.libraries.nutrition.WeightGoals
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.prompts.Tips
+import com.opson.libraries.ui.components.CoachMarkAnchor
+import com.opson.libraries.ui.components.CoachMarkScreen
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.targets_goal_change
+import opson.libraries.resources.generated.resources.tip_got_it
 import opson.libraries.resources.generated.resources.targets_goal_driving
 import opson.libraries.resources.generated.resources.targets_goal_gain
 import opson.libraries.resources.generated.resources.targets_goal_keep
@@ -46,18 +50,27 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 internal fun WeightGoalCard(row: WeightGoalRow, onAction: (TargetsAction) -> Unit) {
     when (row) {
-        is WeightGoalRow.Driving -> SettingsCard {
-            SettingsRow(
-                title = stringResource(Res.string.targets_goal_driving),
-                icon = AppIcons.Favorite,
-                subtitle = when (row.direction) {
-                    GoalDirection.Lose -> row.pace?.let { stringResource(Res.string.targets_goal_lose, it) }
-                    GoalDirection.Gain -> row.pace?.let { stringResource(Res.string.targets_goal_gain, it) }
-                    else -> null
-                } ?: stringResource(Res.string.targets_goal_keep),
-                trailingText = stringResource(Res.string.targets_goal_change),
-                onClick = { onAction(TargetsAction.ChangeGoalTapped) },
-            )
+        // Targets' one tip, so the visit is this card's: it stays put for as long as the page is open.
+        is WeightGoalRow.Driving -> CoachMarkScreen {
+            CoachMarkAnchor(
+                id = Tips.TargetsGoal.id,
+                text = stringResource(Tips.TargetsGoal.text),
+                gotIt = stringResource(Res.string.tip_got_it),
+            ) {
+                SettingsCard {
+                    SettingsRow(
+                        title = stringResource(Res.string.targets_goal_driving),
+                        icon = AppIcons.Favorite,
+                        subtitle = when (row.direction) {
+                            GoalDirection.Lose -> row.pace?.let { stringResource(Res.string.targets_goal_lose, it) }
+                            GoalDirection.Gain -> row.pace?.let { stringResource(Res.string.targets_goal_gain, it) }
+                            else -> null
+                        } ?: stringResource(Res.string.targets_goal_keep),
+                        trailingText = stringResource(Res.string.targets_goal_change),
+                        onClick = { onAction(TargetsAction.ChangeGoalTapped) },
+                    )
+                }
+            }
         }
         is WeightGoalRow.NotDriving -> SettingsCard {
             Column(Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

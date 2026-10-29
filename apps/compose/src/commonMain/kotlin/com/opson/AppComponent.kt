@@ -13,6 +13,7 @@ import com.opson.libraries.telemetry.impl.StartupReporter
 import com.opson.libraries.opson.AppCache
 import com.opson.libraries.opson.Telemetry
 import com.opson.libraries.prompts.PromptHost
+import com.opson.libraries.ui.components.CoachMarks
 import com.opson.libraries.reminders.ReminderActions
 import com.opson.libraries.reminders.ReminderOpens
 import com.opson.libraries.navigation.FeatureEntryPoint
@@ -79,6 +80,9 @@ interface AppComponent {
 
     /** Today's prompts (docs/practices/prompts.md), drawn by App.kt beside the nav host. */
     val promptHost: PromptHost
+
+    /** First-run tips: which one a screen visit shows, provided by App.kt as `LocalCoachMarks`. */
+    val coachMarks: CoachMarks
 
     /**
      * Singletons that need to construct at app boot rather than lazily

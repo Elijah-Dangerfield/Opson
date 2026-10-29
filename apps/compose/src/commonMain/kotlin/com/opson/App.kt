@@ -45,6 +45,7 @@ import com.opson.libraries.navigation.Route
 import com.opson.libraries.navigation.SessionExpiredRoute
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowHost
 import com.opson.libraries.prompts.PromptHost
+import com.opson.libraries.ui.components.LocalCoachMarks
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowNavigator
 import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.identity.auth.isSomeones
@@ -195,7 +196,7 @@ fun App(appComponent: AppComponent) {
         }
     )
 
-    CompositionLocalProvider(LocalDialogHostState provides dialogHostState) {
+    CompositionLocalProvider(LocalDialogHostState provides dialogHostState, LocalCoachMarks provides appComponent.coachMarks) {
         UserAppTheme(appComponent.settingsRepository) {
             ProvideVisibilityPolicy(appComponent.visibilityPolicySource) {
                 Box(

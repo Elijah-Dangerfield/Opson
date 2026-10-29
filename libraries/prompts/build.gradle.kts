@@ -15,6 +15,8 @@ kotlin {
             api(projects.libraries.navigation)
             api(projects.libraries.ui)
             api(compose.components.resources)
+            // The tips' copy (Tips.kt).
+            implementation(projects.libraries.resources)
             api(libs.kotlinx.coroutines.core)
             implementation(compose.runtime)
         }

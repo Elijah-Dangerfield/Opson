@@ -5,12 +5,30 @@ import com.opson.libraries.prompts.PromptBlock
 import com.opson.libraries.prompts.PromptDebug
 import com.opson.libraries.prompts.PromptInspection
 import com.opson.libraries.prompts.PromptPresentation
+import com.opson.libraries.prompts.TipsDebug
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.prompt_checkin_title
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class QaPromptsTest : CoroutineTest() {
+
+    private val tips = FakeTipsDebug()
+
+    private class FakeTipsDebug : TipsDebug {
+        var resets = 0
+
+        override suspend fun reset() {
+            resets++
+        }
+    }
+
+    @Test
+    fun resetTips_forgetsTheTipsSeen() = runUnitTest {
+        val vm = QaPromptsViewModel(FakePromptDebug(), tips)
+        vm.takeAction(QaPromptsAction.ResetTipsTapped)
+        assertEquals(1, tips.resets)
+    }
 
     private class FakePromptDebug : PromptDebug {
         var shows = 1
@@ -43,7 +61,7 @@ class QaPromptsTest : CoroutineTest() {
     @Test
     fun `lists the prompts as they stand and a reset reloads them`() = runUnitTest {
         val debug = FakePromptDebug()
-        val vm = QaPromptsViewModel(debug)
+        val vm = QaPromptsViewModel(debug, tips)
 
         assertEquals(PromptBlock.ShownRecently, vm.state.prompts.single().blockedBy)
 
@@ -56,7 +74,7 @@ class QaPromptsTest : CoroutineTest() {
     @Test
     fun `Reset all and Show next reach the processor`() = runUnitTest {
         val debug = FakePromptDebug()
-        val vm = QaPromptsViewModel(debug)
+        val vm = QaPromptsViewModel(debug, tips)
 
         vm.takeAction(QaPromptsAction.ResetAllTapped)
         vm.takeAction(QaPromptsAction.ShowNextTapped("try_check_in"))

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  First-run tips (libraries/prompts Tips.kt): one short line pointing at something new, shown once,
+  at most one a screen visit, never during onboarding. Say what a tap does, nothing more; never
+  ask anyone to log more or eat less. Same rules as strings.xml.
+-->
+<resources>
+    <string name="tip_got_it">Got it</string>
+    <string name="tip_flip_figure">Tap a number with the arrows to see it another way, like eaten or still to go.</string>
+    <string name="tip_food_details">Tap a food you logged to see what's in it or change the amount.</string>
+    <string name="tip_pull_refresh">Pull down on Today to check for anything new from your other devices or your health app.</string>
+    <string name="tip_targets_goal">Your weight goal sets this target. Tap here to change the goal.</string>
+
+    <string name="qa_tips_reset">Reset tips</string>
+    <string name="qa_tips_reset_sub">Every first-run tip can show again on this phone, for this account.</string>
+    <string name="qa_tips_reset_done">Tips reset.</string>
+</resources>

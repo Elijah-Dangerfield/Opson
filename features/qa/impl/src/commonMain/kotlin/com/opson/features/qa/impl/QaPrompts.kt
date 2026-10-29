@@ -17,6 +17,7 @@ import com.opson.libraries.prompts.PromptBlock
 import com.opson.libraries.prompts.PromptDebug
 import com.opson.libraries.prompts.PromptInspection
 import com.opson.libraries.prompts.PromptPresentation
+import com.opson.libraries.prompts.TipsDebug
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.PageHeader
 import com.opson.libraries.ui.components.button.FlatButton
@@ -56,6 +57,9 @@ import opson.libraries.resources.generated.resources.qa_prompts_show_next
 import opson.libraries.resources.generated.resources.qa_prompts_show_next_done
 import opson.libraries.resources.generated.resources.qa_prompts_title
 import opson.libraries.resources.generated.resources.qa_prompts_would_show
+import opson.libraries.resources.generated.resources.qa_tips_reset
+import opson.libraries.resources.generated.resources.qa_tips_reset_done
+import opson.libraries.resources.generated.resources.qa_tips_reset_sub
 import opson.libraries.resources.generated.resources.qa_title
 import opson.libraries.resources.generated.resources.qa_yes
 import org.jetbrains.compose.resources.StringResource
@@ -80,6 +84,7 @@ data class QaPromptsState(
 sealed interface QaPromptsAction {
     data object Load : QaPromptsAction
     data object ResetAllTapped : QaPromptsAction
+    data object ResetTipsTapped : QaPromptsAction
     data class ResetTapped(val id: String) : QaPromptsAction
     data class ShowNextTapped(val id: String) : QaPromptsAction
     data object BackTapped : QaPromptsAction
@@ -94,6 +99,7 @@ sealed interface QaPromptsEvent {
 @Inject
 class QaPromptsViewModel(
     private val prompts: PromptDebug,
+    private val tips: TipsDebug,
 ) : SEAViewModel<QaPromptsState, QaPromptsEvent, QaPromptsAction>(initialStateArg = QaPromptsState()) {
 
     init {
@@ -106,6 +112,10 @@ class QaPromptsViewModel(
             QaPromptsAction.ResetAllTapped -> action.work {
                 prompts.reset()
                 sendEvent(QaPromptsEvent.ShowToast(QaToast(Res.string.qa_prompts_reset_done)))
+            }
+            QaPromptsAction.ResetTipsTapped -> action.work {
+                tips.reset()
+                sendEvent(QaPromptsEvent.ShowToast(QaToast(Res.string.qa_tips_reset_done)))
             }
             is QaPromptsAction.ResetTapped -> action.work {
                 prompts.reset(action.id)
@@ -155,6 +165,13 @@ fun QaPromptsScreen(state: QaPromptsState, onAction: (QaPromptsAction) -> Unit, 
                 icon = AppIcons.DeleteOutline,
                 subtitle = stringResource(Res.string.qa_prompts_reset_all_sub),
                 onClick = if (state.busy) null else ({ onAction(QaPromptsAction.ResetAllTapped) }),
+            )
+            // First-run tips (Tips.kt): shown once each, so the only way to see one again.
+            QaRow(
+                title = stringResource(Res.string.qa_tips_reset),
+                icon = AppIcons.DeleteOutline,
+                subtitle = stringResource(Res.string.qa_tips_reset_sub),
+                onClick = if (state.busy) null else ({ onAction(QaPromptsAction.ResetTipsTapped) }),
             )
         }
         if (state.loaded && state.prompts.isEmpty()) {
