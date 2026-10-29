@@ -506,8 +506,13 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
         assertEquals("Gum", repo.findByBarcode("04252614")?.name)
     }
 
+    /**
+     * Stored without grams, as the importer writes a serving stated in ml. A Branded food's numbers
+     * are per 100 ml then, so the serving is served with its millilitres as the amount (FoodEnergy's
+     * [com.opson.server.domain.Portions]); one that states no volume stays without.
+     */
     @Test
-    fun portionsWithoutGramsDecode() = runTest {
+    fun portionsWithoutGramsDecode_andAServingInMlIsServedByItsVolume() = runTest {
         val id = seed("Cola", source = "usda_branded", barcode = "00049000028911")
         database.blockingTransaction {
             FoodsTable.update({ FoodsTable.id eq id }) {
@@ -515,8 +520,10 @@ class PostgresFoodCatalogRepositoryTest : DatabaseTest() {
             }
         }
         assertEquals(
-            listOf(Portion("1 can (355 ml)", null), Portion("1 bottle", null)),
+            listOf(Portion("1 can (355 ml)", 355.0), Portion("1 bottle", null)),
             assertNotNull(repo.findById(id)).portions,
         )
+        val stored = database.blockingTransaction { FoodsTable.selectAll().where { FoodsTable.id eq id }.single()[FoodsTable.portions] }
+        assertTrue("\"grams\": null" in stored, "the row itself is untouched: $stored")
     }
 }

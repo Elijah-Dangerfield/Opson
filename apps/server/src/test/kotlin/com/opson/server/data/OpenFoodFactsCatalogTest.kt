@@ -15,7 +15,9 @@ import com.opson.server.domain.SearchFilter
 import com.opson.server.domain.SearchSource
 import com.opson.server.testing.DiaryFixtures
 import kotlinx.coroutines.test.runTest
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.junit.After
 import java.util.UUID
@@ -189,5 +191,58 @@ class OpenFoodFactsCatalogTest : DatabaseTest() {
         seedOff("Cheerios", "00016000275287", scans = 10)
         val results = repo(enabled = true).search("cheeerios", 10, record = false, openFoodFacts = true)
         assertEquals(listOf("Cheerios"), results.map { it.food.name })
+    }
+
+    /**
+     * The Monster bug, end to end on Postgres: the code is in USDA Branded as imported
+     * (FoodData Central 2680587: 0 kcal and 0.83 g carbs per 100 ml, an 8 fl oz serving in ml
+     * with no grams) and in the Open Food Facts export (2 kcal per 100 ml, a 473 ml can).
+     * Before, the better tier answered with 0 kcal for any amount.
+     */
+    @Test
+    fun monsterZeroUltraNoLongerScansAsZeroKcal() = runTest {
+        val branded = UUID.randomUUID()
+        database.blockingTransaction {
+            FoodsTable.insert {
+                it[id] = branded
+                it[sourceKind] = "usda_branded"
+                it[sourceId] = "2680587"
+                it[name] = "Energy Drink"
+                it[brand] = "Monster"
+                it[barcode] = "00070847012474"
+                it[kcal100g] = 0f
+                it[protein100g] = 0f
+                it[carbs100g] = 0.83f
+                it[fat100g] = 0f
+                it[portions] = """[{"label": "8.0 fl oz (240 ml)", "grams": null}]"""
+            }
+            TransactionManager.current().exec(
+                """
+                INSERT INTO off_foods (id, barcode, name, brand, kcal_100g, protein_100g, carbs_100g, fat_100g,
+                                       portions, source_version)
+                VALUES ('${UUID.randomUUID()}', '00070847012474', 'Zero Ultra', 'Monster Energy', 2, 0, 1.268, 0,
+                        '[{"label": "1 Can (16 fl oz)", "grams": 473.176}]', '2026-10-26')
+                """.trimIndent(),
+            )
+        }
+
+        // With the export on, its copy answers: the Branded 0 is in doubt and this one is not.
+        val withExport = assertNotNull(repo(enabled = true).findByBarcode("070847012474"))
+        assertEquals("Zero Ultra", withExport.name)
+        assertEquals(2.0, withExport.per100g.kcal)
+
+        // Without it, the Branded row answers with its estimate and a serving the app can log.
+        val brandedOnly = assertNotNull(repo(enabled = false).findByBarcode("070847012474"))
+        assertEquals(branded, brandedOnly.id)
+        assertEquals(2.1, brandedOnly.per100g.kcal)
+        val serving = brandedOnly.portions.single()
+        assertEquals(240.0, serving.grams)
+        assertEquals(5L, Math.round(brandedOnly.per100g.kcal!! * serving.grams!! / 100))
+
+        // The stored row is untouched: the guard works on the way out.
+        val stored = database.blockingTransaction {
+            FoodsTable.selectAll().where { FoodsTable.id eq branded }.single()[FoodsTable.kcal100g]
+        }
+        assertEquals(0f, stored)
     }
 }

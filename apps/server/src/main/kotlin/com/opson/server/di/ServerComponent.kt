@@ -11,6 +11,9 @@ import com.opson.server.domain.AppConfigSource
 import com.opson.server.domain.AppleSignInClient
 import com.opson.server.domain.AppleTokenRepository
 import com.opson.server.domain.BarcodeLinkRepository
+import com.opson.server.domain.CorrectionAuthority
+import com.opson.server.domain.FoodReportLimiter
+import com.opson.server.domain.FoodReportRepository
 import com.opson.server.domain.BarcodeMissRepository
 import com.opson.server.domain.BarcodeLookup
 import com.opson.server.domain.ExportRepository
@@ -102,6 +105,9 @@ abstract class ServerComponent(
     abstract val foodLabelLimiter: FoodLabelLimiter
     abstract val foodSubmissionRepository: FoodSubmissionRepository
     abstract val barcodeLinkRepository: BarcodeLinkRepository
+    abstract val foodReportRepository: FoodReportRepository
+    abstract val foodReportLimiter: FoodReportLimiter
+    abstract val correctionAuthority: CorrectionAuthority
 
     /**
      * Long-lived application scope for server-owned background work (e.g. the

@@ -13,7 +13,8 @@ run is a full reload: the daily deltas don't record deletions.
 The export (`products.csv.gz`, about 1.5 GB, tab separated) is streamed with
 the stdlib csv module and never extracted. A product is kept when:
 
-  - energy-kcal, proteins, carbohydrates and fat per 100 g are all numbers,
+  - energy (kcal, or kJ converted when only kJ is given), proteins, carbohydrates
+    and fat per 100 g are all numbers,
   - energy is 0 to 900 kcal, each macro 0 to 100 g, the three sum to at most 101 g,
   - the code is 8 to 14 digits and the name isn't blank.
 
@@ -115,6 +116,7 @@ SCAN_BUCKETS = (1000, 500, 200, 100, 50, 30, 20, 15, 10, 7, 5, 4, 3, 2, 1, 0)
 ID_NAMESPACE = uuid.UUID("6f1c1a52-5b8e-4f0e-9b7a-0a5d3c8e2f41")
 
 MAX_KCAL = 900.0
+KJ_PER_KCAL = 4.184
 MAX_MACRO = 100.0
 MAX_MACRO_SUM = 101.0
 
@@ -351,6 +353,7 @@ class Product:
 class Stats:
     rows: int = 0
     missing_macros: int = 0
+    energy_from_kj: int = 0  # kcal blank, converted from the label's kJ (counted before the filter)
     out_of_range: int = 0
     macro_sum: int = 0
     bad_barcode: int = 0
@@ -373,6 +376,15 @@ def product_from(get, stats: Stats) -> Product | None:
     kcal, protein, carbs, fat = (
         parse_number(get(c)) for c in ("energy-kcal_100g", "proteins_100g", "carbohydrates_100g", "fat_100g")
     )
+    if kcal is None:
+        # Labels that print only kJ (much of Europe) leave energy-kcal blank. The kJ is the
+        # same figure in another unit; energy_100g is kJ too. Neither is a guess.
+        kj = parse_number(get("energy-kj_100g"))
+        if kj is None:
+            kj = parse_number(get("energy_100g"))
+        if kj is not None:
+            kcal = kj / KJ_PER_KCAL
+            stats.energy_from_kj += 1
     problem = macro_problem(kcal, protein, carbs, fat)
     if problem == "missing":
         stats.missing_macros += 1
@@ -994,6 +1006,7 @@ def main() -> int:
         "### Open Food Facts import", "", f"Export: {version} ({origin})", "",
         "| | count |", "|---|---:|",
         f"| rows in the export | {stats.rows:,} |",
+        f"| energy in kJ only, converted | {stats.energy_from_kj:,} |",
         f"| skipped: energy or a macro missing | {stats.missing_macros:,} |",
         f"| skipped: a value out of range | {stats.out_of_range:,} |",
         f"| skipped: macros over {MAX_MACRO_SUM:g} g | {stats.macro_sum:,} |",

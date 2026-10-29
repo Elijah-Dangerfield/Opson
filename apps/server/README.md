@@ -167,6 +167,7 @@ the usual `ProblemResponse`.
 | POST | `/v1/foods/submissions` `{id, parseId?, origin, barcode?, front, label, food, customFoodId?}` | Stores a food someone corrected, pending review, with its photos. 201, or 200 for the same id again. `customFoodId` is the submitter's own copy (V27). |
 | GET | `/v1/foods/submissions` | The caller's own submissions, newest first: `{submissions: [{id, foodId, status, createdAt, customFoodId?}]}`. The app marks its copy of each food unverified until it is approved. |
 | POST | `/v1/foods/barcode-links` `{barcode, foodId}` | A barcode missed, then found by searching. 204. No account stored. |
+| POST | `/v1/foods/{id}/reports` `{id, reason, suggested?, note?, photo?}` | "Report a problem" on a food. 201, or 200 for the same id again. Never changes the food. See "Reports and corrections" below. |
 | POST | `/v1/describe` `{text}` | Heuristic parse into items. 400 `invalid_text` (empty or > 1000 chars). |
 | GET | `/v1/export.zip` | Streams everything the caller has as a zip: a CSV per kind of row (entries, day and meal notes, check-ins, water, weigh-ins, exercise, fasts, custom foods, saved meals), a daily summary, `settings.json` and a README (`resources/export/README.txt`). Local times follow `X-Time-Zone`, UTC without it. 10 per hour per IP, shared with the CSV. |
 | GET | `/v1/export.csv` | What 0.1 phones call: entries, weigh-ins and water as one CSV, unchanged. |
@@ -282,8 +283,10 @@ data and are title-cased ("Campbell's Chunky Soup w/ Beef 18.8 oz"); records
 with no energy and no macros, or impossible per-100 g values, are skipped.
 The label's serving becomes the one portion. Grams only come from a serving
 stated in grams: a serving stated in ml keeps its label ("1 can (355 ml)")
-with no grams, and the client falls back to weighing. For those products the
-nutrients are per 100 ml, as the label states them. Branded rows are keyed on
+with no grams in the row. For those products the nutrients are per 100 ml, as
+the label states them, so the server serves the ml as the portion's amount
+(`Portions.served`): the app logs "1 can" by the numbers it scales, instead of
+only 100 g. Branded rows are keyed on
 the barcode (`ON CONFLICT (barcode)`), because FDC gives a resubmitted
 product a new `fdc_id`; the food id is derived from the barcode, so it
 survives releases. A row is only rewritten when something in it changed, so
@@ -321,7 +324,8 @@ candidates of each kind of match before it scores them, so a query costs about
 the same at 3.3 million rows as at 3,000, and works the rows in after generic
 foods and Branded rows of the same match. The reload writes rows most-scanned
 first, which is what makes the caps keep the popular products.
-It keeps the 3.3 million products with energy and macros per 100 g that are
+It keeps the 3.3 million products with energy (kcal, or kJ converted when a
+label gives only kJ) and macros per 100 g that are
 physically possible, an 8 to 14 digit barcode and a name, stores valid
 barcodes as 14-digit GTINs like Branded Foods, and keeps `countries_tags` for
 ranking. Every row is tier 4, not verified, with the export date in
@@ -451,6 +455,74 @@ to the food or dismiss it. Nothing is attached without a reviewer.
 `analytics.food_submissions_daily`, `food_submission_queue` and
 `barcode_link_queue` feed `ops/grafana/food-review.json`: ids, counts and
 ages only.
+
+**The energy guard (`domain/FoodEnergy.kt`).** Every food leaves the catalog
+through `ServedFood`: a reviewer's correction over the stored row (below),
+then a check of its calories against its macros at a serving (its first
+portion, or 100 g). Stored rows are never rewritten by it, so a fix here
+reaches every row already loaded.
+
+- **0 kcal while protein, carbs and fat come to more than 5 kcal a serving**
+  (`zero_with_macros`): a label's rounding. US labels may print 0 under 5 kcal
+  a serving, and USDA Branded scales that 0 to per 100. Served as the macros'
+  energy held under 5 kcal a serving, the nearest value the label allows.
+  Found by Monster Energy Zero Ultra (2026-10-29): Branded has 0 kcal and
+  0.83 g carbs per 100 ml for an 8 fl oz serving, so a 473 ml can scanned as
+  0; it now reads 10, as printed. The cap keeps erythritol sodas and syrups,
+  whose carbs give almost no energy, at 5 a serving rather than 70.
+- **No energy at all** (`from_macros`): worked out at 4/4/9. With a macro
+  missing too, it stays unknown, never 0.
+- **Energy with no macros** (`energy_without_macros`): spirits look like this.
+  Flagged, never changed.
+
+A scan picks among every row for the code (`BarcodeChoice`): the best tier,
+unless the guard caught it out and a lower tier (the Open Food Facts copy)
+holds up. `GET /v1/foods/{id}` and a scan file a `zero_with_macros` food for
+review once (`energy_check`, below), so a person can fix it for good.
+
+**Reports and corrections (`V28__food_reports.sql`, behind `release.foodReports`
+in the app).** Anyone signed in can report a catalog food from its detail:
+what is wrong (`wrong_calories`, `wrong_nutrients`, `wrong_serving`,
+`wrong_name`, `duplicate`, `not_food`, `other`), optionally the numbers they
+read on the pack for the amount they had on screen (`suggested`: `basisLabel`,
+`basisGrams`, `kcal`, `protein`, `carbs`, `fat`, `servingLabel`,
+`servingGrams`), a photo of the label and a note. The report keeps the food as
+it was served to them. 400 `invalid_id`, `invalid_reason`, `invalid_values`,
+`invalid_note`, `invalid_image`, `invalid_body`; 404 `not_found`; 409
+`id_conflict`; 413 `image_too_large`; 429 `rate_limited` (10 per 10 minutes and
+30 a day per user, `FoodReportLimiter`, and 30 a minute per IP). Body 6 MB,
+photo 4 MB. Reports never change a food by themselves.
+
+A reviewer accepts (a correction), rejects or marks the food a duplicate in
+the admin console's Review area. A correction lives in `food_corrections`
+and is laid over the stored row every time the food is served (search,
+detail, barcode, describe), so the monthly Branded import, which rewrites
+`foods`, and the Open Food Facts reload, which replaces `off_foods`, never
+undo a human fix. An overlay rather than a `corrected_at` the importers must
+respect: the OFF reload swaps a whole table and cannot keep a column, and
+the importers stay unaware of review. Corrections only set the fields a
+reviewer filled in (per 100 g or ml, name, brand, and a serving that goes
+first); the rest follow the source. One is live per food; a newer one
+supersedes it, and reverting the newer brings the older back. Search answers
+on other machines catch up within `FOOD_SEARCH_CACHE_SECONDS`.
+
+`CorrectionAuthority` decides who may skip review: nobody today
+(`ReviewEveryReport`). The roles work answers true for the owner and admins,
+and their report's suggested values are then applied at once, recorded as
+`user:<id>`.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/v1/admin/food-reports?limit=50` | Admin token. Open reports grouped per food, most reported first, then oldest; each group has the food as served now and its live correction. Each call deletes report photos 30 days after the decision. |
+| GET | `/v1/admin/food-reports/foods/{foodId}` | Every report (decided too) and every correction on one food. |
+| GET | `/v1/admin/food-reports/{id}/photo` | The label photo, `Cache-Control: no-store`. |
+| POST | `/v1/admin/food-reports/foods/{foodId}/accept` `{reportIds, values}` | A correction over the food (per 100), closing the reports. 409 `not_open`. |
+| POST | `/v1/admin/food-reports/reject` `{reportIds, reason?}` | |
+| POST | `/v1/admin/food-reports/duplicate` `{reportIds, duplicateOf?}` | Records the food as a copy, of `duplicateOf` when given. Search still shows it. |
+| POST | `/v1/admin/food-corrections/{id}/revert` | Undoes the live correction. 409 `not_live`. |
+
+`analytics.food_report_queue` (open reports, foods, energy checks, oldest)
+feeds the review board: counts and ages only.
 
 **NCCDB (a slot, not code).** The Nutrition Coordinating Center Food and
 Nutrient Database from the University of Minnesota is licensed and delivered

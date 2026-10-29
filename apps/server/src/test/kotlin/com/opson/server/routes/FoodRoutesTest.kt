@@ -46,6 +46,7 @@ import com.opson.server.domain.PackPhotos
 import com.opson.server.domain.SubmissionOrigin
 import com.opson.server.domain.SubmissionStatus
 import com.opson.server.domain.SubmitOutcome
+import com.opson.server.testing.FakeFoodReportRepository
 import com.opson.server.testing.FakeFoodSubmissionRepository
 import com.opson.server.testing.TestImages
 import kotlinx.coroutines.test.runTest
@@ -88,6 +89,7 @@ class FoodRoutesTest {
         lookup: BarcodeLookup = FakeBarcodeLookup(BarcodeLookupResult.NotFound),
         describer: FoodDescriber = FakeDescriber(),
         submissions: FoodSubmissionRepository = FakeFoodSubmissionRepository(),
+        reports: FakeFoodReportRepository? = null,
         block: suspend (HttpClient) -> Unit,
     ) {
         testApplication {
@@ -96,7 +98,7 @@ class FoodRoutesTest {
                 installRateLimits()
                 installStatusPages()
                 installAuthentication(TestJwt.verification)
-                routing { foodRoutes(catalog, lookup, describer, submissions) }
+                routing { foodRoutes(catalog, lookup, describer, submissions, reports) }
             }
             block(createClient { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } })
         }
@@ -375,6 +377,30 @@ class FoodRoutesTest {
                 assertEquals(HttpStatusCode.BadRequest, resp.status)
                 assertEquals("invalid_text", resp.body<ProblemResponse>().error.code)
             }
+        }
+    }
+
+    /** A food the energy guard served an estimate for goes to the review queue, once; a sound one never does. */
+    @Test
+    fun aDetailOrAScanOfAFoodTheGuardCaughtFilesItForReviewOnce() = runTest {
+        val monster = com.opson.server.domain.ServedFood.of(
+            food("Energy Drink", kcal = 0.0, portions = listOf(Portion("8.0 fl oz (240 ml)", 240.0))).copy(
+                per100g = Nutrients(kcal = 0.0, protein = 0.0, carbs = 0.83, fat = 0.0),
+                source = com.opson.server.domain.CatalogSource.UsdaBranded,
+            ),
+            correction = null,
+        )
+        val reports = FakeFoodReportRepository()
+        withApp(
+            catalog = FakeFoodCatalog(listOf(monster, banana)),
+            lookup = FakeBarcodeLookup(BarcodeLookupResult.Found(monster)),
+            reports = reports,
+        ) { client ->
+            assertEquals(HttpStatusCode.OK, client.get("/v1/foods/${monster.id}") { auth() }.status)
+            assertEquals(HttpStatusCode.OK, client.get("/v1/foods/barcode/070847012474") { auth() }.status)
+            assertEquals(HttpStatusCode.OK, client.get("/v1/foods/${banana.id}") { auth() }.status)
+            assertEquals(listOf(monster.id), reports.energyFlagged)
+            assertEquals(1, reports.reports.size)
         }
     }
 }

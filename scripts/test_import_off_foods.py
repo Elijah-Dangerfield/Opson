@@ -112,6 +112,19 @@ class FilterTest(unittest.TestCase):
         self.assertEqual(["en:france", "en:germany"], product.countries)
         self.assertEqual(1781851567, product.modified)
 
+    def test_energy_printed_only_in_kj_is_converted(self):
+        stats = Stats()
+        product = product_from(row(**{"energy-kcal_100g": "", "energy-kj_100g": "2255"}), stats)
+        self.assertAlmostEqual(538.96, product.kcal, places=2)
+        self.assertEqual(1, stats.energy_from_kj)
+        # energy_100g is kJ as well, for exports that have no energy-kj column.
+        product = product_from(row(**{"energy-kcal_100g": "", "energy_100g": "10"}), Stats())
+        self.assertAlmostEqual(2.39, product.kcal, places=2)
+        # No energy in any unit is missing, never 0.
+        stats = Stats()
+        self.assertIsNone(product_from(row(**{"energy-kcal_100g": ""}), stats))
+        self.assertEqual(1, stats.missing_macros)
+
     def test_each_rejection_is_counted_once(self):
         cases = {
             "missing_macros": row(fat_100g=""),

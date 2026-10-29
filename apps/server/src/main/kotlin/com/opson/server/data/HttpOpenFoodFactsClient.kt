@@ -93,6 +93,7 @@ class HttpOpenFoodFactsClient(
         const val FIELDS = "code,product_name,product_name_en,generic_name,brands,nutriments,serving_size,serving_quantity"
 
         private val JSON = Json { ignoreUnknownKeys = true; isLenient = true }
+        private const val KJ_PER_KCAL = 4.184
 
         /** OFF key -> (our micros key, multiplier from grams). */
         private val MICROS = mapOf(
@@ -120,7 +121,10 @@ class HttpOpenFoodFactsClient(
                 ?: return null
             val brand = product.string("brands")?.split(',')?.firstOrNull()?.trim()?.takeIf(String::isNotEmpty)
             val n = product["nutriments"] as? JsonObject ?: JsonObject(emptyMap())
-            val kcal = n.number("energy-kcal_100g") ?: n.number("energy_100g")?.let { kj -> kj / 4.184 }
+            // kcal when the product gives it; otherwise its kJ, which `energy_100g` is too. Nothing at
+            // all stays null (unknown), and the catalog's energy guard works it out from the macros.
+            val kcal = n.number("energy-kcal_100g")
+                ?: (n.number("energy-kj_100g") ?: n.number("energy_100g"))?.let { kj -> kj / KJ_PER_KCAL }
             val micros = MICROS.mapNotNull { (offKey, target) ->
                 n.number(offKey)?.let { grams -> target.first to round3(grams * target.second) }
             }.toMap()

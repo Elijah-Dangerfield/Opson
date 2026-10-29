@@ -84,7 +84,25 @@ data class Food(
      * Every other row is approved. Only the submitter is ever handed a pending or rejected one.
      */
     val reviewStatus: SubmissionStatus = SubmissionStatus.Approved,
+    /** What the energy guard did to the stored numbers on the way out ([FoodEnergy.served]); empty for most foods. */
+    val energyFlags: Set<EnergyFlag> = emptySet(),
+    /** The reviewer's correction laid over the source's numbers, when there is one ([FoodCorrection.applyTo]). */
+    val correction: CorrectionMark? = null,
 )
+
+/**
+ * Which of a barcode's foods to answer with. [candidates] are every row for
+ * the code, best tier first (a Branded row, then an Open Food Facts copy).
+ * The best tier wins unless the energy guard caught it out and a lower tier
+ * did not: USDA Branded has Monster Energy Zero Ultra at 0 kcal (its label
+ * rounded 2 kcal a serving down to 0), Open Food Facts at 10 kcal a can.
+ */
+object BarcodeChoice {
+    private val DOUBTFUL = setOf(EnergyFlag.ZeroWithMacros, EnergyFlag.EnergyWithoutMacros)
+
+    fun best(candidates: List<Food>): Food? =
+        candidates.firstOrNull { it.energyFlags.none(DOUBTFUL::contains) } ?: candidates.firstOrNull()
+}
 
 /**
  * A food's category, from USDA's own (V17). Wire values match the
@@ -198,7 +216,8 @@ interface FoodCatalogRepository {
      * The food for a scanned code in any of its equivalent forms
      * ([Barcodes.equivalents]). When two rows carry the same product under
      * different forms (an Open Food Facts copy and the Branded Foods row),
-     * the better tier wins. With `FOOD_SEARCH_OFF_ENABLED` on, a code
+     * the better tier wins, unless its energy is in doubt and the other's
+     * is not ([BarcodeChoice]). With `FOOD_SEARCH_OFF_ENABLED` on, a code
      * `foods` lacks is looked up in `off_foods` too, so only a product the
      * monthly export lacks costs a live Open Food Facts call.
      */
@@ -210,6 +229,13 @@ interface FoodCatalogRepository {
      * stable across refreshes.
      */
     suspend fun upsertExternalProduct(source: CatalogSource, product: ExternalProduct): Food
+
+    /**
+     * Drops the search answers this server keeps ([SearchResultCache]), so a
+     * correction shows in search here at once. Other machines catch up
+     * within `FOOD_SEARCH_CACHE_SECONDS`.
+     */
+    fun forgetCachedSearches() {}
 
     /** One anonymous `barcode_lookups` row. */
     suspend fun recordBarcodeLookup(barcode: String, outcome: BarcodeOutcome)

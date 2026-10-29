@@ -30,6 +30,8 @@ import com.opson.server.routes.configAdminRoutes
 import com.opson.server.routes.exampleRoutes
 import com.opson.server.routes.exportRoutes
 import com.opson.server.routes.foodLabelRoutes
+import com.opson.server.routes.foodReportAdminRoutes
+import com.opson.server.routes.foodReportRoutes
 import com.opson.server.routes.foodReviewAdminRoutes
 import com.opson.server.routes.foodRoutes
 import com.opson.server.routes.healthRoutes
@@ -170,6 +172,7 @@ fun Application.installApp(
                 waitlistAdminRoutes(adminConfig, component.waitlistRepository)
                 userAdminRoutes(adminConfig, component.userLookupRepository)
                 foodReviewAdminRoutes(adminConfig, component.foodSubmissionRepository, component.barcodeLinkRepository, component.clock)
+                foodReportAdminRoutes(adminConfig, component.foodReportRepository, component.foodCatalogRepository, component.clock)
             }
             // The website's form: public, its own CORS and rate limits.
             waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
@@ -182,7 +185,20 @@ fun Application.installApp(
                 component.appleSignInClient,
             )
             syncRoutes(component.syncRepository, component.clock)
-            foodRoutes(component.foodCatalogRepository, component.barcodeLookup, component.foodDescriber, component.foodSubmissionRepository)
+            foodRoutes(
+                component.foodCatalogRepository,
+                component.barcodeLookup,
+                component.foodDescriber,
+                component.foodSubmissionRepository,
+                component.foodReportRepository,
+            )
+            foodReportRoutes(
+                component.foodCatalogRepository,
+                component.foodReportRepository,
+                component.foodSubmissionRepository,
+                component.foodReportLimiter,
+                component.correctionAuthority,
+            )
             foodLabelRoutes(
                 component.labelParser,
                 component.foodSubmissionRepository,

@@ -7,6 +7,7 @@ import com.opson.server.db.FoodSearchEventsTable
 import com.opson.server.db.FoodsTable
 import com.opson.server.db.toJavaInstant
 import com.opson.server.di.ServerScope
+import com.opson.server.domain.BarcodeChoice
 import com.opson.server.domain.BarcodeOutcome
 import com.opson.server.domain.Barcodes
 import com.opson.server.domain.CatalogSource
@@ -23,6 +24,7 @@ import com.opson.server.domain.SearchCategory
 import com.opson.server.domain.SearchFilter
 import com.opson.server.domain.SearchSort
 import com.opson.server.domain.SearchSource
+import com.opson.server.domain.ServedFood
 import com.opson.server.domain.SubmissionStatus
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -146,11 +148,11 @@ class PostgresFoodCatalogRepository(
             withOpenFoodFacts -> coroutineScope {
                 // The merge drops copies of one product, so each side brings more than a page.
                 val fetch = (limit * 2).coerceAtMost(FoodCatalogRepository.MAX_LIMIT)
-                val off = async { database.transaction { runOpenFoodFactsSearch(terms, fetch, countryTag) } }
-                val catalog = database.transaction { runSearch(terms, fetch, filter) }
+                val off = async { database.transaction { servedMatches(runOpenFoodFactsSearch(terms, fetch, countryTag)) } }
+                val catalog = database.transaction { servedMatches(runSearch(terms, fetch, filter)) }
                 OpenFoodFactsSearch.merge(catalog = catalog, openFoodFacts = off.await(), limit = limit)
             }
-            else -> database.transaction { runSearch(terms, limit, filter) }
+            else -> database.transaction { servedMatches(runSearch(terms, limit, filter)) }
         }
         return when (filter.sort) {
             SearchSort.BestMatch -> ranked
@@ -159,6 +161,25 @@ class PostgresFoodCatalogRepository(
     }
 
     override val searchesOpenFoodFacts: Boolean get() = sources.searchOpenFoodFacts
+
+    override fun forgetCachedSearches() = cache.clear()
+
+    /**
+     * Stored rows as they are served, in the current transaction: a reviewer's
+     * live correction laid over each (`food_corrections`, V28), then the
+     * energy guard ([ServedFood]). The importers only ever write the stored
+     * rows, so a correction outlives every reload.
+     */
+    private fun served(foods: List<Food>): List<Food> {
+        if (foods.isEmpty()) return foods
+        val corrections = FoodCorrectionsSql.live(foods.map { it.id })
+        return foods.map { ServedFood.of(it, corrections[it.id]) }
+    }
+
+    private fun servedMatches(matches: List<FoodMatch>): List<FoodMatch> {
+        val foods = served(matches.map { it.food })
+        return matches.mapIndexed { i, match -> match.copy(food = foods[i]) }
+    }
 
     private fun runSearch(terms: SearchTerms, limit: Int, filter: SearchFilter): List<FoodMatch> {
         val results = mutableListOf<FoodMatch>()
@@ -190,8 +211,9 @@ class PostgresFoodCatalogRepository(
     }
 
     override suspend fun findById(id: UUID): Food? = database.transaction {
-        FoodsTable.selectAll().where { FoodsTable.id eq id }.singleOrNull()?.toFood()
+        val stored = FoodsTable.selectAll().where { FoodsTable.id eq id }.singleOrNull()?.toFood()
             ?: if (sources.searchOpenFoodFacts) openFoodFactsById(id) else null
+        stored?.let { served(listOf(it)).single() }
     }
 
     /** An `off_foods` row, which search hands out when Open Food Facts is on. */
@@ -205,14 +227,18 @@ class PostgresFoodCatalogRepository(
         return food
     }
 
+    /**
+     * Every row for the code, best tier first, with the `off_foods` copy last
+     * when Open Food Facts is on; [BarcodeChoice] picks among them as served.
+     */
     override suspend fun findByBarcode(barcode: String): Food? = database.transaction {
-        FoodsTable.selectAll()
+        val stored = FoodsTable.selectAll()
             .where { FoodsTable.barcode inList Barcodes.equivalents(barcode) }
             .orderBy(FoodsTable.tier to SortOrder.ASC, FoodsTable.verified to SortOrder.DESC)
-            .limit(1)
-            .singleOrNull()
-            ?.toFood()
-            ?: if (sources.searchOpenFoodFacts) openFoodFactsByBarcode(barcode) else null
+            .limit(MAX_BARCODE_ROWS)
+            .map { it.toFood() }
+        val openFoodFacts = if (sources.searchOpenFoodFacts) openFoodFactsByBarcode(barcode) else null
+        BarcodeChoice.best(served(stored + listOfNotNull(openFoodFacts)))
     }
 
     /** An `off_foods` row for any equivalent form of [barcode]: the export is checked before the live API. */
@@ -247,10 +273,11 @@ class PostgresFoodCatalogRepository(
             it[micros] = JSON.encodeToString(MICROS_SERIALIZER, product.micros)
             it[portions] = JSON.encodeToString(PORTIONS_SERIALIZER, product.portions.map { p -> PortionJson(p.label, p.grams) })
         }
-        FoodsTable.selectAll()
+        val stored = FoodsTable.selectAll()
             .where { (FoodsTable.sourceKind eq source.wire) and (FoodsTable.sourceId eq product.barcode) }
             .single()
             .toFood()
+        served(listOf(stored)).single()
     }.also {
         // Once committed: a new or renamed product may now match a cached query.
         cache.clear()
@@ -316,6 +343,8 @@ class PostgresFoodCatalogRepository(
     private data class PortionJson(val label: String, val grams: Double? = null)
 
     internal companion object {
+        /** A code is on at most a Branded row and an Open Food Facts copy; a few more is room, not a scan. */
+        private const val MAX_BARCODE_ROWS = 5
         private val JSON = Json { ignoreUnknownKeys = true }
         private val MICROS_SERIALIZER = MapSerializer(String.serializer(), Double.serializer())
         private val PORTIONS_SERIALIZER = ListSerializer(PortionJson.serializer())

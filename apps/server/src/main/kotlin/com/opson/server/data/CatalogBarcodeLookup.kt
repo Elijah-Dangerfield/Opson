@@ -10,6 +10,7 @@ import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodSource
 import com.opson.server.domain.FoodSourceResult
 import com.opson.server.domain.LiveFoodSources
+import com.opson.server.domain.ServedFood
 import me.tatarka.inject.annotations.Inject
 import org.slf4j.LoggerFactory
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -76,7 +77,9 @@ class CatalogBarcodeLookup(
      * not in `foods`, so a log entry naming it keeps its own snapshot and syncs
      * with no food id.
      */
-    private fun ExternalProduct.servedOnce(source: FoodSource): Food = Food(
+    private fun ExternalProduct.servedOnce(source: FoodSource): Food = ServedFood.of(stored(source), correction = null)
+
+    private fun ExternalProduct.stored(source: FoodSource): Food = Food(
         id = UUID.nameUUIDFromBytes("${source.catalogSource.wire}:$barcode".toByteArray()),
         source = source.catalogSource,
         sourceId = barcode,

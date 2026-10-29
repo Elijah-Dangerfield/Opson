@@ -61,6 +61,42 @@ class HttpOpenFoodFactsClientTest {
         assertEquals(375.0, HttpOpenFoodFactsClient.map(code, body)?.per100g?.kcal)
     }
 
+    @Test
+    fun kilojoulesUnderTheirOwnKeyAreConvertedToo() {
+        val body = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"status":1,"product":{"product_name":"Oats","nutriments":{"energy-kj_100g":1569,"proteins_100g":13}}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertEquals(375.0, HttpOpenFoodFactsClient.map(code, body)?.per100g?.kcal)
+    }
+
+    /** No energy at all is unknown, not 0: the catalog's energy guard works it out from the macros. */
+    @Test
+    fun noEnergyIsUnknown() {
+        val body = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"status":1,"product":{"product_name":"Oats","nutriments":{"proteins_100g":13,"carbohydrates_100g":60,"fat_100g":7}}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertNull(HttpOpenFoodFactsClient.map(code, body)?.per100g?.kcal)
+    }
+
+    /**
+     * The Monster bug's product as Open Food Facts answered it on 2026-10-29
+     * (`resources/off/monster_zero_ultra_0070847012474.json`, data from Open Food
+     * Facts under the ODbL): energy in kcal and kJ per 100 ml, a 473 ml can.
+     * This copy was always right; the 0 came from USDA Branded (FoodEnergyTest).
+     */
+    @Test
+    fun monsterZeroUltraReadsAsTwoKcalPer100AndACan() {
+        val text = checkNotNull(javaClass.getResource("/off/monster_zero_ultra_0070847012474.json")).readText()
+        val body = kotlinx.serialization.json.Json.parseToJsonElement(text) as kotlinx.serialization.json.JsonObject
+        val product = checkNotNull(HttpOpenFoodFactsClient.map("0070847012474", body))
+        assertEquals("Monster Energy", product.brand)
+        assertEquals(2.0, product.per100g.kcal)
+        assertEquals(0.0, product.per100g.protein)
+        assertEquals(0.0, product.per100g.fat)
+        assertEquals(473.176, product.portions.single().grams)
+        assertEquals("1 Can (16 fl oz)", product.portions.single().label)
+    }
+
     /** A nutrient the label gives as 0 is 0; one it leaves out is not there at all, never 0. */
     @Test
     fun aListedZeroStaysZero_andAMissingNutrientIsAbsent() {

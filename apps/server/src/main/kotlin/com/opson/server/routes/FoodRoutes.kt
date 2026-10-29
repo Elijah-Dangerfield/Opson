@@ -5,7 +5,9 @@ import com.opson.server.domain.BarcodeLookupResult
 import com.opson.server.domain.CatalogSource
 import com.opson.server.domain.DescribeParser
 import com.opson.server.domain.FoodCatalogRepository
+import com.opson.server.domain.Food
 import com.opson.server.domain.FoodDescriber
+import com.opson.server.domain.FoodReportRepository
 import com.opson.server.domain.FoodSubmissionRepository
 import com.opson.server.domain.SearchCategory
 import com.opson.server.domain.SearchFilter
@@ -27,6 +29,8 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import kotlinx.coroutines.CancellationException
+import org.slf4j.LoggerFactory
 import java.util.UUID
 
 /**
@@ -43,6 +47,10 @@ import java.util.UUID
  *    only when `FOOD_SEARCH_OFF_ENABLED` is on.
  *  - `GET /v1/foods/{id}` one food with portions and micros. A food someone
  *    submitted is 404 to everyone else until a reviewer approves it.
+ *
+ * Every food is served with a reviewer's correction over it and through the
+ * energy guard ([com.opson.server.domain.ServedFood]). The detail and the
+ * barcode answer also file the guard's catch for review, once per food.
  *  - `GET /v1/foods/barcode/{code}` catalog, then the enabled outside sources
  *    in tier order ([BarcodeLookup]), then the caller's own submission still
  *    waiting for review, so a second scan finds what they just added. 404
@@ -63,7 +71,25 @@ fun Route.foodRoutes(
     barcodeLookup: BarcodeLookup,
     describer: FoodDescriber,
     submissions: FoodSubmissionRepository,
+    reports: FoodReportRepository? = null,
 ) {
+    val logger = LoggerFactory.getLogger("FoodRoutes")
+
+    /**
+     * A food the energy guard served an estimate for goes to the review queue
+     * once ([FoodReportRepository.flagEnergy]). Never in the way of the answer.
+     */
+    suspend fun watch(food: Food) {
+        if (reports == null || food.energyFlags.isEmpty()) return
+        try {
+            reports.flagEnergy(food)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.warn("energy check report failed", e)
+        }
+    }
+
     authenticate(SUPABASE_JWT_AUTH) {
         rateLimit(RateLimitName(FOOD_SEARCH_LIMIT)) {
             get("/v1/foods/search") {
@@ -119,7 +145,10 @@ fun Route.foodRoutes(
                     )
                 }
                 when (val result = barcodeLookup.lookup(code)) {
-                    is BarcodeLookupResult.Found -> call.respond(result.food.toResponse())
+                    is BarcodeLookupResult.Found -> {
+                        watch(result.food)
+                        call.respond(result.food.toResponse())
+                    }
                     BarcodeLookupResult.NotFound -> {
                         val own = call.userId()?.let { submissions.pendingFoodFor(it, code) }?.let { catalog.findById(it) }
                         if (own != null) {
@@ -143,6 +172,7 @@ fun Route.foodRoutes(
             val food = catalog.findById(id)
                 ?.takeIf { it.source != CatalogSource.UserSubmitted || call.userId()?.let { user -> submissions.isVisible(id, user) } == true }
                 ?: return@get call.respond(HttpStatusCode.NotFound, problem("not_found", "No such food"))
+            watch(food)
             call.respond(food.toResponse())
         }
 

@@ -244,6 +244,55 @@ run changes nothing).
   (https://opendatacommons.org/licenses/odbl/1-0/), not a ruling from them.
   Have counsel or Open Food Facts confirm before public launch.
 
+## Zero-calorie labels (2026-10-29)
+
+**What happened.** Scanning Monster Energy Zero Ultra (UPC 070847012474)
+showed 0 kcal where the can says 10. Traced on the real data:
+
+- **USDA Branded answered**, as tier 2 always beats Open Food Facts. Its
+  record (FoodData Central 2680587) is the label's "Calories 0" for an 8 fl oz
+  (240 ml) serving, which a US label may print for anything under 5 kcal,
+  stored as 0 kcal per 100 ml beside 0.83 g of carbs.
+- **Open Food Facts had it right**: 2 kcal per 100 ml (`energy-kcal_100g`),
+  a 473 ml can, so about 9.5 kcal. Its parsing was never the problem.
+- **The serving made it worse.** Branded keeps an ml serving without grams,
+  and the app dropped it, so the only amount on offer was 100 g. Even a right
+  per-100 value would have read 2.
+
+**The fix**, on the server, for rows already loaded (no reimport):
+
+- An energy guard (`FoodEnergy`, apps/server/README.md) checks every served
+  food's calories against its macros at a serving. A 0 the macros contradict
+  is served as the macros' energy held under 5 kcal a serving: the Monster can
+  reads 10. No energy at all is worked out from the macros or stays unknown,
+  never 0. Calories with no macros (spirits) are flagged, not changed.
+- A scan prefers a lower tier whose energy holds up over a Branded row the
+  guard caught out.
+- An ml serving on a food whose numbers are per 100 ml is served with its ml
+  as the amount, so "1 can" can be logged.
+- Each caught food is filed once for review, where a person can correct it
+  for good (`food_corrections`).
+- The Open Food Facts importer now converts kJ when a label gives no kcal,
+  instead of dropping the product, and the live lookup reads
+  `energy-kj_100g` too.
+
+**How common.** In a sample of 658 Branded drinks and syrups from FoodData
+Central's search (zero-sugar energy drinks and sodas, sugar-free syrups), 284
+are 0 kcal and 44 of those have macros that give more than 5 kcal a serving.
+Every Monster Ultra flavour is one (0 kcal, 0.83 g carbs, 8 fl oz). Most of
+the rest are sweetened with erythritol or other sugar alcohols (Reed's Zero
+Sugar sodas list 5 g of carbs per 100 ml), whose carbs give almost no energy,
+which is why the estimate is capped at 5 kcal a serving rather than taken
+from 4/4/9 alone. Count the whole catalog on a database with the Branded
+load:
+
+```sql
+SELECT count(*) FROM foods
+WHERE kcal_100g = 0 AND 4 * protein_100g + 4 * carbs_100g + 9 * fat_100g > 5;
+```
+
+That is per 100 g, so it undercounts drinks with a larger serving.
+
 ## Generic national tables: import
 
 | Source | Region | Foods | Licence | Attribution |

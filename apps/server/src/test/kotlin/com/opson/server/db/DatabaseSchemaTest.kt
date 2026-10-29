@@ -35,7 +35,7 @@ class DatabaseSchemaTest : DatabaseTest() {
                 CustomFoodsTable, SavedMealsTable, UserSettingsTable, FastsTable, ExercisesTable, WaitlistTable,
                 AppleRefreshTokensTable, SubmittedFoodsTable, FoodSubmissionsTable, FoodSubmissionPhotosTable,
                 BarcodeLinkSuggestionsTable, AppConfigValuesTable, AppConfigRulesTable, AppConfigAuditTable,
-                AppConfigManifestTable,
+                AppConfigManifestTable, FoodReportsTable, FoodReportPhotosTable, FoodCorrectionsTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }
@@ -224,6 +224,55 @@ class DatabaseSchemaTest : DatabaseTest() {
         )
     }
 
+    /**
+     * V28 is additive and safe to run twice. Deleting an account deletes its reports and their
+     * photos; the server's own energy checks have no account and are one per food; a food has one
+     * live correction at a time.
+     */
+    @Test
+    fun foodReportsMigrationIsIdempotentAndCascadesFromTheUser() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V28__food_reports.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val user = seedAuthUser().value
+        val food = java.util.UUID.randomUUID()
+        val snapshot = "'{\"name\": \"x\", \"source\": \"usda_branded\"}'::jsonb"
+        database.blockingTransaction {
+            exec(
+                "INSERT INTO food_reports (id, food_id, user_id, reason, snapshot) " +
+                    "VALUES (gen_random_uuid(), '$food', '$user', 'wrong_calories', $snapshot)",
+            )
+            exec(
+                "INSERT INTO food_report_photos (report_id, media_type, bytes) " +
+                    "SELECT id, 'image/jpeg', decode('ffd8', 'hex') FROM food_reports WHERE user_id = '$user'",
+            )
+            exec("INSERT INTO food_reports (id, food_id, reason, snapshot) VALUES (gen_random_uuid(), '$food', 'energy_check', $snapshot)")
+        }
+        listOf(
+            // Only the server files an energy check, and only once per food.
+            "INSERT INTO food_reports (id, food_id, reason, snapshot) VALUES (gen_random_uuid(), '$food', 'energy_check', $snapshot)",
+            "INSERT INTO food_reports (id, food_id, reason, snapshot) VALUES (gen_random_uuid(), '$food', 'other', $snapshot)",
+            "INSERT INTO food_reports (id, food_id, user_id, reason, snapshot) VALUES (gen_random_uuid(), '$food', '$user', 'tasty', $snapshot)",
+        ).forEach { sql -> assertFailsWith<Exception>(sql) { database.blockingTransaction { exec(sql) } } }
+
+        database.blockingTransaction {
+            exec("INSERT INTO food_corrections (id, food_id, created_by, fields, base) VALUES (gen_random_uuid(), '$food', 'r', '{}', $snapshot)")
+        }
+        assertFailsWith<Exception>("two live corrections") {
+            database.blockingTransaction {
+                exec("INSERT INTO food_corrections (id, food_id, created_by, fields, base) VALUES (gen_random_uuid(), '$food', 'r', '{}', $snapshot)")
+            }
+        }
+
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
+        assertEquals(listOf("energy_check"), strings("SELECT reason FROM food_reports WHERE food_id = '$food'"))
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM food_report_photos"))
+        database.blockingTransaction {
+            exec("DELETE FROM food_reports WHERE food_id = '$food'")
+            exec("DELETE FROM food_corrections WHERE food_id = '$food'")
+        }
+    }
+
     /** The limits DiaryRules checks hold in the table too. */
     @Test
     fun exercisesRefuseALengthOrANumberOutOfRange() {
@@ -404,7 +453,7 @@ class DatabaseSchemaTest : DatabaseTest() {
         listOf(
             "log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "barcode_misses",
             "profiles", "waitlist", "apple_refresh_tokens", "food_submissions", "food_submission_photos",
-            "barcode_link_suggestions",
+            "barcode_link_suggestions", "food_reports", "food_report_photos", "food_corrections",
         ).forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {
@@ -470,7 +519,7 @@ class DatabaseSchemaTest : DatabaseTest() {
             "preset_distribution", "search_daily", "top_zero_result_queries", "barcode_outcomes_daily",
             "weekly_retention_cohorts", "retention_d1_d7_d30", "barcode_hit_rate_daily", "top_missed_barcodes",
             "barcode_misses_by_country", "waitlist_daily", "food_submissions_daily", "food_submission_queue",
-            "barcode_link_queue",
+            "barcode_link_queue", "food_report_queue",
         )
         val SUPPORT_VIEWS = listOf("users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings")
     }
