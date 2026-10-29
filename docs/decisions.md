@@ -15,8 +15,9 @@ a Check in row on Close the day and the QA menu, and written on its own
 how someone feels is not part of the day's log, so the 2026-10-27 rule that a
 closed day takes nothing does not reach it. `DayReflection` lost its
 `checkIn`. The Reminders switch that hid the old card is no longer read; the
-flag alone decides. A check-in reminder is not built: it needs a Reminders row,
-and Reminders is being reorganized.
+flag alone decides. A check-in reminder is not built yet: it needs a new
+reminder kind through the planner, the platform wire, both platforms' tap
+routing and a Reminders row, and delivery is still untested on real devices.
 
 Sleep moved because people close the day at night, when "how did you sleep
 last night?" is the wrong question. The sheet asks it first, as last night,
