@@ -31,7 +31,6 @@ import com.opson.libraries.identity.auth.OAuthProvider
 import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.awaitCredential
 import com.opson.libraries.core.fixed
-import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
