@@ -208,6 +208,14 @@ class TrendsViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun anEnergyLink_opensTheSharedExplainer() = runUnitTest {
+        val vm = vm()
+        val events = backgroundScope.events(vm)
+        vm.takeAction(TrendsAction.EnergyExplainerTapped("balance"))
+        assertEquals(listOf<TrendsEvent>(TrendsEvent.OpenEnergyExplainer("balance")), events)
+    }
+
+    @Test
     fun checkInFlag_chartsTheCheckInsHunger() = runUnitTest {
         assertNull(vm().state.checkInHunger)
         assertNotNull(withBurned(checkIn = true).state.checkInHunger)

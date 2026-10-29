@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.opson.features.settings.EnergyExplainerRoute
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
@@ -31,6 +32,7 @@ import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
+import com.opson.libraries.ui.components.ChevronLink
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.RangeDotAxisLabel
 import com.opson.libraries.ui.components.RangeDotChart
@@ -90,6 +92,9 @@ import opson.libraries.resources.generated.resources.trends_day_note_untracked
 import opson.libraries.resources.generated.resources.trends_day_open
 import opson.libraries.resources.generated.resources.trends_day_plan
 import opson.libraries.resources.generated.resources.trends_day_plan_about
+import opson.libraries.resources.generated.resources.trends_energy_link_burned
+import opson.libraries.resources.generated.resources.trends_energy_link_deficit
+import opson.libraries.resources.generated.resources.trends_energy_link_surplus
 import opson.libraries.resources.generated.resources.trends_hunger_checkins
 import opson.libraries.resources.generated.resources.trends_hunger_checkins_caption_days
 import opson.libraries.resources.generated.resources.trends_hunger_checkins_caption_weeks
@@ -149,6 +154,8 @@ internal fun CalendarCardView(calendar: OnTrackCalendar, onAction: (TrendsAction
             Column(verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
                 if (plan) Help(stringResource(calendar.direction.help))
                 Help(stringResource(if (plan) Res.string.trends_calendar_help_gray else Res.string.trends_calendar_help_logged))
+                // A plan aimed at Burned: the same (i) sheets Targets and Energy today open.
+                if (plan && calendar.direction != GoalDirection.Hold) EnergyLinks(calendar.direction == GoalDirection.Gain, onAction)
             }
         }
         MonthStepper(calendar, onAction)
@@ -303,7 +310,12 @@ internal fun RunningTotalCardView(card: RunningTotalCard, onAction: (TrendsActio
             helpDescription = stringResource(Res.string.trends_running_help_cd),
             onHelp = { onAction(TrendsAction.RunningHelpTapped) },
         )
-        if (card.explained) Help(stringResource(Res.string.trends_running_help))
+        if (card.explained) {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
+                Help(stringResource(Res.string.trends_running_help))
+                EnergyLinks(surplus = card.side == Balance.Over, onAction)
+            }
+        }
         if (card.spans.size > 1) {
             SegmentedControl(
                 options = card.spans,
@@ -525,6 +537,21 @@ private fun TitleWithHelp(title: String, subtitle: String, helpDescription: Stri
             Text(text = subtitle, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
         }
         IconButton(icon = AppIcons.Info.described(helpDescription), onClick = onHelp, iconColor = AppTheme.colors.muted)
+    }
+}
+
+/** The shared energy (i) sheets: what total burned (TDEE) is, and how a deficit or a surplus works. */
+@Composable
+private fun EnergyLinks(surplus: Boolean, onAction: (TrendsAction) -> Unit) {
+    Column {
+        ChevronLink(
+            text = stringResource(Res.string.trends_energy_link_burned),
+            onClick = { onAction(TrendsAction.EnergyExplainerTapped(EnergyExplainerRoute.TOPIC_BURNED)) },
+        )
+        ChevronLink(
+            text = stringResource(if (surplus) Res.string.trends_energy_link_surplus else Res.string.trends_energy_link_deficit),
+            onClick = { onAction(TrendsAction.EnergyExplainerTapped(EnergyExplainerRoute.TOPIC_BALANCE)) },
+        )
     }
 }
 

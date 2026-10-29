@@ -245,7 +245,10 @@ tested at the band edges (`OnTrackTest`):
   colors for how it went. Wherever calories are short of Show on the week
   view, energy out too for a goal aimed at Burned, and always for someone who
   said numbers have been hard (`onboarding.hard`).
-- The (i) opens `How to read this`, worded for the plan's direction. A count
+- The (i) opens `How to read this`, worded for the plan's direction and in the
+  app's energy words (Resting energy (BMR), Total burned (TDEE)); for a plan
+  aimed at Burned it links to the shared energy (i) sheets
+  (`EnergyExplainerRoute`, burned and balance), as the running total's does. A count
   line under the month (`12 on plan · 5 a bit off · 3 over`) and a legend.
 - A day opens `TrendsDayRoute(dayIso)`, a `bottomSheet<>`: the day's word,
   Eaten, Burned, the difference (`480 kcal under what you burned`) and the plan

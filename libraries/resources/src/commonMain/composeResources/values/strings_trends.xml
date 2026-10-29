@@ -218,8 +218,8 @@
     <string name="trends_calendar_title_logged">Your month</string>
     <string name="trends_calendar_sub_logged">Days with something logged</string>
     <string name="trends_calendar_help_cd">How to read this</string>
-    <string name="trends_calendar_help_lose">Your plan is a deficit: eating a set amount less than you burn. Burned is what your body uses at rest plus your activity, so it moves a little from day to day. On plan means the day landed close to that gap. A bit off means close, but not quite, either way. Over plan means you ate enough that most of the gap closed. Eating far under your plan shows as a bit off too, because that isn't the aim either.</string>
-    <string name="trends_calendar_help_gain">Your plan is a surplus: eating a set amount more than you burn. Burned is what your body uses at rest plus your activity, so it moves a little from day to day. On plan means the day landed close to that. A bit off means close, but not quite, either way. Under plan means you ate well short of it. Going far past your plan shows as a bit off too, because that isn't the aim either.</string>
+    <string name="trends_calendar_help_lose">Your plan is a deficit: eating a set amount less than your total burned (TDEE), which is your resting energy (BMR) plus your activity, so it moves a little from day to day. On plan means the day landed close to that gap. A bit off means close, but not quite, either way. Over plan means you ate enough that most of the gap closed. Eating far under your plan shows as a bit off too, because that isn't the aim either.</string>
+    <string name="trends_calendar_help_gain">Your plan is a surplus: eating a set amount more than your total burned (TDEE), which is your resting energy (BMR) plus your activity, so it moves a little from day to day. On plan means the day landed close to that. A bit off means close, but not quite, either way. Under plan means you ate well short of it. Going far past your plan shows as a bit off too, because that isn't the aim either.</string>
     <string name="trends_calendar_help_hold">Your plan is the range you eat in each day. On plan means the day landed inside it. A bit off means just outside it, either way. Off plan means well outside it.</string>
     <string name="trends_calendar_help_gray">Gray days had nothing logged, were marked untracked, or haven't happened yet, and today waits until you close it. One day doesn't decide anything. The weeks are what count.</string>
     <string name="trends_calendar_help_logged">Each day with something logged is filled in. Gray days had nothing logged, were marked untracked, or haven't happened yet.</string>
@@ -249,7 +249,7 @@
 
     <!-- The day sheet from the calendar. -->
     <string name="trends_day_eaten">Eaten</string>
-    <string name="trends_day_burned">Burned</string>
+    <string name="trends_day_burned">Total burned (TDEE)</string>
     <string name="trends_day_difference">Difference</string>
     <string name="trends_day_plan">Your plan</string>
     <string name="trends_day_plan_about">About %1$s</string>
@@ -263,7 +263,7 @@
 
     <!-- The running total. -->
     <string name="trends_running_title">Running total</string>
-    <string name="trends_running_sub">What you ate against what you burned</string>
+    <string name="trends_running_sub">What you ate against your total burned (TDEE)</string>
     <string name="trends_running_week">7 days</string>
     <string name="trends_running_month">30 days</string>
     <string name="trends_running_since">Since you started</string>
@@ -281,7 +281,12 @@
     <string name="trends_running_days">Counted from %1$d of %2$d days.</string>
     <string name="trends_running_empty">Log a full day, and it adds up here.</string>
     <string name="trends_running_help_cd">How this is worked out</string>
-    <string name="trends_running_help">Each day it takes what you burned and subtracts what you ate, then adds the days up. Burned is your resting energy plus your activity, and both are estimates: a watch or a formula can be off by a few hundred a day. The weight uses a rough rule of thumb, and real change is usually slower. Water can move the scale a few pounds from one day to the next, so compare this with your weight trend over weeks, not days. A day with nothing logged, or a meal without an amount, is left out rather than guessed.</string>
+    <string name="trends_running_help">Each day it takes your total burned (TDEE) and subtracts what you ate, then adds the days up. Total burned is your resting energy (BMR) plus your activity, and both are estimates: a watch or a formula can be off by a few hundred a day. The weight uses a rough rule of thumb, and real change is usually slower. Water can move the scale a few pounds from one day to the next, so compare this with your weight trend over weeks, not days. A day with nothing logged, or a meal without an amount, is left out rather than guessed.</string>
+
+    <!-- The shared energy (i) sheets, opened from the calendar's and the running total's explanations. -->
+    <string name="trends_energy_link_burned">What total burned (TDEE) is</string>
+    <string name="trends_energy_link_deficit">How a deficit works</string>
+    <string name="trends_energy_link_surplus">How a surplus works</string>
 
     <!-- Hunger from the check-ins. -->
     <string name="trends_hunger_checkins">From your check-ins</string>

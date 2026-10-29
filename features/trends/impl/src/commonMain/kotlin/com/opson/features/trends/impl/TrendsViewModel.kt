@@ -146,6 +146,7 @@ class TrendsViewModel(
             is TrendsAction.CalendarDayTapped -> sendEvent(TrendsEvent.OpenDay(action.date.toString()))
             is TrendsAction.RunningSpanPicked -> pick(action) { it.copy(runningSpan = action.span) }
             TrendsAction.RunningHelpTapped -> pick(action) { it.copy(runningExplained = !it.runningExplained) }
+            is TrendsAction.EnergyExplainerTapped -> sendEvent(TrendsEvent.OpenEnergyExplainer(action.topic))
             is TrendsAction.RangePicked -> {
                 // Not a visibility change: the range only picks which days the cards cover.
                 if (action.range != state.range) settingsRepository.update { it.copy(trendsRange = action.range) }
@@ -195,6 +196,9 @@ sealed interface TrendsAction {
     data class CalendarDayTapped(val date: LocalDate) : TrendsAction
     data class RunningSpanPicked(val span: RunningSpan) : TrendsAction
     data object RunningHelpTapped : TrendsAction
+
+    /** One of the energy words' (i) sheets, [com.opson.features.settings.EnergyExplainerRoute.topic]. */
+    data class EnergyExplainerTapped(val topic: String) : TrendsAction
 }
 
 sealed interface TrendsEvent {
@@ -210,4 +214,7 @@ sealed interface TrendsEvent {
 
     /** The calendar's day sheet. */
     data class OpenDay(val dayIso: String) : TrendsEvent
+
+    /** The shared energy (i) sheet: what total burned (TDEE) is, or how a deficit or surplus works. */
+    data class OpenEnergyExplainer(val topic: String) : TrendsEvent
 }
