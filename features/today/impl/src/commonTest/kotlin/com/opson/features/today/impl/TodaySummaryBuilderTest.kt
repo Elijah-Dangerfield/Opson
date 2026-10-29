@@ -1,9 +1,11 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.ui.SummaryStat
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.ui.SummaryStats
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.Metric
@@ -274,10 +276,10 @@ class TodaySummaryBuilderTest {
 
     @Test
     fun deficitSoFarIsOfferedOnlyWhereDeficitsAre() {
-        assertTrue(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.Full)))
-        assertTrue(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.Full)))
-        assertFalse(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.MacrosOnly)))
-        assertFalse(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.MacrosWithGrams)))
+        assertTrue(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.Full).settings))
+        assertTrue(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.Full).settings))
+        assertFalse(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.MacrosOnly).settings))
+        assertFalse(SummaryStat.DeficitSoFar in SummaryStats.offered(policy(PresetId.MacrosWithGrams).settings))
     }
 
     @Test

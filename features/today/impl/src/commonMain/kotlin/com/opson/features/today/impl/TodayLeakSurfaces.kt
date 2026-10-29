@@ -27,7 +27,6 @@ import androidx.compose.ui.Modifier
 import com.opson.features.today.impl.activity.TodayActivityFixtures
 import com.opson.features.today.impl.activity.TodayActivitySection
 import com.opson.features.today.impl.calendar.CalendarDropdownContent
-import com.opson.features.today.impl.cards.TodayCardsSheetContent
 import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.item.ItemSheetContent
@@ -134,9 +133,6 @@ object TodayLeakSurfaces {
         LeakSurface(id = "today-day-menu-armed", label = "Day menu, clear armed", showsCaloriesInFull = true) { policy ->
             TodayWithMenu(policy, clearArmed = true)
         },
-        LeakSurface(id = "today-cards", label = "Edit Today's cards", showsCaloriesInFull = false) { policy ->
-            TodayCardsSheetContent(state = TodayFixtures.todayCardsState(policy), onAction = {})
-        },
         LeakSurface(id = "calendar", label = "Calendar", showsCaloriesInFull = false) {
             CalendarDropdownContent(state = TodayFixtures.calendarState(), onAction = {})
         },
@@ -193,9 +189,6 @@ object TodayLeakSurfaces {
         },
         LeakSurface(id = "today-delete-confirm", label = "Today, a food's removal confirmed in place", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = designSync(policy, ui = TodayUi(swipe = SwipeState(confirming = TodayFixtures.banana))), onAction = {})
-        },
-        LeakSurface(id = "today-cards-summary", label = "Edit Today's cards, the summary card", showsCaloriesInFull = false) { policy ->
-            TodayCardsSheetContent(state = TodayFixtures.todayCardsState(policy, TodayFixtures.changingWeight, summaryOn = true), onAction = {})
         },
         // Design sync 4, Today actions: the calendar over Today needs no flag; select mode and the
         // drag sit behind release.todaySelect, the food's ⋮ behind release.foodActions.

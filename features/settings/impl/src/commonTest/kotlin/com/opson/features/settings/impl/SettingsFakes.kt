@@ -11,6 +11,7 @@ import com.opson.libraries.diary.NumbersOutcome
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.SyncRejection
+import com.opson.libraries.diary.TodaySummaryEnabled
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.GoalsAndEnergyEnabled
@@ -227,6 +228,13 @@ class FakeBurnedRepository(
 fun goalsAndEnergyFlag(on: Boolean = false): GoalsAndEnergyEnabled = GoalsAndEnergyEnabled(
     object : AppConfigMap() {
         override val map: Map<String, *> = mapOf("release" to mapOf("goalsAndEnergy" to on))
+    },
+)
+
+/** `release.todaySummary`, on or off. */
+fun todaySummaryFlag(on: Boolean = false): TodaySummaryEnabled = TodaySummaryEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("release" to mapOf("todaySummary" to on))
     },
 )
 

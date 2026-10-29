@@ -1,8 +1,6 @@
 package com.opson.features.today.impl
 
 import com.opson.features.today.impl.calendar.CalendarState
-import com.opson.features.today.impl.cards.TodayCardsState
-import com.opson.features.today.impl.cards.TodayCardsStateBuilder
 import com.opson.features.today.impl.calendar.CalendarStateBuilder
 import com.opson.features.today.impl.dayclose.DayCloseInputs
 import com.opson.features.today.impl.dayclose.DayCloseState
@@ -31,7 +29,6 @@ import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ModeTimerEnded
-import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Sleep
@@ -351,16 +348,6 @@ object TodayFixtures {
         feeling = feeling,
         checkIn = checkIn,
     )
-
-    fun todayCardsState(
-        policy: VisibilityPolicy,
-        settings: Settings = Settings(),
-        fastingReleased: Boolean = false,
-        summaryOn: Boolean = false,
-    ): TodayCardsState = TodayCardsStateBuilder.build(settings, policy, fastingReleased, summaryOn)
-
-    /** Someone whose first goal was changing their weight, as v3 `today-customize-summary` opens. */
-    val changingWeight: Settings = Settings(onboarding = OnboardingAnswers(why = listOf("changing_weight")))
 
     fun calendarState(): CalendarState {
         val logged = (1..24).filter { it % 7 != 4 }.map { LocalDate(today.year, today.month, it) }.toSet() + today

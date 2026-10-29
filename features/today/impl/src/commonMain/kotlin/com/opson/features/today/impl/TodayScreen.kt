@@ -688,6 +688,7 @@ fun ColumnScope.DayMenuItems(menu: DayMenu, onAction: (TodayAction) -> Unit) {
                     AppIcons.BeachAccess,
                     TodayAction.UntrackedMenuTapped,
                 )
+                DayMenuItem.Select -> Triple(Res.string.today_select_start, AppIcons.Check, TodayAction.SelectMenuTapped)
                 DayMenuItem.EditCards -> Triple(Res.string.today_menu_edit_cards, AppIcons.DashboardCustomize, TodayAction.EditCardsTapped)
                 DayMenuItem.ClearDay -> Triple(
                     if (armed) Res.string.today_menu_clear_confirm else Res.string.today_menu_clear,

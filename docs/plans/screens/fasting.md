@@ -17,7 +17,7 @@ Today's cards, and the fasts themselves: stored on the device, synced through
 | Brief or handoff | v3 / rules | Built |
 |---|---|---|
 | Add menu "Start a fast / End fast" | v3 has no Add menu (no header +, `blind-leak-test.md` row 28) | No Add menu entry. Nothing to add it to. |
-| Day menu "Fasting" | v3 moved it into **Edit Today's cards** | A "Fasting" switch in Edit Today's cards (the Today card on or off). |
+| Day menu "Fasting" | v3 moved it into **Edit Today's cards** | A "Fasting" switch on More › Today screen, which Edit Today's cards folded into (the Today card on or off). |
 | "Start a fast" button | v3: "The Start fast button is gone, because a fast starts whenever the window closes" | No Start button. A fast starts at the plan's window close. **End fast** stays: ending is always allowed. |
 | Prototype footnote "No streaks, no longest-fast records, nothing past 16 hours" | Not in v3 | Not drawn. The rules it states are enforced in code (below). |
 | v3 times "7:00 pm", "9:00 am – 7:00 pm" | App convention is `DateCopy.time` ("7:00 PM") and "to" for ranges | "7:00 PM", "9:00 AM to 7:00 PM". |
@@ -160,7 +160,7 @@ day shown is today. Collected and ticked separately from Today's inputs
 placed before the water card. Actions `FastingCardTapped` (opens
 `FastingRoute`) and `EndFastTapped`.
 
-## Edit Today's cards
+## More › Today screen (was Edit Today's cards)
 A "Fasting" row with a switch for `settings.fastToday`, only when access is
 Offered and the timer is on.
 
@@ -212,6 +212,6 @@ meal reminders help with that instead.`; More `Off` / `On, %1$s`; Edit cards
 - `:libraries:diary`: `FastingSchedule` (window, due, status, cap), `FastingAccess` (every preset × the statement × the flag).
 - `:libraries:diary:impl`: `FastingRepositoryImpl` (start due once, not after food, stamps, end, food ends it, timer off, outbox rows), the syncer merging and rolling back fasts, `DiaryRepositoryImpl` ending a fast on add.
 - `:features:settings:impl`: `FastingStateBuilder`, `FastingViewModel` per action, More row on/off per mode, statement and flag.
-- `:features:today:impl`: `TodayFastingCard` per rule, Today VM card actions, Edit Today's cards row.
+- `:features:today:impl`: `TodayFastingCard` per rule, Today VM card actions; the card's switch is on More › Today screen (`:features:settings:impl`).
 - Server: `DiaryRulesTest` for fasts, `PostgresSyncRepositoryTest` (push, pull only when accepted, last write wins), `SyncRoutesTest` (0.1 request gets no `fasts` key; `accepts` gets them), `DatabaseSchemaTest` (table, RLS, cascade).
 - Previews: no fast (timer off), running, finished, not in this mode, and dark; Today card running and window open; More with the Fasting row.

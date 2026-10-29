@@ -25,12 +25,19 @@ import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
 import com.opson.features.settings.impl.SettingsRow
+import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.ui.components.AppSwitch
+import com.opson.libraries.ui.components.HorizontalDivider
+import com.opson.libraries.ui.components.button.FlatButton
+import com.opson.libraries.ui.components.button.FlatButtonTone
+import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.ProgressRing
 import com.opson.libraries.ui.components.SheetHandle
@@ -42,11 +49,14 @@ import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.fasting_cards_body
+import opson.libraries.resources.generated.resources.fasting_title
 import opson.libraries.resources.generated.resources.settings_back_more
+import opson.libraries.resources.generated.resources.settings_back_today
 import opson.libraries.resources.generated.resources.settings_loading_cd
+import opson.libraries.resources.generated.resources.settings_today_breakdown_in_out
 import opson.libraries.resources.generated.resources.settings_today_burned_breakdown
 import opson.libraries.resources.generated.resources.settings_today_burned_breakdown_line
-import opson.libraries.resources.generated.resources.settings_today_card_from_mode
 import opson.libraries.resources.generated.resources.settings_today_card_pages
 import opson.libraries.resources.generated.resources.settings_today_close_day
 import opson.libraries.resources.generated.resources.settings_today_follow_by_day
@@ -56,6 +66,8 @@ import opson.libraries.resources.generated.resources.settings_today_follow_range
 import opson.libraries.resources.generated.resources.settings_today_follow_surplus
 import opson.libraries.resources.generated.resources.settings_today_in_header
 import opson.libraries.resources.generated.resources.settings_today_in_list
+import opson.libraries.resources.generated.resources.settings_today_link_modes
+import opson.libraries.resources.generated.resources.settings_today_link_resting
 import opson.libraries.resources.generated.resources.settings_today_main_balance
 import opson.libraries.resources.generated.resources.settings_today_main_eaten
 import opson.libraries.resources.generated.resources.settings_today_main_follow
@@ -76,80 +88,122 @@ import opson.libraries.resources.generated.resources.settings_today_summary_card
 import opson.libraries.resources.generated.resources.settings_today_title
 import opson.libraries.resources.generated.resources.settings_today_water
 import opson.libraries.resources.generated.resources.settings_today_weight
+import opson.libraries.resources.generated.resources.today_cards_groups
+import opson.libraries.resources.generated.resources.today_cards_groups_body
 import com.opson.libraries.diary.ui.label
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
+/**
+ * More › Today screen. [fromToday] picks the back label: Today's ⋮ menu and a long press on its
+ * summary card open it with "‹ Today", More with "‹ More".
+ */
 @Composable
 fun TodayScreenSettingsScreen(
     state: TodayScreenSettingsState,
     onAction: (TodayScreenSettingsAction) -> Unit,
     modifier: Modifier = Modifier,
+    fromToday: Boolean = false,
 ) {
     SettingsPage(modifier = modifier) {
         SettingsHeader(
             title = stringResource(Res.string.settings_today_title),
-            backLabel = stringResource(Res.string.settings_back_more),
+            backLabel = stringResource(if (fromToday) Res.string.settings_back_today else Res.string.settings_back_more),
             onBack = { onAction(TodayScreenSettingsAction.BackTapped) },
         )
         if (!state.loaded) {
             DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
             return@SettingsPage
         }
-        SectionLabel(stringResource(Res.string.settings_today_summary_card))
-        if (state.cardArranged) {
-            Presets(state.presets, onAction)
-            SettingsCard {
+        SummaryCardSection(state, onAction)
+        SectionLabel(stringResource(Res.string.settings_today_in_list))
+        SettingsCard {
+            Switch(Res.string.today_cards_groups, state.mealGroups, TodaySwitch.MealGroups, onAction, Res.string.today_cards_groups_body)
+            Switch(Res.string.settings_today_water, state.water, TodaySwitch.Water, onAction, note = state.waterNote, last = state.fasting == null && state.weight == null)
+            state.fasting?.let { on ->
+                Switch(Res.string.fasting_title, on, TodaySwitch.Fasting, onAction, Res.string.fasting_cards_body, last = state.weight == null)
+            }
+            state.weight?.let { on ->
+                Switch(Res.string.settings_today_weight, on, TodaySwitch.Weight, onAction, note = state.weightNote, last = true)
+            }
+        }
+        SectionLabel(stringResource(Res.string.settings_today_in_header))
+        SettingsCard {
+            Switch(Res.string.settings_today_close_day, state.closeDay, TodaySwitch.CloseDay, onAction, last = true)
+        }
+    }
+}
+
+/**
+ * The summary card, as Today will draw it: design sync 4's presets, the older card's stats, or the
+ * line saying the mode decides. Card pages and the nutrients page belong to any energy page.
+ */
+@Composable
+private fun SummaryCardSection(state: TodayScreenSettingsState, onAction: (TodayScreenSettingsAction) -> Unit) {
+    SectionLabel(stringResource(Res.string.settings_today_summary_card))
+    state.cardNote?.let { OverrideNoteCard(it, onAction) }
+    if (state.presetsOn) {
+        Presets(state.presets, onAction)
+        state.presetNote?.let { OverrideNoteCard(it, onAction) }
+    }
+    state.stats?.let { StatsContent(it, onAction) }
+    val pages = state.macrosPage
+    if (state.presetsOn || pages != null) {
+        SettingsCard {
+            if (state.presetsOn) {
                 SettingsRow(
                     title = stringResource(Res.string.settings_today_main_number),
                     icon = null,
                     trailing = { Value(stringResource(state.mainNumber.label)) },
                     chevron = true,
-                    showDivider = true,
+                    showDivider = pages != null && state.mainNumberNote == null,
                     onClick = { onAction(TodayScreenSettingsAction.MainNumberTapped) },
                 )
+                state.mainNumberNote?.let { Note(it, onAction, divider = pages != null) }
+            }
+            if (pages != null) {
                 SettingsRow(
                     title = stringResource(Res.string.settings_today_card_pages),
                     icon = null,
                     trailing = {
-                        Value(stringResource(if (state.macrosPage) Res.string.settings_today_pages_energy_macros else Res.string.settings_today_pages_energy))
+                        Value(stringResource(if (pages) Res.string.settings_today_pages_energy_macros else Res.string.settings_today_pages_energy))
                     },
                     chevron = true,
                     onClick = { onAction(TodayScreenSettingsAction.CardPagesTapped) },
                 )
             }
-            SectionLabel(stringResource(Res.string.settings_today_on_card))
-            SettingsCard {
-                Switch(Res.string.settings_today_burned_breakdown, state.burnedBreakdown, TodaySwitch.BurnedBreakdown, onAction, Res.string.settings_today_burned_breakdown_line)
-                Switch(Res.string.settings_today_meals_count, state.mealsCount, TodaySwitch.MealsCount, onAction)
-                Switch(Res.string.settings_today_nutrients_link, state.nutrientsLink, TodaySwitch.NutrientsLink, onAction, last = state.nutrientsOnPage.isEmpty())
-                if (state.nutrientsOnPage.isNotEmpty()) {
-                    SettingsRow(
-                        title = stringResource(Res.string.settings_today_nutrients_pick),
-                        subtitle = state.nutrientsOnPage.map { stringResource(it.label) }.joinToString(", "),
-                        icon = null,
-                        chevron = true,
-                        onClick = { onAction(TodayScreenSettingsAction.NutrientsPickTapped) },
-                    )
-                }
-            }
-        } else {
-            Text(
-                text = stringResource(Res.string.settings_today_card_from_mode),
-                typography = AppTheme.type.secondary,
-                color = AppTheme.colors.muted,
-                modifier = Modifier.padding(horizontal = 4.dp),
+        }
+    }
+    val nutrients = state.nutrientsLink ?: return
+    SectionLabel(stringResource(Res.string.settings_today_on_card))
+    SettingsCard {
+        if (state.presetsOn) {
+            Switch(
+                Res.string.settings_today_burned_breakdown,
+                state.burnedBreakdown,
+                TodaySwitch.BurnedBreakdown,
+                onAction,
+                if (state.breakdownNeedsInOut) Res.string.settings_today_breakdown_in_out else Res.string.settings_today_burned_breakdown_line,
             )
+            Switch(Res.string.settings_today_meals_count, state.mealsCount, TodaySwitch.MealsCount, onAction)
         }
-        SectionLabel(stringResource(Res.string.settings_today_in_list))
-        SettingsCard {
-            Switch(Res.string.settings_today_water, state.water, TodaySwitch.Water, onAction)
-            Switch(Res.string.settings_today_weight, state.weight, TodaySwitch.Weight, onAction, last = true)
-        }
-        SectionLabel(stringResource(Res.string.settings_today_in_header))
-        SettingsCard {
-            Switch(Res.string.settings_today_close_day, state.closeDay, TodaySwitch.CloseDay, onAction, last = true)
+        Switch(
+            Res.string.settings_today_nutrients_link,
+            nutrients,
+            TodaySwitch.NutrientsLink,
+            onAction,
+            note = state.nutrientsNote,
+            last = state.nutrientsOnPage.isEmpty(),
+        )
+        if (state.nutrientsOnPage.isNotEmpty()) {
+            SettingsRow(
+                title = stringResource(Res.string.settings_today_nutrients_pick),
+                subtitle = state.nutrientsOnPage.map { stringResource(it.label) }.joinToString(", "),
+                icon = null,
+                chevron = true,
+                onClick = { onAction(TodayScreenSettingsAction.NutrientsPickTapped) },
+            )
         }
     }
 }
@@ -159,6 +213,7 @@ private fun Value(text: String) {
     Text(text = text, typography = AppTheme.type.bodyBold, color = AppTheme.colors.accent, maxLines = 1)
 }
 
+/** A switch, and under it what overrides it when something does. */
 @Composable
 private fun Switch(
     title: StringResource,
@@ -166,14 +221,57 @@ private fun Switch(
     row: TodaySwitch,
     onAction: (TodayScreenSettingsAction) -> Unit,
     subtitle: StringResource? = null,
+    note: OverrideNote? = null,
     last: Boolean = false,
 ) {
     SettingsRow(
         title = stringResource(title),
         icon = null,
         subtitle = subtitle?.let { stringResource(it) },
-        showDivider = !last,
+        showDivider = !last && note == null,
         trailing = { AppSwitch(checked = on, onCheckedChange = { onAction(TodayScreenSettingsAction.Toggled(row, it)) }) },
+    )
+    note?.let { Note(it, onAction, divider = !last) }
+}
+
+/**
+ * What overrides the row above, inside its card: "Water is hidden in Modes and numbers, so Today
+ * has no water card." and the way to that setting. Information, not a warning.
+ */
+@Composable
+private fun Note(note: OverrideNote, onAction: (TodayScreenSettingsAction) -> Unit, divider: Boolean) {
+    Column(Modifier.fillMaxWidth().padding(bottom = if (divider) 0.dp else 8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+            Icon(icon = AppIcons.Info, size = 18.dp, color = AppTheme.colors.muted, modifier = Modifier.padding(top = 1.dp))
+            Text(text = stringResource(note.text), typography = AppTheme.type.secondary, color = AppTheme.colors.inkSoft, modifier = Modifier.weight(1f))
+        }
+        NoteLink(note.link, onAction, Modifier.padding(start = 22.dp))
+        if (divider) HorizontalDivider(color = AppTheme.colors.line)
+    }
+}
+
+/** A note on its own, for the card as a whole and for the presets above. */
+@Composable
+private fun OverrideNoteCard(note: OverrideNote, onAction: (TodayScreenSettingsAction) -> Unit) {
+    SettingsCard {
+        Column(Modifier.padding(top = 14.dp)) { Note(note, onAction, divider = false) }
+    }
+}
+
+@Composable
+private fun NoteLink(link: SettingLink, onAction: (TodayScreenSettingsAction) -> Unit, modifier: Modifier = Modifier) {
+    FlatButton(
+        text = stringResource(
+            when (link) {
+                SettingLink.Modes -> Res.string.settings_today_link_modes
+                SettingLink.RestingEnergy -> Res.string.settings_today_link_resting
+            },
+        ),
+        onClick = { onAction(TodayScreenSettingsAction.LinkTapped(link)) },
+        tone = FlatButtonTone.AccentText,
+        typography = AppTheme.type.bodyBold,
+        minHeight = MinTouchTarget,
+        modifier = modifier,
     )
 }
 
@@ -358,6 +456,41 @@ private fun TodayScreenSettingsOneNumberPreview() {
 private fun TodayScreenSettingsFromModePreview() {
     SettingsPreview {
         TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings(NumbersSettings(preset = PresetId.NoNumbers))), onAction = {})
+    }
+}
+
+/** Equation picked with no resting energy known: Today shows In and out, and the page says why. */
+@Preview
+@Composable
+private fun TodayScreenSettingsEquationNeedsBurnedPreview() {
+    SettingsPreview {
+        val settings = SettingsFixtures.settings().copy(todayCard = SummaryCardPreset.Equation, todayMainNumber = MainNumberChoice.Balance)
+        TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(settings, burnedKnown = false), onAction = {}, fromToday = true)
+    }
+}
+
+/** Water hidden in Modes and numbers: the Water switch is still on, and the note says it has no effect. */
+@Preview
+@Composable
+private fun TodayScreenSettingsWaterHiddenPreview() {
+    SettingsPreview(dark = true) {
+        val settings = SettingsFixtures.settings(NumbersSettings(overrides = mapOf(Metric.Water to Visibility.Hide)))
+        TodayScreenSettingsScreen(
+            TodayScreenSettingsStateBuilder.build(settings, TodayScreenFlags(fasting = true)).copy(fasting = true),
+            onAction = {},
+            fromToday = true,
+        )
+    }
+}
+
+/** Without `release.goalsAndEnergy`: the older card's stats, picked here as Edit Today's cards once did. */
+@Preview
+@Composable
+private fun TodayScreenSettingsStatsPreview() {
+    SettingsPreview {
+        val settings = SettingsFixtures.settings(NumbersSettings(overrides = mapOf(Metric.Fiber to Visibility.Hide)))
+            .copy(onboarding = OnboardingAnswers(why = listOf("changing_weight")))
+        TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(settings, TodayScreenFlags(goalsAndEnergy = false)), onAction = {}, fromToday = true)
     }
 }
 

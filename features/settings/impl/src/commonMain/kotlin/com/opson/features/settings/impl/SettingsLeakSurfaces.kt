@@ -40,6 +40,7 @@ import com.opson.features.settings.impl.support.SupportStateBuilder
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsStateBuilder
 import com.opson.features.settings.impl.todayscreen.TodayScreenChoice
+import com.opson.features.settings.impl.todayscreen.TodayScreenFlags
 import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceSheetContent
 import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceState
 import com.opson.features.settings.impl.todayscreen.TodayScreenSettingsScreen
@@ -48,6 +49,7 @@ import com.opson.features.settings.impl.water.WaterSettingsScreen
 import com.opson.features.settings.impl.water.WaterSettingsStateBuilder
 import com.opson.features.settings.impl.widgets.WidgetsFixtureScreen
 import com.opson.libraries.diary.MacroMode
+import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Tone
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.RestingChoices
@@ -111,6 +113,11 @@ object SettingsLeakSurfaces {
                 TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(settings), onAction = {})
                 TodayScreenChoiceSheetContent(TodayScreenChoiceState.of(TodayScreenChoice.MainNumber, settings), onAction = {})
             }
+        },
+        // Without release.goalsAndEnergy: the older card's stats, which Edit Today's cards once picked.
+        LeakSurface(id = "today-screen-settings-stats", label = "Today screen, the summary card's stats", showsCaloriesInFull = false) { policy ->
+            val settings = SettingsFixtures.settings(policy.settings).copy(onboarding = OnboardingAnswers(why = listOf("changing_weight")))
+            TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(settings, TodayScreenFlags(goalsAndEnergy = false, fasting = true)), onAction = {})
         },
         // Vitamins and minerals: daily references, never an amount eaten, and off where the mode hides micros.
         LeakSurface(id = "micro-targets", label = "Vitamins and minerals", showsCaloriesInFull = false) { policy ->

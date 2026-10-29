@@ -6,6 +6,29 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: Today is arranged in one place, and an overridden choice says so
+
+**Decision:** Edit Today's cards (a sheet in `:features:today:impl`) folded into
+More › Today screen (`:features:settings:impl`). The ⋮ item, now "Edit Today
+screen", and a long press on the summary card open that page; More's row is
+there whatever the release flags say. The page carries the sheet's Meal groups,
+Fasting card and summary stats. Where another setting overrides a choice on the
+page (the levels hide water, Equation has no Burned to subtract, the mode sets
+the card), the row says so and links to that setting. Today and the page read
+the drawn preset from one rule, `TodayCardRules`.
+
+**Why:** the owner opened the ⋮ item expecting More › Today and got a different,
+smaller sheet; and picked Equation on More › Today and saw nothing change,
+because Today fell back to In and out without Burned and nothing said so. Two
+places that write overlapping settings with different meanings (the sheet's
+water switch hid the water level, the page's hid the card) cannot both be
+right.
+
+**Alternatives:** keeping the sheet as a quick editor of the same state (two
+components to keep in step, which is how they drifted); disabling Equation
+without Burned (the pick would be lost, and it starts working once resting
+energy is set up, so it stays picked with a note instead).
+
 ## 2026-10-29: Digesting food counts in Burned, if the person asks
 
 **Decision:** "Count digesting food" on Resting energy, off by default, adds 10%

@@ -14,6 +14,7 @@ import com.opson.libraries.diary.MinuteTicker
 import com.opson.libraries.diary.RecentLogEvents
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.TodaySummaryEnabled
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.diary.valueOrNull
@@ -215,11 +216,11 @@ class TodayViewModel(
             TodayAction.UntrackedMenuTapped -> action.closeMenuThen {
                 diary.setUntracked(day(), untracked = model.inputs?.day?.untracked != true)
             }
-            TodayAction.EditCardsTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenTodayCards) }
+            TodayAction.EditCardsTapped -> action.closeMenuThen { sendEvent(TodayEvent.OpenTodayScreenSettings) }
             TodayAction.ClearDayTapped -> clearDay(action)
             // Kept on this phone, not in synced Settings: see TodayCardViewStore.
             is TodayAction.SummaryPageShown -> cardView.update { it.copy(page = action.page) }
-            TodayAction.SummaryLongPressed -> if (state.summaryTools) sendEvent(TodayEvent.OpenTodayCards)
+            TodayAction.SummaryLongPressed -> if (state.summaryTools) sendEvent(TodayEvent.OpenTodayScreenSettings)
             TodayAction.WeightTapped -> sendEvent(TodayEvent.OpenWeight)
             else -> selectAction(action)
         }
@@ -233,6 +234,10 @@ class TodayViewModel(
             is TodayAction.FoodLongPressed -> action.rebuild {
                 copy(selected = setOf(action.entryId), step = SelectStep.Actions, swipe = SwipeState(), menuOpen = false)
             }
+            // From the ⋮ menu: selecting with nothing picked yet, a tap on a food picks it.
+            TodayAction.SelectMenuTapped -> action.rebuild {
+                copy(selected = emptySet(), step = SelectStep.Actions, swipe = SwipeState(), menuOpen = false, clearArmed = false)
+            }
             is TodayAction.FoodToggled -> action.rebuild { copy(selected = selected?.toggle(action.entryId)) }
             is TodayAction.MealHeaderToggled -> action.rebuild {
                 val ids = inputs?.day?.items(action.slot).orEmpty().map { it.id }
@@ -241,6 +246,7 @@ class TodayViewModel(
             }
             TodayAction.SelectAllTapped -> action.rebuild { copy(selected = inputs?.day?.allItems.orEmpty().mapTo(LinkedHashSet()) { it.id }) }
             TodayAction.SelectionClosed -> action.rebuild { copy(selected = null, step = SelectStep.Actions) }
+            TodayAction.SaveAsMealTapped -> saveSelectedAsMeal(action)
             is TodayAction.DragStarted -> if (model.selected?.contains(action.entryId) == false) {
                 action.rebuild { copy(selected = selected.orEmpty() + action.entryId, step = SelectStep.Actions) }
             }
@@ -248,14 +254,14 @@ class TodayViewModel(
             is TodayAction.MoveRowRequested -> if (model.selected != null) {
                 action.rebuild { copy(selected = selected.orEmpty() + action.entryId, step = SelectStep.MoveTo()) }
             }
-            TodayAction.CopyToTapped -> action.rebuild { copy(step = SelectStep.CopyTo(slot = firstSelectedSlot())) }
+            TodayAction.CopyToTapped -> if (picking()) action.rebuild { copy(step = SelectStep.CopyTo(slot = firstSelectedSlot())) }
             is TodayAction.CopyDayPicked -> action.rebuild { copy(step = (step as? SelectStep.CopyTo)?.copy(day = action.day) ?: step) }
             is TodayAction.CopySlotPicked -> action.rebuild { copy(step = (step as? SelectStep.CopyTo)?.copy(slot = action.slot) ?: step) }
             TodayAction.CopyConfirmed -> copySelected(action)
-            TodayAction.MoveTapped -> action.rebuild { copy(step = SelectStep.MoveTo()) }
+            TodayAction.MoveTapped -> if (picking()) action.rebuild { copy(step = SelectStep.MoveTo()) }
             is TodayAction.MoveSlotPicked -> action.rebuild { copy(step = SelectStep.MoveTo(action.slot)) }
             TodayAction.MoveConfirmed -> (model.step as? SelectStep.MoveTo)?.slot?.let { move(action, it) }
-            TodayAction.RemoveSelectedTapped -> action.rebuild { copy(step = SelectStep.ConfirmRemove) }
+            TodayAction.RemoveSelectedTapped -> if (picking()) action.rebuild { copy(step = SelectStep.ConfirmRemove) }
             TodayAction.RemoveSelectedConfirmed -> {
                 val ids = state.selection?.ids.orEmpty().toList()
                 action.rebuild { copy(selected = null, step = SelectStep.Actions) }
@@ -332,6 +338,23 @@ class TodayViewModel(
         }
     }
 
+    /**
+     * Create a meal from the picks, which lands in My meals on Foods for logging again. Selecting
+     * ends here, as after Copy and Move; the meal is only made once Create a meal saves it.
+     */
+    private suspend fun saveSelectedAsMeal(action: TodayAction) {
+        val ids = state.selection?.ids.orEmpty()
+        if (ids.isEmpty()) return
+        val slot = model.inputs?.day?.allItems.orEmpty()
+            .filter { it.id in ids }
+            .map { it.slot }
+            .distinct()
+            .singleOrNull()
+            ?.takeIf { it.isMeal }
+        action.rebuild { copy(selected = null, step = SelectStep.Actions) }
+        sendEvent(TodayEvent.OpenCreateMeal(day(), ids.toList(), slot))
+    }
+
     private suspend fun copySelected(action: TodayAction) {
         val step = model.step as? SelectStep.CopyTo ?: return
         val slot = step.slot ?: return
@@ -357,6 +380,9 @@ class TodayViewModel(
         val first = model.selected?.firstOrNull() ?: return null
         return model.inputs?.day?.allItems?.firstOrNull { it.id == first }?.slot?.takeIf { it.isMeal }
     }
+
+    /** Something is picked: selecting from the ⋮ menu starts with nothing, and the bar waits for a food. */
+    private fun picking(): Boolean = !state.selection?.ids.isNullOrEmpty()
 
     private fun Set<String>.toggle(id: String): Set<String> = if (id in this) this - id else this + id
 

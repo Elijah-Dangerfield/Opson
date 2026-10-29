@@ -51,7 +51,7 @@ sealed interface MoreRow {
     /** "Energy range and macro split", never the range itself. */
     data object Targets : MoreRow
 
-    /** More › Today screen (design sync 4, 13.6), with `release.goalsAndEnergy`. */
+    /** More › Today screen (design sync 4, 13.6), always: the release flags only decide what it arranges. */
     data object TodayScreen : MoreRow
 
     data object LookAndFeel : MoreRow
@@ -94,7 +94,7 @@ object MoreStateBuilder {
      * How the app treats you, optional extras, help and plan, about, the account, then the rows
      * other modules [contributed], a card per section. Reminders shows only with [remindersOn]; [healthConnected] is null while
      * `release.health` is off, and then there is no health row at all. [fastingReleased] is
-     * `release.fasting`, [widgetsOn] `release.widgets`, [todayScreenOn] `release.goalsAndEnergy`.
+     * `release.fasting`, [widgetsOn] `release.widgets`.
      * [account] is null with no session, and then there is no Account card.
      */
     fun build(
@@ -103,7 +103,6 @@ object MoreStateBuilder {
         remindersOn: Boolean = false,
         fastingReleased: Boolean = false,
         widgetsOn: Boolean = false,
-        todayScreenOn: Boolean = false,
         account: MoreAccount? = null,
         contributed: List<MoreRowContribution> = emptyList(),
     ): MoreState = MoreState(
@@ -111,7 +110,7 @@ object MoreStateBuilder {
             listOfNotNull(
                 MoreRow.Modes(preset = settings.numbers.preset, changes = settings.numbers.changes.size),
                 MoreRow.Targets,
-                MoreRow.TodayScreen.takeIf { todayScreenOn },
+                MoreRow.TodayScreen,
                 MoreRow.Reminders(quiet = settings.quiet).takeIf { remindersOn },
                 healthConnected?.let { MoreRow.Health(connected = it) },
                 // Not in the design's More (13.1), kept last on purpose: Appearance and text size

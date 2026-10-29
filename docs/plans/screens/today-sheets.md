@@ -24,7 +24,7 @@ event that pops the sheet; and a sheet whose day or entry no longer exists
 
 ---
 
-## Day menu (⋮, a popover inside Today) and Edit Today's cards
+## Day menu (⋮, a popover inside Today)
 
 Design v3, 2.11. The Add menu and the header + are gone (adding is the nav +
 or a meal's +), so this is the only menu. Not a nav destination: it anchors
@@ -40,14 +40,15 @@ sealed interface DayMenuItem {
     data object CopyToTomorrow : DayMenuItem                  // not on a planned day
     data object AddNote : DayMenuItem
     data class Untracked(val marked: Boolean) : DayMenuItem    // "Mark as untracked" / "Track this day again"
-    data object EditCards : DayMenuItem
+    data object Select : DayMenuItem                           // release.todaySelect, a day with foods
+    data object EditCards : DayMenuItem                        // "Edit Today screen"
     data object ClearDay : DayMenuItem
 }
 ```
 
 Groups, by what each item affects: the day (Close, This day's nutrients);
-copying and notes (Copy yesterday, Copy this day to tomorrow, Add a note,
-Mark as untracked); layout (Edit Today's cards, Clear this day). Rows are icon
+copying and notes (Select, Copy yesterday, Copy this day to tomorrow, Add a
+note, Mark as untracked); layout (Edit Today screen, Clear this day). Rows are icon
 first in the accent (layout rows muted), no lines inside a group. **Mark as
 untracked** writes `day_records.untracked` (see `today.md`); on an untracked
 day it reads "Track this day again", and Close the day leaves the menu.
@@ -63,29 +64,46 @@ Fasting is 0.2.
 | `CopyToTomorrowTapped` | `copyDay(from = day, to = day + 1)`, appended, toast; nothing on a planned day. |
 | `DayNoteTapped` | Close menu, `OpenDayNote(day)` (not Day close, see `shared.md`). |
 | `UntrackedMenuTapped` | Close menu, `setUntracked(day, !untracked)`. |
-| `EditCardsTapped` | Close menu, `OpenTodayCards`. |
+| `SelectMenuTapped` | Close menu, select mode with nothing picked: a tap on a food picks it, and the bar's Save as meal, Move, Copy to… and Delete wait, dimmed, until one is. Only with `release.todaySelect`, on a day with foods that is not closed. |
+| `EditCardsTapped` | Close menu, `OpenTodayScreenSettings`: More › Today screen with "‹ Today". |
 | `ClearDayTapped` | First tap: `clearArmed = true`, menu stays open, icon in `c-protein`. Second: `clearDay(day)`, close, toast. |
 
-Copy: Close the day / Close this day, This day's nutrients, Copy yesterday,
-Copy this day to tomorrow, Add a note, Edit Today's cards, Clear this day / Tap
+Copy: Close the day / Close this day, This day's nutrients, Select, Copy yesterday,
+Copy this day to tomorrow, Add a note, Edit Today screen, Clear this day / Tap
 again to clear. Toasts: Copied the previous day in. / Copied. It will be
 waiting on the next day. / Cleared this day.
 
-### Edit Today's cards
+### Edit Today screen (was Edit Today's cards)
 
-`TodayCardsRoute`, `bottomSheet<>`, `TodayCardsViewModel`. Two switches:
-**Meal groups** (`SettingsRepository.update { mealGroups = !mealGroups }`) and
-**Water** (the card that used to be "Hide water"). Turning water off requests
-`Override(Water, Hide)` from `NumbersChanger` (fewer numbers, applies at once,
-or `OpenPause` if the changer says so). Turning it **on** is a change that shows
-more, and v3 keeps those in Modes and numbers ("content screens never get a
-one-tap toggle that shows more numbers"), so the switch opens `ModesRoute`
-instead. Copy: Today's cards; Meal groups / Breakfast, lunch, snack and dinner.
-Off puts everything in one list.; Water / The water card and its glasses.
+There is one place Today is arranged: More › Today screen
+(`TodayScreenSettingsRoute`, in `:features:settings:impl`, `todayscreen/`).
+The ⋮ item and a long press on the summary card open it with `fromToday = true`
+("‹ Today"); More opens it with "‹ More". It is there whatever the release
+flags say; they only decide which parts it arranges. Edit Today's cards was a
+second, smaller sheet that wrote some of the same settings (Card pages, a water
+switch with a different meaning) and none of the rest, and opening it from
+Today when More › Today was expected is what the owner reported (2026-10-29).
 
-Tests: groups toggle writes, water off issues the hide override, water on
-writes nothing and opens Modes, `NeedsPause` opens the pause sheet.
-`SURFACES`: `today-day-menu`, `today-day-menu-armed`, `today-cards`.
+What moved from the sheet: Meal groups, the Fasting card switch (while fasting
+is offered and its timer is on) and the summary card's stats (`release.todaySummary`
+where design sync 4's card is not drawn: the suggestion with Reset, page 1's
+stats to tick and drag, a lock on what the levels hide that opens Modes).
+`SummaryStats` moved to `:libraries:diary:ui` and `TodaySummaryEnabled` to
+`:libraries:diary` so both Today and the page read them. The sheet's Water
+switch, which hid the water level through `NumbersChanger`, is gone: Water here
+is `todayWater`, the card on Today alone, and when the levels hide water the row
+says so and links to Modes and numbers.
+
+A choice the page offers that something else overrides says so under it, with
+a link to what decides (`OverrideNote`): Equation or Deficit or surplus without
+Burned (Resting energy, or Modes and numbers when energy out is hidden), water,
+weight or vitamins and minerals hidden by the levels, the card's layout set by
+the mode or by calories on Later, and Burned breakdown on a preset other than
+In and out. Today and the page read the same rule for the drawn preset
+(`TodayCardRules` in `:libraries:diary`).
+
+`SURFACES`: `today-day-menu`, `today-day-menu-armed`; the page is
+`today-screen-settings` and `today-screen-settings-stats` in `SettingsLeakSurfaces`.
 
 ---|---|
 | `AddTapped` | `menu = Add`. |

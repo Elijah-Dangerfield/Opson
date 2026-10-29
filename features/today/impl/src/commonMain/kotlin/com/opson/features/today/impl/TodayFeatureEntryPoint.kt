@@ -18,7 +18,7 @@ import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.FindSupportRoute
 import com.opson.features.settings.SupportRoute
-import com.opson.features.settings.ModesRoute
+import com.opson.features.settings.TodayScreenSettingsRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
@@ -31,9 +31,6 @@ import com.opson.features.today.impl.activity.TodayActivityEvent
 import com.opson.features.today.impl.activity.TodayActivitySection
 import com.opson.features.today.impl.activity.TodayActivityViewModel
 import com.opson.features.today.impl.calendar.CalendarEvent
-import com.opson.features.today.impl.cards.TodayCardsEvent
-import com.opson.features.today.impl.cards.TodayCardsSheetContent
-import com.opson.features.today.impl.cards.TodayCardsViewModel
 import com.opson.features.today.impl.calendar.CalendarDropdownContent
 import com.opson.features.today.impl.calendar.CalendarViewModel
 import com.opson.features.today.impl.dayclose.DayCloseEvent
@@ -91,7 +88,7 @@ import kotlin.reflect.typeOf
 /**
  * Today and everything that opens from it: the tab root, Day close, the calendar that drops from
  * the title, the Notes list, and the meal, meal Note (hunger and words), water, food actions, day
- * note, Today's cards and day closed sheets.
+ * note and day closed sheets. Arranging Today is More › Today screen's, which the ⋮ menu opens.
  * View models send events; only this class navigates.
  */
 @SingleIn(AppScope::class)
@@ -107,7 +104,6 @@ class TodayFeatureEntryPoint(
     private val waterSheetViewModelFactory: (LocalDate) -> WaterSheetViewModel,
     private val itemSheetViewModelFactory: (LocalDate, String) -> ItemSheetViewModel,
     private val dayNoteViewModelFactory: (LocalDate) -> DayNoteViewModel,
-    private val todayCardsViewModelFactory: () -> TodayCardsViewModel,
     private val notesViewModelFactory: (Boolean) -> NotesViewModel,
     private val todayActivityViewModelFactory: () -> TodayActivityViewModel,
     private val tabBar: TabBar,
@@ -264,23 +260,6 @@ class TodayFeatureEntryPoint(
             TodaySheet(router, sheetState) { ItemSheetContent(state = state, onAction = viewModel::takeAction) }
         }
 
-        bottomSheet<TodayCardsRoute> { _, sheetState ->
-            val viewModel: TodayCardsViewModel = viewModel { todayCardsViewModelFactory() }
-            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-            viewModel.ObserveEvents { event ->
-                when (event) {
-                    is TodayCardsEvent.OpenPause -> router.navigate(event.change.toRoute())
-                    TodayCardsEvent.OpenModes -> router.batch {
-                        goBack()
-                        navigate(ModesRoute())
-                    }
-                    is TodayCardsEvent.ShowToast -> showToast(event.toast)
-                    TodayCardsEvent.Dismiss -> sheetState.dismiss()
-                }
-            }
-            TodaySheet(router, sheetState) { TodayCardsSheetContent(state = state, onAction = viewModel::takeAction) }
-        }
-
         bottomSheet<WhyNotCutBackRoute> { _, sheetState ->
             TodaySheet(router, sheetState) { WhyNotCutBackSheetContent(onClose = { sheetState.dismiss() }) }
         }
@@ -326,7 +305,10 @@ class TodayFeatureEntryPoint(
             TodayEvent.OpenEnergyToday -> router.navigate(EnergyTodayRoute())
             is TodayEvent.OpenLogger -> router.navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString()))
             TodayEvent.OpenWeight -> router.navigate(WeightRoute())
-            TodayEvent.OpenTodayCards -> router.navigate(TodayCardsRoute())
+            is TodayEvent.OpenCreateMeal -> router.navigate(
+                CreateMealRoute(fromDayIso = event.day.toString(), fromSlot = event.slot, entryIds = event.entryIds),
+            )
+            TodayEvent.OpenTodayScreenSettings -> router.navigate(TodayScreenSettingsRoute(fromToday = true))
             TodayEvent.OpenFasting -> router.navigate(FastingRoute())
             is TodayEvent.OpenDayNote -> router.navigate(DayNoteRoute(event.day.toString()))
             is TodayEvent.OpenMealSheet -> router.navigate(MealSheetRoute(event.day.toString(), event.slot))

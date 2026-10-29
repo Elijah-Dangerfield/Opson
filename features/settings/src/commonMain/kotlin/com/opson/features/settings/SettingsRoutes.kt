@@ -43,9 +43,13 @@ class MicroTargetsRoute(val fromTodayScreen: Boolean = false) : Route()
 @Serializable
 class MicroTargetRoute(val micro: String = "") : Route()
 
-/** More › Today screen (design sync 4, 13.6): the summary card's preset, main number and pages, the list's rows and the header's Close the day. */
+/**
+ * More › Today screen (design sync 4, 13.6), the one place Today is arranged: the summary card's
+ * preset, main number, pages and stats, the list's rows and the header's Close the day. Today's ⋮
+ * menu and a long press on its summary card open it with [fromToday], which picks "‹ Today".
+ */
 @Serializable
-class TodayScreenSettingsRoute : Route()
+class TodayScreenSettingsRoute(val fromToday: Boolean = false) : Route()
 
 /** The main number or card pages sheet over More › Today screen; [choice] is `main_number` or `card_pages`. */
 @Serializable

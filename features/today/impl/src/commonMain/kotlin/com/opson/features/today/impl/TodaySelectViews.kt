@@ -16,9 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.DragHandle
@@ -62,13 +59,14 @@ import opson.libraries.resources.generated.resources.today_select_foods_other
 import opson.libraries.resources.generated.resources.today_select_move
 import opson.libraries.resources.generated.resources.today_select_move_action
 import opson.libraries.resources.generated.resources.today_select_move_title
+import opson.libraries.resources.generated.resources.today_select_save_meal
 import opson.libraries.resources.generated.resources.today_select_title
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /*
  * Select mode (design sync 4, 13.3b and 13.3c): the bar that replaces the day header while
- * selecting, the bottom bar with Move, Copy to… and Delete, the panel each of those opens, and
+ * selecting, the bottom bar with Save as meal, Move, Copy to… and Delete, the panel each of those opens, and
  * the card a drag carries. Nothing here shows an amount, so every mode draws the same.
  */
 
@@ -107,7 +105,7 @@ internal fun SelectHeader(selection: Selection, onAction: (TodayAction) -> Unit,
 @Composable
 internal fun SelectPanel(selection: Selection, onAction: (TodayAction) -> Unit, modifier: Modifier = Modifier) {
     when (val step = selection.step) {
-        SelectStep.Actions -> SelectBar(onAction, modifier)
+        SelectStep.Actions -> SelectBar(enabled = selection.count > 0, onAction = onAction, modifier = modifier)
         else -> Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -136,32 +134,41 @@ internal fun SelectPanel(selection: Selection, onAction: (TodayAction) -> Unit, 
     }
 }
 
-/** Move, Copy to… and Delete, edge to edge where the tab bar was. Move is also how to move without dragging. */
+/**
+ * Save as meal, Move, Copy to… and Delete, edge to edge where the tab bar was. Move is also how to
+ * move without dragging. Opened from the ⋮ menu nothing is picked yet, and the four wait, dimmed,
+ * for the first tap on a food.
+ */
 @Composable
-private fun SelectBar(onAction: (TodayAction) -> Unit, modifier: Modifier = Modifier) {
+private fun SelectBar(enabled: Boolean, onAction: (TodayAction) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().background(AppTheme.colors.surface).navigationBarsPadding()) {
         HorizontalDivider(color = AppTheme.colors.line)
         Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            BarAction(AppIcons.DriveFileMove, stringResource(Res.string.today_select_move)) { onAction(TodayAction.MoveTapped) }
-            BarAction(AppIcons.ContentCopy, stringResource(Res.string.today_select_copy)) { onAction(TodayAction.CopyToTapped) }
-            BarAction(AppIcons.Delete, stringResource(Res.string.today_select_delete)) { onAction(TodayAction.RemoveSelectedTapped) }
+            BarAction(AppIcons.BookmarkAdd, stringResource(Res.string.today_select_save_meal), enabled, Modifier.weight(1f)) {
+                onAction(TodayAction.SaveAsMealTapped)
+            }
+            BarAction(AppIcons.DriveFileMove, stringResource(Res.string.today_select_move), enabled, Modifier.weight(1f)) { onAction(TodayAction.MoveTapped) }
+            BarAction(AppIcons.ContentCopy, stringResource(Res.string.today_select_copy), enabled, Modifier.weight(1f)) { onAction(TodayAction.CopyToTapped) }
+            BarAction(AppIcons.Delete, stringResource(Res.string.today_select_delete), enabled, Modifier.weight(1f)) {
+                onAction(TodayAction.RemoveSelectedTapped)
+            }
         }
     }
 }
 
 @Composable
-private fun BarAction(icon: IconResource, label: String, onClick: () -> Unit) {
+private fun BarAction(icon: IconResource, label: String, enabled: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val color = if (enabled) AppTheme.colors.ink else AppTheme.colors.muted
     Column(
-        modifier = Modifier
-            .defaultMinSize(minWidth = 96.dp, minHeight = 64.dp)
-            .semantics { role = Role.Button }
-            .bounceClick(scaleDown = 0.95f, onClick = onClick)
-            .padding(8.dp),
+        modifier = modifier
+            .defaultMinSize(minHeight = 64.dp)
+            .bounceClick(scaleDown = 0.95f, enabled = enabled, onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(icon = icon, size = 28.dp, color = AppTheme.colors.ink)
-        Text(text = label, typography = AppTheme.type.bodyBold.ExtraBold, color = AppTheme.colors.ink)
+        Icon(icon = icon, size = 28.dp, color = color)
+        Text(text = label, typography = AppTheme.type.bodyBold.ExtraBold, color = color, maxLines = 1)
     }
 }
 

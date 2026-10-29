@@ -1,12 +1,18 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
+import com.opson.libraries.nutrition.Visibility
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /** More › Today screen's settings (design sync 4, 13.6): top-level keys, safe defaults, and the toggle remembered per goal style. */
 class TodayCardSettingsTest {
@@ -49,5 +55,25 @@ class TodayCardSettingsTest {
 
         assertNull(remembered.forgetMainNumber().rememberedMainNumber)
         assertNull(Settings(todayMainNumberByStyle = mapOf("range" to "nonsense")).rememberedMainNumber)
+    }
+
+    @Test
+    fun theDrawnPreset_fallsBackToInAndOut_withoutWhatItNeeds() {
+        assertEquals(SummaryCardPreset.Equation, TodayCardRules.drawn(SummaryCardPreset.Equation, singleTarget = false, burnedOnShow = true))
+        assertEquals(SummaryCardPreset.InOut, TodayCardRules.drawn(SummaryCardPreset.Equation, singleTarget = true, burnedOnShow = false))
+        assertEquals(SummaryCardPreset.InOut, TodayCardRules.drawn(SummaryCardPreset.Rings, singleTarget = false, burnedOnShow = true))
+        assertEquals(SummaryCardPreset.Rings, TodayCardRules.drawn(SummaryCardPreset.Rings, singleTarget = true, burnedOnShow = false))
+        assertEquals(SummaryCardPreset.RangeBar, TodayCardRules.drawn(SummaryCardPreset.RangeBar, singleTarget = false, burnedOnShow = false))
+    }
+
+    @Test
+    fun thePresetsApply_inAllNumbersLayoutWithCaloriesOnShow_andTheEnergyPageOnLaterToo() {
+        assertTrue(TodayCardRules.presetsApply(NumbersSettings()))
+        val later = NumbersSettings(overrides = mapOf(Metric.Calories to Visibility.Delay))
+        assertFalse(TodayCardRules.presetsApply(later))
+        assertTrue(TodayCardRules.energyPage(later))
+        listOf(PresetId.MacrosWithGrams, PresetId.MacrosOnly, PresetId.NoNumbers).forEach {
+            assertFalse(TodayCardRules.energyPage(NumbersSettings(preset = it)), "$it")
+        }
     }
 }

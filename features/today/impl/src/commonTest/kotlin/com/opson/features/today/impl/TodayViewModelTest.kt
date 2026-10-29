@@ -473,7 +473,7 @@ class TodayViewModelTest : CoroutineTest() {
                 TodayEvent.OpenNutrients(today),
                 TodayEvent.OpenNotes,
                 TodayEvent.OpenDayNote(today),
-                TodayEvent.OpenTodayCards,
+                TodayEvent.OpenTodayScreenSettings,
             ),
             events,
         )
@@ -631,7 +631,7 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun aLongPressOnTheCardOpensTheCardsSheet_onlyWithTheFlag() = runUnitTest {
+    fun aLongPressOnTheCardOpensTodayScreen_onlyWithTheFlag() = runUnitTest {
         val off = vm(summaryOn = false)
         val offEvents = events(off)
         off.takeAction(TodayAction.SummaryLongPressed)
@@ -641,7 +641,7 @@ class TodayViewModelTest : CoroutineTest() {
         val events = events(on)
         on.takeAction(TodayAction.SummaryLongPressed)
         on.takeAction(TodayAction.WeightTapped)
-        assertEquals(listOf(TodayEvent.OpenTodayCards, TodayEvent.OpenWeight), events)
+        assertEquals(listOf(TodayEvent.OpenTodayScreenSettings, TodayEvent.OpenWeight), events)
     }
 
     // Select foods, drag them, swipe to delete (release.todaySelect), and a food's ⋮ (release.foodActions)
@@ -683,6 +683,67 @@ class TodayViewModelTest : CoroutineTest() {
 
         vm.takeAction(TodayAction.SelectionClosed)
         assertNull(vm.state.selection)
+    }
+
+    @Test
+    fun theMenusSelect_startsWithNothingPicked_andTheBarWaitsForAFood() = runUnitTest {
+        val vm = vm(selectOn = true)
+        vm.takeAction(TodayAction.DayMenuTapped)
+        assertTrue(vm.state.menu?.groups?.flatten()?.contains(DayMenuItem.Select) == true)
+
+        vm.takeAction(TodayAction.SelectMenuTapped)
+        assertNull(vm.state.menu, "the menu closes")
+        assertEquals(emptySet(), vm.state.selection?.ids)
+
+        vm.takeAction(TodayAction.MoveTapped)
+        vm.takeAction(TodayAction.CopyToTapped)
+        vm.takeAction(TodayAction.RemoveSelectedTapped)
+        assertEquals(SelectStep.Actions, vm.state.selection?.step, "nothing picked, nothing to move, copy or remove")
+
+        vm.takeAction(TodayAction.FoodToggled(oats))
+        assertEquals(setOf(oats), vm.state.selection?.ids)
+    }
+
+    @Test
+    fun theMenuOffersSelect_onlyWithTheFlag_andFoodsToPick() = runUnitTest {
+        val off = vm(selectOn = false)
+        off.takeAction(TodayAction.DayMenuTapped)
+        assertFalse(off.state.menu?.groups?.flatten().orEmpty().contains(DayMenuItem.Select))
+        off.takeAction(TodayAction.SelectMenuTapped)
+        assertNull(off.state.selection)
+
+        diary.days.value = emptyMap()
+        val empty = vm(selectOn = true)
+        empty.takeAction(TodayAction.DayMenuTapped)
+        assertFalse(empty.state.menu?.groups?.flatten().orEmpty().contains(DayMenuItem.Select))
+    }
+
+    @Test
+    fun saveAsMeal_opensCreateAMealWithThePicksAndStopsSelecting() = runUnitTest {
+        val vm = vm(selectOn = true)
+        val events = events(vm)
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+        vm.takeAction(TodayAction.FoodToggled(banana))
+
+        vm.takeAction(TodayAction.SaveAsMealTapped)
+
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenCreateMeal(today, listOf(oats, banana), MealSlot.Breakfast)), events)
+        assertNull(vm.state.selection)
+    }
+
+    @Test
+    fun saveAsMeal_fromTwoMealsNamesNoMeal_andWithNothingPickedOpensNothing() = runUnitTest {
+        val vm = vm(selectOn = true)
+        val events = events(vm)
+        vm.takeAction(TodayAction.SelectMenuTapped)
+        vm.takeAction(TodayAction.SaveAsMealTapped)
+        assertTrue(events.isEmpty())
+
+        vm.takeAction(TodayAction.FoodToggled(oats))
+        vm.takeAction(TodayAction.FoodToggled(adobo))
+        vm.takeAction(TodayAction.SaveAsMealTapped)
+
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenCreateMeal(today, listOf(oats, adobo), slot = null)), events)
     }
 
     @Test

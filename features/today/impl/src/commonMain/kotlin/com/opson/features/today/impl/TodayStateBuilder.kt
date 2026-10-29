@@ -1,5 +1,7 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.TodayCardRules
+import com.opson.libraries.diary.ui.SummaryStat
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LoggedToMeal
@@ -8,6 +10,7 @@ import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.totals
+import com.opson.libraries.diary.ui.SummaryStats
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EnergyRange
@@ -124,10 +127,10 @@ object TodayStateBuilder {
             } else {
                 null
             },
-            water = if (future || !shownOnToday(inputs) { it.todayWater }) null else water(day, inputs.settings, policy, context),
+            water = if (future || !inputs.settings.todayWater) null else water(day, inputs.settings, policy, context),
             meals = if (future) planned(inputs, policy, context, groupsOn) else meals(inputs, policy, context, layout, groupsOn),
             // Nothing logged, nothing to close yet (design sync 2, 2.2); the ⋮ menu still offers it.
-            closeDay = if (future || untracked || !day.hasLogged || !shownOnToday(inputs) { it.todayCloseDay }) null else CloseDayButton(closed = closed),
+            closeDay = if (future || untracked || !day.hasLogged || !inputs.settings.todayCloseDay) null else CloseDayButton(closed = closed),
             closed = closed,
             highlight = highlight,
             added = added?.takeIf { it.day == date }?.let { AddedNotice(it.slot, it.itemIds.size) },
@@ -137,7 +140,7 @@ object TodayStateBuilder {
             // Settings held these before they moved to the phone; a phone that never set them keeps that choice.
             summaryPage = (inputs.cardView.page ?: settings.todaySummaryPage).coerceIn(0, pageCount - 1),
             compact = compact,
-            weight = if (summaryOn && !future && shownOnToday(inputs) { it.todayWeight }) weightRow(inputs, policy, context) else null,
+            weight = if (summaryOn && !future && inputs.settings.todayWeight) weightRow(inputs, policy, context) else null,
             selectTools = inputs.selectTools,
             foodMenus = inputs.foodActionsOn,
             selection = selecting?.let { selection(it, day, ui.step) },
@@ -152,12 +155,6 @@ object TodayStateBuilder {
      * day, so a day closed with Close the day has none of them.
      */
     private val TodayInputs.selectTools: Boolean get() = selectOn && !day.closedByUser
-
-    /**
-     * A list row, the card's Nutrients link or the header's Close the day: each one More › Today
-     * screen can turn off on Today alone (design sync 4, 13.6a).
-     */
-    private fun shownOnToday(inputs: TodayInputs, on: (Settings) -> Boolean): Boolean = !inputs.goalsAndEnergyOn || on(inputs.settings)
 
     /** "Rice pudding" reads "rice pudding" mid-sentence; "BBQ chips" stays as it is. */
     internal fun inSentence(name: String): String =
@@ -205,10 +202,10 @@ object TodayStateBuilder {
             stats = if (summaryOn && !empty) stats(inputs, policy, context, eaten, range, macros.map { it.metric }.toSet()) else emptyList(),
             macrosPage = if (summaryOn && !empty && settings.todayMacrosPage) macrosPage(day, settings, policy, context, eaten) else null,
             // More › Today screen's Nutrients switch, which turned the card's link off, turns this page off.
-            nutrientsPage = if (!empty && shownOnToday(inputs) { it.todayNutrientsLink }) TodayNutrientsPage.build(day, settings, inputs.today, policy, context) else null,
+            nutrientsPage = if (!empty && inputs.settings.todayNutrientsLink) TodayNutrientsPage.build(day, settings, inputs.today, policy, context) else null,
             singleGoal = range.single,
             // Only All numbers' card: outside it (Later after its reveal, too) the mode sets the layout.
-            card = if (inputs.goalsAndEnergyOn && policy.preset.today == TodayLayout.Full && policy.level(Metric.Calories) == Visibility.Show) {
+            card = if (inputs.goalsAndEnergyOn && TodayCardRules.presetsApply(policy.settings)) {
                 EnergyCardBuilder.build(inputs, policy, context, eaten, range, bar)
             } else {
                 null
@@ -240,9 +237,9 @@ object TodayStateBuilder {
         range: EnergyRange,
         inRow: Set<Metric>,
     ): List<StatTile> {
-        val offered = SummaryStats.offered(policy)
+        val offered = SummaryStats.offered(policy.settings)
         return SummaryStats.chosen(inputs.settings)
-            .filter { it in offered && SummaryStats.allowed(it, policy) && it.metric !in inRow }
+            .filter { it in offered && SummaryStats.allowed(it, policy.settings) && it.metric !in inRow }
             .mapNotNull { stat ->
                 statValue(stat, inputs, policy, context, eaten, range)?.let {
                     StatTile(stat, it, if (stat == SummaryStat.ToRange && range.single) Res.string.today_stat_to_goal else stat.label)
@@ -616,6 +613,7 @@ object TodayStateBuilder {
         val groups = listOf(
             listOfNotNull(close, DayMenuItem.Nutrients, DayMenuItem.Notes),
             listOfNotNull(
+                DayMenuItem.Select.takeIf { inputs.selectTools && inputs.day.allItems.isNotEmpty() },
                 DayMenuItem.CopyYesterday.takeUnless { closed },
                 if (past) DayMenuItem.CopyToTomorrow else null,
                 DayMenuItem.AddNote.takeUnless { closed },

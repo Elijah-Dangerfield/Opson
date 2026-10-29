@@ -1,15 +1,19 @@
-package com.opson.features.today.impl
+package com.opson.libraries.diary.ui
 
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Visibility
-import com.opson.libraries.nutrition.VisibilityPolicy
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_goal_changing_weight
 import opson.libraries.resources.generated.resources.today_goal_eating_enough
 import opson.libraries.resources.generated.resources.today_goal_eating_regularly
 import opson.libraries.resources.generated.resources.today_goal_performance
+import opson.libraries.resources.generated.resources.today_macro_carbs
+import opson.libraries.resources.generated.resources.today_macro_fat
+import opson.libraries.resources.generated.resources.today_macro_fiber
+import opson.libraries.resources.generated.resources.today_macro_protein
 import opson.libraries.resources.generated.resources.today_stat_deficit
 import opson.libraries.resources.generated.resources.today_stat_expended
 import opson.libraries.resources.generated.resources.today_stat_meals
@@ -40,7 +44,10 @@ enum class SummaryStat(val wire: String, val metric: Metric?) {
             DeficitSoFar -> Res.string.today_stat_deficit
             ToRange -> Res.string.today_stat_to_range
             Meals -> Res.string.today_stat_meals
-            Protein, Carbs, Fat, Fiber -> TodayStateBuilder.macroLabel(requireNotNull(metric))
+            Protein -> Res.string.today_macro_protein
+            Carbs -> Res.string.today_macro_carbs
+            Fat -> Res.string.today_macro_fat
+            Fiber -> Res.string.today_macro_fiber
             Water -> Res.string.today_stat_water
         }
 
@@ -50,7 +57,8 @@ enum class SummaryStat(val wire: String, val metric: Metric?) {
 }
 
 /**
- * Which stats show, in what order, and which may be picked. The suggestion comes from the first
+ * Which stats show, in what order, and which may be picked. Today builds the stats row from it and
+ * More › Today screen lists them for picking, so the two never disagree. The suggestion comes from the first
  * onboarding goal that has one; the person's own order wins once they choose. Nothing here
  * decides how a stat is drawn: a stat whose number the levels hide drops out when it is built.
  */
@@ -79,25 +87,25 @@ object SummaryStats {
         settings.todaySummaryStats?.mapNotNull(SummaryStat::fromWire)?.distinct()?.take(MAX) ?: suggested(settings)
 
     /** Every stat this mode can offer at all. Deficit so far only where deficits are offered (Full, Sprint). */
-    fun offered(policy: VisibilityPolicy): List<SummaryStat> =
-        SummaryStat.entries.filter { it != SummaryStat.DeficitSoFar || TargetStyle.deficitAllowed(policy.settings.preset) }
+    fun offered(numbers: NumbersSettings): List<SummaryStat> =
+        SummaryStat.entries.filter { it != SummaryStat.DeficitSoFar || TargetStyle.deficitAllowed(numbers.preset) }
 
     /**
      * Whether the levels let [stat] show anything: amounts at Show for the energies and the
      * remainder, anything but Hide for the macros and water. Meals is a count and always may.
      */
-    fun allowed(stat: SummaryStat, policy: VisibilityPolicy): Boolean = when (stat) {
+    fun allowed(stat: SummaryStat, numbers: NumbersSettings): Boolean = when (stat) {
         SummaryStat.Meals -> true
-        SummaryStat.Expended -> policy.level(Metric.EnergyOut) == Visibility.Show
+        SummaryStat.Expended -> numbers.level(Metric.EnergyOut) == Visibility.Show
         SummaryStat.DeficitSoFar ->
-            policy.level(Metric.EnergyOut) == Visibility.Show && policy.level(Metric.Calories) == Visibility.Show
-        SummaryStat.ToRange -> policy.level(Metric.Remaining) == Visibility.Show && policy.level(Metric.Calories) == Visibility.Show
-        else -> policy.level(requireNotNull(stat.metric)) != Visibility.Hide
+            numbers.level(Metric.EnergyOut) == Visibility.Show && numbers.level(Metric.Calories) == Visibility.Show
+        SummaryStat.ToRange -> numbers.level(Metric.Remaining) == Visibility.Show && numbers.level(Metric.Calories) == Visibility.Show
+        else -> numbers.level(requireNotNull(stat.metric)) != Visibility.Hide
     }
 
     /** The sheet's list: the chosen ones first in their order, then the rest as the enum orders them. */
-    fun listed(settings: Settings, policy: VisibilityPolicy): List<SummaryStat> {
-        val offered = offered(policy)
+    fun listed(settings: Settings, numbers: NumbersSettings = settings.numbers): List<SummaryStat> {
+        val offered = offered(numbers)
         val chosen = chosen(settings).filter { it in offered }
         return chosen + (offered - chosen.toSet())
     }

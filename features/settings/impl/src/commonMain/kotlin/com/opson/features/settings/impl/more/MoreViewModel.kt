@@ -7,7 +7,6 @@ import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
-import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
@@ -41,7 +40,6 @@ class MoreViewModel(
     private val remindersEnabled: RemindersEnabled,
     private val fastingRelease: FastingRelease,
     private val widgetsEnabled: WidgetsEnabled,
-    private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val auth: AuthRepository,
     private val diarySync: DiarySync,
     private val contributions: Set<MoreRowContribution> = emptySet(),
@@ -77,7 +75,6 @@ class MoreViewModel(
                     remindersOn = remindersEnabled(),
                     fastingReleased = fastingRelease.isOn(),
                     widgetsOn = widgetsEnabled(),
-                    todayScreenOn = goalsAndEnergy(),
                     account = action.account,
                     contributed = contributions.filter { it.visible() },
                 ).copy(logOut = it.logOut)

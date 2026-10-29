@@ -52,6 +52,8 @@ kotlin {
             // DeviceRegion, for Find support and the height unit.
             implementation(projects.libraries.core)
             implementation(projects.libraries.diary)
+            // SummaryStat, the stats More › Today screen picks.
+            implementation(projects.libraries.diary.ui)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.identity)
             implementation(projects.libraries.reminders)

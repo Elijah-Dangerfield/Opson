@@ -1,5 +1,6 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.diary.ui.SummaryStat
 import androidx.compose.runtime.Immutable
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.FastingStatus
@@ -346,6 +347,11 @@ sealed interface DayMenuItem {
 
     /** "Mark as untracked", or "Track this day again" once [marked]. */
     data class Untracked(val marked: Boolean) : DayMenuItem
+
+    /** Select mode with nothing picked yet (`release.todaySelect`), for a day with foods on it. */
+    data object Select : DayMenuItem
+
+    /** More › Today screen, the one place Today is arranged; a long press on the summary card opens it too. */
     data object EditCards : DayMenuItem
     data object ClearDay : DayMenuItem
 }
@@ -405,6 +411,7 @@ sealed interface TodayAction {
     data object DayNoteTapped : TodayAction
     data object UntrackedMenuTapped : TodayAction
     data object EditCardsTapped : TodayAction
+    data object SelectMenuTapped : TodayAction
     data object ClearDayTapped : TodayAction
 
     // The summary card (release.todaySummary)
@@ -418,6 +425,7 @@ sealed interface TodayAction {
     data class MealHeaderToggled(val slot: MealSlot) : TodayAction
     data object SelectAllTapped : TodayAction
     data object SelectionClosed : TodayAction
+    data object SaveAsMealTapped : TodayAction
 
     /** A row's handle was grabbed; a food not yet picked is picked, so it moves with the rest. */
     data class DragStarted(val entryId: String) : TodayAction
@@ -466,12 +474,15 @@ sealed interface TodayEvent {
     data class OpenMealSheet(val day: LocalDate, val slot: MealSlot) : TodayEvent
 
     /** The food's actions (13.3d), from its row or its ⋮. */
+    /** Create a meal filled with [entryIds] from [day]; [slot] when they all sit in that one meal. */
+    data class OpenCreateMeal(val day: LocalDate, val entryIds: List<String>, val slot: MealSlot?) : TodayEvent
     data class OpenItemSheet(val day: LocalDate, val entryId: String) : TodayEvent
     data class OpenWaterSheet(val day: LocalDate) : TodayEvent
 
     /** Something tried to add to [day], which is closed: "Today is closed. Reopen it to add more." */
     data class OpenDayClosed(val day: LocalDate) : TodayEvent
-    data object OpenTodayCards : TodayEvent
+    /** More › Today screen, from the ⋮ menu or a long press on the summary card. */
+    data object OpenTodayScreenSettings : TodayEvent
     data object OpenFasting : TodayEvent
     data object OpenWeight : TodayEvent
     data class OpenPause(val change: NumbersChange) : TodayEvent

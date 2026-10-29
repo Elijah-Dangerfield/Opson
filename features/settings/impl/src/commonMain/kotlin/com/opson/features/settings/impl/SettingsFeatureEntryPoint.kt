@@ -94,6 +94,7 @@ import com.opson.features.settings.impl.support.SupportViewModel
 import com.opson.features.settings.impl.targets.TargetsEvent
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsViewModel
+import com.opson.features.settings.impl.todayscreen.SettingLink
 import com.opson.features.settings.impl.todayscreen.TodayScreenChoice
 import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceEvent
 import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceSheetContent
@@ -316,18 +317,25 @@ class SettingsFeatureEntryPoint(
             RestingEnergyScreen(state = state, onAction = viewModel::takeAction, fromEnergyToday = route.fromEnergyToday)
         }
 
-        // Registered whatever release.goalsAndEnergy says, as the pages above.
-        screen<TodayScreenSettingsRoute> {
+        // Every release flag decides only which parts of Today the page arranges, never whether it is there.
+        screen<TodayScreenSettingsRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<TodayScreenSettingsRoute>()
             val viewModel: TodayScreenSettingsViewModel = viewModel { todayScreenSettingsViewModel() }
             val state by viewModel.stateFlow.collectAsStateWithLifecycle()
             viewModel.ObserveEvents { event ->
                 when (event) {
                     is TodayScreenSettingsEvent.OpenChoice -> router.navigate(TodayScreenChoiceRoute(event.choice.wire))
                     TodayScreenSettingsEvent.OpenMicroTargets -> router.navigate(MicroTargetsRoute(fromTodayScreen = true))
+                    is TodayScreenSettingsEvent.Open -> router.navigate(
+                        when (event.link) {
+                            SettingLink.Modes -> ModesRoute()
+                            SettingLink.RestingEnergy -> RestingEnergyRoute()
+                        },
+                    )
                     TodayScreenSettingsEvent.Close -> router.goBack()
                 }
             }
-            TodayScreenSettingsScreen(state = state, onAction = viewModel::takeAction)
+            TodayScreenSettingsScreen(state = state, onAction = viewModel::takeAction, fromToday = route.fromToday)
         }
 
         bottomSheet<TodayScreenChoiceRoute> { backStackEntry, sheetState ->

@@ -6,7 +6,6 @@ import com.opson.features.today.impl.dayclose.DayClosedSheetContent
 import com.opson.features.today.impl.dayclose.DayClosedState
 import com.opson.features.today.impl.item.ItemSheetStateBuilder
 import com.opson.features.today.impl.item.ItemStep
-import com.opson.features.today.impl.cards.TodayCardsSheetContent
 import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.item.ItemSheetContent
@@ -362,30 +361,6 @@ private fun TodayDayMenuPreview() = Phone { TodayWithMenu(full) }
 private fun TodayDayMenuArmedDarkPreview() = Phone(dark = true) { TodayWithMenu(full, clearArmed = true) }
 
 // Sheets
-
-@Preview(widthDp = 390)
-@Composable
-private fun TodayCardsSheetPreview() = Phone {
-    // v3 draws fiber hidden in Modes and numbers, so its row shows the lock.
-    val fiberHidden = VisibilityPolicy(
-        NumbersSettings(preset = PresetId.Full, overrides = mapOf(Metric.Fiber to Visibility.Hide)),
-        Clock.fixed(TodayFixtures.noon),
-        TodayFixtures.timeZone,
-    )
-    TodayCardsSheetContent(TodayFixtures.todayCardsState(fiberHidden, TodayFixtures.changingWeight, summaryOn = true), onAction = {})
-}
-
-/** With the summary flag off: the cards alone, as before. */
-@Preview(widthDp = 390)
-@Composable
-private fun TodayCardsSheetFlagOffPreview() = Phone { TodayCardsSheetContent(TodayFixtures.todayCardsState(full), onAction = {}) }
-
-/** 0.2: with fasting offered and its timer on, the Fasting card switch joins the sheet. */
-@Preview(widthDp = 390)
-@Composable
-private fun TodayCardsSheetFastingPreview() = Phone {
-    TodayCardsSheetContent(TodayFixtures.todayCardsState(full, Settings(fasting = true), fastingReleased = true), onAction = {})
-}
 
 /** 0.2: the fasting card on an empty morning, 13h 40m into last night's fast. */
 @Preview(widthDp = 390, heightDp = 844)
