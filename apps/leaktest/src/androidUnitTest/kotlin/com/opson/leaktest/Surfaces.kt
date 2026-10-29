@@ -115,10 +115,11 @@ internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
     listOf("day-close", "day-close-big-day", "day-close-check-in", "day-close-closed", "day-close-recap-deficit", "day-close-recap-surplus").forEach { put("later" to it, dayCloseOpens) }
     put("later" to "today-past", pastDayOpens)
     listOf("today-closed", "food-actions-closed").forEach { put("later" to it, closedDayOpens) }
-    listOf("trends", "trends-blind", "trends-coast", "nutrients-week", "patterns", "patterns-blind")
+    listOf("trends", "trends-blind", "trends-coast", "trends-deficit", "nutrients-week", "patterns", "patterns-blind")
         .forEach { put("later" to it, weekOpens) }
+    put("later" to "trends-day", pastDayOpens)
 
-    listOf("trends", "trends-blind", "trends-coast").forEach { put("later-weekly" to it, lastCheckOpens) }
+    listOf("trends", "trends-blind", "trends-coast", "trends-deficit").forEach { put("later-weekly" to it, lastCheckOpens) }
 
     listOf("later", "later-weekly").forEach { mode ->
         listOf("foods-add-food", "foods-add-food-blind", "foods-add-food-pack").forEach { put(mode to it, typedLabel) }

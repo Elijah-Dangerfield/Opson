@@ -98,6 +98,9 @@ interface Colors {
     /* Nutrients and meals */
     val nutrients: NutrientColors
 
+    /** The on-track calendar's day fills ([PlanColors]). Nothing else means on or off plan. */
+    val plan: PlanColors
+
     fun nutrient(tone: NutrientTone): ToneColors = when (tone) {
         NutrientTone.Protein -> nutrients.protein
         NutrientTone.Carbs -> nutrients.carbs
@@ -195,6 +198,7 @@ private class AppColors(
     override val activeEnergy = named(scheme.activeEnergy, "active-energy")
 
     override val nutrients = scheme.nutrients
+    override val plan = scheme.plan
 
     override val accentPrimary = accent
     override val onAccentPrimary = onAccent

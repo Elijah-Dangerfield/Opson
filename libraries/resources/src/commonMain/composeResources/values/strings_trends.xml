@@ -102,6 +102,8 @@
     <string name="trends_settings_card_weight">Weight</string>
     <string name="trends_settings_card_expended">Expended</string>
     <string name="trends_settings_card_journal">Hunger and notes</string>
+    <string name="trends_settings_card_calendar">On-track calendar</string>
+    <string name="trends_settings_card_running">Running total</string>
 
     <!-- Sub-screens: where back goes, "‹ Trends" or "‹ Today", spoken on the arrow -->
     <string name="trends_back">‹ %1$s</string>
@@ -209,6 +211,87 @@
     <string name="trends_patterns_hunger_skipped">Hungrier on days you skipped breakfast (%1$s).</string>
     <string name="trends_patterns_new_foods">New foods</string>
     <string name="trends_loading_cd">Loading</string>
+
+    <!-- The on-track calendar. Plain words, never a verdict: "Over plan", not "Bad day". -->
+    <string name="trends_calendar_title">On track</string>
+    <string name="trends_calendar_sub">Each day against your plan</string>
+    <string name="trends_calendar_title_logged">Your month</string>
+    <string name="trends_calendar_sub_logged">Days with something logged</string>
+    <string name="trends_calendar_help_cd">How to read this</string>
+    <string name="trends_calendar_help_lose">Your plan is a deficit: eating a set amount less than you burn. Burned is what your body uses at rest plus your activity, so it moves a little from day to day. On plan means the day landed close to that gap. A bit off means close, but not quite, either way. Over plan means you ate enough that most of the gap closed. Eating far under your plan shows as a bit off too, because that isn't the aim either.</string>
+    <string name="trends_calendar_help_gain">Your plan is a surplus: eating a set amount more than you burn. Burned is what your body uses at rest plus your activity, so it moves a little from day to day. On plan means the day landed close to that. A bit off means close, but not quite, either way. Under plan means you ate well short of it. Going far past your plan shows as a bit off too, because that isn't the aim either.</string>
+    <string name="trends_calendar_help_hold">Your plan is the range you eat in each day. On plan means the day landed inside it. A bit off means just outside it, either way. Off plan means well outside it.</string>
+    <string name="trends_calendar_help_gray">Gray days had nothing logged, were marked untracked, or haven't happened yet, and today waits until you close it. One day doesn't decide anything. The weeks are what count.</string>
+    <string name="trends_calendar_help_logged">Each day with something logged is filled in. Gray days had nothing logged, were marked untracked, or haven't happened yet.</string>
+    <string name="trends_calendar_counts">%1$d on plan · %2$d a bit off · %3$d %4$s</string>
+    <string name="trends_calendar_counts_over">over</string>
+    <string name="trends_calendar_counts_under">under</string>
+    <string name="trends_calendar_counts_off">off plan</string>
+    <plurals name="trends_calendar_logged_count">
+        <item quantity="one">%1$d day logged</item>
+        <item quantity="other">%1$d days logged</item>
+    </plurals>
+    <string name="trends_calendar_day_cd">%1$s, %2$s</string>
+    <string name="trends_plan_on">On plan</string>
+    <string name="trends_plan_near">A bit off</string>
+    <string name="trends_plan_over">Over plan</string>
+    <string name="trends_plan_under">Under plan</string>
+    <string name="trends_plan_off">Off plan</string>
+    <string name="trends_plan_logged">Logged</string>
+    <string name="trends_plan_none">Not logged</string>
+    <string name="trends_plan_a_bit_over">A bit over</string>
+    <string name="trends_plan_a_bit_under">A bit under</string>
+    <string name="trends_plan_partial">Not fully logged</string>
+    <string name="trends_plan_untracked">Untracked</string>
+    <string name="trends_plan_in_progress">Still in progress</string>
+    <string name="trends_plan_not_yet">Opens later</string>
+    <string name="trends_plan_future">Still to come</string>
+
+    <!-- The day sheet from the calendar. -->
+    <string name="trends_day_eaten">Eaten</string>
+    <string name="trends_day_burned">Burned</string>
+    <string name="trends_day_difference">Difference</string>
+    <string name="trends_day_plan">Your plan</string>
+    <string name="trends_day_plan_about">About %1$s</string>
+    <string name="trends_day_open">Open this day</string>
+    <string name="trends_day_note_partial">Some of what you logged has no amount, so this day isn't judged.</string>
+    <string name="trends_day_note_in_progress">Today is still going. It's judged once you close the day.</string>
+    <string name="trends_day_note_not_yet">Your numbers for this day open later.</string>
+    <string name="trends_day_note_untracked">You marked this day untracked, so it's left out.</string>
+    <string name="trends_day_note_not_logged">Nothing was logged this day.</string>
+    <string name="trends_day_note_logged">Something was logged this day.</string>
+
+    <!-- The running total. -->
+    <string name="trends_running_title">Running total</string>
+    <string name="trends_running_sub">What you ate against what you burned</string>
+    <string name="trends_running_week">7 days</string>
+    <string name="trends_running_month">30 days</string>
+    <string name="trends_running_since">Since you started</string>
+    <string name="trends_running_under">%1$s under what you burned</string>
+    <string name="trends_running_over">%1$s over what you burned</string>
+    <string name="trends_running_even">About even with what you burned</string>
+    <string name="trends_running_lost_lb">Roughly %1$s of body weight lost, by the rule of thumb of 3,500 kcal a pound.</string>
+    <string name="trends_running_lost_kg">Roughly %1$s of body weight lost, by the rule of thumb of 7,700 kcal a kilogram.</string>
+    <string name="trends_running_gained_lb">Roughly %1$s of body weight gained, by the rule of thumb of 3,500 kcal a pound.</string>
+    <string name="trends_running_gained_kg">Roughly %1$s of body weight gained, by the rule of thumb of 7,700 kcal a kilogram.</string>
+    <string name="trends_running_scale">Your weight trend</string>
+    <string name="trends_running_scale_down">Down %1$s</string>
+    <string name="trends_running_scale_up">Up %1$s</string>
+    <string name="trends_running_scale_steady">About the same</string>
+    <string name="trends_running_days">Counted from %1$d of %2$d days.</string>
+    <string name="trends_running_empty">Log a full day, and it adds up here.</string>
+    <string name="trends_running_help_cd">How this is worked out</string>
+    <string name="trends_running_help">Each day it takes what you burned and subtracts what you ate, then adds the days up. Burned is your resting energy plus your activity, and both are estimates: a watch or a formula can be off by a few hundred a day. The weight uses a rough rule of thumb, and real change is usually slower. Water can move the scale a few pounds from one day to the next, so compare this with your weight trend over weeks, not days. A day with nothing logged, or a meal without an amount, is left out rather than guessed.</string>
+
+    <!-- Hunger from the check-ins. -->
+    <string name="trends_hunger_checkins">From your check-ins</string>
+    <string name="trends_hunger_checkins_caption_days">A dot for each day's check-in. Higher means hungrier.</string>
+    <string name="trends_hunger_checkins_caption_weeks">Each dot is a week's average, the bar behind it the range. Higher means hungrier.</string>
+    <string name="trends_hunger_meals">Before meals, from your notes</string>
+    <plurals name="trends_hunger_checkins_sub">
+        <item quantity="one">From %1$d check-in</item>
+        <item quantity="other">From %1$d check-ins</item>
+    </plurals>
 
     <!-- Which foods gave a nutrient: the sheet over Nutrients and Today. Never framed as foods to cut. -->
     <string name="trends_foods_ranked">Ranked by how much each gave.</string>

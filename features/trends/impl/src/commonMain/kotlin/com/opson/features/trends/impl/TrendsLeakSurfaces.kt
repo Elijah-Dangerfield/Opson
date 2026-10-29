@@ -34,6 +34,22 @@ object TrendsLeakSurfaces {
         LeakSurface(id = "trends-coast", label = "Trends, Coast (before the weekly check)", showsCaloriesInFull = true) { policy ->
             TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(Settings(askTags = false)), policy), onAction = {})
         },
+        // A set deficit with Burned known: the on-track calendar against it, the running total, and
+        // the check-ins' hunger. Where calories or energy out are short of Show the calendar only
+        // says which days were logged and the running total is not drawn.
+        LeakSurface(id = "trends-deficit", label = "Trends, a set deficit (calendar and running total)", showsCaloriesInFull = true) { policy ->
+            TrendsContent(TrendsStateBuilder.build(TrendsFixtures.deficitInputs(TrendsFixtures.settings(policy)), policy), onAction = {})
+        },
+        // The calendar's day sheet for Thursday the 22nd, against the deficit: eaten, burned, the difference and the plan.
+        LeakSurface(id = "trends-day", label = "A day from the on-track calendar", showsCaloriesInFull = true) { policy ->
+            val inputs = TrendsFixtures.deficitInputs(TrendsFixtures.settings(policy))
+            val date = kotlinx.datetime.LocalDate(2026, 10, 22)
+            val day = inputs.days.first { it.date == date }
+            TrendsDaySheetContent(
+                TrendsDayStateBuilder.build(day, inputs.today, inputs.settings, policy, inputs.burnedByDay?.get(date)),
+                onAction = {},
+            )
+        },
         LeakSurface(id = "trends-settings", label = "Trends settings", showsCaloriesInFull = false) { policy ->
             TrendsSettingsSheetContent(TrendsSettingsStateBuilder.build(Settings(), policy, healthConnected = true), onAction = {})
         },

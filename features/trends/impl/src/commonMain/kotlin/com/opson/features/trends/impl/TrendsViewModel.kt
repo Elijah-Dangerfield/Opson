@@ -2,6 +2,7 @@ package com.opson.features.trends.impl
 
 import androidx.lifecycle.viewModelScope
 import com.opson.features.trends.NotesListLink
+import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.SettingsRepository
@@ -15,6 +16,7 @@ import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.datetime.DateTimeUnit
@@ -46,6 +49,7 @@ class TrendsViewModel(
     healthFlag: HealthReleaseFlag,
     goalsAndEnergy: GoalsAndEnergyEnabled,
     burnedRepository: BurnedRepository,
+    checkInEnabled: CheckInEnabled,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     /** Today binds it (the Notes list); with nothing bound, the Notes card leaves its link off. */
     notesListLink: NotesListLink? = null,
@@ -53,12 +57,18 @@ class TrendsViewModel(
 
     private val today: LocalDate get() = clock.now().toLocalDateTime(timeZone).date
 
+    /** What the person picked on the page; above `init`, which can build at once. */
+    private var ui = TrendsUi()
+
+    /** The last inputs, so a pick on the page rebuilds without waiting for new data. */
+    private var latest: TrendsAction.InputsArrived? = null
+
     init {
         // The policy source re-emits at midnight, so the date is read again on
         // each emission and the range moves with the day.
         val span = combine(settingsRepository.settings, policySource.policy) { settings, _ ->
             val today = today
-            Span(TrendsCalendar.firstNeeded(today, settings), today)
+            Span(minOf(TrendsCalendar.firstNeeded(today, settings), OnTrack.firstDay(today), runningFrom(today)), today)
         }.distinctUntilChanged()
 
         val records = span.flatMapLatest { span ->
@@ -71,13 +81,41 @@ class TrendsViewModel(
 
         val expended = if (healthFlag()) expended() else flowOf(null)
 
-        val burned = if (goalsAndEnergy()) span.flatMapLatest { burnedRepository.burned(it.today) } else flowOf(null)
+        val goalsOn = goalsAndEnergy()
+        val burned = if (goalsOn) span.flatMapLatest { burnedRepository.burned(it.today) } else flowOf(null)
+
+        // Each day's Burned for the calendar's months and the running total's days.
+        val burnedByDay: Flow<Map<LocalDate, Burned>?> = if (goalsOn) {
+            span.map { minOf(OnTrack.firstDay(it.today), runningFrom(it.today)) to it.today }
+                .distinctUntilChanged()
+                .flatMapLatest { (from, to) -> burnedRepository.burnedBetween(from, to) }
+        } else {
+            flowOf(null)
+        }
+
+        // Read once when the page opens, like every release flag.
+        val checkInOn = checkInEnabled()
 
         val notesLinked = notesListLink != null
 
-        combine(settingsRepository.settings, policySource.policy, records, expended, burned) { settings, policy, records, expended, burned ->
+        val energy = combine(expended, burned, burnedByDay) { expended, burned, byDay -> Energy(expended, burned?.totalKcal, byDay) }
+
+        combine(settingsRepository.settings, policySource.policy, records, energy) { settings, policy, records, energy ->
             TrendsAction.InputsArrived(
-                TrendsInputs(records.today, settings, records.days, records.weighIns, timeZone, expended, burned?.totalKcal, notesLinked),
+                TrendsInputs(
+                    today = records.today,
+                    settings = settings,
+                    days = records.days,
+                    weighIns = records.weighIns,
+                    timeZone = timeZone,
+                    expended = energy.expended,
+                    burnedKcal = energy.todayKcal,
+                    notesLinked = notesLinked,
+                    burnedByDay = energy.byDay,
+                    checkInOn = checkInOn,
+                    // TODO(weight-goal): the goal's start date, once Settings has a weight goal with one.
+                    goalStart = null,
+                ),
                 policy,
             )
         }.collectIn(viewModelScope) { takeAction(it) }
@@ -99,7 +137,15 @@ class TrendsViewModel(
 
     override suspend fun handleAction(action: TrendsAction) {
         when (action) {
-            is TrendsAction.InputsArrived -> action.updateState { TrendsStateBuilder.build(action.inputs, action.policy) }
+            is TrendsAction.InputsArrived -> {
+                latest = action
+                action.updateState { TrendsStateBuilder.build(action.inputs, action.policy, ui) }
+            }
+            is TrendsAction.CalendarMonthShown -> pick(action) { it.copy(calendarPage = action.page) }
+            TrendsAction.CalendarHelpTapped -> pick(action) { it.copy(calendarExplained = !it.calendarExplained) }
+            is TrendsAction.CalendarDayTapped -> sendEvent(TrendsEvent.OpenDay(action.date.toString()))
+            is TrendsAction.RunningSpanPicked -> pick(action) { it.copy(runningSpan = action.span) }
+            TrendsAction.RunningHelpTapped -> pick(action) { it.copy(runningExplained = !it.runningExplained) }
             is TrendsAction.RangePicked -> {
                 // Not a visibility change: the range only picks which days the cards cover.
                 if (action.range != state.range) settingsRepository.update { it.copy(trendsRange = action.range) }
@@ -112,7 +158,19 @@ class TrendsViewModel(
         }
     }
 
+    /** Keeps [change] for the next inputs too, and rebuilds the page with it now. */
+    private suspend fun pick(action: TrendsAction, change: (TrendsUi) -> TrendsUi) {
+        ui = change(ui)
+        val inputs = latest ?: return
+        action.updateState { TrendsStateBuilder.build(inputs.inputs, inputs.policy, ui) }
+    }
+
+    /** The first day the running total can reach back to: its longest span, ending yesterday. */
+    private fun runningFrom(today: LocalDate): LocalDate = today.minus(RunningSpan.Month.days ?: 0, DateTimeUnit.DAY)
+
     private data class Span(val from: LocalDate, val today: LocalDate)
+
+    private class Energy(val expended: Map<LocalDate, EnergyExpended>?, val todayKcal: Int?, val byDay: Map<LocalDate, Burned>?)
 
     private class Records(val today: LocalDate, val days: List<Day>, val weighIns: List<WeighIn>)
 
@@ -130,6 +188,13 @@ sealed interface TrendsAction {
     data object NutrientsCardTapped : TrendsAction
     data object WeightCardTapped : TrendsAction
     data object AllNotesTapped : TrendsAction
+
+    /** The calendar settled on month [page], an index into its months. */
+    data class CalendarMonthShown(val page: Int) : TrendsAction
+    data object CalendarHelpTapped : TrendsAction
+    data class CalendarDayTapped(val date: LocalDate) : TrendsAction
+    data class RunningSpanPicked(val span: RunningSpan) : TrendsAction
+    data object RunningHelpTapped : TrendsAction
 }
 
 sealed interface TrendsEvent {
@@ -142,4 +207,7 @@ sealed interface TrendsEvent {
 
     /** The Notes list, through [NotesListLink]. */
     data object OpenNotes : TrendsEvent
+
+    /** The calendar's day sheet. */
+    data class OpenDay(val dayIso: String) : TrendsEvent
 }

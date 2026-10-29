@@ -21,6 +21,10 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.RestingEnergy
+import com.opson.libraries.nutrition.RestingFrom
+import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.Nutrient
@@ -93,7 +97,37 @@ object TrendsFixtures {
         weighIns: List<WeighIn> = weighIns(),
         expended: Map<LocalDate, EnergyExpended>? = null,
         notesLinked: Boolean = false,
-    ): TrendsInputs = TrendsInputs(today, settings, days, weighIns, timeZone, expended, notesLinked = notesLinked)
+        burnedByDay: Map<LocalDate, Burned>? = null,
+        checkInOn: Boolean = false,
+    ): TrendsInputs = TrendsInputs(
+        today = today,
+        settings = settings,
+        days = days,
+        weighIns = weighIns,
+        timeZone = timeZone,
+        expended = expended,
+        burnedKcal = burnedByDay?.get(today)?.totalKcal,
+        notesLinked = notesLinked,
+        burnedByDay = burnedByDay,
+        checkInOn = checkInOn,
+    )
+
+    /**
+     * A set deficit of 500 with Burned known every day (`release.goalsAndEnergy`), as someone
+     * losing weight sees Trends: the calendar against the deficit, and the running total.
+     */
+    fun deficitInputs(settings: Settings = Settings(), checkInOn: Boolean = true): TrendsInputs = trendsInputs(
+        settings = settings.copy(targets = settings.targets.copy(style = TargetStyle.Deficit(kcal = DEFICIT_KCAL, startingKcal = DEFICIT_KCAL))),
+        expended = expended(),
+        burnedByDay = burned(),
+        checkInOn = checkInOn,
+    )
+
+    /** Burned on each of the last hundred days: the watch's resting and activity from [expended], today's so far. */
+    fun burned(): Map<LocalDate, Burned> = (0..HISTORY_DAYS).associate { back ->
+        val active = round(550 + sin(back * 1.3) * 140 + cos(back * 0.7) * 60).toInt()
+        today.minus(back, DateTimeUnit.DAY) to Burned(RestingEnergy(1610, RestingFrom.Health), movementKcal = active)
+    }
 
     /** A watch's ninety days before today: resting about 1,600, active wandering around 550. */
     fun expended(): Map<LocalDate, EnergyExpended> = (1..WEIGH_IN_DAYS).associate { back ->
@@ -163,6 +197,7 @@ object TrendsFixtures {
     }
 
     private val WEEK_START = LocalDate(2026, 10, 19)
+    private const val DEFICIT_KCAL = 500
     private const val HISTORY_DAYS = 100
     private const val EMPTY_EVERY = 9
     private const val WEIGH_IN_DAYS = 90

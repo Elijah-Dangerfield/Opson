@@ -163,11 +163,6 @@ private fun PatternsCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun CardTitle(text: String, modifier: Modifier = Modifier) {
-    Text(text = text, typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink, modifier = modifier)
-}
-
-@Composable
 private fun TimingCardView(card: TimingCard) {
     PatternsCard {
         CardTitle(stringResource(Res.string.trends_patterns_when))

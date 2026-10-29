@@ -23,8 +23,13 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
 
     private val settings = FakeSettingsRepository()
 
-    private fun vm(preset: PresetId = PresetId.Full, healthOn: Boolean = false, health: FakeHealthRepository = FakeHealthRepository()) =
-        TrendsSettingsViewModel(settings, FakePolicySource(TrendsFixtures.policy(preset)), health, healthFlag(healthOn))
+    private fun vm(
+        preset: PresetId = PresetId.Full,
+        healthOn: Boolean = false,
+        health: FakeHealthRepository = FakeHealthRepository(),
+        goalsOn: Boolean = false,
+    ) =
+        TrendsSettingsViewModel(settings, FakePolicySource(TrendsFixtures.policy(preset)), health, healthFlag(healthOn), goalsAndEnergyFlag(goalsOn))
 
     @Test
     fun expended_offeredOnlyWithTheFlagOnAndAWatchConnected_andItsSwitchWritesItsCard() = runUnitTest {
@@ -47,18 +52,43 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
     fun toggles_filteredByWhatTheModeCanShow() {
         fun cards(preset: PresetId, overrides: Map<Metric, Visibility> = emptyMap()) =
             TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(preset, overrides)).toggles.map { it.card }
-        assertEquals(TrendsCard.entries - TrendsCard.Expended, cards(PresetId.Full), "Expended waits for a connected watch")
-        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Journal), cards(PresetId.NoNumbers), "weight is hidden, so its card never shows")
-        assertEquals(listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal), cards(PresetId.MacrosOnly))
         assertEquals(
-            listOf(TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal),
+            TrendsCard.entries - TrendsCard.Expended - TrendsCard.Running,
+            cards(PresetId.Full),
+            "Expended waits for a connected watch, the running total for Burned",
+        )
+        assertEquals(listOf(TrendsCard.Calendar, TrendsCard.Recap, TrendsCard.Journal), cards(PresetId.NoNumbers), "weight is hidden, so its card never shows")
+        assertEquals(listOf(TrendsCard.Calendar, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal), cards(PresetId.MacrosOnly))
+        assertEquals(
+            listOf(TrendsCard.Calendar, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal),
             cards(PresetId.MacrosWithGrams),
             "no calorie chart",
         )
         assertEquals(
-            listOf(TrendsCard.Intake, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal),
+            listOf(TrendsCard.Intake, TrendsCard.Calendar, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal),
             cards(PresetId.Full, Presets.laterLevels),
         )
+    }
+
+    @Test
+    fun runningTotal_offeredWithBurned_whereCaloriesAndEnergyOutShow_andNotAfterNumbersHaveBeenHard() = runUnitTest {
+        assertTrue(vm(goalsOn = false).state.toggles.none { it.card == TrendsCard.Running })
+        val vm = vm(goalsOn = true)
+        assertEquals(true, vm.state.toggles.single { it.card == TrendsCard.Running }.on)
+        vm.takeAction(TrendsSettingsAction.CardToggled(TrendsCard.Running))
+        assertEquals(TrendsCards(runningTotal = false), settings.settings.value.trendsCards)
+
+        val hard = Settings(onboarding = com.opson.libraries.diary.OnboardingAnswers(hard = true))
+        assertTrue(TrendsSettingsStateBuilder.build(hard, TrendsFixtures.policy(), goalsAndEnergy = true).toggles.none { it.card == TrendsCard.Running })
+        val energyHidden = TrendsFixtures.policy(overrides = mapOf(Metric.EnergyOut to Visibility.Hide))
+        assertTrue(TrendsSettingsStateBuilder.build(Settings(), energyHidden, goalsAndEnergy = true).toggles.none { it.card == TrendsCard.Running })
+    }
+
+    @Test
+    fun calendarToggled_writesItsCard() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(TrendsSettingsAction.CardToggled(TrendsCard.Calendar))
+        assertEquals(TrendsCards(calendar = false), settings.settings.value.trendsCards)
     }
 
     @Test

@@ -398,6 +398,10 @@ data class TrendsCards(
     val weight: Boolean = true,
     /** Hunger and the Notes summary, read from the meal notes. */
     val journal: Boolean = true,
+    /** The on-track calendar: each day of the month against the person's own plan, or logged and not. */
+    val calendar: Boolean = true,
+    /** The running total: eaten against burned, added up over a few weeks, with what that might mean on the scale. */
+    val runningTotal: Boolean = true,
 )
 
 /** How the Logger orders search results. */
