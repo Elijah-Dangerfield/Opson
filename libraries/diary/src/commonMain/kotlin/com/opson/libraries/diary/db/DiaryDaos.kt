@@ -206,9 +206,13 @@ interface ExerciseDao : ClearableDao {
     override suspend fun deleteAll()
 }
 
-/** Repeating foods (`RepeatRule`). Reads skip tombstones. */
+/**
+ * Repeating foods (`RepeatRule`). Reads skip tombstones. Not cleared on a user change like the
+ * rest: nothing syncs it, so the sign-out dump would lose it for good. `RepeatOwner` keeps it to
+ * one account and deletes it when another signs in.
+ */
 @Dao
-interface RepeatRuleDao : ClearableDao {
+interface RepeatRuleDao {
     @Upsert
     suspend fun upsert(rows: List<RepeatRuleEntity>)
 
@@ -222,7 +226,7 @@ interface RepeatRuleDao : ClearableDao {
     fun observeAll(): Flow<List<RepeatRuleEntity>>
 
     @Query("DELETE FROM repeat_rules")
-    override suspend fun deleteAll()
+    suspend fun deleteAll()
 }
 
 /** The entries repeats logged, by day. */

@@ -376,6 +376,8 @@ day or on chosen days; the storage, timing and sync decisions are in
 - From Repeat this: the entry's food and amount, its meal (Uncategorized takes
   the meal its time falls in), every day from today. On today it counts as
   today's, so the food is not logged twice.
+- Repeats live on this phone. Signing out keeps them for the same account;
+  another account signing in on the phone deletes them (`RepeatOwner`).
 - Copy yesterday, copy to tomorrow and copying a meal leave out a repeat's
   foods when that repeat logs on the day copied onto (it falls on it, and the
   day is today or later, or it already logged there). A repeat that skips that

@@ -189,8 +189,16 @@ switch, since this writes to the person's log unasked.
 - **Not synced yet.** The prod server could not be redeployed for this, and
   settings JSON was ruled out: older builds drop unknown keys on save (which
   would erase the rules) and it would put the rules' food snapshots into a
-  64 KB blob. So `repeat_rules` (Room 12) is device-local, wiped on a user
-  change like every diary table, and lost on reinstall. It already has what an
+  64 KB blob. So `repeat_rules` (Room 12) is device-local and lost on
+  reinstall. It is the one diary table a sign-out keeps: the dump is safe for
+  the rest because the server gives them back, and these it would lose for good.
+  `RepeatOwner` records whose they are (one account per phone, in a small cache,
+  so no migration): the same account signing back in finds them, nobody sees or
+  logs any while signed out, and a different account signing in deletes them
+  and their ledger before it can read one. Rules from before the owner was
+  recorded go to the first account seen signed in, or at a user change before
+  that, as they always did. A deleted account's rules stay, inert, until the
+  next sign-in deletes them. It already has what an
   outbox row needs (UUID, `clientUpdatedAt`, tombstone); syncing it is a new
   `SyncEntity`, a server table and migration, and nothing else on the client.
   Until then a rule set up separately on two phones has two ids and logs twice.

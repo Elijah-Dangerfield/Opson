@@ -114,9 +114,9 @@ class ProvideExerciseDao @Inject constructor(
     provider: AppDatabaseProvider
 ) : ExerciseDao by provider.database.exerciseDao()
 
+/** Not a [ClearableDao]: rules never sync, so a sign-out keeps them and `RepeatOwner` decides whose they are. */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = RepeatRuleDao::class)
-@ContributesBinding(AppScope::class, boundType = ClearableDao::class, multibinding = true)
 class ProvideRepeatRuleDao @Inject constructor(
     provider: AppDatabaseProvider
 ) : RepeatRuleDao by provider.database.repeatRuleDao()
