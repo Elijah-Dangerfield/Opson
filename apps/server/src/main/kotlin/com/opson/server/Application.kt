@@ -28,6 +28,8 @@ import com.opson.server.routes.accessAdminRoutes
 import com.opson.server.routes.accessRoutes
 import com.opson.server.routes.appConfigRoutes
 import com.opson.server.routes.barcodeMissRoutes
+import com.opson.server.routes.builderAdminRoutes
+import com.opson.server.routes.builderRoutes
 import com.opson.server.routes.configAdminRoutes
 import com.opson.server.routes.exampleRoutes
 import com.opson.server.routes.exportRoutes
@@ -183,6 +185,7 @@ fun Application.installApp(
                     component.accessAuditRepository,
                     component.clock,
                 )
+                builderAdminRoutes(adminConfig, component.builderService, component.builderRepository)
             }
             // The website's form: public, its own CORS and rate limits.
             waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
@@ -214,6 +217,17 @@ fun Application.installApp(
                 component.foodSubmissionRepository,
                 component.barcodeLinkRepository,
                 component.labelParseCache,
+                component.foodLabelLimiter,
+                component.clock,
+                component.contributionRouter,
+                component.permissions,
+            )
+            builderRoutes(
+                component.builderService,
+                component.permissions,
+                component.foodCatalogRepository,
+                component.foodSubmissionRepository,
+                component.foodVerificationRepository,
                 component.foodLabelLimiter,
                 component.clock,
             )

@@ -171,9 +171,9 @@ class AnthropicLabelParser(
                 }
                 .build()
 
-        private fun text(value: String) = ContentBlockParam.ofText(TextBlockParam.builder().text(value).build())
+        internal fun text(value: String) = ContentBlockParam.ofText(TextBlockParam.builder().text(value).build())
 
-        private fun image(bytes: ByteArray, type: ImageType) = ContentBlockParam.ofImage(
+        internal fun image(bytes: ByteArray, type: ImageType) = ContentBlockParam.ofImage(
             ImageBlockParam.builder()
                 .source(
                     Base64ImageSource.builder()

@@ -28,19 +28,24 @@ class FoodLabelLimiter(private val clock: Clock) {
 
     private val parses = Window(PARSE_BURST, DAILY_PARSES)
     private val submissions = Window(SUBMIT_BURST, DAILY_SUBMISSIONS)
+    private val verifications = Window(VERIFY_BURST, DAILY_VERIFICATIONS)
 
     fun tryParse(userId: UserId): Boolean = parses.tryAcquire(userId, clock.now())
 
-    fun trySubmit(userId: UserId): Boolean = submissions.tryAcquire(userId, clock.now())
+    /** [daily] is higher for a Builder ([BuilderRules.BUILDER_DAILY_SUBMISSIONS]); the burst limit is everyone's. */
+    fun trySubmit(userId: UserId, daily: Int = DAILY_SUBMISSIONS): Boolean = submissions.tryAcquire(userId, clock.now(), daily)
+
+    /** A Builder checking foods against their packs: a cupboard in one sitting fits, a script does not. */
+    fun tryVerify(userId: UserId): Boolean = verifications.tryAcquire(userId, clock.now())
 
     private class Window(private val burst: Int, private val daily: Int) {
         private val calls = ConcurrentHashMap<UserId, ArrayDeque<Instant>>()
 
-        fun tryAcquire(userId: UserId, now: Instant): Boolean {
+        fun tryAcquire(userId: UserId, now: Instant, dailyLimit: Int = daily): Boolean {
             val history = calls.computeIfAbsent(userId) { ArrayDeque() }
             synchronized(history) {
                 while (history.isNotEmpty() && now - history.first() >= DAY) history.removeFirst()
-                if (history.size >= daily) return false
+                if (history.size >= dailyLimit) return false
                 if (history.count { now - it < BURST_WINDOW } >= burst) return false
                 history.addLast(now)
                 return true
@@ -53,6 +58,8 @@ class FoodLabelLimiter(private val clock: Clock) {
         const val DAILY_PARSES = 40
         const val SUBMIT_BURST = 5
         const val DAILY_SUBMISSIONS = 20
+        const val VERIFY_BURST = 20
+        const val DAILY_VERIFICATIONS = 100
         val BURST_WINDOW: Duration = 10.minutes
         private val DAY: Duration = 1.days
     }

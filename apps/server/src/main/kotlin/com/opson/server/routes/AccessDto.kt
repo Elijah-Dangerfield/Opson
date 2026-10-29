@@ -52,7 +52,12 @@ fun UserAccess.toMyAccessResponse(): MyAccessResponse = MyAccessResponse(
             sources = sources.map { source ->
                 when (source) {
                     EntitlementSource.Everyone -> MyEntitlementSourceResponse(type = "everyone")
-                    is EntitlementSource.FromRole -> MyEntitlementSourceResponse(type = "role", bundle = source.bundle, role = source.role.wire)
+                    is EntitlementSource.FromRole -> MyEntitlementSourceResponse(
+                        type = "role",
+                        bundle = source.bundle,
+                        role = source.role.wire,
+                        expiresAtEpochMs = source.expiresAt?.toEpochMilliseconds(),
+                    )
                     is EntitlementSource.FromGrant -> MyEntitlementSourceResponse(
                         type = "grant",
                         bundle = source.bundle,

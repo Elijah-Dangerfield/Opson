@@ -37,6 +37,7 @@ class DatabaseSchemaTest : DatabaseTest() {
                 BarcodeLinkSuggestionsTable, AppConfigValuesTable, AppConfigRulesTable, AppConfigAuditTable,
                 AppConfigManifestTable, UserRolesTable, EntitlementGrantsTable, AccessAuditTable,
                 FoodReportsTable, FoodReportPhotosTable, FoodCorrectionsTable,
+                BuilderMembersTable, FoodVerificationsTable, FoodProvenanceTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }
@@ -223,6 +224,43 @@ class DatabaseSchemaTest : DatabaseTest() {
                     "WHERE table_name = 'food_submissions' AND column_name = 'custom_food_id'",
             ),
         )
+    }
+
+    /**
+     * V30 is additive and safe to run twice. Deleting an account deletes its Builder row and its
+     * checks against the pack; provenance outlives it with the account's key and no id.
+     */
+    @Test
+    fun buildersMigrationIsIdempotentAndProvenanceOutlivesTheAccount() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V30__builders.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val user = seedAuthUser().value
+        val food = java.util.UUID.randomUUID()
+        database.blockingTransaction {
+            exec("INSERT INTO builder_members (user_id, terms_version) VALUES ('$user', 't')")
+            exec(
+                "INSERT INTO food_verifications (id, food_id, user_id, outcome, grounded, groundable) " +
+                    "VALUES (gen_random_uuid(), '$food', '$user', 'confirmed', 4, 4)",
+            )
+            exec("INSERT INTO food_provenance (food_id, kind, ref_id, user_id) VALUES ('$food', 'submission', gen_random_uuid(), '$user')")
+        }
+        assertFailsWith<Exception>("a second confirmation of the same food") {
+            database.blockingTransaction {
+                exec(
+                    "INSERT INTO food_verifications (id, food_id, user_id, outcome, grounded, groundable) " +
+                        "VALUES (gen_random_uuid(), '$food', '$user', 'confirmed', 4, 4)",
+                )
+            }
+        }
+        val key = strings("SELECT subject_key FROM food_provenance WHERE food_id = '$food'").single()
+        assertEquals(64, key.length)
+
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM builder_members WHERE user_id = '$user'"))
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM food_verifications WHERE food_id = '$food'"))
+        assertEquals(listOf(key), strings("SELECT subject_key FROM food_provenance WHERE food_id = '$food' AND user_id IS NULL"))
+        database.blockingTransaction { exec("DELETE FROM food_provenance WHERE food_id = '$food'") }
     }
 
     /**
@@ -455,6 +493,7 @@ class DatabaseSchemaTest : DatabaseTest() {
             "log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "barcode_misses",
             "profiles", "waitlist", "apple_refresh_tokens", "food_submissions", "food_submission_photos",
             "barcode_link_suggestions", "food_reports", "food_report_photos", "food_corrections",
+            "builder_members", "food_verifications", "food_provenance", "moderation_secrets",
         ).forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {
@@ -520,8 +559,8 @@ class DatabaseSchemaTest : DatabaseTest() {
             "preset_distribution", "search_daily", "top_zero_result_queries", "barcode_outcomes_daily",
             "weekly_retention_cohorts", "retention_d1_d7_d30", "barcode_hit_rate_daily", "top_missed_barcodes",
             "barcode_misses_by_country", "waitlist_daily", "food_submissions_daily", "food_submission_queue",
-            "barcode_link_queue", "food_report_queue",
+            "barcode_link_queue", "food_report_queue", "contribution_lanes_daily", "builder_program_daily",
         )
-        val SUPPORT_VIEWS = listOf("users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings")
+        val SUPPORT_VIEWS = listOf("users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings", "builders")
     }
 }

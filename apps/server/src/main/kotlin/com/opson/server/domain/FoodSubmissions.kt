@@ -31,6 +31,29 @@ sealed interface LabelParseResult {
     data class Failed(val reason: String) : LabelParseResult
 }
 
+/**
+ * A second, independent read of a Builder's label photo for routing (ai-options.md, read B):
+ * a cheap model given the photo alone, never the phone's OCR, so its agreement with the phone
+ * means two systems read the same digits. Keeps nothing; logs only the outcome.
+ */
+interface CloudLabelReader {
+    /** False with no model key on this server: routing then holds auto-approval to a higher bar. */
+    val configured: Boolean
+
+    suspend fun read(label: ByteArray, type: ImageType): CloudRead
+}
+
+sealed interface CloudRead {
+    data class Read(val reading: LabelReading, val model: String, val latencyMs: Long) : CloudRead
+    data object NotConfigured : CloudRead
+
+    /** [reason] is a short code for the log line. */
+    data class Failed(val reason: String) : CloudRead
+}
+
+/** A photo beyond the front and the label: the ingredients list, which Builder mode can add. */
+class ExtraPhoto(val bytes: ByteArray, val type: ImageType)
+
 /** The two photos of a pack, as the app sent them: the front (name, brand) and the nutrition label. */
 class PackPhotos(val front: ByteArray, val frontType: ImageType, val label: ByteArray, val labelType: ImageType)
 
@@ -60,6 +83,12 @@ object FoodLabelLimits {
      */
     const val MAX_KCAL_PER_100 = 4_000.0
     const val MAX_AMOUNT = 100_000.0
+
+    /** A dense panel in two languages is about 120 lines; this leaves room and no more. */
+    const val MAX_CAPTURE_LINES = 400
+    const val MAX_CAPTURE_LINE = 300
+    const val MAX_CAPTURE_ENGINE = 32
+    const val MAX_CAPTURE_SIGNALS = 8_000
 }
 
 enum class SubmissionStatus(val wire: String) {
@@ -98,6 +127,10 @@ data class NewFoodSubmission(
     val photos: PackPhotos,
     /** The submitter's own copy (a custom food the app saved first), so the app can mark it while review runs. */
     val customFoodId: UUID? = null,
+    /** Builder mode's optional photo of the ingredients list. */
+    val ingredients: ExtraPhoto? = null,
+    /** What the phone read off the label, in Builder mode. */
+    val capture: LabelCapture? = null,
 )
 
 /** The review record, for the submitter's own lookups and the admin queue. */
@@ -125,6 +158,12 @@ data class FoodSubmission(
     val hasPhotos: Boolean,
     /** The submitter's own copy of the food, when the app said which. */
     val customFoodId: UUID? = null,
+    val lane: Lane? = null,
+    val routing: RoutingDecision? = null,
+    val capture: LabelCapture? = null,
+    val audit: AuditState? = null,
+    val auditNote: String? = null,
+    val rejectCode: RejectCode? = null,
 ) {
     /** The food as it stands: the reviewer's version once there is one. */
     val current: LabelFacts get() = reviewed ?: submitted
@@ -133,6 +172,7 @@ data class FoodSubmission(
 enum class PhotoKind(val wire: String) {
     Front("front"),
     Label("label"),
+    Ingredients("ingredients"),
     ;
 
     companion object {
@@ -141,6 +181,41 @@ enum class PhotoKind(val wire: String) {
 }
 
 class StoredPhoto(val mediaType: String, val bytes: ByteArray)
+
+/** The random audit of an auto-approval (builder-program.md, "Audits"). */
+enum class AuditState(val wire: String) {
+    Pending("pending"),
+    Passed("passed"),
+
+    /** The food went back to pending and the Builder's record took the miss. */
+    Failed("failed"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): AuditState? = entries.firstOrNull { it.wire == value }
+    }
+}
+
+/**
+ * Why a reviewer rejected a submission, from a short list, beside the free-text reason the
+ * submitter reads. Trust reads it: [FakeData] and [CopiedData] end a Builder's chance of
+ * Trusted, a blurry photo does not.
+ */
+enum class RejectCode(val wire: String) {
+    Blurry("blurry"),
+    NotFood("not_food"),
+    Duplicate("duplicate"),
+    WrongColumn("wrong_column"),
+    WrongValues("wrong_values"),
+    FakeData("fake_data"),
+    CopiedData("copied_data"),
+    Other("other"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): RejectCode? = entries.firstOrNull { it.wire == value }
+    }
+}
 
 sealed interface ReviewOutcome {
     data class Done(val submission: FoodSubmission) : ReviewOutcome
@@ -192,10 +267,28 @@ interface FoodSubmissionRepository {
     /** Into the catalog for everyone, with [facts] when the reviewer changed something. */
     suspend fun approve(id: UUID, facts: LabelFacts?, reviewer: String): ReviewOutcome
 
-    suspend fun reject(id: UUID, reason: String, reviewer: String): ReviewOutcome
+    suspend fun reject(id: UUID, reason: String, reviewer: String, code: RejectCode? = null): ReviewOutcome
 
-    /** Deletes the photos of submissions decided before [before]. Returns how many submissions lost theirs. */
-    suspend fun purgeDecidedPhotos(before: Instant): Int
+    /**
+     * Deletes the photos of submissions decided before [before], except those of active Builders
+     * who let Opson keep them, which go once decided before [retainedBefore]. Returns how many
+     * submissions lost theirs.
+     */
+    suspend fun purgeDecidedPhotos(before: Instant, retainedBefore: Instant = before): Int
+
+    /** Keeps how routing decided, and opens the audit when an auto-approval drew one. */
+    suspend fun recordRouting(id: UUID, decision: RoutingDecision)
+
+    /** Auto-approvals waiting for their audit, oldest first. */
+    suspend fun audits(limit: Int): List<FoodSubmission>
+
+    suspend fun auditCount(): Long
+
+    /**
+     * Closes an audit. A failed one puts the food back to pending for everyone (search and scans
+     * stop finding it) and marks its provenance rolled back; [note] is what was wrong.
+     */
+    suspend fun closeAudit(id: UUID, passed: Boolean, note: String?, reviewer: String): ReviewOutcome
 }
 
 enum class LinkStatus(val wire: String) {

@@ -114,6 +114,12 @@ abstract class ServerComponent(
     abstract val foodReportLimiter: FoodReportLimiter
     abstract val correctionAuthority: CorrectionAuthority
 
+    /** The Builder program: membership, trust, routing and checks against the pack. See builder-program.md. */
+    abstract val builderRepository: com.opson.server.domain.BuilderRepository
+    abstract val builderService: com.opson.server.domain.BuilderService
+    abstract val contributionRouter: com.opson.server.domain.ContributionRouter
+    abstract val foodVerificationRepository: com.opson.server.domain.FoodVerificationRepository
+
     /** Roles, grants and their resolution. See "Roles and entitlements" in apps/server/README.md. */
     abstract val userRoleRepository: UserRoleRepository
     abstract val permissions: Permissions

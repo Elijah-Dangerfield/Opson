@@ -164,6 +164,8 @@ data class AnthropicConfig(
     val apiKey: String,
     val photoModel: String = DEFAULT_PHOTO_MODEL,
     val labelModel: String = DEFAULT_LABEL_MODEL,
+    /** The second, independent read of a Builder's label photo, blind to the phone's reading. */
+    val checkModel: String = DEFAULT_CHECK_MODEL,
     /**
      * Null for Anthropic's own API. Never set from the environment; the
      * end-to-end tests point it at a stand-in that answers like the Messages API.
@@ -171,11 +173,14 @@ data class AnthropicConfig(
     val baseUrl: String? = null,
 ) {
     override fun toString(): String =
-        "AnthropicConfig(apiKey=***, photoModel=$photoModel, labelModel=$labelModel, baseUrl=$baseUrl)"
+        "AnthropicConfig(apiKey=***, photoModel=$photoModel, labelModel=$labelModel, checkModel=$checkModel, baseUrl=$baseUrl)"
 
     companion object {
         const val DEFAULT_PHOTO_MODEL = "claude-opus-5-5"
         const val DEFAULT_LABEL_MODEL = "claude-fable-5-1"
+
+        /** About 0.15 cents a read (ai-options.md): cheap enough to read every Builder's label a second time. */
+        const val DEFAULT_CHECK_MODEL = "claude-haiku-5-5"
 
         fun fromEnv(env: Env): AnthropicConfig? {
             val key = env["ANTHROPIC_API_KEY"] ?: return null
@@ -183,6 +188,7 @@ data class AnthropicConfig(
                 apiKey = key,
                 photoModel = env["ANTHROPIC_PHOTO_MODEL"]?.trim() ?: DEFAULT_PHOTO_MODEL,
                 labelModel = env["ANTHROPIC_LABEL_MODEL"]?.trim()?.ifEmpty { null } ?: DEFAULT_LABEL_MODEL,
+                checkModel = env["ANTHROPIC_CHECK_MODEL"]?.trim()?.ifEmpty { null } ?: DEFAULT_CHECK_MODEL,
             )
         }
     }

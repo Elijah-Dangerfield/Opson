@@ -1,13 +1,20 @@
 package com.opson.server.data
 
+import com.opson.server.db.BuilderMembersTable
 import com.opson.server.db.Database
+import com.opson.server.db.FoodProvenanceTable
 import com.opson.server.db.FoodSubmissionPhotosTable
 import com.opson.server.db.FoodSubmissionsTable
 import com.opson.server.db.SubmittedFoodsTable
 import com.opson.server.db.toJavaInstant
 import com.opson.server.db.toKotlinInstant
 import com.opson.server.di.ServerScope
+import com.opson.server.domain.AuditState
 import com.opson.server.domain.Barcodes
+import com.opson.server.domain.BuilderStatus
+import com.opson.server.domain.Lane
+import com.opson.server.domain.RejectCode
+import com.opson.server.domain.RoutingDecision
 import com.opson.server.domain.CatalogSource
 import com.opson.server.domain.FoodSubmission
 import com.opson.server.domain.FoodSubmissionRepository
@@ -91,10 +98,12 @@ class PostgresFoodSubmissionRepository(
                     it[submitted] = LabelJson.facts(submission.facts, submission.acknowledged)
                     it[checks] = LabelJson.checks(submission.checks)
                     it[customFoodId] = submission.customFoodId
+                    it[capture] = submission.capture?.let(BuilderJson::capture)
                 }
-                listOf(
+                listOfNotNull(
                     Triple(PhotoKind.Front, submission.photos.front, submission.photos.frontType.mediaType),
                     Triple(PhotoKind.Label, submission.photos.label, submission.photos.labelType.mediaType),
+                    submission.ingredients?.let { Triple(PhotoKind.Ingredients, it.bytes, it.type.mediaType) },
                 ).forEach { (kind, bytes, type) ->
                     FoodSubmissionPhotosTable.insert {
                         it[submissionId] = submission.id
@@ -219,6 +228,11 @@ class PostgresFoodSubmissionRepository(
                 it[reviewedAt] = clock.now().toJavaInstant()
                 it[reviewedBy] = reviewer.take(MAX_REVIEWER)
             }
+            // Approved again after a failed audit: the trigger keeps the first provenance row, so it is live again.
+            FoodProvenanceTable.update({ (FoodProvenanceTable.kind eq "submission") and (FoodProvenanceTable.refId eq id) }) {
+                it[rolledBackAt] = null
+                it[rolledBackBy] = null
+            }
             null
         }
     } catch (e: ExposedSQLException) {
@@ -229,25 +243,91 @@ class PostgresFoodSubmissionRepository(
         database.transaction { foodWithBarcode(gtin, except = submission.foodId) }?.let { ReviewOutcome.BarcodeTaken(it) } ?: throw e
     }
 
-    override suspend fun reject(id: UUID, reason: String, reviewer: String): ReviewOutcome = decide(id) { row ->
+    override suspend fun reject(id: UUID, reason: String, reviewer: String, code: RejectCode?): ReviewOutcome = decide(id) { row ->
         SubmittedFoodsTable.update({ SubmittedFoodsTable.id eq row[FoodSubmissionsTable.foodId] }) {
             it[reviewStatus] = SubmissionStatus.Rejected.wire
         }
         FoodSubmissionsTable.update({ FoodSubmissionsTable.id eq id }) {
             it[status] = SubmissionStatus.Rejected.wire
             it[rejectReason] = reason.take(MAX_REASON)
+            it[rejectCode] = code?.wire
             it[reviewedAt] = clock.now().toJavaInstant()
             it[reviewedBy] = reviewer.take(MAX_REVIEWER)
         }
         null
     }
 
-    override suspend fun purgeDecidedPhotos(before: Instant): Int = database.transaction {
-        val decided = FoodSubmissionsTable.select(FoodSubmissionsTable.id)
+    override suspend fun purgeDecidedPhotos(before: Instant, retainedBefore: Instant): Int = database.transaction {
+        val keeping = BuilderMembersTable.select(BuilderMembersTable.userId)
+            .where { (BuilderMembersTable.photoRetention eq true) and (BuilderMembersTable.status eq BuilderStatus.Active.wire) }
+            .mapTo(HashSet()) { it[BuilderMembersTable.userId] }
+        val decided = FoodSubmissionsTable.select(FoodSubmissionsTable.id, FoodSubmissionsTable.userId, FoodSubmissionsTable.reviewedAt)
             .where { FoodSubmissionsTable.reviewedAt lessEq before.toJavaInstant() }
+            .filter { row ->
+                row[FoodSubmissionsTable.userId] !in keeping ||
+                    row[FoodSubmissionsTable.reviewedAt]?.let { it <= retainedBefore.toJavaInstant() } == true
+            }
             .map { it[FoodSubmissionsTable.id] }
         if (decided.isEmpty()) return@transaction 0
         FoodSubmissionPhotosTable.deleteWhere { submissionId inList decided }
+    }
+
+    override suspend fun recordRouting(id: UUID, decision: RoutingDecision) {
+        database.transaction {
+            FoodSubmissionsTable.update({ FoodSubmissionsTable.id eq id }) {
+                it[lane] = decision.lane.wire
+                it[routing] = BuilderJson.routing(decision)
+                if (decision.audit && decision.lane == Lane.Auto) it[audit] = AuditState.Pending.wire
+            }
+        }
+    }
+
+    override suspend fun audits(limit: Int): List<FoodSubmission> = database.transaction {
+        val rows = FoodSubmissionsTable.selectAll()
+            .where { FoodSubmissionsTable.audit eq AuditState.Pending.wire }
+            .orderBy(FoodSubmissionsTable.reviewedAt to SortOrder.ASC)
+            .limit(limit)
+            .toList()
+        val withPhotos = photoOwners(rows.map { it[FoodSubmissionsTable.id] })
+        rows.map { it.toSubmission(it[FoodSubmissionsTable.id] in withPhotos) }
+    }
+
+    override suspend fun auditCount(): Long = database.transaction {
+        FoodSubmissionsTable.selectAll().where { FoodSubmissionsTable.audit eq AuditState.Pending.wire }.count()
+    }
+
+    override suspend fun closeAudit(id: UUID, passed: Boolean, note: String?, reviewer: String): ReviewOutcome {
+        val stopped = database.transaction {
+            val row = FoodSubmissionsTable.selectAll().where { FoodSubmissionsTable.id eq id }.forUpdate().singleOrNull()
+                ?: return@transaction ReviewOutcome.NotFound
+            if (row[FoodSubmissionsTable.audit] != AuditState.Pending.wire) return@transaction ReviewOutcome.AlreadyDecided
+            val now = clock.now().toJavaInstant()
+            val who = reviewer.take(MAX_REVIEWER)
+            FoodSubmissionsTable.update({ FoodSubmissionsTable.id eq id }) {
+                it[audit] = (if (passed) AuditState.Passed else AuditState.Failed).wire
+                it[auditedAt] = now
+                it[auditedBy] = who
+                it[auditNote] = note?.take(MAX_REASON)
+                // Back in the queue, for a person to fix or reject. The food is the submitter's alone again.
+                if (!passed) {
+                    it[status] = SubmissionStatus.Pending.wire
+                    it[lane] = Lane.Review.wire
+                }
+            }
+            if (!passed) {
+                SubmittedFoodsTable.update({ SubmittedFoodsTable.id eq row[FoodSubmissionsTable.foodId] }) {
+                    it[reviewStatus] = SubmissionStatus.Pending.wire
+                    it[barcode] = null
+                    it[verified] = false
+                }
+                FoodProvenanceTable.update({ (FoodProvenanceTable.kind eq "submission") and (FoodProvenanceTable.refId eq id) }) {
+                    it[rolledBackAt] = now
+                    it[rolledBackBy] = who
+                }
+            }
+            null
+        }
+        return stopped ?: ReviewOutcome.Done(checkNotNull(get(id)))
     }
 
     /**
@@ -305,6 +385,12 @@ class PostgresFoodSubmissionRepository(
             rejectReason = this[FoodSubmissionsTable.rejectReason],
             hasPhotos = hasPhotos,
             customFoodId = this[FoodSubmissionsTable.customFoodId],
+            lane = Lane.fromWire(this[FoodSubmissionsTable.lane]),
+            routing = this[FoodSubmissionsTable.routing]?.let(BuilderJson::routing),
+            capture = this[FoodSubmissionsTable.capture]?.let(BuilderJson::capture),
+            audit = AuditState.fromWire(this[FoodSubmissionsTable.audit]),
+            auditNote = this[FoodSubmissionsTable.auditNote],
+            rejectCode = RejectCode.fromWire(this[FoodSubmissionsTable.rejectCode]),
         )
     }
 

@@ -1,6 +1,10 @@
 package com.opson.server.routes
 
 import com.opson.server.config.AdminConfig
+import com.opson.server.data.CaptureJson
+import com.opson.server.data.RoutingJson
+import com.opson.server.domain.AuditState
+import com.opson.server.domain.RejectCode
 import com.opson.server.data.LabelCheckJson
 import com.opson.server.data.LabelFactsJson
 import com.opson.server.data.LabelReadingJson
@@ -50,6 +54,15 @@ data class FoodSubmissionSummaryResponse(
     /** Codes of the checks the food fails as it stands. */
     val failedChecks: List<String>,
     val hasPhotos: Boolean,
+    /** `review`, `auto` or `owner` (V30); null before routing existed. */
+    val lane: String? = null,
+    /** What the auto-approval lane would have done: the shadow record reviewers are measured against. */
+    val wouldAutoApprove: Boolean = false,
+    /** Why it is in the queue, first things first: `not_grounded:fat_g`, `cloud_differs:energy_kcal`. */
+    val reasons: List<String> = emptyList(),
+    val confidence: Double? = null,
+    /** `pending`, `passed` or `failed` for an audited auto-approval. */
+    val audit: String? = null,
 )
 
 @Serializable
@@ -71,13 +84,23 @@ data class FoodSubmissionDetailResponse(
     val reviewedAtEpochMs: Long? = null,
     val reviewedBy: String? = null,
     val rejectReason: String? = null,
+    val rejectCode: String? = null,
+    /** The routing record (V30): lane, reasons, confidence, trust, the cloud read's verdict, grounding. */
+    val routing: RoutingJson? = null,
+    /** What the phone read off the label, line by line, and its draft. */
+    val capture: CaptureJson? = null,
+    val auditNote: String? = null,
 )
 
 @Serializable
 data class ReviewEditRequest(val food: LabelFactsJson? = null)
 
+/** [code] is one of [RejectCode]'s wires; optional, so an older console still works. */
 @Serializable
-data class ReviewRejectRequest(val reason: String? = null)
+data class ReviewRejectRequest(val reason: String? = null, val code: String? = null)
+
+@Serializable
+data class AuditRequest(val passed: Boolean? = null, val note: String? = null)
 
 @Serializable
 data class BarcodeLinkResponse(
@@ -132,8 +155,14 @@ fun Route.foodReviewAdminRoutes(
             if (!call.requireAdmin(config)) return@get
             val status = call.request.queryParameters["status"]?.let { SubmissionStatus.fromWire(it) } ?: SubmissionStatus.Pending
             val limit = call.request.queryParameters["limit"]?.toIntOrNull()?.coerceIn(1, MAX_LIMIT) ?: DEFAULT_LIMIT
-            val purged = submissions.purgeDecidedPhotos(clock.now() - PHOTO_RETENTION_DAYS.days)
+            val now = clock.now()
+            val purged = submissions.purgeDecidedPhotos(now - PHOTO_RETENTION_DAYS.days, retainedBefore = now - RETAINED_PHOTO_DAYS.days)
             if (purged > 0) logger.info("food submission photos purged count={}", purged)
+            if (call.request.queryParameters["audit"] == AuditState.Pending.wire) {
+                return@get call.respond(
+                    FoodSubmissionListResponse(total = submissions.auditCount(), submissions = submissions.audits(limit).map { it.toSummary() }),
+                )
+            }
             call.respond(
                 FoodSubmissionListResponse(
                     total = submissions.count(status),
@@ -154,7 +183,7 @@ fun Route.foodReviewAdminRoutes(
             if (!call.requireAdmin(config)) return@get
             val id = call.submissionId() ?: return@get
             val kind = PhotoKind.fromWire(call.parameters["kind"])
-                ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_kind", "front or label"))
+                ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_kind", "front, label or ingredients"))
             val photo = submissions.photo(id, kind)
                 ?: return@get call.respond(HttpStatusCode.NotFound, problem("not_found", "No such photo."))
             call.response.cacheControl(CacheControl.NoStore(CacheControl.Visibility.Private))
@@ -191,13 +220,33 @@ fun Route.foodReviewAdminRoutes(
         post("/{id}/reject") {
             if (!call.requireAdmin(config)) return@post
             val id = call.submissionId() ?: return@post
-            val reason = call.receive<ReviewRejectRequest>().reason?.trim()?.takeIf { it.isNotEmpty() }
+            val request = call.receive<ReviewRejectRequest>()
+            val reason = request.reason?.trim()?.takeIf { it.isNotEmpty() }
                 ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_reason", "Say why."))
             if (reason.length > MAX_REASON) {
                 return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_reason", "At most $MAX_REASON characters."))
             }
-            val outcome = submissions.reject(id, reason, call.actor())
-            if (outcome is ReviewOutcome.Done) logger.info("food submission rejected")
+            val code = request.code?.let {
+                RejectCode.fromWire(it) ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_code", "Unknown reject code."))
+            }
+            val outcome = submissions.reject(id, reason, call.actor(), code)
+            if (outcome is ReviewOutcome.Done) logger.info("food submission rejected code={}", code?.wire ?: "none")
+            call.respondReview(outcome)
+        }
+
+        post("/{id}/audit") {
+            if (!call.requireAdmin(config)) return@post
+            val id = call.submissionId() ?: return@post
+            val request = call.receive<AuditRequest>()
+            val passed = request.passed
+                ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_audit", "passed is required"))
+            val note = request.note?.trim()?.ifEmpty { null }
+            if (!passed && note == null) return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_reason", "Say what was wrong."))
+            if ((note?.length ?: 0) > MAX_REASON) {
+                return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_reason", "At most $MAX_REASON characters."))
+            }
+            val outcome = submissions.closeAudit(id, passed, note, call.actor())
+            if (outcome is ReviewOutcome.Done) logger.info("food submission audit passed={}", passed)
             call.respondReview(outcome)
         }
     }
@@ -273,6 +322,11 @@ private fun FoodSubmission.toSummary() = FoodSubmissionSummaryResponse(
     barcode = barcode,
     failedChecks = checks.map { it.code.wire }.distinct(),
     hasPhotos = hasPhotos,
+    lane = lane?.wire,
+    wouldAutoApprove = routing?.wouldAutoApprove == true,
+    reasons = routing?.reasons.orEmpty(),
+    confidence = routing?.confidence,
+    audit = audit?.wire,
 )
 
 @OptIn(ExperimentalTime::class)
@@ -288,6 +342,10 @@ private fun FoodSubmission.toDetail() = FoodSubmissionDetailResponse(
     reviewedAtEpochMs = reviewedAt?.toEpochMilliseconds(),
     reviewedBy = reviewedBy,
     rejectReason = rejectReason,
+    rejectCode = rejectCode?.wire,
+    routing = routing?.let(RoutingJson::of),
+    capture = capture?.let(CaptureJson::of),
+    auditNote = auditNote,
 )
 
 @OptIn(ExperimentalTime::class)
@@ -306,6 +364,9 @@ private fun BarcodeLinkSuggestion.toResponse() = BarcodeLinkResponse(
 
 /** Photos are deleted this long after the review decision; the privacy policy says the same. */
 const val PHOTO_RETENTION_DAYS = 30
+
+/** An active Builder who said yes keeps their label photos this long after the decision, for the labelled set. */
+const val RETAINED_PHOTO_DAYS = 730
 private const val DEFAULT_LIMIT = 50
 private const val MAX_LIMIT = 200
 private const val MAX_REASON = 500

@@ -1,6 +1,13 @@
 package com.opson.server.routes
 
+import com.opson.server.data.CaptureJson
 import com.opson.server.data.LabelCheckJson
+import com.opson.server.domain.BuilderRules
+import com.opson.server.domain.ContributionRouter
+import com.opson.server.domain.ExtraPhoto
+import com.opson.server.domain.LabelCapture
+import com.opson.server.domain.Permission
+import com.opson.server.domain.Permissions
 import com.opson.server.data.LabelFactsJson
 import com.opson.server.data.LabelParseCache
 import com.opson.server.domain.BarcodeLinkRepository
@@ -81,14 +88,23 @@ data class FoodSubmissionRequest(
     val food: LabelFactsJson? = null,
     /** The submitter's own copy, a custom food the app saved first. Optional; an app before 0.2.1 leaves it out. */
     val customFoodId: String? = null,
+    /** Builder mode (0.3): a photo of the ingredients list, base64 like the others. Optional. */
+    val ingredients: String? = null,
+    /** Builder mode (0.3): what the phone read off the label before the person edited it. Optional. */
+    val capture: CaptureJson? = null,
 )
 
+/**
+ * [lane] says where the submission went (`review`, `auto`, `owner`), so the app can thank an
+ * owner's or an auto-approved food at once. Older apps ignore it.
+ */
 @Serializable
 data class FoodSubmissionResponse(
     val submissionId: String,
     val foodId: String,
     val status: String,
     val checks: List<LabelCheckJson>,
+    val lane: String? = null,
 )
 
 /**
@@ -145,6 +161,8 @@ fun Route.foodLabelRoutes(
     cache: LabelParseCache,
     limiter: FoodLabelLimiter,
     clock: Clock,
+    router: ContributionRouter? = null,
+    permissions: Permissions? = null,
 ) {
     val logger = LoggerFactory.getLogger("FoodLabelRoutes")
     val json = Json { ignoreUnknownKeys = true }
@@ -227,7 +245,21 @@ fun Route.foodLabelRoutes(
                     is Decoded.Rejected -> return@post call.respond(decoded.status, problem(decoded.code, decoded.message))
                     is Decoded.Ok -> decoded.photos
                 }
-                if (!limiter.trySubmit(userId)) {
+                val ingredients = when (val extra = decodeExtra(request.ingredients)) {
+                    is ExtraDecoded.Rejected -> return@post call.respond(extra.status, problem(extra.code, extra.message))
+                    is ExtraDecoded.Ok -> extra.photo
+                }
+                val capture = when (val read = request.capture?.let(::validateCapture)) {
+                    is CaptureValidated.Rejected -> return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_capture", read.message))
+                    is CaptureValidated.Ok -> read.capture
+                    null -> null
+                }
+                val daily = if (permissions?.can(userId, Permission.FoodContribute) == true) {
+                    BuilderRules.BUILDER_DAILY_SUBMISSIONS
+                } else {
+                    FoodLabelLimiter.DAILY_SUBMISSIONS
+                }
+                if (!limiter.trySubmit(userId, daily)) {
                     logger.info("food submission outcome=rate_limited")
                     return@post call.respond(HttpStatusCode.TooManyRequests, problem("rate_limited", "That's a lot of foods for now. Try again later."))
                 }
@@ -248,12 +280,19 @@ fun Route.foodLabelRoutes(
                         photos = photos,
                         // A malformed id is dropped rather than refused: the food matters more than the mark.
                         customFoodId = request.customFoodId?.let { runCatching { UUID.fromString(it) }.getOrNull() },
+                        ingredients = ingredients,
+                        capture = capture,
                     ),
                 )
                 when (outcome) {
                     is SubmitOutcome.Created -> {
-                        logger.info("food submission outcome=created origin={} checks={} parsed={}", origin.wire, checks.size, parsed != null)
-                        call.respond(HttpStatusCode.Created, outcome.submission.toResponse())
+                        val routed = router?.route(outcome.submission, photos)
+                        val stored = routed?.let { submissions.get(id) } ?: outcome.submission
+                        logger.info(
+                            "food submission outcome=created origin={} checks={} parsed={} capture={} lane={} would_auto={}",
+                            origin.wire, checks.size, parsed != null, capture != null, routed?.lane?.wire ?: "review", routed?.wouldAutoApprove == true,
+                        )
+                        call.respond(HttpStatusCode.Created, stored.toResponse())
                     }
                     is SubmitOutcome.Existing -> {
                         logger.info("food submission outcome=repeat")
@@ -286,7 +325,53 @@ private fun com.opson.server.domain.FoodSubmission.toResponse() = FoodSubmission
     foodId = foodId.toString(),
     status = status.wire,
     checks = checks.map(LabelCheckJson::of),
+    lane = lane?.wire,
 )
+
+private sealed interface ExtraDecoded {
+    class Ok(val photo: ExtraPhoto?) : ExtraDecoded
+    class Rejected(val status: HttpStatusCode, val code: String, val message: String) : ExtraDecoded
+}
+
+private fun decodeExtra(encoded: String?): ExtraDecoded {
+    val text = encoded?.takeIf { it.isNotBlank() } ?: return ExtraDecoded.Ok(null)
+    val invalid = ExtraDecoded.Rejected(HttpStatusCode.BadRequest, "invalid_image", "ingredients must be base64 JPEG, PNG or WebP")
+    val bytes = try {
+        Base64.getMimeDecoder().decode(text)
+    } catch (_: IllegalArgumentException) {
+        return invalid
+    }
+    val type = ImageType.sniff(bytes) ?: return invalid
+    if (bytes.size > FoodLabelLimits.MAX_IMAGE_BYTES) return ExtraDecoded.Rejected(HttpStatusCode.PayloadTooLarge, "image_too_large", "The photos are too large")
+    return ExtraDecoded.Ok(ExtraPhoto(bytes, type))
+}
+
+internal sealed interface CaptureValidated {
+    class Ok(val capture: LabelCapture) : CaptureValidated
+    class Rejected(val message: String) : CaptureValidated
+}
+
+/**
+ * The phone's reading, bounded: a panel's worth of lines, each a line's worth of text, and a
+ * draft that passes the same checks as the food. A capture is evidence for routing, so a
+ * malformed one is refused rather than quietly dropped.
+ */
+internal fun validateCapture(dto: CaptureJson): CaptureValidated {
+    if (dto.lines.size > FoodLabelLimits.MAX_CAPTURE_LINES) return CaptureValidated.Rejected("capture has too many lines")
+    if (dto.lines.any { it.text.length > FoodLabelLimits.MAX_CAPTURE_LINE }) return CaptureValidated.Rejected("a capture line is too long")
+    if (dto.lines.any { !it.confidence.isFinite() }) return CaptureValidated.Rejected("a capture confidence is not a number")
+    if ((dto.engine?.length ?: 0) > FoodLabelLimits.MAX_CAPTURE_ENGINE) return CaptureValidated.Rejected("engine is too long")
+    if (dto.score != null && (!dto.score.isFinite() || dto.score !in 0.0..1.0)) return CaptureValidated.Rejected("score is out of range")
+    if ((dto.signals?.toString()?.length ?: 0) > FoodLabelLimits.MAX_CAPTURE_SIGNALS) return CaptureValidated.Rejected("signals are too large")
+    val draft = dto.draft?.let { draft ->
+        // The draft has no name (a label panel shows none), so it is checked with a stand-in one.
+        when (val checked = validate(draft.copy(name = draft.name ?: "draft"))) {
+            is Validated.Rejected -> return CaptureValidated.Rejected("draft: ${checked.message}")
+            is Validated.Ok -> checked.facts.copy(name = draft.name)
+        }
+    }
+    return CaptureValidated.Ok(dto.copy(draft = null).toCapture().copy(draft = draft))
+}
 
 @OptIn(ExperimentalTime::class)
 private fun com.opson.server.domain.FoodSubmission.toOwnResponse() = OwnSubmissionResponse(

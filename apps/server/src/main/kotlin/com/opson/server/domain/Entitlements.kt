@@ -226,8 +226,8 @@ sealed interface EntitlementSource {
     /** `entitlements.everyone`. */
     data object Everyone : EntitlementSource
 
-    /** Their [role] brings [bundle] (`entitlements.roles`). */
-    data class FromRole(val role: Role, val bundle: String) : EntitlementSource
+    /** Their [role] brings [bundle] (`entitlements.roles`), until [expiresAt] when the role's bundles end ([RoleWindow]). */
+    data class FromRole(val role: Role, val bundle: String, val expiresAt: Instant? = null) : EntitlementSource
 
     /** A grant row: the entitlement itself, or a [bundle] holding it. */
     data class FromGrant(val grant: EntitlementGrant, val bundle: String?) : EntitlementSource
@@ -245,14 +245,21 @@ data class ResolvedEntitlements(
          * The union of everyone, the role's bundles and the active grants, minus active
          * revocations. Pure: [grants] must already be the ones in force.
          */
-        fun resolve(policy: EntitlementPolicy, role: Role, grants: List<EntitlementGrant>): ResolvedEntitlements {
+        fun resolve(
+            policy: EntitlementPolicy,
+            role: Role,
+            grants: List<EntitlementGrant>,
+            roleWindow: RoleWindow = RoleWindow.ALWAYS,
+        ): ResolvedEntitlements {
             val sources = LinkedHashMap<Entitlement, MutableList<EntitlementSource>>()
             fun add(entitlement: Entitlement, source: EntitlementSource) {
                 sources.getOrPut(entitlement) { mutableListOf() } += source
             }
             policy.everyone.forEach { add(it, EntitlementSource.Everyone) }
-            policy.roleBundles[role].orEmpty().forEach { bundle ->
-                policy.bundle(bundle).forEach { add(it, EntitlementSource.FromRole(role, bundle)) }
+            if (roleWindow.active) {
+                policy.roleBundles[role].orEmpty().forEach { bundle ->
+                    policy.bundle(bundle).forEach { add(it, EntitlementSource.FromRole(role, bundle, roleWindow.until)) }
+                }
             }
             val revoked = LinkedHashMap<Entitlement, MutableList<EntitlementGrant>>()
             for (grant in grants) {
@@ -271,6 +278,19 @@ data class ResolvedEntitlements(
                 revoked = revoked,
             )
         }
+    }
+}
+
+/**
+ * Whether a role's bundles hold right now, and until when. Most roles' always do. A Builder who
+ * joined through the app has them while they keep contributing ([BuilderRules.proUntil]), so
+ * Builder Pro lapses on its own when someone stops, with no job to run.
+ */
+@OptIn(ExperimentalTime::class)
+data class RoleWindow(val active: Boolean, val until: Instant?) {
+    companion object {
+        val ALWAYS = RoleWindow(active = true, until = null)
+        val LAPSED = RoleWindow(active = false, until = null)
     }
 }
 

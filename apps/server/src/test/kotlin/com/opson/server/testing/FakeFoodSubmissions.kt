@@ -1,6 +1,10 @@
 package com.opson.server.testing
 
+import com.opson.server.domain.AuditState
 import com.opson.server.domain.BarcodeLinkRepository
+import com.opson.server.domain.Lane
+import com.opson.server.domain.RejectCode
+import com.opson.server.domain.RoutingDecision
 import com.opson.server.domain.BarcodeLinkSuggestion
 import com.opson.server.domain.Barcodes
 import com.opson.server.domain.FoodSubmission
@@ -64,6 +68,7 @@ class FakeFoodSubmissionRepository : FoodSubmissionRepository {
             rejectReason = null,
             hasPhotos = true,
             customFoodId = submission.customFoodId,
+            capture = submission.capture,
         )
         submissions[submission.id] = stored
         photos[submission.id to PhotoKind.Front] = StoredPhoto(submission.photos.frontType.mediaType, submission.photos.front)
@@ -106,13 +111,44 @@ class FakeFoodSubmissionRepository : FoodSubmissionRepository {
         }
     }
 
-    override suspend fun reject(id: UUID, reason: String, reviewer: String): ReviewOutcome = decide(id) {
-        it.copy(status = SubmissionStatus.Rejected, rejectReason = reason, reviewedBy = reviewer, reviewedAt = Instant.parse("2026-10-28T12:00:00Z"))
+    override suspend fun reject(id: UUID, reason: String, reviewer: String, code: RejectCode?): ReviewOutcome = decide(id) {
+        it.copy(
+            status = SubmissionStatus.Rejected,
+            rejectReason = reason,
+            rejectCode = code,
+            reviewedBy = reviewer,
+            reviewedAt = Instant.parse("2026-10-28T12:00:00Z"),
+        )
     }
 
-    override suspend fun purgeDecidedPhotos(before: Instant): Int {
+    override suspend fun purgeDecidedPhotos(before: Instant, retainedBefore: Instant): Int {
         purgedBefore = before
         return 0
+    }
+
+    override suspend fun recordRouting(id: UUID, decision: RoutingDecision) {
+        val current = submissions[id] ?: return
+        submissions[id] = current.copy(
+            lane = decision.lane,
+            routing = decision,
+            audit = if (decision.audit && decision.lane == Lane.Auto) AuditState.Pending else current.audit,
+        )
+    }
+
+    override suspend fun audits(limit: Int): List<FoodSubmission> = submissions.values.filter { it.audit == AuditState.Pending }.take(limit)
+
+    override suspend fun auditCount(): Long = submissions.values.count { it.audit == AuditState.Pending }.toLong()
+
+    override suspend fun closeAudit(id: UUID, passed: Boolean, note: String?, reviewer: String): ReviewOutcome {
+        val current = submissions[id] ?: return ReviewOutcome.NotFound
+        if (current.audit != AuditState.Pending) return ReviewOutcome.AlreadyDecided
+        val after = current.copy(
+            audit = if (passed) AuditState.Passed else AuditState.Failed,
+            auditNote = note,
+            status = if (passed) current.status else SubmissionStatus.Pending,
+        )
+        submissions[id] = after
+        return ReviewOutcome.Done(after)
     }
 
     private fun decide(id: UUID, change: (FoodSubmission) -> FoodSubmission): ReviewOutcome {

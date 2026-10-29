@@ -48,6 +48,20 @@ object FoodSubmissionsTable : Table("food_submissions") {
 
     /** The submitter's own copy, a custom food (V27). */
     val customFoodId = uuid("custom_food_id").nullable()
+
+    /** How it was routed (V30): `review`, `auto` or `owner`, and why. */
+    val lane = text("lane").nullable()
+    val routing = jsonb("routing").nullable()
+
+    /** What the phone read off the label (V30), for review and grounding. */
+    val capture = jsonb("capture").nullable()
+
+    /** The random audit of an auto-approval (V30): `pending`, `passed` or `failed`. */
+    val audit = text("audit").nullable()
+    val auditedAt = timestamp("audited_at").nullable()
+    val auditedBy = text("audited_by").nullable()
+    val auditNote = text("audit_note").nullable()
+    val rejectCode = text("reject_code").nullable()
     override val primaryKey = PrimaryKey(id)
 }
 
