@@ -115,7 +115,7 @@
     <string name="today_notes_title">Notes</string>
     <string name="today_notes_loading_cd">Loading your notes</string>
     <string name="today_notes_empty">No notes yet. Write one for the day here or when you wrap it up, or tap a meal's + and choose Note.</string>
-    <!-- The day's own note, written from Close the day or the Note sheet -->
+    <!-- The day's own note, written from Wrap up the day or the Note sheet -->
     <string name="today_notes_day_note">Day note</string>
     <string name="today_notes_add_today">Write a note for today</string>
     <string name="today_notes_edit_day_cd">Change the day's note</string>

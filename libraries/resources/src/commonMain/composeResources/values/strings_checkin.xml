@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Copy for the check-in (release.checkIn): its sheet, the + sheet's tile, Close the day's way in
+  Copy for the check-in (release.checkIn): its sheet, the + sheet's tile, Wrap up the day's way in
   and the words Patterns and the provider summary show for an answer. Same rules as
   strings.xml: no backslash escapes, positional %1$s arguments. Plain words, nothing that
   grades the answer.
@@ -66,7 +66,7 @@
     <!-- The + sheet's tile. -->
     <string name="adding_action_check_in">Check in</string>
 
-    <!-- Close the day's way in: a labelled section whose row opens the same sheet. -->
+    <!-- Wrap up the day's way in: a labelled section whose row opens the same sheet. -->
     <string name="today_dayclose_checkin_label">How are you feeling? · optional</string>
     <string name="today_dayclose_checkin_label_other_day">How were you feeling? · optional</string>
     <string name="today_dayclose_checkin_empty">Hunger, energy, mood and sleep. Answer any of it.</string>

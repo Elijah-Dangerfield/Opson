@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Copy for Close the day's recap: the line under the title, eaten against burned, the macros and
+  Copy for Wrap up the day's recap: the line under the title, eaten against burned, the macros and
   the vitamins and minerals. Same rules as strings.xml: no backslash escapes, positional %1$s
   arguments. A recap states what happened and never grades it: no praise for eating less, no
   alarm for eating more.
