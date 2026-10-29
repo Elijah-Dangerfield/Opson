@@ -268,7 +268,14 @@ hunger toggle, old fullness and moods kept, empty clears, trimmed save.
 
 ## Water sheet
 
-`WaterSheetRoute(dayIso)`. `WaterSheetViewModel(day)`.
+`WaterSheetRoute(dayIso)`. `WaterSheetViewModel(day)`. Half the screen's height
+(`heightFraction = 0.5`), so the water card stays in view above it.
+
+The card itself takes taps too: each glass is a target (`WaterGlassTapped(index)`
+on `TodayViewModel`). A tap fills the glasses up to the one tapped, and a tap on
+the last full glass empties it (`WaterTaps.glassesAfter`); the day's water is set
+to that many glasses (`setWater`), so the bar shows exactly what was tapped. A
+closed day takes no taps.
 
 ```kotlin
 data class WaterSheetState(
