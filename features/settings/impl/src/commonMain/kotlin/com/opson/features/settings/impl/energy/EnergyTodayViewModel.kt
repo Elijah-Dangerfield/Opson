@@ -55,6 +55,7 @@ class EnergyTodayViewModel(
             is EnergyTodayAction.InputsArrived -> action.updateState { EnergyTodayStateBuilder.build(action.inputs, action.policy) }
             EnergyTodayAction.NutrientsTapped -> sendEvent(EnergyTodayEvent.OpenNutrients(today))
             EnergyTodayAction.RestingEnergyTapped -> sendEvent(EnergyTodayEvent.OpenRestingEnergy)
+            is EnergyTodayAction.InfoTapped -> sendEvent(EnergyTodayEvent.OpenExplainer(action.topic))
             EnergyTodayAction.BackTapped -> sendEvent(EnergyTodayEvent.Close)
         }
     }
@@ -67,6 +68,9 @@ class EnergyTodayViewModel(
 sealed interface EnergyTodayEvent {
     data class OpenNutrients(val day: LocalDate) : EnergyTodayEvent
     data object OpenRestingEnergy : EnergyTodayEvent
+
+    /** An (i) sheet: what a word on the page means, with the day's own working. */
+    data class OpenExplainer(val topic: EnergyTopic) : EnergyTodayEvent
     data object Close : EnergyTodayEvent
 }
 
@@ -74,5 +78,6 @@ sealed interface EnergyTodayAction {
     data class InputsArrived(val inputs: EnergyTodayInputs, val policy: VisibilityPolicy) : EnergyTodayAction
     data object NutrientsTapped : EnergyTodayAction
     data object RestingEnergyTapped : EnergyTodayAction
+    data class InfoTapped(val topic: EnergyTopic) : EnergyTodayAction
     data object BackTapped : EnergyTodayAction
 }

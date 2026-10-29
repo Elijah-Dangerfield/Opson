@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -32,6 +33,7 @@ import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.chip.StatusPill
 import com.opson.libraries.ui.components.icon.AppIcons
+import com.opson.libraries.ui.components.icon.IconButton
 import com.opson.libraries.ui.components.icon.RoundIconButton
 import com.opson.libraries.ui.components.icon.ToneIcon
 import com.opson.libraries.ui.components.icon.described
@@ -43,6 +45,7 @@ import com.opson.system.AppTheme
 import com.opson.system.background
 import com.opson.system.color.ToneColors
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.energy_info_cd
 import opson.libraries.resources.generated.resources.exercise_minutes_chip
 import opson.libraries.resources.generated.resources.integrations_apple_health
 import opson.libraries.resources.generated.resources.integrations_health_connect
@@ -158,8 +161,16 @@ private fun Sum(card: TodayActivityCard, onAction: (TodayActivityAction) -> Unit
         }
         NutrientVisible(card.total) {
             HorizontalDivider(color = AppTheme.colors.line, modifier = Modifier.padding(vertical = 4.dp))
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(text = stringResource(Res.string.today_activity_total), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink, modifier = Modifier.weight(1f))
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(text = stringResource(Res.string.today_activity_total), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
+                // What TDEE means and how today's adds up, in the settings sheet every energy page opens.
+                IconButton(
+                    icon = AppIcons.Info.described(stringResource(Res.string.energy_info_cd)),
+                    onClick = { onAction(TodayActivityAction.BurnedInfoTapped) },
+                    iconColor = AppTheme.colors.muted,
+                    size = IconButton.Size.Small,
+                )
+                Spacer(Modifier.weight(1f))
                 NutrientText(Metric.EnergyOut, card.total, typography = AppTheme.type.cardTitle.Tabular, color = AppTheme.colors.ink, maxLines = 1)
             }
         }

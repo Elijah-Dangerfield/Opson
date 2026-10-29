@@ -41,7 +41,7 @@ class DigestingFoodLeakTest(private val surface: LeakSurface, private val mode: 
 
     companion object {
         /** Every surface with a "Digesting food" line. [LeakTestControlTest] fails on one missing from here. */
-        val DIGESTING_SURFACES = setOf("today-activity", "today-activity-health", "energy-today")
+        val DIGESTING_SURFACES = setOf("today-activity", "today-activity-health", "energy-today", "energy-explainer-burned")
 
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0} in {1}")
