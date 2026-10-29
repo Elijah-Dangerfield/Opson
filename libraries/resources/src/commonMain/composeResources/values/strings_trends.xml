@@ -203,7 +203,7 @@
     <string name="trends_patterns_size_line">·</string>
     <string name="trends_patterns_often">How often</string>
     <string name="trends_patterns_often_value">%1$d of %2$d days</string>
-    <string name="trends_patterns_hunger">Hunger through the day</string>
+    <string name="trends_patterns_hunger">Hunger by weekday</string>
     <string name="trends_patterns_hunger_from">From your check-ins</string>
     <string name="trends_patterns_hunger_from_tags">From your meal tags</string>
     <string name="trends_patterns_hunger_skipped">Hungrier on days you skipped breakfast (%1$s).</string>

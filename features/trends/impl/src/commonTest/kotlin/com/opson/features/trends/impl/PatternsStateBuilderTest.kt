@@ -1,6 +1,9 @@
 package com.opson.features.trends.impl
 
 import com.opson.libraries.nutrition.RevealOn
+import com.opson.libraries.diary.CheckIn
+import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.HungerLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.Display
@@ -8,7 +11,9 @@ import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.nutrition.Metric
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.minus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -154,6 +159,43 @@ class PatternsStateBuilderTest {
         val unanswered = TrendsFixtures.days().map { it.copy(checkIn = null) }
         val inputs = TrendsFixtures.patternsInputs(days = unanswered, checkInOn = true)
         assertEquals(HungerSource.MealTags, assertNotNull(PatternsStateBuilder.build(inputs, TrendsFixtures.policy()).hunger).source)
+    }
+
+    @Test
+    fun checkIns_aBarADayForEachAspectAnswered_inEveryMode() {
+        PresetId.entries.forEach { preset ->
+            val card = assertNotNull(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(checkInOn = true), TrendsFixtures.policy(preset)).checkIns, "$preset")
+            assertEquals(CheckInAspect.entries, card.series.map { it.aspect })
+            card.series.forEach { series ->
+                assertEquals(PatternsStateBuilder.DAYS, series.levels.size, "${series.aspect}: four weeks, today included")
+                assertTrue(series.levels.filterNotNull().all { it in 0f..1f })
+                series.levels.zip(series.readouts).forEach { (level, readout) ->
+                    assertEquals(level == null, readout == null)
+                    readout?.let { assertNull(it.readings.single().value, "words, never an amount") }
+                }
+            }
+        }
+        assertNull(build().checkIns, "the flag off")
+    }
+
+    @Test
+    fun checkIns_hungerIsTallerWhenHungrier_andAnAspectNobodyAnsweredIsLeftOut() {
+        val today = TrendsFixtures.today
+        val days = listOf(
+            Day(date = today, checkIn = CheckIn(hunger = HungerLevel.of(2))),
+            Day(date = today.minus(1, DateTimeUnit.DAY), checkIn = CheckIn(hunger = HungerLevel.of(9))),
+            Day(date = today.minus(2, DateTimeUnit.DAY), checkIn = CheckIn(hunger = HungerLevel.of(5)), untracked = true),
+        )
+        val from = today.minus(PatternsStateBuilder.DAYS - 1, DateTimeUnit.DAY)
+
+        val card = assertNotNull(PatternsStateBuilder.checkIns(days, from, today))
+
+        assertEquals(listOf(CheckInAspect.Hunger), card.series.map { it.aspect })
+        val levels = card.shown.levels
+        assertTrue(assertNotNull(levels.last()) > assertNotNull(levels[levels.lastIndex - 1]), "2 is hungrier than 9")
+        assertNull(levels[levels.lastIndex - 2], "an untracked day is a gap")
+        assertEquals(card, card.picking(CheckInAspect.Sleep), "no sleep answered, nothing to pick")
+        assertNull(PatternsStateBuilder.checkIns(emptyList(), from, today))
     }
 
     @Test

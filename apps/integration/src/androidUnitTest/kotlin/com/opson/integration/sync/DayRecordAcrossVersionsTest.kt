@@ -5,8 +5,7 @@ import com.opson.integration.helpers.randomUserId
 import com.opson.integration.helpers.written
 import com.opson.libraries.core.Catching
 import com.opson.libraries.diary.CheckIn
-import com.opson.libraries.diary.DayHunger
-import com.opson.libraries.diary.DayReflection
+import com.opson.libraries.diary.HungerLevel
 import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.impl.DiarySyncApi
 import com.opson.libraries.diary.impl.wire.SyncRequestDto
@@ -18,7 +17,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 /**
- * **A day record across app versions.** Day close's check-in (0.2, `release.checkIn`) rides on
+ * **A day record across app versions.** The day's check-in (0.2, `release.checkIn`) rides on
  * the day record, a row 0.1 already syncs. A 0.1 phone decodes the record without it and sends the
  * whole row back on its next change to that day, so the server must not read the missing key as
  * "cleared".
@@ -46,10 +45,8 @@ class DayRecordAcrossVersionsTest : IntegrationTest() {
         val user = randomUserId()
         val newPhone = client(user)
         val day = newPhone.today()
-        val checkIn = CheckIn(hunger = DayHunger.Steady, energy = Energy.Good)
-        // Close the day with the check-in, then reopen it so the old phone may still add to it.
-        newPhone.diary.closeDay(day, DayReflection(checkIn = checkIn))
-        newPhone.diary.reopenDay(day)
+        val checkIn = CheckIn(hunger = HungerLevel.of(4), energy = Energy.Good)
+        newPhone.checkIns.setCheckIn(day, checkIn)
         newPhone.syncNow().getOrThrow()
 
         val oldPhone = client(user, wrapSync = ::V01Wire)

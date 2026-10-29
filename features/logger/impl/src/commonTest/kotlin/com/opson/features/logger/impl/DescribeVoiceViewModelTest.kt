@@ -60,6 +60,7 @@ class DescribeVoiceViewModelTest : CoroutineTest() {
         voice = DescribeVoice(speech, voiceFlag(voiceOn), telemetry),
         fastingRelease = fastingFlag(false),
         exerciseRelease = ExerciseRelease { false },
+        checkInEnabled = checkInFlag(false),
         submittedFoods = FakeSubmittedFoods(),
     )
 

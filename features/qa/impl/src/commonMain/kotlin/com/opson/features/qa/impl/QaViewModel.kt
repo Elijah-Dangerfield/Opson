@@ -109,15 +109,15 @@ class QaViewModel(
     }
 
     /**
-     * Turns on what the check-in needs, then opens Close the day for today. Waits for the
-     * override to reach the config, so Close the day reads it on its first build.
+     * Turns on `release.checkIn`, then opens today's check-in. Waits for the override to reach
+     * the config, so what opens next reads it on its first build.
      */
     private suspend fun openCheckIn() {
         if (!checkInEnabled()) {
             overrides.addOverride(ConfigOverride(checkInEnabled.path, true))
             withTimeoutOrNull(OVERRIDE_WAIT) { config.first { CheckInEnabled(it).value } }
         }
-        sendEvent(QaEvent.OpenDayClose(calendar.today().toString()))
+        sendEvent(QaEvent.OpenCheckIn(calendar.today().toString()))
     }
 
     /** One tool at a time; a failure is logged and said, never thrown at the menu. */

@@ -2,7 +2,9 @@ package com.opson.libraries.diary.impl
 
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logging.KLog
+import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.DayWrite
@@ -42,6 +44,7 @@ import kotlin.time.Instant
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = DiaryRepository::class)
 @ContributesBinding(AppScope::class, boundType = DiaryItemEditor::class)
+@ContributesBinding(AppScope::class, boundType = DayCheckIns::class)
 @Inject
 class DiaryRepositoryImpl(
     private val tables: DiaryTables,
@@ -49,7 +52,7 @@ class DiaryRepositoryImpl(
     private val settingsRepository: SettingsRepository,
     private val calendar: LocalCalendar,
     private val fastEnder: FastEnder,
-) : DiaryRepository, DiaryItemEditor {
+) : DiaryRepository, DiaryItemEditor, DayCheckIns {
 
     private val logger = KLog.withTag("Diary")
 
@@ -185,9 +188,13 @@ class DiaryRepositoryImpl(
                 closedAtEpochMs = it.closedAtEpochMs ?: nowEpochMs,
                 note = reflection.note.cleanNote(),
                 feeling = reflection.feeling?.wire,
-                checkIn = reflection.checkIn.toCheckInJson(),
             )
         }
+    }
+
+    // Not changeOpenDay: a check-in on a closed day is still allowed (docs/decisions.md, 2026-10-29).
+    override suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?) = writer.write {
+        changeDay(day) { it.copy(checkIn = checkIn.toCheckInJson()) }
     }
 
     override suspend fun reopenDay(day: LocalDate) = writer.write {

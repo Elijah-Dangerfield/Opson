@@ -3,7 +3,9 @@ package com.opson.features.today.impl
 import com.opson.libraries.core.fixed
 import com.opson.libraries.config.AppConfigMap
 import com.opson.libraries.diary.CheckInEnabled
+import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
+import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryItemEditor
@@ -85,7 +87,7 @@ fun Display.text(): String? = when (this) {
  * [Day.closedAt] set refuses writes to it, as the real diary does, and records
  * nothing for them.
  */
-class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, DiaryItemEditor {
+class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, DiaryItemEditor, DayCheckIns {
     val days = MutableStateFlow(days.associateBy { it.date })
     val loggedDates = MutableStateFlow<Map<Pair<Int, Int>, Set<LocalDate>>>(emptyMap())
     val frequent = MutableStateFlow<List<LogItem>>(emptyList())
@@ -106,12 +108,13 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
     val moved = mutableListOf<Pair<List<String>, MealSlot>>()
     val copiedItems = mutableListOf<Triple<List<String>, LocalDate, MealSlot>>()
     val updated = mutableListOf<LogItem>()
+    val checkIns = mutableListOf<Pair<LocalDate, CheckIn?>>()
 
     /** Every write, in order, for tests that assert nothing was written. */
     val writes: Int
         get() = water.size + removedWater.size + copiedDays.size + copiedSlots.size + cleared.size + ateNoDetails.size +
             feelings.size + notes.size + closed.size + reopened.size + removed.size + untracked.size +
-            restored.size + moved.size + copiedItems.size + updated.size
+            restored.size + moved.size + copiedItems.size + updated.size + checkIns.size
 
     override fun observeDay(date: LocalDate): Flow<Day> = days.map { it[date] ?: Day.empty(date) }
 
@@ -151,6 +154,12 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository, Diar
     override suspend fun closeDay(day: LocalDate, reflection: DayReflection) {
         closed += day to reflection
         days.value += day to (days.value[day] ?: Day.empty(day)).let { it.copy(closedAt = it.closedAt ?: CLOSED_AT) }
+    }
+
+    /** Records the check-in and keeps it on the day, closed or not, as the diary does. */
+    override suspend fun setCheckIn(day: LocalDate, checkIn: CheckIn?) {
+        checkIns += day to checkIn
+        days.value += day to (days.value[day] ?: Day.empty(day)).copy(checkIn = checkIn?.takeUnless { it.isEmpty })
     }
 
     override suspend fun reopenDay(day: LocalDate) {

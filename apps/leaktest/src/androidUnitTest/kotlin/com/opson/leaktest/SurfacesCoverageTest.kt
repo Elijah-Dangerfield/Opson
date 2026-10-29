@@ -115,6 +115,7 @@ class SurfacesCoverageTest {
                 "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "food-actions-amount",
                 "today-notes",
                 "today-closed", "day-closed-sheet", "day-close-closed", "food-actions-closed",
+                "day-close-recap-deficit", "day-close-recap-surplus", "check-in",
             ),
             "LoggerLeakSurfaces" to listOf(
                 "add-sheet", "add-sheet-expanded", "add-sheet-uncategorized",
@@ -174,7 +175,7 @@ class SurfacesCoverageTest {
             "edit-a-copy-label", "edit-a-copy-sizes",
             "today-activity", "today-activity-health", "exercise-sheet", "exercise-sheet-other",
             "provider-summary", "provider-summary-warning", "provider-summary-custom",
-            "today-closed", "day-close-closed", "food-actions-closed",
+            "today-closed", "day-close-closed", "food-actions-closed", "day-close-recap-deficit", "day-close-recap-surplus",
             "search-unverified", "food-detail-in-review", "submit-food-save-review", "foods-add-food-pack", "foods-unverified",
         )
     }

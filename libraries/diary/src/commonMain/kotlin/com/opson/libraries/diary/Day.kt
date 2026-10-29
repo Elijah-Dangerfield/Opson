@@ -30,7 +30,7 @@ data class Day(
     val untracked: Boolean = false,
     /** Day close's "How did today feel?", when answered. Only the user sees it. */
     val feeling: DayFeeling? = null,
-    /** Day close's check-in (design sync 2, `release.checkIn`), when any of it was answered. Only the user sees it. */
+    /** The day's check-in (`release.checkIn`), when any of it was answered. Only the user sees it. */
     val checkIn: CheckIn? = null,
 ) {
     val allItems: List<LogItem> get() = MealSlot.entries.flatMap { items(it) }
@@ -127,37 +127,59 @@ enum class DayFeeling(val wire: String) {
 }
 
 /**
- * Day close's once-a-day check-in (design sync 2, 4.1): hunger through the day, energy, last
- * night's sleep and any moods. Every row is optional and one left blank stays blank. It replaces
- * the questions that used to follow each food; Patterns reads it as one entry per day.
+ * The day's check-in (`release.checkIn`): hunger right now, energy, mood, last night's sleep and
+ * any mood tags. Its own sheet, reached from the + sheet and from Close the day, and never part of
+ * closing the day. One per day: the sheet opens on what the day holds and saves it whole, so the
+ * morning's sleep is still there when the evening only moves hunger. Every row is optional.
+ * Patterns charts it, one entry per day.
  */
 data class CheckIn(
-    val hunger: DayHunger? = null,
+    val hunger: HungerLevel? = null,
     val energy: Energy? = null,
     val sleep: Sleep? = null,
+    val mood: MoodLevel? = null,
     val moods: Set<CheckInMood> = emptySet(),
 ) {
-    val isEmpty: Boolean get() = hunger == null && energy == null && sleep == null && moods.isEmpty()
+    val isEmpty: Boolean get() = hunger == null && energy == null && sleep == null && mood == null && moods.isEmpty()
 }
 
-/** How often hunger came up through the day, least to most. [wire] is what syncs. */
-enum class DayHunger(val wire: String) {
-    Rarely("rarely"),
-    Some("some"),
-    Steady("steady"),
-    Often("often"),
-    Very("very"),
-    ;
+/**
+ * Hunger on the 1 to 10 hunger and fullness scale used in intuitive eating: 1 is ravenous, 5 is
+ * neutral, 10 is painfully full, so lower is hungrier. [anchor] is the step's word.
+ */
+@kotlin.jvm.JvmInline
+value class HungerLevel private constructor(val value: Int) {
+    /** How hungry, 0 for stuffed up to 1 for ravenous: what a "how hungry" bar draws. */
+    val hungriness: Double get() = (MAX - value).toDouble() / (MAX - MIN)
+
+    val anchor: HungerAnchor get() = HungerAnchor.entries[value - MIN]
 
     companion object {
-        fun fromWire(value: String?): DayHunger? = entries.firstOrNull { it.wire == value }
+        const val MIN = 1
+        const val MAX = 10
+        const val NEUTRAL = 5
+
+        /** Null off the scale, so a bad stored value reads as unanswered. */
+        fun of(value: Int?): HungerLevel? = value?.takeIf { it in MIN..MAX }?.let(::HungerLevel)
+
+        val all: List<HungerLevel> get() = (MIN..MAX).map(::HungerLevel)
     }
 }
 
+/** The hunger scale's words, one per step, from [Ravenous] (1) to [Stuffed] (10). */
+enum class HungerAnchor { Ravenous, VeryHungry, Hungry, LittleHungry, Neutral, Satisfied, ComfortablyFull, Full, VeryFull, Stuffed }
+
+/**
+ * The 5-point scales the check-in asks energy, sleep and mood on, lowest first. The middle three
+ * of [Energy] and [Sleep] keep the wire values of the 3-point rows they grew from, so a check-in
+ * stored then reads with the same word. [wire] is what syncs.
+ */
 enum class Energy(val wire: String) {
+    Drained("drained"),
     Low("low"),
     Ok("ok"),
     Good("good"),
+    Great("great"),
     ;
 
     companion object {
@@ -166,9 +188,11 @@ enum class Energy(val wire: String) {
 }
 
 enum class Sleep(val wire: String) {
+    Rough("rough"),
     Poor("poor"),
     Ok("ok"),
     Good("good"),
+    Great("great"),
     ;
 
     companion object {
@@ -176,6 +200,21 @@ enum class Sleep(val wire: String) {
     }
 }
 
+/** Overall mood, on the same five points as [Energy] and [Sleep]. The tags beside it are [CheckInMood]. */
+enum class MoodLevel(val wire: String) {
+    Rough("rough"),
+    Low("low"),
+    Ok("ok"),
+    Good("good"),
+    Great("great"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): MoodLevel? = entries.firstOrNull { it.wire == value }
+    }
+}
+
+/** Mood tags, pick any: the first check-in's mood row, kept beside [MoodLevel]. */
 enum class CheckInMood(val wire: String) {
     Calm("calm"),
     Social("social"),

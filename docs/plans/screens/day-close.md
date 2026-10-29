@@ -2,13 +2,27 @@
 
 > **A closed day takes nothing (2026-10-27, `docs/decisions.md`):** once
 > closed, the diary refuses every add, edit and delete for the day
-> (`DayWrite.DayClosed`) until it is reopened. Done saves the note, the feeling
-> and the check-in with the close in one write, `closeDay(day, DayReflection)`.
+> (`DayWrite.DayClosed`) until it is reopened. Done saves the note and the
+> feeling with the close in one write, `closeDay(day, DayReflection)`. The
+> check-in is no longer part of it (2026-10-29, below).
 > On a closed day the button reads Save and keeps it closed, Reopen this day
 > sits under it (action `ReopenTapped`, then `Close`), and the caption says
 > "This day is closed. Reopen it to add or change food." Before closing it
 > says "You can reopen it later if you need to add something." State
 > `closed`.
+
+> **The recap and a separate check-in (2026-10-29, `docs/decisions.md`):**
+> under the title a line says how much of the day was logged, in words, in every
+> mode. Then, each only where every amount in it is shown: **Eaten and burned**
+> (eaten, Burned with `release.goalsAndEnergy` or else the watch's total today,
+> how far apart, and how that sits with the deficit or surplus the day's goal
+> works out to: on plan, beyond, short or the other way, said without praise or
+> alarm), **Macros** against their targets (`88 / 120 g`, so Macros with grams
+> and Macros only get it too), and **Vitamins and minerals**, Today's four as a
+> percent of their references with See all. No score adds them up. Macros and
+> micros step aside on a big day. The check-in card is gone: a **Check in** row
+> shows what the day's check-in holds and opens its sheet (`CheckInRoute`),
+> which saves on its own. Last night's sleep is asked there, in the morning.
 
 > **Design v3 (4.1 to 4.5) changes, built:** the totals card shows the figure,
 > "Inside your range of {range}" / "Above your range today" / "Your range is
@@ -94,7 +108,9 @@ data class BigDayCard(val tomorrow: Display, val commitment: Commitment)   // Co
 | `InputsArrived(day, settings, policy)` | Rebuilds. Prefills `note` from `day.note` once. |
 | `NoteTyped(text)` | `note = text`. |
 | `CommitmentTapped` | `commitment = Committed`. Saves nothing, on purpose (`PROTOTYPE_NOTES.md`). Both buttons send it. |
-| `DoneTapped` | `DiaryRepository.closeDay(day, DayReflection(note, feeling, checkIn))`: the note trimmed or null, and the feeling and check-in as answered here or as stored where they were not asked. One write sets `closed_at` (keeping the first) with them. Event `Close`. |
+| `DoneTapped` | `DiaryRepository.closeDay(day, DayReflection(note, feeling))`: the note trimmed or null, and the feeling as answered here or as stored where it was not asked. One write sets `closed_at` (keeping the first) with them. The check-in is never written here. Event `Close`. |
+| `CheckInTapped` | Event `OpenCheckIn(day)`, the check-in sheet over this screen. Only with `release.checkIn`. |
+| `NutrientsTapped` | Event `OpenNutrients(day)`, the vitamins and minerals card's See all. |
 | `ReopenTapped` | `DiaryRepository.reopenDay(day)`, event `Close`. Only on a closed day. |
 | `BackTapped` | Event `Close` without closing the day or saving the note. |
 

@@ -250,7 +250,7 @@ internal object QaPreviews {
         identity = QaStateBuilder.identity(auth, "https://opson-server-prod.fly.dev", "https://gfmstgbrdwqepmeycyid.supabase.co"),
         config = listOf(
             QaConfigRow("Reminders (0.2)", "release.reminders", "release", "true", QaConfigKind.Flag, overridden = true),
-            QaConfigRow("Day close check-in", "release.checkIn", "release", "false", QaConfigKind.Flag, overridden = false),
+            QaConfigRow("Check-in", "release.checkIn", "release", "false", QaConfigKind.Flag, overridden = false),
             QaConfigRow("Config refresh throttle", "config.refreshThrottleMs", "config", "0", QaConfigKind.Long, overridden = false),
         ),
     )

@@ -87,7 +87,7 @@ class QaTest : CoroutineTest() {
         val f = Fixture()
         val vm = f.vm()
 
-        assertEquals(QaConfigRow("Day close check-in", "release.checkIn", "release", "false", QaConfigKind.Flag, overridden = false), vm.state.config.single())
+        assertEquals(QaConfigRow("Check-in", "release.checkIn", "release", "false", QaConfigKind.Flag, overridden = false), vm.state.config.single())
 
         vm.takeAction(QaAction.FlagToggled("release.checkIn", on = true))
 
@@ -108,7 +108,7 @@ class QaTest : CoroutineTest() {
     }
 
     @Test
-    fun theCheckIn_turnsOnWhatItNeeds_thenOpensTodaysDayClose() = runUnitTest {
+    fun theCheckIn_turnsOnItsFlag_thenOpensTodaysCheckIn() = runUnitTest {
         val f = Fixture()
         val vm = f.vm()
         val events = eventsOf(vm)
@@ -116,7 +116,7 @@ class QaTest : CoroutineTest() {
         vm.takeAction(QaAction.CheckInTapped)
 
         assertTrue(f.overrides.paths().contains("release.checkIn"))
-        assertEquals(listOf<QaEvent>(QaEvent.OpenDayClose(f.calendar.today().toString())), events)
+        assertEquals(listOf<QaEvent>(QaEvent.OpenCheckIn(f.calendar.today().toString())), events)
     }
 
     @Test

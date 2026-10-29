@@ -35,6 +35,9 @@ class PatternsViewModel(
 
     private val today: LocalDate get() = clock.now().toLocalDateTime(timeZone).date
 
+    /** The check-ins card's pick, kept as new days arrive. Above `init`, which can build at once. */
+    private var picked = CheckInAspect.Hunger
+
     init {
         // The policy source re-emits at midnight, so the four weeks move with the day.
         val days = policySource.policy
@@ -44,16 +47,24 @@ class PatternsViewModel(
                 val from = day.minus(PatternsStateBuilder.DAYS - 1 + NewFoods.LOOKBACK_DAYS, DateTimeUnit.DAY)
                 diary.observeDays(from, day).map { day to it }
             }
-        // Read once when the page opens, like every release flag.
-        val checkInReleased = checkInEnabled()
+        // Read once when the page opens, like every release flag. There is no switch for the
+        // check-in any more: released, it is on.
+        val checkInOn = checkInEnabled()
         combine(settingsRepository.settings, policySource.policy, days) { settings, policy, (day, list) ->
-            PatternsAction.InputsArrived(PatternsInputs(day, settings, list, timeZone, checkInOn = checkInReleased), policy)
+            PatternsAction.InputsArrived(PatternsInputs(day, settings, list, timeZone, checkInOn), policy)
         }.collectIn(viewModelScope) { takeAction(it) }
     }
 
     override suspend fun handleAction(action: PatternsAction) {
         when (action) {
-            is PatternsAction.InputsArrived -> action.updateState { PatternsStateBuilder.build(action.inputs, action.policy) }
+            is PatternsAction.InputsArrived -> action.updateState { _ ->
+                val built = PatternsStateBuilder.build(action.inputs, action.policy)
+                built.copy(checkIns = built.checkIns?.picking(picked))
+            }
+            is PatternsAction.CheckInAspectPicked -> {
+                picked = action.aspect
+                action.updateState { it.copy(checkIns = it.checkIns?.picking(action.aspect)) }
+            }
             PatternsAction.BackTapped -> sendEvent(PatternsEvent.Close)
         }
     }
@@ -61,6 +72,9 @@ class PatternsViewModel(
 
 sealed interface PatternsAction {
     data class InputsArrived(val inputs: PatternsInputs, val policy: VisibilityPolicy) : PatternsAction
+
+    /** Hunger, energy, mood or sleep on the check-ins card. */
+    data class CheckInAspectPicked(val aspect: CheckInAspect) : PatternsAction
     data object BackTapped : PatternsAction
 }
 

@@ -57,6 +57,7 @@ class DescribeReviewViewModelTest : CoroutineTest() {
         voice = DescribeVoice(FakeSpeechToText(), voiceFlag(false), RecordingVoiceTelemetry()),
         fastingRelease = fastingFlag(false),
         exerciseRelease = ExerciseRelease { false },
+        checkInEnabled = checkInFlag(false),
         submittedFoods = FakeSubmittedFoods(),
     )
 

@@ -182,7 +182,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `today-calendar`, `today-select-v4`, `today-drag-move`, `today-moved` | today | design sync 4, `today-actions.md`; the calendar over Today, select mode's bottom bar, foods mid-drag over dinner, the Undo after a move | yes |
 | new | | `food-actions`, `food-actions-amount` | today | design sync 4, `release.foodActions`; a food's ⋮ over Today (its energy through the policy), and Change amount | `food-actions` yes |
 | new | | `edit-a-copy` | foods | design sync 4, 13.3e; only numbers the mode shows in full, the Calories field and its "Was" tagged | yes |
-| new | | `day-close-check-in` | today | design sync 2, `release.checkIn`; the check-in and the watch's energy | yes |
+| new | | `day-close-check-in` | today | design sync 2, `release.checkIn`; the way into the check-in, and eaten against the watch's energy | yes |
+| new | | `day-close-recap-deficit`, `day-close-recap-surplus` | today | 2026-10-29; the recap's eaten against burned with a set deficit and a set surplus, the macros against targets and the vitamins and minerals. The difference is an amount, so the card goes whenever calories or energy out is anything less than shown | yes |
+| new | | `check-in` | today | 2026-10-29, `release.checkIn`; the check-in sheet, words and a 1 to 10 hunger step, never a nutrition amount | no |
 | new | | `integrations-leave-out` | settings | 0.2, `integrations.md`; the Leave out a day sheet, dates only | no |
 | new | | `logger-describe-voice` | logger | 0.2, `voice.md`; Describe it while listening, over lines already read | yes |
 | new | | `logger-photo-swap` | logger | 0.2, `photo.md`; swapping a line's food | yes |
