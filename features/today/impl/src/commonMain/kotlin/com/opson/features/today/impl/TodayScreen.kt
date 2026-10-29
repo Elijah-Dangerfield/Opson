@@ -64,6 +64,9 @@ import com.opson.libraries.diary.ui.tileColors
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.ui.components.Banner
+import com.opson.libraries.ui.components.PullRefreshIndicator
+import com.opson.libraries.ui.components.pullRefresh
+import com.opson.libraries.ui.components.rememberPullRefresh
 import com.opson.libraries.ui.components.DayHeader
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.HeaderIconButton
@@ -181,7 +184,11 @@ fun TodayScreen(
     listState: LazyListState = rememberLazyListState(),
     activity: (@Composable () -> Unit)? = null,
     contributed: List<ContributedCard> = emptyList(),
-) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState, activity, contributed)
+    /** Pull to refresh is running (`TodayRefreshViewModel`). */
+    refreshing: Boolean = false,
+    /** Pull to refresh; null leaves the gesture off. */
+    onRefresh: (() -> Unit)? = null,
+) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState, activity, contributed, refreshing, onRefresh)
 
 /** [TodayScreen] with the [drag] handed in, so a preview can hold foods mid-drag (13.3c). */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -196,6 +203,8 @@ internal fun TodayScreen(
     activity: (@Composable () -> Unit)? = null,
     /** Cards other modules add (`TodayCardContribution`), drawn after Fasting. */
     contributed: List<ContributedCard> = emptyList(),
+    refreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
 ) {
     val hasActivity = activity != null
     val contributedKeys = contributed.map { it.key }
@@ -229,6 +238,8 @@ internal fun TodayScreen(
     val dropTargets = remember(rows) { dropTargets(rows) }
     val rowContext = FoodRowContext.of(state)
     if (selection != null) FoodDragEffects(drag, listState, dropTargets, selection.slots)
+    // Off while selecting: a pull there is the start of a drag.
+    val pull = rememberPullRefresh(refreshing, onRefresh = { onRefresh?.invoke() }, enabled = onRefresh != null && selection == null)
     Screen(modifier = modifier, containerColor = AppTheme.colors.bg.color) { insets ->
         Column(Modifier.fillMaxSize().padding(insets)) {
             if (selection != null) {
@@ -239,7 +250,7 @@ internal fun TodayScreen(
             // Clipped so the sticky bar slides out from under the header rather than over it. The box
             // follows a drag once a row's handle starts one (13.3c).
             Box(
-                Modifier.weight(1f).fillMaxWidth().clipToBounds().followsFoodDrag(drag) { slot ->
+                Modifier.weight(1f).fillMaxWidth().clipToBounds().pullRefresh(pull).followsFoodDrag(drag) { slot ->
                     haptics.confirm()
                     onAction(TodayAction.FoodsDropped(slot))
                 },
@@ -272,6 +283,7 @@ internal fun TodayScreen(
                             .offset { IntOffset(0, (drag.y - GhostGrab.toPx()).roundToInt()) },
                     )
                 }
+                PullRefreshIndicator(pull, Modifier.align(Alignment.TopCenter))
                 StickyLayer(
                     compact = compact?.takeIf { selection == null },
                     visible = scrolledPast,

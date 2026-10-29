@@ -331,6 +331,7 @@ class SettingsFeatureEntryPoint(
                 when (event) {
                     // Current weight is a weigh-in to log, not a chart to read: the field is ready.
                     ProfileEvent.OpenWeight -> router.navigate(WeightRoute(focusInput = true))
+                    is ProfileEvent.ShowToast -> show(event.toast)
                     ProfileEvent.Close -> router.goBack()
                 }
             }

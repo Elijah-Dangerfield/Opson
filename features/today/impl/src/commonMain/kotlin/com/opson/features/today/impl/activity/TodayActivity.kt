@@ -12,8 +12,12 @@ import com.opson.libraries.diary.exerciseOffered
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.ExerciseRelease
+import com.opson.libraries.health.HealthRecords
+import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.HealthWorkout
+import com.opson.libraries.health.WorkoutKind
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
@@ -28,6 +32,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -35,6 +40,7 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import me.tatarka.inject.annotations.Inject
+import kotlin.math.roundToInt
 
 /*
  * Today's Activity card (`release.exercise`, docs/research/energy-expenditure.md), at the bottom
@@ -65,6 +71,23 @@ data class TodayActivityCard(
     /** Closed with Close the day: nothing to add. */
     val closed: Boolean = false,
     val healthSource: HealthSource? = null,
+    /** The health app's workouts that day ("Morning run · Garmin Connect · 320 kcal"), oldest first. */
+    val workouts: List<WorkoutRow> = emptyList(),
+)
+
+/**
+ * One workout from the health app. [title] is the app's own name when it keeps one, else the row
+ * names the [kind]; [source] is the app or watch that recorded it. [amount] is its active energy,
+ * resolved like every other amount here, so it hides with energy out.
+ */
+data class WorkoutRow(
+    val id: String,
+    val kind: WorkoutKind,
+    val title: String?,
+    val source: String?,
+    val startedAt: LocalTime,
+    val minutes: Int,
+    val amount: Display,
 )
 
 /** One line of the sum. Every [amount] is resolved through energy out's level. */
@@ -130,6 +153,8 @@ data class TodayActivityInputs(
     val closed: Boolean = false,
     /** This platform's health store, named on the card when it is the one counting. */
     val healthSource: HealthSource? = null,
+    /** The day's workouts from the health store; empty without one, or with `release.health` off. */
+    val workouts: List<HealthWorkout> = emptyList(),
 )
 
 object TodayActivityStateBuilder {
@@ -177,12 +202,26 @@ object TodayActivityStateBuilder {
                 },
                 closed = inputs.closed,
                 healthSource = healthSource,
+                workouts = inputs.workouts.map { workout ->
+                    WorkoutRow(
+                        id = workout.id,
+                        kind = workout.kind,
+                        title = workout.title,
+                        source = workout.sourceName,
+                        startedAt = workout.start.toLocalDateTime(inputs.timeZone).time,
+                        minutes = (workout.end - workout.start).inWholeMinutes.toInt().coerceAtLeast(0),
+                        amount = workout.activeKcal?.takeIf { it > 0 }?.let { energy(it.roundToInt()) } ?: Display.Hidden,
+                    )
+                },
             ),
         )
     }
 }
 
-/** Follows the day Today shows. Reads nothing while the release is off. */
+/**
+ * Follows the day Today shows. Reads nothing while the release is off, and the health app's
+ * workouts only with `release.health` on too.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Inject
 @Suppress("LongParameterList")
@@ -196,21 +235,25 @@ class TodayActivityViewModel(
     release: ExerciseRelease,
     calendar: LocalCalendar,
     health: HealthRepository,
+    records: HealthRecords,
+    healthFlag: HealthReleaseFlag,
 ) : SEAViewModel<TodayActivityState, TodayActivityEvent, TodayActivityAction>(initialStateArg = TodayActivityState()) {
 
     private var day: LocalDate = selectedDay.date.value
 
     init {
         if (release.isOn()) {
+            val healthOn = healthFlag()
             viewModelScope.launch {
                 selectedDay.date.flatMapLatest { date ->
+                    val workouts = if (healthOn) records.workouts(date, calendar.timeZone()).map { it.orEmpty() } else flowOf(emptyList())
                     combine(
-                        burnedRepository.burned(date),
+                        combine(burnedRepository.burned(date), workouts, ::Pair),
                         exercise.observeDay(date),
                         settingsRepository.settings,
                         policySource.policy,
                         diary.observeDay(date).map { it.closedByUser }.distinctUntilChanged(),
-                    ) { burned, entries, settings, policy, closed ->
+                    ) { (burned, fromHealth), entries, settings, policy, closed ->
                         TodayActivityInputs(
                             day = date,
                             settings = settings,
@@ -222,6 +265,7 @@ class TodayActivityViewModel(
                             closed = closed,
                             // Only ever named when Burned says the store's activity is what counts.
                             healthSource = health.source,
+                            workouts = fromHealth,
                         )
                     }
                 }.collect { takeAction(TodayActivityAction.InputsArrived(it)) }

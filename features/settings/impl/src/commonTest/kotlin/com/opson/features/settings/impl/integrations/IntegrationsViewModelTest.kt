@@ -8,6 +8,7 @@ import com.opson.features.settings.impl.eventsOf
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.health.ConnectOutcome
 import com.opson.libraries.diary.OnboardingAnswers
+import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import kotlinx.datetime.DatePeriod
@@ -16,6 +17,8 @@ import com.opson.libraries.nutrition.PresetId
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.integrations_toast_connected
 import opson.libraries.resources.generated.resources.integrations_toast_disconnected
+import opson.libraries.resources.generated.resources.integrations_toast_weigh_ins_added
+import opson.libraries.resources.generated.resources.integrations_toast_weigh_ins_none
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -33,7 +36,9 @@ class IntegrationsViewModelTest : CoroutineTest() {
     private val settings = FakeSettingsRepository(IntegrationsFixtures.settings)
     private val diary = FakeDiary(IntegrationsFixtures.days)
 
-    private fun vm(health: FakeHealthRepository) = IntegrationsViewModel(health, settings, diary, policy, FakeCalendar())
+    private val weighIns = FakeWeighInImport()
+
+    private fun vm(health: FakeHealthRepository) = IntegrationsViewModel(health, health, weighIns, settings, diary, policy, FakeCalendar())
 
     @Test
     fun inputsArrive_forToday() = runUnitTest {
@@ -200,5 +205,84 @@ class IntegrationsViewModelTest : CoroutineTest() {
         val events = eventsOf(vm)
         vm.takeAction(IntegrationsAction.BackTapped)
         assertEquals(listOf<IntegrationsEvent>(IntegrationsEvent.Close), events)
+    }
+    @Test
+    fun connectTapped_failed_saysSo_andIsNotADenial() = runUnitTest {
+        val vm = vm(FakeHealthRepository(connectOutcome = ConnectOutcome.Failed, source = HealthSource.AppleHealth))
+        vm.takeAction(IntegrationsAction.ConnectTapped)
+        assertTrue(vm.state.failed)
+        assertFalse(vm.state.denied)
+    }
+
+    @Test
+    fun connected_listsWhereTheDataComesFrom() = runUnitTest {
+        val vm = vm(FakeHealthRepository(status = HealthStatus.Connected, sources = listOf("Apple Watch", "Oura")))
+        assertEquals(SourcesLine.From(listOf("Apple Watch", "Oura")), vm.state.sources)
+    }
+
+    @Test
+    fun connected_withNothingInYet_saysSo() = runUnitTest {
+        val vm = vm(FakeHealthRepository(status = HealthStatus.Connected))
+        assertEquals(SourcesLine.NoneYet, vm.state.sources)
+    }
+
+    @Test
+    fun screenResumed_readsTheSourcesAgain() = runUnitTest {
+        val health = FakeHealthRepository(status = HealthStatus.Connected)
+        val vm = vm(health)
+        health.sources = listOf("Garmin Connect")
+        vm.takeAction(IntegrationsAction.ScreenResumed)
+        assertEquals(SourcesLine.From(listOf("Garmin Connect")), vm.state.sources)
+    }
+
+    @Test
+    fun allowMoreTapped_asksAgain_withoutSayingConnected() = runUnitTest {
+        val health = FakeHealthRepository(status = HealthStatus.Connected, canAskForMore = true)
+        val vm = vm(health)
+        assertTrue(vm.state.canAskForMore)
+        val events = eventsOf(vm)
+        health.canAskForMore.value = false
+
+        vm.takeAction(IntegrationsAction.AllowMoreTapped)
+
+        assertEquals(1, health.connects)
+        assertFalse(vm.state.canAskForMore)
+        assertTrue(events.isEmpty())
+    }
+
+    @Test
+    fun weighInsToggled_on_bringsThemIn_andSaysWhatHappened() = runUnitTest {
+        val vm = vm(FakeHealthRepository(status = HealthStatus.Connected))
+        assertEquals(false, vm.state.weighIns)
+        val events = eventsOf(vm)
+
+        vm.takeAction(IntegrationsAction.WeighInsToggled(on = true))
+
+        assertEquals(true, vm.state.weighIns)
+        assertEquals(listOf(IntegrationsEvent.ShowToast(Toast(Res.string.integrations_toast_weigh_ins_added))), events)
+    }
+
+    @Test
+    fun weighInsToggled_withNothingNew_saysSo() = runUnitTest {
+        weighIns.added = 0
+        val vm = vm(FakeHealthRepository(status = HealthStatus.Connected))
+        val events = eventsOf(vm)
+        vm.takeAction(IntegrationsAction.WeighInsToggled(on = true))
+        assertEquals(listOf(IntegrationsEvent.ShowToast(Toast(Res.string.integrations_toast_weigh_ins_none))), events)
+    }
+
+    @Test
+    fun weighInsToggled_off_turnsItOff() = runUnitTest {
+        weighIns.onFlow.value = true
+        val vm = vm(FakeHealthRepository(status = HealthStatus.Connected))
+        vm.takeAction(IntegrationsAction.WeighInsToggled(on = false))
+        assertEquals(false, vm.state.weighIns)
+    }
+
+    @Test
+    fun notConnected_hasNoSourcesOrWeighIns() = runUnitTest {
+        val vm = vm(FakeHealthRepository())
+        assertEquals(null, vm.state.sources)
+        assertEquals(null, vm.state.weighIns)
     }
 }

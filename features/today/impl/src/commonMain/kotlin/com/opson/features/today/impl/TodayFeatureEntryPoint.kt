@@ -34,6 +34,9 @@ import com.opson.features.today.TodayRoute
 import com.opson.features.today.impl.activity.TodayActivityEvent
 import com.opson.features.today.impl.activity.TodayActivitySection
 import com.opson.features.today.impl.activity.TodayActivityViewModel
+import com.opson.features.today.impl.refresh.TodayRefreshAction
+import com.opson.features.today.impl.refresh.TodayRefreshEvent
+import com.opson.features.today.impl.refresh.TodayRefreshViewModel
 import com.opson.features.today.impl.calendar.CalendarEvent
 import com.opson.features.today.impl.checkin.CheckInEvent
 import com.opson.features.today.impl.checkin.CheckInSheetContent
@@ -114,6 +117,7 @@ class TodayFeatureEntryPoint(
     private val notesViewModelFactory: (Boolean) -> NotesViewModel,
     private val todayActivityViewModelFactory: () -> TodayActivityViewModel,
     private val checkInViewModelFactory: (LocalDate?) -> CheckInViewModel,
+    private val refreshViewModelFactory: () -> TodayRefreshViewModel,
     private val tabBar: TabBar,
     private val findSupportEnabled: FindSupportEnabled,
     /** Cards other modules add to the list, such as Medication's. */
@@ -136,12 +140,22 @@ class TodayFeatureEntryPoint(
             }
             val listState = rememberLazyListState()
             router.OnTabReselected(TodayRoute::class) { listState.animateScrollToItem(0) }
+            // Pull to refresh: the diary sync and a health read together, with its own view model.
+            val refresh: TodayRefreshViewModel = viewModel { refreshViewModelFactory() }
+            val refreshState by refresh.stateFlow.collectAsStateWithLifecycle()
+            refresh.ObserveEvents { event ->
+                when (event) {
+                    is TodayRefreshEvent.ShowToast -> showToast(event.toast)
+                }
+            }
             TodayScreen(
                 state = state,
                 onAction = viewModel::takeAction,
                 listState = listState,
                 activity = activitySection(router),
                 contributed = contributedCards(state.day, router),
+                refreshing = refreshState.refreshing,
+                onRefresh = { refresh.takeAction(TodayRefreshAction.Pulled) },
             )
         }
 

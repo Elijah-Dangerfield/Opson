@@ -16,6 +16,7 @@ import com.opson.libraries.diary.ui.TodayCard
 import com.opson.libraries.diary.ui.exerciseActivityLabel
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.WorkoutKind
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.ExerciseActivities
 import com.opson.libraries.nutrition.Metric
@@ -68,6 +69,24 @@ import opson.libraries.resources.generated.resources.today_burned_everyday
 import opson.libraries.resources.generated.resources.today_burned_exercise
 import opson.libraries.resources.generated.resources.today_burned_none
 import opson.libraries.resources.generated.resources.today_burned_unknown_action
+import opson.libraries.resources.generated.resources.today_workout_running
+import opson.libraries.resources.generated.resources.today_workout_walking
+import opson.libraries.resources.generated.resources.today_workout_hiking
+import opson.libraries.resources.generated.resources.today_workout_cycling
+import opson.libraries.resources.generated.resources.today_workout_swimming
+import opson.libraries.resources.generated.resources.today_workout_strength
+import opson.libraries.resources.generated.resources.today_workout_hiit
+import opson.libraries.resources.generated.resources.today_workout_yoga
+import opson.libraries.resources.generated.resources.today_workout_pilates
+import opson.libraries.resources.generated.resources.today_workout_rowing
+import opson.libraries.resources.generated.resources.today_workout_elliptical
+import opson.libraries.resources.generated.resources.today_workout_stairs
+import opson.libraries.resources.generated.resources.today_workout_dance
+import opson.libraries.resources.generated.resources.today_workout_martial_arts
+import opson.libraries.resources.generated.resources.today_workout_sports
+import opson.libraries.resources.generated.resources.today_workout_snow
+import opson.libraries.resources.generated.resources.today_workout_water
+import opson.libraries.resources.generated.resources.today_workout_other
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -94,6 +113,7 @@ fun TodayActivitySection(card: TodayActivityCard, onAction: (TodayActivityAction
             )
         }
         if (card.lines.isNotEmpty()) Sum(card, onAction)
+        Workouts(card.workouts)
         Entries(card, onAction)
         if (health != null && !card.closed) {
             val name = stringResource(health.title)
@@ -223,6 +243,28 @@ private fun Entries(card: TodayActivityCard, onAction: (TodayActivityAction) -> 
     }
 }
 
+/**
+ * The health app's workouts, each with the app that recorded it: "Morning run", "Garmin Connect ·
+ * 7:10 · 35 min", 320 kcal. Not tappable: they live in the health app, and their energy is
+ * already in Active energy above.
+ */
+@Composable
+private fun Workouts(workouts: List<WorkoutRow>) {
+    if (workouts.isEmpty()) return
+    Column {
+        workouts.forEachIndexed { index, row ->
+            val subtitle = listOfNotNull(
+                row.source,
+                DateCopy.time(row.startedAt.hour, row.startedAt.minute),
+                stringResource(Res.string.exercise_minutes_chip, row.minutes).takeIf { row.minutes > 0 },
+            ).joinToString(" · ")
+            ListRow(title = row.title ?: stringResource(row.kind.label), subtitle = subtitle, showDivider = index < workouts.lastIndex) {
+                NutrientText(Metric.EnergyOut, row.amount, typography = AppTheme.type.bodyBold.Tabular, color = AppTheme.colors.ink, maxLines = 1)
+            }
+        }
+    }
+}
+
 @Composable
 private fun Dot(color: ColorResource) {
     Box(Modifier.size(10.dp).clip(AppTheme.shapes.pill).background(color))
@@ -235,6 +277,28 @@ private val ActivityLine.title: StringResource
         is ActivityLine.Everyday -> Res.string.today_burned_everyday
         is ActivityLine.Exercise -> Res.string.today_burned_exercise
         is ActivityLine.Digesting -> Res.string.energy_digesting
+    }
+
+private val WorkoutKind.label: StringResource
+    get() = when (this) {
+        WorkoutKind.Running -> Res.string.today_workout_running
+        WorkoutKind.Walking -> Res.string.today_workout_walking
+        WorkoutKind.Hiking -> Res.string.today_workout_hiking
+        WorkoutKind.Cycling -> Res.string.today_workout_cycling
+        WorkoutKind.Swimming -> Res.string.today_workout_swimming
+        WorkoutKind.Strength -> Res.string.today_workout_strength
+        WorkoutKind.Hiit -> Res.string.today_workout_hiit
+        WorkoutKind.Yoga -> Res.string.today_workout_yoga
+        WorkoutKind.Pilates -> Res.string.today_workout_pilates
+        WorkoutKind.Rowing -> Res.string.today_workout_rowing
+        WorkoutKind.Elliptical -> Res.string.today_workout_elliptical
+        WorkoutKind.Stairs -> Res.string.today_workout_stairs
+        WorkoutKind.Dance -> Res.string.today_workout_dance
+        WorkoutKind.MartialArts -> Res.string.today_workout_martial_arts
+        WorkoutKind.Sports -> Res.string.today_workout_sports
+        WorkoutKind.SnowSports -> Res.string.today_workout_snow
+        WorkoutKind.WaterSports -> Res.string.today_workout_water
+        WorkoutKind.Other -> Res.string.today_workout_other
     }
 
 internal val HealthSource.title: StringResource

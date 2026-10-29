@@ -3,12 +3,15 @@ package com.opson.features.settings.impl.profile
 import com.opson.features.settings.ProfileRoute
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.health.HealthProfile
+import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.BodyFat
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.HeightInput
 import com.opson.libraries.nutrition.HeightUnit
+import com.opson.libraries.nutrition.Heights
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
@@ -16,6 +19,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.ui.time.DateCopy
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.roundToInt
 
 /** Where Profile was opened from, for its back label. [wire] is `ProfileRoute.from`. */
 enum class ProfileBack(val wire: String) {
@@ -55,6 +59,10 @@ data class ProfileState(
     val bmi: Display = Display.Hidden,
     /** The body fat field, as typed; null where weight is not on show, and then there is no field. */
     val bodyFatText: String? = null,
+    /** "Fill in from Apple Health": the store to fill from, null with `release.health` off. */
+    val fillFrom: HealthSource? = null,
+    /** Reading the store for it, so the button doesn't take a second tap. */
+    val filling: Boolean = false,
 )
 
 /** The Current weight row. Weight is never typed here: it is the latest weigh-in, logged on Weight. */
@@ -81,6 +89,8 @@ object ProfileStateBuilder {
         drafts: ProfileDrafts = ProfileDrafts(),
         regionHeight: HeightUnit = HeightUnit.Cm,
         back: ProfileBack = ProfileBack.More,
+        fillFrom: HealthSource? = null,
+        filling: Boolean = false,
     ): ProfileState {
         val weightShown = policy.effectiveLevel(Metric.Weight, Surface.Settings) == Visibility.Show
         // BMI and body fat are body-composition numbers: never offered after "numbers have been hard".
@@ -103,10 +113,34 @@ object ProfileStateBuilder {
             } ?: ProfileWeight.None,
             bmi = if (composition) policy.bmi(latest?.kg, settings.heightCm, Surface.Settings) else Display.Hidden,
             bodyFatText = (drafts.bodyFat ?: settings.bodyFat?.let(BodyFat::text).orEmpty()).takeIf { composition },
+            fillFrom = fillFrom,
+            filling = filling,
         )
     }
 
     /** The height fields: what is being typed, or else the stored height in the unit to show. */
     fun height(settings: Settings, drafts: ProfileDrafts, regionHeight: HeightUnit): HeightInput =
         drafts.height ?: HeightInput.of(settings.heightCm, settings.heightUnitOr(regionHeight))
+}
+
+/**
+ * What "Fill in from" writes: each detail the store has and Opson can use, over what is there.
+ * The person asked for it by tapping, so a stored value is replaced; one the store doesn't have,
+ * or an implausible one (a birth year outside [birthYears], a height the equation can't take),
+ * is left as it was. Null when the store gave nothing usable.
+ */
+object ProfileFill {
+    fun apply(settings: Settings, profile: HealthProfile, birthYears: IntRange): Settings? {
+        val year = profile.birthDate?.year?.takeIf { it in birthYears }
+        val cm = profile.heightCm?.let(Heights::inRange)?.let { (it * TENTHS).roundToInt() / TENTHS }
+        val sex = profile.sex
+        if (year == null && cm == null && sex == null) return null
+        return settings.copy(
+            birthYear = year ?: settings.birthYear,
+            heightCm = cm ?: settings.heightCm,
+            bodySex = sex ?: settings.bodySex,
+        )
+    }
+
+    private const val TENTHS = 10.0
 }

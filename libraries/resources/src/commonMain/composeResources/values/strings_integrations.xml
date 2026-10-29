@@ -16,7 +16,8 @@
     <string name="integrations_title">Watch and health apps</string>
     <string name="integrations_apple_health">Apple Health</string>
     <string name="integrations_health_connect">Health Connect</string>
-    <string name="integrations_reads">Reads energy and workouts.</string>
+    <string name="integrations_reads_apple_health">Reads energy, workouts, weight, height, birth date and sex.</string>
+    <string name="integrations_reads_health_connect">Reads energy, workouts, weight and height.</string>
     <string name="integrations_connected">Connected</string>
     <string name="integrations_connect">Connect</string>
     <string name="integrations_disconnect">Disconnect</string>
@@ -26,8 +27,22 @@
     <string name="integrations_needs_install">Health Connect needs installing or updating first.</string>
     <string name="integrations_denied_health_connect">Opson can't read anything until you allow it. You can change that in Health Connect.</string>
     <string name="integrations_denied_apple_health">Opson can't read anything until you allow it. You can change that in the Health app.</string>
+    <string name="integrations_failed_apple_health">Couldn't connect to Apple Health. Try again in a moment.</string>
+    <string name="integrations_failed_health_connect">Couldn't connect to Health Connect. Try again in a moment.</string>
     <string name="integrations_privacy">Health data stays on this phone. Opson doesn't send it anywhere.</string>
-    <string name="integrations_remove_apple_health">To remove access completely, open the Health app, tap your picture, then Apps.</string>
+    <string name="integrations_privacy_weigh_ins">Energy and workouts stay on this phone. Weigh-ins you add go into your Opson log, which syncs with your account.</string>
+    <string name="integrations_remove_apple_health">Disconnect stops Opson reading. To remove access completely, open the Health app, tap your picture, then Apps.</string>
+    <string name="integrations_open_apple_health">Open the Health app</string>
+
+    <!-- Connected: what more to allow, and where the data comes from -->
+    <string name="integrations_ask_more">Opson can read more than you've allowed so far, like workouts and weight.</string>
+    <string name="integrations_ask_more_button">Allow</string>
+    <string name="integrations_sources">Data from %1$s.</string>
+    <string name="integrations_sources_none_apple_health">Nothing has come in from Apple Health yet. If your watch or another app has data there, check that Opson can read it: in the Health app, tap your picture, then Apps, then Opson.</string>
+    <string name="integrations_sources_none_health_connect">Nothing has come in from Health Connect yet. Check that your watch's app shares with Health Connect, and that Opson can read it there.</string>
+    <string name="integrations_sources_hint">Garmin, Fitbit, Oura, Whoop, Strava and most watches and scales can share with %1$s. Turn that on in their app and it shows up here.</string>
+    <string name="integrations_weigh_ins_title">Add weigh-ins from %1$s</string>
+    <string name="integrations_weigh_ins_body">New weigh-ins join your weight log and sync with your account. Ones you've already logged are skipped.</string>
 
     <!-- Expended today -->
     <string name="integrations_expended_title">Expended today</string>
@@ -62,13 +77,33 @@
     <string name="integrations_leave_out_prev">Previous month</string>
     <string name="integrations_leave_out_next">Next month</string>
 
+    <!-- More, Profile: Fill in from the health store -->
+    <string name="integrations_profile_fill">Fill in from %1$s</string>
+    <string name="integrations_profile_fill_note_apple_health">Uses the height, birth year and sex Apple Health has. You can change them after.</string>
+    <string name="integrations_profile_fill_note_health_connect">Uses the height Health Connect has. You can change it after.</string>
+    <string name="integrations_profile_filled">Filled in.</string>
+    <string name="integrations_profile_empty">Nothing there to fill in yet.</string>
+    <string name="integrations_profile_failed">Couldn't read that just now. Try again in a moment.</string>
+    <string name="integrations_profile_not_connected">Connect first to fill these in.</string>
+
     <!-- Targets -->
     <string name="integrations_targets_exercise">Exercise adjustment</string>
 
     <!-- Toasts -->
     <string name="integrations_toast_connected">Connected.</string>
     <string name="integrations_toast_disconnected">Disconnected.</string>
+    <string name="integrations_toast_weigh_ins_added">Weigh-ins added to your log.</string>
+    <string name="integrations_toast_weigh_ins_none">On. No new weigh-ins yet.</string>
+    <string name="integrations_toast_weigh_ins_failed">Couldn't read weigh-ins just now. They'll come in next time you open Opson.</string>
 
     <!-- Today -->
     <string name="integrations_today_expended">Expended so far</string>
+
+    <!-- Today: pull to refresh, which syncs the log and reads the health app again. Here rather
+         than in strings_today.xml because the health read is what most of them are about. -->
+    <string name="today_refresh_up_to_date">Up to date.</string>
+    <string name="today_refresh_nothing_new_apple_health">Up to date. If your watch hasn't synced to Health yet, open the Health app.</string>
+    <string name="today_refresh_nothing_new_health_connect">Up to date. If your watch hasn't synced to Health Connect yet, open your watch's app.</string>
+    <string name="today_refresh_health_failed">Your log is up to date, but your health app couldn't be read just now.</string>
+    <string name="today_refresh_sync_failed">Couldn't sync just now. Everything on this phone is saved.</string>
 </resources>

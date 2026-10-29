@@ -41,19 +41,22 @@ class HealthAppForeground {
  * re-read on the same edge (`RealHealthRepository`).
  *
  * The providers are lazy so joining the listener set, which is resolved at launch, builds
- * nothing: with the flag off the store is never touched.
+ * nothing (and the flag's config repository, which listens for app events too, isn't a cycle):
+ * with the flag off the store is never touched.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = AppEventListener::class, multibinding = true)
 @Inject
 class HealthForegroundRefresh(
-    private val flag: HealthReleaseFlag,
     private val appScope: AppCoroutineScope,
     private val foreground: HealthAppForeground,
+    flagProvider: () -> HealthReleaseFlag,
     healthProvider: () -> HealthRepository,
     weighInsProvider: () -> HealthWeighInImport,
 ) : AppEventListener {
 
+    // The flag reads remote config, whose repository listens for app events itself: a cycle if built here.
+    private val flag by lazy(flagProvider)
     private val health by lazy(healthProvider)
     private val weighIns by lazy(weighInsProvider)
 

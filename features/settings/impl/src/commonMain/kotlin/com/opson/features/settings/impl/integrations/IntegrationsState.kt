@@ -33,14 +33,30 @@ data class IntegrationsState(
     val connection: Connection = Connection.NotConnected,
     /** The last Connect was refused: say where to change it. */
     val denied: Boolean = false,
-    /** The store has its own permission screen to send people to (Health Connect does, Health does not). */
+    /** The last Connect failed with an error rather than an answer: say so, and that trying again may work. */
+    val failed: Boolean = false,
+    /** The store's own app or screen can be opened (Health Connect's screen, the Health app). */
     val canOpenSource: Boolean = false,
+    /** Connected, with more to allow than the person allowed so far. */
+    val canAskForMore: Boolean = false,
+    /** Only while connected: where the data comes from. */
+    val sources: SourcesLine? = null,
+    /** Only while connected: "Add weigh-ins from" and whether it is on. */
+    val weighIns: Boolean? = null,
     /** Only while connected. */
     val expended: ExpendedCard? = null,
     /** "Should exercise change your range?": only while connected, and never for someone who said numbers have been hard. */
     val exercise: ExerciseQuestion? = null,
     val leftOut: LeftOutCard = LeftOutCard(emptyList()),
 )
+
+/** The apps and devices the store's data came from, or [NoneYet] when nothing has come in yet. */
+sealed interface SourcesLine {
+    data class From(val names: List<String>) : SourcesLine
+
+    /** Connected and empty. On iOS that is also what a refused read looks like, so the line says where to check. */
+    data object NoneYet : SourcesLine
+}
 
 /** The three answers, with [selected] the one that applies: No until the person picks. */
 data class ExerciseQuestion(val selected: ExerciseAdjustment) {
@@ -76,6 +92,10 @@ data class IntegrationsInputs(
     val today: LocalDate,
     val settings: Settings = Settings(),
     val days: List<Day> = emptyList(),
+    val canAskForMore: Boolean = false,
+    /** Null until read, or while not connected. */
+    val sources: List<String>? = null,
+    val weighInsOn: Boolean = false,
 )
 
 object IntegrationsStateBuilder {
@@ -85,6 +105,7 @@ object IntegrationsStateBuilder {
         policy: VisibilityPolicy,
         connecting: Boolean = false,
         denied: Boolean = false,
+        failed: Boolean = false,
     ): IntegrationsState {
         val connection = when {
             connecting -> Connection.Connecting
@@ -95,12 +116,17 @@ object IntegrationsStateBuilder {
                 HealthStatus.Connected -> Connection.Connected
             }
         }
+        val connected = connection == Connection.Connected
         return IntegrationsState(
             loading = false,
             source = inputs.source,
             connection = connection,
             denied = denied && connection == Connection.NotConnected,
-            canOpenSource = inputs.source == HealthSource.HealthConnect,
+            failed = failed && connection == Connection.NotConnected,
+            canOpenSource = true,
+            canAskForMore = connected && inputs.canAskForMore,
+            sources = inputs.sources?.takeIf { connected }?.let { names -> if (names.isEmpty()) SourcesLine.NoneYet else SourcesLine.From(names) },
+            weighIns = inputs.weighInsOn.takeIf { connected },
             expended = if (connection == Connection.Connected) expended(inputs, policy) else null,
             exercise = if (connection == Connection.Connected && !inputs.settings.onboarding.hard) {
                 ExerciseQuestion(inputs.settings.exerciseInRange)
@@ -146,7 +172,11 @@ sealed interface IntegrationsAction {
     /** Back from the store's own screen, or the app came forward: the access may have changed. */
     data object ScreenResumed : IntegrationsAction
     data object ConnectTapped : IntegrationsAction
+
+    /** "Allow" for what a newer build reads, or what was left off last time: the same prompt as Connect. */
+    data object AllowMoreTapped : IntegrationsAction
     data object DisconnectTapped : IntegrationsAction
+    data class WeighInsToggled(val on: Boolean) : IntegrationsAction
     data object GetHealthConnectTapped : IntegrationsAction
     data object OpenSourceTapped : IntegrationsAction
     data class ExercisePicked(val choice: ExerciseAdjustment) : IntegrationsAction
