@@ -6,6 +6,32 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: Builders apply, and only the owner's Accept makes a Builder
+
+**Decision:** Joining Builders is an application now (V32 `builder_applications`),
+reversing the self-serve join below at the owner's request. The app asks why
+they want to help (optional), how often they buy packaged food, their label
+region, and for the rules; the gates are the same ones joining had, plus
+`ContributionGate.mayReceiveFreePro`. One application is pending at a time, it
+can be withdrawn, and a decline holds the next one off for 30 days. The owner
+accepts or declines in the console's Builders tab, beside a summary of the
+account (age, logging, contributions and how they went, moderation, earlier
+applications). Accepting writes the membership and the `builder` role, so Pro
+still comes through entitlements. Builders who joined before keep their place.
+An older app's `POST /v1/builders/join` applies, and answers in the four codes
+that app knows: a pending or declined application reads as `full` ("Builders is
+full right now"), the nearest true thing it can say. The decision reaches the
+person on the Builder page and once as a prompt on Today; no push.
+
+**Alternatives:** a per-person feature flag or a hand-set entitlement for each
+accepted Builder (the `builder` role already brings Pro through the bundles and
+carries the while-active window; a second switch would drift from it); one row
+per account overwritten on reapply (loses the record of an earlier decline,
+which is what the owner wants to see on the second application); a new
+`joinBlock` code for pending (an older app treats an unknown code as no block and
+offers Join again forever); letting someone who left rejoin without applying
+(under V31 nobody looked at them, so leaving and coming back is the moment to).
+
 ## 2026-10-29: Builders join themselves, Pro holds while active, and auto-approval starts in shadow
 
 **Decision:** Opson Builders (`release.builders`, V31) is self-serve. A claimed

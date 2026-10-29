@@ -264,6 +264,30 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     /**
+     * V32 is additive and safe to run twice. One application can be pending per account, any
+     * number decided, and deleting the account deletes them all.
+     */
+    @Test
+    fun builderApplicationsMigrationIsIdempotentAllowsOnePendingAndCascadesFromTheUser() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V32__builder_applications.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val user = seedAuthUser().value
+        fun insert(status: String) = database.blockingTransaction {
+            exec("INSERT INTO builder_applications (id, user_id, status, terms_version) VALUES (gen_random_uuid(), '$user', '$status', 't')")
+        }
+        insert("declined")
+        insert("withdrawn")
+        insert("pending")
+        assertFailsWith<Exception>("a second pending application") { insert("pending") }
+        assertFailsWith<Exception>("an unknown status") { insert("maybe") }
+        assertEquals(listOf("3"), strings("SELECT count(*)::text FROM builder_applications WHERE user_id = '$user'"))
+
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM builder_applications WHERE user_id = '$user'"))
+    }
+
+    /**
      * V29 is additive and safe to run twice. Deleting an account deletes its reports and their
      * photos; the server's own energy checks have no account and are one per food; a food has one
      * live correction at a time.
@@ -495,7 +519,7 @@ class DatabaseSchemaTest : DatabaseTest() {
             "barcode_link_suggestions", "food_reports", "food_report_photos", "food_corrections",
             "moderation_secrets", "moderation_actions", "moderation_events", "food_provenance", "device_sightings",
             "device_markers", "contribution_checks", "contribution_signals",
-            "builder_members", "food_verifications",
+            "builder_members", "food_verifications", "builder_applications",
         ).forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {
@@ -567,10 +591,12 @@ class DatabaseSchemaTest : DatabaseTest() {
             "moderation_daily", "top_reported_foods",
             // V31, the Builder program.
             "contribution_lanes_daily", "builder_program_daily",
+            // V32, applications.
+            "builder_applications_daily",
         )
         val SUPPORT_VIEWS = listOf(
             "users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings",
-            "contributors", "photo_reuse", "moderation_actions", "builders",
+            "contributors", "photo_reuse", "moderation_actions", "builders", "builder_applications",
         )
     }
 }

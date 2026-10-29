@@ -826,15 +826,24 @@ People who join Opson Builders add missing packs and check existing foods
 against the pack in hand, and get Pro while they do
 (`docs/plans/feedback-2026-10-29/builder-program.md`).
 
-**Joining** is self-serve (`BuilderService.join`): a claimed account (not a
-guest), with an approved submission or an account at least 7 days old, not
-removed, not restricted or device-marked (`ContributionGate.mayReceiveFreePro`),
-the rules accepted (`termsVersion` must match `BuilderRules.TERMS_VERSION`),
-and fewer than `builders.capacity` active Builders. It writes
-`builder_members` and sets the `builder` role unless the account already holds
-a higher one. A cap with self-serve joining was chosen over a waitlist: the
-same gates keep guests and new accounts out, and the owner sets the cap low for
-a closed alpha.
+**Applying** (`BuilderService.apply`, V32 `builder_applications`): nobody joins
+on their own any more. The app sends an application (the rules accepted, with
+`termsVersion` matching `BuilderRules.TERMS_VERSION`; how often they buy
+packaged food; their label region; an optional note on why; the optional photo
+consent), and the owner accepts or declines it in the console's Builders tab.
+The gates are the ones joining had: a claimed account (not a guest), with an
+approved submission or an account at least 7 days old, never removed, and not
+banned, restricted or device-marked (`ContributionGate.mayReceiveFreePro`).
+One application can be pending at a time (a partial unique index; a second
+Apply answers with the first), it can be withdrawn while pending, and after a
+decline the next waits `BuilderRules.REAPPLY_AFTER` (30 days). Someone who left
+applies again too. **Accepting** (`BuilderService.accept`) is the only way in:
+it asks the gate again, holds to `builders.capacity`, writes `builder_members`
+from the application and sets the `builder` role (audited under the console's
+`X-Admin-Actor`) unless the account already holds a higher one. Builders who
+joined under V31 keep their row and role. An app from before applications still
+sends `POST /v1/builders/join`: it now applies, and its answers use the four
+codes that app knows, so a pending or declined application reads as `full`.
 
 **Builder Pro** is the role's bundle (`entitlements.roles`, builder to pro),
 held only while the person is active: `BuilderService.roleWindow` gives the
@@ -882,9 +891,11 @@ submission limit is 60, up from 20. Photos of an active Builder who chose
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/v1/builders/me` | `{status, trust, joinedAtEpochMs, proUntilEpochMs, accepted30d, needed, photoRetention, canJoin, joinBlock, availableAtEpochMs, termsVersion}`. A Builder whose role a ban or restriction took reads `removed`. |
-| POST | `/v1/builders/join` `{acceptTerms, termsVersion, photoRetention}` | 400 `terms_required`; 403 `guest`, `too_new`, `removed`; 409 `full`. |
-| POST | `/v1/builders/leave` | The role goes; the row stays (`left`). Rejoining keeps the first join date. |
+| GET | `/v1/builders/me` | `{status, trust, joinedAtEpochMs, proUntilEpochMs, accepted30d, needed, photoRetention, canJoin, joinBlock, availableAtEpochMs, termsVersion, applyBlock, application, stats}`. `canJoin` means may apply now. `applyBlock`: `guest`, `too_new`, `removed`, `pending`, `declined`; `joinBlock` is the same for older apps, with `pending` and `declined` as `full`. `application`: `{id, status, submittedAtEpochMs, decidedAtEpochMs, note, reapplyAtEpochMs}`. `stats`: `{foodsAdded, checks, rejected}`. A Builder whose role a ban or restriction took reads `removed`. |
+| POST | `/v1/builders/applications` `{id, acceptTerms, termsVersion, photoRetention, motivation?, shopping, region, via?}` | `shopping`: `weekly`, `monthly`, `rarely`. `region`: `us`, `ca`, `uk`, `eu`, `au_nz`, `other`. 201, or 200 for a retry; 400 `terms_required`, `invalid_application`; 403 `guest`, `too_new`, `removed`, `declined`. |
+| POST | `/v1/builders/applications/withdraw` | Takes back a pending application. |
+| POST | `/v1/builders/join` `{acceptTerms, termsVersion, photoRetention}` | Older apps' Join: applies. 400 `terms_required`; 403 `guest`, `too_new`, `removed`; 409 `full` (also a declined application still waiting). |
+| POST | `/v1/builders/leave` | The role goes; the row stays (`left`). Coming back is a new application; acceptance keeps the first join date. |
 | PUT | `/v1/builders/me` `{photoRetention}` | |
 | POST | `/v1/foods/{id}/verifications` `{id, engine, lines}` | A Builder's check against the pack: the label's text, no photo. `confirmed` when the food's four headline numbers, per 100 or per serving, are on their rows; once per person and food. 403 `not_a_builder`, `contributions_restricted`; 404; 409; 429. |
 | POST | `/v1/foods/submissions` | Also takes `capture` and an `ingredients` photo; answers `lane`. Older apps send neither and get the old behaviour. |
@@ -892,10 +903,16 @@ submission limit is 60, up from 20. Photos of an active Builder who chose
 | POST | `/v1/admin/food-submissions/{id}/audit` `{passed, note}` | A note is required to fail one. |
 | POST | `/v1/admin/food-submissions/{id}/reject` `{reason, code?}` | `code`: `blurry`, `not_food`, `duplicate`, `wrong_column`, `wrong_values`, `fake_data`, `copied_data`, `other`. |
 | GET / POST | `/v1/admin/users/{id}/builder` `{action: remove \| restore \| hold \| release, reason?}` | Standing and the record behind trust. |
+| GET | `/v1/admin/builders/applications?status=pending\|decided` | `{pending, applications}`: the queue oldest first, or the latest 100 decisions, each with the account behind it (age, logging, submissions, reports, checks, moderation, earlier applications). |
+| POST | `/v1/admin/builders/applications/{id}/accept` `{note?}` | Membership and the `builder` role. 409 `not_pending`, `restricted`, `full`. |
+| POST | `/v1/admin/builders/applications/{id}/decline` `{note?}` | The note is shown to the applicant. 409 `not_pending`. |
 
 `analytics.contribution_lanes_daily` (submissions by lane, would-auto, cloud
-reads and agreement, audits) and `analytics.builder_program_daily` (joined,
-left, removed) carry counts only; `support.builders` one row per Builder.
+reads and agreement, audits), `analytics.builder_program_daily` (joined,
+left, removed) and `analytics.builder_applications_daily` (sent, accepted,
+declined, withdrawn) carry counts only; `support.builders` has one row per
+Builder and `support.builder_applications` one per application, with its
+choices and how long it waited but never what the person wrote.
 
 ## Environment variables
 
