@@ -207,6 +207,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `submit-food-save-review` | logger | 2026-10-28, `release.submitFood`; the same form from the Foods tab, ending in Save food | yes |
 | new | | `search-unverified` | logger | 2026-10-28; the person's own food waiting for review reads "Unverified", and "Can't find it?" offers the pack's label | yes |
 | new | | `food-detail-in-review` | logger | 2026-10-28; the person's own food, sent to Opson's food database and waiting for review | yes |
+| new | | `food-detail-entry`, `food-detail-entry-changed`, `food-detail-entry-more`, `food-detail-entry-quick` | logger | 2026-10-29; an entry opened from its row on Today (`LoggedFoodRoute`): its own numbers, Today with this counting it once, the amount changed, its ⋮, and a quick number with its source explained | yes |
 | new | | `foods-add-food-pack` | foods | 2026-10-28, `release.submitFood`; Add a food with "Packaged food?" first. Later shows the typed calories, as `foods-add-food` does | yes |
 | new | | `foods-unverified` | foods | 2026-10-28; a food of theirs waiting for review, "Unverified" under it | yes |
 | new | | `foods-repeating` | foods | 2026-10-29, `release.repeats`; the Repeating card, each repeat with its foods' calories | yes |

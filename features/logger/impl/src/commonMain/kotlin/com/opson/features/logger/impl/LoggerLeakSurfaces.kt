@@ -113,6 +113,22 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "food-detail-scan", label = "Food detail after a scan", showsCaloriesInFull = true) { policy ->
             FoodDetailContent(state = LoggerFixtures.scannedDetailState(policy), onAction = {})
         },
+        // An entry opened from its row on Today: its own numbers, Today with this counting it once, Save changes and Remove from log.
+        LeakSurface(id = "food-detail-entry", label = "Food detail, an entry on the log", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.entryDetailState(policy), onAction = {})
+        },
+        // The same entry changed to 3 tbsp: the numbers scale from the entry's own.
+        LeakSurface(id = "food-detail-entry-changed", label = "Food detail, an entry with its amount changed", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.entryChangedState(policy), onAction = {})
+        },
+        // The entry's ⋮ in place: words only, Repeat this among them.
+        LeakSurface(id = "food-detail-entry-more", label = "Food detail, an entry's more menu", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.entryDetailState(policy), onAction = {}, menuShown = DetailMenu.More)
+        },
+        // A quick number: no amount, its calories and protein as typed, the source tapped open.
+        LeakSurface(id = "food-detail-entry-quick", label = "Food detail, a quick number on the log", showsCaloriesInFull = true) { policy ->
+            FoodDetailContent(state = LoggerFixtures.quickNumberDetailState(policy), onAction = {})
+        },
         // The scanner draws no food data in any stage; the miss is its fullest screen.
         LeakSurface(id = "logger-scan-miss", label = "Barcode not found", showsCaloriesInFull = false) { _ ->
             BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.missedNamed.copy(canAddFood = true)), onAction = {}, viewfinder = { _, _ -> })

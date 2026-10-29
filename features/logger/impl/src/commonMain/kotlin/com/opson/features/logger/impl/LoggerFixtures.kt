@@ -9,6 +9,7 @@ import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealSlotPicker
+import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SearchDatabase
 import com.opson.libraries.diary.SearchSort
@@ -26,6 +27,8 @@ import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
 import com.opson.libraries.foods.SearchSource
+import com.opson.libraries.foods.draftFor
+import com.opson.libraries.foods.foodRef
 import com.opson.libraries.foods.toLogDraft
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Visibility
@@ -37,6 +40,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.minus
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -592,6 +596,77 @@ object LoggerFixtures {
         val food = AmountFood.Catalog(scannedYogurt)
         val ref = FoodRef.Catalog(scannedYogurt.id)
         return FoodDetailStateBuilder.build(food, DetailChoice.initial(food, MealSlot.Dinner), detailInputs(policy), ref, PickSource.Barcode)
+    }
+
+    // ── An entry already on the log, opened from Today (LoggedFoodRoute) ────
+
+    /** 2 tbsp of peanut butter at a snack, [minutesAgo] before 6 pm: the same food can be on a day twice, as two entries. */
+    fun peanutButterEntry(id: String, minutesAgo: Int): LogItem =
+        peanutButter.draftFor(AmountUnit.OfPortion(peanutButter.portions.first()), 2.0)
+            .toItem(today, MealSlot.Snack, minutesAgo)
+            .copy(id = id)
+
+    val firstHelping: LogItem = peanutButterEntry("peanut-butter-1", minutesAgo = 120)
+    val secondHelping: LogItem = peanutButterEntry("peanut-butter-2", minutesAgo = 30)
+
+    /** Today with two helpings of peanut butter at the afternoon snack, besides breakfast and lunch. */
+    fun twoHelpingsDay(): Day = day().let { it.copy(itemsBySlot = it.itemsBySlot + (MealSlot.Snack to listOf(firstHelping, secondHelping))) }
+
+    /** 300 kcal typed in at lunch with Describe's "Or just the numbers": no food, no amount. */
+    val quickNumber: LogItem = LogItem(
+        id = "quick-300",
+        day = today,
+        slot = MealSlot.Lunch,
+        loggedAt = Instant.parse("2026-10-25T13:05:00Z"),
+        name = "Quick add",
+        precision = Precision.Named,
+        method = LogMethod.QuickNumber,
+        kcal = 300.0,
+        protein = 12.0,
+    )
+
+    /**
+     * [item] as Today's row opens it, on [day] with [food] behind it while it is still there.
+     * [choice] is the choice to draw, the entry as logged when null; [changed] whether it differs.
+     */
+    @Suppress("LongParameterList")
+    fun entryDetailState(
+        policy: VisibilityPolicy,
+        item: LogItem = secondHelping,
+        food: AmountFood? = AmountFood.Catalog(peanutButter),
+        day: Day = twoHelpingsDay(),
+        choice: ((DetailChoice) -> DetailChoice)? = null,
+        changed: Boolean = choice != null,
+        repeat: EntryRepeat? = EntryRepeat.New,
+        settings: Settings = Settings(),
+        sourceOpen: Boolean = false,
+    ): FoodDetailState {
+        val logged = AmountFood.Logged(item, food)
+        val time = item.loggedAt.toLocalDateTime(TimeZone.UTC).time
+        val asLogged = DetailChoice.forEntry(logged, time, hunger = null).copy(sourceOpen = sourceOpen)
+        val inputs = detailInputs(policy, settings, inRecents = false).copy(
+            day = day.without(item.id),
+            entry = EntryUi(changed = changed, repeat = repeat),
+        )
+        return FoodDetailStateBuilder.build(logged, choice?.invoke(asLogged) ?: asLogged, inputs, item.foodRef(), PickSource.Recent)
+    }
+
+    /** The second helping changed to 3 tbsp: Save changes is on. */
+    fun entryChangedState(policy: VisibilityPolicy): FoodDetailState = entryDetailState(policy, choice = { it.copy(quantity = 3.0, typed = "3") })
+
+    /** A quick number: no Amount row, nothing to star or report, "Numbers you entered" tapped open. */
+    fun quickNumberDetailState(policy: VisibilityPolicy): FoodDetailState =
+        entryDetailState(policy, item = quickNumber, food = null, day = day().let { it.copy(itemsBySlot = it.itemsBySlot + (MealSlot.Lunch to it.items(MealSlot.Lunch) + quickNumber)) }, sourceOpen = true)
+
+    /** No numbers, the second helping: its tablespoons, the meal, the time and the hunger check. */
+    fun entryNoNumbersState(policy: VisibilityPolicy): FoodDetailState =
+        entryDetailState(policy, settings = Settings(askTags = true))
+
+    /** Basmati rice from Open Food Facts with its source tapped open: what it is and the licence's credit. */
+    fun sourceExplainedState(policy: VisibilityPolicy): FoodDetailState {
+        val food = AmountFood.Catalog(offRice)
+        val choice = DetailChoice.initial(food, MealSlot.Dinner).copy(sourceOpen = true)
+        return FoodDetailStateBuilder.build(food, choice, detailInputs(policy), FoodRef.Catalog(offRice.id), PickSource.Search)
     }
 
     fun scanState(model: ScanModel): BarcodeScanState = BarcodeScanStateBuilder.build(MealSlot.Dinner, model)

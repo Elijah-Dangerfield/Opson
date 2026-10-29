@@ -390,14 +390,14 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun itemAndWaterTapsOpenTheirSheets() = runUnitTest {
+    fun aFoodOpensItsDetail_andWaterItsSheet() = runUnitTest {
         val vm = vm()
         val events = events(vm)
 
         vm.takeAction(TodayAction.ItemTapped("adobo-$today"))
         vm.takeAction(TodayAction.WaterPlusTapped)
 
-        assertEquals(listOf(TodayEvent.OpenItemSheet(today, "adobo-$today"), TodayEvent.OpenWaterSheet(today)), events)
+        assertEquals(listOf(TodayEvent.OpenLoggedFood(today, "adobo-$today"), TodayEvent.OpenWaterSheet(today)), events)
     }
 
     @Test
@@ -1069,7 +1069,24 @@ class TodayViewModelTest : CoroutineTest() {
         assertTrue(events.isEmpty())
 
         vm.takeAction(TodayAction.ItemTapped(banana))
-        assertEquals(listOf<TodayEvent>(TodayEvent.OpenItemSheet(today, banana)), events)
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenLoggedFood(today, banana)), events)
+    }
+
+    /** Each row opens its own entry, so the same food twice on a day is edited one helping at a time. */
+    @Test
+    fun eachFoodRowOpensItsOwnEntry_andATapWhileSelectingOpensNothing() = runUnitTest {
+        val vm = vm(selectOn = true)
+        val events = events(vm)
+
+        vm.takeAction(TodayAction.ItemTapped(oats))
+        vm.takeAction(TodayAction.ItemTapped(banana))
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenLoggedFood(today, oats), TodayEvent.OpenLoggedFood(today, banana)), events)
+
+        vm.takeAction(TodayAction.FoodLongPressed(oats))
+        vm.takeAction(TodayAction.ItemTapped(banana))
+        assertEquals(2, events.size, "selecting, a tap ticks the food rather than opening it")
+        vm.takeAction(TodayAction.FoodToggled(banana))
+        assertEquals(setOf(oats, banana), vm.state.selection?.ids)
     }
 
     @Test

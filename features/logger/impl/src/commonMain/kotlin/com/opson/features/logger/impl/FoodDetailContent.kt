@@ -61,6 +61,8 @@ import com.opson.libraries.ui.components.RangeBar
 import com.opson.libraries.ui.components.RangeBarDefaults
 import com.opson.libraries.ui.components.RangeBarSegment
 import com.opson.libraries.ui.components.button.ButtonPrimary
+import com.opson.libraries.ui.components.button.FlatButton
+import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.chip.PillChip
 import com.opson.libraries.ui.components.chip.PillChipStyle
 import com.opson.libraries.ui.components.dialog.TimePickerDialog
@@ -79,13 +81,25 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.adding_detail_adds
 import opson.libraries.resources.generated.resources.adding_detail_all
 import opson.libraries.resources.generated.resources.adding_detail_all_cd
+import opson.libraries.resources.generated.resources.adding_detail_about_estimate
+import opson.libraries.resources.generated.resources.adding_detail_about_nevo
+import opson.libraries.resources.generated.resources.adding_detail_about_nutritionix
+import opson.libraries.resources.generated.resources.adding_detail_about_off
+import opson.libraries.resources.generated.resources.adding_detail_about_opson
+import opson.libraries.resources.generated.resources.adding_detail_about_typed
+import opson.libraries.resources.generated.resources.adding_detail_about_usda
+import opson.libraries.resources.generated.resources.adding_detail_about_yours
 import opson.libraries.resources.generated.resources.adding_detail_amount
 import opson.libraries.resources.generated.resources.adding_detail_amount_cd
 import opson.libraries.resources.generated.resources.adding_detail_back_cd
+import opson.libraries.resources.generated.resources.adding_detail_credits
 import opson.libraries.resources.generated.resources.adding_detail_edit_copy
 import opson.libraries.resources.generated.resources.adding_detail_energy
+import opson.libraries.resources.generated.resources.adding_detail_from_estimate
+import opson.libraries.resources.generated.resources.adding_detail_from_nutritionix
 import opson.libraries.resources.generated.resources.adding_detail_from_off
 import opson.libraries.resources.generated.resources.adding_detail_from_opson
+import opson.libraries.resources.generated.resources.adding_detail_from_typed
 import opson.libraries.resources.generated.resources.adding_detail_from_usda
 import opson.libraries.resources.generated.resources.adding_detail_from_yours
 import opson.libraries.resources.generated.resources.adding_detail_unverified
@@ -96,8 +110,11 @@ import opson.libraries.resources.generated.resources.adding_detail_meal
 import opson.libraries.resources.generated.resources.adding_detail_meal_cd
 import opson.libraries.resources.generated.resources.adding_detail_menu_cd
 import opson.libraries.resources.generated.resources.adding_detail_nutrient_count
+import opson.libraries.resources.generated.resources.adding_detail_remove
 import opson.libraries.resources.generated.resources.adding_detail_remove_recent
 import opson.libraries.resources.generated.resources.adding_detail_report
+import opson.libraries.resources.generated.resources.adding_detail_save
+import opson.libraries.resources.generated.resources.adding_detail_source_cd
 import opson.libraries.resources.generated.resources.adding_detail_sure
 import opson.libraries.resources.generated.resources.adding_detail_sure_cd
 import opson.libraries.resources.generated.resources.adding_detail_time
@@ -153,6 +170,8 @@ import opson.libraries.resources.generated.resources.logger_precision_named
 import opson.libraries.resources.generated.resources.logger_precision_weighed
 import opson.libraries.resources.generated.resources.logger_source_nevo
 import opson.libraries.resources.generated.resources.modes_hunger_question
+import opson.libraries.resources.generated.resources.repeat_edit
+import opson.libraries.resources.generated.resources.repeat_this
 import opson.libraries.resources.generated.resources.search_badge_verified_cd
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
@@ -208,7 +227,9 @@ fun FoodDetailContent(
                     }
                 }
             }
-            if (!state.loading && !state.missing) AddButton(state, onAction)
+            if (!state.loading && !state.missing) {
+                if (state.entry != null) EntryButtons(state, onAction) else AddButton(state, onAction)
+            }
         }
         when (menuShown) {
             DetailMenu.Units -> MenuPopover(modifier = Modifier.align(Alignment.TopEnd).padding(top = UNIT_MENU_TOP, end = AppTheme.spacing.page)) {
@@ -249,7 +270,10 @@ private fun Header(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit)
     }
 }
 
-/** ⋮: the favorite, Remove from recents while it is on Recent, Report a problem and Edit a copy. */
+/**
+ * ⋮: the favorite, Remove from recents while it is on Recent, Repeat this on an entry, Report a
+ * problem and Edit a copy. An entry that is only a name or a number has no food to star or report.
+ */
 @Composable
 private fun MoreMenu(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
     var open by remember { mutableStateOf(false) }
@@ -274,15 +298,26 @@ private fun MoreMenuItems(state: FoodDetailState, onAction: (FoodDetailAction) -
         close()
         onAction(action)
     }
-    MenuItem(
-        label = stringResource(if (state.favorite) Res.string.logger_amount_unfavorite_cd else Res.string.logger_amount_favorite_cd),
-        onClick = tap(FoodDetailAction.FavoriteTapped),
-        icon = if (state.favorite) AppIcons.Star else AppIcons.StarOutline,
-    )
+    if (state.hasFood) {
+        MenuItem(
+            label = stringResource(if (state.favorite) Res.string.logger_amount_unfavorite_cd else Res.string.logger_amount_favorite_cd),
+            onClick = tap(FoodDetailAction.FavoriteTapped),
+            icon = if (state.favorite) AppIcons.Star else AppIcons.StarOutline,
+        )
+    }
     if (state.inRecents) {
         MenuItem(label = stringResource(Res.string.adding_detail_remove_recent), onClick = tap(FoodDetailAction.RemoveFromRecentsTapped), icon = AppIcons.History)
     }
-    MenuItem(label = stringResource(Res.string.adding_detail_report), onClick = tap(FoodDetailAction.ReportTapped), icon = AppIcons.Support)
+    state.entry?.repeat?.let { repeat ->
+        MenuItem(
+            label = stringResource(if (repeat == EntryRepeat.Edit) Res.string.repeat_edit else Res.string.repeat_this),
+            onClick = tap(FoodDetailAction.RepeatTapped),
+            icon = AppIcons.Repeat,
+        )
+    }
+    if (state.hasFood) {
+        MenuItem(label = stringResource(Res.string.adding_detail_report), onClick = tap(FoodDetailAction.ReportTapped), icon = AppIcons.Support)
+    }
     MenuItem(label = stringResource(Res.string.adding_detail_edit_copy), onClick = tap(FoodDetailAction.EditCopyTapped), icon = AppIcons.EditNote, showDivider = false)
 }
 
@@ -297,19 +332,21 @@ private fun CardLabel(text: String) {
 }
 
 /**
- * The rows: Amount, then Meal (only when meal groups are on), Time and How sure (not in No
- * numbers, where it would feed a number the mode never shows). Each is its label on the left and
- * its value on the right, the way a settings list reads.
+ * The rows: Amount (not for an entry with no amount, a quick number say), then Meal (only when
+ * meal groups are on), Time and How sure (not in No numbers, where it would feed a number the
+ * mode never shows). Each is its label on the left and its value on the right, the way a
+ * settings list reads.
  */
 @Composable
 private fun DetailsCard(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
     EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.InsetPadding, verticalArrangement = Arrangement.Top) {
-        AmountRow(state, onAction)
+        val amount = state.unit != null
+        if (amount) AmountRow(state, onAction)
         if (state.slots.size > 1) {
-            HorizontalDivider(color = AppTheme.colors.line)
+            if (amount) HorizontalDivider(color = AppTheme.colors.line)
             MealRow(state, onAction)
         }
-        HorizontalDivider(color = AppTheme.colors.line)
+        if (amount || state.slots.size > 1) HorizontalDivider(color = AppTheme.colors.line)
         TimeRow(state, onAction)
         if (!state.noNumbers) {
             HorizontalDivider(color = AppTheme.colors.line)
@@ -677,27 +714,44 @@ private fun TargetTotal(row: TargetRow) {
     }
 }
 
-/** Where the numbers come from, how many it lists and All nutrients. Open Food Facts' licence asks for the credit. */
+/**
+ * Where the numbers come from, how many it lists and All nutrients. Open Food Facts' licence asks
+ * for the credit, which its name gives here and its line repeats in full. A tap on the source says
+ * what it is in a line, with Credits for every source's attribution.
+ */
 @Composable
 private fun SourceRow(source: SourceLine, nutrients: AllNutrients?, onAction: (FoodDetailAction) -> Unit) {
     val origin = source.source?.let { stringResource(it.label) }
     val review = source.review?.takeIf { it != SourceReview.Verified }
     if (origin == null && nutrients == null && review == null) return
+    val aboutDescription = origin?.let { stringResource(Res.string.adding_detail_source_cd, it) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             origin?.let {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(
+                    modifier = Modifier
+                        .semantics(mergeDescendants = true) {
+                            role = Role.Button
+                            contentDescription = aboutDescription.orEmpty()
+                        }
+                        .bounceClick(scaleDown = 0.98f) { onAction(FoodDetailAction.SourceTapped) }
+                        .defaultMinSize(minHeight = AppTheme.spacing.touchTarget),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
                     // Someone accountable stands behind these numbers: a check, no more words.
                     if (source.review == SourceReview.Verified) {
                         Icon(icon = AppIcons.CheckCircle.described(stringResource(Res.string.search_badge_verified_cd)), size = 12.dp, color = AppTheme.colors.muted)
                     }
-                    Text(text = it, typography = AppTheme.type.caption, color = AppTheme.colors.muted)
+                    Text(text = it, typography = AppTheme.type.caption, color = AppTheme.colors.muted, modifier = Modifier.weight(1f, fill = false))
+                    Icon(icon = if (source.explained) AppIcons.ExpandMore else AppIcons.Info, size = 14.dp, color = AppTheme.colors.muted)
                 }
             }
+            source.source?.takeIf { source.explained }?.let { SourceAbout(it, onAction) }
             review?.let {
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     Icon(icon = if (it == SourceReview.YoursChecked) AppIcons.CheckCircle else AppIcons.Schedule, size = 12.dp, color = AppTheme.colors.muted)
@@ -709,6 +763,21 @@ private fun SourceRow(source: SourceLine, nutrients: AllNutrients?, onAction: (F
             }
         }
         nutrients?.let { AllNutrientsLink(it, onAction) }
+    }
+}
+
+/** What the source is, in a line, and Credits. */
+@Composable
+private fun SourceAbout(origin: FoodOrigin, onAction: (FoodDetailAction) -> Unit) {
+    Text(text = stringResource(origin.about), typography = AppTheme.type.caption, color = AppTheme.colors.ink)
+    Row(
+        modifier = Modifier
+            .semantics(mergeDescendants = true) { role = Role.Button }
+            .bounceClick(scaleDown = 0.97f) { onAction(FoodDetailAction.CreditsTapped) }
+            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = stringResource(Res.string.adding_detail_credits), typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.accent)
     }
 }
 
@@ -782,6 +851,32 @@ private fun AddButton(state: FoodDetailState, onAction: (FoodDetailAction) -> Un
     }
 }
 
+/**
+ * An entry already on the log: Save changes, on once something differs from how it was logged,
+ * and Remove from log under it, which takes this entry alone off the day (Undo on the snackbar).
+ */
+@Composable
+private fun EntryButtons(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, top = AppTheme.spacing.row, bottom = AppTheme.spacing.page),
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
+    ) {
+        ButtonPrimary(onClick = { onAction(FoodDetailAction.AddToMealTapped) }, enabled = state.canAdd, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(Res.string.adding_detail_save), maxLines = 1)
+        }
+        FlatButton(
+            text = stringResource(Res.string.adding_detail_remove),
+            onClick = { onAction(FoodDetailAction.RemoveTapped) },
+            tone = FlatButtonTone.Text,
+            icon = AppIcons.DeleteOutline,
+            centered = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
 @Composable
 private fun Metric.tone(): ColorResource = when (this) {
     Metric.Protein -> AppTheme.colors.nutrients.protein.content
@@ -806,7 +901,23 @@ private val FoodOrigin.label: StringResource
         FoodOrigin.OpenFoodFacts -> Res.string.adding_detail_from_off
         FoodOrigin.Nevo -> Res.string.logger_source_nevo
         FoodOrigin.Opson -> Res.string.adding_detail_from_opson
+        FoodOrigin.Nutritionix -> Res.string.adding_detail_from_nutritionix
         FoodOrigin.Yours -> Res.string.adding_detail_from_yours
+        FoodOrigin.Estimate -> Res.string.adding_detail_from_estimate
+        FoodOrigin.Typed -> Res.string.adding_detail_from_typed
+    }
+
+/** One line on what each source is, under its name once tapped. Open Food Facts' carries its licence's credit. */
+private val FoodOrigin.about: StringResource
+    get() = when (this) {
+        FoodOrigin.Usda -> Res.string.adding_detail_about_usda
+        FoodOrigin.OpenFoodFacts -> Res.string.adding_detail_about_off
+        FoodOrigin.Nevo -> Res.string.adding_detail_about_nevo
+        FoodOrigin.Opson -> Res.string.adding_detail_about_opson
+        FoodOrigin.Nutritionix -> Res.string.adding_detail_about_nutritionix
+        FoodOrigin.Yours -> Res.string.adding_detail_about_yours
+        FoodOrigin.Estimate -> Res.string.adding_detail_about_estimate
+        FoodOrigin.Typed -> Res.string.adding_detail_about_typed
     }
 
 private val SourceReview.label: StringResource

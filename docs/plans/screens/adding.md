@@ -20,6 +20,7 @@ it already had.
 | `LoggerRoute(slot, dayIso, prePickFoodId, prePickIsCustom, prePickSavedMealId, start, describeText)` | `bottomSheet`, 60% then full | The nav +, a meal's +, reminders, widgets, Today |
 | `FoodSearchRoute(slot, dayIso, pickForMeal)` (api) | `screen` | The sheet's Search food, the Foods tab, Create a meal |
 | `FoodDetailRoute(foodId, isCustom, source, dayIso, slot)` (impl) | `screen` | A row's name in search, a barcode hit, a Foods or Today pre-pick |
+| `LoggedFoodRoute(dayIso, entryId)` (api) | `screen` | A food's row on Today: the same detail, editing that one entry |
 
 `LoggerStart` is `Actions`, `Describe`, `Saved`, `Number`. `focusSearch` and
 `pickForMeal` move from `LoggerRoute` to `FoodSearchRoute`. A `prePickFoodId`
@@ -136,6 +137,52 @@ Back, the name, ⋮ (Meal, Time, Save to favorites). Then:
 counted at the how-sure picked, so weighing it narrows the ±. A softened day
 shows its word and no ±; `loggedAs` reads From label as a label.
 
+**Where the numbers come from**, under the cards: "From USDA FoodData
+Central", "From Open Food Facts", the NEVO citation, "From Opson's food
+database (OPDB)", "From Nutritionix", "Your own food", and on an entry with
+no catalog food "An estimate" (Describe it, a photo) or "Numbers you entered"
+(a quick number). A tap opens one line on what the source is, with Credits
+(`CreditsRoute`) under it; Open Food Facts' line carries its ODbL credit in
+full. NCCDB is not in the catalog (`food-data-sources.md`: a paid licence
+nobody has signed), so nothing names it.
+
+## An entry on the log (`LoggedFoodRoute`)
+
+A food's row on Today opens its detail for that one entry
+(`DetailOpen.Entry`); its ⋮ still opens the food's sheet (`today-actions.md`).
+The view model reads the entry by its id on its day, never "the food": the
+same food logged twice is two rows, and each opens, saves and removes itself
+alone.
+
+- **Numbers**: the entry's own, the snapshot it was logged with
+  (`AmountFood.Logged`). A new amount in its own unit scales them by new ÷ old,
+  as Change amount does; another unit (the food's, or a weight) by the new
+  weight ÷ the logged one. A food corrected or deleted since changes nothing.
+  The food, while it is still there, only lends its units, favorite and source.
+- **Starts from** its amount and unit, meal, time (not "now") and how sure;
+  how sure stays as logged unless the person picks another or types a
+  weight. No numbers adds the meal's hunger answer.
+- **Today with this** is the day without the entry as it was, plus the entry
+  as it would be saved, so it is counted once.
+- **Save changes** (pinned, in Add's place) is on only when something differs,
+  and writes that entry alone (`DiaryRepository.updateItem`): a new meal moves
+  it, a new time restamps it on its day, a time left alone keeps the exact
+  instant. With meal groups off for the day its meal stays. A changed hunger
+  answer goes to the meal's feeling. A closed day refuses the write and opens
+  the closed sheet, as Add does.
+- **Remove from log** under it tombstones that entry (`removeItem`); the page
+  closes and the snackbar's Undo restores that id (`DiaryItemEditor.restoreItems`).
+- **⋮**: the favorite and Report a problem (only with a food behind it),
+  Repeat this or Edit repeat (`release.repeats`), and Edit a copy, which opens
+  `EditCopyRoute(dayIso, entryId)` with its "Use for this entry" switch; the
+  page gives way to it, so the entry is never saved back from a stale page.
+  Copy to another day stays on the row's ⋮ (`release.foodActions`).
+- **Kinds**: a catalog or own food, Describe and photo lines, saved-meal and
+  repeat entries all open here. A quick number or a name has no Amount row,
+  nothing to star or report, and its meal, time and how sure still change.
+- An entry changed under the page (another phone, a sync) starts it again
+  from the new one; an entry gone closes it.
+
 ## Visibility (surface `Logger`)
 
 | Number | Show | Soften | Delay | Hide |
@@ -149,7 +196,9 @@ shows its word and no ±; `loggedAs` reads From label as a label.
 The grid itself shows no number. Leak surfaces: `add-sheet`, `add-sheet-expanded`, `search-full`,
 `search-empty`, `search-saved-meals`, `search-tabs`, `search-options`,
 `food-detail`, `food-detail-nutrients`, `food-detail-units`,
-`food-detail-scan`; Describe, Saved, photo and scanner keep theirs.
+`food-detail-scan`, and on an entry `food-detail-entry`,
+`food-detail-entry-changed`, `food-detail-entry-more`,
+`food-detail-entry-quick`; Describe, Saved, photo and scanner keep theirs.
 
 ## Removed
 
@@ -166,4 +215,6 @@ Saved log directly), `FoodSearchViewModelTest` (+ logs and stays, last-used
 amount, ✓ and take back, Undo event, cache hit with no debounce, scopes, pick
 for a meal), `FoodSearchStateBuilderTest`, `FoodDetailTest` (typing switches
 Estimate to Weighed, chips do not, a manual pick sticks, Add logs one item),
+`LoggedFoodDetailTest` (of two identical entries, Save and Remove touch only
+the one opened; the entry's own numbers; meal, time and hunger changes),
 and the Describe, photo and barcode tests on `FoodLogger`.

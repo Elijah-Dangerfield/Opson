@@ -385,6 +385,7 @@ sealed interface TodayAction {
     data class MealTileTapped(val slot: MealSlot) : TodayAction
     data class MealPlusTapped(val slot: MealSlot) : TodayAction
     data class PlanItTapped(val slot: MealSlot) : TodayAction
+    /** A food row: its detail, editing that entry. While selecting, a tap ticks it instead (`FoodToggled`). */
     data class ItemTapped(val entryId: String) : TodayAction
 
     /** A food row's ⋮ (`release.foodActions`). */
@@ -494,10 +495,14 @@ sealed interface TodayEvent {
     data class OpenDayNote(val day: LocalDate) : TodayEvent
     data class OpenMealSheet(val day: LocalDate, val slot: MealSlot) : TodayEvent
 
-    /** The food's actions (13.3d), from its row or its ⋮. */
     /** Create a meal filled with [entryIds] from [day]; [slot] when they all sit in that one meal. */
     data class OpenCreateMeal(val day: LocalDate, val entryIds: List<String>, val slot: MealSlot?) : TodayEvent
+
+    /** The food's actions (13.3d), from its ⋮. */
     data class OpenItemSheet(val day: LocalDate, val entryId: String) : TodayEvent
+
+    /** The food detail for the one entry [entryId] on [day], from its row (`LoggedFoodRoute`). */
+    data class OpenLoggedFood(val day: LocalDate, val entryId: String) : TodayEvent
     data class OpenWaterSheet(val day: LocalDate) : TodayEvent
 
     /** Something tried to add to [day], which is closed: "Today is closed. Reopen it to add more." */

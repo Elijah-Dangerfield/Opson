@@ -145,6 +145,12 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
     override suspend fun updateItem(item: LogItem): DayWrite<Unit> {
         closed(item.day)?.let { return it }
         updated += item
+        // Written back as Room would, moved to its meal if that changed, so a screen reading the day sees it.
+        daysState.value = daysState.value.mapValues { (_, d) ->
+            if (d.allItems.none { it.id == item.id }) return@mapValues d
+            val without = d.itemsBySlot.mapValues { (_, items) -> items.filterNot { it.id == item.id } }
+            d.copy(itemsBySlot = without + (item.slot to (without[item.slot].orEmpty() + item).sortedBy { it.loggedAt }))
+        }
         return DayWrite.Written(Unit)
     }
 
@@ -202,6 +208,11 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
         closed(day)?.let { return it }
         feelings += Triple(day, slot, feeling)
         return DayWrite.Written(Unit)
+    }
+
+    /** [day] as another screen or phone left it. */
+    fun put(day: Day) {
+        daysState.value += day.date to day
     }
 
     /** Closes [day] as another device would: from now on it refuses writes. */

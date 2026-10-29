@@ -311,7 +311,9 @@ conversion, digits filter, remove hidden at 0. `SURFACES`: `water-sheet`.
 
 `ItemSheetRoute(dayIso: String, entryId: String)`. Reason: nothing in the handoff removes a
 wrong entry, and a reviewer will try. The repository has no lookup by id, so
-the sheet observes the entry's day and finds it there.
+the sheet observes the entry's day and finds it there. Rebuilt as the food's ⋮
+sheet (`today-actions.md`), and only the ⋮ opens it now: a row opens the food's
+detail for that entry (`LoggedFoodRoute`, `adding.md`), which has Remove from log.
 
 ```kotlin
 data class ItemSheetState(val name: String, val sub: String, val calories: Display, val slot: MealSlot?)

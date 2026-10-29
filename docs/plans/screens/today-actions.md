@@ -14,8 +14,12 @@ Edit a copy.
 - Header and calendar: a refinement, no flag.
 - Select mode and drag: `release.todaySelect`, as before.
 - The row ⋮, the sheet's new actions and Edit a copy: a new flag,
-  `release.foodActions` (`TodayFoodActionsEnabled`), off by default. Off, a
-  row tap opens the same sheet with only Delete, as the old item sheet did.
+  `release.foodActions` (`TodayFoodActionsEnabled`), off by default. Off,
+  there is no ⋮.
+- A row tap opens the food's detail for that entry (`LoggedFoodRoute`,
+  `adding.md`), with or without the flag: change its amount, meal, time or how
+  sure, or remove it. While selecting, a tap ticks the food instead, and a
+  row swiped open closes first.
 
 ## Header (13.3a)
 - `‹ Today ▾ ›` then ⋮. The title is Yesterday, Today, Tomorrow or the date
@@ -53,7 +57,8 @@ Edit a copy.
   "Move to another meal" custom action that opens the Move step.
 
 ## Food ⋮ sheet (13.3d)
-`ItemSheetRoute` stays, the sheet is rebuilt.
+`ItemSheetRoute` stays, the sheet is rebuilt. Only the row's ⋮ opens it now;
+the row itself opens the food's detail.
 - Header: the name, then "2 tbsp · Weighed · Snack · 190 kcal". The kcal goes
   through the policy (Today surface); hidden drops it and its separator.
 - Rows: Change amount, Move to another meal, Copy to another day, Edit a copy

@@ -128,6 +128,7 @@ class SurfacesCoverageTest {
                 "submit-food-photos", "submit-food-review", "submit-food-by-hand",
                 "submit-food-save-photos", "submit-food-save-review", "submit-food-photo-failed",
                 "search-unverified", "food-detail-in-review",
+                "food-detail-entry", "food-detail-entry-changed", "food-detail-entry-more", "food-detail-entry-quick",
                 "exercise-sheet", "exercise-sheet-other", "exercise-sheet-pick",
                 "add-sheet-closed", "search-closed",
             ),
@@ -177,6 +178,7 @@ class SurfacesCoverageTest {
             "today-closed", "day-close-closed", "food-actions-closed", "day-close-recap-deficit", "day-close-recap-surplus",
             "search-unverified", "food-detail-in-review", "submit-food-save-review", "foods-add-food-pack", "foods-unverified",
             "foods-repeating", "foods-repeat", "foods-repeat-edit",
+            "food-detail-entry", "food-detail-entry-changed", "food-detail-entry-more", "food-detail-entry-quick",
         )
     }
 }
