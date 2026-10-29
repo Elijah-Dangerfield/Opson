@@ -364,7 +364,7 @@ end
 def read_marketing_version
   xcconfig = File.expand_path("../Configuration/Config.xcconfig", __dir__)
   return nil unless File.exist?(xcconfig)
-  File.foreach(xcconfig) do |line|
+  File.foreach(xcconfig, encoding: "UTF-8") do |line|
     if (m = line.match(/^MARKETING_VERSION\s*=\s*(\S+)/))
       return m[1]
     end
