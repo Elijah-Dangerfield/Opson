@@ -1,7 +1,7 @@
 ---
 app: Opson
 title: Privacy Policy
-updated: 2026-10-27
+updated: 2026-10-29
 contact: contact@nightjarlabs.llc
 ---
 
@@ -74,8 +74,14 @@ them.
   report can include the address the app was calling, which for a food search
   contains the words searched. Reports are built to leave out your food log,
   weights and notes.
-- **Feedback** you send from the app also goes to Sentry, with the app's recent
-  technical log, so we can find the problem you describe.
+- **Feedback and bug reports** you send from the app also go to Sentry, with
+  the app's recent technical log, your device model and the app version, so we
+  can find the problem you describe. A report can also carry screenshots: one
+  you pick from your photos, or, if you shake your phone to report a bug, a
+  picture of the screen you were on. A screenshot shows whatever was on screen,
+  which can include your log. The report page shows everything it will send
+  first, and you can remove the screenshots and the technical log before you
+  send it.
 - **App usage events** go to our monitoring service,
   [Grafana Cloud](https://grafana.com/legal/privacy-policy/): which screens
   open, which features get used (for example, which way you added a food),

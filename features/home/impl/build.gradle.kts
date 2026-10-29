@@ -18,6 +18,8 @@ kotlin {
             implementation(projects.libraries.resources)
             implementation(projects.libraries.opson)
             implementation(projects.libraries.identity)
+            // The system photo picker, for a screenshot on a report.
+            implementation(projects.libraries.scanner)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -30,6 +32,9 @@ kotlin {
         commonTest.dependencies {
             implementation(projects.libraries.flowroutines.testing)
             implementation(projects.libraries.identity)
+            // AppState, DeviceDescription and ScreenCapture, faked for the report pages.
+            implementation(projects.libraries.core)
+            implementation(projects.libraries.ui)
             // AppCache for the feedback counters, and the copy the failure line points at.
             implementation(projects.libraries.opson)
             implementation(projects.libraries.storage)

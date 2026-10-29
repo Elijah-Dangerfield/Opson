@@ -19,6 +19,9 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import com.opson.features.home.impl.report.ReportAttachments
+import com.opson.features.home.impl.report.ReportAttachmentsSection
+import com.opson.features.home.impl.report.Screenshot
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
 import com.opson.system.VerticalSpacerD1000
@@ -157,6 +160,13 @@ fun BugReportScreen(
                 )
             }
 
+            VerticalSpacerD1000()
+
+            ReportAttachmentsSection(
+                attachments = state.attachments,
+                onAction = { onAction(BugReportAction.Attachment(it)) },
+            )
+
             state.errorMessage?.let {
                 VerticalSpacerD500()
                 Text(
@@ -199,6 +209,26 @@ private fun BugReportScreenPreview() {
                 logId = "12356j32345k1",
                 errorCode = 1200,
                 contextMessage = "Something went wrong while loading."
+            ),
+            onAction = {}
+        )
+    }
+}
+
+/** Opened from a shake: the picture it took, the log and the version line, before sending. */
+@Preview
+@Composable
+private fun BugReportScreenFromShakePreview() {
+    PreviewContent {
+        BugReportScreen(
+            state = BugReportState(
+                message = "The water card stopped counting.",
+                contextMessage = "You shook your phone.",
+                attachments = ReportAttachments(
+                    screenshots = listOf(Screenshot(byteArrayOf(1, 2, 3))),
+                    log = "2026-10-29T10:01:02Z INFO Today: day loaded\n2026-10-29T10:01:04Z DEBUG Water: added 1",
+                    device = ReportAttachments.Device(version = "0.2.0 (702)", phone = "iPhone15,4, iOS 18.1"),
+                ),
             ),
             onAction = {}
         )

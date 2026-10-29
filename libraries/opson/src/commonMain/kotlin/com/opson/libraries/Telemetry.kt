@@ -61,10 +61,23 @@ interface Telemetry {
     fun setContext(key: String, value: String?)
 
     /**
+     * The recent app log a report can carry: the in-memory buffer of fine-grained
+     * lines that never leave the phone otherwise, oldest first, with every URL's
+     * query already stripped (the words someone searched for). Empty when crash
+     * reporting is off. The report page shows this exact text and sends it back
+     * as [captureUserFeedback]'s `sessionLog`, so what the person read is what
+     * goes out.
+     */
+    fun recentLog(): String = ""
+
+    /**
      * [screenshots] are JPEG-compressed image bytes the user chose to attach
      * (already downscaled by the picker). Each rides along on the carrier event
      * as its own image attachment, so a triager sees exactly what the reporter
      * saw. Empty by default.
+     *
+     * [sessionLog] rides along as `session-log.txt`, null to send none (the
+     * person took it off the report). Take it from [recentLog].
      *
      * Returns whether the report was handed to crash reporting. False means it
      * was dropped (a blank message, or crash reporting off), and the person
@@ -77,5 +90,6 @@ interface Telemetry {
         errorCode: Int?,
         email: String? = null,
         screenshots: List<ByteArray> = emptyList(),
+        sessionLog: String? = null,
     ): Boolean
 }

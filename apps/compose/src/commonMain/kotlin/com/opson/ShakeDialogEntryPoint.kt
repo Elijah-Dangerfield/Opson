@@ -49,7 +49,7 @@ class ShakeDialogEntryPoint(
                 onReportBug = {
                     router.goBack()
                     router.navigate(
-                        BugReportRoute(contextMessage = shakeContext)
+                        BugReportRoute(contextMessage = shakeContext, shakeScreenshot = true)
                     )
                 },
                 // Debug-only: reuse the shake gesture to also open the

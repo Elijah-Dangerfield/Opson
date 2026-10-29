@@ -360,6 +360,9 @@
 
     <!-- Design sync 2: More's Support subtitle, Support's Find support and crisis rows -->
     <string name="settings_more_support_sub">Helplines, your data and privacy</string>
+    <string name="settings_more_report_bug">Report a bug</string>
+    <string name="settings_more_report_bug_sub">Something broken? Tell us what happened.</string>
+    <string name="settings_more_send_feedback_sub">Ideas, gripes, anything on your mind</string>
     <string name="settings_support_find">Find support near you</string>
     <string name="settings_support_crisis_call_or_text">In crisis? Call or text %1$s</string>
     <string name="settings_support_crisis_call">In crisis? Call %1$s</string>

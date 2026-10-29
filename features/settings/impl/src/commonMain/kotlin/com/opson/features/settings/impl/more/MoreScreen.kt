@@ -64,7 +64,11 @@ import opson.libraries.resources.generated.resources.settings_more_plan
 import opson.libraries.resources.generated.resources.settings_more_plan_free
 import opson.libraries.resources.generated.resources.settings_more_signed_in
 import opson.libraries.resources.generated.resources.settings_more_signed_in_as
+import opson.libraries.resources.generated.resources.settings_more_report_bug
+import opson.libraries.resources.generated.resources.settings_more_report_bug_sub
+import opson.libraries.resources.generated.resources.settings_more_send_feedback_sub
 import opson.libraries.resources.generated.resources.settings_more_support
+import opson.libraries.resources.generated.resources.settings_send_feedback
 import opson.libraries.resources.generated.resources.settings_more_support_sub
 import opson.libraries.resources.generated.resources.settings_more_targets
 import opson.libraries.resources.generated.resources.settings_more_targets_sub
@@ -221,6 +225,22 @@ private fun MoreRowItem(row: MoreRow, showDivider: Boolean, onClick: () -> Unit)
             icon = AppIcons.Support,
             quietIcon = true,
             subtitle = stringResource(Res.string.settings_more_support_sub),
+            showDivider = showDivider,
+            onClick = onClick,
+        )
+        MoreRow.ReportBug -> SettingsRow(
+            title = stringResource(Res.string.settings_more_report_bug),
+            icon = AppIcons.BugReport,
+            quietIcon = true,
+            subtitle = stringResource(Res.string.settings_more_report_bug_sub),
+            showDivider = showDivider,
+            onClick = onClick,
+        )
+        MoreRow.SendFeedback -> SettingsRow(
+            title = stringResource(Res.string.settings_send_feedback),
+            icon = AppIcons.Feedback,
+            quietIcon = true,
+            subtitle = stringResource(Res.string.settings_more_send_feedback_sub),
             showDivider = showDivider,
             onClick = onClick,
         )

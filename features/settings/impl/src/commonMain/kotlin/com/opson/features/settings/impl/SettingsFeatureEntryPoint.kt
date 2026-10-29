@@ -112,6 +112,7 @@ import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.flowroutines.ObserveEvents
+import com.opson.libraries.navigation.BugReportRoute
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.NavigationOptions
 import com.opson.libraries.navigation.OnTabReselected
@@ -168,6 +169,8 @@ class SettingsFeatureEntryPoint(
                     MoreEvent.OpenWater -> router.navigate(WaterSettingsRoute(fromMore = true))
                     MoreEvent.OpenLookAndFeel -> router.navigate(LookAndFeelRoute())
                     MoreEvent.OpenSupport -> router.navigate(SupportRoute())
+                    MoreEvent.OpenBugReport -> router.navigate(BugReportRoute())
+                    MoreEvent.OpenFeedback -> router.navigate(FeedbackRoute())
                     MoreEvent.OpenFasting -> router.navigate(FastingRoute())
                     MoreEvent.OpenReminders -> router.navigate(RemindersRoute())
                     MoreEvent.OpenHealth -> router.navigate(IntegrationsRoute())

@@ -30,6 +30,9 @@ import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Support
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Feedback
+import androidx.compose.material.icons.automirrored.rounded.Article
 import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.outlined.Edit as OutlinedEdit
 import androidx.compose.material.icons.rounded.Add
@@ -247,6 +250,15 @@ object AppIcons {
     val WaterDropOutline get() = icon("water_drop_outline", MaterialIcons.Outlined.WaterDrop)
     val Support get() = icon("support", MaterialIcons.Rounded.Support)
 
+    /** More's Report a bug row. */
+    val BugReport get() = icon("bug_report", MaterialIcons.Rounded.BugReport)
+
+    /** More's Send feedback row. */
+    val Feedback get() = icon("feedback", MaterialIcons.Rounded.Feedback)
+
+    /** The app log a report carries. */
+    val Article get() = icon("article", MaterialIcons.AutoMirrored.Rounded.Article)
+
     val WorkspacePremium get() = icon("workspace_premium", MaterialIcons.Outlined.WorkspacePremium)
     val Download get() = icon("download", MaterialIcons.Rounded.Download)
 
@@ -344,7 +356,7 @@ object AppIcons {
             EventRepeat, EventAvailable, Star, Favorite, Science,
             FormatListBulleted, BeachAccess, Watch, Widgets, Call, Sms, Public, SupportAgent,
             DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove, FitnessCenter,
-            FlashlightOn, FlashlightOff,
+            FlashlightOn, FlashlightOff, BugReport, Feedback, Article,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

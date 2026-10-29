@@ -286,4 +286,7 @@ and still behind the `telemetry.appEventsEnabled` kill switch + per-session samp
 the forwarding flag off never affects events.
 
 In-app feedback is not a Loki event: `FeedbackRepository` sends it straight to Sentry via
-`Telemetry.captureUserFeedback` (verbatim message, screenshots, session-log attachment).
+`Telemetry.captureUserFeedback` (verbatim message, screenshots, session-log attachment). The
+report page shows every attachment first, and the screenshots and the log can be taken off. Sent
+offline, Sentry keeps the report in its disk cache and sends it on a later launch or reconnect;
+the page says so instead of claiming it went.

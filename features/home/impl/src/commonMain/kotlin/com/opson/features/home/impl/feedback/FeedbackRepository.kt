@@ -1,5 +1,6 @@
 package com.opson.features.home.impl.feedback
 
+import com.opson.libraries.core.AppState
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.flatMap
 import com.opson.libraries.flowroutines.DispatcherProvider
@@ -15,6 +16,9 @@ interface FeedbackRepository {
      * [contextMessage] is what the bug report page shows under "Captured details" (the error the
      * person was looking at, or how they got there). It goes out with the report, so the page
      * doesn't claim to have captured something triage never sees.
+     *
+     * [screenshots] and [sessionLog] are what the page showed under "Sent with it", minus whatever
+     * the person took off; a null log sends none.
      */
     suspend fun submitFeedback(
         message: String,
@@ -22,14 +26,24 @@ interface FeedbackRepository {
         logId: String? = null,
         errorCode: Int? = null,
         contextMessage: String? = null,
-    ): Result<Unit>
+        screenshots: List<ByteArray> = emptyList(),
+        sessionLog: String? = null,
+    ): Result<FeedbackDelivery>
 }
+
+/**
+ * Where a handed-over report is. Crash reporting writes a report it cannot send to its cache on
+ * the phone and sends it on a later launch or reconnect, so offline is not a failure, but the
+ * person is told it has not gone yet.
+ */
+enum class FeedbackDelivery { Sent, Queued }
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
 class FeedbackRepositoryImpl @Inject constructor(
     private val telemetry: Telemetry,
     private val dispatchers: DispatcherProvider,
+    private val appState: AppState,
 ) : FeedbackRepository {
     override suspend fun submitFeedback(
         message: String,
@@ -37,7 +51,9 @@ class FeedbackRepositoryImpl @Inject constructor(
         logId: String?,
         errorCode: Int?,
         contextMessage: String?,
-    ): Result<Unit> {
+        screenshots: List<ByteArray>,
+        sessionLog: String?,
+    ): Result<FeedbackDelivery> {
         val report = contextMessage?.takeIf { it.isNotBlank() }?.let { "Context: $it\n\n$message" } ?: message
         // Capturing is synchronous and not small: it copies the in-memory session log (up to 500
         // lines) into an attachment and builds the Sentry event. The view model calls this from
@@ -48,12 +64,18 @@ class FeedbackRepositoryImpl @Inject constructor(
                     message = report,
                     isBugReport = isBugReport,
                     eventId = logId,
-                    errorCode = errorCode
+                    errorCode = errorCode,
+                    screenshots = screenshots,
+                    sessionLog = sessionLog,
                 )
             }
         }
         return sent.flatMap { delivered ->
-            if (delivered) Catching.success(Unit) else Catching.failure(FeedbackNotSent())
+            when {
+                !delivered -> Catching.failure(FeedbackNotSent())
+                appState.isOffline.value -> Catching.success(FeedbackDelivery.Queued)
+                else -> Catching.success(FeedbackDelivery.Sent)
+            }
         }
     }
 }
