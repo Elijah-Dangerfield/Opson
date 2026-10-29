@@ -36,6 +36,7 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.background
+import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import opson.libraries.resources.generated.resources.Res as SharedRes
@@ -45,10 +46,15 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Pages side by side that the person swipes between, as Today's summary card (design sync 2,
- * 2.1 and 2.1b). Every page is composed and measured at once and the row is as tall as the
- * tallest, so swiping never changes the height and the list under it never jumps. The pages off
- * screen stay in the tree for anything that reads it (the leak tests) but are hidden from
- * screen readers; [PageIndicator] is how those move between pages.
+ * 2.1 and 2.1b). Every page is composed and measured at once, and the row is as tall as the page
+ * showing. Mid-swipe the height runs between the two pages' heights in step with the finger, so
+ * the card grows or shrinks as the next page slides in rather than jumping once it lands. A dot
+ * tapped slides there the same way. The height is worked out in the measure pass from the drag,
+ * so a swipe relayouts the row each frame and never recomposes it. A shorter page sits at the top
+ * of a taller row; a taller one is clipped at the bottom until the row has grown to fit it.
+ *
+ * The pages off screen stay in the tree for anything that reads it (the leak tests) but are
+ * hidden from screen readers; [PageIndicator] is how those move between pages.
  *
  * [page] is the one showing; [onPageChange] reports a swipe that settled on another.
  */
@@ -67,6 +73,8 @@ fun SwipePages(
     LaunchedEffect(page, pageCount) {
         val wanted = page.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
         if (wanted != current) {
+            // Slid to, like a swipe, so the height eases there too. Unmeasured, there is nothing to slide.
+            if (width > 0) animate(drag, -(wanted - current) * width.toFloat()) { value, _ -> drag = value }
             current = wanted
             drag = 0f
         }
@@ -110,13 +118,29 @@ fun SwipePages(
         val pageWidth = constraints.maxWidth
         val pageConstraints = Constraints.fixedWidth(pageWidth).copy(maxHeight = constraints.maxHeight)
         val placeables = measurables.map { it.measure(pageConstraints) }
-        val height = (placeables.maxOfOrNull { it.height } ?: 0).coerceIn(constraints.minHeight, constraints.maxHeight)
+        val height = settledHeight(placeables.map { it.height }, current, drag, pageWidth).coerceIn(constraints.minHeight, constraints.maxHeight)
         layout(pageWidth, height) {
             placeables.forEachIndexed { index, placeable ->
                 placeable.place((index - current) * pageWidth + drag.roundToInt(), 0)
             }
         }
     }
+}
+
+/**
+ * How tall the row is with [current] showing and the pages [drag]ged by that many pixels: the
+ * two pages either side of where the drag has got to, mixed by how far it has got. At rest it is
+ * [current]'s own height.
+ */
+internal fun settledHeight(heights: List<Int>, current: Int, drag: Float, pageWidth: Int): Int {
+    if (heights.isEmpty()) return 0
+    val last = heights.lastIndex
+    if (pageWidth <= 0) return heights[current.coerceIn(0, last)]
+    val position = (current - drag / pageWidth).coerceIn(0f, last.toFloat())
+    val from = floor(position).toInt()
+    val to = (from + 1).coerceAtMost(last)
+    val fraction = position - from
+    return (heights[from] + (heights[to] - heights[from]) * fraction).roundToInt()
 }
 
 /**
