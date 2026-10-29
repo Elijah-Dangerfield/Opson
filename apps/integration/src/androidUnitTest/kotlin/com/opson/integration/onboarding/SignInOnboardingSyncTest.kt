@@ -2,7 +2,6 @@ package com.opson.integration.onboarding
 
 import com.opson.features.onboarding.impl.NumbersFeel
 import com.opson.features.onboarding.impl.SetupAnswers
-import com.opson.features.onboarding.impl.StartingSetup
 import com.opson.features.onboarding.impl.Why
 import com.opson.features.onboarding.impl.startingWith
 import com.opson.integration.helpers.IntegrationTest
@@ -98,16 +97,19 @@ class SignInOnboardingSyncTest : IntegrationTest() {
         val account = assertNotNull(phone.userId)
 
         val breakfast = MealTimes(breakfast = LocalTime(9, 30))
-        val setup = StartingSetup(
-            targets = Targets.Default.raise().useSurplus(burnKcal = 1360),
-            birthYear = 1992,
-            heightCm = 168.0,
-            sex = BodySex.Female,
-            weightUnit = WeightUnit.Lb,
-            mealTimes = breakfast,
-        )
+        val targets = Targets.Default.raise().useSurplus(burnKcal = 1360)
         val answers = SetupAnswers(why = setOf(Why.EatingRegularly), feel = NumbersFeel.LoveThem)
-        phone.settings.update(stampNumbersChange = false) { it.startingWith(PresetId.Full, answers, setup) }
+        // What the setup steps leave behind: the mode and answers, then the profile and the
+        // goal's targets the plan flow puts on top.
+        phone.settings.update(stampNumbersChange = false) {
+            it.startingWith(PresetId.Full, answers, breakfast).copy(
+                targets = targets,
+                birthYear = 1992,
+                heightCm = 168.0,
+                bodySex = BodySex.Female,
+                weightUnit = WeightUnit.Lb,
+            )
+        }
         phone.weights.addWeighIn(64.0)
 
         phone.syncNow().getOrThrow()
@@ -129,7 +131,7 @@ class SignInOnboardingSyncTest : IntegrationTest() {
         assertEquals(168.0, pulled.heightCm)
         assertEquals(BodySex.Female, pulled.bodySex)
         assertEquals(WeightUnit.Lb, pulled.weightUnit)
-        assertEquals(setup.targets, pulled.targets)
+        assertEquals(targets, pulled.targets)
         assertEquals(listOf("eating_regularly"), pulled.onboarding.why)
         assertEquals(listOf(64.0), reinstall.weights.observeWeighIns().first().map { it.kg })
     }
