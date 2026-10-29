@@ -6,6 +6,25 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: A meal's + opens the add sheet on that meal
+
+**Decision:** the meal sheet (Add food, Note, Copy yesterday's, Save as a meal)
+is gone. A meal's +, the header of a meal with food and anywhere on an empty
+meal's card open the add sheet with that meal chosen. Save as a meal moved
+into the add sheet's grid, shown when the meal on the sheet has food.
+
+**Alternatives:** keep the meal sheet and only skip it for Add food, or put
+Save as a meal in a ⋮ on the meal header. The first keeps the extra tap the
+owner asked to lose for most people. The second adds a control to every meal
+card for a rare action, when the add sheet is already on that meal.
+
+**Why:** owner feedback, "fewer clicks is better". The add sheet already had
+Note and Copy a meal, so the meal sheet was one tap in front of the same
+things. Save as a meal shows for any meal with food, including one the
+nav + picked, so the grid reads the same however it was opened.
+
+---
+
 ## 2026-10-29: Builders join themselves, Pro holds while active, and auto-approval starts in shadow
 
 **Decision:** Opson Builders (`release.builders`, V31) is self-serve. A claimed

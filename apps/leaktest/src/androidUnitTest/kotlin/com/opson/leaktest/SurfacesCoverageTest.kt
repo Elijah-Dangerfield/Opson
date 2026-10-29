@@ -104,7 +104,7 @@ class SurfacesCoverageTest {
             ),
             "TodayLeakSurfaces" to listOf(
                 "today", "today-big-day", "today-added", "today-untracked", "today-low-logging", "today-groups-off", "today-past", "today-future",
-                "today-day-menu", "today-day-menu-armed", "calendar", "meal-sheet", "meal-note",
+                "today-day-menu", "today-day-menu-armed", "calendar", "meal-note",
                 "water-sheet", "item-sheet", "day-note", "day-close", "day-close-big-day",
                 "today-timer-ended", "today-timer-waiting",
                 "today-expended", "today-exercise", "today-activity", "today-activity-health",

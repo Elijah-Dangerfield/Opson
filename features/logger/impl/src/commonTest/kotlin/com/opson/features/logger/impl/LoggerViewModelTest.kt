@@ -309,6 +309,30 @@ class LoggerViewModelTest : CoroutineTest() {
         assertEquals(listOf(LogVia.Yesterday to 2), telemetry.events)
     }
 
+    /** A meal's + on Today opens this sheet on it, so what the meal's own sheet offered is here. */
+    @Test
+    fun aMealsOwnPlusOpensOnItWithItsNoteCopyAndSave() = runUnitTest {
+        val vm = vm(LoggerRoute(slot = MealSlot.Lunch, dayIso = LoggerFixtures.today.toString()))
+        val events = events(vm)
+        settle()
+
+        assertEquals(MealSlot.Lunch, vm.state.slot)
+        assertTrue(AddAction.Note in vm.state.actions)
+        assertTrue(AddAction.SaveAsMeal(MealSlot.Lunch) in vm.state.actions)
+
+        vm.takeAction(LoggerAction.SaveAsMealTapped)
+        vm.takeAction(LoggerAction.SlotPicked(MealSlot.Breakfast))
+        vm.takeAction(LoggerAction.NoteTapped)
+
+        assertEquals(
+            listOf<LoggerEvent>(
+                LoggerEvent.OpenCreateMeal(LoggerFixtures.today, MealSlot.Lunch),
+                LoggerEvent.OpenMealNote(LoggerFixtures.today, MealSlot.Breakfast),
+            ),
+            events,
+        )
+    }
+
     /** The sheet animates down after a write; a second tap in that time is queued behind the first. */
     @Test
     fun aSecondTapWhileTheSheetClosesWritesNothingMore() = runUnitTest {

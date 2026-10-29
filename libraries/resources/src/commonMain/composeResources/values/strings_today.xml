@@ -101,13 +101,6 @@
     <string name="today_cal_initial_fri">F</string>
     <string name="today_cal_initial_sat">S</string>
 
-    <!-- Meal sheet -->
-    <string name="today_meal_add_food">Add food</string>
-    <string name="today_meal_note">Note</string>
-    <string name="today_meal_copy_yesterday">Copy yesterday's %1$s</string>
-    <string name="today_meal_copy_day_before">Copy %1$s from the day before</string>
-    <string name="today_meal_save_as_meal">Save as a meal</string>
-
     <!-- A meal's Note: how hungry, and a few words -->
     <string name="today_note_title">Note, %1$s</string>
     <string name="today_note_subtitle">Both optional, and only you see them.</string>

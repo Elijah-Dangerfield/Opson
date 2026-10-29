@@ -67,6 +67,9 @@ sealed interface AddAction {
     /** Copies yesterday's [slot]: only when yesterday has one. */
     data class CopyMeal(val slot: MealSlot) : AddAction
 
+    /** Create a meal from [slot]'s foods on the day: only when it has some. */
+    data class SaveAsMeal(val slot: MealSlot) : AddAction
+
     data object Water : AddAction
     data object WeighIn : AddAction
     data object Note : AddAction
@@ -154,6 +157,7 @@ sealed interface LoggerAction {
     data object DescribeItTapped : LoggerAction
     data object SavedMealsTapped : LoggerAction
     data object CopyMealTapped : LoggerAction
+    data object SaveAsMealTapped : LoggerAction
     data object WaterTapped : LoggerAction
     data object WeighInTapped : LoggerAction
     data object NoteTapped : LoggerAction
@@ -194,6 +198,9 @@ sealed interface LoggerEvent {
     data class OpenSearch(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenFoodDetail(val ref: FoodRef, val source: PickSource, val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenMealNote(val day: LocalDate, val slot: MealSlot) : LoggerEvent
+
+    /** Create a meal, filled with [slot]'s foods on [day]. */
+    data class OpenCreateMeal(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenScanner(val day: LocalDate, val slot: MealSlot) : LoggerEvent
     data class OpenPhoto(val day: LocalDate, val slot: MealSlot) : LoggerEvent
 

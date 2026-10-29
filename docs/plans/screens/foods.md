@@ -161,7 +161,7 @@ Blind, empty. Leak surface `foods` (`showsCaloriesInFull = true`).
 ### Route
 `CreateMealRoute(fromDayIso: String? = null, fromSlot: MealSlot? = null)`,
 `screen<>`, typeMap for `MealSlot?`. Opened from the Foods tile, and from
-Today's meal sheet "Save as a meal", which arrives pre-filled.
+the add sheet's "Save as a meal" (a meal's + on Today opens it on that meal), which arrives pre-filled.
 
 ### Layout (v3 11.2)
 Top app bar with a close X and "Create a meal". Card 1: Name field, "Usually

@@ -33,7 +33,11 @@ Back from search, the scanner, the photo, Weigh-in or Fasting lands on Today.
 ## The sheet (13.4a, 13.4b)
 
 "Add to {meal} ▾" with Close. The meal comes from `MealSlotPicker` as before
-(Uncategorized fallback), a meal's + always uses its own.
+(Uncategorized fallback), a meal's + always uses its own. A meal's + on
+Today, its header when it has food, and anywhere on an empty meal's card all
+open this sheet straight on that meal; there is no meal sheet in between
+(owner feedback, 2026-10-29: "fewer clicks is better"). The dropdown still
+switches meal.
 
 A 3-column grid, in this order, each shown only when it can run:
 
@@ -45,6 +49,7 @@ A 3-column grid, in this order, each shown only when it can run:
 | Say or type it | always ("Describe it" with `release.voice` off) | The Describe pane, listening; with voice off, the box focused |
 | Saved meals | always | The Saved pane; Add logs the meal at once |
 | Copy a meal | yesterday has this meal | Copies yesterday's {meal} |
+| Save as a meal | this meal has food on the day, and the day is open | `CreateMealRoute(fromDayIso, fromSlot)`, filled with the meal's foods |
 | Water | always | One glass, with Undo |
 | Weigh-in | always | `WeightRoute(focusInput = true)`, the field focused |
 | Note | always | `MealNoteRoute`, the note focused |
