@@ -44,7 +44,17 @@ private fun App() {
     var status by remember { mutableStateOf<Status?>(null) }
     // Grafana's review board links to `#review/<id>`: open on that submission.
     val reviewId = remember { reviewIdFromHash() }
-    var tab by remember { mutableStateOf(if (reviewId != null) Tab.Review else Tab.Flags) }
+    // The Builders board links to `#users/<id>`: open on that account.
+    val linkedUserId = remember { userIdFromHash() }
+    var tab by remember {
+        mutableStateOf(
+            when {
+                reviewId != null -> Tab.Review
+                linkedUserId != null -> Tab.Users
+                else -> Tab.Flags
+            },
+        )
+    }
     var pendingConfirm by remember { mutableStateOf<PendingWrite?>(null) }
     var errorLog by remember { mutableStateOf<List<ErrorEntry>>(emptyList()) }
 
@@ -298,7 +308,7 @@ private fun App() {
 
                 Tab.Diff -> DiffView(ctx = ctx, connectedEnv = env)
 
-                Tab.Users -> UsersView(ctx = ctx)
+                Tab.Users -> UsersView(ctx = ctx, openId = linkedUserId)
 
                 Tab.Entitlements -> EntitlementsView(ctx = ctx)
 

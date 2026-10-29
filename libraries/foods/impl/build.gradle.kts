@@ -17,6 +17,8 @@ kotlin {
             implementation(projects.libraries.opson.storage)
             // UserScopedSyncer and UserScopedClearer, for the foods this person sent for review.
             implementation(projects.libraries.opson)
+            // integrity.deviceCheck and integrity.playCloudProjectNumber, for ContributionAttestation.
+            implementation(projects.libraries.config)
 
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)
@@ -33,6 +35,11 @@ kotlin {
             implementation(libs.ktor.client.mock)
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(projects.libraries.config)
+        }
+        androidMain.dependencies {
+            // Play Integrity standard requests, only with contribution requests (PlayIntegrityAttestation).
+            implementation(libs.google.play.integrity)
         }
     }
 }

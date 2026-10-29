@@ -91,6 +91,28 @@ class DeleteEverythingTest : IntegrationTest() {
             "INSERT INTO food_reports (id, food_id, user_id, reason, snapshot) VALUES (?::uuid, ?::uuid, ?::uuid, 'wrong_calories', '{}'::jsonb)",
             UUID.randomUUID().toString(), UUID.randomUUID().toString(), user,
         )
+        // Moderation (V30). The sighting goes with the account; the rest keep their row with the
+        // user id cleared and only the keyed hash left, which is what the privacy policy says.
+        val action = UUID.randomUUID().toString()
+        sql(
+            "INSERT INTO moderation_actions (id, user_id, kind, scope, reason, created_by) " +
+                "VALUES (?::uuid, ?::uuid, 'restriction', 'contributions', 'other', 'test')",
+            action, user,
+        )
+        sql(
+            "INSERT INTO moderation_events (id, actor, action, action_id, user_id) VALUES (?::uuid, 'test', 'restrict', ?::uuid, ?::uuid)",
+            UUID.randomUUID().toString(), action, user,
+        )
+        sql(
+            "INSERT INTO food_provenance (food_id, kind, ref_id, user_id) VALUES (?::uuid, 'submission', ?::uuid, ?::uuid)",
+            UUID.randomUUID().toString(), UUID.randomUUID().toString(), user,
+        )
+        sql("INSERT INTO device_sightings (user_id, device_hash, platform) VALUES (?::uuid, 'hash', 'ios')", user)
+        sql(
+            "INSERT INTO device_markers (id, device_hash, platform, action_id, user_id, created_by) " +
+                "VALUES (?::uuid, 'hash', 'ios', ?::uuid, ?::uuid, 'test')",
+            UUID.randomUUID().toString(), action, user,
+        )
     }
 
     @Test

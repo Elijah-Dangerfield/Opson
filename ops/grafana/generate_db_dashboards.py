@@ -709,6 +709,230 @@ b.loki_table("How reads end",
              "server, so the form opened empty.")
 b.write()
 
+# ── Builders: contributions and abuse ──────────────────────────────────────
+# V30: is anyone entering fake data, and who? Submissions, reports and corrections by state; the
+# queues; one row per contributor with volume, approval, disagreement with the label reading,
+# velocity, impossible values and reused photos; device checks; bans. `analytics` for the
+# aggregates, `support` for the per-contributor rows (ids, counts and codes only: no food name,
+# barcode, number from a label or photo). Each account id opens the admin console's Users tab,
+# where Ban, Suspend, Restrict contributions, Lift and Roll back live.
+ADMIN_USER = "https://opson-server-${env:text}.fly.dev/admin/#users/${__value.raw}"
+USER_LINKS = [
+    {"title": "Moderate in the admin console", "url": ADMIN_USER, "targetBlank": True},
+    {"title": "User detail", "url": GRAFANA_USER_DETAIL},
+]
+
+
+def user_links(*columns):
+    return [{"matcher": {"id": "byName", "options": c}, "properties": [{"id": "links", "value": USER_LINKS}]} for c in columns]
+
+
+def by_state(kind):
+    return [sql("A", "SELECT day::timestamp AS time, state AS metric, sum(contributions) AS value "
+                     f"FROM analytics.contributions_daily WHERE kind = '{kind}' AND $__timeFilter(day::timestamp) "
+                     "GROUP BY 1, 2 ORDER BY 1")]
+
+
+# Contributors worth a look: flagged, reusing photos, or far above their own pace.
+SUSPECT = ("(flagged_7d >= 3 OR photo_reuse_hits > 0 OR impossible_total > 0 "
+           "OR (submitted_24h >= 5 AND submitted_24h > 3 * coalesce(median_daily_30d, 0)) "
+           "OR (account_age_days < 3 AND submitted_total >= 10))")
+
+b = Board("opson-builders", "Opson · Builders",
+          "Are people entering fake data, and who? Start with the glance: if it is all green, close the tab.\n\n"
+          "Every account id opens the admin console's Users tab, where an account can be banned, suspended or "
+          "restricted from contributing, and its contributions rolled back. Nothing here shows a food's name, a "
+          "barcode, a number from a label or a photo: look at the food in the console.\n\n"
+          "Alert rules for the same signals are in ops/grafana/alerts/builders.json.",
+          links=[USERS_LINK, link("Food review", "/d/opson-food-review/opson-food-review?var-env=${env}")])
+b.row("The glance")
+b.sql_stat("Contributors to look at", f"SELECT count(*) FROM support.contributors WHERE {SUSPECT} AND standing = 'ok'",
+           "In good standing, and flagged three or more times this week, reusing a photo, sending impossible values, "
+           "sending three times their usual day, or under three days old with ten or more foods.",
+           thresholds=steps(("green", None), ("orange", 1), ("red", 5)), w=4)
+b.sql_stat("Photos reused across accounts, 7 days",
+           "SELECT count(*) FROM support.photo_reuse WHERE cross_account AND created_at > now() - interval '7 days'",
+           "The same photo bytes sent by two accounts. Almost always one person with several accounts.",
+           thresholds=steps(("green", None), ("red", 1)), w=4)
+b.sql_stat("Impossible values, 7 days",
+           "SELECT coalesce(sum(contributions), 0) FROM analytics.contribution_flags_daily "
+           "WHERE flag IN ('impossible_value', 'kcal_zero_with_macros') AND day > current_date - 7",
+           "Submissions with an amount no food can hold, or 0 kcal beside macros that add up to more.",
+           thresholds=steps(("green", None), ("orange", 1), ("red", 10)), w=4)
+b.sql_stat("Approval rate, 30 days",
+           "SELECT coalesce(sum(contributions) FILTER (WHERE state = 'approved')::float "
+           "/ nullif(sum(contributions) FILTER (WHERE state IN ('approved', 'rejected')), 0), 1) "
+           "FROM analytics.contributions_daily WHERE kind = 'submission' AND day > current_date - 30",
+           "Of submissions decided in the last 30 days, the share approved. A collapse means junk is arriving.",
+           unit="percentunit", decimals=1, thresholds=steps(("red", None), ("orange", 0.6), ("green", 0.8)), w=4)
+b.sql_stat("Waiting for review", "SELECT coalesce(sum(waiting), 0) FROM analytics.contribution_queue",
+           "Submissions pending and reports open.", thresholds=steps(("green", None), ("orange", 20), ("red", 100)), w=4)
+b.sql_stat("Bans and restrictions in force", "SELECT count(*) FROM support.moderation_actions WHERE active",
+           "Bans, suspensions and contribution restrictions not lifted or ended.", w=4)
+
+b.row("Submissions, reports and corrections")
+b.series("Submissions per day, by state", by_state("submission"),
+         "submitted by the day sent; approved and rejected by the day decided; rolled_back when moderation took an "
+         "approved food back out.", bars=True, stacked=True, w=8)
+b.series("Reports per day, by state", by_state("report"),
+         "Report a problem from the app: submitted, then accepted (a correction), rejected or duplicate. The server's "
+         "own energy checks are left out.", bars=True, stacked=True, w=8)
+b.series("Corrections per day", by_state("correction"),
+         "Corrections laid over a food (applied), undone (reverted), and those rolled back with a banned reporter's "
+         "contributions (in Reports, rolled_back).", bars=True, stacked=True, w=8)
+b.sql_table("Queues", "SELECT kind, waiting, round(oldest_hours::numeric, 1) AS oldest_hours, "
+                      "round(median_hours::numeric, 1) AS median_hours FROM analytics.contribution_queue",
+            "What waits for a reviewer, how many, and how old in hours.", w=8, h=6)
+b.sql_stat("Open reports", "SELECT coalesce(max(open_reports), 0) FROM analytics.food_report_queue",
+           "Reports nobody has decided, the server's energy checks included.", w=4, h=6,
+           thresholds=steps(("green", None), ("orange", 20), ("red", 100)))
+b.sql_stat("Foods with an open report", "SELECT coalesce(max(foods), 0) FROM analytics.food_report_queue",
+           "Distinct foods those reports are about.", w=4, h=6)
+b.sql_stat("Energy checks waiting", "SELECT coalesce(max(energy_checks), 0) FROM analytics.food_report_queue",
+           "Foods the server flagged itself: 0 kcal beside macros.", w=4, h=6)
+b.sql_stat("Oldest open report",
+           "SELECT coalesce(extract(epoch FROM now() - max(oldest_at)) / 3600, 0) FROM analytics.food_report_queue",
+           "Hours since the oldest open report was sent.", unit="h", decimals=1, w=4, h=6,
+           thresholds=steps(("green", None), ("orange", 48), ("red", 168)))
+
+b.row("Contributors")
+b.sql_table("Contributors to look at",
+            "SELECT user_id, standing, submitted_30d, round(approval_rate_30d::numeric, 2) AS approval_30d, "
+            "round(ocr_disagreement_rate::numeric, 2) AS ocr_disagreement, flagged_24h, flagged_7d, impossible_total, "
+            "photo_reuse_hits, submitted_1h, submitted_24h, median_daily_30d, reported_30d, reports_accepted_30d, "
+            "rolled_back, device_marked, account_age_days "
+            f"FROM support.contributors WHERE {SUSPECT} "
+            "ORDER BY photo_reuse_hits DESC, impossible_total DESC, flagged_7d DESC, submitted_24h DESC LIMIT 50",
+            "Why each is here is in the columns. ocr_disagreement: of their last 50 submissions with a label reading, "
+            "the share where what they sent differs from what the model read on kcal, protein, carbs or fat by more "
+            "than label rounding. Open the id to moderate.",
+            w=24, h=10, no_value="Nobody to look at", overrides=user_links("user_id"))
+b.sql_table("Every contributor",
+            "SELECT user_id, standing, submitted_total, submitted_30d, approved_30d, rejected_30d, pending, "
+            "round(approval_rate_30d::numeric, 2) AS approval_30d, round(ocr_disagreement_rate::numeric, 2) AS ocr_disagreement, "
+            "reported_30d, reports_accepted_30d, last_submitted_at "
+            "FROM support.contributors ORDER BY submitted_30d DESC, submitted_total DESC LIMIT 200",
+            "Volume and approval for everyone who has sent a food or a report.", w=24, h=10,
+            no_value="No contributions yet", overrides=user_links("user_id"))
+b.sql_table("Velocity outliers",
+            "SELECT user_id, submitted_1h, submitted_24h, median_daily_30d, account_age_days, standing "
+            "FROM support.contributors WHERE submitted_1h >= 10 "
+            "OR (submitted_24h >= 5 AND submitted_24h > 3 * coalesce(median_daily_30d, 0)) "
+            "ORDER BY submitted_24h DESC LIMIT 50",
+            "Ten or more in the last hour, or a day three times their own median day. Scripts and Pro farming look like this.",
+            no_value="Nobody unusually fast", overrides=user_links("user_id"))
+b.sql_table("New accounts, many foods",
+            "SELECT user_id, account_age_days, submitted_total, approval_rate_30d, standing FROM support.contributors "
+            "WHERE account_age_days < 3 AND submitted_total >= 10 ORDER BY submitted_total DESC",
+            "Under three days old with ten or more submissions.", no_value="None", overrides=user_links("user_id"))
+b.bars("Disagreement with the label reading",
+       "SELECT CASE WHEN ocr_disagreement_rate < 0.1 THEN 'under 10%' WHEN ocr_disagreement_rate < 0.25 THEN '10 to 25%' "
+       "WHEN ocr_disagreement_rate < 0.5 THEN '25 to 50%' ELSE '50% or more' END AS disagreement, count(*) AS contributors "
+       "FROM support.contributors WHERE ocr_disagreement_rate IS NOT NULL AND submitted_30d > 0 GROUP BY 1 ORDER BY 1",
+       "Contributors by how often what they send differs from what the model read off their own photo. Honest "
+       "corrections are rare; numbers typed from elsewhere disagree a lot.", w=12)
+
+b.row("Signals")
+b.series("Flags per day", [sql("A", "SELECT day::timestamp AS time, flag AS metric, contributions AS value "
+                                    "FROM analytics.contribution_flags_daily WHERE $__timeFilter(day::timestamp) ORDER BY 1")],
+         "atwater_mismatch: energy against 4/4/9 from the macros, or kJ read as kcal. impossible_value: an amount no "
+         "food can hold. kcal_zero_with_macros: 0 kcal beside real macros. ocr_disagreement: sent differs from what was "
+         "read. photo_reused: the same photo as an earlier submission.", bars=True, stacked=True, w=12)
+b.sql_table("Duplicate photos, 7 days",
+            "SELECT submission_id, other_submission_id, user_id, other_user_id, photo, cross_account, created_at "
+            "FROM support.photo_reuse WHERE created_at > now() - interval '7 days' "
+            "ORDER BY cross_account DESC, created_at DESC LIMIT 100",
+            "Exact matches by SHA-256 of the photo, kept after the photos are deleted. cross_account first.",
+            no_value="No reused photos", overrides=user_links("user_id", "other_user_id") + [
+                {"matcher": {"id": "byName", "options": c}, "properties": [
+                    {"id": "links", "value": [{"title": "Review in the admin console", "url": ADMIN_REVIEW, "targetBlank": True}]}]}
+                for c in ("submission_id", "other_submission_id")])
+b.sql_table("Top reported foods, 90 days",
+            "SELECT food_id, reports, open_reports, reporters, last_reported_at FROM analytics.top_reported_foods",
+            "Foods by how many people reported them. One food with many reporters is probably wrong; many reports from "
+            "one reporter is something else.", no_value="No reports")
+b.series("Device and account checks on contributions", [sql("A",
+         "SELECT day::timestamp AS time, signal || ' ' || outcome AS metric, sum(checks) AS value "
+         "FROM analytics.contribution_checks_daily WHERE $__timeFilter(day::timestamp) GROUP BY 1, 2 ORDER BY 1")],
+         "Each contribution's device check (DeviceCheck, Play Integrity) by outcome, and refusals by account or install "
+         "key. invalid: a token that didn't verify, which is counted and never blocks. flagged: Google wouldn't vouch "
+         "for the device. Empty until DeviceCheck or Play Integrity is configured, apart from refusals.",
+         bars=True, stacked=True, w=12)
+
+b.row("Moderation")
+b.series("Bans, suspensions and restrictions per day", [sql("A",
+         "SELECT day::timestamp AS time, kind || ' ' || CASE WHEN lifted > 0 AND started = 0 THEN 'lifted' ELSE 'started' END AS metric, "
+         "sum(started + lifted) AS value FROM analytics.moderation_daily WHERE $__timeFilter(day::timestamp) GROUP BY 1, 2 ORDER BY 1")],
+         "Started by the day of the action, lifted by the day it was lifted.", bars=True, stacked=True, w=12)
+b.sql_table("In force",
+            "SELECT user_id, kind, scope, reason, created_by, created_at, until, mark_devices, appeal_state "
+            "FROM support.moderation_actions WHERE active ORDER BY created_at DESC LIMIT 100",
+            "Every ban, suspension and restriction not lifted or ended. The note is in the console.",
+            no_value="Nothing in force", overrides=user_links("user_id"))
+b.write()
+
+# ── Builders alerts ────────────────────────────────────────────────────────
+# Grafana-managed rules on the prod Postgres datasource, in Grafana's file-provisioning format.
+# Each query returns one number; the rule fires when it crosses the threshold.
+
+
+def rule(uid, title, query, op, threshold, summary, minutes=60, pending="0m"):
+    return {
+        "uid": uid, "title": title, "condition": "C",
+        "data": [
+            {"refId": "A", "relativeTimeRange": {"from": minutes * 60, "to": 0}, "datasourceUid": "opson-prod-db",
+             "model": {"refId": "A", "rawSql": query, "rawQuery": True, "editorMode": "code", "format": "table"}},
+            {"refId": "B", "relativeTimeRange": {"from": 0, "to": 0}, "datasourceUid": "__expr__",
+             "model": {"refId": "B", "type": "reduce", "expression": "A", "reducer": "last", "settings": {"mode": "dropNN"}}},
+            {"refId": "C", "relativeTimeRange": {"from": 0, "to": 0}, "datasourceUid": "__expr__",
+             "model": {"refId": "C", "type": "threshold", "expression": "B",
+                       "conditions": [{"evaluator": {"type": op, "params": [threshold]}}]}},
+        ],
+        "noDataState": "OK", "execErrState": "Error", "for": pending,
+        "annotations": {"summary": summary, "__dashboardUid__": "opson-builders"},
+        "labels": {"app": "opson", "board": "builders"}, "isPaused": False,
+    }
+
+
+ALERTS = {
+    "apiVersion": 1,
+    "groups": [{
+        "orgId": 1, "name": "opson-builders", "folder": "Opson", "interval": "5m",
+        "rules": [
+            rule("opson-builders-burst", "One contributor, many submissions in an hour",
+                 "SELECT count(*) AS value FROM support.contributors WHERE submitted_1h > 15",
+                 "gt", 0, "Someone sent more than 15 foods in the last hour. Scripted, or farming for Pro: open Contributors to look at."),
+            rule("opson-builders-flags", "One contributor, many flags in a day",
+                 "SELECT count(*) AS value FROM support.contributors WHERE flagged_24h >= 5 AND standing = 'ok'",
+                 "gt", 0, "A contributor in good standing had five or more flagged submissions in 24 hours."),
+            rule("opson-builders-approval", "Approval rate collapsed",
+                 "SELECT CASE WHEN coalesce(sum(contributions) FILTER (WHERE state IN ('approved', 'rejected')), 0) < 20 THEN 1 "
+                 "ELSE sum(contributions) FILTER (WHERE state = 'approved')::float "
+                 "/ sum(contributions) FILTER (WHERE state IN ('approved', 'rejected')) END AS value "
+                 "FROM analytics.contributions_daily WHERE kind = 'submission' AND day > current_date - 7",
+                 "lt", 0.5, "Under half of the last 7 days' submissions (20 or more decided) were approved.",
+                 pending="1h"),
+            rule("opson-builders-photo-reuse", "Photo reused across accounts",
+                 "SELECT count(*) AS value FROM support.photo_reuse WHERE cross_account AND created_at > now() - interval '1 hour'",
+                 "gt", 0, "Two accounts sent the same photo in the last hour. Almost always sock puppets."),
+            rule("opson-builders-impossible", "Impossible values spiking",
+                 "SELECT coalesce(sum(contributions), 0) AS value FROM analytics.contribution_flags_daily "
+                 "WHERE flag IN ('impossible_value', 'kcal_zero_with_macros') AND day = current_date",
+                 "gt", 10, "More than 10 submissions today hold an impossible amount or 0 kcal beside macros."),
+            rule("opson-builders-queue-age", "Review queue ageing",
+                 "SELECT coalesce(max(oldest_hours), 0) AS value FROM analytics.contribution_queue",
+                 "gt", 72, "Something has waited for a reviewer more than 72 hours.", pending="1h"),
+            rule("opson-builders-integrity", "Device checks failing",
+                 "SELECT coalesce(sum(checks), 0) AS value FROM analytics.contribution_checks_daily "
+                 "WHERE day = current_date AND outcome IN ('invalid', 'error')",
+                 "gt", 20, "More than 20 device checks today didn't verify or couldn't reach Apple or Google: a key, "
+                            "a config or a forged client."),
+        ],
+    }],
+}
+(HERE / "alerts").mkdir(exist_ok=True)
+(HERE / "alerts" / "builders.json").write_text(json.dumps(ALERTS, indent=2) + "\n")
+
 # ── Retention ──────────────────────────────────────────────────────────────
 b = Board("opson-retention", "Opson · Retention",
           "Do people keep logging? Cohorts by the week of their first entry.")

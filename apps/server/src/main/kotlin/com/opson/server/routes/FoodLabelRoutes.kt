@@ -5,6 +5,7 @@ import com.opson.server.data.LabelFactsJson
 import com.opson.server.data.LabelParseCache
 import com.opson.server.domain.BarcodeLinkRepository
 import com.opson.server.domain.BarcodeLookup
+import com.opson.server.domain.ContributionGate
 import com.opson.server.domain.FoodLabelLimiter
 import com.opson.server.domain.FoodLabelLimits
 import com.opson.server.domain.FoodSubmissionRepository
@@ -16,6 +17,7 @@ import com.opson.server.domain.LabelParseResult
 import com.opson.server.domain.LabelParser
 import com.opson.server.domain.NewFoodSubmission
 import com.opson.server.domain.NutrientKey
+import com.opson.server.domain.OpenContributionGate
 import com.opson.server.domain.PackPhotos
 import com.opson.server.domain.ServingUnit
 import com.opson.server.domain.SubmissionOrigin
@@ -145,6 +147,7 @@ fun Route.foodLabelRoutes(
     cache: LabelParseCache,
     limiter: FoodLabelLimiter,
     clock: Clock,
+    contributionGate: ContributionGate = OpenContributionGate,
 ) {
     val logger = LoggerFactory.getLogger("FoodLabelRoutes")
     val json = Json { ignoreUnknownKeys = true }
@@ -211,6 +214,7 @@ fun Route.foodLabelRoutes(
                 }
                 val id = request.id?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "id must be a UUID"))
+                if (call.refuseIfRestricted(contributionGate, userId, id.toString(), logger, "food submission")) return@post
                 val origin = SubmissionOrigin.fromWire(request.origin)
                     ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_origin", "origin is barcode or search"))
                 val dto = request.food

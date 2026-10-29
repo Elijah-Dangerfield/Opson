@@ -248,7 +248,7 @@ object SubmitFoodStateBuilder {
         SubmitStep.TooMany -> SubmitStage.TooMany
         is SubmitStep.ReadFailed -> SubmitStage.ReadFailed(step.offline)
         is SubmitStep.CameraOff -> SubmitStage.CameraOff(step.canAskAgain)
-        is SubmitStep.SendFailed -> SubmitStage.SendFailed(step.offline, step.tooMany)
+        is SubmitStep.SendFailed -> SubmitStage.SendFailed(step.offline, step.tooMany, step.restricted)
     }
 
     /** What may be submitted: name and serving always, the required numbers and possible amounts where they are seen. */

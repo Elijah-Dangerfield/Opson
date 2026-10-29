@@ -2,6 +2,7 @@ package com.opson.server
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.opson.server.config.DeviceIntegrityConfig
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.DatabaseTest
 import com.opson.server.db.ProfilesTable
@@ -51,7 +52,7 @@ class FullStackMeTest : DatabaseTest() {
     @Test
     fun getMe_createsAndReturnsProfile_throughRealGraph() = runTest {
         val userId = seedAuthUser()
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System, DeviceIntegrityConfig())
 
         testApplication {
             application { installApp(component, JwtVerification.Static(verifier)) }

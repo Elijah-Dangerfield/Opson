@@ -2,6 +2,7 @@ package com.opson.libraries.foods.impl
 
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.CarbBasis
+import com.opson.libraries.foods.ContributionAttestation
 import com.opson.libraries.foods.FoodSubmission
 import com.opson.libraries.foods.LabelCheckCode
 import com.opson.libraries.foods.LabelFacts
@@ -136,5 +137,45 @@ class HttpFoodLabelsTest : CoroutineTest() {
         )
         assertEquals(SubmitResult.TooMany, labels(HttpStatusCode.TooManyRequests).submit(submission))
         assertEquals(SubmitResult.Failed(offline = false), labels(HttpStatusCode.BadRequest).submit(submission))
+    }
+
+    @Test
+    fun aRestrictedAccountIsSaidSo_andAnyOther403IsAFailure() = runUnitTest {
+        val submission = FoodSubmission("s1", null, SubmissionOrigin.Barcode, null, front, label, LabelFacts(name = "x"), emptyList())
+        assertEquals(
+            SubmitResult.Restricted,
+            labels(HttpStatusCode.Forbidden, """{"error":{"code":"contributions_restricted","message":"no"}}""").submit(submission),
+        )
+        assertEquals(
+            SubmitResult.Failed(offline = false),
+            labels(HttpStatusCode.Forbidden, """{"error":{"code":"forbidden","message":"no"}}""").submit(submission),
+        )
+    }
+
+    @Test
+    fun theDeviceHeadersGoWithASubmissionBoundToItsId() = runUnitTest {
+        val headers = mutableListOf<Pair<String?, String?>>()
+        val asked = mutableListOf<String>()
+        val attestation = object : ContributionAttestation {
+            override suspend fun headers(requestId: String): Map<String, String> {
+                asked += requestId
+                return mapOf(ContributionAttestation.HEADER_DEVICE_KEY to "key-1", ContributionAttestation.HEADER_INTEGRITY_TOKEN to "tok")
+            }
+        }
+        val labels = HttpFoodLabels(
+            FakeNetworkClient { request ->
+                headers += request.headers[ContributionAttestation.HEADER_DEVICE_KEY] to request.headers[ContributionAttestation.HEADER_INTEGRITY_TOKEN]
+                respond("""{"submissionId":"s1","foodId":"f1"}""", HttpStatusCode.Created, headersOf(HttpHeaders.ContentType, "application/json"))
+            },
+            attestation,
+        )
+        labels.submit(FoodSubmission("s1", null, SubmissionOrigin.Barcode, null, front, label, LabelFacts(name = "x"), emptyList()))
+        assertEquals(listOf("s1"), asked)
+        assertEquals(listOf<Pair<String?, String?>>("key-1" to "tok"), headers)
+
+        // Reading a label is not a contribution: no device headers.
+        headers.clear()
+        labels.parse(front, label)
+        assertEquals(listOf<Pair<String?, String?>>(null to null), headers)
     }
 }

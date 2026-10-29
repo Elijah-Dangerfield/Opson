@@ -36,11 +36,11 @@ repeat them.
 | Submissions | `food_submissions` (V25, V27): parsed, submitted, reviewed, checks, decision, `reviewed_by` from `X-Admin-Actor` |
 | Review | Admin console ReviewView behind `X-Admin-Token`; one reviewer |
 | Limits | `FoodLabelLimiter`: 10 reads per 10 min and 40 a day; 5 submissions per 10 min and 20 a day; in memory, per machine |
-| Bans | `auth.users.banned_until`, read by `PostgresModerationRepository`; every authed call then answers 403 (`BanTest`). No reason, no appeal, no UI in the admin console |
+| Bans | Since V30: `moderation_actions` (ban, suspension, contributions restriction, with reason, note, end, actor and appeal state) beside `auth.users.banned_until`; Ban, Suspend, Restrict contributions, Lift and Roll back in the admin console's Users tab; `food_provenance` keyed to survive deletion. See "Moderation" in `apps/server/README.md` |
 | Report a problem | A sheet on a catalog food's detail (`release.foodReports`) sends what is wrong, the right numbers, a label photo and a note to the admin console's Review area (`POST /v1/foods/{id}/reports`, V29). Accepting writes a correction laid over the source's data, reversible. A sent report emits `PromptEvent.ReportSent` |
 | Accounts | Supabase, including guest (anonymous) accounts (`support.users.is_guest`) |
 | Pro | Not built. `pricing-and-pro.md` designs `entitlements` |
-| Device attestation | None |
+| Device attestation | Since V30, on contribution requests only: an install key (Keychain on iOS), DeviceCheck bit 0 and Play Integrity device recall `bitFirst`, inert until their keys are set. No App Attest yet |
 
 ## Program basics
 

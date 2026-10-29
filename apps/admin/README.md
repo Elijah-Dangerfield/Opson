@@ -82,6 +82,15 @@ way.
   `pro`) with a source tag, a reason and an optional end in days, revoke one
   entitlement, or remove a grant. Server side it's `/v1/admin/users/{id}/access`
   and its siblings (`apps/server/README.md`, "Roles and entitlements").
+  Below that, **Moderation**: the account's standing, how much it contributed
+  and from how many devices, and the buttons to Ban, Suspend (for N days) or
+  Restrict contributions, with a reason, a note, "mark their devices" and
+  "also roll back their contributions"; Roll back on its own; Lift and the
+  appeal state on each action; Clear on each marked device (a second-hand
+  phone); and the trail. A ban or rollback on prod asks you to type the
+  environment's name. `#users/<id>` opens straight on an account, which is how
+  the Builders board in Grafana links each contributor. Server side it's
+  `/v1/admin/users/{id}/moderation` (`apps/server/README.md`, "Moderation").
 - **Entitlements.** The policy, which is remote config: `entitlements.everyone`
   (what every account has), `entitlements.bundles` (Pro and any other bundle)
   and `entitlements.roles` (which bundles a role brings), each edited as JSON
