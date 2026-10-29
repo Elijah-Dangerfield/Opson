@@ -25,6 +25,14 @@ class WaterProgressTest {
     }
 
     @Test
+    fun wholeGlasses_countsPastTheGoal() {
+        assertEquals(12, WaterProgress.wholeGlasses(3000.0, 250))
+        assertEquals(3, WaterProgress.wholeGlasses(830.0, 250))
+        assertEquals(0, WaterProgress.wholeGlasses(-250.0, 250))
+        assertEquals(0, WaterProgress.wholeGlasses(500.0, 0))
+    }
+
+    @Test
     fun glasses_degenerateInputs() {
         assertEquals(WaterGlasses(0, 8), WaterProgress.glasses(500.0, 0, 8))
         assertEquals(WaterGlasses(0, 8), WaterProgress.glasses(Double.NaN, 250, 8))

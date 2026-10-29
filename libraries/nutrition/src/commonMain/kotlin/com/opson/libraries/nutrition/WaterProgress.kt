@@ -14,9 +14,16 @@ object WaterProgress {
      */
     fun glasses(ml: Double, glassMl: Int, goalGlasses: Int): WaterGlasses {
         val total = goalGlasses.coerceAtLeast(0)
-        if (glassMl <= 0 || !ml.isFinite()) return WaterGlasses(0, total)
-        val filled = floor(ml / glassMl + EPSILON).toInt().coerceIn(0, total)
-        return WaterGlasses(filled, total)
+        return WaterGlasses(wholeGlasses(ml, glassMl).coerceAtMost(total), total)
+    }
+
+    /**
+     * Whole glasses in [ml], not capped at any goal. For arithmetic on what was drunk, such as a
+     * tap that adds or takes off a glass; what is shown goes through [glasses].
+     */
+    fun wholeGlasses(ml: Double, glassMl: Int): Int {
+        if (glassMl <= 0 || !ml.isFinite()) return 0
+        return floor(ml / glassMl + EPSILON).toInt().coerceAtLeast(0)
     }
 
     /**
