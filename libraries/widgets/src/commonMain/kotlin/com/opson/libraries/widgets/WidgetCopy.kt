@@ -27,8 +27,8 @@ import opson.libraries.resources.generated.resources.widgets_macro_cd
 import opson.libraries.resources.generated.resources.widgets_macros_hidden
 import opson.libraries.resources.generated.resources.widgets_meal_done
 import opson.libraries.resources.generated.resources.widgets_meal_not_yet
-import opson.libraries.resources.generated.resources.widgets_meals
 import opson.libraries.resources.generated.resources.widgets_meals_done
+import opson.libraries.resources.generated.resources.widgets_meals
 import opson.libraries.resources.generated.resources.widgets_note_log
 import opson.libraries.resources.generated.resources.widgets_note_untracked
 import opson.libraries.resources.generated.resources.widgets_nothing_yet
@@ -38,7 +38,9 @@ import opson.libraries.resources.generated.resources.widgets_today
 import opson.libraries.resources.generated.resources.widgets_water
 import opson.libraries.resources.generated.resources.widgets_water_glasses
 import opson.libraries.resources.generated.resources.widgets_water_hidden
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -95,8 +97,10 @@ data class WidgetCopy(
     companion object {
         suspend fun resolve(strings: WidgetStrings): WidgetCopy {
             // The counts are whole numbers in a sentence; resolved once per count a day can have.
-            val mealsDone = (0..MealSlot.meals.size).associateWith { strings.get(Res.string.widgets_meals_done, it, MealSlot.meals.size) }
-            val glassesTemplate = strings.get(Res.string.widgets_water_glasses, FILLED, TOTAL)
+            // The noun agrees with the total, so the glasses are resolved once per goal a person can pick.
+            val total = MealSlot.meals.size
+            val mealsDone = (0..total).associateWith { strings.plural(Res.plurals.widgets_meals_done, total, it, total) }
+            val glasses = (0..MAX_RESOLVED_GLASSES).associateWith { strings.plural(Res.plurals.widgets_water_glasses, it, FILLED, it) }
             return WidgetCopy(
                 today = strings.get(Res.string.widgets_today),
                 log = strings.get(Res.string.widgets_log),
@@ -126,7 +130,7 @@ data class WidgetCopy(
                 toGoal = strings.get(Res.string.widgets_to_goal),
                 allFood = strings.get(Res.string.widgets_all_food),
                 mealsDone = { done, total -> mealsDone[done] ?: "$done / $total" },
-                waterGlasses = { filled, total -> glassesTemplate.replace(FILLED, "$filled").replace(TOTAL, "$total") },
+                waterGlasses = { filled, total -> glasses[total]?.replace(FILLED, "$filled") ?: "$filled / $total" },
                 fasting = FastingCopy(
                     now = strings.get(Res.string.widgets_fasting_now),
                     endsAt = strings.get(Res.string.widgets_fasting_ends_at),
@@ -147,22 +151,27 @@ data class WidgetCopy(
             )
         }
 
-        // Placeholders for a template resolved once and filled per snapshot.
+        // A placeholder for a template resolved once and filled per snapshot.
         private const val FILLED = "\u0000filled\u0000"
-        private const val TOTAL = "\u0000total\u0000"
+
+        /** Past the largest goal Water settings offers, with room for one set elsewhere. */
+        internal const val MAX_RESOLVED_GLASSES = 24
     }
 }
 
-/** Resolves the copy. The app's is `getString`; tests return the resource's key. */
+/** Resolves the copy. The app's is `getString` and `getPluralString`; tests return the resource's key. */
 interface WidgetStrings {
     suspend fun get(resource: StringResource, vararg args: Any): String
+
+    suspend fun plural(resource: PluralStringResource, quantity: Int, vararg args: Any): String
 }
 
 /** [WidgetCopy] in a composable, for the Widgets page preview, previews and the leak test. */
 @Composable
 fun rememberWidgetCopy(): WidgetCopy {
-    val mealsDone = (0..MealSlot.meals.size).associateWith { stringResource(Res.string.widgets_meals_done, it, MealSlot.meals.size) }
-    val glasses = stringResource(Res.string.widgets_water_glasses, "\u0000f", "\u0000t")
+    val total = MealSlot.meals.size
+    val mealsDone = (0..total).associateWith { pluralStringResource(Res.plurals.widgets_meals_done, total, it, total) }
+    val glasses = (0..WidgetCopy.MAX_RESOLVED_GLASSES).associateWith { pluralStringResource(Res.plurals.widgets_water_glasses, it, "\u0000f", it) }
     return WidgetCopy(
         today = stringResource(Res.string.widgets_today),
         log = stringResource(Res.string.widgets_log),
@@ -192,7 +201,7 @@ fun rememberWidgetCopy(): WidgetCopy {
         toGoal = stringResource(Res.string.widgets_to_goal),
         allFood = stringResource(Res.string.widgets_all_food),
         mealsDone = { done, total -> mealsDone[done] ?: "$done / $total" },
-        waterGlasses = { filled, total -> glasses.replace("\u0000f", "$filled").replace("\u0000t", "$total") },
+        waterGlasses = { filled, total -> glasses[total]?.replace("\u0000f", "$filled") ?: "$filled / $total" },
         fasting = WidgetCopy.FastingCopy(
             now = stringResource(Res.string.widgets_fasting_now),
             endsAt = stringResource(Res.string.widgets_fasting_ends_at),

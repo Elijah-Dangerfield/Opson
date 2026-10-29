@@ -300,7 +300,7 @@ object EditCopyStateBuilder {
             brand = form.brand,
             servings = form.servings,
             weighHint = baseGrams(form) == null && !isGrams(form.servings.first().name),
-            perOptions = options.map { it.label }.takeIf { sections.isNotEmpty() }.orEmpty(),
+            perOptions = options.map { HouseholdAmount.display(it.label) }.takeIf { sections.isNotEmpty() }.orEmpty(),
             perIndex = options.indexOfFirst { it.row == form.per }.coerceAtLeast(0),
             sections = sections,
             energyCheck = energyCheck(form, policy),

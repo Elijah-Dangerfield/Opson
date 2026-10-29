@@ -8,7 +8,7 @@ import com.opson.libraries.diary.exerciseOffered
 import com.opson.libraries.diary.fastingTimerOn
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.amountTextFor
-import com.opson.libraries.foods.chipLabel
+import com.opson.libraries.foods.chipText
 import com.opson.libraries.foods.nutrientsFor
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
@@ -148,7 +148,7 @@ object LoggerStateBuilder {
                 calories = policy.resolve(Metric.Calories, draft.kcal, Surface.Logger, bare),
                 matched = row.food != null,
                 canLess = DescribeRows.canLess(row),
-                units = units.map { it.chipLabel },
+                units = units.map { it.chipText },
                 unitIndex = units.indexOf(row.unit),
                 alternatives = row.alternatives.map { it.name },
             )
@@ -177,7 +177,7 @@ object LoggerStateBuilder {
                         id = food.id,
                         name = food.name,
                         subtitle = food.brand,
-                        amount = HouseholdAmount.tidy(food.amountTextFor(serving)),
+                        amount = HouseholdAmount.display(food.amountTextFor(serving)),
                         calories = policy.resolve(Metric.Calories, food.nutrientsFor(serving).kcal, Surface.Logger, bare),
                     )
                 }

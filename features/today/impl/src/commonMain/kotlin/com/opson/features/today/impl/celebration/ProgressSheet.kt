@@ -241,7 +241,7 @@ private fun WeekStrip(week: List<WeekDot>) {
                 modifier = Modifier.clearAndSetSemantics { contentDescription = description },
             ) {
                 Dot(dot.day)
-                Text(text = DateCopy.shortWeekday(dot.date.dayOfWeek).take(1), typography = AppTheme.type.captionStrong, color = AppTheme.colors.muted)
+                Text(text = DateCopy.narrowWeekday(dot.date.dayOfWeek), typography = AppTheme.type.captionStrong, color = AppTheme.colors.muted)
             }
         }
     }

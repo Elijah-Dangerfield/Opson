@@ -22,8 +22,10 @@ import com.opson.libraries.foods.Portion
 import com.opson.libraries.foods.measureUnits
 import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.foods.PortionAmount
+import com.opson.libraries.foods.amountDisplay
 import com.opson.libraries.foods.amountText
 import com.opson.libraries.foods.chipLabel
+import com.opson.libraries.foods.chipText
 import com.opson.libraries.foods.detailUnits
 import com.opson.libraries.foods.draftFor
 import com.opson.libraries.foods.gramsLabel
@@ -546,7 +548,7 @@ object FoodDetailStateBuilder {
         if (noNumbers) {
             return base.copy(
                 // A weight is a number too: the menu and the chips are measures, with no grams beside them.
-                units = units.map { UnitUi(it.chipLabel, grams = null) },
+                units = units.map { UnitUi(it.chipText, grams = null) },
                 noNumbers = true,
                 hunger = HungerCheck(choice.hunger),
                 // The source still names itself (NEVO asks to be cited wherever its foods show).
@@ -555,7 +557,7 @@ object FoodDetailStateBuilder {
         }
         val nutrients = nutrients(draft, inputs, choice.nutrientsOpen)
         return base.copy(
-            units = units.map { UnitUi(it.chipLabel, it.gramsLabel) },
+            units = units.map { UnitUi(it.chipText, it.gramsLabel) },
             canAddUnit = food.takesSizes,
             weight = unit?.let { weight(it, choice.quantity, draft) },
             breakdown = breakdown(draft, inputs.policy),
@@ -580,14 +582,14 @@ object FoodDetailStateBuilder {
 
     private fun servings(units: List<AmountUnit>, unit: AmountUnit, choice: DetailChoice): List<ServingChip> =
         servingAmounts(units).map { (chipUnit, count) ->
-            ServingChip(label = chipUnit.amountText(count), selected = chipUnit == unit && count == choice.quantity)
+            ServingChip(label = chipUnit.amountDisplay(count), selected = chipUnit == unit && count == choice.quantity)
         }
 
     /** What the amount weighs, said once: "32 g" under "2 tbsp". Grams already say it, and an unknown weight says nothing. */
     private fun weight(unit: AmountUnit, quantity: Double, draft: LogDraft): String? {
         if (unit == AmountUnit.Grams || quantity <= 0.0) return null
         val grams = draft.grams?.takeIf { unit.gramsEach != null && it > 0.0 } ?: return null
-        return HouseholdAmount.of(round(grams), "g")
+        return HouseholdAmount.display(HouseholdAmount.of(round(grams), "g"))
     }
 
     /** A typed field's number: "32", "1.5", never "1½", which nobody can type. */
