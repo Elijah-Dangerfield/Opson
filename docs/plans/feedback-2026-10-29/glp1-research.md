@@ -42,8 +42,8 @@ menu). Where the build differs from the spec below, this section wins.
   Medication page, where Log a dose comes first.
 - **Reminders** need `release.reminders` too, since that flag gates every notification.
 - **Not built in v1:** the onboarding offer, the export CSV, Patterns' dose-day markers and
-  side-effect strip, the nutrition emphasis card, and a "Started on" date picker (the weight
-  chart's "Started" tick uses the first dose until there is one).
+  side-effect strip, the nutrition emphasis card, and a "Started on" date picker (the model has
+  `startedOn`; until the page sets it, the weight chart's "Started" tick is the first dose).
 
 ## What other apps do
 
