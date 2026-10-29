@@ -132,7 +132,12 @@ class IosLocalNotifications(
             setBody(notification.body)
             setUserInfo(mapOf<Any?, Any?>(USER_INFO_WIRE to ReminderWire.of(notification).encode()))
             setThreadIdentifier(reminder.key.kind.wire)
-            if (reminder.key.kind == ReminderKind.Meal) setCategoryIdentifier(MEAL_CATEGORY)
+            when (reminder.key.kind) {
+                ReminderKind.Meal -> setCategoryIdentifier(MEAL_CATEGORY)
+                // Two buttons or one: a medication with no current dose has no "Already did".
+                ReminderKind.Dose -> setCategoryIdentifier(if (notification.actions.size > 1) DOSE_CATEGORY else DOSE_LOG_CATEGORY)
+                ReminderKind.Water -> Unit
+            }
             setSound(if (notification.style == ReminderStyle.Full) UNNotificationSound.defaultSound else null)
             setInterruptionLevel(
                 if (notification.style == ReminderStyle.Subtle) {

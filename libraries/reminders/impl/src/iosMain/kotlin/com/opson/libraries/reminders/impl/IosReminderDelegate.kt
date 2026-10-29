@@ -66,8 +66,8 @@ class IosReminderDelegate(
         // Only once reminders are released: nothing reminder-related runs in a build that hides them.
         appScope.launch {
             config.map(RemindersEnabled::isOn).distinctUntilChanged().filter { it }.first()
-            val category = delegate.mealCategory()
-            withContext(Dispatchers.Main) { center.setNotificationCategories(setOf(category)) }
+            val categories = delegate.categories()
+            withContext(Dispatchers.Main) { center.setNotificationCategories(categories) }
         }
     }
 }
@@ -120,14 +120,19 @@ private class ReminderCenterDelegate(
         }
     }
 
-    suspend fun mealCategory(): UNNotificationCategory {
+    /** The meal nudge's buttons, and the dose nudge's with and without "Already did". */
+    suspend fun categories(): Set<UNNotificationCategory> {
         // Strings first (getString suspends and may resume on a worker thread), then build the
         // UserNotifications objects on the main thread, where they were crashing off it at launch.
-        val titles = ReminderCopy.mealActions.map { (action, label) -> action to getString(label) }
-        return withContext(Dispatchers.Main) { category(titles) }
+        val meal = ReminderCopy.mealActions.map { (action, label) -> action to getString(label) }
+        val dose = ReminderCopy.doseActions.map { (action, label) -> action to getString(label) }
+        val doseLog = ReminderCopy.doseActionsNoQuickLog.map { (action, label) -> action to getString(label) }
+        return withContext(Dispatchers.Main) {
+            setOf(category(MEAL_CATEGORY, meal), category(DOSE_CATEGORY, dose), category(DOSE_LOG_CATEGORY, doseLog))
+        }
     }
 
-    private fun category(titles: List<Pair<ReminderAction, String>>): UNNotificationCategory {
+    private fun category(identifier: String, titles: List<Pair<ReminderAction, String>>): UNNotificationCategory {
         val buttons = titles.map { (action, title) ->
             UNNotificationAction.actionWithIdentifier(
                 identifier = action.wire,
@@ -136,7 +141,7 @@ private class ReminderCenterDelegate(
             )
         }
         return UNNotificationCategory.categoryWithIdentifier(
-            identifier = MEAL_CATEGORY,
+            identifier = identifier,
             actions = buttons,
             intentIdentifiers = emptyList<Any>(),
             options = UNNotificationCategoryOptionNone,
@@ -146,3 +151,7 @@ private class ReminderCenterDelegate(
 
 /** The category meal nudges carry, which gives them their three buttons. */
 internal const val MEAL_CATEGORY = "opson.meal"
+
+/** Dose nudges: "Already did" and "Log it", or only "Log it" when there is no current dose. */
+internal const val DOSE_CATEGORY = "opson.dose"
+internal const val DOSE_LOG_CATEGORY = "opson.dose.log"

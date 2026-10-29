@@ -17,6 +17,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.datetime.LocalDate
+import com.opson.libraries.reminders.DoseNudge
+import com.opson.libraries.reminders.DoseOpen
+import com.opson.libraries.reminders.DoseReminders
+import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -44,6 +49,8 @@ class ReminderCoordinatorTest : CoroutineTest() {
     private lateinit var settings: FakeSettingsRepository
     private lateinit var appScope: AppCoroutineScope
 
+    private val doses = FakeDoseReminders()
+
     private fun coordinator(initial: Settings = chosen, known: Boolean = true): ReminderCoordinator {
         settings = FakeSettingsRepository(initial, known)
         appScope = AppCoroutineScope(dispatchers)
@@ -57,6 +64,7 @@ class ReminderCoordinatorTest : CoroutineTest() {
             notifications = platform,
             strings = { it.key },
             appScope = appScope,
+            doseReminders = doses,
         )
     }
 
@@ -168,6 +176,36 @@ class ReminderCoordinatorTest : CoroutineTest() {
     }
 
     @Test
+    fun aDoseDayIsScheduledWithWordsThatNeverSayTheDose_andGoesOnceLogged() = test {
+        val dose = ReminderKey.Dose(today, "med")
+        doses.nudges.value = listOf(DoseNudge("med", today, LocalTime(19, 0)))
+        coordinator()
+
+        val nudge = platform.scheduled.single { it.reminder.key == dose }
+        assertEquals("medication_reminder_title", nudge.title)
+        assertEquals("medication_reminder_body_text", nudge.body)
+        assertEquals(listOf("medication_reminder_already", "medication_reminder_log"), nudge.actions.map { it.second })
+
+        doses.nudges.value = listOf(DoseNudge("med", today, LocalTime(19, 0), covered = true))
+        assertTrue(dose.id !in platform.ids)
+        assertTrue(dose in platform.dismissed)
+    }
+
+    @Test
+    fun aDoseNudgeOpensTheDoseSheet_andAlreadyDidLogsAtItsTime() = test {
+        doses.nudges.value = listOf(DoseNudge("med", today, LocalTime(19, 0)))
+        val coordinator = coordinator()
+        val nudge = Reminder(ReminderKey.Dose(today, "med"), Instant.parse("2026-10-25T19:00:00Z"))
+
+        coordinator.opened(nudge, ReminderAction.LogIt)
+        assertEquals(DoseOpen("med", today), coordinator.doseRequests.first())
+
+        coordinator.alreadyAte(nudge)
+        assertEquals(listOf(Triple("med", today, nudge.at)), doses.didCalls)
+        assertTrue(diary.days.value[today]?.ateNoDetails.isNullOrEmpty(), "a dose marks no meal")
+    }
+
+    @Test
     fun aRefreshReappliesAnUnchangedPlan_asAfterAReboot() = test {
         val coordinator = coordinator()
         val before = platform.replaces
@@ -175,5 +213,17 @@ class ReminderCoordinatorTest : CoroutineTest() {
         coordinator.refresh()
 
         assertTrue(platform.replaces > before)
+    }
+}
+
+/** Dose days the test sets, and the "Already did" taps it saw. */
+private class FakeDoseReminders : DoseReminders {
+    val nudges = MutableStateFlow<List<DoseNudge>>(emptyList())
+    val didCalls = mutableListOf<Triple<String, LocalDate, Instant>>()
+
+    override fun upcoming(from: LocalDate, days: Int): Flow<List<DoseNudge>> = nudges
+
+    override suspend fun alreadyDid(medicationId: String, date: LocalDate, at: Instant) {
+        didCalls += Triple(medicationId, date, at)
     }
 }

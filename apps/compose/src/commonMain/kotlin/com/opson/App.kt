@@ -27,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.opson.features.logger.LoggerRoute
+import com.opson.features.medication.LogDoseRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.upgrade.impl.AppGuardLayer
 import com.opson.features.settings.FindSupportRoute
@@ -136,6 +137,17 @@ fun App(appComponent: AppComponent) {
             val onboarded = Catching { appComponent.appCache.get().hasUserOnboarded }.getOrNull() == true
             if (authRepository.current().isSomeones(onboarded)) {
                 router.navigate(LoggerRoute(slot = open.slot, dayIso = open.date.toString()))
+            }
+        }
+    }
+
+    // A tapped dose reminder (or its Log it) opens the dose sheet for that dose day, on the same
+    // terms as a meal reminder.
+    LaunchedEffect(router) {
+        appComponent.reminderOpens.doseRequests.collect { open ->
+            val onboarded = Catching { appComponent.appCache.get().hasUserOnboarded }.getOrNull() == true
+            if (authRepository.current().isSomeones(onboarded)) {
+                router.navigate(LogDoseRoute(dueIso = open.date.toString(), via = LogDoseRoute.VIA_REMINDER))
             }
         }
     }

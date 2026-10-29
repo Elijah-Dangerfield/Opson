@@ -24,6 +24,8 @@ data class PlanInputs(
     val timeZone: TimeZone,
     /** What the platform is holding. Only snoozed reminders are read from it: they exist nowhere else. */
     val pending: List<Reminder> = emptyList(),
+    /** Dose days from the medication plan ([DoseReminders]); empty unless a dose reminder is on. */
+    val doses: List<DoseNudge> = emptyList(),
 )
 
 /**
@@ -40,6 +42,8 @@ data class PlanInputs(
  * - Water nudges come mid-morning and mid-afternoon while water reminders are on, and stop for
  *   the day once the water goal is reached.
  * - A day closed with Close the day gets no more nudges: it takes nothing until it is reopened.
+ * - A dose nudge fires at the schedule's time on each dose day [DoseReminders] lists, and is
+ *   dropped once a dose covers that day. Closing the day does not drop it: a dose is not food.
  */
 object ReminderPlanner {
     /** Four meals and two waters a day stay well under iOS's 64 pending requests. */
@@ -60,9 +64,11 @@ object ReminderPlanner {
         val water = dates.flatMap { date ->
             WATER_TIMES.mapIndexed { index, time -> Reminder(ReminderKey.Water(date, index), at(date, time, inputs)) }
         }
+        val doses = inputs.doses.filter { it.date in dates }
+            .map { Reminder(ReminderKey.Dose(it.date, it.medicationId), at(it.date, it.time, inputs)) }
         val snoozed = inputs.pending.filter { it.snoozed }
 
-        return (meals + water + snoozed)
+        return (meals + water + doses + snoozed)
             .filter { it.at > inputs.now && wanted(it.key, inputs) }
             .distinctBy { it.id }
             .sortedBy { it.at }
@@ -73,6 +79,7 @@ object ReminderPlanner {
         if (!inputs.enabled) return false
         val settings = inputs.settings
         val isToday = key.date == inputs.today.date
+        if (key is ReminderKey.Dose) return inputs.doses.any { it.date == key.date && it.medicationId == key.medicationId && !it.covered }
         if (isToday && inputs.today.closedByUser) return false
         return when (key) {
             is ReminderKey.Meal -> settings.mealReminderLevel != EventLevel.Off &&
@@ -81,12 +88,17 @@ object ReminderPlanner {
             is ReminderKey.Water -> settings.waterReminders &&
                 key.index in WATER_TIMES.indices &&
                 !(isToday && inputs.today.waterMl >= settings.waterGoalMl)
+            is ReminderKey.Dose -> false
         }
     }
 
     /** Today's meals that are done, or all of them once the day is closed, whose delivered nudges can go. */
     fun doneToday(inputs: PlanInputs): List<ReminderKey.Meal> =
         MealSlot.meals.filter { inputs.today.closedByUser || isMealDone(inputs.today, it, inputs) }.map { ReminderKey.Meal(inputs.today.date, it) }
+
+    /** Today's dose days a logged dose covers, whose delivered nudges can go. */
+    fun dosesDoneToday(inputs: PlanInputs): List<ReminderKey.Dose> =
+        inputs.doses.filter { it.date == inputs.today.date && it.covered }.map { ReminderKey.Dose(it.date, it.medicationId) }
 
     private fun isMealDone(day: Day, slot: MealSlot, inputs: PlanInputs): Boolean {
         if (day.mealGroupsOn(inputs.settings)) return day.isMealDone(slot)

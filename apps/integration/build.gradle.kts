@@ -74,6 +74,9 @@ kotlin {
             implementation(projects.features.settings.impl)
             // ProgressPhotosEnabled (release.progressPhotos), for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.progressphotos)
+            // MedicationEnabled (release.medication), for ConfigManifestRegistryDriftTest, and the
+            // medication tables RoomMigrationTest opens.
+            implementation(projects.libraries.medication)
             // The upgrade.* values, and the guard the remote-config journeys drive.
             implementation(projects.features.upgrade)
             implementation(projects.features.upgrade.impl)

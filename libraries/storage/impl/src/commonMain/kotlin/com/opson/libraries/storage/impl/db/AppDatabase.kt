@@ -27,6 +27,10 @@ import com.opson.libraries.diary.db.WeighInDao
 import com.opson.libraries.diary.db.WeighInEntity
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.foods.db.FoodCacheEntity
+import com.opson.libraries.medication.db.MedicationDoseDao
+import com.opson.libraries.medication.db.MedicationDoseEntity
+import com.opson.libraries.medication.db.SymptomDayDao
+import com.opson.libraries.medication.db.SymptomDayEntity
 import com.opson.libraries.opson.storage.db.ExampleUserDataDao
 import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
 
@@ -44,8 +48,10 @@ import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
         FoodCacheEntity::class,
         FastEntity::class,
         ExerciseEntity::class,
+        MedicationDoseEntity::class,
+        SymptomDayEntity::class,
     ],
-    version = 11, // 6: the diary tables, the outbox, sync state and the food cache; 7: day_records.untracked and .feeling; 8: fasts; 9: day_records.checkIn; 10: exercises; 11: custom_foods' weight, sizes and micros
+    version = 12, // 6: the diary tables, the outbox, sync state and the food cache; 7: day_records.untracked and .feeling; 8: fasts; 9: day_records.checkIn; 10: exercises; 11: custom_foods' weight, sizes and micros; 12: medication_doses and symptom_days
     /**
      * Every bump from [FIRST_APP_DATA_VERSION] on has to be listed here.
      *
@@ -62,6 +68,7 @@ import com.opson.libraries.opson.storage.db.ExampleUserDataEntity
         AutoMigration(from = 8, to = 9),
         AutoMigration(from = 9, to = 10),
         AutoMigration(from = 10, to = 11),
+        AutoMigration(from = 11, to = 12),
     ],
     exportSchema = true
 )
@@ -90,6 +97,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun fastDao(): FastDao
 
     abstract fun exerciseDao(): ExerciseDao
+
+    abstract fun medicationDoseDao(): MedicationDoseDao
+
+    abstract fun symptomDayDao(): SymptomDayDao
 
     companion object {
         /**

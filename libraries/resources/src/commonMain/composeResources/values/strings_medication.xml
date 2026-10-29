@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for medication tracking (docs/plans/feedback-2026-10-29/glp1-research.md):
+  More › Medication, the dose sheet, the Today card, the dose reminder and the
+  weight chart's ticks. Behind release.medication. Same rules as strings.xml: no
+  backslash escapes, positional %1$s arguments. A record, not a regimen: nothing
+  here tells anyone what to take, praises weight lost or counts missed doses.
+  Brand names: TODO(legal) the ® treatment docs/legal-review-2026-10.md settles.
+-->
+<resources>
+
+    <string name="medication_title">Medication</string>
+
+    <!-- More -->
+    <string name="medication_more_section">Health</string>
+    <string name="medication_more_row">Medication</string>
+    <string name="medication_more_row_sub">Doses, sites and how you feel</string>
+
+    <!-- First visit -->
+    <string name="medication_intro_title">Keep a record of your medication</string>
+    <string name="medication_intro_body">Keep a record of your medication next to your food and how you feel. Opson doesn't check doses or give medical advice; your prescriber does.</string>
+    <string name="medication_intro_set_up">Set up</string>
+
+    <!-- Setup -->
+    <string name="medication_which">Which medication</string>
+    <string name="medication_name">Name</string>
+    <string name="medication_name_placeholder">As it says on the label</string>
+    <string name="medication_form">Form</string>
+    <string name="medication_form_injection">Injection</string>
+    <string name="medication_form_pill">Pill</string>
+    <string name="medication_current_dose">Current dose</string>
+    <string name="medication_current_dose_body">What you take now. The dose sheet starts from it.</string>
+    <string name="medication_unit">Unit</string>
+    <string name="medication_schedule">Schedule</string>
+    <string name="medication_schedule_weekly">Weekly</string>
+    <string name="medication_schedule_daily">Daily</string>
+    <string name="medication_schedule_as_needed">When needed</string>
+    <string name="medication_schedule_day">Day</string>
+    <string name="medication_schedule_time">Time</string>
+    <string name="medication_schedule_time_pick">Dose time</string>
+    <string name="medication_time_ok">OK</string>
+    <string name="medication_time_cancel">Cancel</string>
+    <string name="medication_reminder">Remind me on dose day</string>
+    <string name="medication_reminder_body">Uses your reminder level and Quiet mode. The notification never says the dose.</string>
+    <string name="medication_reminder_denied">Notifications are off for Opson. Turn them on in Settings to get this reminder.</string>
+    <string name="medication_sites">Injection sites</string>
+    <string name="medication_sites_body">Tap the places you use. Opson suggests the one you used longest ago.</string>
+    <string name="medication_show_on_today">Show on Today</string>
+    <string name="medication_save_plan">Save</string>
+    <string name="medication_saved">Saved.</string>
+
+    <!-- The plan summary at the top of the page -->
+    <string name="medication_summary_weekly">Weekly on %1$s at %2$s</string>
+    <string name="medication_summary_daily">Daily at %1$s</string>
+    <string name="medication_summary_as_needed">When needed</string>
+    <string name="medication_summary_off">Tracking is off</string>
+    <string name="medication_edit">Edit</string>
+
+    <!-- History -->
+    <string name="medication_history">History</string>
+    <string name="medication_history_empty">No doses logged yet.</string>
+    <string name="medication_log_dose">Log a dose</string>
+    <string name="medication_history_dose_site">%1$s, %2$s</string>
+    <string name="medication_history_when">%1$s · %2$s</string>
+    <string name="medication_dose_deleted">Dose deleted.</string>
+    <string name="medication_undo">Undo</string>
+
+    <!-- How are you feeling -->
+    <string name="medication_feeling_title">How are you feeling today?</string>
+    <string name="medication_feeling_body">Any side effects. Tap one to add it, then say how bad.</string>
+    <string name="medication_feeling_remove_cd">Remove %1$s</string>
+    <string name="medication_care_line">Severe stomach pain that doesn't go away, or vomiting you can't keep fluids down through, can be serious. Contact your prescriber or get urgent care.</string>
+
+    <!-- Footer and turning off -->
+    <string name="medication_disclosure">Opson keeps a record for you. It doesn't check your dose, timing or what to do if you miss one. Follow your prescriber's instructions and the leaflet that came with your medication.</string>
+    <string name="medication_turn_off">Stop tracking medication</string>
+    <string name="medication_turn_off_body">Your dose history stays. Turn this back on any time.</string>
+    <string name="medication_turn_on">Turn tracking back on</string>
+
+    <!-- The dose sheet -->
+    <string name="medication_sheet_log">Log a dose</string>
+    <string name="medication_sheet_edit">Edit dose</string>
+    <string name="medication_sheet_dose">Dose</string>
+    <string name="medication_sheet_when">When</string>
+    <string name="medication_sheet_today">Today</string>
+    <string name="medication_sheet_yesterday">Yesterday</string>
+    <string name="medication_sheet_site">Site</string>
+    <string name="medication_sheet_site_suggested">%1$s, used longest ago</string>
+    <string name="medication_sheet_note">Note</string>
+    <string name="medication_sheet_note_placeholder">Anything to remember</string>
+    <string name="medication_sheet_save">Save</string>
+    <string name="medication_sheet_delete">Delete dose</string>
+    <string name="medication_sheet_not_a_dose">Type a dose above 0 and up to 100.</string>
+    <string name="medication_sheet_failed">That didn't save. Try again.</string>
+    <string name="medication_sheet_make_current">Make %1$s your current dose?</string>
+    <string name="medication_sheet_make_current_yes">Yes</string>
+    <string name="medication_sheet_make_current_once">Just this once</string>
+    <string name="medication_sheet_close_cd">Close</string>
+
+    <!-- The Today card -->
+    <string name="medication_card_title">Medication</string>
+    <string name="medication_card_due">Dose day</string>
+    <string name="medication_card_due_site">Dose day. Next site: %1$s</string>
+    <string name="medication_card_logged">Logged %1$s</string>
+    <string name="medication_card_logged_site">Logged %1$s, %2$s</string>
+    <string name="medication_card_between">Last dose %1$s. Next on %2$s</string>
+    <string name="medication_card_next">Next dose on %1$s</string>
+    <string name="medication_card_last">Last dose %1$s</string>
+    <string name="medication_card_none">No doses logged yet</string>
+    <string name="medication_card_not_logged">%1$s's dose isn't logged</string>
+    <string name="medication_card_daily_due">Today's dose</string>
+    <string name="medication_card_log">Log dose</string>
+    <string name="medication_card_skipped">Skipped</string>
+
+    <!-- The dose reminder. Never the amount: lock screens are public. -->
+    <string name="medication_reminder_title">Dose day</string>
+    <string name="medication_reminder_body_text">Tap to log it when you're done.</string>
+    <string name="medication_reminder_already">Already did</string>
+    <string name="medication_reminder_log">Log it</string>
+
+    <!-- Weight chart -->
+    <string name="medication_mark_started">Started</string>
+
+    <!-- Amounts: "5 mg", "40 units" -->
+    <string name="medication_amount_mg">%1$s mg</string>
+    <string name="medication_amount_units">%1$s units</string>
+    <string name="medication_amount_mcg">%1$s mcg</string>
+    <string name="medication_unit_mg">mg</string>
+    <string name="medication_unit_units">units</string>
+    <string name="medication_unit_mcg">mcg</string>
+
+    <!-- Products and drugs -->
+    <string name="medication_product_wegovy">Wegovy</string>
+    <string name="medication_product_ozempic">Ozempic</string>
+    <string name="medication_product_rybelsus">Rybelsus</string>
+    <string name="medication_product_wegovy_pill">Wegovy pill</string>
+    <string name="medication_product_zepbound">Zepbound</string>
+    <string name="medication_product_mounjaro">Mounjaro</string>
+    <string name="medication_product_saxenda">Saxenda</string>
+    <string name="medication_product_victoza">Victoza</string>
+    <string name="medication_product_trulicity">Trulicity</string>
+    <string name="medication_product_compounded_semaglutide">Compounded semaglutide</string>
+    <string name="medication_product_compounded_tirzepatide">Compounded tirzepatide</string>
+    <string name="medication_product_other">Something else</string>
+    <string name="medication_drug_semaglutide">Semaglutide</string>
+    <string name="medication_drug_tirzepatide">Tirzepatide</string>
+    <string name="medication_drug_liraglutide">Liraglutide</string>
+    <string name="medication_drug_dulaglutide">Dulaglutide</string>
+    <string name="medication_drug_other">Other medication</string>
+    <string name="medication_product_line">%1$s, %2$s</string>
+
+    <!-- Injection sites, as a label and inside a sentence -->
+    <string name="medication_site_abdomen_upper_left">Upper left abdomen</string>
+    <string name="medication_site_abdomen_upper_right">Upper right abdomen</string>
+    <string name="medication_site_abdomen_lower_left">Lower left abdomen</string>
+    <string name="medication_site_abdomen_lower_right">Lower right abdomen</string>
+    <string name="medication_site_thigh_left">Left thigh</string>
+    <string name="medication_site_thigh_right">Right thigh</string>
+    <string name="medication_site_arm_left">Left arm</string>
+    <string name="medication_site_arm_right">Right arm</string>
+    <string name="medication_site_abdomen_upper_left_in">upper left abdomen</string>
+    <string name="medication_site_abdomen_upper_right_in">upper right abdomen</string>
+    <string name="medication_site_abdomen_lower_left_in">lower left abdomen</string>
+    <string name="medication_site_abdomen_lower_right_in">lower right abdomen</string>
+    <string name="medication_site_thigh_left_in">left thigh</string>
+    <string name="medication_site_thigh_right_in">right thigh</string>
+    <string name="medication_site_arm_left_in">left arm</string>
+    <string name="medication_site_arm_right_in">right arm</string>
+    <string name="medication_site_on_cd">%1$s, in use</string>
+    <string name="medication_site_off_cd">%1$s, not used</string>
+    <string name="medication_site_picked_cd">%1$s, picked</string>
+    <string name="medication_body_your_right">Your right</string>
+    <string name="medication_body_your_left">Your left</string>
+
+    <!-- Side effects -->
+    <string name="medication_symptom_nausea">Nausea</string>
+    <string name="medication_symptom_vomiting">Vomiting</string>
+    <string name="medication_symptom_constipation">Constipation</string>
+    <string name="medication_symptom_diarrhea">Diarrhea</string>
+    <string name="medication_symptom_heartburn">Heartburn</string>
+    <string name="medication_symptom_stomach_pain">Stomach pain</string>
+    <string name="medication_symptom_fatigue">Tiredness</string>
+    <string name="medication_symptom_headache">Headache</string>
+    <string name="medication_symptom_dizziness">Dizziness</string>
+    <string name="medication_symptom_injection_site">Injection site</string>
+    <string name="medication_symptom_other">Something else</string>
+    <string name="medication_severity_mild">Mild</string>
+    <string name="medication_severity_moderate">Moderate</string>
+    <string name="medication_severity_severe">Severe</string>
+    <string name="medication_symptom_with_severity">%1$s (%2$s)</string>
+
+    <!-- Provider summary -->
+    <string name="summary_include_medication">Medication and side effects</string>
+    <string name="summary_doc_medication">Medication</string>
+    <string name="summary_doc_medication_none">No doses logged in these dates.</string>
+    <string name="summary_doc_medication_dose">%1$s: %2$s</string>
+    <string name="summary_doc_medication_changed">Changed to %1$s on %2$s</string>
+    <string name="summary_doc_side_effects">Side effects</string>
+    <string name="summary_doc_side_effects_day">%1$s: %2$s</string>
+</resources>

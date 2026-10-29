@@ -94,6 +94,7 @@ import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Science
+import androidx.compose.material.icons.rounded.Medication
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material.icons.rounded.Settings
@@ -266,6 +267,9 @@ object AppIcons {
     val Info get() = icon("info", MaterialIcons.Outlined.OutlinedInfo)
     val Favorite get() = icon("favorite", MaterialIcons.Rounded.Favorite)
     val Science get() = icon("science", MaterialIcons.Rounded.Science)
+
+    /** More › Medication and its Today card. */
+    val Medication get() = icon("medication", MaterialIcons.Rounded.Medication)
     val FormatListBulleted get() = icon("format_list_bulleted", MaterialIcons.AutoMirrored.Rounded.FormatListBulleted)
 
     /** A day marked untracked (a holiday), as the Day menu draws it (v3 2.11). */
@@ -344,7 +348,7 @@ object AppIcons {
             EventRepeat, EventAvailable, Star, Favorite, Science,
             FormatListBulleted, BeachAccess, Watch, Widgets, Call, Sms, Public, SupportAgent,
             DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove, FitnessCenter,
-            FlashlightOn, FlashlightOff,
+            FlashlightOn, FlashlightOff, Medication,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(

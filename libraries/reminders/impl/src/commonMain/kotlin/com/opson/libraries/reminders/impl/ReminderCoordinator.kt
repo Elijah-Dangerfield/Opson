@@ -14,6 +14,9 @@ import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEvents
+import com.opson.libraries.reminders.DoseNudge
+import com.opson.libraries.reminders.DoseOpen
+import com.opson.libraries.reminders.DoseReminders
 import com.opson.libraries.reminders.MealOpen
 import com.opson.libraries.reminders.PlanInputs
 import com.opson.libraries.reminders.Reminder
@@ -67,7 +70,8 @@ import kotlin.time.Duration.Companion.seconds
  * It replans whenever an input moves: the `release.reminders` flag (each config emission, so a
  * remote flip lands without a restart), the settings (only once they are the user's own,
  * `isKnown`), today's day (a meal logged drops its nudge and takes a delivered one off the
- * screen), the date (every foreground, and midnight), and [refresh]. Each replan hands the
+ * screen), the medication plan's dose days ([DoseReminders], a dose logged drops its nudge the
+ * same way), the date (every foreground, and midnight), and [refresh]. Each replan hands the
  * platform the whole set, which is idempotent, so a replan after a reboot puts the alarms back.
  *
  * [AutoInit] because the plan has to be current before anyone opens a screen: an Android alarm
@@ -89,14 +93,18 @@ class ReminderCoordinator(
     private val notifications: LocalNotifications,
     private val strings: ReminderStrings,
     private val appScope: AppCoroutineScope,
+    private val doseReminders: DoseReminders = DoseReminders.None,
 ) : ReminderActions, ReminderOpens, AutoInit {
 
     private val logger = KLog.withTag("ReminderCoordinator")
     private val mutex = Mutex()
     private val opens = Channel<MealOpen>(capacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private val doseOpens = Channel<DoseOpen>(capacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     private val nudges = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
     override val requests: Flow<MealOpen> = opens.receiveAsFlow()
+
+    override val doseRequests: Flow<DoseOpen> = doseOpens.receiveAsFlow()
 
     private val enabled: Flow<Boolean> = config.map(RemindersEnabled::isOn).distinctUntilChanged()
 
@@ -118,23 +126,36 @@ class ReminderCoordinator(
             .scan(0) { count, _ -> count + 1 }
 
     private val started = appScope.launch {
-        combine(enabled, knownSettings, today.flatMapLatest(diary::observeDay), ticks) { on, settings, day, _ ->
-            Triple(on, settings, day)
-        }.collect { (on, settings, day) -> apply(on, settings, day) }
+        val days = today.flatMapLatest { date ->
+            combine(diary.observeDay(date), doseReminders.upcoming(date, ReminderPlanner.DAYS_AHEAD)) { day, doses -> day to doses }
+        }
+        combine(enabled, knownSettings, days, ticks) { on, settings, (day, doses), _ ->
+            Inputs(on, settings, day, doses)
+        }.collect { apply(it.on, it.settings, it.day, it.doses) }
     }
+
+    private data class Inputs(val on: Boolean, val settings: Settings, val day: Day, val doses: List<DoseNudge>)
 
     override fun opened(reminder: Reminder, via: ReminderAction) {
         ReminderEvents.tapped(reminder, via)
         val key = reminder.key
-        if (key is ReminderKey.Meal) opens.trySend(MealOpen(key.slot, key.date))
+        when (key) {
+            is ReminderKey.Meal -> opens.trySend(MealOpen(key.slot, key.date))
+            is ReminderKey.Dose -> doseOpens.trySend(DoseOpen(key.medicationId, key.date))
+            is ReminderKey.Water -> Unit
+        }
         appScope.launch { Catching { notifications.dismiss(listOf(key)) }.logOnFailure { "Dismiss after open failed" } }
     }
 
     override suspend fun alreadyAte(reminder: Reminder) {
         ReminderEvents.tapped(reminder, ReminderAction.AlreadyAte)
-        val key = reminder.key as? ReminderKey.Meal ?: return
-        diary.setAteNoDetails(key.date, key.slot, ate = true)
-        notifications.dismiss(listOf(key))
+        when (val key = reminder.key) {
+            is ReminderKey.Meal -> diary.setAteNoDetails(key.date, key.slot, ate = true)
+            // "Already did": the dose at the time the reminder fired, which is when it was due.
+            is ReminderKey.Dose -> doseReminders.alreadyDid(key.medicationId, key.date, reminder.at)
+            is ReminderKey.Water -> return
+        }
+        notifications.dismiss(listOf(reminder.key))
         refresh()
     }
 
@@ -143,7 +164,7 @@ class ReminderCoordinator(
         notifications.dismiss(listOf(reminder.key))
         val settings = settingsRepository.settings.value
         val later = reminder.copy(at = clock.now() + ReminderPlanner.SNOOZE, snoozed = true)
-        mutex.withLock { notifications.add(resolve(later, settings)) }
+        mutex.withLock { notifications.add(resolve(later, settings, emptyList())) }
     }
 
     override fun delivered(reminder: Reminder) {
@@ -156,16 +177,18 @@ class ReminderCoordinator(
             return
         }
         val on = enabled.first()
-        val day = diary.observeDay(calendar.today()).first()
-        apply(on, settings, day)
+        val date = calendar.today()
+        val day = diary.observeDay(date).first()
+        val doses = doseReminders.upcoming(date, ReminderPlanner.DAYS_AHEAD).first()
+        apply(on, settings, day, doses)
         nudges.tryEmit(Unit)
     }
 
-    private suspend fun apply(on: Boolean, settings: Settings, day: Day) {
-        mutex.withLock { schedule(on, settings, day) }
+    private suspend fun apply(on: Boolean, settings: Settings, day: Day, doses: List<DoseNudge>) {
+        mutex.withLock { schedule(on, settings, day, doses) }
     }
 
-    private suspend fun schedule(on: Boolean, settings: Settings, day: Day) {
+    private suspend fun schedule(on: Boolean, settings: Settings, day: Day, doses: List<DoseNudge>) {
         Catching {
             val inputs = PlanInputs(
                 enabled = on,
@@ -174,17 +197,21 @@ class ReminderCoordinator(
                 now = clock.now(),
                 timeZone = calendar.timeZone(),
                 pending = notifications.pending(),
+                doses = doses,
             )
             val plan = ReminderPlanner.plan(inputs)
-            notifications.replaceAll(plan.map { resolve(it, settings) })
-            val anythingOn = settings.mealReminderLevel != EventLevel.Off || settings.waterReminders
-            if (!on || !anythingOn) notifications.dismissAll() else notifications.dismiss(ReminderPlanner.doneToday(inputs))
+            notifications.replaceAll(plan.map { resolve(it, settings, doses) })
+            val anythingOn = settings.mealReminderLevel != EventLevel.Off || settings.waterReminders || doses.isNotEmpty()
+            if (!on || !anythingOn) notifications.dismissAll() else notifications.dismiss(ReminderPlanner.doneToday(inputs) + ReminderPlanner.dosesDoneToday(inputs))
             logger.d { "Scheduled ${plan.size} reminders" }
         }.logOnFailure { "Scheduling reminders failed" }
     }
 
-    private suspend fun resolve(reminder: Reminder, settings: Settings): ReminderNotification {
-        val text = ReminderCopy.text(reminder.key, settings.tone)
+    private suspend fun resolve(reminder: Reminder, settings: Settings, doses: List<DoseNudge>): ReminderNotification {
+        val key = reminder.key
+        val quickLog = key !is ReminderKey.Dose ||
+            doses.firstOrNull { it.date == key.date && it.medicationId == key.medicationId }?.quickLog != false
+        val text = ReminderCopy.text(key, settings.tone, quickLog)
         return ReminderNotification(
             reminder = reminder,
             title = strings.get(text.title),

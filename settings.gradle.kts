@@ -83,6 +83,8 @@ if (!serverOnly) {
     include(":features:home:impl")
     include(":features:logger")
     include(":features:logger:impl")
+    include(":features:medication")
+    include(":features:medication:impl")
     include(":features:onboarding")
     include(":features:onboarding:impl")
     // Always in the build, so it compiles and its tests run everywhere; :apps:compose only
@@ -111,6 +113,8 @@ if (!serverOnly) {
     include(":libraries:foods:impl")
     include(":libraries:health")
     include(":libraries:health:impl")
+    include(":libraries:medication")
+    include(":libraries:medication:impl")
     include(":libraries:navigation")
     include(":libraries:navigation:impl")
     include(":libraries:networking")

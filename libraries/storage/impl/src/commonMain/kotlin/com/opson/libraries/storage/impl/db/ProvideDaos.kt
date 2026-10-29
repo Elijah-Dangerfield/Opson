@@ -11,6 +11,8 @@ import com.opson.libraries.diary.db.SavedMealDao
 import com.opson.libraries.diary.db.SyncStateDao
 import com.opson.libraries.diary.db.WeighInDao
 import com.opson.libraries.foods.db.FoodCacheDao
+import com.opson.libraries.medication.db.MedicationDoseDao
+import com.opson.libraries.medication.db.SymptomDayDao
 import com.opson.libraries.opson.storage.db.ClearableDao
 import com.opson.libraries.opson.storage.db.ExampleUserDataDao
 import me.tatarka.inject.annotations.Inject
@@ -109,3 +111,17 @@ class ProvideFastDao @Inject constructor(
 class ProvideExerciseDao @Inject constructor(
     provider: AppDatabaseProvider
 ) : ExerciseDao by provider.database.exerciseDao()
+
+@SingleIn(AppScope::class)
+@ContributesBinding(AppScope::class, boundType = MedicationDoseDao::class)
+@ContributesBinding(AppScope::class, boundType = ClearableDao::class, multibinding = true)
+class ProvideMedicationDoseDao @Inject constructor(
+    provider: AppDatabaseProvider
+) : MedicationDoseDao by provider.database.medicationDoseDao()
+
+@SingleIn(AppScope::class)
+@ContributesBinding(AppScope::class, boundType = SymptomDayDao::class)
+@ContributesBinding(AppScope::class, boundType = ClearableDao::class, multibinding = true)
+class ProvideSymptomDayDao @Inject constructor(
+    provider: AppDatabaseProvider
+) : SymptomDayDao by provider.database.symptomDayDao()

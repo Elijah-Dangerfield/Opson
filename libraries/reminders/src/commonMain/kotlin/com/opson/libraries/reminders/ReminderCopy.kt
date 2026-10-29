@@ -5,6 +5,10 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Tone
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.medication_reminder_already
+import opson.libraries.resources.generated.resources.medication_reminder_body_text
+import opson.libraries.resources.generated.resources.medication_reminder_log
+import opson.libraries.resources.generated.resources.medication_reminder_title
 import opson.libraries.resources.generated.resources.reminders_note_already_ate
 import opson.libraries.resources.generated.resources.reminders_note_breakfast
 import opson.libraries.resources.generated.resources.reminders_note_breakfast_warm
@@ -49,7 +53,24 @@ object ReminderCopy {
         ReminderAction.Snooze to Res.string.reminders_note_snooze,
     )
 
-    fun text(key: ReminderKey, tone: Tone): ReminderText {
+    /**
+     * The buttons on a dose nudge. "Already did" logs the current dose without opening the app;
+     * [doseActionsNoQuickLog] is for a medication with no current dose to log.
+     */
+    val doseActions: List<Pair<ReminderAction, StringResource>> = listOf(
+        ReminderAction.AlreadyAte to Res.string.medication_reminder_already,
+        ReminderAction.LogIt to Res.string.medication_reminder_log,
+    )
+
+    val doseActionsNoQuickLog: List<Pair<ReminderAction, StringResource>> = listOf(
+        ReminderAction.LogIt to Res.string.medication_reminder_log,
+    )
+
+    /**
+     * [quickLog] is [DoseNudge.quickLog]. A dose nudge reads the same in both tones and never names
+     * the medication or the dose: lock screens are public.
+     */
+    fun text(key: ReminderKey, tone: Tone, quickLog: Boolean = true): ReminderText {
         val warm = tone == Tone.Warm
         return when (key) {
             is ReminderKey.Meal -> ReminderText(
@@ -62,10 +83,19 @@ object ReminderCopy {
                 body = if (warm) Res.string.reminders_note_water_body_warm else Res.string.reminders_note_water_body,
                 actions = emptyList(),
             )
+            is ReminderKey.Dose -> ReminderText(
+                title = Res.string.medication_reminder_title,
+                body = Res.string.medication_reminder_body_text,
+                actions = if (quickLog) doseActions else doseActionsNoQuickLog,
+            )
         }
     }
 
-    /** Meal nudges follow the chosen level and Quiet mode; water is always the quiet kind. */
+    /**
+     * Meal nudges follow the chosen level and Quiet mode; water is always the quiet kind. A dose
+     * nudge follows them too, but fires whatever the level: its own switch is the person's choice,
+     * so a level left Off (never chosen) makes it quiet rather than silent.
+     */
     fun style(key: ReminderKey, settings: Settings): ReminderStyle = when {
         key is ReminderKey.Water -> ReminderStyle.Subtle
         settings.mealReminderLevel != EventLevel.Full -> ReminderStyle.Subtle

@@ -2,6 +2,7 @@ package com.opson.libraries.reminders
 
 import com.opson.libraries.diary.MealSlot
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.datetime.LocalDate
 
 /**
@@ -32,10 +33,16 @@ interface ReminderActions {
 /** "Open the Logger on this meal and day", from a tapped reminder. */
 data class MealOpen(val slot: MealSlot, val date: LocalDate)
 
+/** "Open the dose sheet for this medication's dose day", from a tapped dose reminder. */
+data class DoseOpen(val medicationId: String, val date: LocalDate)
+
 /**
  * Logger requests from tapped reminders, for the app shell to navigate. Each request is
  * delivered once, to one collector, so a recomposed shell does not open the Logger twice.
+ * [doseRequests] is the same for dose reminders and the dose sheet.
  */
 interface ReminderOpens {
     val requests: Flow<MealOpen>
+
+    val doseRequests: Flow<DoseOpen> get() = emptyFlow()
 }

@@ -25,6 +25,7 @@ import com.opson.features.settings.toRoute
 import com.opson.features.today.DayCloseRoute
 import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
+import com.opson.features.today.TodayCardContribution
 import com.opson.features.today.NotesRoute
 import com.opson.features.today.TodayRoute
 import com.opson.features.today.impl.burned.TodayBurnedEvent
@@ -113,6 +114,8 @@ class TodayFeatureEntryPoint(
     private val todayBurnedViewModelFactory: () -> TodayBurnedViewModel,
     private val tabBar: TabBar,
     private val findSupportEnabled: FindSupportEnabled,
+    /** Cards other modules add to the list, such as Medication's. */
+    private val cardContributions: Set<TodayCardContribution> = emptySet(),
 ) : FeatureEntryPoint {
 
     @Suppress("LongMethod")
@@ -131,7 +134,13 @@ class TodayFeatureEntryPoint(
             }
             val listState = rememberLazyListState()
             router.OnTabReselected(TodayRoute::class) { listState.animateScrollToItem(0) }
-            TodayScreen(state = state, onAction = viewModel::takeAction, listState = listState, burned = burnedSection(router))
+            TodayScreen(
+                state = state,
+                onAction = viewModel::takeAction,
+                listState = listState,
+                burned = burnedSection(router),
+                contributed = contributedCards(state.day, router),
+            )
         }
 
         screen<NotesRoute> { backStackEntry ->
@@ -314,6 +323,14 @@ class TodayFeatureEntryPoint(
         }
         val card = state.card ?: return null
         return remember(card) { { TodayBurnedSection(card, viewModel::takeAction) } }
+    }
+
+    /** Each contribution's card for [day], in a fixed order so their composition slots stay put. */
+    @Composable
+    private fun contributedCards(day: LocalDate, router: Router): List<ContributedCard> {
+        val ordered = remember { cardContributions.sortedBy { it.key } }
+        val cards = ordered.map { contribution -> contribution.key to contribution.card(day, router) }
+        return cards.mapNotNull { (key, content) -> content?.let { ContributedCard(key, it) } }
     }
 
     private suspend fun onTodayEvent(event: TodayEvent, router: Router) {

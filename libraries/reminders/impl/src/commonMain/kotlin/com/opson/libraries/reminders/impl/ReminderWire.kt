@@ -24,6 +24,8 @@ internal data class ReminderWire(
     val date: String,
     val slot: String? = null,
     val index: Int? = null,
+    /** A dose reminder's medication id: a client uuid, never its name or dose. */
+    val medication: String? = null,
     val snoozed: Boolean = false,
     val title: String = "",
     val body: String = "",
@@ -36,6 +38,7 @@ internal data class ReminderWire(
         val key = when (kind) {
             KIND_MEAL -> slot?.let(MealSlot::fromWire)?.let { ReminderKey.Meal(day, it) }
             KIND_WATER -> index?.let { ReminderKey.Water(day, it) }
+            KIND_DOSE -> medication?.let { ReminderKey.Dose(day, it) }
             else -> null
         } ?: return null
         return Reminder(key, Instant.fromEpochMilliseconds(atMs), snoozed)
@@ -59,6 +62,7 @@ internal data class ReminderWire(
     companion object {
         private const val KIND_MEAL = "meal"
         private const val KIND_WATER = "water"
+        private const val KIND_DOSE = "dose"
 
         fun decode(json: String?): ReminderWire? =
             json?.let { runCatching { WireJson.decodeFromString(serializer(), it) }.getOrNull() }
@@ -68,6 +72,7 @@ internal data class ReminderWire(
             return when (val key = reminder.key) {
                 is ReminderKey.Meal -> base(notification, KIND_MEAL).copy(slot = key.slot.wire)
                 is ReminderKey.Water -> base(notification, KIND_WATER).copy(index = key.index)
+                is ReminderKey.Dose -> base(notification, KIND_DOSE).copy(medication = key.medicationId)
             }
         }
 

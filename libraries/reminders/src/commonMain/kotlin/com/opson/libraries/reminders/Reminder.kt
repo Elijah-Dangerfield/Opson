@@ -4,7 +4,7 @@ import com.opson.libraries.diary.MealSlot
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
-/** What a reminder is about. One per meal per day, and two water nudges a day. */
+/** What a reminder is about. One per meal per day, two water nudges a day, and a dose on dose days. */
 sealed interface ReminderKey {
     val date: LocalDate
 
@@ -24,11 +24,18 @@ sealed interface ReminderKey {
         override val id: String get() = "water-$date-$index"
         override val kind: ReminderKind get() = ReminderKind.Water
     }
+
+    /** A medication's dose day (`release.medication`). The id names the medication, never the dose. */
+    data class Dose(override val date: LocalDate, val medicationId: String) : ReminderKey {
+        override val id: String get() = "dose-$date-$medicationId"
+        override val kind: ReminderKind get() = ReminderKind.Dose
+    }
 }
 
 enum class ReminderKind(val wire: String) {
     Meal("meal"),
     Water("water"),
+    Dose("dose"),
 }
 
 /**
@@ -39,7 +46,11 @@ data class Reminder(val key: ReminderKey, val at: Instant, val snoozed: Boolean 
     val id: String get() = if (snoozed) "${key.id}-snoozed" else key.id
 }
 
-/** The buttons on a meal nudge, and the tap on the nudge itself ([Open]). */
+/**
+ * The buttons on a meal nudge, and the tap on the nudge itself ([Open]). A dose nudge reuses
+ * [AlreadyAte] for its "Already did" and [LogIt] for "Log it": the platform answers by wire name,
+ * and the coordinator acts on the key.
+ */
 enum class ReminderAction(val wire: String) {
     Open("open"),
     LogIt("log_it"),

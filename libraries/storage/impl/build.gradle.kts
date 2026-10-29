@@ -20,6 +20,7 @@ kotlin {
             // Their Room entities and DAOs register in AppDatabase.
             implementation(projects.libraries.diary)
             implementation(projects.libraries.foods)
+            implementation(projects.libraries.medication)
             implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {

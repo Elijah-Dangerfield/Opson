@@ -124,6 +124,8 @@ kotlin {
             implementation(projects.libraries.speech.impl)
             implementation(projects.libraries.widgets)
             implementation(projects.libraries.widgets.impl)
+            implementation(projects.libraries.medication)
+            implementation(projects.libraries.medication.impl)
 
             implementation(projects.libraries.storage)
             implementation(projects.libraries.storage.impl)
@@ -164,6 +166,8 @@ kotlin {
             implementation(projects.features.trends.impl)
             implementation(projects.features.upgrade)
             implementation(projects.features.upgrade.impl)
+            implementation(projects.features.medication)
+            implementation(projects.features.medication.impl)
 
             // The QA menu, and with it More's Testing card, exists only off the store channel.
             // Both Android variants and the iOS framework follow the channel, not the build type.

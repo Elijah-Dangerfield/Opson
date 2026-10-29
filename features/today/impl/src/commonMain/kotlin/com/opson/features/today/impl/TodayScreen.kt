@@ -170,7 +170,8 @@ fun TodayScreen(
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     burned: (@Composable () -> Unit)? = null,
-) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState, burned)
+    contributed: List<ContributedCard> = emptyList(),
+) = TodayScreen(state, onAction, rememberFoodDrag(), modifier, listState, burned, contributed)
 
 /** [TodayScreen] with the [drag] handed in, so a preview can hold foods mid-drag (13.3c). */
 @OptIn(ExperimentalComposeUiApi::class)
@@ -183,9 +184,12 @@ internal fun TodayScreen(
     listState: LazyListState = rememberLazyListState(),
     /** The Burned section (`release.exercise`), with its own view model; null leaves it out. */
     burned: (@Composable () -> Unit)? = null,
+    /** Cards other modules add (`TodayCardContribution`), drawn after Fasting. */
+    contributed: List<ContributedCard> = emptyList(),
 ) {
     val hasBurned = burned != null
-    val rows = remember(state, hasBurned) { todayRows(state, hasBurned) }
+    val contributedKeys = contributed.map { it.key }
+    val rows = remember(state, hasBurned, contributedKeys) { todayRows(state, hasBurned, contributedKeys) }
     val scope = rememberCoroutineScope()
     // Back leaves selecting, or puts a row's confirmation away, before it leaves Today.
     BackHandler(enabled = state.selection != null) { onAction(TodayAction.SelectionClosed) }
@@ -246,7 +250,11 @@ internal fun TodayScreen(
                 ) {
                     // A slot scrolled off is reused for a row of the same kind: a meal card for a meal card.
                     items(rows, key = { it.key }, contentType = { it::class }) { row ->
-                        if (row == TodayRow.Burned) burned?.invoke() else TodayListItem(row, state, rowContext, drag, onAction)
+                        when (row) {
+                            TodayRow.Burned -> burned?.invoke()
+                            is TodayRow.Contributed -> contributed.firstOrNull { it.key == row.cardKey }?.content?.invoke()
+                            else -> TodayListItem(row, state, rowContext, drag, onAction)
+                        }
                     }
                 }
                 if (selection != null && drag.active) {
@@ -339,6 +347,9 @@ private fun BottomBars(state: TodayState, onAction: (TodayAction) -> Unit) {
     }
 }
 
+/** A card from another module ([com.opson.features.today.TodayCardContribution]), keyed for the list. */
+data class ContributedCard(val key: String, val content: @Composable () -> Unit)
+
 /** One item of the Today list, in order. A pure mapping, so the highlight can find its meal's index. */
 internal sealed interface TodayRow {
     val key: String
@@ -357,10 +368,13 @@ internal sealed interface TodayRow {
     data class Water(val water: WaterRow) : TodayRow { override val key = "water" }
     data class Weight(val weight: WeightRow) : TodayRow { override val key = "weight" }
     data object Burned : TodayRow { override val key = "burned" }
+
+    /** A card another module drew; see [ContributedCard]. */
+    data class Contributed(val cardKey: String) : TodayRow { override val key = "contributed-$cardKey" }
     data class Meal(val entry: MealEntry) : TodayRow { override val key = "meal-${entry.slot.wire}" }
 }
 
-internal fun todayRows(state: TodayState, burned: Boolean = false): List<TodayRow> = buildList {
+internal fun todayRows(state: TodayState, burned: Boolean = false, contributed: List<String> = emptyList()): List<TodayRow> = buildList {
     if (state.loading) {
         add(TodayRow.Loading)
         return@buildList
@@ -373,6 +387,7 @@ internal fun todayRows(state: TodayState, burned: Boolean = false): List<TodayRo
     if (state.closed) add(TodayRow.Closed)
     state.mealTiles?.let { add(TodayRow.Tiles(it)) }
     state.fasting?.let { add(TodayRow.Fasting(it)) }
+    contributed.forEach { add(TodayRow.Contributed(it)) }
     state.water?.let { add(TodayRow.Water(it)) }
     state.weight?.let { add(TodayRow.Weight(it)) }
     if (burned) add(TodayRow.Burned)
@@ -426,8 +441,8 @@ private fun TodayListItem(row: TodayRow, state: TodayState, context: FoodRowCont
             addIcon = AppIcons.Add.described(stringResource(Res.string.today_water_cd)),
         )
         is TodayRow.Weight -> WeightCard(row.weight, state.dayLabel, onAction)
-        // Drawn by the slot the entry point passes in; see TodayScreen.
-        TodayRow.Burned -> Unit
+        // Drawn by the slots the entry point passes in; see TodayScreen.
+        TodayRow.Burned, is TodayRow.Contributed -> Unit
         is TodayRow.Meal -> Meal(row.entry, context, drag, onAction)
     }
 }
