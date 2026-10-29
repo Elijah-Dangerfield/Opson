@@ -262,6 +262,10 @@ object SettingsLeakSurfaces {
         LeakSurface(id = "reminders", label = "Reminders and celebrations", showsCaloriesInFull = false) { policy ->
             RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet.copy(numbers = policy.settings)), onAction = {})
         },
+        // release.celebrations: Celebrations and their day counts, on the same page.
+        LeakSurface(id = "reminders-celebrations", label = "Reminders and celebrations, with Celebrations", showsCaloriesInFull = false) { policy ->
+            RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet.copy(numbers = policy.settings), celebrationsOn = true), onAction = {})
+        },
         LeakSurface(id = "reminder-notification", label = "Meal and water reminders", showsCaloriesInFull = false) { _ ->
             ReminderNotifications()
         },

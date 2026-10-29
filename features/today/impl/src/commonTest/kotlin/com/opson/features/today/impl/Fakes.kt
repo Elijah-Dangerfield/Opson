@@ -259,6 +259,9 @@ fun checkInFlag(on: Boolean): CheckInEnabled = CheckInEnabled(release("checkIn",
 
 fun foodActionsFlag(on: Boolean): TodayFoodActionsEnabled = TodayFoodActionsEnabled(release("foodActions", on))
 
+fun celebrationsFlag(on: Boolean): com.opson.libraries.diary.CelebrationsReleaseFlag =
+    com.opson.libraries.diary.CelebrationsReleaseFlag(release("celebrations", on))
+
 class FakeSettingsRepository(initial: Settings = Settings()) : SettingsRepository {
     val state = MutableStateFlow(initial)
     override val settings: StateFlow<Settings> = state

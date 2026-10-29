@@ -63,6 +63,14 @@ tap outside and Back count as Not now). Counts live on the phone, per account, i
 | `meal_reminders` | dialog | no reminder level was ever chosen and notifications were not refused; not after numbers have been hard | Reminders and celebrations | `release.reminders` |
 | `try_check_in` | card, up to 3 times, 3 days apart | 3 logged days in the last 14 and no check-in in them | Today's check-in | `release.checkIn` |
 | `join_builder` | sheet, once ever | right after a food report is sent (`FoodReportSent`), or as Today opens once a food they added was approved; never to a Builder or someone who can't join | More › Builders | `release.builders` |
+| `celebration` | screen, once per milestone | a milestone for showing up was reached in the last 7 days and not celebrated on this phone; right after wrapping up the day (`DayClosed`) or as Today opens; offered after numbers have been hard, gently | A milestone's celebration (`CelebrationRoute`) | `release.celebrations` |
+
+A **screen** prompt (`PromptPresentation.Screen`) draws itself: the host opens the route its
+`screen()` names, and that screen owns its buttons, so nothing is counted as accepted or
+dismissed. `celebration` is the one: its own counts are no limit (each milestone celebrates once,
+in `CelebrationStore`), but it answers to every global rule, so it never lands on another prompt
+and takes the session's one showing. Its priority, `PromptPriority.CELEBRATION`, puts it above a
+moment's offer.
 
 ## Adding a prompt (the Builder program, for example)
 

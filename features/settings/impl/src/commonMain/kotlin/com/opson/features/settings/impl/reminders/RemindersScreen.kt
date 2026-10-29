@@ -97,48 +97,48 @@ fun RemindersScreen(
 /** Quiet mode, After a big day, meal reminders and their times (`release.reminders`). */
 @Composable
 private fun Reminders(state: RemindersState, onAction: (RemindersAction) -> Unit) {
-        SwitchCard(
-            title = Res.string.reminders_quiet_title,
-            body = Res.string.reminders_quiet_body,
-            checked = state.quiet,
-            onToggle = { onAction(RemindersAction.QuietToggled) },
+    SwitchCard(
+        title = Res.string.reminders_quiet_title,
+        body = Res.string.reminders_quiet_body,
+        checked = state.quiet,
+        onToggle = { onAction(RemindersAction.QuietToggled) },
+    )
+    EdgeCard(edgeToEdge = false, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+        LevelChoice(
+            title = Res.string.reminders_big_day_title,
+            body = Res.string.reminders_big_day_body,
+            selected = state.bigDay,
+            onSelect = { onAction(RemindersAction.BigDayPicked(it)) },
         )
-        EdgeCard(edgeToEdge = false, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
-            LevelChoice(
-                title = Res.string.reminders_big_day_title,
-                body = Res.string.reminders_big_day_body,
-                selected = state.bigDay,
-                onSelect = { onAction(RemindersAction.BigDayPicked(it)) },
-            )
-            HorizontalDivider(color = AppTheme.colors.line)
-            LevelChoice(
-                title = Res.string.reminders_meals_title,
-                body = Res.string.reminders_meals_body,
-                selected = state.mealLevel,
-                onSelect = { onAction(RemindersAction.MealLevelPicked(it)) },
-            )
-        }
-        if (state.showPermissionNote) PermissionNote(onOpen = { onAction(RemindersAction.OpenSettingsTapped) })
-        SectionLabel(stringResource(Res.string.reminders_times_label), modifier = Modifier.padding(top = 4.dp))
-        SettingsCard {
-            state.meals.forEachIndexed { index, row ->
-                SettingsRow(
-                    title = stringResource(row.slot.label),
-                    icon = null,
-                    subtitle = if (row.on) row.timeLabel else stringResource(Res.string.reminders_time_off),
-                    showDivider = index < state.meals.lastIndex,
-                    onClick = { onAction(RemindersAction.MealTimeTapped(row.slot)) },
-                ) {
-                    AppSwitch(checked = row.on, onCheckedChange = { onAction(RemindersAction.MealToggled(row.slot)) })
-                }
+        HorizontalDivider(color = AppTheme.colors.line)
+        LevelChoice(
+            title = Res.string.reminders_meals_title,
+            body = Res.string.reminders_meals_body,
+            selected = state.mealLevel,
+            onSelect = { onAction(RemindersAction.MealLevelPicked(it)) },
+        )
+    }
+    if (state.showPermissionNote) PermissionNote(onOpen = { onAction(RemindersAction.OpenSettingsTapped) })
+    SectionLabel(stringResource(Res.string.reminders_times_label), modifier = Modifier.padding(top = 4.dp))
+    SettingsCard {
+        state.meals.forEachIndexed { index, row ->
+            SettingsRow(
+                title = stringResource(row.slot.label),
+                icon = null,
+                subtitle = if (row.on) row.timeLabel else stringResource(Res.string.reminders_time_off),
+                showDivider = index < state.meals.lastIndex,
+                onClick = { onAction(RemindersAction.MealTimeTapped(row.slot)) },
+            ) {
+                AppSwitch(checked = row.on, onCheckedChange = { onAction(RemindersAction.MealToggled(row.slot)) })
             }
         }
-        Text(
-            text = stringResource(Res.string.reminders_no_evening),
-            typography = AppTheme.type.secondarySmall,
-            color = AppTheme.colors.muted,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
+    }
+    Text(
+        text = stringResource(Res.string.reminders_no_evening),
+        typography = AppTheme.type.secondarySmall,
+        color = AppTheme.colors.muted,
+        modifier = Modifier.padding(horizontal = 4.dp),
+    )
 }
 
 /** Celebrations on or off, and, while on, whether they say how many days. */
