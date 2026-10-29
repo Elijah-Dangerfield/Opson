@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
 
 /* Hand-rolled fakes for the widget tests (docs/practices/testing.md). */
@@ -210,4 +211,7 @@ class FakeEventBus : AppEventBus {
 object KeyStrings : WidgetStrings {
     override suspend fun get(resource: StringResource, vararg args: Any): String =
         if (args.isEmpty()) resource.key else "${resource.key}(${args.joinToString()})"
+
+    override suspend fun plural(resource: PluralStringResource, quantity: Int, vararg args: Any): String =
+        "${resource.key}[$quantity](${args.joinToString()})"
 }

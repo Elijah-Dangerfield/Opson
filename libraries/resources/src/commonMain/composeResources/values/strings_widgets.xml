@@ -34,12 +34,19 @@
     <!-- Under what is left on the calories widget: "540" over "to range". Only in a mode that shows it. -->
     <string name="widgets_to_range">to range</string>
     <string name="widgets_to_goal">to goal</string>
-    <!-- Meals done, the neutral figure: "2 of 4 meals". A count of meals, never a nutrition number. -->
-    <string name="widgets_meals_done">%1$s of %2$s meals</string>
+    <!-- Meals done, the neutral figure: "2 of 4 meals". A count of meals, never a nutrition number. The quantity is the total, %2$s. -->
+    <plurals name="widgets_meals_done">
+        <item quantity="one">%1$s of %2$s meal</item>
+        <item quantity="other">%1$s of %2$s meals</item>
+    </plurals>
     <!-- The water widget's button. -->
     <string name="widgets_add_glass">Add a glass</string>
     <!-- What a screen reader says for softened water, which shows glasses and no amount. -->
-    <string name="widgets_water_glasses">%1$s of %2$s glasses</string>
+    <!-- The quantity is the total, %2$s. -->
+    <plurals name="widgets_water_glasses">
+        <item quantity="one">%1$s of %2$s glass</item>
+        <item quantity="other">%1$s of %2$s glasses</item>
+    </plurals>
     <!-- A meal with nothing logged on the meals widget. -->
     <string name="widgets_nothing_yet">Nothing yet</string>
     <!-- The meals widget's one row with meal groups off. -->

@@ -1036,7 +1036,7 @@ private fun DayChipView(chip: DayChip, tone: ToneColors, description: String, on
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = DateCopy.shortWeekday(chip.day).take(1),
+            text = DateCopy.narrowWeekday(chip.day),
             typography = AppTheme.type.bodyBold,
             color = if (chip.inGroup) tone.content else AppTheme.colors.muted,
         )

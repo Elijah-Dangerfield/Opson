@@ -27,7 +27,6 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import opson.libraries.resources.generated.resources.Res
@@ -244,7 +243,7 @@ object TrendsStateBuilder {
     /** A weekly bar's label, `10/19`; on 3 months every third, counting back from this week, so they fit. */
     internal fun weekBarLabel(starts: List<LocalDate>, index: Int, range: TrendsRange): String {
         val labelled = range == TrendsRange.FourWeeks || (starts.lastIndex - index) % THREE_MONTHS_LABEL_EVERY == 0
-        return if (labelled) "${starts[index].month.number}/${starts[index].day}" else ""
+        return if (labelled) DateCopy.numericMonthDay(starts[index]) else ""
     }
 
     /** Calories effectively shown on the week view: a soft word on a bar chart would still read as an amount. */

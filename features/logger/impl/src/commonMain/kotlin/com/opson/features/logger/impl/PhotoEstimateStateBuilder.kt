@@ -6,7 +6,7 @@ import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
 import com.opson.libraries.foods.PortionAmount
 import com.opson.libraries.foods.amountTextFor
-import com.opson.libraries.foods.chipLabel
+import com.opson.libraries.foods.chipText
 import com.opson.libraries.foods.nutrientsFor
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.Metric
@@ -67,7 +67,7 @@ object PhotoEstimateStateBuilder {
             PhotoAmountEditor(
                 key = row.key,
                 amount = row.draft().amountLabel,
-                units = units.map { it.chipLabel },
+                units = units.map { it.chipText },
                 unitIndex = units.indexOf(unit).coerceAtLeast(0),
                 canLess = PortionAmount.canLess(unit, row.quantity),
             )
@@ -107,7 +107,7 @@ object PhotoEstimateStateBuilder {
             id = id,
             name = name,
             subtitle = brand,
-            amount = HouseholdAmount.tidy(amountTextFor(serving)),
+            amount = HouseholdAmount.display(amountTextFor(serving)),
             calories = policy.resolve(Metric.Calories, nutrientsFor(serving).kcal, Surface.Logger, bare),
         )
     }
