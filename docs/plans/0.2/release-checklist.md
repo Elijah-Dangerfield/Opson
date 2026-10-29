@@ -6,10 +6,12 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
 
 ## Health (`release.health`)
 
-- [ ] Register the HealthKit capability on `com.opson.Opson` (App Store
+- [x] Register the HealthKit capability on `com.opson.Opson` (App Store
       Connect API `POST /v1/bundleIdCapabilities`, type `HEALTHKIT`), or the
       next signed build fails.
-- [ ] Put back the entitlement and capability held out of `main`:
+- [x] Put back the entitlement and capability held out of `main` (2026-10-29, so TestFlight
+      can connect to Health; 0.1 is approved and won't be hotfixed, so the 2.5.1 risk is gone).
+      HEALTHKIT was already on the bundle id, and Xcode no longer needs `SystemCapabilities`:
       `com.apple.developer.healthkit` = true and
       `com.apple.developer.healthkit.access` = [] in
       `apps/ios/iosApp/iosApp.entitlements`, and `SystemCapabilities` →
