@@ -1,5 +1,6 @@
 package com.opson.libraries.nutrition.ui
 
+import com.opson.libraries.nutrition.AmountWords
 import com.opson.libraries.nutrition.NutritionWords
 import kotlinx.coroutines.runBlocking
 import java.io.File
@@ -7,7 +8,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * [NutritionWords]' defaults are what every test and preview spells numbers with, and
+ * [NutritionWords]' and [AmountWords]' defaults are what every test and preview spells with, and
  * `strings_nutrition.xml` is what the app does. This reads the XML from disk, so a wording change
  * in one that misses the other fails here instead of drifting quietly.
  */
@@ -20,6 +21,15 @@ class NutritionWordsDriftTest {
         val fromXml = runBlocking { loadNutritionWords { resource -> xml.getValue(resource.key) } }
 
         assertEquals(NutritionWords(), fromXml)
+    }
+
+    @Test
+    fun `the amount units are strings_nutrition_xml`() {
+        val xml = ResourceXml.read("strings_nutrition.xml")
+
+        val fromXml = runBlocking { loadAmountWords { resource -> xml.getValue(resource.key) } }
+
+        assertEquals(AmountWords(), fromXml)
     }
 }
 

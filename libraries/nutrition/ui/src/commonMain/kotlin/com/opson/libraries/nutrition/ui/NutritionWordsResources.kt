@@ -1,9 +1,27 @@
 package com.opson.libraries.nutrition.ui
 
+import com.opson.libraries.nutrition.AmountWords
 import com.opson.libraries.nutrition.NutritionWords
 import com.opson.libraries.nutrition.SoftWord
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.nutrition_above_range
+import opson.libraries.resources.generated.resources.nutrition_amount_grams
+import opson.libraries.resources.generated.resources.nutrition_amount_kilograms
+import opson.libraries.resources.generated.resources.nutrition_amount_milligrams
+import opson.libraries.resources.generated.resources.nutrition_amount_micrograms
+import opson.libraries.resources.generated.resources.nutrition_amount_millilitres
+import opson.libraries.resources.generated.resources.nutrition_amount_fluid_ounces
+import opson.libraries.resources.generated.resources.nutrition_amount_ounces
+import opson.libraries.resources.generated.resources.nutrition_amount_pounds
+import opson.libraries.resources.generated.resources.nutrition_amount_grams_word
+import opson.libraries.resources.generated.resources.nutrition_symbol_kcal
+import opson.libraries.resources.generated.resources.nutrition_symbol_grams
+import opson.libraries.resources.generated.resources.nutrition_symbol_milligrams
+import opson.libraries.resources.generated.resources.nutrition_symbol_micrograms
+import opson.libraries.resources.generated.resources.nutrition_symbol_millilitres
+import opson.libraries.resources.generated.resources.nutrition_symbol_fluid_ounces
+import opson.libraries.resources.generated.resources.nutrition_symbol_ounces
+import opson.libraries.resources.generated.resources.nutrition_symbol_pounds
 import opson.libraries.resources.generated.resources.nutrition_energy
 import opson.libraries.resources.generated.resources.nutrition_energy_of
 import opson.libraries.resources.generated.resources.nutrition_energy_of_bare
@@ -116,4 +134,25 @@ private val SOFT_WORDS: Map<SoftWord, StringResource> = mapOf(
     SoftWord.Steady to Res.string.nutrition_soft_steady,
     SoftWord.RisingSlowly to Res.string.nutrition_soft_rising_slowly,
     SoftWord.FallingSlowly to Res.string.nutrition_soft_falling_slowly,
+)
+
+/** `strings_nutrition.xml`'s amount units as [AmountWords], read as [loadNutritionWords] reads its words. */
+suspend fun loadAmountWords(get: suspend (StringResource) -> String): AmountWords = AmountWords(
+    grams = get(Res.string.nutrition_amount_grams),
+    kilograms = get(Res.string.nutrition_amount_kilograms),
+    milligrams = get(Res.string.nutrition_amount_milligrams),
+    micrograms = get(Res.string.nutrition_amount_micrograms),
+    millilitres = get(Res.string.nutrition_amount_millilitres),
+    fluidOunces = get(Res.string.nutrition_amount_fluid_ounces),
+    ounces = get(Res.string.nutrition_amount_ounces),
+    pounds = get(Res.string.nutrition_amount_pounds),
+    gramsWord = get(Res.string.nutrition_amount_grams_word),
+    kcalSymbol = get(Res.string.nutrition_symbol_kcal),
+    gramsSymbol = get(Res.string.nutrition_symbol_grams),
+    milligramsSymbol = get(Res.string.nutrition_symbol_milligrams),
+    microgramsSymbol = get(Res.string.nutrition_symbol_micrograms),
+    millilitresSymbol = get(Res.string.nutrition_symbol_millilitres),
+    fluidOuncesSymbol = get(Res.string.nutrition_symbol_fluid_ounces),
+    ouncesSymbol = get(Res.string.nutrition_symbol_ounces),
+    poundsSymbol = get(Res.string.nutrition_symbol_pounds),
 )

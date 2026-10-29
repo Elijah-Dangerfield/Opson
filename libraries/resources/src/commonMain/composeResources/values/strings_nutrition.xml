@@ -54,6 +54,28 @@
     <string name="nutrition_ring_above_range_value">Past</string>
     <string name="nutrition_ring_above_range_unit">range</string>
 
+    <!-- An amount of food in a unit the app writes itself, as shown. What is stored stays "150 g"
+         in every language; these only spell it. AmountWords carries the same English. -->
+    <string name="nutrition_amount_grams">%1$s g</string>
+    <string name="nutrition_amount_kilograms">%1$s kg</string>
+    <string name="nutrition_amount_milligrams">%1$s mg</string>
+    <string name="nutrition_amount_micrograms">%1$s mcg</string>
+    <string name="nutrition_amount_millilitres">%1$s ml</string>
+    <string name="nutrition_amount_fluid_ounces">%1$s fl oz</string>
+    <string name="nutrition_amount_ounces">%1$s oz</string>
+    <string name="nutrition_amount_pounds">%1$s lb</string>
+    <!-- The grams chip on the amount sheet, spelled out -->
+    <string name="nutrition_amount_grams_word">grams</string>
+    <!-- A unit on its own: a column of a label's nutrients, a unit chip -->
+    <string name="nutrition_symbol_kcal">kcal</string>
+    <string name="nutrition_symbol_grams">g</string>
+    <string name="nutrition_symbol_milligrams">mg</string>
+    <string name="nutrition_symbol_micrograms">mcg</string>
+    <string name="nutrition_symbol_millilitres">ml</string>
+    <string name="nutrition_symbol_fluid_ounces">fl oz</string>
+    <string name="nutrition_symbol_ounces">oz</string>
+    <string name="nutrition_symbol_pounds">lb</string>
+
     <!-- The soft words a mode shows instead of a number -->
     <string name="nutrition_soft_early_in_the_day">Early in the day</string>
     <string name="nutrition_soft_partway_through">Partway through</string>

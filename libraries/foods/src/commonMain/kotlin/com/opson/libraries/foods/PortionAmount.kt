@@ -6,6 +6,7 @@ import com.opson.libraries.diary.HouseholdAmount
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.nutrition.AmountCopy
 import kotlin.math.max
 import kotlin.math.round
 
@@ -73,11 +74,14 @@ private const val ML_PER_FLUID_OUNCE = 29.5735295625
 /** Counted by weight or volume rather than by a household count: switching to or from it converts. */
 val AmountUnit.isMeasure: Boolean get() = this is AmountUnit.Grams || this is AmountUnit.Measure
 
-/** What one of this unit weighs, for the unit menu: "350 g". Null for weights and volumes themselves and unknown weights. */
+/**
+ * What one of this unit weighs, for the unit menu: "350 g", in the device's language. Shown only,
+ * never stored. Null for weights and volumes themselves and unknown weights.
+ */
 val AmountUnit.gramsLabel: String?
     get() = when (this) {
         AmountUnit.Grams, is AmountUnit.Measure -> null
-        else -> gramsEach?.let { HouseholdAmount.of(round(it), "g") }
+        else -> gramsEach?.let { HouseholdAmount.display(HouseholdAmount.of(round(it), "g")) }
     }
 
 /**
@@ -154,6 +158,21 @@ val AmountUnit.chipLabel: String
         is AmountUnit.Saved -> unit.label
         is AmountUnit.Measure -> kind.label
     }
+
+/**
+ * [chipLabel] as the person reads it: the grams chip spelled out and a weight or volume's unit in
+ * the device's language. [chipLabel] stays the English name, which matching a saved unit and
+ * telling sizes apart compare against.
+ */
+val AmountUnit.chipText: String
+    get() = when (this) {
+        AmountUnit.Grams -> AmountCopy.words.gramsWord
+        is AmountUnit.Measure -> AmountCopy.symbol(kind.label) ?: kind.label
+        else -> chipLabel
+    }
+
+/** [amountText] as the person reads it ([HouseholdAmount.display]). What a draft stores stays [amountText]. */
+fun AmountUnit.amountDisplay(quantity: Double): String = HouseholdAmount.display(amountText(quantity))
 
 /** The amount on the stepper: "150 g", "1 plate", "1½ cups". An amount, not a nutrient, so no policy. */
 fun AmountUnit.amountText(quantity: Double): String = when (this) {

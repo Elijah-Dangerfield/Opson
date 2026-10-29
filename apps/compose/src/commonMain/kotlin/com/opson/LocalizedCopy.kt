@@ -6,7 +6,9 @@ import com.opson.libraries.core.AutoInit
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.flowroutines.AppCoroutineScope
+import com.opson.libraries.nutrition.AmountCopy
 import com.opson.libraries.nutrition.NutritionCopy
+import com.opson.libraries.nutrition.ui.loadAmountWords
 import com.opson.libraries.nutrition.ui.loadNutritionWords
 import com.opson.libraries.ui.time.DateCopy
 import com.opson.libraries.ui.time.DateFormats
@@ -21,9 +23,9 @@ import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
 
 /**
- * Puts the device's language into the two pieces of copy that are spelled outside a composable:
- * [NutritionCopy] ("1,245 kcal", "On target") and [DateCopy] ("Today", "Thu, Oct 22"). Both speak
- * English until this runs, which is what tests and previews rely on.
+ * Puts the device's language into the copy that is spelled outside a composable: [NutritionCopy]
+ * ("1,245 kcal", "On target"), [AmountCopy] ("150 g" as shown) and [DateCopy] ("Today",
+ * "Thu, Oct 22"). All speak English until this runs, which is what tests and previews rely on.
  *
  * At boot, so a widget refresh or a reminder that wakes the app with no screen still gets the
  * language, and again from `App.kt` whenever the locale changes under a running app.
@@ -42,11 +44,12 @@ class LocalizedCopy(
         appScope.launch { reload() }
     }
 
-    /** Reads both sets of words in the current language. A failure leaves the last ones in place. */
+    /** Reads every set of words in the current language. A failure leaves the last ones in place. */
     suspend fun reload() {
         Catching {
             NutritionCopy.install(loadNutritionWords { getString(it) })
+            AmountCopy.install(loadAmountWords { getString(it) })
             DateCopy.install(loadDateWords { getString(it) })
-        }.logOnFailure("Couldn't load the nutrition and date words; keeping the ones in place")
+        }.logOnFailure("Couldn't load the nutrition, amount and date words; keeping the ones in place")
     }
 }

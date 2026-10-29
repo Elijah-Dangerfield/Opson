@@ -1,5 +1,6 @@
 package com.opson.libraries.foods
 
+import com.opson.libraries.nutrition.AmountCopy
 import com.opson.libraries.nutrition.MacroEnergyCheck
 import com.opson.libraries.nutrition.Metric
 import kotlin.math.abs
@@ -53,17 +54,25 @@ enum class LabelNutrient(val wire: String, val unit: LabelUnit) {
     }
 }
 
+/** [symbol] is the stored and parsed spelling; [displaySymbol] is what a person reads. */
 enum class LabelUnit(val symbol: String, val gramsPer: Double?) {
     Kcal("kcal", null),
     Gram("g", 1.0),
     Milligram("mg", 1e-3),
     Microgram("mcg", 1e-6),
+    ;
+
+    /** The unit as shown, in the device's language. */
+    val displaySymbol: String get() = AmountCopy.symbol(symbol) ?: symbol
 }
 
 enum class ServingUnit(val wire: String) {
     Gram("g"),
     Milliliter("ml"),
     ;
+
+    /** The unit as shown, in the device's language. [wire] is what is stored and sent. */
+    val displaySymbol: String get() = AmountCopy.symbol(wire) ?: wire
 
     companion object {
         fun fromWire(value: String?): ServingUnit? = entries.firstOrNull { it.wire == value }

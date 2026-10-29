@@ -43,7 +43,7 @@ data class LogItem(
      * The amount as a row shows it. Every screen reads this, not [amountText], so entries an
      * older build saved as "0.25 cup" or "1.5 × 1 cup" read "¼ cup" and "1½ cups" too.
      */
-    val amountLabel: String get() = HouseholdAmount.tidy(amountText.orEmpty())
+    val amountLabel: String get() = HouseholdAmount.display(amountText.orEmpty())
 
     /**
      * This entry at [count] of its own unit ("Change amount"): the nutrients, grams and micros
@@ -115,7 +115,7 @@ data class LogDraft(
     val method: LogMethod? = null,
 ) {
     /** The amount as a row shows it, read the same way as [LogItem.amountLabel]. Not serialized: no backing field. */
-    val amountLabel: String get() = HouseholdAmount.tidy(amountText.orEmpty())
+    val amountLabel: String get() = HouseholdAmount.display(amountText.orEmpty())
 }
 
 /**
