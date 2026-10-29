@@ -243,9 +243,10 @@ class LoggerFeatureEntryPoint(
                     goBack()
                     navigate(SubmitFoodRoute(event.day.toString(), event.slot, entry = SubmitEntry.AddSheet))
                 }
+                // Weigh-in is only ever opened to log one, so the field is ready with the keyboard up.
                 LoggerEvent.OpenWeighIn -> router.batch {
                     goBack()
-                    navigate(WeightRoute())
+                    navigate(WeightRoute(focusInput = true))
                 }
                 LoggerEvent.OpenFasting -> router.batch {
                     goBack()
