@@ -15,6 +15,7 @@
     <string name="settings_back_energy">‹ Energy today</string>
     <string name="settings_back_resting">‹ Resting energy</string>
     <string name="settings_back_micros">‹ Vitamins and minerals</string>
+    <string name="settings_back_plain">‹ Back</string>
     <string name="settings_saved">Saved.</string>
     <string name="settings_saved_fewer">Saved. Fewer numbers from now on.</string>
 

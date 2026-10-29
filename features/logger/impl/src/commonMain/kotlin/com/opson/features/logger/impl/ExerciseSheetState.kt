@@ -37,7 +37,9 @@ data class ExerciseSheetState(
     val startedAt: LocalTime = LocalTime(0, 0),
     /** "About 133 kcal": the estimate, Hidden without one or when energy out does not show. */
     val estimate: Display = Display.Hidden,
-    /** No weigh-in yet, so no estimate: the sheet says why and asks for the number. */
+    /** What [estimate] was worked out from, for the line under it; null without one. */
+    val basis: EstimateBasis? = null,
+    /** No weigh-in yet, so no estimate: the sheet says why, links to Weight and asks for the number. */
     val noWeight: Boolean = false,
     /** The number is needed (Other, or no estimate), so the field is labelled as the answer rather than an extra. */
     val numberNeeded: Boolean = false,
@@ -59,6 +61,13 @@ data class ExerciseSheetState(
 
 enum class ExercisePane { Form, Pick }
 
+/**
+ * What an estimate is from. [Personal]: the person's own resting rate, from Profile's age, height
+ * and sex with the latest weigh-in. [WeightOnly]: Profile is missing one of those, so the standard
+ * rate for the weight, and the sheet asks for the rest.
+ */
+enum class EstimateBasis { Personal, WeightOnly }
+
 sealed interface ExerciseSheetAction {
     data class InputsArrived(val inputs: ExerciseInputs) : ExerciseSheetAction
     data class PolicyArrived(val policy: VisibilityPolicy) : ExerciseSheetAction
@@ -72,6 +81,12 @@ sealed interface ExerciseSheetAction {
     data class TimePicked(val time: LocalTime) : ExerciseSheetAction
     data class NumberTyped(val text: String) : ExerciseSheetAction
     data class NotOnWatchToggled(val on: Boolean) : ExerciseSheetAction
+
+    /** "Profile" under an estimate from weight alone. */
+    data object ProfileTapped : ExerciseSheetAction
+
+    /** "Log a weigh-in" with no weigh-in yet. */
+    data object WeighInTapped : ExerciseSheetAction
     data object SaveTapped : ExerciseSheetAction
     data object DeleteTapped : ExerciseSheetAction
     data object CloseTapped : ExerciseSheetAction
@@ -82,12 +97,19 @@ sealed interface ExerciseSheetEvent {
 
     /** The day is closed with Close the day: nothing was saved or deleted. */
     data class DayClosed(val day: LocalDate) : ExerciseSheetEvent
+
+    /** Profile, in the sheet's place, for the age, height and sex an estimate needs. */
+    data object OpenProfile : ExerciseSheetEvent
+
+    /** Weight, in the sheet's place, with the field ready. */
+    data object OpenWeighIn : ExerciseSheetEvent
     data object Dismiss : ExerciseSheetEvent
 }
 
 /**
  * What the sheet reads. [entry] is the one being edited, null for a new one; [weightKg] the latest
- * weigh-in; [healthConnected] a health app connected with `release.health` on.
+ * weigh-in; [healthConnected] a health app connected with `release.health` on; [restingKcal]
+ * Mifflin–St Jeor from Profile's age, height and sex with [weightKg], null while any is missing.
  */
 data class ExerciseInputs(
     val day: LocalDate,
@@ -96,6 +118,7 @@ data class ExerciseInputs(
     val weightKg: Double?,
     val healthConnected: Boolean,
     val entry: ExerciseEntry? = null,
+    val restingKcal: Int? = null,
 )
 
 /** What the person has done on the sheet. Starts from the entry being edited, or empty. */
@@ -143,6 +166,7 @@ object ExerciseSheetStateBuilder {
             estimate = estimate
                 ?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Logger, inputs.context()) }
                 ?: Display.Hidden,
+            basis = estimate?.let { if (ExerciseEnergy.usesResting(inputs.restingKcal)) EstimateBasis.Personal else EstimateBasis.WeightOnly },
             noWeight = form.activity != null && !other && inputs.weightKg == null,
             numberNeeded = form.activity != null && estimate == null,
             typed = form.typed.takeIf { canNumber }.orEmpty(),
@@ -195,7 +219,7 @@ object ExerciseSheetStateBuilder {
     private fun estimateKcal(form: ExerciseForm, inputs: ExerciseInputs): Int? {
         val met = form.activity?.let { ExerciseActivities[it] }?.met ?: return null
         val minutes = form.minutes.toIntOrNull() ?: return null
-        return ExerciseEnergy.estimateKcal(met, inputs.weightKg, minutes)
+        return ExerciseEnergy.estimateKcal(met, inputs.weightKg, minutes, inputs.restingKcal)
     }
 
     /** Now on today, noon on another day, until the person picks a time. */

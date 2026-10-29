@@ -34,6 +34,35 @@ class ExerciseTest {
     }
 
     @Test
+    fun withAResting_oneMetIsThePersonsOwnRestingRate() {
+        // Resting 1680 a day is 70 an hour. Brisk walking, half an hour: (4.8 - 1) x 70 x 0.5 = 133
+        assertEquals(133, ExerciseEnergy.estimateKcal(4.8, 80.0, 30, restingKcal = 1680))
+        // A 35-year-old man, 180 cm and 80 kg: Mifflin-St Jeor gives 1760 (rounded to 10), so an
+        // hour of running at 10 min/mile is 8.3 x 1760 / 24 = 609, against 664 from weight alone.
+        val resting = RestingEnergies.calculate(BodyProfile(weightKg = 80.0, heightCm = 180.0, ageYears = 35, sex = BodySex.Male))
+        assertEquals(1760, resting)
+        assertEquals(609, ExerciseEnergy.estimateKcal(9.3, 80.0, 60, restingKcal = resting))
+        assertEquals(664, ExerciseEnergy.estimateKcal(9.3, 80.0, 60))
+    }
+
+    @Test
+    fun withAResting_olderAndHeavierBodiesBurnLessThanTheStandardRateSays() {
+        // A 60-year-old woman, 160 cm and 90 kg: resting 1440, 60 an hour against 90 by weight.
+        val resting = RestingEnergies.calculate(BodyProfile(weightKg = 90.0, heightCm = 160.0, ageYears = 60, sex = BodySex.Female))
+        assertEquals(1440, resting)
+        // An hour of brisk walking: 3.8 x 60 = 228, where weight alone says 3.8 x 90 = 342.
+        assertEquals(228, ExerciseEnergy.estimateKcal(4.8, 90.0, 60, restingKcal = resting))
+        assertEquals(342, ExerciseEnergy.estimateKcal(4.8, 90.0, 60))
+    }
+
+    @Test
+    fun withAResting_stillNeedsAWeight_andIgnoresAStrayResting() {
+        assertNull(ExerciseEnergy.estimateKcal(4.8, null, 30, restingKcal = 1680), "no weigh-in, no resting either")
+        assertEquals(133, ExerciseEnergy.estimateKcal(4.8, 70.0, 30, restingKcal = 50), "a stray resting falls back to weight")
+        assertEquals(0, ExerciseEnergy.estimateKcal(1.0, 70.0, 60, restingKcal = 1680), "sitting still is resting energy")
+    }
+
+    @Test
     fun theList_hasUniqueKeys_realMets_andNoOther() {
         val keys = ExerciseActivities.all.map { it.key }
         assertEquals(keys.size, keys.toSet().size)
