@@ -368,8 +368,12 @@ day or on chosen days; the storage, timing and sync decisions are in
 - A saved repeat adds Pause and Delete repeat. Delete keeps what it logged.
 - Under the form, what saving does: "Saving logs it for today too.", "The one
   you logged today counts for today." (Repeat this from today), "Today's is in
-  your log. Changes start with the next one." (an edit), the next day it logs,
-  or that it is paused or past its end. Then how it works: it logs when Opson
+  your log. Changes start with the next one." (an edit), "It won't log again
+  today. Changes start with the next one." (an edit after today's food was
+  removed), the next day it logs, or that it is paused or past its end. Whether
+  it has had today comes from its ledger (`RepeatRepository.observeHasRun`), not
+  from the day's entries, since the ledger is what stops it logging again.
+  Then how it works: it logs when Opson
   is opened that day, missed days stay empty, and its foods edit and delete
   like any.
 - Saved: "Repeat saved. Today's breakfast is logged." when saving logged today.

@@ -85,6 +85,9 @@ class RepeatRepositoryImpl(
         return tables.repeats.get(id)?.takeUnless { it.deleted }?.toDomain()
     }
 
+    override fun observeHasRun(id: String, day: LocalDate): Flow<Boolean> =
+        tables.repeatLogs.observeDay(day.toString()).map { rows -> rows.any { it.ruleId == id } }.distinctUntilChanged()
+
     override suspend fun create(plan: RepeatPlan, loggedToday: List<String>): RepeatSaved {
         // Settles the phone's repeats on the account saving this one.
         owner.current()

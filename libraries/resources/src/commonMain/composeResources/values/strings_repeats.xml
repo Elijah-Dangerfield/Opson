@@ -46,6 +46,7 @@
     <string name="repeat_note_logs_today">Saving logs it for today too.</string>
     <string name="repeat_note_counts_today">The one you logged today counts for today.</string>
     <string name="repeat_note_logged_today">Today's is in your log. Changes start with the next one.</string>
+    <string name="repeat_note_done_today">It won't log again today. Changes start with the next one.</string>
     <string name="repeat_note_tomorrow">The next one logs tomorrow.</string>
     <string name="repeat_note_next_on">The next one logs on %1$s.</string>
     <string name="repeat_note_never">Its last day has passed, so it won't log again.</string>

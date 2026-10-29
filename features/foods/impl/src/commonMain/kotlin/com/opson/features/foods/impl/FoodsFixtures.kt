@@ -168,6 +168,16 @@ object FoodsFixtures {
     fun repeatState(policy: VisibilityPolicy, empty: Boolean = false, edit: Boolean = false): RepeatState =
         RepeatStateBuilder.build(if (edit) repeatEditDraft() else repeatDraft(empty), savedMeals, today, policy)
 
+    /** A saved everyday repeat that logged today, its food since removed: saving won't log it again. */
+    fun repeatDoneTodayState(policy: VisibilityPolicy): RepeatState = RepeatStateBuilder.build(
+        repeatDraft().copy(days = RepeatDays.EveryDay, ruleId = repeats.first().id),
+        savedMeals,
+        today,
+        policy,
+        ranToday = true,
+        loggedToday = false,
+    )
+
     /** 11.2: "Usual breakfast" at breakfast, three foods. */
     fun mealDraft(empty: Boolean = false): MealDraft = if (empty) {
         MealDraft()

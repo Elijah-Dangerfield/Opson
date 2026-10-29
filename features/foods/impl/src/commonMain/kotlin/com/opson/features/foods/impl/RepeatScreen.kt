@@ -52,6 +52,7 @@ import opson.libraries.resources.generated.resources.repeat_ends
 import opson.libraries.resources.generated.resources.repeat_how
 import opson.libraries.resources.generated.resources.repeat_meal
 import opson.libraries.resources.generated.resources.repeat_note_counts_today
+import opson.libraries.resources.generated.resources.repeat_note_done_today
 import opson.libraries.resources.generated.resources.repeat_note_logged_today
 import opson.libraries.resources.generated.resources.repeat_note_logs_today
 import opson.libraries.resources.generated.resources.repeat_note_never
@@ -283,6 +284,7 @@ private fun noteText(state: RepeatState): String = when (val note = state.note) 
     RepeatNote.LogsToday -> stringResource(Res.string.repeat_note_logs_today)
     RepeatNote.CountsToday -> stringResource(Res.string.repeat_note_counts_today)
     RepeatNote.LoggedToday -> stringResource(Res.string.repeat_note_logged_today)
+    RepeatNote.DoneToday -> stringResource(Res.string.repeat_note_done_today)
     RepeatNote.Tomorrow -> stringResource(Res.string.repeat_note_tomorrow)
     is RepeatNote.NextOn -> stringResource(Res.string.repeat_note_next_on, DateCopy.weekdayMonthDay(note.day))
     RepeatNote.Never -> stringResource(Res.string.repeat_note_never)

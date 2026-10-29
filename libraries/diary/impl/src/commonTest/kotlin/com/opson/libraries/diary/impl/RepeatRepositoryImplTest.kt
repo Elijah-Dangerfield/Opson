@@ -105,6 +105,16 @@ class RepeatRepositoryImplTest : CoroutineTest() {
     }
 
     @Test
+    fun aRuleHasHadTodayOnceItLogged_evenWithItsFoodRemoved() = runUnitTest {
+        val saved = repeats.create(plan(listOf(porridge)))
+        val other = repeats.create(plan(listOf(coffee), start = LocalDate(2026, 10, 26)))
+        diary.removeItem(repeatEntryId(saved.rule.id, today, 0))
+
+        assertTrue(repeats.observeHasRun(saved.rule.id, today).first())
+        assertFalse(repeats.observeHasRun(other.rule.id, today).first(), "starts tomorrow")
+    }
+
+    @Test
     fun theNextDayLogsAgain_withItsOwnIds() = runUnitTest {
         val saved = repeats.create(plan(listOf(porridge)))
         calendar.today = LocalDate(2026, 10, 26)
