@@ -19,6 +19,8 @@ kotlin {
             implementation(projects.libraries.opson)
             // EntitlementRepository.refresh, after joining or leaving Builders.
             implementation(projects.libraries.entitlements)
+            // integrity.deviceCheck and integrity.playCloudProjectNumber, for ContributionAttestation.
+            implementation(projects.libraries.config)
 
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.core)
@@ -36,6 +38,11 @@ kotlin {
             implementation(libs.ktor.client.mock)
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(projects.libraries.config)
+        }
+        androidMain.dependencies {
+            // Play Integrity standard requests, only with contribution requests (PlayIntegrityAttestation).
+            implementation(libs.google.play.integrity)
         }
     }
 }

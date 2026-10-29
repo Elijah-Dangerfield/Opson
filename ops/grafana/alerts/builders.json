@@ -1,0 +1,531 @@
+{
+  "apiVersion": 1,
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "opson-builders",
+      "folder": "Opson",
+      "interval": "5m",
+      "rules": [
+        {
+          "uid": "opson-builders-burst",
+          "title": "One contributor, many submissions in an hour",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 3600,
+                "to": 0
+              },
+              "datasourceUid": "opson-prod-db",
+              "model": {
+                "refId": "A",
+                "rawSql": "SELECT count(*) AS value FROM support.contributors WHERE submitted_1h > 15",
+                "rawQuery": true,
+                "editorMode": "code",
+                "format": "table"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0m",
+          "annotations": {
+            "summary": "Someone sent more than 15 foods in the last hour. Scripted, or farming for Pro: open Contributors to look at.",
+            "__dashboardUid__": "opson-builders"
+          },
+          "labels": {
+            "app": "opson",
+            "board": "builders"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "opson-builders-flags",
+          "title": "One contributor, many flags in a day",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 3600,
+                "to": 0
+              },
+              "datasourceUid": "opson-prod-db",
+              "model": {
+                "refId": "A",
+                "rawSql": "SELECT count(*) AS value FROM support.contributors WHERE flagged_24h >= 5 AND standing = 'ok'",
+                "rawQuery": true,
+                "editorMode": "code",
+                "format": "table"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0m",
+          "annotations": {
+            "summary": "A contributor in good standing had five or more flagged submissions in 24 hours.",
+            "__dashboardUid__": "opson-builders"
+          },
+          "labels": {
+            "app": "opson",
+            "board": "builders"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "opson-builders-approval",
+          "title": "Approval rate collapsed",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 3600,
+                "to": 0
+              },
+              "datasourceUid": "opson-prod-db",
+              "model": {
+                "refId": "A",
+                "rawSql": "SELECT CASE WHEN coalesce(sum(contributions) FILTER (WHERE state IN ('approved', 'rejected')), 0) < 20 THEN 1 ELSE sum(contributions) FILTER (WHERE state = 'approved')::float / sum(contributions) FILTER (WHERE state IN ('approved', 'rejected')) END AS value FROM analytics.contributions_daily WHERE kind = 'submission' AND day > current_date - 7",
+                "rawQuery": true,
+                "editorMode": "code",
+                "format": "table"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "lt",
+                      "params": [
+                        0.5
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "1h",
+          "annotations": {
+            "summary": "Under half of the last 7 days' submissions (20 or more decided) were approved.",
+            "__dashboardUid__": "opson-builders"
+          },
+          "labels": {
+            "app": "opson",
+            "board": "builders"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "opson-builders-photo-reuse",
+          "title": "Photo reused across accounts",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 3600,
+                "to": 0
+              },
+              "datasourceUid": "opson-prod-db",
+              "model": {
+                "refId": "A",
+                "rawSql": "SELECT count(*) AS value FROM support.photo_reuse WHERE cross_account AND created_at > now() - interval '1 hour'",
+                "rawQuery": true,
+                "editorMode": "code",
+                "format": "table"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0m",
+          "annotations": {
+            "summary": "Two accounts sent the same photo in the last hour. Almost always sock puppets.",
+            "__dashboardUid__": "opson-builders"
+          },
+          "labels": {
+            "app": "opson",
+            "board": "builders"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "opson-builders-impossible",
+          "title": "Impossible values spiking",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 3600,
+                "to": 0
+              },
+              "datasourceUid": "opson-prod-db",
+              "model": {
+                "refId": "A",
+                "rawSql": "SELECT coalesce(sum(contributions), 0) AS value FROM analytics.contribution_flags_daily WHERE flag IN ('impossible_value', 'kcal_zero_with_macros') AND day = current_date",
+                "rawQuery": true,
+                "editorMode": "code",
+                "format": "table"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        10
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0m",
+          "annotations": {
+            "summary": "More than 10 submissions today hold an impossible amount or 0 kcal beside macros.",
+            "__dashboardUid__": "opson-builders"
+          },
+          "labels": {
+            "app": "opson",
+            "board": "builders"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "opson-builders-queue-age",
+          "title": "Review queue ageing",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 3600,
+                "to": 0
+              },
+              "datasourceUid": "opson-prod-db",
+              "model": {
+                "refId": "A",
+                "rawSql": "SELECT coalesce(max(oldest_hours), 0) AS value FROM analytics.contribution_queue",
+                "rawQuery": true,
+                "editorMode": "code",
+                "format": "table"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        72
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "1h",
+          "annotations": {
+            "summary": "Something has waited for a reviewer more than 72 hours.",
+            "__dashboardUid__": "opson-builders"
+          },
+          "labels": {
+            "app": "opson",
+            "board": "builders"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "opson-builders-integrity",
+          "title": "Device checks failing",
+          "condition": "C",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 3600,
+                "to": 0
+              },
+              "datasourceUid": "opson-prod-db",
+              "model": {
+                "refId": "A",
+                "rawSql": "SELECT coalesce(sum(checks), 0) AS value FROM analytics.contribution_checks_daily WHERE day = current_date AND outcome IN ('invalid', 'error')",
+                "rawQuery": true,
+                "editorMode": "code",
+                "format": "table"
+              }
+            },
+            {
+              "refId": "B",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "reduce",
+                "expression": "A",
+                "reducer": "last",
+                "settings": {
+                  "mode": "dropNN"
+                }
+              }
+            },
+            {
+              "refId": "C",
+              "relativeTimeRange": {
+                "from": 0,
+                "to": 0
+              },
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "C",
+                "type": "threshold",
+                "expression": "B",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        20
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0m",
+          "annotations": {
+            "summary": "More than 20 device checks today didn't verify or couldn't reach Apple or Google: a key, a config or a forged client.",
+            "__dashboardUid__": "opson-builders"
+          },
+          "labels": {
+            "app": "opson",
+            "board": "builders"
+          },
+          "isPaused": false
+        }
+      ]
+    }
+  ]
+}

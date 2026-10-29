@@ -69,6 +69,12 @@ sealed interface SubmitResult {
 
     data object TooMany : SubmitResult
 
+    /**
+     * The server won't take contributions from this account or this phone right now (403
+     * `contributions_restricted`). The food is still the person's own; logging is never affected.
+     */
+    data object Restricted : SubmitResult
+
     data class Failed(val offline: Boolean) : SubmitResult
 }
 

@@ -129,9 +129,13 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "food-detail-entry-quick", label = "Food detail, a quick number on the log", showsCaloriesInFull = true) { policy ->
             FoodDetailContent(state = LoggerFixtures.quickNumberDetailState(policy), onAction = {})
         },
-        // The scanner draws no food data in any stage; the miss is its fullest screen.
+        // The scanner draws no food data in any other stage; the miss is its fullest screen.
         LeakSurface(id = "logger-scan-miss", label = "Barcode not found", showsCaloriesInFull = false) { _ ->
             BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.missedNamed.copy(canAddFood = true)), onAction = {}, viewfinder = { _, _ -> })
+        },
+        // A code in several databases: each row's serving and numbers as the mode shows them, and what is known about them.
+        LeakSurface(id = "logger-scan-matches", label = "Barcode, pick a match", showsCaloriesInFull = true) { policy ->
+            BarcodeScanScreen(state = LoggerFixtures.scanState(LoggerFixtures.matchedThree, policy), onAction = {}, viewfinder = { _, _ -> })
         },
         // Add this food (release.submitFood): the photos name no number in any mode.
         LeakSurface(id = "submit-food-photos", label = "Add this food, photos", showsCaloriesInFull = false) { policy ->

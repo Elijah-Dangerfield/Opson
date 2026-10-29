@@ -4,7 +4,8 @@
   logger's search bar and the scanner screen. The waiting and not-found lines
   are from docs/plans/screens/logger.md; the rest is in
   docs/plans/screens/barcode.md. None of it names a number, so every mode
-  shows it unchanged. Same rules as strings.xml: no backslash escapes,
+  shows it unchanged; "Pick a match" rows carry numbers only through the
+  person's mode. Same rules as strings.xml: no backslash escapes,
   positional %1$s arguments.
 -->
 <resources>
@@ -51,4 +52,12 @@
     <string name="barcode_camera_body_ask">Opson only uses the camera to read barcodes. Nothing is recorded.</string>
     <string name="barcode_allow_camera">Allow camera</string>
     <string name="barcode_open_settings">Open Settings</string>
+
+    <!-- Pick a match: the code is in more than one database and their numbers differ -->
+    <string name="barcode_matches_title">Pick a match</string>
+    <string name="barcode_matches_body">This barcode is in more than one database. The first is our best guess.</string>
+    <string name="barcode_match_suggested">Suggested</string>
+    <string name="barcode_match_verified">Verified</string>
+    <string name="barcode_match_corrected">Corrected</string>
+    <string name="barcode_match_numbers_off">Numbers look off</string>
 </resources>

@@ -29,5 +29,7 @@
   { "path": "release.exercise", "type": "boolean", "default": false, "description": "Exercise logged by hand, counted in Burned; needs goalsAndEnergy" },
   { "path": "release.providerSummary", "type": "boolean", "default": false, "description": "Support: a PDF summary for a provider, from a range and contents the person picks" },
   { "path": "release.medication", "type": "boolean", "default": false, "description": "Medication tracking: More › Medication, the dose sheet, the Today card, the dose reminder, weight ticks and the provider summary section" },
-  { "path": "release.repeats", "type": "boolean", "default": false, "description": "Repeating on the Foods tab: foods and meals that log themselves on the days picked" }
+  { "path": "release.repeats", "type": "boolean", "default": false, "description": "Repeating on the Foods tab: foods and meals that log themselves on the days picked" },
+  { "path": "integrity.deviceCheck", "type": "boolean", "default": false, "description": "iOS: send a DeviceCheck token with contribution requests. Turn on once the server has APPLE_DEVICECHECK_*" },
+  { "path": "integrity.playCloudProjectNumber", "type": "long", "default": 0, "description": "Android: the Cloud project number for Play Integrity tokens on contribution requests; 0 sends none" }
 ]

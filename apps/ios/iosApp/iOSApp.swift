@@ -23,7 +23,8 @@ struct iOSApp: App {
             fileSharePresenter: fileSharePresenter,
             nativeViewFactory: nativeViewFactory,
             widgetBridge: widgetBridge,
-            textRecognitionBridge: textRecognitionBridge
+            textRecognitionBridge: textRecognitionBridge,
+            deviceSignals: IOSDeviceSignals()
         )
         iOSAppComponent.telemetry.initialize()
         // Construct every @AutoInit singleton up front — resolving the set is

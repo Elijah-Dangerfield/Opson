@@ -1,7 +1,7 @@
 ---
 app: Opson
 title: Terms of Service
-updated: 2026-10-27
+updated: 2026-10-29
 contact: contact@nightjarlabs.llc
 ---
 
@@ -54,6 +54,30 @@ delete your account at any time from **More → Support and sharing**.
 - Interfere with our servers, get around limits we put on features, or access
   data that isn't yours.
 - Use the app to break the law or to harm anyone.
+
+## Foods you send, and Opson Builders
+
+When you send us a food from its pack, report a problem with a food or check
+one against its pack, you give us a free, worldwide, permanent licence to store
+your photos for review and to use and publish the food data you send (names,
+brands, barcodes, servings and nutrition values) in Opson's food database. The
+photos are handled as the Privacy Policy says.
+
+Opson Builders is optional. If you join, these rules apply on top of the rest:
+
+- Photograph only packs you have in front of you. No photos from websites,
+  other apps or other people.
+- Don't copy numbers from other apps or databases, such as MyFitnessPal,
+  Cronometer or Open Food Facts. Send what the label says.
+- One account per person.
+- Builders are not paid. Builder Pro lasts while you are active (ten accepted
+  foods or checks in 30 days keeps it on) and while the program runs. We can
+  change or end the program, or its rules, with notice in the app.
+- Fake or copied data means removal from Builders, the end of Builder Pro and
+  removal of your contributions. It can also mean losing access to your
+  account. If you think we got it wrong, write to us at the address below.
+- You can leave at any time from **More → Builders**. The foods we accepted
+  from you stay in the database.
 
 ## Changes to the app
 

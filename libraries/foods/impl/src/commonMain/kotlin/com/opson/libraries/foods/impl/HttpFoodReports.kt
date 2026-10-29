@@ -1,5 +1,6 @@
 package com.opson.libraries.foods.impl
 
+import com.opson.libraries.foods.ContributionAttestation
 import com.opson.libraries.foods.FoodReport
 import com.opson.libraries.foods.FoodReportResult
 import com.opson.libraries.foods.FoodReports
@@ -10,6 +11,7 @@ import com.opson.libraries.networking.isOfflineError
 import io.ktor.client.call.body
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.plugins.timeout
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -61,7 +63,10 @@ internal data class FoodReportResponse(val reportId: String, val status: String)
  */
 @ContributesBinding(AppScope::class)
 @Inject
-class HttpFoodReports(private val networkClient: NetworkClient) : FoodReports {
+class HttpFoodReports(
+    private val networkClient: NetworkClient,
+    private val attestation: ContributionAttestation = ContributionAttestation.None,
+) : FoodReports {
 
     @OptIn(ExperimentalEncodingApi::class)
     override suspend fun send(report: FoodReport): FoodReportResult {
@@ -72,9 +77,11 @@ class HttpFoodReports(private val networkClient: NetworkClient) : FoodReports {
             note = report.note?.trim()?.ifEmpty { null },
             photo = report.photo?.let { Base64.encode(it) },
         )
+        val device = attestation.headers(report.id)
         return networkClient.authedCall("foods.report") { client ->
             val response = client.post(path(report.foodId)) {
                 expectSuccess = false
+                device.forEach { (name, value) -> header(name, value) }
                 timeout {
                     requestTimeoutMillis = TIMEOUT_MS
                     socketTimeoutMillis = TIMEOUT_MS

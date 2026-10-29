@@ -227,12 +227,12 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     /**
-     * V30 is additive and safe to run twice. Deleting an account deletes its Builder row and its
+     * V31 is additive and safe to run twice. Deleting an account deletes its Builder row and its
      * checks against the pack; provenance outlives it with the account's key and no id.
      */
     @Test
     fun buildersMigrationIsIdempotentAndProvenanceOutlivesTheAccount() {
-        val migration = checkNotNull(javaClass.getResource("/db/migration/V30__builders.sql")).readText()
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V31__builders.sql")).readText()
         database.blockingTransaction { exec(migration) }
 
         val user = seedAuthUser().value
@@ -493,7 +493,9 @@ class DatabaseSchemaTest : DatabaseTest() {
             "log_entries", "user_settings", "weigh_ins", "foods", "off_foods", "food_search_events", "barcode_misses",
             "profiles", "waitlist", "apple_refresh_tokens", "food_submissions", "food_submission_photos",
             "barcode_link_suggestions", "food_reports", "food_report_photos", "food_corrections",
-            "builder_members", "food_verifications", "food_provenance", "moderation_secrets",
+            "moderation_secrets", "moderation_actions", "moderation_events", "food_provenance", "device_sightings",
+            "device_markers", "contribution_checks", "contribution_signals",
+            "builder_members", "food_verifications",
         ).forEach { table ->
             assertFailsWith<Exception>("grafana_ro must not read public.$table") {
                 database.blockingTransaction {
@@ -559,8 +561,16 @@ class DatabaseSchemaTest : DatabaseTest() {
             "preset_distribution", "search_daily", "top_zero_result_queries", "barcode_outcomes_daily",
             "weekly_retention_cohorts", "retention_d1_d7_d30", "barcode_hit_rate_daily", "top_missed_barcodes",
             "barcode_misses_by_country", "waitlist_daily", "food_submissions_daily", "food_submission_queue",
-            "barcode_link_queue", "food_report_queue", "contribution_lanes_daily", "builder_program_daily",
+            "barcode_link_queue", "food_report_queue",
+            // V30, the Builders board.
+            "contributions_daily", "contribution_queue", "contribution_flags_daily", "contribution_checks_daily",
+            "moderation_daily", "top_reported_foods",
+            // V31, the Builder program.
+            "contribution_lanes_daily", "builder_program_daily",
         )
-        val SUPPORT_VIEWS = listOf("users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings", "builders")
+        val SUPPORT_VIEWS = listOf(
+            "users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings",
+            "contributors", "photo_reuse", "moderation_actions", "builders",
+        )
     }
 }

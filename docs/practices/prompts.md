@@ -27,13 +27,15 @@ back.
 6. **On Today opening only:** none in an account's first two days on this phone, and a day between
    any two prompts (three days after numbers have been hard).
 
-A **moment** (`PromptEvent`: a report sent, the day closed) lets a prompt that lists it show as
+A **moment** (`PromptEvent`: a report sent, a food reported, the day closed) lets a prompt that lists it show as
 Today next settles, within ten minutes. It skips rule 6, because the moment does not come back,
 but never rules 1 to 5. A moment nobody could use is dropped.
 
-Among the candidates that pass, the highest `priority` whose own `isEligible()` says yes shows
+Among the candidates that pass, the highest `priority` whose own `isEligible(moment)` says yes shows
 (`PromptPriority`; a tie goes by id). Eligibility is asked only after the rules pass, so it may read
-the database.
+the database. `moment` is the event that called the prompt up, or null for Today opening; it
+defaults to `isEligible()`, and a prompt with a different reason to show for each overrides it
+(`join_builder` follows a food report, or Today once a food was approved, and shows once either way).
 
 **What a prompt may say.** Never anything that nudges toward eating less, and nothing that asks
 someone to log more. Respect the modes: a prompt about energy or calories checks that calories are
@@ -60,6 +62,7 @@ tap outside and Back count as Not now). Counts live on the phone, per account, i
 | `connect_health` | sheet | the phone has a health store, it is not connected, calories are on show; not after numbers have been hard | Watch and health apps | `release.health` |
 | `meal_reminders` | dialog | no reminder level was ever chosen and notifications were not refused; not after numbers have been hard | Reminders and celebrations | `release.reminders` |
 | `try_check_in` | card, up to 3 times, 3 days apart | 3 logged days in the last 14 and no check-in in them | Today's check-in | `release.checkIn` |
+| `join_builder` | sheet, once ever | right after a food report is sent (`FoodReportSent`), or as Today opens once a food they added was approved; never to a Builder or someone who can't join | More › Builders | `release.builders` |
 
 ## Adding a prompt (the Builder program, for example)
 
@@ -112,7 +115,7 @@ closes after `accept()` did the work itself (a join call, say).
 
 **Emitting a moment.** Inject `PromptEvents` and call `emit(PromptEvent.X)` where the moment
 happens, after it succeeded. `FeedbackRepositoryImpl` emits `ReportSent` for bug reports and
-feedback, `FoodReportViewModel` for a food's "Report a problem", and Close the day's Done emits
+feedback, `FoodReportViewModel` for a food's "Report a problem" (with `FoodReportSent` too, which only that report emits), and Close the day's Done emits
 `DayClosed`. A new kind of report emits `ReportSent` too; a new kind of moment is a new `PromptEvent` value. A constructor that must
 not grow a required argument can default it to `PromptEvents.None`.
 

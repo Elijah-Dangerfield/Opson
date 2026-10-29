@@ -133,7 +133,11 @@ in [`docs/practices/prompts.md`](docs/practices/prompts.md); QA menu › Prompts
 
 ## Entitlements and roles (`:libraries:entitlements`)
 
-Never ask whether someone is Pro. Paid features are named entitlements, and Pro is a bundle of them in remote config, so a feature can move between Free and Pro, or go to one person, without a release. The app asks `EntitlementRepository.has(Entitlement.X)` (and `RoleRepository.can(Permission.X)`); the server checks the same thing itself on the route (`EntitlementService.has`, `Permissions.can`). Free features get no entitlement. The client holds `Entitlement.DEFAULTS` until the server answers, so nothing free disappears offline. How it resolves, the admin API and how the owner's role is set: "Roles and entitlements" in [`apps/server/README.md`](apps/server/README.md).
+Never ask whether someone is Pro. Paid features are named entitlements, and Pro is a bundle of them in remote config, so a feature can move between Free and Pro, or go to one person, without a release. The app asks `EntitlementRepository.has(Entitlement.X)` (and `RoleRepository.can(Permission.X)`); the server checks the same thing itself on the route (`EntitlementService.has`, `Permissions.can`). Free features get no entitlement. The client holds `Entitlement.DEFAULTS` until the server answers, so nothing free disappears offline. A Builder's `builder` role brings Pro only while they stay active (`BuilderService.roleWindow`, "The Builder program" in the server README). How it resolves, the admin API and how the owner's role is set: "Roles and entitlements" in [`apps/server/README.md`](apps/server/README.md).
+
+## Contributions and moderation
+
+Anything that adds to the shared catalog (a food submission, a report, later a Builder's check) is a contribution. Its route calls `refuseIfRestricted(contributionGate, …)` before doing anything, and its client sends `ContributionAttestation.headers(id)` (`:libraries:foods`) with that request and no other. Anything that hands out free Pro asks `ContributionGate.mayReceiveFreePro` first. Logging food is never gated by moderation or by a device. A new kind of contribution also gets a `food_provenance` row when accepted and a `ContributionReverter` so rollback covers it. Details: "Moderation" in [`apps/server/README.md`](apps/server/README.md).
 
 ## Server (`:apps:server`)
 

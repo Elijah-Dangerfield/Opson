@@ -1,5 +1,6 @@
 package com.opson
 
+import com.opson.libraries.foods.IosDeviceSignals
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
 import com.opson.libraries.identity.auth.SecureSessionStorage
 import com.opson.libraries.navigation.FileSharePresenter
@@ -36,6 +37,9 @@ abstract class IosAppComponent(
     // `iOSApp.swift` for reading a nutrition label on the phone. Android reads with
     // ML Kit, bound via anvil.
     private val textRecognitionBridge: TextRecognitionBridge,
+    // The Swift `IOSDeviceSignals` (a Keychain install key and DeviceCheck tokens), passed in from
+    // `iOSApp.swift`, sent only with contribution requests. Android uses Play Integrity via anvil.
+    private val deviceSignals: IosDeviceSignals,
 ) : AppComponent {
 
     @Provides
@@ -55,6 +59,9 @@ abstract class IosAppComponent(
 
     @Provides
     fun provideTextRecognitionBridge(): TextRecognitionBridge = textRecognitionBridge
+
+    @Provides
+    fun provideDeviceSignals(): IosDeviceSignals = deviceSignals
 }
 
 
@@ -67,4 +74,5 @@ expect fun create(
     nativeViewFactory: NativeViewFactory,
     widgetBridge: WidgetBridge,
     textRecognitionBridge: TextRecognitionBridge,
+    deviceSignals: IosDeviceSignals,
 ): IosAppComponent

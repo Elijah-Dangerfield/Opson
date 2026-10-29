@@ -20,6 +20,12 @@ interface BarcodeTelemetry {
 
     fun miss(typed: Boolean)
 
+    /** The code was in [count] databases whose numbers differ, so "Pick a match" listed them. */
+    fun matchesShown(count: Int, typed: Boolean)
+
+    /** A row of "Pick a match" was opened: [position] 0 is the suggested one, of [of] rows. */
+    fun matchPicked(position: Int, of: Int)
+
     /** Allowed, but the camera could not run. */
     fun cameraUnavailable()
 
@@ -41,6 +47,14 @@ class AppEventsBarcodeTelemetry : BarcodeTelemetry {
 
     override fun miss(typed: Boolean) {
         logger.logEvent("barcode.miss", "typed" to typed)
+    }
+
+    override fun matchesShown(count: Int, typed: Boolean) {
+        logger.logEvent("barcode.matches_shown", "count" to count, "typed" to typed)
+    }
+
+    override fun matchPicked(position: Int, of: Int) {
+        logger.logEvent("barcode.match_picked", "position" to position, "of" to of, "suggested" to (position == 0))
     }
 
     override fun cameraUnavailable() {

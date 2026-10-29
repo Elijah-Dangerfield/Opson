@@ -48,6 +48,16 @@ data class FoodResponse(
     val verified: Boolean = false,
     /** `pending` or `rejected` on a food the person added that no reviewer approved yet; absent otherwise. */
     val reviewStatus: String? = null,
+    /** Only from the barcode route asked with `matches=all`: every food for the code, this one first. */
+    val matches: List<BarcodeMatchDto>? = null,
+)
+
+/** One food a code matched. `energyCheck` is the server's energy guard; `corrected` a reviewer's fix. */
+@Serializable
+data class BarcodeMatchDto(
+    val food: FoodResponse,
+    val energyCheck: List<String> = emptyList(),
+    val corrected: Boolean = false,
 )
 
 @Serializable
@@ -113,6 +123,9 @@ interface FoodApi {
     /** Null for a 404: neither the catalog nor Open Food Facts knows the code. */
     suspend fun barcode(code: String): Catching<FoodResponse?>
 
+    /** [barcode] asking for every match too (`matches=all`). A server without the list ignores the ask. */
+    suspend fun barcodeMatches(code: String): Catching<FoodResponse?> = barcode(code)
+
     suspend fun describe(text: String): Catching<DescribeResponse>
 }
 
@@ -152,10 +165,16 @@ class HttpFoodApi(private val networkClient: NetworkClient) : FoodApi {
             client.get("/v1/foods/${id.encodeURLPathPart()}").body<FoodResponse>()
         }
 
-    override suspend fun barcode(code: String): Catching<FoodResponse?> =
+    override suspend fun barcode(code: String): Catching<FoodResponse?> = barcode(code, allMatches = false)
+
+    override suspend fun barcodeMatches(code: String): Catching<FoodResponse?> = barcode(code, allMatches = true)
+
+    private suspend fun barcode(code: String, allMatches: Boolean): Catching<FoodResponse?> =
         networkClient.authedCall("foods.barcode", retry = WAITED_ON_RETRY) { client ->
             try {
-                client.get("/v1/foods/barcode/${code.encodeURLPathPart()}").body<FoodResponse>()
+                client.get("/v1/foods/barcode/${code.encodeURLPathPart()}") {
+                    if (allMatches) parameter("matches", "all")
+                }.body<FoodResponse>()
             } catch (e: ClientRequestException) {
                 if (e.response.status == HttpStatusCode.NotFound) null else throw e
             }

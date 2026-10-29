@@ -27,6 +27,7 @@ data class ServerConfig(
     val configChange: ConfigChangeConfig,
     val foodSources: FoodSourcesConfig = FoodSourcesConfig(),
     val waitlist: WaitlistConfig = WaitlistConfig(),
+    val deviceIntegrity: DeviceIntegrityConfig = DeviceIntegrityConfig(),
 ) {
     /**
      * Every optional feature, on or off, in one line for the boot log, named by
@@ -46,6 +47,8 @@ data class ServerConfig(
         "photo" to (foodSources.anthropic != null),
         "nutritionix" to (foodSources.nutritionix != null),
         "offSearch" to foodSources.searchOpenFoodFacts,
+        "deviceCheck" to (deviceIntegrity.deviceCheck != null),
+        "playIntegrity" to (deviceIntegrity.playIntegrity != null),
     ).joinToString(" ") { (name, on) -> "$name=${if (on) "on" else "off"}" }
 
     companion object {
@@ -60,7 +63,88 @@ data class ServerConfig(
             configChange = ConfigChangeConfig.fromEnv(env),
             foodSources = FoodSourcesConfig.fromEnv(env),
             waitlist = WaitlistConfig.fromEnv(env),
+            deviceIntegrity = DeviceIntegrityConfig.fromEnv(env),
         )
+    }
+}
+
+/**
+ * Device-level bans that survive a reinstall (V30, "Moderation" in apps/server/README.md). Both
+ * halves are inert until their keys are set: with neither, contribution requests are checked
+ * against the account and the app's install key only.
+ */
+data class DeviceIntegrityConfig(
+    val deviceCheck: DeviceCheckConfig? = null,
+    val playIntegrity: PlayIntegrityConfig? = null,
+) {
+    companion object {
+        fun fromEnv(env: Env): DeviceIntegrityConfig = DeviceIntegrityConfig(
+            deviceCheck = DeviceCheckConfig.fromEnv(env),
+            playIntegrity = PlayIntegrityConfig.fromEnv(env),
+        )
+    }
+}
+
+/**
+ * Apple DeviceCheck: two bits per device, kept by Apple across a reinstall and an erase. Needs a
+ * key with the DeviceCheck service (Certificates, Identifiers & Profiles › Keys; the Sign in with
+ * Apple key can carry it too) and the team id. [production] picks Apple's production endpoint,
+ * which TestFlight and App Store builds use; a debug build's tokens only work against the
+ * development one (`APPLE_DEVICECHECK_ENVIRONMENT=development`).
+ */
+data class DeviceCheckConfig(
+    val teamId: String,
+    val keyId: String,
+    val privateKeyPem: String,
+    val production: Boolean = true,
+) {
+    val baseUrl: String get() = if (production) PRODUCTION_URL else DEVELOPMENT_URL
+
+    override fun toString(): String = "DeviceCheckConfig(teamId=$teamId, keyId=$keyId, production=$production)"
+
+    companion object {
+        const val PRODUCTION_URL = "https://api.devicecheck.apple.com"
+        const val DEVELOPMENT_URL = "https://api.development.devicecheck.apple.com"
+
+        fun fromEnv(env: Env): DeviceCheckConfig? {
+            val teamId = env["APPLE_TEAM_ID"]?.takeIf { it.isNotBlank() } ?: return null
+            val keyId = env["APPLE_DEVICECHECK_KEY_ID"]?.takeIf { it.isNotBlank() } ?: return null
+            val key = env["APPLE_DEVICECHECK_PRIVATE_KEY"]?.takeIf { it.isNotBlank() }?.replace("\\n", "\n") ?: return null
+            return DeviceCheckConfig(
+                teamId = teamId,
+                keyId = keyId,
+                privateKeyPem = key,
+                production = env["APPLE_DEVICECHECK_ENVIRONMENT"]?.trim()?.lowercase() != "development",
+            )
+        }
+    }
+}
+
+/**
+ * Google Play Integrity, standard requests, decoded by Google's server (standard tokens can't be
+ * decrypted locally). Needs the Play Console's app linked to a Google Cloud project with the Play
+ * Integrity API on, and a service account's JSON key from that project. [deviceRecall] turns on
+ * writing device recall bits, which is a beta Google enrols apps into; reading them needs no flag
+ * (the verdict carries them once enrolled).
+ */
+data class PlayIntegrityConfig(
+    val packageName: String,
+    val serviceAccountJson: String,
+    val deviceRecall: Boolean = false,
+) {
+    override fun toString(): String = "PlayIntegrityConfig(packageName=$packageName, deviceRecall=$deviceRecall)"
+
+    companion object {
+        const val DEFAULT_PACKAGE = "com.opson"
+
+        fun fromEnv(env: Env): PlayIntegrityConfig? {
+            val json = env["PLAY_INTEGRITY_SERVICE_ACCOUNT_JSON"]?.takeIf { it.isNotBlank() } ?: return null
+            return PlayIntegrityConfig(
+                packageName = env["PLAY_INTEGRITY_PACKAGE_NAME"]?.takeIf { it.isNotBlank() } ?: DEFAULT_PACKAGE,
+                serviceAccountJson = json,
+                deviceRecall = env["PLAY_INTEGRITY_DEVICE_RECALL"]?.trim()?.lowercase() == "true",
+            )
+        }
     }
 }
 

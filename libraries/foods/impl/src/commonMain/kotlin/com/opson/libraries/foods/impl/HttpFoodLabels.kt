@@ -3,6 +3,7 @@ package com.opson.libraries.foods.impl
 import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.foods.BarcodeLinkReporter
 import com.opson.libraries.foods.CarbBasis
+import com.opson.libraries.foods.ContributionAttestation
 import com.opson.libraries.foods.FoodLabels
 import com.opson.libraries.foods.FoodSubmission
 import com.opson.libraries.foods.LabelCheck
@@ -20,8 +21,10 @@ import com.opson.libraries.networking.isOfflineError
 import io.ktor.client.call.body
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.plugins.timeout
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
@@ -190,7 +193,10 @@ data class BarcodeLinkRequest(val barcode: String, val foodId: String)
  */
 @ContributesBinding(AppScope::class)
 @Inject
-class HttpFoodLabels(private val networkClient: NetworkClient) : FoodLabels {
+class HttpFoodLabels(
+    private val networkClient: NetworkClient,
+    private val attestation: ContributionAttestation = ContributionAttestation.None,
+) : FoodLabels {
 
     @OptIn(ExperimentalEncodingApi::class)
     override suspend fun parse(front: ByteArray, label: ByteArray): LabelParse {
@@ -237,9 +243,11 @@ class HttpFoodLabels(private val networkClient: NetworkClient) : FoodLabels {
             ingredients = submission.ingredients?.let { Base64.encode(it) },
             capture = submission.capture?.let(CaptureDto::of),
         )
+        val device = attestation.headers(submission.id)
         return networkClient.authedCall("foods.submission") { client ->
             val response = client.post(SUBMIT_PATH) {
                 expectSuccess = false
+                device.forEach { (name, value) -> header(name, value) }
                 timeout {
                     requestTimeoutMillis = SUBMIT_TIMEOUT_MS
                     socketTimeoutMillis = SUBMIT_TIMEOUT_MS
@@ -252,6 +260,8 @@ class HttpFoodLabels(private val networkClient: NetworkClient) : FoodLabels {
                     SubmitResult.Submitted(it.submissionId, it.foodId, it.lane)
                 }
                 HttpStatusCode.TooManyRequests -> SubmitResult.TooMany
+                // Only a contribution refusal; any other 403 reads as an ordinary failure.
+                HttpStatusCode.Forbidden -> if (RESTRICTED in response.bodyAsText()) SubmitResult.Restricted else SubmitResult.Failed(offline = false)
                 else -> SubmitResult.Failed(offline = false)
             }
         }.getOrElse { SubmitResult.Failed(offline = it.isOfflineError()) }
@@ -260,6 +270,9 @@ class HttpFoodLabels(private val networkClient: NetworkClient) : FoodLabels {
     internal companion object {
         const val PARSE_PATH = "/v1/foods/labels/parse"
         const val SUBMIT_PATH = "/v1/foods/submissions"
+
+        /** The server's problem code when it won't take contributions from this account or device. */
+        const val RESTRICTED = "contributions_restricted"
 
         /** The server allows the model 90 s, and a second model as long again when the first refuses. */
         const val PARSE_TIMEOUT_MS = 190_000L

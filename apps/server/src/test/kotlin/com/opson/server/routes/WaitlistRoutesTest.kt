@@ -1,5 +1,6 @@
 package com.opson.server.routes
 
+import com.opson.server.config.DeviceIntegrityConfig
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.config.WaitlistConfig
 import com.opson.server.db.DatabaseTest
@@ -190,7 +191,7 @@ class WaitlistRoutesTest : DatabaseTest() {
     }
 
     private fun waitlistApp(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System, DeviceIntegrityConfig())
         application {
             installApp(component, verification = null, waitlistConfig = WaitlistConfig(setOf(site)))
         }

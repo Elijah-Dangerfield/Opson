@@ -140,7 +140,9 @@ miss are counted server-side instead, in `barcode_misses` with no account attach
 | Event | Attributes | Fires |
 |---|---|---|
 | `barcode.scan_started` | `permission` (`granted`: it already was, `asked`: the prompt was just answered yes) | The viewfinder goes live: on opening with the camera allowed, after a yes, or on coming back from Settings with it turned on |
-| `barcode.hit` | `source` (`usda_branded`, `off`, `nutritionix`, …), `slow` (the lookup took over 400 ms, so an outside source answered), `typed` (the code was typed by hand, not read by the camera) | A lookup found a food, just before the amount sheet opens |
+| `barcode.hit` | `source` (`usda_branded`, `off`, `nutritionix`, …), `slow` (the lookup took over 400 ms, so an outside source answered), `typed` (the code was typed by hand, not read by the camera) | A lookup found a food, just before the amount sheet opens, or before "Pick a match" when the code is in several databases (`source` is the suggested one's) |
+| `barcode.matches_shown` | `count` (rows listed), `typed` | The code matched foods in more than one database whose numbers differ, so "Pick a match" listed them |
+| `barcode.match_picked` | `position` (0 is the suggested row), `of` (rows listed), `suggested` | A row of "Pick a match" was opened |
 | `barcode.miss` | `typed` | The server had no food for the code (a 404). A lookup that failed, offline or a 503, is not a miss and fires nothing |
 | `barcode.camera_unavailable` | | The camera was allowed but could not run: no back camera (the iOS simulator), a failed start, or another app holding it. Once per camera session |
 | `barcode.permission_denied` | `can_ask_again` | The camera prompt was answered no, or the scanner opened with the camera already off. Counts people who could not scan at all |

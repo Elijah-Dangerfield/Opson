@@ -290,6 +290,17 @@ class SubmitFoodViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun aRestrictedAccountKeepsItsFoodAndIsToldWhy() = runUnitTest {
+        labels.submit = SubmitResult.Restricted
+        val vm = reviewing()
+        vm.takeAction(SubmitFoodAction.SubmitTapped)
+        settle()
+        assertEquals(SubmitStage.SendFailed(offline = false, tooMany = false, restricted = true), vm.state.stage)
+        assertEquals(1, diary.added.size, "logged all the same")
+        assertEquals(1, customFoods.foods.value.size)
+    }
+
+    @Test
     fun doneAfterAFailedSendClosesWithTheFoodKept() = runUnitTest {
         labels.submit = SubmitResult.TooMany
         val vm = reviewing()

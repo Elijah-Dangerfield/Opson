@@ -161,7 +161,7 @@ the usual `ProblemResponse`.
 | GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`) and `sort` (`best`, `name`); 400 `invalid_category` / `invalid_source` / `invalid_sort`. NEVO foods only with `credits=nevo` (RIVM requires its citation, which 0.1 can't show). |
 | GET | `/v1/foods/search/options` | `{sources, categories}` this server takes; `off` only when `FOOD_SEARCH_OFF_ENABLED` is on. |
 | GET | `/v1/foods/{id}` | 400 `invalid_id`, 404 `not_found`. |
-| GET | `/v1/foods/barcode/{code}` | Catalog (any of the code's UPC-A / EAN-13 / GTIN-14 / UPC-E forms), then each enabled outside source in tier order (5 s timeout each). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable` when no source could answer. 60/min per IP. |
+| GET | `/v1/foods/barcode/{code}` | Catalog (any of the code's UPC-A / EAN-13 / GTIN-14 / UPC-E forms), then each enabled outside source in tier order (5 s timeout each). 400 `invalid_barcode`, 404 `not_found`, 503 `barcode_lookup_unavailable` when no source could answer. `?matches=all` adds `matches`, every food the catalog has for the code with the answer first, each with `energyCheck` and `corrected`; without it the body is unchanged. 60/min per IP. |
 | POST | `/v1/foods/barcode-misses` `{id, barcode}` | The app reports a code the barcode route answered 404. 204, idempotent on `id`. Region, platform and app version come from the `X-*` headers; no user id is stored. 400 `invalid_id`, `invalid_barcode`. 60/min per IP. Feeds `barcode_misses` (V13). |
 | POST | `/v1/foods/labels/parse` `{front, label}` | Reads a pack's two photos (base64) into a label, field by field, with the model's confidence and the checks it fails. Stores no photo. See "Foods people add" below. |
 | POST | `/v1/foods/submissions` `{id, parseId?, origin, barcode?, front, label, food, customFoodId?}` | Stores a food someone corrected, pending review, with its photos. 201, or 200 for the same id again. `customFoodId` is the submitter's own copy (V27). |
@@ -679,6 +679,224 @@ every gate keeps asking the same question. Granting paid features outside
 in-app purchase has an App Store 3.1.1 angle; see `docs/decisions.md`
 (2026-10-29, roles and entitlements).
 
+### Moderation: bans, restrictions, provenance and devices (`V30__moderation.sql`)
+
+The admin console's Users tab has a Moderation panel under each account with
+Ban, Suspend, Restrict contributions, Lift and Roll back. What each does:
+
+| Action | `kind` / `scope` | Effect |
+|---|---|---|
+| Ban | `ban` / `full` | Every signed-in call answers 403 with the ban envelope (`reason: banned`), so the app shows its blocked screen and the appeal link. Indefinite unless given an end. Builder perks removed |
+| Suspend | `suspension` / `full` | The same, `reason: suspended`, always with an end. Builder perks kept |
+| Restrict contributions | `restriction` / `contributions` | The app keeps working, private logging included. `POST /v1/foods/submissions` and `POST /v1/foods/{id}/reports` answer 403 `contributions_restricted` (the ordinary problem envelope, so no blocked screen). Builder perks removed |
+
+The ban gate reads both `moderation_actions` and Supabase's own
+`auth.users.banned_until`, strictest first, so a ban set in the Supabase
+dashboard still works. The console doesn't set `banned_until` itself: a
+Supabase ban also refuses the token refresh, and the app would then land on
+"session expired" instead of the blocked screen and its appeal link.
+
+"Builder perks" are a `builder` role (back to member) and every grant with
+`source = builder`, removed through the role and grant repositories so
+`access_audit` records them. Paid grants are never touched, and lifting doesn't
+restore them. Anything that hands out free Pro (the Builder program, founding
+grants) asks `ContributionGate.mayReceiveFreePro(userId)` first.
+
+**Rollback** (`ModerationService.rollback`, one `ContributionReverter` per kind
+by multibinding) unpublishes the person's approved submissions (back to
+`rejected`, barcode released, `verified` off; anyone who logged one keeps their
+entry), reverts the correction each accepted report led to through
+`FoodReportRepository.revert`, and rejects what is still waiting. A correction
+that a later one has replaced can't be reverted alone and is counted as
+skipped, for a reviewer to look at.
+
+**Provenance survives the account.** `food_provenance` gets a row whenever a
+submission is approved or a report accepted (triggers, so no route can forget).
+`moderation_actions`, `moderation_events`, `food_provenance` and
+`device_markers` keep `user_id` only while the account exists (`ON DELETE SET
+NULL`) and carry `subject_key`, a SHA-256 of the id under a random secret the
+migration generates (`moderation_secrets`, readable by neither the app nor
+`grafana_ro`). Every read and rollback goes through `public.subject_key(id)`, so
+an account deleted after its ban can still be found and rolled back by the id
+it had. The privacy policy says so.
+
+**Every action is audited** in `moderation_events` (before and after, the
+`X-Admin-Actor`), in the same transaction as the change.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/v1/admin/users/{id}/moderation` | Admin token. Standing, `freeProAllowed`, every action, counts of accepted / rolled back / pending contributions, devices and markers, the trail, which device checks are configured. |
+| POST | `/v1/admin/users/{id}/moderation` `{kind, reason, note?, untilEpochMs?, markDevices?, rollback?}` | 201 `{action, perksRemoved, rolledBack?}`. `reason` is `fake_data`, `copied_data`, `spam`, `abuse`, `ban_evasion` or `other`. 400 `invalid_kind`, `invalid_reason`, `invalid_note`, `invalid_until`; 404 `not_found`. |
+| POST | `/v1/admin/users/{id}/contributions/rollback` `{reason}` | `{rolledBack: [{kind, undone, closed, skipped}]}`. Works for a deleted account's old id. |
+| POST | `/v1/admin/moderation/{actionId}/lift` `{note?}` | 409 `already_lifted`. Clears the devices that action marked. |
+| PUT | `/v1/admin/moderation/{actionId}/appeal` `{state, note?}` | `none`, `open`, `upheld`, `overturned`. Appeals arrive by email (`APPEAL_URL`). |
+| POST | `/v1/admin/devices/{markerId}/clear` `{note?}` | 204. The reset path for a second-hand phone; Apple's licence requires one. |
+| GET | `/v1/admin/moderation?active=true&limit=100` | Actions across everyone. |
+
+#### Device bans
+
+Contribution requests, and only those (never a log, a sync or a search),
+carry two headers from the app (`ContributionAttestation` in
+`:libraries:foods`):
+
+- `X-Device-Key`: a random install key. On iOS a Keychain item with
+  `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, which survives deleting
+  the app on every iOS release so far but which Apple doesn't promise to keep
+  (its DTS engineers call it an implementation detail); on Android the install
+  id. Without the header, `X-Install-Id` stands in. Only a keyed hash is stored
+  (`device_sightings`, which goes with the account).
+- `X-Integrity-Token`, once remote config turns it on: a DeviceCheck token on
+  iOS (`integrity.deviceCheck`), a Play Integrity standard token bound to the
+  request id on Android (`integrity.playCloudProjectNumber`). Read once and
+  dropped.
+
+A ban or restriction with "mark devices" marks every install key the account
+contributed from or signed in with (`device_markers`). `PostgresContributionGate`
+then refuses contributions from a marked device whatever account sends them,
+and, with a token, writes bit 0 at Apple (DeviceCheck) or `bitFirst` at Google
+(device recall) while the phone is talking to us, so the mark outlives a
+reinstall that loses the install key. A bit set with no marker here becomes a
+marker, so it shows in the console and can be cleared; clearing resets the bit
+on the phone's next contribution. A token that doesn't verify, or a service
+that doesn't answer, is counted in `contribution_checks` and never blocks.
+Logging food is never blocked by a device: families share phones and phones are
+sold.
+
+**Turning on DeviceCheck** (inert until all three are set):
+
+1. developer.apple.com › Certificates, Identifiers & Profiles › Keys › +, name
+   it "Opson DeviceCheck", tick **DeviceCheck**, Continue, Register, download
+   the `.p8` (once only) and note the Key ID. The Sign in with Apple key can
+   also have DeviceCheck ticked; then its id and `.p8` serve both.
+2. Set the secrets on prod (TestFlight and App Store builds use Apple's
+   production DeviceCheck; a debug build against the dev server needs
+   `APPLE_DEVICECHECK_ENVIRONMENT=development`):
+
+   ```bash
+   printf "DeviceCheck Key ID: "; read -r KID; printf "Path to the .p8: "; read -r P8
+   if [ -n "$KID" ] && [ -f "$P8" ]; then fly secrets set APPLE_DEVICECHECK_KEY_ID="$KID" APPLE_DEVICECHECK_PRIVATE_KEY="$(awk 'BEGIN{ORS="\\n"} {print}' "$P8")" -a opson-server-prod; else echo "Need a key id and an existing .p8 file. Nothing set."; fi; unset KID P8
+   ```
+
+3. Check the boot log says `deviceCheck=on`, then set `integrity.deviceCheck`
+   to true in the admin console so the app starts sending tokens.
+
+**Turning on Play Integrity** (inert until set):
+
+1. Play Console › the app › Test and release › App integrity › Play Integrity
+   API › Link a Cloud project (create one if needed), and enable the Play
+   Integrity API in that project.
+2. Google Cloud console › IAM › Service accounts › Create, no roles needed,
+   then Keys › Add key › JSON, and download it.
+3. Set it on prod:
+
+   ```bash
+   printf "Path to the service account JSON: "; read -r SA
+   if [ -f "$SA" ]; then fly secrets set PLAY_INTEGRITY_SERVICE_ACCOUNT_JSON="$(cat "$SA")" -a opson-server-prod; else echo "No such file. Nothing set."; fi; unset SA
+   ```
+
+4. Set `integrity.playCloudProjectNumber` in the admin console to the
+   project's number (Cloud console › project info), so the app starts asking
+   for tokens.
+5. Device recall is a beta Google enrols apps into through an interest form,
+   then a Play Console switch. Once enrolled, set
+   `PLAY_INTEGRITY_DEVICE_RECALL=true` so the server writes the bit; reading
+   it needs nothing. Its field names follow Google's documentation as of
+   2026-10 and should be checked against it on enrolment.
+
+Standard Play Integrity tokens can only be decoded by Google's server, which is
+why this needs a service account rather than the decryption and verification
+keys a classic request would.
+
+#### The Builders board
+
+`ops/grafana/builders.json` reads the V30 views: `analytics.contributions_daily`
+(submissions, reports and corrections per day by state),
+`contribution_queue`, `contribution_flags_daily` (Atwater mismatch,
+impossible values, 0 kcal with macros, disagreement with the label reading,
+reused photos), `contribution_checks_daily`, `moderation_daily` and
+`top_reported_foods`; and `support.contributors` (one row per contributor:
+volume, approval, disagreement rate, velocity, flags, standing),
+`support.photo_reuse` (by the SHA-256 the server keeps of each photo, which
+outlives the photos) and `support.moderation_actions` (no notes).
+`BuildersBoardQueriesTest` runs every panel and alert query as `grafana_ro`.
+
+### The Builder program (`V31__builders.sql`, behind `release.builders` in the app)
+
+People who join Opson Builders add missing packs and check existing foods
+against the pack in hand, and get Pro while they do
+(`docs/plans/feedback-2026-10-29/builder-program.md`).
+
+**Joining** is self-serve (`BuilderService.join`): a claimed account (not a
+guest), with an approved submission or an account at least 7 days old, not
+removed, not restricted or device-marked (`ContributionGate.mayReceiveFreePro`),
+the rules accepted (`termsVersion` must match `BuilderRules.TERMS_VERSION`),
+and fewer than `builders.capacity` active Builders. It writes
+`builder_members` and sets the `builder` role unless the account already holds
+a higher one. A cap with self-serve joining was chosen over a waitlist: the
+same gates keep guests and new accounts out, and the owner sets the cap low for
+a closed alpha.
+
+**Builder Pro** is the role's bundle (`entitlements.roles`, builder to pro),
+held only while the person is active: `BuilderService.roleWindow` gives the
+role's bundles an end, `BuilderRules.proUntil`, in closed form. A first month
+from joining, then 30 days after the last time ten accepted contributions fell
+inside 30 days (approved submissions not failed by an audit, accepted reports,
+confirmed checks). Worked out on every entitlement read, so no job runs and a
+reviewer's decision counts at once; the role source carries the date, so
+`/v1/me/entitlements` tells the app. A `builder` role set by hand in the console,
+with no membership row, keeps V28's unconditional Pro.
+
+**Trust** (`BuilderRules.trust`): Anyone, Builder, Trusted, Removed. Trusted
+takes 50 decisions by a person, 97% of the last 50 left within label rounding
+(10 kcal or 2 g, or 10%), under 5% rejected in 30 days, an account 30 days old,
+no rejection coded `fake_data` or `copied_data` ever, and no owner hold; it is
+kept down to 95% agreement and 5% failed audits. `trusted_since` is written as
+the level changes, so the first 20 auto-approvals after a promotion are all
+audited.
+
+**Routing** (`ContributionRouter`, after every new submission):
+
+- `food.edit.direct` (owner, admin): approved on arrival as `owner:<id>`
+  unless a blocking check fails. Lane `owner`.
+- A Builder's submission with a `capture` (the phone's OCR lines, draft and
+  confidence): one blind read of the label photo alone by `CloudLabelReader`
+  (`ANTHROPIC_CHECK_MODEL`, `claude-haiku-5-5`, effort low, about 0.15 cents),
+  compared field by field with what was sent (1 kcal, 0.2 g or 2%).
+- `SubmissionRouter.decide` is pure. The auto lane needs a Trusted Builder, a
+  camera photo, no failing check, every headline number (serving, energy,
+  protein, carbs, fat) found on its own row of the OCR text (`LabelGrounding`),
+  the cloud read agreeing, and confidence of 0.85 (the phone's measured score,
+  capped by the server's grounding and checks). With no model key it needs 0.95
+  instead of an agreeing read. Anything else is queued with its reasons
+  (`not_trusted`, `not_grounded:fat_g`, `cloud_differs:energy_kcal`, ...).
+- `builders.autoApprove` is `shadow` by default: the decision is recorded
+  (`routing.wouldAutoApprove`) and everything still goes to a person, until the
+  lane agrees with reviewers on 99% of 300 or more (builder-program.md). `on`
+  approves as `auto:builder_v1` and audits the first 20 after promotion, then
+  `builders.auditRate` (10%) at random. A failed audit puts the food back to
+  pending for everyone and marks its provenance rolled back.
+
+The provenance trigger (V30) reads the lane from `reviewed_by`. Builders' daily
+submission limit is 60, up from 20. Photos of an active Builder who chose
+`photoRetention` are kept two years after the decision instead of 30 days.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/v1/builders/me` | `{status, trust, joinedAtEpochMs, proUntilEpochMs, accepted30d, needed, photoRetention, canJoin, joinBlock, availableAtEpochMs, termsVersion}`. A Builder whose role a ban or restriction took reads `removed`. |
+| POST | `/v1/builders/join` `{acceptTerms, termsVersion, photoRetention}` | 400 `terms_required`; 403 `guest`, `too_new`, `removed`; 409 `full`. |
+| POST | `/v1/builders/leave` | The role goes; the row stays (`left`). Rejoining keeps the first join date. |
+| PUT | `/v1/builders/me` `{photoRetention}` | |
+| POST | `/v1/foods/{id}/verifications` `{id, engine, lines}` | A Builder's check against the pack: the label's text, no photo. `confirmed` when the food's four headline numbers, per 100 or per serving, are on their rows; once per person and food. 403 `not_a_builder`, `contributions_restricted`; 404; 409; 429. |
+| POST | `/v1/foods/submissions` | Also takes `capture` and an `ingredients` photo; answers `lane`. Older apps send neither and get the old behaviour. |
+| GET | `/v1/admin/food-submissions?audit=pending` | Auto-approvals waiting for audit. Summaries carry `lane`, `wouldAutoApprove`, `reasons`, `confidence`, `audit`; the detail `routing` and `capture`. |
+| POST | `/v1/admin/food-submissions/{id}/audit` `{passed, note}` | A note is required to fail one. |
+| POST | `/v1/admin/food-submissions/{id}/reject` `{reason, code?}` | `code`: `blurry`, `not_food`, `duplicate`, `wrong_column`, `wrong_values`, `fake_data`, `copied_data`, `other`. |
+| GET / POST | `/v1/admin/users/{id}/builder` `{action: remove \| restore \| hold \| release, reason?}` | Standing and the record behind trust. |
+
+`analytics.contribution_lanes_daily` (submissions by lane, would-auto, cloud
+reads and agreement, audits) and `analytics.builder_program_daily` (joined,
+left, removed) carry counts only; `support.builders` one row per Builder.
+
 ## Environment variables
 
 | Var | Required | Default | Notes |
@@ -698,6 +916,12 @@ in-app purchase has an App Store 3.1.1 angle; see `docs/decisions.md`
 | `SERVER_PORT` | no | 8080 | |
 | `LOG_LEVEL` | no | `INFO` | Root log level. `Exposed` stays at `ERROR` (its warnings quote diary rows) and `io.netty` at `WARN`. |
 | `APPEAL_URL` | no |, | Sent to a banned client in the 403 body. |
+| `APPLE_DEVICECHECK_KEY_ID` | no |, | With `APPLE_DEVICECHECK_PRIVATE_KEY` and `APPLE_TEAM_ID`, turns on DeviceCheck for device bans ("Moderation"). |
+| `APPLE_DEVICECHECK_PRIVATE_KEY` | no |, | Secret. The DeviceCheck key's `.p8` contents; `\n` may stand for the newlines. |
+| `APPLE_DEVICECHECK_ENVIRONMENT` | no | `production` | `development` for debug builds' tokens. |
+| `PLAY_INTEGRITY_SERVICE_ACCOUNT_JSON` | no |, | Secret. Turns on Play Integrity for device bans. |
+| `PLAY_INTEGRITY_PACKAGE_NAME` | no | `com.opson` | The Android application id the tokens must name. |
+| `PLAY_INTEGRITY_DEVICE_RECALL` | no | `false` | `true` writes device recall bits, once Google has enrolled the app. |
 | `ADMIN_API_TOKEN` | no |, | Secret. Unset → the `/v1/admin` routes aren't mounted. |
 | `ADMIN_WEB_DIR` | no | `apps/server/admin-web` | The admin console bundle served at `/admin`. The Docker image sets it. |
 | `CONFIG_CHANGE_WEBHOOK_URL` | no |, | Slack-compatible webhook told about every config change made through the admin API. |
@@ -718,6 +942,7 @@ in-app purchase has an App Store 3.1.1 angle; see `docs/decisions.md`
 | `ANTHROPIC_API_KEY` | no |, | Secret. Turns on photo estimates. Unset → `/v1/describe/photo` answers 503. |
 | `ANTHROPIC_PHOTO_MODEL` | no | `claude-opus-5-5` | The model that reads meal photos (effort `low`). A cheaper model is a config change, not a release. |
 | `ANTHROPIC_LABEL_MODEL` | no | `claude-fable-5-1` | The model that reads pack labels (effort `high`). A request it refuses outright (a 400, such as an organisation's data retention it does not accept) is retried on `ANTHROPIC_PHOTO_MODEL`. |
+| `ANTHROPIC_CHECK_MODEL` | no | `claude-haiku-5-5` | The second, blind read of a Builder's label photo for routing (effort `low`). Only with `ANTHROPIC_API_KEY`. |
 | `WAITLIST_ALLOWED_ORIGINS` | no | dev: `http://localhost:4321,https://elijah-dangerfield.github.io`; prod: none | Comma-separated exact origins (`scheme://host[:port]`) allowed to call `POST /v1/waitlist` from a browser. Only that route uses it. |
 
 At boot the server logs one `Features (<env>): database=on auth=on …` line

@@ -1,0 +1,1702 @@
+{
+  "uid": "opson-builders",
+  "title": "Opson \u00b7 Builders",
+  "description": "Are people entering fake data, and who? Start with the glance: if it is all green, close the tab.\n\nEvery account id opens the admin console's Users tab, where an account can be banned, suspended or restricted from contributing, and its contributions rolled back. Nothing here shows a food's name, a barcode, a number from a label or a photo: look at the food in the console.\n\nAlert rules for the same signals are in ops/grafana/alerts/builders.json.",
+  "tags": [
+    "opson"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "1h",
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "Environment",
+        "type": "custom",
+        "query": "prod : opson-prod-db,dev : opson-db",
+        "current": {
+          "text": "prod",
+          "value": "opson-prod-db",
+          "selected": true
+        },
+        "options": [
+          {
+            "text": "prod",
+            "value": "opson-prod-db",
+            "selected": true
+          },
+          {
+            "text": "dev",
+            "value": "opson-db",
+            "selected": false
+          }
+        ],
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [
+    {
+      "title": "Users",
+      "type": "link",
+      "url": "/d/opson-users/opson-c2b7-users?var-env=${env}",
+      "tooltip": "",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "icon": "dashboard"
+    },
+    {
+      "title": "Food review",
+      "type": "link",
+      "url": "/d/opson-food-review/opson-food-review?var-env=${env}",
+      "tooltip": "",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "icon": "dashboard"
+    }
+  ],
+  "panels": [
+    {
+      "type": "row",
+      "title": "The glance",
+      "collapsed": false,
+      "panels": [],
+      "id": 1,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Contributors to look at",
+      "description": "In good standing, and flagged three or more times this week, reusing a photo, sending impossible values, sending three times their usual day, or under three days old with ten or more foods.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT count(*) FROM support.contributors WHERE (flagged_7d >= 3 OR photo_reuse_hits > 0 OR impossible_total > 0 OR (submitted_24h >= 5 AND submitted_24h > 3 * coalesce(median_daily_30d, 0)) OR (account_age_days < 3 AND submitted_total >= 10)) AND standing = 'ok'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 2,
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Photos reused across accounts, 7 days",
+      "description": "The same photo bytes sent by two accounts. Almost always one person with several accounts.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT count(*) FROM support.photo_reuse WHERE cross_account AND created_at > now() - interval '7 days'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 3,
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Impossible values, 7 days",
+      "description": "Submissions with an amount no food can hold, or 0 kcal beside macros that add up to more.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(sum(contributions), 0) FROM analytics.contribution_flags_daily WHERE flag IN ('impossible_value', 'kcal_zero_with_macros') AND day > current_date - 7"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 4,
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Approval rate, 30 days",
+      "description": "Of submissions decided in the last 30 days, the share approved. A collapse means junk is arriving.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(sum(contributions) FILTER (WHERE state = 'approved')::float / nullif(sum(contributions) FILTER (WHERE state IN ('approved', 'rejected')), 0), 1) FROM analytics.contributions_daily WHERE kind = 'submission' AND day > current_date - 30"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.6
+              },
+              {
+                "color": "green",
+                "value": 0.8
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 5,
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Waiting for review",
+      "description": "Submissions pending and reports open.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(sum(waiting), 0) FROM analytics.contribution_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 6,
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Bans and restrictions in force",
+      "description": "Bans, suspensions and contribution restrictions not lifted or ended.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT count(*) FROM support.moderation_actions WHERE active"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 7,
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "row",
+      "title": "Submissions, reports and corrections",
+      "collapsed": false,
+      "panels": [],
+      "id": 8,
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Submissions per day, by state",
+      "description": "submitted by the day sent; approved and rejected by the day decided; rolled_back when moderation took an approved food back out.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT day::timestamp AS time, state AS metric, sum(contributions) AS value FROM analytics.contributions_daily WHERE kind = 'submission' AND $__timeFilter(day::timestamp) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 9,
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 8,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Reports per day, by state",
+      "description": "Report a problem from the app: submitted, then accepted (a correction), rejected or duplicate. The server's own energy checks are left out.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT day::timestamp AS time, state AS metric, sum(contributions) AS value FROM analytics.contributions_daily WHERE kind = 'report' AND $__timeFilter(day::timestamp) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 10,
+      "gridPos": {
+        "x": 8,
+        "y": 6,
+        "w": 8,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Corrections per day",
+      "description": "Corrections laid over a food (applied), undone (reverted), and those rolled back with a banned reporter's contributions (in Reports, rolled_back).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT day::timestamp AS time, state AS metric, sum(contributions) AS value FROM analytics.contributions_daily WHERE kind = 'correction' AND $__timeFilter(day::timestamp) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 11,
+      "gridPos": {
+        "x": 16,
+        "y": 6,
+        "w": 8,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "Queues",
+      "description": "What waits for a reviewer, how many, and how old in hours.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT kind, waiting, round(oldest_hours::numeric, 1) AS oldest_hours, round(median_hours::numeric, 1) AS median_hours FROM analytics.contribution_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 12,
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 8,
+        "h": 6
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Open reports",
+      "description": "Reports nobody has decided, the server's energy checks included.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(max(open_reports), 0) FROM analytics.food_report_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 13,
+      "gridPos": {
+        "x": 8,
+        "y": 14,
+        "w": 4,
+        "h": 6
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Foods with an open report",
+      "description": "Distinct foods those reports are about.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(max(foods), 0) FROM analytics.food_report_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 14,
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 4,
+        "h": 6
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Energy checks waiting",
+      "description": "Foods the server flagged itself: 0 kcal beside macros.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(max(energy_checks), 0) FROM analytics.food_report_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 15,
+      "gridPos": {
+        "x": 16,
+        "y": 14,
+        "w": 4,
+        "h": 6
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Oldest open report",
+      "description": "Hours since the oldest open report was sent.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(extract(epoch FROM now() - max(oldest_at)) / 3600, 0) FROM analytics.food_report_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 48
+              },
+              {
+                "color": "red",
+                "value": 168
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 16,
+      "gridPos": {
+        "x": 20,
+        "y": 14,
+        "w": 4,
+        "h": 6
+      }
+    },
+    {
+      "type": "row",
+      "title": "Contributors",
+      "collapsed": false,
+      "panels": [],
+      "id": 17,
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "table",
+      "title": "Contributors to look at",
+      "description": "Why each is here is in the columns. ocr_disagreement: of their last 50 submissions with a label reading, the share where what they sent differs from what the model read on kcal, protein, carbs or fat by more than label rounding. Open the id to moderate.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT user_id, standing, submitted_30d, round(approval_rate_30d::numeric, 2) AS approval_30d, round(ocr_disagreement_rate::numeric, 2) AS ocr_disagreement, flagged_24h, flagged_7d, impossible_total, photo_reuse_hits, submitted_1h, submitted_24h, median_daily_30d, reported_30d, reports_accepted_30d, rolled_back, device_marked, account_age_days FROM support.contributors WHERE (flagged_7d >= 3 OR photo_reuse_hits > 0 OR impossible_total > 0 OR (submitted_24h >= 5 AND submitted_24h > 3 * coalesce(median_daily_30d, 0)) OR (account_age_days < 3 AND submitted_total >= 10)) ORDER BY photo_reuse_hits DESC, impossible_total DESC, flagged_7d DESC, submitted_24h DESC LIMIT 50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Nobody to look at"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "user_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Moderate in the admin console",
+                    "url": "https://opson-server-${env:text}.fly.dev/admin/#users/${__value.raw}",
+                    "targetBlank": true
+                  },
+                  {
+                    "title": "User detail",
+                    "url": "/d/opson-user/opson-user-detail?var-env=${env}&var-user=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 18,
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 10
+      }
+    },
+    {
+      "type": "table",
+      "title": "Every contributor",
+      "description": "Volume and approval for everyone who has sent a food or a report.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT user_id, standing, submitted_total, submitted_30d, approved_30d, rejected_30d, pending, round(approval_rate_30d::numeric, 2) AS approval_30d, round(ocr_disagreement_rate::numeric, 2) AS ocr_disagreement, reported_30d, reports_accepted_30d, last_submitted_at FROM support.contributors ORDER BY submitted_30d DESC, submitted_total DESC LIMIT 200"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No contributions yet"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "user_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Moderate in the admin console",
+                    "url": "https://opson-server-${env:text}.fly.dev/admin/#users/${__value.raw}",
+                    "targetBlank": true
+                  },
+                  {
+                    "title": "User detail",
+                    "url": "/d/opson-user/opson-user-detail?var-env=${env}&var-user=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 19,
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
+        "h": 10
+      }
+    },
+    {
+      "type": "table",
+      "title": "Velocity outliers",
+      "description": "Ten or more in the last hour, or a day three times their own median day. Scripts and Pro farming look like this.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT user_id, submitted_1h, submitted_24h, median_daily_30d, account_age_days, standing FROM support.contributors WHERE submitted_1h >= 10 OR (submitted_24h >= 5 AND submitted_24h > 3 * coalesce(median_daily_30d, 0)) ORDER BY submitted_24h DESC LIMIT 50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Nobody unusually fast"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "user_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Moderate in the admin console",
+                    "url": "https://opson-server-${env:text}.fly.dev/admin/#users/${__value.raw}",
+                    "targetBlank": true
+                  },
+                  {
+                    "title": "User detail",
+                    "url": "/d/opson-user/opson-user-detail?var-env=${env}&var-user=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 20,
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "New accounts, many foods",
+      "description": "Under three days old with ten or more submissions.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT user_id, account_age_days, submitted_total, approval_rate_30d, standing FROM support.contributors WHERE account_age_days < 3 AND submitted_total >= 10 ORDER BY submitted_total DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "None"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "user_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Moderate in the admin console",
+                    "url": "https://opson-server-${env:text}.fly.dev/admin/#users/${__value.raw}",
+                    "targetBlank": true
+                  },
+                  {
+                    "title": "User detail",
+                    "url": "/d/opson-user/opson-user-detail?var-env=${env}&var-user=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 21,
+      "gridPos": {
+        "x": 12,
+        "y": 41,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "barchart",
+      "title": "Disagreement with the label reading",
+      "description": "Contributors by how often what they send differs from what the model read off their own photo. Honest corrections are rare; numbers typed from elsewhere disagree a lot.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT CASE WHEN ocr_disagreement_rate < 0.1 THEN 'under 10%' WHEN ocr_disagreement_rate < 0.25 THEN '10 to 25%' WHEN ocr_disagreement_rate < 0.5 THEN '25 to 50%' ELSE '50% or more' END AS disagreement, count(*) AS contributors FROM support.contributors WHERE ocr_disagreement_rate IS NOT NULL AND submitted_30d > 0 GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "id": 22,
+      "gridPos": {
+        "x": 0,
+        "y": 49,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "row",
+      "title": "Signals",
+      "collapsed": false,
+      "panels": [],
+      "id": 23,
+      "gridPos": {
+        "x": 0,
+        "y": 57,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Flags per day",
+      "description": "atwater_mismatch: energy against 4/4/9 from the macros, or kJ read as kcal. impossible_value: an amount no food can hold. kcal_zero_with_macros: 0 kcal beside real macros. ocr_disagreement: sent differs from what was read. photo_reused: the same photo as an earlier submission.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT day::timestamp AS time, flag AS metric, contributions AS value FROM analytics.contribution_flags_daily WHERE $__timeFilter(day::timestamp) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 24,
+      "gridPos": {
+        "x": 0,
+        "y": 58,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "Duplicate photos, 7 days",
+      "description": "Exact matches by SHA-256 of the photo, kept after the photos are deleted. cross_account first.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT submission_id, other_submission_id, user_id, other_user_id, photo, cross_account, created_at FROM support.photo_reuse WHERE created_at > now() - interval '7 days' ORDER BY cross_account DESC, created_at DESC LIMIT 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No reused photos"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "user_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Moderate in the admin console",
+                    "url": "https://opson-server-${env:text}.fly.dev/admin/#users/${__value.raw}",
+                    "targetBlank": true
+                  },
+                  {
+                    "title": "User detail",
+                    "url": "/d/opson-user/opson-user-detail?var-env=${env}&var-user=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "other_user_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Moderate in the admin console",
+                    "url": "https://opson-server-${env:text}.fly.dev/admin/#users/${__value.raw}",
+                    "targetBlank": true
+                  },
+                  {
+                    "title": "User detail",
+                    "url": "/d/opson-user/opson-user-detail?var-env=${env}&var-user=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "submission_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Review in the admin console",
+                    "url": "https://opson-server-${env:text}.fly.dev/admin/#review/${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "other_submission_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Review in the admin console",
+                    "url": "https://opson-server-${env:text}.fly.dev/admin/#review/${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 25,
+      "gridPos": {
+        "x": 12,
+        "y": 58,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "Top reported foods, 90 days",
+      "description": "Foods by how many people reported them. One food with many reporters is probably wrong; many reports from one reporter is something else.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT food_id, reports, open_reports, reporters, last_reported_at FROM analytics.top_reported_foods"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No reports"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 26,
+      "gridPos": {
+        "x": 0,
+        "y": 66,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Device and account checks on contributions",
+      "description": "Each contribution's device check (DeviceCheck, Play Integrity) by outcome, and refusals by account or install key. invalid: a token that didn't verify, which is counted and never blocks. flagged: Google wouldn't vouch for the device. Empty until DeviceCheck or Play Integrity is configured, apart from refusals.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT day::timestamp AS time, signal || ' ' || outcome AS metric, sum(checks) AS value FROM analytics.contribution_checks_daily WHERE $__timeFilter(day::timestamp) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 27,
+      "gridPos": {
+        "x": 12,
+        "y": 66,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "row",
+      "title": "Moderation",
+      "collapsed": false,
+      "panels": [],
+      "id": 28,
+      "gridPos": {
+        "x": 0,
+        "y": 74,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Bans, suspensions and restrictions per day",
+      "description": "Started by the day of the action, lifted by the day it was lifted.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT day::timestamp AS time, kind || ' ' || CASE WHEN lifted > 0 AND started = 0 THEN 'lifted' ELSE 'started' END AS metric, sum(started + lifted) AS value FROM analytics.moderation_daily WHERE $__timeFilter(day::timestamp) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 29,
+      "gridPos": {
+        "x": 0,
+        "y": 75,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "In force",
+      "description": "Every ban, suspension and restriction not lifted or ended. The note is in the console.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT user_id, kind, scope, reason, created_by, created_at, until, mark_devices, appeal_state FROM support.moderation_actions WHERE active ORDER BY created_at DESC LIMIT 100"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Nothing in force"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "user_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Moderate in the admin console",
+                    "url": "https://opson-server-${env:text}.fly.dev/admin/#users/${__value.raw}",
+                    "targetBlank": true
+                  },
+                  {
+                    "title": "User detail",
+                    "url": "/d/opson-user/opson-user-detail?var-env=${env}&var-user=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 30,
+      "gridPos": {
+        "x": 12,
+        "y": 75,
+        "w": 12,
+        "h": 8
+      }
+    }
+  ]
+}

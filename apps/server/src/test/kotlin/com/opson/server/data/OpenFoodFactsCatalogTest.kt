@@ -6,6 +6,7 @@ import com.opson.server.db.FoodsTable
 import com.opson.server.domain.BarcodeLookupResult
 import com.opson.server.domain.BarcodeOutcome
 import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.EnergyFlag
 import com.opson.server.domain.FoodSource
 import com.opson.server.domain.FoodSourceResult
 import com.opson.server.domain.FoodTier
@@ -244,5 +245,68 @@ class OpenFoodFactsCatalogTest : DatabaseTest() {
             FoodsTable.selectAll().where { FoodsTable.id eq branded }.single()[FoodsTable.kcal100g]
         }
         assertEquals(0f, stored)
+    }
+
+    /**
+     * One can in three databases: USDA Branded (the label's 0, which the guard doubts), the Open
+     * Food Facts export, and OPDB (a food someone added from its pack, approved by a reviewer).
+     * A scan that asks for every match gets all three, the single answer first, each once.
+     */
+    @Test
+    fun aCodeInBrandedOpenFoodFactsAndOpdbListsEveryMatchWithTheAnswerFirst() = runTest {
+        val branded = UUID.randomUUID()
+        val opdb = UUID.randomUUID()
+        val off = UUID.randomUUID()
+        database.blockingTransaction {
+            FoodsTable.insert {
+                it[id] = branded
+                it[sourceKind] = "usda_branded"
+                it[sourceId] = "2680587"
+                it[name] = "Energy Drink"
+                it[brand] = "Monster"
+                it[barcode] = "00070847012474"
+                it[kcal100g] = 0f
+                it[protein100g] = 0f
+                it[carbs100g] = 0.83f
+                it[fat100g] = 0f
+                it[portions] = """[{"label": "8.0 fl oz (240 ml)", "grams": null}]"""
+            }
+            // `foods` holds a code once per form, so this row has the UPC-A where Branded has the GTIN-14.
+            TransactionManager.current().exec(
+                """
+                INSERT INTO foods (id, source, source_id, name, brand, barcode, kcal_100g, protein_100g, carbs_100g,
+                                   fat_100g, portions, verified)
+                VALUES ('$opdb', 'user_submitted', '$opdb', 'Zero Ultra', 'Monster Energy', '070847012474', 2.1, 0, 1.2, 0,
+                        '[{"label": "1 can (473 ml)", "grams": 473}]', true)
+                """.trimIndent(),
+            )
+            TransactionManager.current().exec(
+                """
+                INSERT INTO off_foods (id, barcode, name, brand, kcal_100g, protein_100g, carbs_100g, fat_100g,
+                                       portions, source_version)
+                VALUES ('$off', '0070847012474', 'Zero Ultra', 'Monster Energy', 2, 0, 1.268, 0,
+                        '[{"label": "1 Can (16 fl oz)", "grams": 473.176}]', '2026-10-26')
+                """.trimIndent(),
+            )
+        }
+        val repo = repo(enabled = true)
+
+        val all = repo.findAllByBarcode("070847012474")
+        // The Branded 0 is in doubt, so the first row that holds up answers; the rest keep their tier order.
+        assertEquals(listOf(opdb, branded, off), all.map { it.id })
+        assertEquals(listOf(CatalogSource.UserSubmitted, CatalogSource.UsdaBranded, CatalogSource.OpenFoodFacts), all.map { it.source })
+        assertEquals(all.first(), repo.findByBarcode("070847012474"), "the single answer is the first match")
+        assertTrue(all[0].verified, "an approved OPDB food is verified")
+        assertEquals(setOf(EnergyFlag.ZeroWithMacros), all[1].energyFlags)
+        assertEquals(2.1, all[1].per100g.kcal, "served with the guard's estimate, as a single answer would be")
+
+        // Through the lookup: a catalog hit, every match with it, and no outside source asked.
+        val found = CatalogBarcodeLookup(repo, LiveFoodSources { emptyList() }).lookup("0070847012474")
+        assertTrue(found is BarcodeLookupResult.Found)
+        assertEquals(opdb, found.food.id)
+        assertEquals(all, found.matches)
+
+        // Without the export, only the rows in foods.
+        assertEquals(listOf(opdb, branded), repo(enabled = false).findAllByBarcode("070847012474").map { it.id })
     }
 }

@@ -34,12 +34,12 @@ import org.jetbrains.compose.web.dom.Tr
  * and errors, by the same id.
  */
 @Composable
-internal fun UsersView(ctx: AdminCtx) {
-    var query by remember { mutableStateOf("") }
+internal fun UsersView(ctx: AdminCtx, openId: String? = null) {
+    var query by remember { mutableStateOf(openId.orEmpty()) }
     var results by remember { mutableStateOf<List<UserSummaryDto>?>(null) }
     var searching by remember { mutableStateOf(false) }
     var searchFailed by remember { mutableStateOf(false) }
-    var pick by remember { mutableStateOf<AccountPick?>(null) }
+    var pick by remember { mutableStateOf(openId?.let { AccountPick(it, 1) }) }
     val selected = pick?.userId
     var detail by remember { mutableStateOf<UserDetailDto?>(null) }
     var detailFailed by remember { mutableStateOf(false) }
@@ -57,8 +57,8 @@ internal fun UsersView(ctx: AdminCtx) {
         }
     }
 
-    // The most recently seen accounts, before anyone types.
-    LaunchedEffect(Unit) { search("") }
+    // The most recently seen accounts before anyone types, or the account a link named.
+    LaunchedEffect(Unit) { search(openId.orEmpty()) }
 
     LaunchedEffect(pick) {
         detail = null
@@ -102,6 +102,7 @@ internal fun UsersView(ctx: AdminCtx) {
         shown != null -> {
             UserDetailPanel(shown, ctx.isProd)
             UserAccessPanel(ctx, shown.user.userId)
+            UserModerationPanel(ctx, shown.user.userId)
         }
         selected != null -> P(attrs = { classes("muted") }) {
             Text(userDetailNote(detailFailed))
@@ -265,3 +266,7 @@ internal fun userDetailDashboardUrl(userId: String, isProd: Boolean): String {
 /** Sentry's issues for [userId]: the client binds the account id as Sentry's user id. */
 internal fun sentryIssuesUrl(userId: String): String =
     "https://$SENTRY_ORG.sentry.io/issues/?query=user.id%3A$userId&statsPeriod=90d"
+
+/** `#users/<id>`, as the Builders board in Grafana links each contributor. */
+internal fun userIdFromHash(): String? =
+    kotlinx.browser.window.location.hash.removePrefix("#").takeIf { it.startsWith("users/") }?.removePrefix("users/")?.ifEmpty { null }

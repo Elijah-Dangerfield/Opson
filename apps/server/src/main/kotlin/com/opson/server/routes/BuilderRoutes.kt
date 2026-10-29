@@ -5,9 +5,13 @@ import com.opson.server.data.CaptureLineJson
 import com.opson.server.domain.BuilderRules
 import com.opson.server.domain.BuilderService
 import com.opson.server.domain.BuilderStanding
+import com.opson.server.domain.BuilderStatus
+import com.opson.server.domain.TrustLevel
 import com.opson.server.domain.BuilderRepository
 import com.opson.server.domain.CaptureLine
 import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.ContributionGate
+import com.opson.server.domain.OpenContributionGate
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodLabelLimiter
 import com.opson.server.domain.FoodLabelLimits
@@ -129,6 +133,7 @@ fun Route.builderRoutes(
     verifications: FoodVerificationRepository,
     limiter: FoodLabelLimiter,
     clock: Clock,
+    contributionGate: ContributionGate = OpenContributionGate,
 ) {
     val logger = LoggerFactory.getLogger("BuilderRoutes")
     authenticate(SUPABASE_JWT_AUTH) {
@@ -187,6 +192,7 @@ fun Route.builderRoutes(
                 if (!permissions.can(userId, Permission.FoodContribute)) {
                     return@post call.respond(HttpStatusCode.Forbidden, problem("not_a_builder", "Checking foods is for Builders."))
                 }
+                if (call.refuseIfRestricted(contributionGate, userId, id.toString(), logger, "food verification")) return@post
                 val food = catalog.findById(foodId)
                     ?.takeIf { it.source != CatalogSource.UserSubmitted || submissions.isVisible(foodId, userId) }
                     ?: return@post call.respond(HttpStatusCode.NotFound, problem("not_found", "No such food"))
@@ -269,7 +275,8 @@ private fun JoinBlock.message(): String = when (this) {
 
 @OptIn(ExperimentalTime::class)
 internal fun BuilderStanding.toMe() = BuilderMeResponse(
-    status = membership?.status?.wire ?: "none",
+    // A ban or restriction takes the builder role away (ModerationService) and leaves the row: show it as removed.
+    status = if (membership?.status == BuilderStatus.Active && trust == TrustLevel.Anyone) BuilderStatus.Removed.wire else membership?.status?.wire ?: "none",
     trust = trust.wire,
     joinedAtEpochMs = membership?.joinedAt?.toEpochMilliseconds(),
     proUntilEpochMs = proUntil?.toEpochMilliseconds(),

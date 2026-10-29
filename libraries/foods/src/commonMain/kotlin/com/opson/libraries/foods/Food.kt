@@ -221,6 +221,14 @@ interface FoodCatalog {
      */
     suspend fun barcode(code: String): Catching<Food?>
 
+    /**
+     * Every food the code matched, [barcode]'s answer first; empty when nobody knows it. Only the
+     * answer is kept on the device, as [barcode] keeps it. A server from before the list, or the
+     * device offline, gives that one food alone.
+     */
+    suspend fun barcodeMatches(code: String): Catching<List<BarcodeMatch>> =
+        barcode(code).map { food -> listOfNotNull(food).map { BarcodeMatch(it) } }
+
     /** "2 eggs and toast" to items. Online only. */
     suspend fun describe(text: String): Catching<List<ParsedItem>>
 

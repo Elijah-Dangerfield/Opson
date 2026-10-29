@@ -40,6 +40,7 @@ import com.opson.server.routes.foodReviewAdminRoutes
 import com.opson.server.routes.foodRoutes
 import com.opson.server.routes.healthRoutes
 import com.opson.server.routes.meRoutes
+import com.opson.server.routes.moderationAdminRoutes
 import com.opson.server.routes.photoRoutes
 import com.opson.server.routes.syncRoutes
 import com.opson.server.routes.userAdminRoutes
@@ -105,7 +106,7 @@ fun Application.module(config: ServerConfig) {
     config.foodSources.anthropic?.let {
         logger.info("Photo estimates use ${it.photoModel}; label reading uses ${it.labelModel}")
     }
-    val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources, Clock.System) }
+    val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources, Clock.System, config.deviceIntegrity) }
     // Ban gate needs the DB (moderation reads live in auth.users), so limited
     // mode simply runs without it — same null-safe degradation as everything
     // else here.
@@ -186,6 +187,15 @@ fun Application.installApp(
                     component.clock,
                 )
                 builderAdminRoutes(adminConfig, component.builderService, component.builderRepository)
+                moderationAdminRoutes(
+                    adminConfig,
+                    component.moderationService,
+                    component.moderationActions,
+                    component.moderationRepository,
+                    component.contributionGate,
+                    component.deviceIntegrity,
+                    component.clock,
+                )
             }
             // The website's form: public, its own CORS and rate limits.
             waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
@@ -211,6 +221,7 @@ fun Application.installApp(
                 component.foodSubmissionRepository,
                 component.foodReportLimiter,
                 component.correctionAuthority,
+                component.contributionGate,
             )
             foodLabelRoutes(
                 component.labelParser,
@@ -219,6 +230,7 @@ fun Application.installApp(
                 component.labelParseCache,
                 component.foodLabelLimiter,
                 component.clock,
+                component.contributionGate,
                 component.contributionRouter,
                 component.permissions,
             )
@@ -230,6 +242,7 @@ fun Application.installApp(
                 component.foodVerificationRepository,
                 component.foodLabelLimiter,
                 component.clock,
+                component.contributionGate,
             )
             accessRoutes(component.entitlementService)
             photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.entitlementService, component.clock)

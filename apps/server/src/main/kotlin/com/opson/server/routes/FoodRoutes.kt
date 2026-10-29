@@ -57,6 +57,12 @@ import java.util.UUID
  *    `not_found` when nobody knows the code, 503 `barcode_lookup_unavailable`
  *    when no source could be reached. Rate-limited per IP because
  *    every miss costs an outside call from the server's one IP.
+ *    `matches=all` adds `matches`: every food the catalog has for the code,
+ *    the answer first, each with its energy check and whether a reviewer
+ *    corrected it ([BarcodeMatchDto]). The rest of the body is the same
+ *    answer, and without the param the response is exactly what it was. No
+ *    outside source is asked for more: they are only asked on a miss, and the
+ *    first that knows the code is the one match.
  *  - `POST /v1/describe {text}` heuristic parse into items ([DescribeParser]).
  *
  * Search and describe have their own per-IP limits too (`RateLimits.kt`):
@@ -144,15 +150,22 @@ fun Route.foodRoutes(
                         problem("invalid_barcode", "A barcode is 8 to 14 digits"),
                     )
                 }
+                // A newer app asks for every match; an older one never sends this and gets one food, as always.
+                val allMatches = call.request.queryParameters["matches"] == "all"
                 when (val result = barcodeLookup.lookup(code)) {
                     is BarcodeLookupResult.Found -> {
-                        watch(result.food)
-                        call.respond(result.food.toResponse())
+                        if (allMatches) {
+                            result.matches.forEach { watch(it) }
+                            call.respond(barcodeResponse(result.food, result.matches))
+                        } else {
+                            watch(result.food)
+                            call.respond(result.food.toResponse())
+                        }
                     }
                     BarcodeLookupResult.NotFound -> {
                         val own = call.userId()?.let { submissions.pendingFoodFor(it, code) }?.let { catalog.findById(it) }
                         if (own != null) {
-                            call.respond(own.toResponse())
+                            call.respond(if (allMatches) barcodeResponse(own, listOf(own)) else own.toResponse())
                         } else {
                             call.respond(HttpStatusCode.NotFound, problem("not_found", "No food for that barcode"))
                         }

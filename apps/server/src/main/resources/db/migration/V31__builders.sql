@@ -1,8 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- V30: the Builder program (docs/plans/feedback-2026-10-29/builder-program.md).
+-- V31: the Builder program (docs/plans/feedback-2026-10-29/builder-program.md).
 --
 -- Builders photograph packs they have in hand to add missing foods and check
--- existing ones, and get Pro while they keep at it. Four pieces here:
+-- existing ones, and get Pro while they keep at it. Three pieces here, and a fix:
 --
 -- `builder_members` is one row per person who joined: when, which terms they
 -- accepted, whether they let Opson keep their label photos for up to two
@@ -29,13 +29,10 @@
 -- that text. No photo is kept: a check changes nothing, and a mismatch goes
 -- through Report a problem with its photo instead.
 --
--- `food_provenance` records who contributed what, so a later ban can find and
--- roll back a person's foods even after they delete their account. The same
--- table, key function and trigger are planned by the moderation work
--- (builder-program.md "Two gaps to close first"); every statement below is
--- idempotent and matches that definition, so whichever migration runs second
--- changes nothing. The key is a SHA-256 of the user id under a random secret
--- made here, never in the repo and never readable by grafana_ro.
+-- Provenance is V30's `food_provenance`: its trigger reads the lane from
+-- `reviewed_by`, which routing writes as `owner:<id>` and `auto:<rule>`, and
+-- a failed audit marks the row rolled back. V30's photo hash also learns to
+-- leave an ingredients photo out of the label's hash.
 --
 -- RLS on with no policies, as on every table. Additive and idempotent.
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -106,100 +103,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS food_verifications_once ON food_verifications 
 
 ALTER TABLE food_verifications ENABLE ROW LEVEL SECURITY;
 
--- ── Provenance (shared with the moderation work; keep in step with it) ──────
+-- ── Photo hashes (V30) ───────────────────────────────────────────────────────
 
-CREATE TABLE IF NOT EXISTS moderation_secrets (
-    name       TEXT PRIMARY KEY,
-    value      TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-ALTER TABLE moderation_secrets ENABLE ROW LEVEL SECURITY;
-
-INSERT INTO moderation_secrets (name, value)
-VALUES ('subject_key', replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''))
-ON CONFLICT (name) DO NOTHING;
-
-CREATE OR REPLACE FUNCTION public.subject_key(subject UUID) RETURNS TEXT
-    LANGUAGE sql STABLE
-    SET search_path = ''
-AS $$
-    SELECT encode(sha256(convert_to(s.value || ':account:' || subject::text, 'UTF8')), 'hex')
-    FROM public.moderation_secrets s WHERE s.name = 'subject_key'
-$$;
-
-REVOKE ALL ON FUNCTION public.subject_key(UUID) FROM PUBLIC;
-
-CREATE OR REPLACE FUNCTION public.fill_subject_key() RETURNS trigger
+-- V30 hashes every photo but the front into label_sha256; an ingredients photo
+-- must not overwrite the label's hash, which the reuse check reads.
+CREATE OR REPLACE FUNCTION public.food_submission_photos_hash() RETURNS trigger
     LANGUAGE plpgsql
     SET search_path = ''
 AS $$
 BEGIN
-    IF NEW.subject_key IS NULL AND NEW.user_id IS NOT NULL THEN
-        NEW.subject_key := public.subject_key(NEW.user_id);
+    IF NEW.kind = 'front' THEN
+        UPDATE public.food_submissions SET front_sha256 = encode(sha256(NEW.bytes), 'hex') WHERE id = NEW.submission_id;
+    ELSIF NEW.kind = 'label' THEN
+        UPDATE public.food_submissions SET label_sha256 = encode(sha256(NEW.bytes), 'hex') WHERE id = NEW.submission_id;
     END IF;
     RETURN NEW;
 END;
 $$;
-
-CREATE TABLE IF NOT EXISTS food_provenance (
-    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    food_id             UUID        NOT NULL,
-    kind                TEXT        NOT NULL CHECK (kind IN ('submission', 'correction', 'report')),
-    ref_id              UUID        NOT NULL,
-    user_id             UUID        REFERENCES auth.users (id) ON DELETE SET NULL,
-    subject_key         TEXT        NOT NULL,
-    lane                TEXT        NOT NULL DEFAULT 'review' CHECK (lane IN ('review', 'auto', 'owner')),
-    accepted_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-    accepted_by         TEXT        CHECK (char_length(accepted_by) <= 200),
-    rolled_back_at      TIMESTAMPTZ,
-    rolled_back_by      TEXT        CHECK (char_length(rolled_back_by) <= 200),
-    rollback_action_id  UUID,
-    UNIQUE (kind, ref_id)
-);
-
-CREATE INDEX IF NOT EXISTS food_provenance_subject_idx ON food_provenance (subject_key) WHERE rolled_back_at IS NULL;
-CREATE INDEX IF NOT EXISTS food_provenance_food_idx ON food_provenance (food_id);
-CREATE INDEX IF NOT EXISTS food_provenance_accepted_idx ON food_provenance (accepted_at);
-
-ALTER TABLE food_provenance ENABLE ROW LEVEL SECURITY;
-
-DROP TRIGGER IF EXISTS food_provenance_subject_key ON food_provenance;
-CREATE TRIGGER food_provenance_subject_key
-    BEFORE INSERT ON food_provenance
-    FOR EACH ROW EXECUTE FUNCTION public.fill_subject_key();
-
--- An approval is a contribution accepted: record who sent it, in the same
--- transaction. `reviewed_by` says the lane: `owner:<id>` and `auto:<rule>`
--- are written by the server's routing, anything else is a reviewer.
-CREATE OR REPLACE FUNCTION public.food_submissions_record_provenance() RETURNS trigger
-    LANGUAGE plpgsql
-    SET search_path = ''
-AS $$
-BEGIN
-    IF NEW.status = 'approved' AND OLD.status IS DISTINCT FROM 'approved' THEN
-        INSERT INTO public.food_provenance (food_id, kind, ref_id, user_id, lane, accepted_at, accepted_by)
-        VALUES (
-            NEW.food_id, 'submission', NEW.id, NEW.user_id,
-            CASE WHEN NEW.reviewed_by LIKE 'owner:%' THEN 'owner' WHEN NEW.reviewed_by LIKE 'auto:%' THEN 'auto' ELSE 'review' END,
-            coalesce(NEW.reviewed_at, now()), NEW.reviewed_by
-        )
-        ON CONFLICT (kind, ref_id) DO NOTHING;
-    END IF;
-    RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS food_submissions_record_provenance ON food_submissions;
-CREATE TRIGGER food_submissions_record_provenance
-    AFTER UPDATE OF status ON food_submissions
-    FOR EACH ROW EXECUTE FUNCTION public.food_submissions_record_provenance();
-
-INSERT INTO food_provenance (food_id, kind, ref_id, user_id, accepted_at, accepted_by)
-SELECT food_id, 'submission', id, user_id, coalesce(reviewed_at, created_at), reviewed_by
-FROM food_submissions
-WHERE status = 'approved'
-ON CONFLICT (kind, ref_id) DO NOTHING;
 
 -- ── Views ───────────────────────────────────────────────────────────────────
 

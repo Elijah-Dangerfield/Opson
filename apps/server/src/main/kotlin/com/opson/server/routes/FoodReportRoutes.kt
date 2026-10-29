@@ -2,7 +2,9 @@ package com.opson.server.routes
 
 import com.opson.server.data.SuggestedJson
 import com.opson.server.domain.CatalogSource
+import com.opson.server.domain.ContributionGate
 import com.opson.server.domain.CorrectionAuthority
+import com.opson.server.domain.OpenContributionGate
 import com.opson.server.domain.CorrectionOutcome
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.FoodReportLimiter
@@ -85,6 +87,7 @@ fun Route.foodReportRoutes(
     submissions: FoodSubmissionRepository,
     limiter: FoodReportLimiter,
     authority: CorrectionAuthority,
+    contributionGate: ContributionGate = OpenContributionGate,
 ) {
     val logger = LoggerFactory.getLogger("FoodReportRoutes")
     val json = Json { ignoreUnknownKeys = true }
@@ -102,6 +105,7 @@ fun Route.foodReportRoutes(
                 }
                 val id = request.id?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "id must be a UUID"))
+                if (call.refuseIfRestricted(contributionGate, userId, id.toString(), logger, "food report")) return@post
                 val reason = ReportReason.fromPerson(request.reason)
                     ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_reason", "Unknown reason"))
                 val suggested = when (val checked = request.suggested?.let { validateSuggested(it.toDomain()) }) {

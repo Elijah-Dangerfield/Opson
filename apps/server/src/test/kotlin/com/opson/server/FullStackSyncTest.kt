@@ -1,5 +1,6 @@
 package com.opson.server
 
+import com.opson.server.config.DeviceIntegrityConfig
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.db.DatabaseTest
 import com.opson.server.di.ServerComponent
@@ -82,7 +83,7 @@ class FullStackSyncTest : DatabaseTest() {
     fun twoDevicesConvergeThroughSync() = runTest {
         val user = seedAuthUser()
         val other = seedAuthUser()
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System, DeviceIntegrityConfig())
         val foodId = DiaryFixtures.insertFood(database, name = "Soup, lentil").toString()
         val entryId = UUID.randomUUID().toString()
 
@@ -146,7 +147,7 @@ class FullStackSyncTest : DatabaseTest() {
         // Postgres refuses a NUL character in text and a \u0000 escape in jsonb. One such row
         // used to fail the whole transaction, every time the outbox retried it.
         val user = seedAuthUser()
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System, DeviceIntegrityConfig())
         val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toString()
         testApplication {
             application { installApp(component, TestJwt.verification) }
@@ -185,7 +186,7 @@ class FullStackSyncTest : DatabaseTest() {
     @Test
     fun exportReadsWhatSyncWrote() = runTest {
         val user = seedAuthUser()
-        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
+        val component = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System, DeviceIntegrityConfig())
         testApplication {
             application { installApp(component, TestJwt.verification) }
             val client = createClient { install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) } }

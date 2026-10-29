@@ -36,11 +36,11 @@ repeat them.
 | Submissions | `food_submissions` (V25, V27): parsed, submitted, reviewed, checks, decision, `reviewed_by` from `X-Admin-Actor` |
 | Review | Admin console ReviewView behind `X-Admin-Token`; one reviewer |
 | Limits | `FoodLabelLimiter`: 10 reads per 10 min and 40 a day; 5 submissions per 10 min and 20 a day; in memory, per machine |
-| Bans | `auth.users.banned_until`, read by `PostgresModerationRepository`; every authed call then answers 403 (`BanTest`). No reason, no appeal, no UI in the admin console |
+| Bans | Since V30: `moderation_actions` (ban, suspension, contributions restriction, with reason, note, end, actor and appeal state) beside `auth.users.banned_until`; Ban, Suspend, Restrict contributions, Lift and Roll back in the admin console's Users tab; `food_provenance` keyed to survive deletion. See "Moderation" in `apps/server/README.md` |
 | Report a problem | A sheet on a catalog food's detail (`release.foodReports`) sends what is wrong, the right numbers, a label photo and a note to the admin console's Review area (`POST /v1/foods/{id}/reports`, V29). Accepting writes a correction laid over the source's data, reversible. A sent report emits `PromptEvent.ReportSent` |
 | Accounts | Supabase, including guest (anonymous) accounts (`support.users.is_guest`) |
 | Pro | Not built. `pricing-and-pro.md` designs `entitlements` |
-| Device attestation | None |
+| Device attestation | Since V30, on contribution requests only: an install key (Keychain on iOS), DeviceCheck bit 0 and Play Integrity device recall `bitFirst`, inert until their keys are set. No App Attest yet |
 
 ## Program basics
 
@@ -461,3 +461,28 @@ of this works, `opson-prod-db` needs its Grafana password set
    policy?
 5. Should a Builder's approved food show the verified check, or the softer
    "Checked" mark, until a second source agrees?
+
+## What v1 built (2026-10-29)
+
+Behind `release.builders`; server V31, `apps/server/README.md` "The Builder
+program"; decision in `docs/decisions.md`.
+
+- Self-serve joining with this doc's gates and `builders.capacity` (default
+  500), no waitlist. The optional two-year photo consent is a separate choice,
+  changeable on More › Builders.
+- Builder Pro is the role's bundle with an end date worked out on read, the
+  same rule as the nightly job above without a job.
+- Trust levels, audits and the auto lane as above. The lane runs in shadow
+  until `builders.autoApprove` is set to `on`.
+- Builder mode reads the label on the phone (Vision, ML Kit) and fills the
+  form; the server's Fable read is the way back when the phone can't place
+  the panel. An ingredients photo is optional.
+- Check against the pack (detail ⋮, or the scanner's Also read the label)
+  sends the label's text only. Grounded on every headline row, it counts once
+  per food toward Pro.
+- Not built yet: App Attest or Play Integrity at joining (V30's device
+  signals cover submissions), the peer Reviewer level, Builder mode's
+  verified, unverified or missing standing in the scanner, the thank-you note
+  with how many people used a food, the live quality gate on the camera, the
+  `builder.*` app events, the Credits mention.
+

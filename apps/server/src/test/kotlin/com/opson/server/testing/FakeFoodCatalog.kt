@@ -1,5 +1,6 @@
 package com.opson.server.testing
 
+import com.opson.server.domain.BarcodeChoice
 import com.opson.server.domain.BarcodeOutcome
 import com.opson.server.domain.Barcodes
 import com.opson.server.domain.CatalogSource
@@ -54,9 +55,11 @@ class FakeFoodCatalog(foods: List<Food> = emptyList()) : FoodCatalogRepository {
 
     override suspend fun findById(id: UUID): Food? = foods.firstOrNull { it.id == id }
 
-    override suspend fun findByBarcode(barcode: String): Food? {
+    override suspend fun findByBarcode(barcode: String): Food? = findAllByBarcode(barcode).firstOrNull()
+
+    override suspend fun findAllByBarcode(barcode: String): List<Food> {
         val forms = Barcodes.equivalents(barcode)
-        return foods.filter { it.barcode in forms }.minByOrNull { it.tier }
+        return BarcodeChoice.ordered(foods.filter { it.barcode in forms }.sortedBy { it.tier })
     }
 
     override suspend fun upsertExternalProduct(source: CatalogSource, product: ExternalProduct): Food {

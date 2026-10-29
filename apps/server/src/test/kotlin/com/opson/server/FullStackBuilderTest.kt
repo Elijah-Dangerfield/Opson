@@ -3,6 +3,7 @@ package com.opson.server
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.opson.server.config.AdminConfig
+import com.opson.server.config.DeviceIntegrityConfig
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.data.CaptureJson
 import com.opson.server.data.CaptureLineJson
@@ -129,7 +130,7 @@ class FullStackBuilderTest : DatabaseTest() {
         return user
     }
 
-    private fun component() = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System)
+    private fun component() = ServerComponent::class.create(database, null, FoodSourcesConfig(), Clock.System, DeviceIntegrityConfig())
 
     private fun ApplicationTestBuilder.jsonClient(): HttpClient = createClient { install(ContentNegotiation) { json(json) } }
 

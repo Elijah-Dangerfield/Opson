@@ -1,5 +1,6 @@
 package com.opson.server.di
 
+import com.opson.server.config.DeviceIntegrityConfig
 import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.config.SupabaseConfig
 import com.opson.server.data.LabelParseCache
@@ -26,7 +27,11 @@ import com.opson.server.domain.FoodLabelLimiter
 import com.opson.server.domain.FoodSubmissionRepository
 import com.opson.server.domain.LabelParser
 import com.opson.server.domain.ExampleSource
+import com.opson.server.domain.ContributionGate
+import com.opson.server.domain.DeviceIntegrity
+import com.opson.server.domain.ModerationActions
 import com.opson.server.domain.ModerationRepository
+import com.opson.server.domain.ModerationService
 import com.opson.server.domain.Permissions
 import com.opson.server.domain.PhotoEstimateLimiter
 import com.opson.server.domain.ProfileRepository
@@ -83,6 +88,8 @@ abstract class ServerComponent(
      * step past time-based caches without waiting.
      */
     @get:Provides val clock: Clock = Clock.System,
+    /** DeviceCheck and Play Integrity keys; both null (inert) unless their secrets are set. */
+    @get:Provides val deviceIntegrityConfig: DeviceIntegrityConfig = DeviceIntegrityConfig(),
 ) {
     abstract val exampleSource: ExampleSource
     abstract val profileRepository: ProfileRepository
@@ -126,6 +133,12 @@ abstract class ServerComponent(
     abstract val entitlementGrantRepository: EntitlementGrantRepository
     abstract val entitlementService: EntitlementService
     abstract val accessAuditRepository: AccessAuditRepository
+
+    /** Bans, restrictions, provenance and device markers. See "Moderation" in apps/server/README.md. */
+    abstract val moderationActions: ModerationActions
+    abstract val moderationService: ModerationService
+    abstract val contributionGate: ContributionGate
+    abstract val deviceIntegrity: DeviceIntegrity
 
     /**
      * Long-lived application scope for server-owned background work (e.g. the

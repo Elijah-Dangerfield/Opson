@@ -141,6 +141,8 @@
     <string name="submit_send_failed_too_many">It's logged. You've sent a lot of foods today, so this one waits. Try again later.</string>
     <string name="submit_send_failed_body_save">It's saved. Sending it to Opson's food database didn't work, so only you have it for now.</string>
     <string name="submit_send_failed_offline_save">It's saved. You're offline, so it hasn't gone to Opson's food database yet.</string>
+    <string name="submit_send_failed_restricted">It's logged. This account can't add foods to Opson's food database right now, so only you have it. If that seems wrong, write to contact@nightjarlabs.llc.</string>
+    <string name="submit_send_failed_restricted_save">It's saved. This account can't add foods to Opson's food database right now, so only you have it. If that seems wrong, write to contact@nightjarlabs.llc.</string>
     <string name="submit_send_failed_too_many_save">It's saved. You've sent a lot of foods today, so this one waits. Try again later.</string>
     <string name="submit_done">Done</string>
 

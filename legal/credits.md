@@ -73,4 +73,4 @@ The full license texts:
 
 On Android, Opson also uses Google's
 [ML Kit](https://developers.google.com/ml-kit/terms) for barcode reading and
-Google Play services for in-app reviews, under Google's terms for each.
+Google Play services for in-app reviews and Play Integrity, under Google's terms for each.

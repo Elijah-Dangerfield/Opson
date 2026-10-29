@@ -59,7 +59,7 @@ sealed interface SubmitStage {
     data class CameraOff(val canAskAgain: Boolean) : SubmitStage
 
     /** Logged and in the person's foods, but the copy for review did not go. */
-    data class SendFailed(val offline: Boolean, val tooMany: Boolean) : SubmitStage
+    data class SendFailed(val offline: Boolean, val tooMany: Boolean, val restricted: Boolean = false) : SubmitStage
 }
 
 /** The editable form. Every value is the text the person sees and types, never reformatted under them. */
@@ -192,7 +192,7 @@ sealed interface SubmitStep {
     data object TooMany : SubmitStep
     data class ReadFailed(val offline: Boolean) : SubmitStep
     data class CameraOff(val canAskAgain: Boolean) : SubmitStep
-    data class SendFailed(val offline: Boolean, val tooMany: Boolean) : SubmitStep
+    data class SendFailed(val offline: Boolean, val tooMany: Boolean, val restricted: Boolean = false) : SubmitStep
 }
 
 /**

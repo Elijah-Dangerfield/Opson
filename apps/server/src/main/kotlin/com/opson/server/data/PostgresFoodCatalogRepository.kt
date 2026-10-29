@@ -227,18 +227,20 @@ class PostgresFoodCatalogRepository(
         return food
     }
 
+    override suspend fun findByBarcode(barcode: String): Food? = findAllByBarcode(barcode).firstOrNull()
+
     /**
      * Every row for the code, best tier first, with the `off_foods` copy last
-     * when Open Food Facts is on; [BarcodeChoice] picks among them as served.
+     * when Open Food Facts is on; [BarcodeChoice] orders them as served.
      */
-    override suspend fun findByBarcode(barcode: String): Food? = database.transaction {
+    override suspend fun findAllByBarcode(barcode: String): List<Food> = database.transaction {
         val stored = FoodsTable.selectAll()
             .where { FoodsTable.barcode inList Barcodes.equivalents(barcode) }
             .orderBy(FoodsTable.tier to SortOrder.ASC, FoodsTable.verified to SortOrder.DESC)
             .limit(MAX_BARCODE_ROWS)
             .map { it.toFood() }
         val openFoodFacts = if (sources.searchOpenFoodFacts) openFoodFactsByBarcode(barcode) else null
-        BarcodeChoice.best(served(stored + listOfNotNull(openFoodFacts)))
+        BarcodeChoice.ordered(served(stored + listOfNotNull(openFoodFacts)))
     }
 
     /** An `off_foods` row for any equivalent form of [barcode]: the export is checked before the live API. */

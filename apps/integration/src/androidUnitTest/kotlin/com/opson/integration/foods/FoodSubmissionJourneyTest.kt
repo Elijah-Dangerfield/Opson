@@ -191,6 +191,34 @@ class FoodSubmissionJourneyTest : IntegrationTest() {
         assertEquals(0, server.upstreams.labelReads.get())
     }
 
+    /** Restricted from contributing in the admin console: the food stays theirs, logging and sync carry on. */
+    @Test
+    fun aRestrictedAccountKeepsItsAppButCantSendFoods() = integration {
+        val alice = client()
+        alice.syncNow().getOrThrow()
+        val (status, _) = adminPost(
+            "/v1/admin/users/${checkNotNull(alice.userId)}/moderation",
+            """{"kind":"restriction","reason":"fake_data","note":"integration"}""",
+        )
+        assertEquals(HttpStatusCode.Created, status)
+
+        val result = alice.foodLabels.submit(
+            FoodSubmission(
+                id = UUID.randomUUID().toString(),
+                parseId = null,
+                origin = SubmissionOrigin.Search,
+                barcode = null,
+                front = front,
+                label = label,
+                facts = com.opson.libraries.foods.LabelFacts(name = "Rye crispbread", servingSize = 10.0, servingUnit = com.opson.libraries.foods.ServingUnit.Gram),
+                acknowledged = emptyList(),
+            ),
+        )
+        assertEquals(SubmitResult.Restricted, result)
+        assertTrue(alice.syncNow().isSuccess, "a restriction is not a ban: the log still syncs")
+        assertNull(alice.foods.barcode(randomEan13()).getOrThrow(), "and the catalog still answers")
+    }
+
     private suspend fun Harness.pairings(gtin: String): Int = adminGet("/v1/admin/barcode-links")["links"]!!.jsonArray
         .map { it.jsonObject }
         .firstOrNull { it["gtin"]!!.jsonPrimitive.content == gtin }

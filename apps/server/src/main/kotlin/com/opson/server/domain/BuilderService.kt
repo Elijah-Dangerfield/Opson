@@ -41,6 +41,7 @@ class BuilderService(
     private val builders: BuilderRepository,
     private val roles: UserRoleRepository,
     private val config: AppConfigSource,
+    private val gate: ContributionGate,
     private val clock: Clock,
 ) {
     suspend fun policy(): BuilderPolicy = BuilderPolicy.from(config.read(EntitlementService.NEUTRAL_CONTEXT, userId = null))
@@ -61,6 +62,8 @@ class BuilderService(
         val current = standing(userId, isAnonymous)
         if (current.isActive) return JoinOutcome.Joined(current)
         current.joinBlock?.let { return JoinOutcome.Blocked(it) }
+        // A ban, a restriction or a marked device (V30) rules out the free Pro programs.
+        if (!gate.mayReceiveFreePro(userId)) return JoinOutcome.Blocked(JoinBlock.Removed)
         if (builders.activeCount() >= policy().capacity) return JoinOutcome.Blocked(JoinBlock.Full)
         return when (builders.join(userId, BuilderRules.TERMS_VERSION, photoRetention, clock.now())) {
             JoinWrite.NoSuchUser -> JoinOutcome.NoSuchUser
@@ -100,6 +103,7 @@ class BuilderService(
         if (role != Role.Builder) return RoleWindow.ALWAYS
         val membership = builders.membership(userId) ?: return RoleWindow.ALWAYS
         if (membership.status != BuilderStatus.Active) return RoleWindow.LAPSED
+        if (!gate.mayReceiveFreePro(userId)) return RoleWindow.LAPSED
         val now = clock.now()
         val until = BuilderRules.proUntil(membership.joinedAt, builders.history(userId, now).acceptedAt, now)
         return RoleWindow(active = until > now, until = until)

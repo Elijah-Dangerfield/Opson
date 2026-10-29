@@ -329,6 +329,7 @@ class SubmitFoodViewModel(
         when (val result = action.result) {
             is SubmitResult.Submitted -> finish(sent = true, published = result.lane == LANE_OWNER || result.lane == LANE_AUTO)
             SubmitResult.TooMany -> action.change { copy(step = SubmitStep.SendFailed(offline = false, tooMany = true)) }
+            SubmitResult.Restricted -> action.change { copy(step = SubmitStep.SendFailed(offline = false, tooMany = false, restricted = true)) }
             is SubmitResult.Failed -> action.change { copy(step = SubmitStep.SendFailed(offline = result.offline, tooMany = false)) }
         }
     }

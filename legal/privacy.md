@@ -134,8 +134,49 @@ Some features are switched on over time. When they are, this is how they work.
   and straight away if you delete your account. If we approve the food, its
   name, brand, barcode, serving and nutrition values (not the photos, and not
   who sent it) join the food database that everyone searches, and stay there
-  after you delete your account, as any other food in the database would. If
-  you only read the label and don't submit, nothing from it is kept.
+  after you delete your account, as any other food in the database would. We
+  keep a private record of which account sent it (see "Keeping the food
+  database honest" below). If you only read the label and don't submit,
+  nothing from it is kept.
+- **Opson Builders.** If you join, we keep that you joined, when, which
+  version of the Builder rules you accepted and your photo choice below, and
+  we count the foods and checks we accept from you to keep Builder Pro on.
+  - *Adding a food as a Builder.* Your phone reads the label photo itself
+    (Apple's Vision on iPhone, Google's ML Kit on Android, which may send
+    Google usage metrics but not the image). With the food we receive the text
+    your phone read from the label, the numbers it filled in, a few
+    measurements of how clearly it read them, whether the photo came from the
+    camera or your library, and a photo of the ingredients if you add one.
+    The label photo also goes through our server to
+    [Anthropic](https://www.anthropic.com/legal/privacy) for a second reading,
+    which Anthropic does not use to train its models. We use all of this to
+    check the numbers and to decide whether a person needs to look before the
+    food is added for everyone. It is kept with the review record and deleted
+    with your account. The photos follow the rules above.
+  - *Check against the pack.* Only the text your phone read from the label is
+    sent, not the photo. We keep which food you checked, when, and whether the
+    numbers matched, not the text. If they didn't and you send a correction, it
+    goes as a report, with the photo, like any report.
+  - *Also read the label* in the scanner reads nothing from the camera while it
+    scans. After the barcode, you take the label photo yourself.
+  - *Keeping label photos longer (optional).* If you choose it when you join or
+    later on More › Builders, we keep the photos of foods you send for up to
+    two years after review, to test how well Opson reads labels. Turn it off,
+    or leave Builders, and the usual 30 days applies again.
+- **Keeping the food database honest.** When you send a food or report a
+  problem with one, and only then, the app also sends a random install code
+  it keeps for this (on iPhone in the Keychain, on Android the app's install
+  ID), and, where we have switched it on, a token from Apple's DeviceCheck or
+  Google's Play Integrity. We keep a scrambled copy of the install code, never
+  the code itself, and use the token once to ask Apple or Google whether we
+  have marked that phone, then discard it. Apple and Google keep up to two or
+  three on/off marks per phone for us, which can last through deleting the
+  app. We use this only to stop someone we have removed for sending fake or
+  copied data from sending more, or from getting Pro for free through a
+  program, from the same phone. It never stops anyone logging their own food.
+  Phones change hands, so if a phone you bought is blocked, write to us and we
+  will clear it. We also keep a record of which account sent each food or
+  correction we accepted, so we can undo them if we have to.
 - **Barcode suggestions.** If a barcode finds nothing and, within ten minutes,
   you log a food you found by searching, we record that pairing (the barcode,
   the food and when) so we can attach the barcode to the right food. It is not
@@ -187,9 +228,9 @@ you ask us to help with your account or the law requires it.
 | Supabase | Stores your synced log and your account |
 | Sentry | Crash reports and feedback |
 | Grafana Labs | App usage events and server monitoring |
-| Anthropic | Photo estimates and reading pack labels, only when you use them |
-| Apple | Sign in with Apple, and speech recognition when you use voice logging |
-| Google | Speech recognition and barcode reading on Android, when you use them |
+| Anthropic | Photo estimates and reading pack labels, including a second reading of a Builder's label photo, only when you use them |
+| Apple | Sign in with Apple, speech recognition when you use voice logging, and DeviceCheck when you send a food or a report |
+| Google | Speech recognition and barcode reading on Android when you use them, and Play Integrity when you send a food or a report |
 
 They handle data on our behalf, only to provide their service to us. Open Food
 Facts and Nutritionix receive only barcodes from our server, never anything
@@ -203,17 +244,30 @@ company that takes over Opson, which would stay bound by this policy.
   row marked as deleted so your other phones learn about it. It is gone for good
   when you delete your account.
 - **After you delete your account**: everything is removed from our database
-  straight away. Copies in our database provider's backups expire within 30
-  days.
+  straight away, with one exception. If you sent us foods or reports, or we
+  acted on your account for sending fake data, we keep those records with
+  your account ID replaced by a scrambled code that can't be turned back into
+  it, so we can still undo what was sent. Copies in our database provider's
+  backups expire within 30 days.
 - **Crash reports, feedback and server logs**: up to 90 days.
 - **App usage events**: up to 90 days.
 - **Search words and barcodes** recorded without your account: as long as they
   help us improve the food database. They can't be traced back to you.
 - **Photos of a pack you submit**: until 30 days after we review the food, or
-  until you delete your account if that comes first. The review record (the
+  until you delete your account if that comes first. As a Builder who chose to
+  let us keep them, up to two years after the review, for as long as you keep
+  that choice and stay a Builder.
+- **Your Builder membership and checks against the pack**: until you delete
+  your account. Leaving Builders ends Builder Pro but keeps the record that
+  you were one. The review record (the
   food's details and our decision) stays with your account until you delete it.
 - **Foods we approve from submissions**: in the food database for everyone,
   without the photos and without your account.
+- **Records of who sent which food or correction, and of action we took on an
+  account**: as long as the food database holds what they describe, under the
+  scrambled code once the account is deleted.
+- **The scrambled install code** from a phone we marked: until we clear the
+  mark. Otherwise it goes with your account.
 
 ## Getting a copy, or deleting it
 
@@ -254,7 +308,9 @@ the controller. We process your log and account to provide the app you asked
 for (contract). Health information you enter is processed with your explicit
 consent, which you can withdraw at any time by deleting it or your account.
 Crash reports, usage events and security measures rest on our legitimate
-interest in keeping the app working and safe, and you can object to them. Your
+interest in keeping the app working and safe, and you can object to them.
+The install code, DeviceCheck and Play Integrity checks, and the records of
+who sent which food rest on our legitimate interest in preventing fraud. Your
 data is processed in the United States; where needed we rely on our providers'
 standard contractual clauses or their certification under the Data Privacy
 Framework. You can complain to your local data protection authority.
