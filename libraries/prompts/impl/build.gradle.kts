@@ -1,5 +1,8 @@
 plugins {
     id("opson.compose.multiplatform")
+    // The prompt ledger is a @Serializable cache; this convention doesn't apply the compiler
+    // plugin, and without it the serializer is missing at run time on iOS (launch crash).
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
