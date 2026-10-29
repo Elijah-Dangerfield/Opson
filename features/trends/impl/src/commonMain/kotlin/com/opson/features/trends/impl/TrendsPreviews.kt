@@ -249,6 +249,21 @@ private fun PatternsPickedPreview() = Phone { Picked { Patterns(full, below()) }
 @Composable
 private fun PatternsBlindPreview() = Phone { Patterns(TrendsFixtures.policy(PresetId.NoNumbers)) }
 
+/** The whole page, tall, down to the check-ins card: four weeks of energy, a bar a day. */
+@Preview(widthDp = 390, heightDp = 2000)
+@Composable
+private fun PatternsCheckInsPreview() = Phone {
+    val built = PatternsStateBuilder.build(TrendsFixtures.patternsInputs(checkInOn = true), full)
+    PatternsContent(built.copy(checkIns = built.checkIns?.picking(CheckInAspect.Energy)), onAction = {})
+}
+
+/** No numbers keeps the check-ins card: bars and words, never an amount. */
+@Preview(widthDp = 390, heightDp = 2000)
+@Composable
+private fun PatternsCheckInsBlindPreview() = Phone(dark = true) {
+    PatternsContent(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(checkInOn = true), TrendsFixtures.policy(PresetId.NoNumbers)), onAction = {})
+}
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun PatternsEmptyPreview() =

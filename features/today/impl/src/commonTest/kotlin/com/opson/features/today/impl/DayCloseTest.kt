@@ -1,13 +1,18 @@
 package com.opson.features.today.impl
 
 import com.opson.libraries.diary.DayReflection
-import com.opson.libraries.diary.Sleep
-import com.opson.libraries.diary.Energy
-import com.opson.libraries.diary.DayHunger
-import com.opson.libraries.diary.CheckInMood
-import com.opson.libraries.diary.CheckIn
 import kotlinx.datetime.LocalDate
+import com.opson.features.today.impl.dayclose.BalanceDirection
+import com.opson.features.today.impl.dayclose.BalancePlan
 import com.opson.features.today.impl.dayclose.Commitment
+import com.opson.features.today.impl.dayclose.DayCloseInputs
+import com.opson.features.today.impl.dayclose.DayCloseStateBuilder
+import com.opson.features.today.impl.dayclose.PlanKind
+import com.opson.features.today.impl.dayclose.PlanResult
+import com.opson.features.today.impl.dayclose.RecapLine
+import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.RestingEnergy
+import com.opson.libraries.nutrition.RestingFrom
 import com.opson.features.today.impl.dayclose.DayCloseAction
 import com.opson.features.today.impl.dayclose.DayCloseEvent
 import com.opson.features.today.impl.dayclose.DayCloseState
@@ -15,6 +20,7 @@ import com.opson.features.today.impl.dayclose.DayCloseViewModel
 import com.opson.features.today.impl.dayclose.FeelingChoice
 import com.opson.features.today.impl.dayclose.MealsLine
 import com.opson.features.today.impl.dayclose.RangeLine
+import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
@@ -71,8 +77,9 @@ class DayCloseTest : CoroutineTest() {
         val totals = assertNotNull(state.totals)
         assertEquals("2,058", totals.eaten.text())
         assertEquals("1,900 to 2,300", assertIs<RangeLine.Inside>(totals.rangeLine).range.text())
-        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), totals.macros.map { it.metric })
-        assertEquals("88 g", totals.macros.first().display.text())
+        val macros = assertNotNull(state.macros)
+        assertEquals(listOf(Metric.Protein, Metric.Carbs, Metric.Fat, Metric.Fiber), macros.map { it.metric })
+        assertEquals("88 / 120 g", macros.first().display.text(), "each against its target")
         assertNull(state.bigDay)
         assertNull(state.loggedMeals)
     }
@@ -84,7 +91,8 @@ class DayCloseTest : CoroutineTest() {
         val totals = assertNotNull(state.totals)
         assertEquals("3,095", totals.eaten.text())
         assertEquals(RangeLine.Above, totals.rangeLine)
-        assertTrue(totals.macros.isEmpty(), "the reset card is the message")
+        assertNull(state.macros, "the reset card is the message")
+        assertNull(state.micros)
         val bigDay = assertNotNull(state.bigDay)
         assertEquals(Commitment.Offered, bigDay.commitment)
         assertEquals("1,900 to 2,300 kcal", bigDay.tomorrow.text())
@@ -427,56 +435,174 @@ class DayCloseTest : CoroutineTest() {
 
     @Test
     fun expendedFromTheWatch_showsAtShow_andOnlyToday() {
-        assertEquals("1,990 kcal", TodayFixtures.dayCloseState(policy(PresetId.Full), expended = TodayFixtures.expended).expended.text())
+        // Calories hidden, so no eaten and burned card says it instead.
+        val energyOnly = policy(PresetId.Full, overrides = mapOf(Metric.Calories to Visibility.Hide))
+        assertEquals("1,990 kcal", TodayFixtures.dayCloseState(energyOnly, expended = TodayFixtures.expended).expended.text())
         assertIs<Display.Hidden>(TodayFixtures.dayCloseState(policy(PresetId.NoNumbers), expended = TodayFixtures.expended).expended)
         assertIs<Display.Hidden>(
-            TodayFixtures.dayCloseState(policy(PresetId.Full), expended = TodayFixtures.expended, date = TodayFixtures.pastDay().date).expended,
+            TodayFixtures.dayCloseState(energyOnly, expended = TodayFixtures.expended, date = TodayFixtures.pastDay().date).expended,
         )
     }
 
     @Test
-    fun theCheckInPrefillsOnce_andIsSavedOnCloseTheDay() = runUnitTest {
-        diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(checkIn = CheckIn(hunger = DayHunger.Some)))
+    fun theCheckInRowShowsTheDaysCheckIn_andOpensTheSheet() = runUnitTest {
+        diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(checkIn = TodayFixtures.checkIn))
+        val events = mutableListOf<DayCloseEvent>()
         val vm = vm(checkInOn = true)
-        assertEquals(CheckIn(hunger = DayHunger.Some), vm.state.checkIn)
+        backgroundScope.launch { vm.eventFlow.toList(events) }
+        assertEquals(TodayFixtures.checkIn, vm.state.checkIn)
 
-        vm.takeAction(DayCloseAction.CheckInHungerTapped(DayHunger.Steady))
-        vm.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Good))
-        vm.takeAction(DayCloseAction.CheckInSleepTapped(Sleep.Ok))
-        vm.takeAction(DayCloseAction.CheckInMoodTapped(CheckInMood.Calm))
-        vm.takeAction(DayCloseAction.CheckInMoodTapped(CheckInMood.Social))
-        vm.takeAction(DayCloseAction.CheckInSleepTapped(Sleep.Ok))
-        diary.days.value = diary.days.value.mapValues { (_, d) -> d.copy(checkIn = CheckIn(hunger = DayHunger.Very)) }
-        assertEquals(DayHunger.Steady, vm.state.checkIn?.hunger, "a later emission does not overwrite what is being answered")
+        vm.takeAction(DayCloseAction.CheckInTapped)
+
+        assertEquals<DayCloseEvent>(DayCloseEvent.OpenCheckIn(TodayFixtures.today), events.single())
+    }
+
+    @Test
+    fun closingTheDayNeverWritesTheCheckIn() = runUnitTest {
+        diary.days.value = mapOf(TodayFixtures.today to TodayFixtures.day(dinner = true).copy(checkIn = TodayFixtures.checkIn))
+        val vm = vm(checkInOn = true)
 
         vm.takeAction(DayCloseAction.DoneTapped)
 
-        val expected = CheckIn(hunger = DayHunger.Steady, energy = Energy.Good, moods = setOf(CheckInMood.Calm, CheckInMood.Social))
-        assertEquals(expected, diary.closed.single().second.checkIn, "sleep tapped twice is left blank")
+        assertEquals(1, diary.closed.size)
+        assertTrue(diary.checkIns.isEmpty(), "the check-in has its own sheet and its own write")
     }
 
     @Test
-    fun backSavesNoCheckIn_andTheFlagOffWritesNone() = runUnitTest {
-        val on = vm(checkInOn = true)
-        on.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
-        on.takeAction(DayCloseAction.BackTapped)
-        assertTrue(diary.closed.isEmpty())
-
+    fun theCheckInNeedsNoSwitch_theFlagAlone() = runUnitTest {
+        assertNotNull(vm(checkInOn = true, settings = Settings(checkIn = false)).state.checkIn, "Reminders no longer turns it off")
+        val events = mutableListOf<DayCloseEvent>()
         val off = vm(checkInOn = false)
-        off.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
-        off.takeAction(DayCloseAction.DoneTapped)
-        assertNull(diary.closed.single().second.checkIn)
+        backgroundScope.launch { off.eventFlow.toList(events) }
+        assertNull(off.state.checkIn)
+        off.takeAction(DayCloseAction.CheckInTapped)
+        assertTrue(events.isEmpty(), "with the flag off there is nothing to open")
+    }
+
+    // The recap: eaten against burned, the macros and the vitamins and minerals.
+
+    @Test
+    fun aSetDeficitOnABusyDay_isAbout500Under_rightAroundThePlan() {
+        val state = TodayFixtures.dayCloseState(policy(PresetId.Full), settings = TodayFixtures.deficit500, burned = TodayFixtures.activeBurned)
+
+        val balance = assertNotNull(state.balance)
+        assertEquals("2,058 kcal", balance.eaten.text())
+        assertEquals("2,560 kcal", balance.burned.text())
+        assertEquals("502 kcal", balance.difference.text())
+        assertEquals(BalanceDirection.Under, balance.direction)
+        assertTrue(balance.soFar, "today's activity is still syncing")
+        val plan = assertNotNull(balance.plan)
+        assertEquals(PlanKind.Deficit, plan.kind)
+        assertEquals("500 kcal", plan.planned.text())
+        assertEquals(PlanResult.OnPlan, plan.result)
+        assertIs<Display.Hidden>(state.expended, "the card says what the watch row would")
     }
 
     @Test
-    fun checkInSwitchedOffInReminders_hidesTheCard_evenWithTheFlagOn() = runUnitTest {
-        assertNotNull(vm(checkInOn = true).state.checkIn)
+    fun aDeficitGoalOnAQuietDay_isOver_andSaysSoKindly_besideTheBigDayCard() {
+        val state = TodayFixtures.dayCloseState(policy(PresetId.Full), settings = TodayFixtures.deficit500, burned = TodayFixtures.quietBurned)
 
-        val off = vm(checkInOn = true, settings = Settings(checkIn = false))
-        assertNull(off.state.checkIn)
-        off.takeAction(DayCloseAction.CheckInEnergyTapped(Energy.Low))
-        off.takeAction(DayCloseAction.DoneTapped)
-        assertNull(diary.closed.single().second.checkIn)
+        val balance = assertNotNull(state.balance)
+        assertEquals(BalanceDirection.Over, balance.direction)
+        assertEquals("308 kcal", balance.difference.text())
+        // 1,750 less 500 is under the floor of 1,500, so the goal is 1,500: a 250 deficit.
+        val plan = assertNotNull(balance.plan)
+        assertEquals(PlanKind.Deficit, plan.kind)
+        assertEquals(PlanResult.Opposite, plan.result)
+        assertEquals("250 kcal", plan.planned.text())
+        assertNotNull(state.bigDay)
+    }
+
+    @Test
+    fun aSetSurplus_isOverWhatWasBurned_aroundThePlan() {
+        val state = TodayFixtures.dayCloseState(policy(PresetId.Full), settings = TodayFixtures.surplus300, burned = TodayFixtures.quietBurned)
+
+        val balance = assertNotNull(state.balance)
+        assertEquals(BalanceDirection.Over, balance.direction)
+        val plan = assertNotNull(balance.plan)
+        assertEquals(PlanKind.Surplus, plan.kind)
+        assertEquals(PlanResult.OnPlan, plan.result)
+    }
+
+    @Test
+    fun aRangeCloseToWhatWasBurned_hasNoPlanLine_andEvenSaysEven() {
+        // The range's middle, 2,100, is 80 under the 2,180 burned: no deficit worth naming.
+        val state = TodayFixtures.dayCloseState(policy(PresetId.Full), burned = TodayFixtures.burned)
+        val balance = assertNotNull(state.balance)
+        assertEquals(BalanceDirection.Under, balance.direction)
+        assertEquals("122 kcal", balance.difference.text())
+        assertNull(balance.plan)
+
+        val even = Burned(RestingEnergy(1610, RestingFrom.Calculated), movementKcal = 450)
+        assertEquals(BalanceDirection.Even, TodayFixtures.dayCloseState(policy(PresetId.Full), burned = even).balance?.direction)
+    }
+
+    @Test
+    fun aDeficitPlanCanBeBeyondOrShort() {
+        val busier = Burned(RestingEnergy(1610, RestingFrom.Calculated), movementKcal = 900, workoutKcal = 400)
+        val small = Settings(targets = Targets.Default.copy(style = TargetStyle.Deficit(300, 300)))
+        // 2,910 burned and a 300 deficit: the goal is 2,610, and 2,058 eaten is 852 under.
+        assertEquals(PlanResult.Beyond, TodayFixtures.dayCloseState(policy(PresetId.Full), settings = small, burned = busier).balance?.plan?.result)
+
+        val big = Settings(targets = Targets.Default.copy(startingKcal = 1500, style = TargetStyle.Deficit(800, 800)))
+        // 2,560 burned and an 800 deficit: 502 under is the same way, and less.
+        assertEquals(PlanResult.Short, TodayFixtures.dayCloseState(policy(PresetId.Full), settings = big, burned = TodayFixtures.activeBurned).balance?.plan?.result)
+    }
+
+    @Test
+    fun theBalanceIsLeftOutWheneverCaloriesOrEnergyOutIsLessThanShown() {
+        val hiding = listOf(
+            policy(PresetId.MacrosWithGrams),
+            policy(PresetId.MacrosOnly),
+            policy(PresetId.NoNumbers),
+            softCalories,
+            policy(PresetId.Full, overrides = mapOf(Metric.EnergyOut to Visibility.Hide)),
+            policy(PresetId.Full, overrides = mapOf(Metric.Calories to Visibility.Hide)),
+            policy(NumbersSettings.later(RevealOn.Week)),
+        )
+        hiding.forEach { policy ->
+            val state = TodayFixtures.dayCloseState(policy, settings = TodayFixtures.deficit500, burned = TodayFixtures.activeBurned, expended = TodayFixtures.expended)
+            assertNull(state.balance, "${policy.settings}")
+        }
+        val later = TodayFixtures.dayCloseState(policy(NumbersSettings.later()), settings = TodayFixtures.deficit500, burned = TodayFixtures.activeBurned)
+        assertNotNull(later.balance, "Later opens on Close the day, the balance with it")
+    }
+
+    @Test
+    fun noBurnedKnown_noBalance() {
+        assertNull(TodayFixtures.dayCloseState(policy(PresetId.Full)).balance)
+        assertNotNull(TodayFixtures.dayCloseState(policy(PresetId.Full), expended = TodayFixtures.expended).balance, "the watch's total stands in today")
+        assertNull(
+            TodayFixtures.dayCloseState(policy(PresetId.Full), expended = TodayFixtures.expended, date = TodayFixtures.pastDay().date).balance,
+            "the watch reads today only",
+        )
+    }
+
+    @Test
+    fun theMacrosShowWhereverTheModeShowsThem_evenWithoutCalories() {
+        assertEquals("88 / 120 g", TodayFixtures.dayCloseState(policy(PresetId.MacrosWithGrams)).macros?.first()?.display?.text())
+        assertIs<Display.Soft>(assertNotNull(TodayFixtures.dayCloseState(policy(PresetId.MacrosOnly)).macros).first().display)
+        assertNull(TodayFixtures.dayCloseState(policy(PresetId.NoNumbers)).macros)
+    }
+
+    @Test
+    fun theVitaminsAndMineralsAreTodaysFour_asPercents_neverAScore() {
+        val micros = assertNotNull(TodayFixtures.dayCloseState(policy(PresetId.Full)).micros)
+        assertEquals(Settings().todayMicronutrients, micros.map { it.micro })
+        assertTrue(micros.all { it.display is Display.Shown || it.notListed })
+        assertNull(TodayFixtures.dayCloseState(policy(PresetId.MacrosOnly)).micros, "a mode that hides micros has no card")
+        assertNull(TodayFixtures.dayCloseState(policy(PresetId.NoNumbers)).micros)
+    }
+
+    @Test
+    fun theRecapLineSaysHowMuchWasLogged_inEveryMode() {
+        PresetId.entries.forEach { preset ->
+            assertEquals(RecapLine.AllMeals, TodayFixtures.dayCloseState(policy(preset)).recap, "$preset")
+        }
+        fun recap(day: Day) =
+            DayCloseStateBuilder.build(DayCloseInputs(TodayFixtures.today, day, Settings()), policy(PresetId.Full), note = "", committed = false).recap
+        assertEquals(RecapLine.SomeLogged, recap(TodayFixtures.day(dinner = false)), "no dinner yet")
+        assertEquals(RecapLine.NothingLogged, recap(Day.empty(TodayFixtures.today)))
     }
 
     @Test

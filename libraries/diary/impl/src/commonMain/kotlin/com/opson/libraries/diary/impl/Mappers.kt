@@ -4,17 +4,18 @@ import com.opson.libraries.core.Catching
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.CustomFood
-import com.opson.libraries.diary.DayHunger
 import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.Fullness
 import com.opson.libraries.diary.Hunger
+import com.opson.libraries.diary.HungerLevel
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Mood
+import com.opson.libraries.diary.MoodLevel
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.Sleep
@@ -205,24 +206,54 @@ internal fun CheckIn?.toCheckInJson(): String? = this?.takeUnless { it.isEmpty }
     WireJson.encodeToString(
         CheckInWire.serializer(),
         CheckInWire(
-            hunger = checkIn.hunger?.wire,
+            hunger = checkIn.hunger?.let(LegacyHunger::nearest)?.wire,
+            hungerLevel = checkIn.hunger?.value,
             energy = checkIn.energy?.wire,
             sleep = checkIn.sleep?.wire,
+            mood = checkIn.mood?.wire,
             moods = checkIn.moods.sortedBy { it.ordinal }.map { it.wire },
         ),
     )
 }
 
-/** Unreadable JSON or unknown values read as unanswered, never as a crash. */
+/**
+ * Unreadable JSON or unknown values read as unanswered, never as a crash. A check-in from before
+ * the hunger scale has only the old word, which reads as its step on the scale ([LegacyHunger]).
+ */
 internal fun String?.toCheckIn(): CheckIn? {
     val json = this ?: return null
     val wire = Catching { WireJson.decodeFromString(CheckInWire.serializer(), json) }.getOrNull() ?: return null
     return CheckIn(
-        hunger = DayHunger.fromWire(wire.hunger),
+        hunger = HungerLevel.of(wire.hungerLevel) ?: LegacyHunger.fromWire(wire.hunger)?.level,
         energy = Energy.fromWire(wire.energy),
         sleep = Sleep.fromWire(wire.sleep),
+        mood = MoodLevel.fromWire(wire.mood),
         moods = wire.moods.mapNotNullTo(LinkedHashSet()) { CheckInMood.fromWire(it) },
     ).takeUnless { it.isEmpty }
+}
+
+/**
+ * The first check-in's "hunger through the day", how often hunger came up, and where each word
+ * sits on the 1 to 10 hunger scale: hungry more often reads as hungrier. Approximate on purpose,
+ * the two questions were not the same, but it keeps every old answer on the chart in the right
+ * order. Kept for reading old rows and for writing the nearest word, which a 0.2 phone shows.
+ */
+internal enum class LegacyHunger(val wire: String, private val step: Int) {
+    Rarely("rarely", 6),
+    Some("some", 5),
+    Steady("steady", 4),
+    Often("often", 3),
+    Very("very", 2),
+    ;
+
+    val level: HungerLevel? get() = HungerLevel.of(step)
+
+    companion object {
+        fun fromWire(value: String?): LegacyHunger? = entries.firstOrNull { it.wire == value }
+
+        /** The word whose step is closest: 1 and 2 are "very", 6 and fuller "rarely". */
+        fun nearest(level: HungerLevel): LegacyHunger = entries.minBy { kotlin.math.abs(it.step - level.value) }
+    }
 }
 
 // ---------- meal feelings ----------

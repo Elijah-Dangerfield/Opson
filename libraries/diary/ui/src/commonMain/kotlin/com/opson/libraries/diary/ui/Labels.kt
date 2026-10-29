@@ -2,10 +2,12 @@ package com.opson.libraries.diary.ui
 
 import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.DayFeeling
-import com.opson.libraries.diary.DayHunger
 import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.Hunger
+import com.opson.libraries.diary.HungerAnchor
+import com.opson.libraries.diary.HungerLevel
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MoodLevel
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Sleep
 import opson.libraries.resources.generated.resources.Res
@@ -32,23 +34,37 @@ import opson.libraries.resources.generated.resources.diary_slot_sentence_snack
 import opson.libraries.resources.generated.resources.diary_slot_sentence_uncategorized
 import opson.libraries.resources.generated.resources.diary_slot_snack
 import opson.libraries.resources.generated.resources.diary_slot_uncategorized
+import opson.libraries.resources.generated.resources.today_checkin_energy_drained
 import opson.libraries.resources.generated.resources.today_checkin_energy_good
+import opson.libraries.resources.generated.resources.today_checkin_energy_great
 import opson.libraries.resources.generated.resources.today_checkin_energy_low
 import opson.libraries.resources.generated.resources.today_checkin_energy_ok
-import opson.libraries.resources.generated.resources.today_checkin_hunger_often
-import opson.libraries.resources.generated.resources.today_checkin_hunger_rarely
-import opson.libraries.resources.generated.resources.today_checkin_hunger_some
-import opson.libraries.resources.generated.resources.today_checkin_hunger_steady
-import opson.libraries.resources.generated.resources.today_checkin_hunger_very
+import opson.libraries.resources.generated.resources.today_checkin_hunger_1
+import opson.libraries.resources.generated.resources.today_checkin_hunger_10
+import opson.libraries.resources.generated.resources.today_checkin_hunger_2
+import opson.libraries.resources.generated.resources.today_checkin_hunger_3
+import opson.libraries.resources.generated.resources.today_checkin_hunger_4
+import opson.libraries.resources.generated.resources.today_checkin_hunger_5
+import opson.libraries.resources.generated.resources.today_checkin_hunger_6
+import opson.libraries.resources.generated.resources.today_checkin_hunger_7
+import opson.libraries.resources.generated.resources.today_checkin_hunger_8
+import opson.libraries.resources.generated.resources.today_checkin_hunger_9
 import opson.libraries.resources.generated.resources.today_checkin_mood_calm
+import opson.libraries.resources.generated.resources.today_checkin_mood_good
+import opson.libraries.resources.generated.resources.today_checkin_mood_great
 import opson.libraries.resources.generated.resources.today_checkin_mood_happy
 import opson.libraries.resources.generated.resources.today_checkin_mood_low
+import opson.libraries.resources.generated.resources.today_checkin_mood_low_level
+import opson.libraries.resources.generated.resources.today_checkin_mood_ok
+import opson.libraries.resources.generated.resources.today_checkin_mood_rough
 import opson.libraries.resources.generated.resources.today_checkin_mood_social
 import opson.libraries.resources.generated.resources.today_checkin_mood_stressed
 import opson.libraries.resources.generated.resources.today_checkin_mood_tired
 import opson.libraries.resources.generated.resources.today_checkin_sleep_good
+import opson.libraries.resources.generated.resources.today_checkin_sleep_great
 import opson.libraries.resources.generated.resources.today_checkin_sleep_ok
 import opson.libraries.resources.generated.resources.today_checkin_sleep_poor
+import opson.libraries.resources.generated.resources.today_checkin_sleep_rough
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_busy
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_good
 import opson.libraries.resources.generated.resources.today_dayclose_feeling_hard
@@ -103,28 +119,48 @@ val Hunger.label: StringResource
         Hunger.Stuffed -> Res.string.diary_hunger_stuffed
     }
 
-/** Day close's check-in rows and the day's feeling, as Close the day and the provider summary say them. */
-val DayHunger.label: StringResource
+/** The check-in's answers and the day's feeling, as the check-in, Patterns and the provider summary say them. */
+val HungerLevel.label: StringResource get() = anchor.label
+
+val HungerAnchor.label: StringResource
     get() = when (this) {
-        DayHunger.Rarely -> Res.string.today_checkin_hunger_rarely
-        DayHunger.Some -> Res.string.today_checkin_hunger_some
-        DayHunger.Steady -> Res.string.today_checkin_hunger_steady
-        DayHunger.Often -> Res.string.today_checkin_hunger_often
-        DayHunger.Very -> Res.string.today_checkin_hunger_very
+        HungerAnchor.Ravenous -> Res.string.today_checkin_hunger_1
+        HungerAnchor.VeryHungry -> Res.string.today_checkin_hunger_2
+        HungerAnchor.Hungry -> Res.string.today_checkin_hunger_3
+        HungerAnchor.LittleHungry -> Res.string.today_checkin_hunger_4
+        HungerAnchor.Neutral -> Res.string.today_checkin_hunger_5
+        HungerAnchor.Satisfied -> Res.string.today_checkin_hunger_6
+        HungerAnchor.ComfortablyFull -> Res.string.today_checkin_hunger_7
+        HungerAnchor.Full -> Res.string.today_checkin_hunger_8
+        HungerAnchor.VeryFull -> Res.string.today_checkin_hunger_9
+        HungerAnchor.Stuffed -> Res.string.today_checkin_hunger_10
     }
 
 val Energy.label: StringResource
     get() = when (this) {
+        Energy.Drained -> Res.string.today_checkin_energy_drained
         Energy.Low -> Res.string.today_checkin_energy_low
         Energy.Ok -> Res.string.today_checkin_energy_ok
         Energy.Good -> Res.string.today_checkin_energy_good
+        Energy.Great -> Res.string.today_checkin_energy_great
     }
 
 val Sleep.label: StringResource
     get() = when (this) {
+        Sleep.Rough -> Res.string.today_checkin_sleep_rough
         Sleep.Poor -> Res.string.today_checkin_sleep_poor
         Sleep.Ok -> Res.string.today_checkin_sleep_ok
         Sleep.Good -> Res.string.today_checkin_sleep_good
+        Sleep.Great -> Res.string.today_checkin_sleep_great
+    }
+
+val MoodLevel.label: StringResource
+    get() = when (this) {
+        MoodLevel.Rough -> Res.string.today_checkin_mood_rough
+        MoodLevel.Low -> Res.string.today_checkin_mood_low_level
+        MoodLevel.Ok -> Res.string.today_checkin_mood_ok
+        MoodLevel.Good -> Res.string.today_checkin_mood_good
+        MoodLevel.Great -> Res.string.today_checkin_mood_great
     }
 
 val CheckInMood.label: StringResource

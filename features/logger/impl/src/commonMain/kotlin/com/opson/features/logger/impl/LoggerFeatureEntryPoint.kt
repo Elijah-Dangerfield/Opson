@@ -27,6 +27,7 @@ import com.opson.features.logger.LoggerStart
 import com.opson.features.logger.SubmitEntry
 import com.opson.features.logger.SubmitFoodRoute
 import com.opson.features.settings.FastingRoute
+import com.opson.features.today.CheckInRoute
 import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
 import com.opson.features.trends.WeightRoute
@@ -250,6 +251,10 @@ class LoggerFeatureEntryPoint(
                 LoggerEvent.OpenFasting -> router.batch {
                     goBack()
                     navigate(FastingRoute())
+                }
+                is LoggerEvent.OpenCheckIn -> router.batch {
+                    goBack()
+                    navigate(CheckInRoute(event.day.toString()))
                 }
                 is LoggerEvent.OpenExercise -> router.batch {
                     goBack()

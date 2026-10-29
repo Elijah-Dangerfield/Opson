@@ -225,6 +225,7 @@ object LoggerFixtures {
                 voiceEnabled = flags,
                 fastingReleased = flags,
                 exerciseReleased = exercise,
+                checkInAvailable = flags,
                 seen = inputs.day.allItems.mapTo(HashSet()) { it.id },
             ),
         )

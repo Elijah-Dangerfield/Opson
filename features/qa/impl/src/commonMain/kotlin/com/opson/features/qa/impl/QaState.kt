@@ -170,8 +170,8 @@ object QaBuild {
 sealed interface QaEvent {
     data class ShowToast(val toast: QaToast) : QaEvent
 
-    /** Close the day for [dayIso], today. */
-    data class OpenDayClose(val dayIso: String) : QaEvent
+    /** The check-in for [dayIso], today. */
+    data class OpenCheckIn(val dayIso: String) : QaEvent
     data object Close : QaEvent
 }
 

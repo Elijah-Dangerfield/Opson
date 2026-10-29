@@ -22,6 +22,7 @@ import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
+import com.opson.features.today.CheckInRoute
 import com.opson.features.today.DayCloseRoute
 import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
@@ -32,6 +33,9 @@ import com.opson.features.today.impl.burned.TodayBurnedSection
 import com.opson.features.today.impl.burned.TodayBurnedViewModel
 import com.opson.features.today.impl.calendar.CalendarEvent
 import com.opson.features.today.impl.cards.TodayCardsEvent
+import com.opson.features.today.impl.checkin.CheckInEvent
+import com.opson.features.today.impl.checkin.CheckInSheetContent
+import com.opson.features.today.impl.checkin.CheckInViewModel
 import com.opson.features.today.impl.cards.TodayCardsSheetContent
 import com.opson.features.today.impl.cards.TodayCardsViewModel
 import com.opson.features.today.impl.calendar.CalendarDropdownContent
@@ -92,7 +96,7 @@ import kotlin.reflect.typeOf
 /**
  * Today and everything that opens from it: the tab root, Day close, the calendar that drops from
  * the title, the Notes list, and the meal, meal Note (hunger and words), water, food actions, day
- * note, Today's cards and day closed sheets.
+ * note, check-in, Today's cards and day closed sheets.
  * View models send events; only this class navigates.
  */
 @SingleIn(AppScope::class)
@@ -111,6 +115,7 @@ class TodayFeatureEntryPoint(
     private val todayCardsViewModelFactory: () -> TodayCardsViewModel,
     private val notesViewModelFactory: (Boolean) -> NotesViewModel,
     private val todayBurnedViewModelFactory: () -> TodayBurnedViewModel,
+    private val checkInViewModelFactory: (LocalDate?) -> CheckInViewModel,
     private val tabBar: TabBar,
     private val findSupportEnabled: FindSupportEnabled,
 ) : FeatureEntryPoint {
@@ -157,6 +162,8 @@ class TodayFeatureEntryPoint(
                     DayCloseEvent.OpenWhyNotCutBack -> router.navigate(WhyNotCutBackRoute())
                     // Find support once it is released, the Support page's helpline until then. Never logged.
                     DayCloseEvent.OpenSupport -> router.navigate(if (findSupportEnabled()) FindSupportRoute() else SupportRoute())
+                    is DayCloseEvent.OpenCheckIn -> router.navigate(CheckInRoute(event.day.toString()))
+                    is DayCloseEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
                 }
             }
             DayCloseScreen(state = state, onAction = viewModel::takeAction)
@@ -172,6 +179,20 @@ class TodayFeatureEntryPoint(
                 }
             }
             TodaySheet(router, sheetState) { DayClosedSheetContent(state = state, onAction = viewModel::takeAction) }
+        }
+
+        // The check-in, from the + sheet and Close the day (release.checkIn); a closed day still takes one.
+        bottomSheet<CheckInRoute> { backStackEntry, sheetState ->
+            val route = backStackEntry.toRoute<CheckInRoute>()
+            val viewModel: CheckInViewModel = viewModel { checkInViewModelFactory(route.dayIso?.let(LocalDate::parse)) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is CheckInEvent.ShowToast -> showToast(event.toast)
+                    CheckInEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            TodaySheet(router, sheetState) { CheckInSheetContent(state = state, onAction = viewModel::takeAction) }
         }
 
         dialog<CalendarRoute> { backStackEntry, dialogState ->

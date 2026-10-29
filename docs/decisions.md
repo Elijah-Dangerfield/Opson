@@ -6,6 +6,65 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-29: The check-in is its own sheet, hunger is a 1 to 10 scale, and Close the day is a recap
+
+**Decision:** the check-in leaves Close the day. It is a sheet of its own
+(`CheckInRoute`, `release.checkIn`), opened from a Check in tile on the + sheet,
+a Check in row on Close the day and the QA menu, and written on its own
+(`DayCheckIns.setCheckIn`), never with the close. A closed day still takes one:
+how someone feels is not part of the day's log, so the 2026-10-27 rule that a
+closed day takes nothing does not reach it. `DayReflection` lost its
+`checkIn`. The Reminders switch that hid the old card is no longer read; the
+flag alone decides. A check-in reminder is not built: it needs a Reminders row,
+and Reminders is being reorganized.
+
+Sleep moved because people close the day at night, when "how did you sleep
+last night?" is the wrong question. The sheet asks it first, as last night,
+before noon; after noon it waits behind "Add last night's sleep" unless it was
+answered. Still one check-in per day: the sheet opens on what the day holds and
+saves the whole, so the morning's sleep is there when the evening moves hunger.
+Several timestamped check-ins a day would need a table, an outbox entity and a
+server migration, and the build going out now talks to a prod server that will
+not be redeployed, so the check-in stays on the day record's `check_in` JSON,
+which prod already stores and round-trips (length checked only).
+
+**Hunger is a slider on the 1 to 10 hunger and fullness scale** used in
+intuitive-eating work (1 ravenous, 5 neutral, 10 stuffed), with each step named,
+the ends and middle labelled under the track, and a tick on each step. It asks
+"How hungry are you right now?", the question that scale is made for; the old
+row asked how often hunger came up through the day, which no slider answers
+well. Energy, mood and sleep are five labelled points in a segmented row rather
+than sliders: five words read faster than a track, the scale has no numbers to
+mean, and a tap is quicker for a lightweight check-in. Faces were left out to
+keep the app's plain-word voice. Mood is a new 5-point level; the old mood tags
+stay as an optional row.
+
+**Migration, read-time only:** `CheckInWire` gained `hungerLevel` and `mood`.
+An old row's hunger word reads as a step (rarely 6, some 5, steady 4, often 3,
+very 2): approximate, since the questions differ, but it keeps the order on the
+charts. Energy's and sleep's three old words are the middle three of the five,
+same wire values. Writes keep the nearest old word in `hunger` so a 0.2 phone
+and the server's export keep showing a hunger; a 0.2 phone reads the new top
+and bottom words as unanswered. Patterns reads the scale (taller is hungrier)
+and adds **How you've felt**, a bar a day over the four weeks for each aspect.
+
+**Close the day is a recap.** A line on how much was logged, in words, in every
+mode. Eaten and burned: Burned with `release.goalsAndEnergy`, else the watch's
+total today, the difference, and how it sits with the deficit or surplus the
+day's goal works out to (a set one, or the aim against what was burned when that
+is 100 kcal or more): on plan, more, less, or the other way, said without praise
+for eating less. The card exists only when calories and energy out are both
+shown in full, since the difference between two hidden numbers is a number.
+Then the macros against their targets in any mode that shows macros, and
+Today's four vitamins and minerals as percents of their references. Macros and
+micros step aside on a big day, as the macros did. No nutrient score: the math
+is not validated, so nothing adds the parts up.
+
+Alternatives: a separate check-ins table with times (deferred, above); hunger
+on five frequency words as before (the owner asked for a scale, and "right now"
+is a better question at any hour); a Reminders switch kept for the check-in
+(removed with the Reminders reorganization).
+
 ## 2026-10-28: A packaged food is added from its label wherever a food is added, and says when it is unverified
 
 **Decision:** "Add this food" is now "Add a packaged food", and it opens from

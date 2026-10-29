@@ -28,6 +28,8 @@ import com.opson.features.today.impl.burned.TodayBurnedFixtures
 import com.opson.features.today.impl.burned.TodayBurnedSection
 import com.opson.features.today.impl.calendar.CalendarDropdownContent
 import com.opson.features.today.impl.cards.TodayCardsSheetContent
+import com.opson.features.today.impl.checkin.CheckInSheetContent
+import com.opson.features.today.impl.checkin.CheckInStateBuilder
 import com.opson.features.today.impl.dayclose.DayCloseScreen
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.item.ItemSheetContent
@@ -223,6 +225,28 @@ object TodayLeakSurfaces {
         LeakSurface(id = "day-close-check-in", label = "Day close, the check-in", showsCaloriesInFull = true) { policy ->
             DayCloseScreen(
                 state = TodayFixtures.dayCloseState(policy, expended = TodayFixtures.expended, checkInOn = true, checkIn = TodayFixtures.checkIn),
+                onAction = {},
+            )
+        },
+        // Close the day's recap: eaten against burned with a set deficit and a set surplus, the
+        // macros against their targets and the vitamins and minerals. The difference between two
+        // hidden amounts is an amount too, so the card must go wherever either one is hidden.
+        LeakSurface(id = "day-close-recap-deficit", label = "Day close, eaten and burned with a deficit", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(
+                state = TodayFixtures.dayCloseState(policy, settings = TodayFixtures.deficit500, burned = TodayFixtures.activeBurned, checkInOn = true),
+                onAction = {},
+            )
+        },
+        LeakSurface(id = "day-close-recap-surplus", label = "Day close, eaten and burned with a surplus", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(
+                state = TodayFixtures.dayCloseState(policy, settings = TodayFixtures.surplus300, burned = TodayFixtures.quietBurned, expended = TodayFixtures.expended),
+                onAction = {},
+            )
+        },
+        // The check-in is words and a 1 to 10 hunger step, never a nutrition amount, in every mode.
+        LeakSurface(id = "check-in", label = "Check-in", showsCaloriesInFull = false) { _ ->
+            CheckInSheetContent(
+                state = CheckInStateBuilder.build(TodayFixtures.today, TodayFixtures.today, CheckInStateBuilder.MORNING_ENDS, TodayFixtures.checkIn, sleepAsked = false),
                 onAction = {},
             )
         },

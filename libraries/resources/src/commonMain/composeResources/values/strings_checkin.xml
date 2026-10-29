@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copy for the check-in (release.checkIn): its sheet, the + sheet's tile, Close the day's way in
+  and the words Patterns and the provider summary show for an answer. Same rules as
+  strings.xml: no backslash escapes, positional %1$s arguments. Plain words, nothing that
+  grades the answer.
+-->
+<resources>
+    <string name="today_checkin_title">Check in</string>
+    <string name="today_checkin_note">Only you see this. Answer any of it.</string>
+    <string name="today_checkin_save">Save</string>
+    <string name="today_checkin_saved">Check-in saved.</string>
+    <string name="today_checkin_clear">Clear</string>
+    <string name="today_checkin_clear_cd">Clear %1$s</string>
+
+    <!-- Hunger: the 1 to 10 hunger and fullness scale. -->
+    <string name="today_checkin_hunger">Hunger</string>
+    <string name="today_checkin_hunger_now">How hungry are you right now?</string>
+    <string name="today_checkin_hunger_unanswered">Slide or tap to answer</string>
+    <string name="today_checkin_hunger_value">%1$d · %2$s</string>
+    <string name="today_checkin_hunger_of">%1$d of 10</string>
+    <string name="today_checkin_hunger_1">Ravenous</string>
+    <string name="today_checkin_hunger_2">Very hungry</string>
+    <string name="today_checkin_hunger_3">Hungry</string>
+    <string name="today_checkin_hunger_4">A little hungry</string>
+    <string name="today_checkin_hunger_5">Neutral</string>
+    <string name="today_checkin_hunger_6">Satisfied</string>
+    <string name="today_checkin_hunger_7">Comfortably full</string>
+    <string name="today_checkin_hunger_8">Full</string>
+    <string name="today_checkin_hunger_9">Very full</string>
+    <string name="today_checkin_hunger_10">Stuffed</string>
+
+    <string name="today_checkin_energy">Energy</string>
+    <string name="today_checkin_energy_drained">Drained</string>
+    <string name="today_checkin_energy_low">Low</string>
+    <string name="today_checkin_energy_ok">OK</string>
+    <string name="today_checkin_energy_good">Good</string>
+    <string name="today_checkin_energy_great">Great</string>
+
+    <string name="today_checkin_mood_level">Mood</string>
+    <string name="today_checkin_mood_rough">Rough</string>
+    <string name="today_checkin_mood_low_level">Low</string>
+    <string name="today_checkin_mood_ok">OK</string>
+    <string name="today_checkin_mood_good">Good</string>
+    <string name="today_checkin_mood_great">Great</string>
+
+    <!-- Sleep is asked about last night, so only the morning check-in asks it up front. -->
+    <string name="today_checkin_sleep">Sleep last night</string>
+    <string name="today_checkin_sleep_morning">How did you sleep last night?</string>
+    <string name="today_checkin_sleep_night_before">Sleep the night before</string>
+    <string name="today_checkin_sleep_add">Add last night's sleep</string>
+    <string name="today_checkin_sleep_rough">Rough</string>
+    <string name="today_checkin_sleep_poor">Poor</string>
+    <string name="today_checkin_sleep_ok">OK</string>
+    <string name="today_checkin_sleep_good">Good</string>
+    <string name="today_checkin_sleep_great">Great</string>
+
+    <string name="today_checkin_mood">Anything else? · pick any</string>
+    <string name="today_checkin_mood_calm">Calm</string>
+    <string name="today_checkin_mood_social">Social</string>
+    <string name="today_checkin_mood_stressed">Stressed</string>
+    <string name="today_checkin_mood_tired">Tired</string>
+    <string name="today_checkin_mood_low">Low</string>
+    <string name="today_checkin_mood_happy">Happy</string>
+
+    <!-- The + sheet's tile. -->
+    <string name="adding_action_check_in">Check in</string>
+
+    <!-- Close the day's way in. -->
+    <string name="today_dayclose_checkin_empty">How are you feeling? Hunger, energy and mood, if you like.</string>
+    <string name="today_dayclose_checkin_open_cd">Open the check-in</string>
+    <string name="today_dayclose_checkin_pair">%1$s %2$s</string>
+
+    <!-- Patterns: the check-ins over the four weeks, one bar a day. -->
+    <string name="trends_patterns_checkins">How you've felt</string>
+    <string name="trends_patterns_checkins_note">One bar a day you checked in</string>
+    <string name="trends_patterns_checkins_hunger_note">Taller is hungrier</string>
+</resources>

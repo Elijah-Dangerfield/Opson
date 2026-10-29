@@ -2,7 +2,9 @@ package com.opson.libraries.diary.impl
 
 import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInMood
-import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.Energy
+import com.opson.libraries.diary.HungerLevel
+import com.opson.libraries.diary.MoodLevel
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DayReflection
@@ -331,16 +333,51 @@ class DiaryRepositoryImplTest : CoroutineTest() {
 
     @Test
     fun theCheckInSyncsOnTheDayRecord_andEmptyClearsIt() = runUnitTest {
-        val checkIn = CheckIn(hunger = DayHunger.Steady, sleep = Sleep.Ok, moods = setOf(CheckInMood.Social, CheckInMood.Calm))
+        val checkIn = CheckIn(
+            hunger = HungerLevel.of(4),
+            sleep = Sleep.Great,
+            mood = MoodLevel.Ok,
+            moods = setOf(CheckInMood.Social, CheckInMood.Calm),
+        )
 
-        repo.closeDay(today, DayReflection(checkIn = checkIn))
+        repo.setCheckIn(today, checkIn)
 
         assertEquals(checkIn, repo.observeDay(today).first().checkIn)
         val row = WireJson.decodeFromString(DayRecordRowDto.serializer(), db.outbox.rows.single().payload)
-        assertEquals("""{"hunger":"steady","sleep":"ok","moods":["calm","social"]}""", row.checkIn)
+        assertEquals(
+            """{"hunger":"steady","hungerLevel":4,"sleep":"great","mood":"ok","moods":["calm","social"]}""",
+            row.checkIn,
+            "the nearest old hunger word rides along for a 0.2 phone",
+        )
 
-        repo.closeDay(today, DayReflection(checkIn = CheckIn()))
+        repo.setCheckIn(today, CheckIn())
         assertNull(repo.observeDay(today).first().checkIn)
+    }
+
+    @Test
+    fun theCheckInIsItsOwnWrite_closingKeepsIt_andAClosedDayStillTakesOne() = runUnitTest {
+        repo.setCheckIn(today, CheckIn(energy = Energy.Good))
+        repo.closeDay(today, DayReflection(note = "Done"))
+        assertEquals(CheckIn(energy = Energy.Good), repo.observeDay(today).first().checkIn, "closing leaves the check-in alone")
+
+        repo.setCheckIn(today, CheckIn(energy = Energy.Low))
+
+        val day = repo.observeDay(today).first()
+        assertEquals(CheckIn(energy = Energy.Low), day.checkIn)
+        assertTrue(day.closedByUser, "and the day stays closed")
+    }
+
+    @Test
+    fun aCheckInFromBeforeTheScale_readsItsHungerWordAsAStep_andKeepsTheRest() {
+        val old = """{"hunger":"often","energy":"low","sleep":"poor","moods":["tired"]}""".toCheckIn()
+        assertEquals(
+            CheckIn(hunger = HungerLevel.of(3), energy = Energy.Low, sleep = Sleep.Poor, moods = setOf(CheckInMood.Tired)),
+            old,
+        )
+        assertEquals(listOf(6, 5, 4, 3, 2), listOf("rarely", "some", "steady", "often", "very").map { """{"hunger":"$it"}""".toCheckIn()?.hunger?.value })
+        assertEquals(HungerLevel.of(8), """{"hunger":"very","hungerLevel":8}""".toCheckIn()?.hunger, "the scale wins over the old word")
+        assertNull("""{"hungerLevel":11,"energy":"sideways"}""".toCheckIn(), "off the scale and unknown words read as unanswered")
+        assertNull("not json".toCheckIn())
     }
 
     @Test

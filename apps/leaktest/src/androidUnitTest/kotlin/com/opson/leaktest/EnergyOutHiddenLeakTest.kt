@@ -72,6 +72,7 @@ class EnergyOutHiddenLeakTest(private val surface: LeakSurface) {
             "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
             "today-burned", "today-burned-health", "exercise-sheet",
             "targets-deficit", "targets-surplus", "targets-deficit-estimated", "targets-by-day-shapes",
+            "day-close-recap-deficit", "day-close-recap-surplus",
         )
 
         @JvmStatic

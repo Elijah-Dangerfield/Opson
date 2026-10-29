@@ -75,6 +75,7 @@ import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Mood
 import androidx.compose.material.icons.rounded.HighlightOff
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
@@ -265,6 +266,9 @@ object AppIcons {
     /** An outlined "i", for a note that explains rather than warns. */
     val Info get() = icon("info", MaterialIcons.Outlined.OutlinedInfo)
     val Favorite get() = icon("favorite", MaterialIcons.Rounded.Favorite)
+
+    /** A smiling face: the check-in (hunger, energy, mood, sleep). */
+    val Mood get() = icon("mood", MaterialIcons.Rounded.Mood)
     val Science get() = icon("science", MaterialIcons.Rounded.Science)
     val FormatListBulleted get() = icon("format_list_bulleted", MaterialIcons.AutoMirrored.Rounded.FormatListBulleted)
 

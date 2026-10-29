@@ -559,6 +559,53 @@ private fun DayClosePastDayPreview() = Phone {
     DayCloseScreen(TodayFixtures.dayCloseState(full, date = TodayFixtures.pastDay().date), onAction = {})
 }
 
+// Close the day's recap: eaten against burned, the macros and the vitamins and minerals. Tall, so
+// every card is in the capture.
+
+/** A set 500 kcal deficit on a busy day: about 500 under what was burned, right around the plan. */
+@Preview(widthDp = 390, heightDp = 1500)
+@Composable
+private fun DayCloseRecapDeficitPreview() = Phone {
+    DayCloseScreen(
+        TodayFixtures.dayCloseState(full, settings = TodayFixtures.deficit500, burned = TodayFixtures.activeBurned, checkInOn = true, checkIn = TodayFixtures.checkIn),
+        onAction = {},
+    )
+}
+
+/** A set surplus on a quiet day: about 300 over what was burned, around the surplus the goal aims for. */
+@Preview(widthDp = 390, heightDp = 1500)
+@Composable
+private fun DayCloseRecapSurplusPreview() = Phone {
+    DayCloseScreen(TodayFixtures.dayCloseState(full, settings = TodayFixtures.surplus300, burned = TodayFixtures.quietBurned, checkInOn = true), onAction = {})
+}
+
+/** A deficit goal and a day over what was burned: the big-day card, then the same facts, said kindly. */
+@Preview(widthDp = 390, heightDp = 1500)
+@Composable
+private fun DayCloseRecapDeficitMissedPreview() = Phone(dark = true) {
+    DayCloseScreen(TodayFixtures.dayCloseState(full, settings = TodayFixtures.deficit500, burned = TodayFixtures.quietBurned, checkInOn = true), onAction = {})
+}
+
+/** Macros with grams hides energy: no eaten and burned card, the macros against their targets stay. */
+@Preview(widthDp = 390, heightDp = 1500)
+@Composable
+private fun DayCloseRecapMacrosWithGramsPreview() = Phone {
+    DayCloseScreen(
+        TodayFixtures.dayCloseState(policy(PresetId.MacrosWithGrams), settings = TodayFixtures.deficit500, burned = TodayFixtures.activeBurned, checkInOn = true),
+        onAction = {},
+    )
+}
+
+/** No numbers with the same day and Burned: the meals, the check-in and the note, and not one amount. */
+@Preview(widthDp = 390, heightDp = 1500)
+@Composable
+private fun DayCloseRecapNoNumbersPreview() = Phone {
+    DayCloseScreen(
+        TodayFixtures.dayCloseState(policy(PresetId.NoNumbers), settings = TodayFixtures.deficit500, burned = TodayFixtures.activeBurned, checkInOn = true, checkIn = TodayFixtures.checkIn),
+        onAction = {},
+    )
+}
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun DayCloseWarmPreview() = Phone { DayCloseScreen(TodayFixtures.dayCloseState(full, settings = Settings(tone = Tone.Warm)), onAction = {}) }

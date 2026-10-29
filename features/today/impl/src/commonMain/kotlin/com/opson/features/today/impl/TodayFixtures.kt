@@ -22,7 +22,8 @@ import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.CheckInMood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayFeeling
-import com.opson.libraries.diary.DayHunger
+import com.opson.libraries.diary.HungerLevel
+import com.opson.libraries.diary.MoodLevel
 import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
@@ -263,8 +264,20 @@ object TodayFixtures {
     /** The banana, the row v3 swipes in `today-swipe-delete` and confirms in `today-delete-confirm`. */
     val banana: String = "banana-$today"
 
-    /** The check-in v3 `day-close` shows: steady hunger, good energy, OK sleep, calm and social. */
-    val checkIn: CheckIn = CheckIn(hunger = DayHunger.Steady, energy = Energy.Good, sleep = Sleep.Ok, moods = setOf(CheckInMood.Calm, CheckInMood.Social))
+    /** A check-in answered in full: a little hungry (4), good energy, good mood, OK sleep, calm and social. */
+    val checkIn: CheckIn = CheckIn(
+        hunger = HungerLevel.of(4),
+        energy = Energy.Good,
+        sleep = Sleep.Ok,
+        mood = MoodLevel.Good,
+        moods = setOf(CheckInMood.Calm, CheckInMood.Social),
+    )
+
+    /** A busy day's Burned: 2,560 in all, so [deficit500] aims at 2,060 and the day's 2,058 sits right on it. */
+    val activeBurned: Burned = Burned(RestingEnergy(1610, RestingFrom.Calculated), movementKcal = 650, workoutKcal = 300)
+
+    /** A quiet day's Burned: 1,750, so [surplus300] aims at its floor of 2,100 and the day's 2,058 is about 300 over. */
+    val quietBurned: Burned = Burned(RestingEnergy(1610, RestingFrom.Calculated), movementKcal = 140)
 
     /** v3 `today-full`'s "Expended so far 1,990 kcal": 1,580 resting and 410 active, 150 of it in a workout. */
     val expended: EnergyExpended = EnergyExpended(restingKcal = 1580.0, activeKcal = 410.0, workoutKcal = 150.0)
@@ -339,7 +352,7 @@ object TodayFixtures {
     ): DayCloseState = DayCloseStateBuilder.build(
         DayCloseInputs(
             today = today,
-            day = day(date, bigDay = bigDay, dinner = !bigDay).let { if (closed) it.copy(closedAt = evening) else it },
+            day = day(date, bigDay = bigDay, dinner = !bigDay).copy(checkIn = checkIn).let { if (closed) it.copy(closedAt = evening) else it },
             settings = settings,
             expended = expended,
             checkInOn = checkInOn,
@@ -349,7 +362,6 @@ object TodayFixtures {
         note = note,
         committed = committed,
         feeling = feeling,
-        checkIn = checkIn,
     )
 
     fun todayCardsState(
