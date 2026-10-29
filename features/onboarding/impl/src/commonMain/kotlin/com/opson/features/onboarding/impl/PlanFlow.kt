@@ -2,8 +2,8 @@ package com.opson.features.onboarding.impl
 
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.BodyProfile
-import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.BodyStage
+import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.FormatContext
@@ -49,33 +49,6 @@ enum class PlanStep(val eventName: String) {
     Rate("goal_rate"),
     Overview("goal_overview"),
     Commit("commitment"),
-}
-
-/**
- * Sex for the energy estimate, as the picker lists it. Pregnant and breastfeeding use the female
- * constant and add that stage's energy ([BodyStage]); "Rather not say" takes the midpoint.
- */
-enum class SexChoice(val sex: BodySex, val stage: BodyStage) {
-    Female(BodySex.Female, BodyStage.None),
-    Male(BodySex.Male, BodyStage.None),
-    Pregnant(BodySex.Female, BodyStage.Pregnant),
-    Breastfeeding(BodySex.Female, BodyStage.Breastfeeding),
-    Unsaid(BodySex.Unsaid, BodyStage.None),
-    ;
-
-    companion object {
-        /** What settings hold, as the picker shows it. Null until sex was given. */
-        fun of(sex: BodySex?, stage: BodyStage): SexChoice? = when {
-            stage == BodyStage.Pregnant -> Pregnant
-            stage == BodyStage.Breastfeeding -> Breastfeeding
-            else -> when (sex) {
-                BodySex.Female -> Female
-                BodySex.Male -> Male
-                BodySex.Unsaid -> Unsaid
-                null -> null
-            }
-        }
-    }
 }
 
 /**

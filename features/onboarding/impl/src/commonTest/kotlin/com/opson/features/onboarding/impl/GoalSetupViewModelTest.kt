@@ -13,6 +13,7 @@ import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource

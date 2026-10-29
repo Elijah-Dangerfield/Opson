@@ -16,7 +16,7 @@ import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.BodyFat
-import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.HeightInput
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.RegionUnits
@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
@@ -75,14 +76,11 @@ class ProfileViewModel(
                 inputs = action
                 rebuild(action)
             }
-            is ProfileAction.BirthYearTyped -> {
-                val text = NumberInput.sanitize(action.text, allowDecimal = false).take(YEAR_DIGITS)
-                drafts = drafts.copy(birthYear = text)
-                rebuild(action)
-                val year = text.toIntOrNull()?.takeIf { it in birthYears() }
-                if (year != null) settingsRepository.update { it.copy(birthYear = year) }
+            // The picker only offers someone 13 to 120; a date from anywhere else is ignored the same way.
+            is ProfileAction.BirthDatePicked -> if (action.date.year in birthYears()) {
+                settingsRepository.update { it.withBirthDate(action.date) }
             }
-            is ProfileAction.SexPicked -> settingsRepository.update { it.copy(bodySex = action.sex) }
+            is ProfileAction.SexPicked -> settingsRepository.update { it.copy(bodySex = action.sex.sex, bodyStage = action.sex.stage) }
             is ProfileAction.HeightUnitPicked -> {
                 drafts = drafts.copy(height = height().inUnit(action.unit))
                 // A height unit ends the region fallback for weight (Settings.withRegionWeightUnit), so the
@@ -133,7 +131,7 @@ class ProfileViewModel(
         var filled = false
         if (profile != null) {
             settingsRepository.update { current -> ProfileFill.apply(current, profile, birthYears())?.also { filled = true } ?: current }
-            if (filled) drafts = drafts.copy(birthYear = null, height = null)
+            if (filled) drafts = drafts.copy(height = null)
         }
         filling = false
         rebuild(action)
@@ -151,11 +149,10 @@ class ProfileViewModel(
 
     private suspend fun rebuild(action: ProfileAction) {
         val (settings, latest, policy) = inputs ?: return
-        action.updateState { ProfileStateBuilder.build(settings, latest, policy, calendar.timeZone(), drafts, region.height(), back, fillFrom, filling) }
+        action.updateState { ProfileStateBuilder.build(settings, latest, policy, calendar.timeZone(), drafts, region.height(), back, fillFrom, filling, calendar.today()) }
     }
 
     private companion object {
-        const val YEAR_DIGITS = 4
         const val MIN_AGE = 13
         const val MAX_AGE = 120
     }
@@ -173,8 +170,11 @@ sealed interface ProfileEvent {
 
 sealed interface ProfileAction {
     data class InputsArrived(val settings: Settings, val latest: WeighIn?, val policy: VisibilityPolicy) : ProfileAction
-    data class BirthYearTyped(val text: String) : ProfileAction
-    data class SexPicked(val sex: BodySex) : ProfileAction
+    /** Sex for the estimate, or pregnant or breastfeeding. */
+    data class SexPicked(val sex: SexChoice) : ProfileAction
+
+    /** The birthday picker's date; the year every estimate reads follows it. */
+    data class BirthDatePicked(val date: LocalDate) : ProfileAction
 
     /** Centimetres, or feet and inches. Saved, so the page opens in it next time. */
     data class HeightUnitPicked(val unit: HeightUnit) : ProfileAction

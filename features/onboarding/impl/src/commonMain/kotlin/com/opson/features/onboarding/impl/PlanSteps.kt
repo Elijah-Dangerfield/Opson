@@ -27,12 +27,14 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.HeightField
 import com.opson.libraries.diary.ui.detail
 import com.opson.libraries.diary.ui.label
+import com.opson.libraries.diary.ui.note
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.nutrition.ui.testTag
 import com.opson.libraries.ui.components.ChevronLink
@@ -144,17 +146,8 @@ import opson.libraries.resources.generated.resources.plan_rate_kcal_lose
 import opson.libraries.resources.generated.resources.plan_rate_lose
 import opson.libraries.resources.generated.resources.plan_rate_none
 import opson.libraries.resources.generated.resources.plan_rate_title
-import opson.libraries.resources.generated.resources.plan_sex_breastfeeding
-import opson.libraries.resources.generated.resources.plan_sex_female
 import opson.libraries.resources.generated.resources.plan_sex_inclusive
 import opson.libraries.resources.generated.resources.plan_sex_label
-import opson.libraries.resources.generated.resources.plan_sex_male
-import opson.libraries.resources.generated.resources.plan_sex_note_binary
-import opson.libraries.resources.generated.resources.plan_sex_note_breastfeeding
-import opson.libraries.resources.generated.resources.plan_sex_note_pregnant
-import opson.libraries.resources.generated.resources.plan_sex_note_unsaid
-import opson.libraries.resources.generated.resources.plan_sex_pregnant
-import opson.libraries.resources.generated.resources.plan_sex_unsaid
 import opson.libraries.resources.generated.resources.plan_weight_label
 import opson.libraries.resources.generated.resources.plan_weight_note
 import opson.libraries.resources.generated.resources.settings_look_weight_kg
@@ -353,24 +346,6 @@ internal fun WeightField(
         }
     }
 }
-
-private val SexChoice.label: StringResource
-    get() = when (this) {
-        SexChoice.Female -> Res.string.plan_sex_female
-        SexChoice.Male -> Res.string.plan_sex_male
-        SexChoice.Pregnant -> Res.string.plan_sex_pregnant
-        SexChoice.Breastfeeding -> Res.string.plan_sex_breastfeeding
-        SexChoice.Unsaid -> Res.string.plan_sex_unsaid
-    }
-
-/** What picking it does, honestly: it only changes the estimate, and pregnancy keeps weight change out. */
-private val SexChoice.note: StringResource
-    get() = when (this) {
-        SexChoice.Female, SexChoice.Male -> Res.string.plan_sex_note_binary
-        SexChoice.Pregnant -> Res.string.plan_sex_note_pregnant
-        SexChoice.Breastfeeding -> Res.string.plan_sex_note_breastfeeding
-        SexChoice.Unsaid -> Res.string.plan_sex_note_unsaid
-    }
 
 // ---------- 2. Activity ----------
 

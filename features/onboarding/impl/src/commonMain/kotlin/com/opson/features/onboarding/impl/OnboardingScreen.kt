@@ -55,6 +55,7 @@ import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.ui.testTag
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.ui.PreviewContent

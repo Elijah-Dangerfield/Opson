@@ -6,7 +6,8 @@ import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.health.HealthProfile
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.BodyFat
-import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.SexChoice
+import kotlinx.datetime.LocalDate
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.HeightInput
@@ -49,9 +50,12 @@ enum class ProfileBack(val wire: String) {
 data class ProfileState(
     val loaded: Boolean = false,
     val back: ProfileBack = ProfileBack.More,
-    /** As typed, so a half-typed year is not lost. */
-    val birthYearText: String = "",
-    val sex: BodySex? = null,
+    /** The full date of birth, when it is known ([Settings.knownBirthDate]). */
+    val birthDate: LocalDate? = null,
+    /** The year every estimate reads; set alone by older builds, so it can be known without the day. */
+    val birthYear: Int? = null,
+    /** Sex for the estimate, with pregnant and breastfeeding, as onboarding lists it. */
+    val sex: SexChoice? = null,
     /** In the unit picked, or else [Settings.heightUnitOr]'s. */
     val height: HeightInput = HeightInput(HeightUnit.Cm),
     val weight: ProfileWeight = ProfileWeight.None,
@@ -63,6 +67,7 @@ data class ProfileState(
     val fillFrom: HealthSource? = null,
     /** Reading the store for it, so the button doesn't take a second tap. */
     val filling: Boolean = false,
+    val today: LocalDate = ProfileStateBuilder.PREVIEW_TODAY,
 )
 
 /** The Current weight row. Weight is never typed here: it is the latest weigh-in, logged on Weight. */
@@ -77,7 +82,7 @@ sealed interface ProfileWeight {
  * What a typed field is still in the middle of, kept by the view model between settings updates:
  * a field writes its setting only once it holds a sensible value.
  */
-data class ProfileDrafts(val birthYear: String? = null, val height: HeightInput? = null, val bodyFat: String? = null)
+data class ProfileDrafts(val height: HeightInput? = null, val bodyFat: String? = null)
 
 object ProfileStateBuilder {
 
@@ -91,6 +96,8 @@ object ProfileStateBuilder {
         back: ProfileBack = ProfileBack.More,
         fillFrom: HealthSource? = null,
         filling: Boolean = false,
+        /** The phone's day, which bounds the birthday picker. */
+        today: LocalDate = PREVIEW_TODAY,
     ): ProfileState {
         val weightShown = policy.effectiveLevel(Metric.Weight, Surface.Settings) == Visibility.Show
         // BMI and body fat are body-composition numbers: never offered after "numbers have been hard".
@@ -98,8 +105,9 @@ object ProfileStateBuilder {
         return ProfileState(
             loaded = true,
             back = back,
-            birthYearText = drafts.birthYear ?: settings.birthYear?.toString().orEmpty(),
-            sex = settings.bodySex,
+            birthDate = settings.knownBirthDate,
+            birthYear = settings.birthYear,
+            sex = SexChoice.of(settings.bodySex, settings.bodyStage),
             height = height(settings, drafts, regionHeight),
             weight = latest?.let {
                 ProfileWeight.Logged(
@@ -115,8 +123,12 @@ object ProfileStateBuilder {
             bodyFatText = (drafts.bodyFat ?: settings.bodyFat?.let(BodyFat::text).orEmpty()).takeIf { composition },
             fillFrom = fillFrom,
             filling = filling,
+            today = today,
         )
     }
+
+    /** The fixtures' day, for previews and tests; the view model passes the real one. */
+    val PREVIEW_TODAY: LocalDate = LocalDate(2026, 10, 25)
 
     /** The height fields: what is being typed, or else the stored height in the unit to show. */
     fun height(settings: Settings, drafts: ProfileDrafts, regionHeight: HeightUnit): HeightInput =
@@ -131,12 +143,12 @@ object ProfileStateBuilder {
  */
 object ProfileFill {
     fun apply(settings: Settings, profile: HealthProfile, birthYears: IntRange): Settings? {
-        val year = profile.birthDate?.year?.takeIf { it in birthYears }
+        // The store's whole date: the birthday line on Today needs the day, and the year follows it.
+        val born = profile.birthDate?.takeIf { it.year in birthYears }
         val cm = profile.heightCm?.let(Heights::inRange)?.let { (it * TENTHS).roundToInt() / TENTHS }
         val sex = profile.sex
-        if (year == null && cm == null && sex == null) return null
-        return settings.copy(
-            birthYear = year ?: settings.birthYear,
+        if (born == null && cm == null && sex == null) return null
+        return (born?.let(settings::withBirthDate) ?: settings).copy(
             heightCm = cm ?: settings.heightCm,
             bodySex = sex ?: settings.bodySex,
         )

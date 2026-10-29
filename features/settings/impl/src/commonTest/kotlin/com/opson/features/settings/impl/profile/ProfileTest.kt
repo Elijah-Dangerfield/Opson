@@ -19,6 +19,8 @@ import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.BodyStage
+import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.HeightInput
 import com.opson.libraries.nutrition.HeightUnit
@@ -61,8 +63,8 @@ class ProfileTest : CoroutineTest() {
     @Test
     fun filledIn_allNumbers_showsTheWeighInBmiAndBodyFat() {
         val state = build()
-        assertEquals("1990", state.birthYearText)
-        assertEquals(BodySex.Female, state.sex)
+        assertEquals(1990, state.birthYear)
+        assertEquals(SexChoice.Female, state.sex)
         assertEquals(HeightInput(HeightUnit.Cm, cm = "168"), state.height)
         assertEquals(ProfileWeight.Logged(Display.Shown("64.2 kg"), onText = "Oct 25"), state.weight)
         assertEquals(Display.Shown("22.7"), state.bmi)
@@ -78,7 +80,7 @@ class ProfileTest : CoroutineTest() {
     @Test
     fun neverFilledIn_emptyFields_noWeighIn_noBmi() {
         val state = build(Settings(), latest = null)
-        assertEquals("", state.birthYearText)
+        assertNull(state.birthYear)
         assertNull(state.sex)
         assertEquals(HeightInput(HeightUnit.Cm), state.height)
         assertEquals(ProfileWeight.None, state.weight)
@@ -108,7 +110,7 @@ class ProfileTest : CoroutineTest() {
             assertEquals(ProfileWeight.Logged(Display.Hidden, onText = "Oct 25"), state.weight, "in $numbers")
             assertEquals(Display.Hidden, state.bmi)
             assertNull(state.bodyFatText)
-            assertEquals("1990", state.birthYearText, "the details stay")
+            assertEquals(1990, state.birthYear, "the details stay")
         }
     }
 
@@ -170,12 +172,11 @@ class ProfileTest : CoroutineTest() {
         val repository = FakeSettingsRepository(Settings())
         val vm = viewModel(repository)
 
-        vm.takeAction(ProfileAction.BirthYearTyped("199"))
-        assertNull(repository.state.value.birthYear)
-        assertEquals("199", vm.state.birthYearText, "kept as typed")
-        vm.takeAction(ProfileAction.BirthYearTyped("1990"))
-        assertEquals(1990, repository.state.value.birthYear)
-        vm.takeAction(ProfileAction.BirthYearTyped("2024"))
+        vm.takeAction(ProfileAction.BirthDatePicked(LocalDate(1990, 3, 4)))
+        assertEquals(LocalDate(1990, 3, 4), repository.state.value.birthDate)
+        assertEquals(1990, repository.state.value.birthYear, "the year every estimate reads follows the date")
+        assertEquals(LocalDate(1990, 3, 4), vm.state.birthDate)
+        vm.takeAction(ProfileAction.BirthDatePicked(LocalDate(2024, 1, 1)))
         assertEquals(1990, repository.state.value.birthYear, "too young for the equation")
 
         vm.takeAction(ProfileAction.HeightCmTyped("17"))
@@ -183,8 +184,14 @@ class ProfileTest : CoroutineTest() {
         vm.takeAction(ProfileAction.HeightCmTyped("172"))
         assertEquals(172.0, repository.state.value.heightCm)
 
-        vm.takeAction(ProfileAction.SexPicked(BodySex.Unsaid))
+        vm.takeAction(ProfileAction.SexPicked(SexChoice.Unsaid))
         assertEquals(BodySex.Unsaid, repository.state.value.bodySex)
+        vm.takeAction(ProfileAction.SexPicked(SexChoice.Breastfeeding))
+        assertEquals(BodySex.Female, repository.state.value.bodySex)
+        assertEquals(BodyStage.Breastfeeding, repository.state.value.bodyStage)
+        assertEquals(SexChoice.Breastfeeding, vm.state.sex)
+        vm.takeAction(ProfileAction.SexPicked(SexChoice.Male))
+        assertEquals(BodyStage.None, repository.state.value.bodyStage)
     }
 
     @Test
@@ -281,7 +288,7 @@ class ProfileTest : CoroutineTest() {
         assertEquals(1986, saved.birthYear)
         assertEquals(181.3, saved.heightCm)
         assertEquals(BodySex.Male, saved.bodySex)
-        assertEquals("1986", vm.state.birthYearText)
+        assertEquals(LocalDate(1986, 4, 2), vm.state.birthDate, "the store's whole date")
         assertEquals(listOf<ProfileEvent>(ProfileEvent.ShowToast(Toast(Res.string.integrations_profile_filled))), events)
         assertEquals(0, health.connects)
     }

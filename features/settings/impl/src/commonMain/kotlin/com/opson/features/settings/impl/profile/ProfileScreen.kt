@@ -3,7 +3,13 @@ package com.opson.features.settings.impl.profile
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -18,6 +24,16 @@ import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.ui.HeightField
+import com.opson.libraries.diary.ui.label
+import com.opson.libraries.diary.ui.note
+import com.opson.libraries.nutrition.SexChoice
+import com.opson.libraries.ui.components.ChoiceRow
+import com.opson.libraries.ui.components.TapField
+import com.opson.libraries.ui.components.dialog.DatePickerDialog
+import com.opson.libraries.ui.time.DateCopy
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.Display
@@ -45,6 +61,13 @@ import opson.libraries.resources.generated.resources.integrations_health_connect
 import opson.libraries.resources.generated.resources.integrations_profile_fill
 import opson.libraries.resources.generated.resources.integrations_profile_fill_note_apple_health
 import opson.libraries.resources.generated.resources.integrations_profile_fill_note_health_connect
+import opson.libraries.resources.generated.resources.plan_birthday_dialog
+import opson.libraries.resources.generated.resources.plan_date_cancel
+import opson.libraries.resources.generated.resources.plan_date_ok
+import opson.libraries.resources.generated.resources.plan_sex_inclusive
+import opson.libraries.resources.generated.resources.profile_birthday
+import opson.libraries.resources.generated.resources.profile_birthday_add
+import opson.libraries.resources.generated.resources.profile_birthday_year_only
 import opson.libraries.resources.generated.resources.settings_back_micros
 import opson.libraries.resources.generated.resources.settings_back_plain
 import opson.libraries.resources.generated.resources.settings_back_more
@@ -63,10 +86,6 @@ import opson.libraries.resources.generated.resources.settings_profile_title
 import opson.libraries.resources.generated.resources.settings_profile_weight
 import opson.libraries.resources.generated.resources.settings_profile_weight_none
 import opson.libraries.resources.generated.resources.settings_profile_weight_on
-import opson.libraries.resources.generated.resources.settings_resting_birth_year
-import opson.libraries.resources.generated.resources.settings_resting_sex_female
-import opson.libraries.resources.generated.resources.settings_resting_sex_male
-import opson.libraries.resources.generated.resources.settings_resting_sex_unsaid
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -108,36 +127,38 @@ fun ProfileScreen(
 
 @Composable
 private fun AboutYou(state: ProfileState, onAction: (ProfileAction) -> Unit) {
+    var pickingDate by remember { mutableStateOf(false) }
     EdgeCard(edgeToEdge = false, verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-        NumberField(
-            value = state.birthYearText,
-            onValueChange = { onAction(ProfileAction.BirthYearTyped(it)) },
-            label = stringResource(Res.string.settings_resting_birth_year),
-            allowDecimal = false,
-            imeAction = ImeAction.Next,
-        )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            FieldLabel(stringResource(Res.string.profile_birthday))
+            TapField(
+                text = when {
+                    state.birthDate != null -> DateCopy.monthDayYear(state.birthDate)
+                    state.birthYear != null -> stringResource(Res.string.profile_birthday_year_only, state.birthYear.toString())
+                    else -> stringResource(Res.string.profile_birthday_add)
+                },
+                muted = state.birthDate == null,
+                onClick = { pickingDate = true },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            FieldLabel(stringResource(Res.string.settings_profile_sex))
+            SexChoice.entries.forEach { choice ->
+                ChoiceRow(
+                    label = stringResource(choice.label),
+                    selected = state.sex == choice,
+                    onClick = { onAction(ProfileAction.SexPicked(choice)) },
+                    role = Role.RadioButton,
+                )
+            }
             Text(
-                text = stringResource(Res.string.settings_profile_sex),
-                typography = AppTheme.type.secondarySmallStrong,
+                text = stringResource(state.sex?.note ?: Res.string.settings_profile_sex_body),
+                typography = AppTheme.type.secondarySmall,
                 color = AppTheme.colors.muted,
             )
-            SegmentedControl(
-                options = BodySex.entries,
-                selected = state.sex,
-                onSelect = { sex -> sex?.let { onAction(ProfileAction.SexPicked(it)) } },
-                label = { sex ->
-                    stringResource(
-                        when (sex) {
-                            BodySex.Female -> Res.string.settings_resting_sex_female
-                            BodySex.Male -> Res.string.settings_resting_sex_male
-                            BodySex.Unsaid, null -> Res.string.settings_resting_sex_unsaid
-                        },
-                    )
-                },
-            )
             Text(
-                text = stringResource(Res.string.settings_profile_sex_body),
+                text = stringResource(Res.string.plan_sex_inclusive),
                 typography = AppTheme.type.secondarySmall,
                 color = AppTheme.colors.muted,
             )
@@ -150,7 +171,33 @@ private fun AboutYou(state: ProfileState, onAction: (ProfileAction) -> Unit) {
             onInchesTyped = { onAction(ProfileAction.HeightInchesTyped(it)) },
         )
     }
+    if (pickingDate) {
+        val today = state.today
+        DatePickerDialog(
+            title = stringResource(Res.string.plan_birthday_dialog),
+            initial = state.birthDate,
+            // Someone who gave only the year starts in it; otherwise thirty years back, a short scroll for most.
+            opensOn = state.birthYear?.let { LocalDate(it, 1, 1) } ?: today.minus(DatePeriod(years = OPENS_AT_AGE)),
+            range = today.minus(DatePeriod(years = MAX_AGE))..today.minus(DatePeriod(years = MIN_AGE)),
+            okLabel = stringResource(Res.string.plan_date_ok),
+            cancelLabel = stringResource(Res.string.plan_date_cancel),
+            onPicked = {
+                onAction(ProfileAction.BirthDatePicked(it))
+                pickingDate = false
+            },
+            onDismiss = { pickingDate = false },
+        )
+    }
 }
+
+@Composable
+private fun FieldLabel(text: String) {
+    Text(text = text, typography = AppTheme.type.secondarySmallStrong, color = AppTheme.colors.muted)
+}
+
+private const val OPENS_AT_AGE = 30
+private const val MIN_AGE = 13
+private const val MAX_AGE = 120
 
 /** "Fill in from Apple Health", under the details it fills, and what it uses. */
 @Composable

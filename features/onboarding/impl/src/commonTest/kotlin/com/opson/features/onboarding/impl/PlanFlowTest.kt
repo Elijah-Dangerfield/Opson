@@ -10,6 +10,7 @@ import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Units
 import com.opson.libraries.nutrition.Visibility
