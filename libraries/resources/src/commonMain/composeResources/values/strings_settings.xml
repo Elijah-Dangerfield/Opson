@@ -622,6 +622,10 @@
     <string name="summary_warning_body">Your mode keeps them out of sight, so the preview here won't show them. The PDF will, for whoever you share it with. You can turn this off again before you share.</string>
     <string name="summary_warning_include">Include them</string>
     <string name="summary_warning_leave_out">Leave them out</string>
+    <!-- A month and day, or a span of them, with its year: "Sep 28 to Oct 25, 2026". -->
+    <string name="summary_date_with_year">%1$s, %2$s</string>
+    <!-- The shared PDF's file name. The dates are ISO, 2026-10-19. -->
+    <string name="summary_file_name">opson-summary-%1$s-to-%2$s.pdf</string>
     <string name="summary_doc_title">Food log summary</string>
     <string name="summary_doc_range">%1$s, %2$s</string>
     <string name="summary_doc_made">Made in the Opson app on %1$s. It holds only what the person chose to include.</string>
@@ -639,6 +643,9 @@
     <string name="summary_doc_untracked">Not tracking this day</string>
     <string name="summary_doc_weight">Weight</string>
     <string name="summary_doc_no_weight">No weigh-ins in these days.</string>
+    <string name="summary_doc_weigh_in">%1$s: %2$s</string>
+    <!-- When a dose was taken: "Thu, Oct 23, 8:05 AM". -->
+    <string name="summary_doc_dose_when">%1$s, %2$s</string>
     <string name="summary_doc_calories">Calories %1$s</string>
     <string name="summary_doc_protein">Protein %1$s</string>
     <string name="summary_doc_carbs">Carbs %1$s</string>

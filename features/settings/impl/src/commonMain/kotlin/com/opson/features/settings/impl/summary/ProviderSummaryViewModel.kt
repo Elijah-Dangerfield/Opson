@@ -153,7 +153,7 @@ class ProviderSummaryViewModel(
         val document = ProviderSummaryStateBuilder.pdfLines(input, clock).toPdf(strings)
         val bytes = withContext(dispatchers.io) { Catching { pdfWriter.write(document) } }.getOrNull()
         update { it.copy(sharing = false, failed = bytes == null) }
-        if (bytes != null) sendEvent(ProviderSummaryEvent.SharePdf(ProviderSummaryStateBuilder.fileName(input.dates), bytes))
+        if (bytes != null) sendEvent(ProviderSummaryEvent.SharePdf(ProviderSummaryStateBuilder.fileName(input.dates, strings), bytes))
     }
 }
 

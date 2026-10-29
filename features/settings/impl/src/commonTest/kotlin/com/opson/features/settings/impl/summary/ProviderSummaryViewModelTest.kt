@@ -128,7 +128,7 @@ class ProviderSummaryViewModelTest : CoroutineTest() {
         rig.vm.takeAction(ProviderSummaryAction.ShareTapped)
 
         val share = assertIs<ProviderSummaryEvent.SharePdf>(events.single())
-        assertEquals("opson-summary-2026-10-19-to-2026-10-25.pdf", share.name)
+        assertEquals("summary_file_name(2026-10-19, 2026-10-25)", share.name)
         val text = rig.pdf.written.single().blocks.joinToString("\n") { it.text }
         assertTrue("summary_doc_calories(575 kcal)" in text, text)
         assertFalse(rig.vm.state.sharing)
@@ -168,7 +168,7 @@ class ProviderSummaryViewModelTest : CoroutineTest() {
 
         assertEquals(SummaryRange(LocalDate(2026, 9, 28), LocalDate(2026, 10, 25)), rig.vm.state.dates)
         assertEquals(LocalDate(2026, 9, 28) to LocalDate(2026, 10, 25), rig.diary.ranges.last())
-        assertEquals("Sep 28 to Oct 25, 2026", rig.vm.state.rangeLabel)
+        assertEquals("summary_date_with_year(Sep 28 to Oct 25, 2026)", rig.vm.state.rangeLabel.text())
     }
 
     @Test
