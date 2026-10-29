@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.libraries.medication.impl
 
 import com.opson.libraries.config.AppConfigFlow
@@ -12,8 +14,11 @@ import kotlinx.coroutines.flow.map
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 
-/** The plan's "Show on Today", for More › Today screen, while medication is released and tracked. */
+/** The plan's "Show on Today", for More › Today screen, while medication is released and tracked. Hidden as [MedicationTodaySwitch] is. */
+@HiddenFromObjC
 @ContributesBinding(AppScope::class)
 @Inject
 class MedicationTodayCardSwitch(

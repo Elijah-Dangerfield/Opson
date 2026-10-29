@@ -1,8 +1,12 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.libraries.medication
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.LocalDate
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 
 /**
  * The medication plan and the doses logged against it. On this phone only for now: doses are a
@@ -104,7 +108,12 @@ interface MedicationRecords {
 /**
  * More › Today screen's Medication switch ("Show on Today", the same setting as on the Medication
  * page). [shown] is null while there is no card to switch: the flag off or nothing tracked.
+ *
+ * Hidden from the iOS header, as Swift never uses it. Exported, it broke the framework link with
+ * `'swift_name' and 'swift_name' attributes are not compatible` on kotlinx-datetime's
+ * `LocalDateRange.contains(value_:)`, a line nobody touched (AGENTS.md, Known landmines).
  */
+@HiddenFromObjC
 interface MedicationTodaySwitch {
     val shown: Flow<Boolean?>
 
