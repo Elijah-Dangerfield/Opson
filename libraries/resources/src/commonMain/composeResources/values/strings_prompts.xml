@@ -11,13 +11,13 @@
     <!-- Connect Apple Health or Health Connect (release.health), a sheet -->
     <string name="prompt_health_title_apple">Bring in Apple Health</string>
     <string name="prompt_health_title_connect">Bring in Health Connect</string>
-    <string name="prompt_health_body_apple">Opson can show your workouts and the energy you use, read from Apple Health. Health data stays on this phone.</string>
-    <string name="prompt_health_body_connect">Opson can show your workouts and the energy you use, read from Health Connect. Health data stays on this phone.</string>
+    <string name="prompt_health_body_apple">See your workouts and what you burn, from Apple Health. Health data stays on this phone.</string>
+    <string name="prompt_health_body_connect">See your workouts and what you burn, from Health Connect. Health data stays on this phone.</string>
     <string name="prompt_health_accept">Set it up</string>
 
     <!-- Meal reminders (release.reminders), a dialog -->
     <string name="prompt_reminders_title">A nudge at mealtimes?</string>
-    <string name="prompt_reminders_body">Opson can remind you when a meal isn't logged by its usual time. You pick which meals, and it's easy to turn off.</string>
+    <string name="prompt_reminders_body">Get a reminder when a meal isn't logged by its usual time. You pick the meals, and you can turn it off anytime.</string>
     <string name="prompt_reminders_accept">Choose reminders</string>
 
     <!-- The check-in (release.checkIn), a card in Today's list -->

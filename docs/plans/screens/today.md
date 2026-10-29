@@ -56,7 +56,7 @@ screens below with none of the new behaviour.
   Peckish reads "A bit", Very full reads "Too full"); picked chips tonal with a
   check; Skip as big as Save.
 - **Day close (4.1 to 4.5)**: the big-day card reads "Everyone has big days.
-  Tomorrow is a fresh start, and you don't need to make up for today." and "Your
+  You don't need to make up for today." and "Your
   range tomorrow is {range} kcal, the same as usual." with a **Why not cut back?**
   link (a short sheet; wording under TODO(clinician), no study named) and the
   support row "If eating feels hard right now, talk to someone" (opens
@@ -363,7 +363,7 @@ Not built, and why: **Expended so far** (0.2, watch data; now built behind
   synced). The menu item reads "Mark as untracked" or "Track this day again".
   An untracked day keeps its meals but swaps the hero card (and the counts,
   the planning banner and Close the day) for one calm `untracked` card: "Not
-  tracking this day / Trends leaves a gap here, not a low day." with "Track it
+  tracking this day / Trends skips this day." with "Track it
   again". Trends treats it as a gap.
 - **Food bridge (2.8).** Explorer only. `FoodBridges.suggest(frequent, days,
   today)` (pure) picks a food the person eats often and one they have had only

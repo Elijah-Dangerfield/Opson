@@ -104,7 +104,7 @@
 
     <!-- A meal's Note: how hungry, and a few words -->
     <string name="today_note_title">Note, %1$s</string>
-    <string name="today_note_subtitle">Both optional, and only you see them.</string>
+    <string name="today_note_subtitle">Both optional. Only you see them.</string>
     <string name="today_note_hunger">Hunger level</string>
     <!-- A meal's Note on Today: "Hunger level: Hungry" -->
     <string name="today_note_hunger_line">Hunger level: %1$s</string>
@@ -114,8 +114,8 @@
     <string name="today_menu_notes">All notes</string>
     <string name="today_notes_title">Notes</string>
     <string name="today_notes_loading_cd">Loading your notes</string>
-    <string name="today_notes_empty">No notes yet. Write one for the day here or when you close it, or tap a meal's + and choose Note.</string>
-    <!-- The day's own note, written from Close the day or the Note sheet -->
+    <string name="today_notes_empty">No notes yet. Write one for the day here or when you wrap it up, or tap a meal's + and choose Note.</string>
+    <!-- The day's own note, written from Wrap up the day or the Note sheet -->
     <string name="today_notes_day_note">Day note</string>
     <string name="today_notes_add_today">Write a note for today</string>
     <string name="today_notes_edit_day_cd">Change the day's note</string>
@@ -145,17 +145,17 @@
     <string name="today_toast_water_added">Water added.</string>
     <string name="today_toast_water_removed">Removed a glass.</string>
     <string name="today_toast_copied_previous">Copied the previous day in.</string>
-    <string name="today_toast_copied_tomorrow">Copied. It will be waiting on the next day.</string>
+    <string name="today_toast_copied_tomorrow">Copied to the next day.</string>
     <string name="today_toast_cleared">Cleared this day.</string>
     <string name="today_toast_added_to">Added to %1$s.</string>
     <string name="today_added_one">Added 1 food to %1$s</string>
     <string name="today_added_other">Added %1$d foods to %2$s</string>
     <string name="today_added_undo">Undo</string>
     <string name="today_untracked_title">Not tracking this day</string>
-    <string name="today_untracked_body">Trends leaves a gap here, not a low day.</string>
+    <string name="today_untracked_body">Trends skips this day.</string>
     <string name="today_untracked_action">Track it again</string>
-    <string name="today_lowlog_title">Looks like logging got away from you today</string>
-    <string name="today_lowlog_body">That's okay. Want to skip today so it doesn't skew your trends? Not every day needs to be perfect.</string>
+    <string name="today_lowlog_title">Not much logged today</string>
+    <string name="today_lowlog_body">Skip today and Trends leaves it out. Not every day has to be logged.</string>
     <string name="today_lowlog_skip">Skip today</string>
     <string name="today_lowlog_later">Not now</string>
     <string name="today_toast_note_saved">Note saved to %1$s.</string>
@@ -179,12 +179,12 @@
     <string name="today_dayclose_below_goal">Your goal is %1$s</string>
     <string name="today_dayclose_soft_label">Today</string>
     <string name="today_dayclose_soft_label_other_day">That day</string>
-    <string name="today_dayclose_big_day">Everyone has big days. Tomorrow is a fresh start, and you don't need to make up for today.</string>
+    <string name="today_dayclose_big_day">Everyone has big days. You don't need to make up for today.</string>
     <string name="today_dayclose_tomorrow">Your range tomorrow is %1$s, the same as usual.</string>
     <string name="today_dayclose_tomorrow_goal">Your goal tomorrow is %1$s, the same as usual.</string>
     <string name="today_dayclose_commit_normal">Back to normal tomorrow</string>
     <string name="today_dayclose_commit_can">I can do this</string>
-    <string name="today_dayclose_committed">Heard. That stays between you and you.</string>
+    <string name="today_dayclose_committed">Noted. Only you see this.</string>
     <string name="today_dayclose_logged_today">Logged today</string>
     <string name="today_dayclose_logged_that_day">Logged that day</string>
     <string name="today_dayclose_meals">Meals</string>
@@ -198,7 +198,7 @@
     <string name="today_dayclose_note_label_other_day">Anything to remember about this day? · optional</string>
     <string name="today_dayclose_note_placeholder">Dinner at Lola's, a lazy Sunday</string>
     <string name="today_dayclose_done">Wrap up the day</string>
-    <string name="today_dayclose_caption">You can reopen it later if you need to add something.</string>
+    <string name="today_dayclose_caption">You can reopen it later to add more.</string>
     <string name="today_dayclose_save">Save</string>
     <string name="today_dayclose_closed_caption">This day is wrapped up. Reopen it to add or change food.</string>
     <string name="today_dayclose_reopen">Reopen this day</string>
