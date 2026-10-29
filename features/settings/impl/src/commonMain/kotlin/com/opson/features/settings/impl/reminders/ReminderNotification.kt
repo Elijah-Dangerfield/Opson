@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.opson.features.settings.impl.SettingsPreview
 import com.opson.libraries.diary.MealSlot
-import com.opson.libraries.diary.Tone
 import com.opson.libraries.reminders.ReminderCopy
 import com.opson.libraries.reminders.ReminderKey
 import com.opson.libraries.reminders.ReminderPlanner
@@ -84,9 +83,9 @@ private fun ActionChip(label: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** Every reminder in [tone], each as the platform would show it. What the leak test scans. */
+/** Every reminder, each as the platform would show it. What the leak test scans. */
 @Composable
-fun ReminderNotifications(tone: Tone, modifier: Modifier = Modifier) {
+fun ReminderNotifications(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -94,7 +93,7 @@ fun ReminderNotifications(tone: Tone, modifier: Modifier = Modifier) {
             .padding(AppTheme.spacing.page),
         verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section),
     ) {
-        ReminderNotificationSamples.keys.forEach { key -> ReminderNotificationCard(ReminderCopy.text(key, tone)) }
+        ReminderNotificationSamples.keys.forEach { key -> ReminderNotificationCard(ReminderCopy.text(key)) }
     }
 }
 
@@ -106,7 +105,7 @@ object ReminderNotificationSamples {
         MealSlot.meals.map { ReminderKey.Meal(date, it) } + ReminderPlanner.WATER_TIMES.indices.map { ReminderKey.Water(date, it) }
 }
 
-/** Design sync 2: dinner, plain, on the lock screen under the clock. */
+/** Design sync 2: dinner on the lock screen, under the clock. */
 @Suppress("VerifyStrings")
 @Preview
 @Composable
@@ -124,13 +123,13 @@ private fun ReminderNotificationPreview() {
                 color = AppTheme.colors.onHeroMuted,
                 modifier = Modifier.padding(top = 4.dp, bottom = 40.dp),
             )
-            ReminderNotificationCard(ReminderCopy.text(ReminderKey.Meal(LocalDate(2026, 10, 25), MealSlot.Dinner), Tone.Plain))
+            ReminderNotificationCard(ReminderCopy.text(ReminderKey.Meal(LocalDate(2026, 10, 25), MealSlot.Dinner)))
         }
     }
 }
 
 @Preview
 @Composable
-private fun ReminderNotificationsWarmPreview() {
-    SettingsPreview { ReminderNotifications(Tone.Warm) }
+private fun ReminderNotificationsPreview() {
+    SettingsPreview { ReminderNotifications() }
 }

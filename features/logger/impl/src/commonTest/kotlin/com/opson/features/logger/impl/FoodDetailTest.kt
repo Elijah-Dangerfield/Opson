@@ -207,7 +207,7 @@ class FoodDetailTest : CoroutineTest() {
     }
 
     @Test
-    fun noNumbersHungerCheckFollowsTheHungerQuestionsSetting() {
+    fun noNumbersAlwaysAsksTheHungerCheck_evenWhereTheOldSwitchWasOff() {
         val food = AmountFood.Catalog(LoggerFixtures.peanutButter)
         val state = FoodDetailStateBuilder.build(
             food,
@@ -216,7 +216,7 @@ class FoodDetailTest : CoroutineTest() {
             FoodRef.Catalog(food.food.id),
             PickSource.Search,
         )
-        assertNull(state.hunger)
+        assertNotNull(state.hunger)
     }
 
     @Test

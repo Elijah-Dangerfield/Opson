@@ -47,7 +47,6 @@ import com.opson.features.settings.impl.water.WaterSettingsScreen
 import com.opson.features.settings.impl.water.WaterSettingsStateBuilder
 import com.opson.features.settings.impl.widgets.WidgetsFixtureScreen
 import com.opson.libraries.diary.MacroMode
-import com.opson.libraries.diary.Tone
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.BodySex
@@ -227,15 +226,12 @@ object SettingsLeakSurfaces {
             FastingScreen(FastingFixtures.state(settings, FastingFixtures.lastNight, FastingFixtures.morning), onAction = {})
         },
         // 0.2, release.reminders. No amounts on the page, and none can reach a notification:
-        // its text is fixed resources (ReminderCopy), scanned here in both tones.
+        // its text is fixed resources (ReminderCopy), every one scanned here.
         LeakSurface(id = "reminders", label = "Reminders and celebrations", showsCaloriesInFull = false) { policy ->
             RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet.copy(numbers = policy.settings)), onAction = {})
         },
         LeakSurface(id = "reminder-notification", label = "Meal and water reminders", showsCaloriesInFull = false) { _ ->
-            Column {
-                ReminderNotifications(Tone.Plain)
-                ReminderNotifications(Tone.Warm)
-            }
+            ReminderNotifications()
         },
         // 0.2: today's energy from Health Connect or Apple Health, every amount energyOut.
         LeakSurface(id = "integrations", label = "Watch and health apps", showsCaloriesInFull = true) { policy ->

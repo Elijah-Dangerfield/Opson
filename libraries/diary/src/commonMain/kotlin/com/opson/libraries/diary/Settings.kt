@@ -77,8 +77,15 @@ data class Settings(
     val weightUnit: WeightUnit = WeightUnit.Kg,
     /** Global, as the prototype. A day can override it through `Day.mealGroups`. */
     val mealGroups: Boolean = true,
-    /** Hunger and fullness chips on the amount sheet. */
+    /**
+     * The hunger and fullness questions' old switch. Never read: the questions are always asked
+     * and always skippable (2026-10-29). Kept so old JSON round-trips.
+     */
     val askTags: Boolean = true,
+    /**
+     * How we talk to you, once a setting. Never read: the voice is the brand's, and everything
+     * speaks in [Tone.Plain] (2026-10-29). Kept so old JSON round-trips.
+     */
     val tone: Tone = Tone.Plain,
     val bigDayEvent: EventLevel = EventLevel.Full,
     /**
@@ -157,8 +164,9 @@ data class Settings(
     /** Page 2, the macros page. */
     val todayMacrosPage: Boolean = true,
     /**
-     * Close the day's check-in card (design sync 2, 4.1, `release.checkIn`), switched in Reminders.
-     * A top-level key, because the server merges settings one level deep.
+     * Close the day's check-in card's old switch. Never read: the check-in shows whenever
+     * `release.checkIn` is on, and skipping it is the way to say no (2026-10-29). Kept so old JSON
+     * round-trips.
      */
     val checkIn: Boolean = true,
 
@@ -403,7 +411,7 @@ enum class SearchDatabase {
     MyFoods,
 }
 
-/** Which empty-state and toast lines the app uses. */
+/** The voice [Settings.tone] once picked. Only [Plain] is spoken now. */
 @Serializable
 enum class Tone {
     @SerialName("plain")

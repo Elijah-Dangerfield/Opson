@@ -159,7 +159,7 @@ class DayCloseViewModel(
     init {
         viewModelScope.launch {
             combine(diary.observeDay(day), settingsRepository.settings, policySource.policy, expended(), burned()) { d, settings, policy, expended, burned ->
-                val checkInOn = checkInEnabled() && settings.checkIn
+                val checkInOn = checkInEnabled()
                 DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInOn, burned = burned), policy)
             }.collect(::takeAction)
         }

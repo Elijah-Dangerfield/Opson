@@ -11,7 +11,6 @@ import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.LocalCalendar
-import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.identity.IdentityConfig
@@ -58,7 +57,6 @@ class QaViewModel(
     private val appCache: AppCache,
     private val testFire: ReminderTestFire,
     private val checkInEnabled: CheckInEnabled,
-    private val settingsRepository: SettingsRepository,
     private val calendar: LocalCalendar,
     private val foodCache: FoodCacheDao,
 ) : SEAViewModel<QaState, QaEvent, QaAction>(initialStateArg = QaState(build = QaStateBuilder.build(build))) {
@@ -119,7 +117,6 @@ class QaViewModel(
             overrides.addOverride(ConfigOverride(checkInEnabled.path, true))
             withTimeoutOrNull(OVERRIDE_WAIT) { config.first { CheckInEnabled(it).value } }
         }
-        if (!settingsRepository.settings.value.checkIn) settingsRepository.update { it.copy(checkIn = true) }
         sendEvent(QaEvent.OpenDayClose(calendar.today().toString()))
     }
 
