@@ -12,7 +12,6 @@ import com.opson.libraries.config.impl.model.BasicMapAppConfig
 import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.health.ConnectOutcome
 import com.opson.libraries.health.EnergyExpended
-import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
@@ -99,7 +98,6 @@ class LogOutJourneyTest : IntegrationTest() {
             remindersEnabled = RemindersEnabled(config),
             fastingRelease = FastingRelease { false },
             widgetsEnabled = WidgetsEnabled(config),
-            goalsAndEnergy = GoalsAndEnergyEnabled(config),
             auth = auth,
             diarySync = sync,
         )
