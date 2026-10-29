@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.tone
+import com.opson.system.color.NutrientTone
 import com.opson.system.color.appColors
 
 /**
@@ -27,6 +28,10 @@ object WidgetPalette {
             meals = MealSlot.meals.associate { slot ->
                 val tone = colors.meal(slot.tone)
                 slot.wire to WidgetTone(content = tone.content.color.hex(), container = tone.container.color.hex())
+            },
+            nutrients = NutrientTone.entries.associate { nutrient ->
+                val tone = colors.nutrient(nutrient)
+                nutrient.name.lowercase() to WidgetTone(content = tone.content.color.hex(), container = tone.container.color.hex())
             },
         )
     }

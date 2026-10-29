@@ -1,15 +1,21 @@
 package com.opson.libraries.widgets.impl
 
+import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.Fast
+import com.opson.libraries.diary.FastingRelease
+import com.opson.libraries.diary.FastingRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.diary.fastingTimerOn
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.opson.AppEvent
 import com.opson.libraries.opson.AppEvents
+import com.opson.libraries.widgets.FastingInputs
 import com.opson.libraries.widgets.WidgetCopy
 import com.opson.libraries.widgets.WidgetInputs
 import com.opson.libraries.widgets.WidgetSnapshot
@@ -41,8 +47,8 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Today's widget snapshot, rebuilt whenever an input moves: today's day (a log, an "ate, no
- * details", untracked), the settings (mode, targets, meal groups) once they are the
+ * Today's widget snapshot, rebuilt whenever an input moves: today's day (a log, an edit or a
+ * delete, water, a repeat landing, "ate, no details", untracked, a close), the latest fast, the settings (mode, targets, meal groups) once they are the
  * user's own, the policy, and the date (each local midnight, and every foreground in case the
  * clock or zone moved while the app slept). Equal snapshots are dropped, so a widget only reloads
  * when what it shows changed.
@@ -63,16 +69,34 @@ class RealWidgetSnapshotSource(
     private val strings: WidgetStrings,
     private val burnedRepository: BurnedRepository,
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
+    private val fastingRepository: FastingRepository,
+    private val fastingRelease: FastingRelease,
 ) : WidgetSnapshotSource {
 
     override fun observe(): Flow<WidgetSnapshot> = flow {
         val copy = WidgetCopy.resolve(strings)
         emitAll(
-            combine(knownSettings(), today().flatMapLatest(diary::observeDay), policies.policy, burned()) { settings, day, policy, burned ->
-                WidgetSnapshotBuilder.build(WidgetInputs(today = day, settings = settings, burnedKcal = burned?.totalKcal), policy, copy)
+            combine(knownSettings(), today().flatMapLatest(diary::observeDay), policies.policy, burned(), latestFast()) { settings, day, policy, burned, fast ->
+                val inputs = WidgetInputs(today = day, settings = settings, burnedKcal = burned?.totalKcal, fasting = fasting(settings, day, fast))
+                WidgetSnapshotBuilder.build(inputs, policy, copy)
             },
         )
     }.distinctUntilChanged()
+
+    /** The latest fast, read only while the timer can be on at all: with `release.fasting` off nothing reads it. */
+    private fun latestFast(): Flow<Fast?> = if (fastingRelease.isOn()) fastingRepository.observeLatest() else flowOf(null)
+
+    /** The fasting widget's inputs, only while the timer is on and fasting is offered in the mode. */
+    private fun fasting(settings: Settings, day: Day, latest: Fast?): FastingInputs? {
+        if (!settings.fastingTimerOn(fastingRelease.isOn())) return null
+        return FastingInputs(
+            plan = settings.fastPlan,
+            latest = latest,
+            lastLoggedAt = day.allItems.maxOfOrNull { it.loggedAt },
+            now = clock.now(),
+            zone = calendar.timeZone(),
+        )
+    }
 
     /** Today's Burned, what a set deficit or surplus aims at. With `release.goalsAndEnergy` off nothing reads it. */
     private fun burned(): Flow<Burned?> =

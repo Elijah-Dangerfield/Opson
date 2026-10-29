@@ -7,8 +7,8 @@ import kotlin.native.ObjCName
 
 /**
  * The Swift side of the iOS widgets: `IOSWidgetBridge` in the app target writes the snapshot JSON
- * to the App Group's UserDefaults, where the `OpsonWidgets` extension reads it, and asks WidgetKit
- * to reload. WidgetKit has no Objective-C API, so Kotlin can't call it directly. Passed into the
+ * to a file in the App Group container, where the `OpsonWidgets` extension reads it, and asks
+ * WidgetKit to reload. WidgetKit has no Objective-C API, so Kotlin can't call it directly. Passed into the
  * graph through `IosAppComponent`.
  *
  * Called on the main thread, whatever `release.widgets` says. Exported to Swift as

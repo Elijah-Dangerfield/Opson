@@ -232,6 +232,8 @@ number, a meal name or any text from the snapshot.
 | Event | Attributes | Fires |
 |---|---|---|
 | `widget.log_tapped` | `next_meal` (whether a meal was still to come, so the Logger opened on it rather than its own default) | A home screen widget's + opened the app (`WidgetOpener`) |
+| `widget.opened` | `target` (`today` / `water`) | Any other widget tap opened the app: the body of a widget, or the water widget's add (`WidgetOpener`) |
+| `widget.water_added` | `added` (false when the day was closed or the write failed) | The water widget's add, after it wrote |
 
 ### App guard (0.2)
 

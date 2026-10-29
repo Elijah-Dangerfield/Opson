@@ -287,3 +287,17 @@ Cleans build artifacts and caches:
 ```bash
 ./scripts/cleanup.sh
 ```
+
+## check_widget_snapshot.sh
+
+Decodes the widget snapshot fixtures (`apps/ios/TestFixtures/widgets`, written
+by `:libraries:widgets`' `WidgetSnapshotFixtureTest`) with the iOS extension's
+own `WidgetSnapshot.swift`, so the Kotlin writer and the Swift reader can't
+drift apart unnoticed. macOS with Xcode only:
+
+```bash
+./scripts/check_widget_snapshot.sh
+```
+
+After changing the snapshot on purpose, record the fixtures first with
+`RECORD_WIDGET_FIXTURES=1 ./gradlew :libraries:widgets:testDebugUnitTest`.

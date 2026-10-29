@@ -31,6 +31,7 @@ import com.opson.features.medication.LogDoseRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.upgrade.impl.AppGuardLayer
 import com.opson.features.settings.FindSupportRoute
+import com.opson.features.today.TodayRoute
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.BuildInfo
@@ -51,6 +52,8 @@ import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.navigation.toEnterTransition
 import com.opson.libraries.navigation.toExitTransition
 import com.opson.libraries.navigation.toRouteOrNull
+import com.opson.libraries.widgets.WidgetLogOpen
+import com.opson.libraries.widgets.WidgetTodayOpen
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import com.opson.libraries.nutrition.ui.LocalVisibilityPolicy
 import com.opson.libraries.opson.Telemetry
@@ -153,11 +156,15 @@ fun App(appComponent: AppComponent) {
         }
     }
 
-    // A home screen widget's + opens the Logger on the next meal, today. Through the router for
-    // the same reason as a reminder: a tap that cold-starts the app still lands.
+    // A widget tap: its + opens the Logger on the next meal, today, and the rest of a widget opens
+    // Today. Through the router for the same reason as a reminder: a tap that cold-starts the app
+    // still lands.
     LaunchedEffect(router) {
         appComponent.widgetOpens.requests.collect { open ->
-            router.navigate(LoggerRoute(slot = open.slot, dayIso = open.day.toString()))
+            when (open) {
+                is WidgetLogOpen -> router.navigate(LoggerRoute(slot = open.slot, dayIso = open.day.toString()))
+                WidgetTodayOpen -> router.switchTab(TodayRoute())
+            }
         }
     }
 
