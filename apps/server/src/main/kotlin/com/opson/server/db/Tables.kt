@@ -128,6 +128,14 @@ object FoodsTable : Table("foods") {
      * writes it, and every row the catalog loads itself takes the column's `approved` default.
      */
     val reviewStatus = text("review_status").databaseGenerated()
+
+    /**
+     * Whether the energy adds up to the macros, the gap per 100 and when it was judged (V33).
+     * The `foods_energy_check` trigger writes them; Kotlin only reads.
+     */
+    val energyConsistent = bool("energy_consistent").nullable().databaseGenerated()
+    val energyGapKcal = float("energy_gap_kcal").nullable().databaseGenerated()
+    val energyCheckedAt = timestamp("energy_checked_at").nullable().databaseGenerated()
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -161,6 +169,11 @@ object OffFoodsTable : Table("off_foods") {
     val scans = integer("scans")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
+
+    /** As on [FoodsTable] (V33), written by the `off_foods_energy_check` trigger. */
+    val energyConsistent = bool("energy_consistent").nullable().databaseGenerated()
+    val energyGapKcal = float("energy_gap_kcal").nullable().databaseGenerated()
+    val energyCheckedAt = timestamp("energy_checked_at").nullable().databaseGenerated()
     override val primaryKey = PrimaryKey(id)
 }
 
