@@ -45,6 +45,11 @@ data class EnergyCard(
     val rangeEnd: Float,
     /** Null while Burned is unknown or energy out isn't on show. */
     val burned: BurnedBars?,
+    /**
+     * Burned can't be worked out and energy out is on show: the card says so where Burned would
+     * be, with what it is waiting on and a Fix, rather than leaving the line out.
+     */
+    val burnedUnavailable: BurnedGap? = null,
     /** A set deficit or surplus: "Target 1,680 · 435 kcal left at your goal". */
     val target: TargetLine?,
     /** Equation's line under the bar: "655 kcal to your range". */
@@ -164,6 +169,7 @@ object EnergyCardBuilder {
                     breakdown = settings.todayBurnedBreakdown,
                 )
             },
+            burnedUnavailable = if (energyOutShown && inputs.burned == null) inputs.burnedGap ?: BurnedGap() else null,
             target = if (goal is DayGoal.About && burned != null) {
                 val left = target - eaten
                 TargetLine(

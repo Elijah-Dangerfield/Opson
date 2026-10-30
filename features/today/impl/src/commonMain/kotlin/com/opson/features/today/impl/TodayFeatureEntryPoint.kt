@@ -23,6 +23,7 @@ import com.opson.features.settings.FindSupportRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.TodayScreenSettingsRoute
 import com.opson.features.settings.RestingEnergyRoute
+import com.opson.features.settings.ProfileRoute
 import com.opson.features.settings.WaterSettingsRoute
 import com.opson.features.settings.toRoute
 import com.opson.features.medication.MedicationRoute
@@ -89,6 +90,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.OnTabReselected
+import com.opson.libraries.navigation.Route
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.navigation.bottomSheet
@@ -386,6 +388,7 @@ class TodayFeatureEntryPoint(
                     ExerciseRoute(entryId = event.entryId, dayIso = event.day.toString(), notOnWatch = event.notOnWatch),
                 )
                 TodayActivityEvent.OpenRestingEnergy -> router.navigate(RestingEnergyRoute())
+                is TodayActivityEvent.OpenBurnedFix -> router.navigate(burnedFixRoute(event.fix))
                 TodayActivityEvent.OpenBurnedExplainer -> router.navigate(EnergyExplainerRoute(EnergyExplainerRoute.TOPIC_BURNED))
             }
         }
@@ -401,6 +404,13 @@ class TodayFeatureEntryPoint(
         return cards.mapNotNull { (key, content) -> content?.let { ContributedCard(key, it) } }
     }
 
+    /** Where a "Burned unavailable" row's Fix goes. */
+    private fun burnedFixRoute(fix: BurnedFix): Route = when (fix) {
+        BurnedFix.Weight -> WeightRoute()
+        BurnedFix.Profile -> ProfileRoute(from = ProfileRoute.FROM_ELSEWHERE)
+        BurnedFix.RestingEnergy -> RestingEnergyRoute()
+    }
+
     private suspend fun onTodayEvent(event: TodayEvent, router: Router) {
         when (event) {
             is TodayEvent.OpenCalendar -> router.navigate(CalendarRoute(event.day.toString()))
@@ -410,6 +420,7 @@ class TodayFeatureEntryPoint(
             TodayEvent.OpenEnergyToday -> router.navigate(EnergyTodayRoute())
             is TodayEvent.OpenLogger -> router.navigate(LoggerRoute(slot = event.slot, dayIso = event.day.toString()))
             TodayEvent.OpenWeight -> router.navigate(WeightRoute())
+            is TodayEvent.OpenBurnedFix -> router.navigate(burnedFixRoute(event.fix))
             is TodayEvent.OpenCreateMeal -> router.navigate(
                 CreateMealRoute(fromDayIso = event.day.toString(), fromSlot = event.slot, entryIds = event.entryIds),
             )

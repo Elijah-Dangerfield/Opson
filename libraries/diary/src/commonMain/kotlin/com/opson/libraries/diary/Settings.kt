@@ -333,9 +333,13 @@ data class Settings(
     /** [bodyFatPercent] when one was given and makes sense. */
     val bodyFat: Double? get() = BodyFat.inRange(bodyFatPercent)
 
-    /** What the resting energy calculation is told: these details and [weightKg], on [today]. */
+    /**
+     * What the resting energy calculation is told: these details and [weightKg], on [today]. Age
+     * is the birth year's; a [birthDate] that arrived without its year (written before
+     * [withBirthDate] kept the two together) still counts, rather than leaving Burned unknown.
+     */
     fun bodyProfile(weightKg: Double?, today: LocalDate): BodyProfile =
-        BodyProfile(weightKg = weightKg, heightCm = heightCm, ageYears = birthYear?.let { today.year - it }, sex = bodySex)
+        BodyProfile(weightKg = weightKg, heightCm = heightCm, ageYears = (birthYear ?: birthDate?.year)?.let { today.year - it }, sex = bodySex)
 
     /**
      * Each vitamin and mineral's daily reference on [today]: by the age and sex Resting energy

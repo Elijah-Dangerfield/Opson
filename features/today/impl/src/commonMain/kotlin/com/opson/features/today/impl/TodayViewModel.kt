@@ -244,6 +244,9 @@ class TodayViewModel(
             is TodayAction.SummaryPageShown -> cardView.update { it.copy(page = action.page) }
             TodayAction.SummaryLongPressed -> if (state.summaryTools) sendEvent(TodayEvent.OpenTodayScreenSettings)
             TodayAction.WeightTapped -> sendEvent(TodayEvent.OpenWeight)
+            TodayAction.BurnedFixTapped -> ((state.summary as? TodaySummary.Energy)?.card?.burnedUnavailable)?.let {
+                sendEvent(TodayEvent.OpenBurnedFix(it.fix))
+            }
             else -> selectAction(action)
         }
     }
@@ -542,11 +545,12 @@ class TodayViewModel(
         val days = selectedDay.date.flatMapLatest { date ->
             combine(diary.observeDay(date), diary.observeDay(date.minus(DatePeriod(days = 1)))) { d, before -> d to before }
         }
-        val energy = combine(expended(), burned()) { expended, burned -> expended to burned }
+        // Unchanged energy on a date change mustn't rebuild Today with the old day still in place.
+        val energy = combine(expended(), burned()) { expended, burned -> expended to burned }.distinctUntilChanged()
         val extras = combine(cardView(), habits(), now(), nudges.lowLoggingDismissedOn) { view, habits, now, dismissed ->
             Extras(view, habits, now, dismissed)
         }
-        return combine(days, settingsRepository.settings, energy, weighIns(), extras) { (d, before), settings, (expended, burned), weighIns, extra ->
+        return combine(days, settingsRepository.settings, energy, weighIns(), extras) { (d, before), settings, (expended, out), weighIns, extra ->
             TodayInputs(
                 today = calendar.today(),
                 timeZone = calendar.timeZone(),
@@ -559,7 +563,8 @@ class TodayViewModel(
                 foodActionsOn = foodActionsEnabled(),
                 weighIns = weighIns,
                 goalsAndEnergyOn = goalsAndEnergy(),
-                burned = burned,
+                burned = out.burned,
+                burnedGap = out.gap,
                 cardView = extra.cardView,
                 habits = extra.habits,
                 now = extra.now,
@@ -600,11 +605,40 @@ class TodayViewModel(
         return cardView.view
     }
 
-    /** The shown day's Burned (design sync 4). With `release.goalsAndEnergy` off nothing reads it. */
-    private fun burned(): Flow<Burned?> {
-        if (!goalsAndEnergy()) return flowOf(null)
-        return selectedDay.date.flatMapLatest { date -> burnedRepository.burned(date) }
-    }
+    /** The day's Burned, and when it can't be worked out, what resting energy is waiting on. */
+    private data class BurnedIn(val burned: Burned?, val gap: BurnedGap?)
+
+    /**
+     * `release.goalsAndEnergy` and `release.health` as they stand, read again each minute. Read
+     * once when Today was built, a flag the config turned on later (a refresh after the first
+     * launch of a new build, or after signing in) left Burned unread for as long as Today lived:
+     * the card was built and its Burned line was not.
+     */
+    private fun flags(): Flow<Flags> = ticker.ticks().map { Flags(goalsAndEnergy(), healthFlag()) }.distinctUntilChanged()
+
+    private data class Flags(val goalsAndEnergy: Boolean, val health: Boolean)
+
+    /**
+     * The shown day's Burned (design sync 4). With `release.goalsAndEnergy` off nothing reads it.
+     * When it is null, the resting energy page's own answer for what is missing comes with it, so
+     * the card can say why rather than drop the line.
+     */
+    private fun burned(): Flow<BurnedIn> =
+        combine(selectedDay.date, flags()) { date, flags -> date to flags }
+            .distinctUntilChanged()
+            .flatMapLatest { (date, flags) ->
+                if (!flags.goalsAndEnergy) {
+                    flowOf(BurnedIn(null, null))
+                } else {
+                    burnedRepository.burned(date).flatMapLatest { burned ->
+                        if (burned != null) {
+                            flowOf(BurnedIn(burned, null))
+                        } else {
+                            burnedRepository.restingChoices().map { BurnedIn(null, BurnedGap(it.unusable)) }.distinctUntilChanged()
+                        }
+                    }
+                }
+            }
 
     /** The last few weeks of weigh-ins for the Weight row. With `release.todaySummary` off the store is never read. */
     private fun weighIns(): Flow<List<WeighIn>> {
@@ -628,13 +662,13 @@ class TodayViewModel(
             .distinctUntilChanged()
 
     /** Today's energy while today is on show. With `release.health` off the store is never touched. */
-    private fun expended(): Flow<EnergyExpended?> {
-        if (!healthFlag()) return flowOf(null)
-        return selectedDay.date.flatMapLatest { date ->
-            val today = calendar.today()
-            if (date == today) health.energy(today, calendar.timeZone()) else flowOf(null)
-        }
-    }
+    private fun expended(): Flow<EnergyExpended?> =
+        combine(selectedDay.date, flags()) { date, flags -> date to flags.health }
+            .distinctUntilChanged()
+            .flatMapLatest { (date, on) ->
+                val today = calendar.today()
+                if (on && date == today) health.energy(today, calendar.timeZone()) else flowOf(null)
+            }
 
     companion object {
         /** How long a changed meal stays outlined. */

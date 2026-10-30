@@ -5,10 +5,13 @@ import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.LocalCalendar
+import com.opson.libraries.diary.MinuteTicker
 import com.opson.libraries.diary.SelectedDay
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.exerciseOffered
+import com.opson.features.today.impl.BurnedFix
+import com.opson.features.today.impl.BurnedGap
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.ExerciseRelease
@@ -73,6 +76,8 @@ data class TodayActivityCard(
     val healthSource: HealthSource? = null,
     /** The health app's workouts that day ("Morning run · Garmin Connect · 320 kcal"), oldest first. */
     val workouts: List<WorkoutRow> = emptyList(),
+    /** While not [known]: what resting energy is waiting on, said in place of the sum, with its Fix. */
+    val gap: BurnedGap? = null,
 )
 
 /**
@@ -127,6 +132,9 @@ data class ExerciseRow(
 sealed interface TodayActivityAction {
     data class InputsArrived(val inputs: TodayActivityInputs) : TodayActivityAction
 
+    /** `release.exercise` is off (or went off): no card. */
+    data object Unreleased : TodayActivityAction
+
     /** The + with no health app: the usual way to log exercise. */
     data object AddTapped : TodayActivityAction
 
@@ -134,6 +142,9 @@ sealed interface TodayActivityAction {
     data object AddMissedTapped : TodayActivityAction
     data class EntryTapped(val id: String) : TodayActivityAction
     data object RestingEnergyTapped : TodayActivityAction
+
+    /** The button under "Burned unavailable": where the missing detail is entered. */
+    data object BurnedFixTapped : TodayActivityAction
 
     /** The (i) beside Total burned (TDEE): what it is and how today's adds up. */
     data object BurnedInfoTapped : TodayActivityAction
@@ -143,6 +154,7 @@ sealed interface TodayActivityEvent {
     /** [notOnWatch] starts a new entry with "My watch didn't record this" already on. */
     data class OpenExercise(val day: LocalDate, val entryId: String? = null, val notOnWatch: Boolean = false) : TodayActivityEvent
     data object OpenRestingEnergy : TodayActivityEvent
+    data class OpenBurnedFix(val fix: BurnedFix) : TodayActivityEvent
     data object OpenBurnedExplainer : TodayActivityEvent
 }
 
@@ -159,6 +171,8 @@ data class TodayActivityInputs(
     val healthSource: HealthSource? = null,
     /** The day's workouts from the health store; empty without one, or with `release.health` off. */
     val workouts: List<HealthWorkout> = emptyList(),
+    /** With [burned] null, what resting energy is waiting on. */
+    val gap: BurnedGap? = null,
 )
 
 object TodayActivityStateBuilder {
@@ -206,6 +220,7 @@ object TodayActivityStateBuilder {
                 },
                 closed = inputs.closed,
                 healthSource = healthSource,
+                gap = if (burned == null) inputs.gap ?: BurnedGap() else null,
                 workouts = inputs.workouts.map { workout ->
                     WorkoutRow(
                         id = workout.id,
@@ -224,7 +239,8 @@ object TodayActivityStateBuilder {
 
 /**
  * Follows the day Today shows. Reads nothing while the release is off, and the health app's
- * workouts only with `release.health` on too.
+ * workouts only with `release.health` on too. Both flags are read again each minute ([ticker]),
+ * so one the config turns on after Today was built shows the card without a restart.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Inject
@@ -241,38 +257,46 @@ class TodayActivityViewModel(
     health: HealthRepository,
     records: HealthRecords,
     healthFlag: HealthReleaseFlag,
+    ticker: MinuteTicker,
 ) : SEAViewModel<TodayActivityState, TodayActivityEvent, TodayActivityAction>(initialStateArg = TodayActivityState()) {
 
     private var day: LocalDate = selectedDay.date.value
 
     init {
-        if (release.isOn()) {
-            val healthOn = healthFlag()
-            viewModelScope.launch {
-                selectedDay.date.flatMapLatest { date ->
-                    val workouts = if (healthOn) records.workouts(date, calendar.timeZone()).map { it.orEmpty() } else flowOf(emptyList())
-                    combine(
-                        combine(burnedRepository.burned(date), workouts, ::Pair),
-                        exercise.observeDay(date),
-                        settingsRepository.settings,
-                        policySource.policy,
-                        diary.observeDay(date).map { it.closedByUser }.distinctUntilChanged(),
-                    ) { (burned, fromHealth), entries, settings, policy, closed ->
-                        TodayActivityInputs(
-                            day = date,
-                            settings = settings,
-                            burned = burned,
-                            entries = entries,
-                            policy = policy,
-                            released = true,
-                            timeZone = calendar.timeZone(),
-                            closed = closed,
-                            // Only ever named when Burned says the store's activity is what counts.
-                            healthSource = health.source,
-                            workouts = fromHealth,
-                        )
-                    }
-                }.collect { takeAction(TodayActivityAction.InputsArrived(it)) }
+        val flags = ticker.ticks().map { release.isOn() to healthFlag() }.distinctUntilChanged()
+        viewModelScope.launch {
+            combine(selectedDay.date, flags) { date, flags -> date to flags }.distinctUntilChanged().flatMapLatest { (date, flags) ->
+                val (released, healthOn) = flags
+                if (!released) return@flatMapLatest flowOf(null)
+                val workouts = if (healthOn) records.workouts(date, calendar.timeZone()).map { it.orEmpty() } else flowOf(emptyList())
+                // When Burned is null, the Resting energy page's answer for what it is waiting on comes with it.
+                val burned = burnedRepository.burned(date).flatMapLatest { known ->
+                    if (known != null) flowOf(known to null) else burnedRepository.restingChoices().map { null to BurnedGap(it.unusable) }
+                }
+                combine(
+                    combine(burned, workouts, ::Pair),
+                    exercise.observeDay(date),
+                    settingsRepository.settings,
+                    policySource.policy,
+                    diary.observeDay(date).map { it.closedByUser }.distinctUntilChanged(),
+                ) { (out, fromHealth), entries, settings, policy, closed ->
+                    TodayActivityInputs(
+                        day = date,
+                        settings = settings,
+                        burned = out.first,
+                        gap = out.second,
+                        entries = entries,
+                        policy = policy,
+                        released = true,
+                        timeZone = calendar.timeZone(),
+                        closed = closed,
+                        // Only ever named when Burned says the store's activity is what counts.
+                        healthSource = health.source,
+                        workouts = fromHealth,
+                    )
+                }
+            }.collect { inputs ->
+                if (inputs == null) takeAction(TodayActivityAction.Unreleased) else takeAction(TodayActivityAction.InputsArrived(inputs))
             }
         }
     }
@@ -287,6 +311,8 @@ class TodayActivityViewModel(
             TodayActivityAction.AddMissedTapped -> sendEvent(TodayActivityEvent.OpenExercise(day, notOnWatch = true))
             is TodayActivityAction.EntryTapped -> sendEvent(TodayActivityEvent.OpenExercise(day, action.id))
             TodayActivityAction.RestingEnergyTapped -> sendEvent(TodayActivityEvent.OpenRestingEnergy)
+            TodayActivityAction.BurnedFixTapped -> state.card?.gap?.let { sendEvent(TodayActivityEvent.OpenBurnedFix(it.fix)) }
+            TodayActivityAction.Unreleased -> action.updateState { TodayActivityState() }
             TodayActivityAction.BurnedInfoTapped -> sendEvent(TodayActivityEvent.OpenBurnedExplainer)
         }
     }
