@@ -71,7 +71,9 @@ The events that motivated shipping direct-to-Grafana: what never reaches the bac
 | Event | Attributes | Fires |
 |---|---|---|
 | `net.backend_unreachable` | `operation`, `error_kind` (timeout / exception class) | Shared `NetworkCall` failure path, non-HTTP failures only. An HTTP status IS reachability |
-| `net.offline_banner` | `visible`, `os_online`, `backend_reachable` | Each edge of the app-wide offline banner (`AppStateImpl`), carrying which signal drove it |
+| `net.offline_banner` | `visible`, `os_online`, `backend_reachable` | Each edge of `AppState.isOffline` (`AppStateImpl`), the raw signal under the offline strip, carrying which signal drove it. A blip shorter than the strip's wait still fires this |
+| `net.offline_banner_shown` |, | The offline strip at the top of the app appeared: offline for longer than its 3 second wait (`ConnectionBannerImpl`, `:features:upgrade:impl`) |
+| `net.offline_banner_cleared` | `shown_ms` | The connection came back while the strip was up and it said "You're back online". `shown_ms` is how long it was up. A strip that was up when the app closed sends no cleared |
 | `conn.regained` |, | Reserved for offline→online recovery signals (`ConnectivityEdgeDispatcher` drives the app event; emit here if you need it in Loki). Apps with a long-lived socket should extend the `conn.*` namespace: `conn.reconnecting` (`attempt`), `conn.recovered` (`attempts`, `downtime_ms`), `conn.reconnect_failed` (`attempts`) |
 
 ## Product funnels

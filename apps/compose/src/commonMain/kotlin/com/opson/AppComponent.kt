@@ -3,6 +3,7 @@
 package com.opson
 
 import com.opson.features.upgrade.AppGuard
+import com.opson.features.upgrade.ConnectionBanner
 import com.opson.libraries.config.ConfigOverrideRepository
 import com.opson.libraries.core.AutoInit
 import com.opson.libraries.diary.SettingsRepository
@@ -78,6 +79,9 @@ interface AppComponent {
 
     /** Maintenance, the version floor and the update offer, drawn by App.kt over everything. */
     val appGuard: AppGuard
+
+    /** The offline strip the guard layer draws above the app. */
+    val connectionBanner: ConnectionBanner
 
     /** The guard's debug-only way out when a QA override is what is holding the app. */
     val configOverrideRepository: ConfigOverrideRepository
