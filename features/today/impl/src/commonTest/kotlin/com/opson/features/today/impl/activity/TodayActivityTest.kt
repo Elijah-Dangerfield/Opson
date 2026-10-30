@@ -16,6 +16,7 @@ import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.ExerciseEntry
 import com.opson.libraries.diary.ExerciseRepository
+import com.opson.libraries.diary.MinuteTicker
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
@@ -23,6 +24,9 @@ import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthWorkout
 import com.opson.libraries.health.WorkoutKind
+import com.opson.features.today.impl.BurnedFix
+import com.opson.features.today.impl.BurnedGap
+import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
@@ -37,6 +41,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.burnedFor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -177,24 +182,67 @@ class TodayActivityTest : CoroutineTest() {
 
     private val diary = FakeDiaryRepository()
 
+    private val noon = Instant.parse("2026-10-25T12:00:00Z")
+
     private fun TestScope.vm(
         released: Boolean = true,
         selected: FakeSelectedDay = FakeSelectedDay(),
         health: FakeHealthRepository = FakeHealthRepository(),
         healthOn: Boolean = false,
+        burned: FakeBurnedRepository = FakeBurnedRepository(burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals(340, 0), true)),
+        release: ExerciseRelease = ExerciseRelease { released },
+        ticker: MinuteTicker = MinuteTicker { flowOf(noon) },
     ) = TodayActivityViewModel(
         selectedDay = selected,
         settingsRepository = FakeSettingsRepository(),
         policySource = FakePolicySource(),
-        burnedRepository = FakeBurnedRepository(burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals(340, 0), true)),
+        burnedRepository = burned,
         exercise = FakeExercise(listOf(run, run.copy(id = "tomorrow", day = day.plusDays(1)))),
         diary = diary,
-        release = ExerciseRelease { released },
+        release = release,
         calendar = FakeCalendar(),
         health = health,
         records = health,
         healthFlag = healthFlag(healthOn),
+        ticker = ticker,
     )
+
+    @Test
+    fun burnedUnknown_saysWhatItNeeds_andFixOpensThatPlace() = runUnitTest {
+        val vm = vm(burned = FakeBurnedRepository(null, unusable = setOf(BodyDetail.Weight)))
+        val events = mutableListOf<TodayActivityEvent>()
+        backgroundScope.launch { vm.eventFlow.toList(events) }
+        settle()
+        val card = assertNotNull(vm.state.card)
+        assertEquals(false, card.known)
+        assertEquals(BurnedGap(setOf(BodyDetail.Weight)), card.gap)
+
+        vm.takeAction(TodayActivityAction.BurnedFixTapped)
+        settle()
+        assertEquals(listOf<TodayActivityEvent>(TodayActivityEvent.OpenBurnedFix(BurnedFix.Weight)), events)
+    }
+
+    @Test
+    fun burnedKnown_hasNoGap() = runUnitTest {
+        val vm = vm()
+        settle()
+        assertNull(vm.state.card?.gap)
+    }
+
+    /** Read once when the card was built, a release the config turned on later never showed it until a restart. */
+    @Test
+    fun aReleaseTurnedOnAfterTheCardWasBuilt_showsIt_onTheNextMinute() = runUnitTest {
+        var on = false
+        val ticks = MutableStateFlow(noon)
+        val vm = vm(release = ExerciseRelease { on }, ticker = MinuteTicker { ticks })
+        settle()
+        assertNull(vm.state.card)
+
+        on = true
+        ticks.value = noon.plus(kotlin.time.Duration.parse("1m"))
+        settle()
+        assertNotNull(vm.state.card)
+    }
 
     private fun TestScope.settle() {
         advanceTimeBy(1_000)

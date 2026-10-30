@@ -220,6 +220,23 @@ setup was.
   landing where the finger did, the torch, and the haptic. Unit tests cover
   the zoom maths, the accepted-read rule, the haptic event and the torch state.
 
+## Scan speed and accuracy pass (2026-10-30)
+The levers, what each platform already did, and what was left out are in
+`docs/research/barcode-scanning.md`. What changed:
+- **Android analysis frame.** It was 16:9 against a 4:3 preview, so in portrait
+  the decoder saw only about three quarters of the preview's width, less than
+  the frame. Preview and analysis both ask for 4:3 now, analysis at 1280x960.
+- **Android scan area.** ML Kit has no region to search, so a code whose middle
+  is outside the scan area is dropped (`ScanGeometry.kt`).
+- **Two codes in the area** (both platforms): the one nearest the middle.
+- **Too dark.** The camera's exposure (EV100 from aperture, shutter and ISO,
+  `ScanLight.kt`) says when the scene has been dark for a second. With the
+  light off, the hint reads "It's a bit dark here. Try the light."
+  (`BarcodeCamera.Viewfinder(onLowLight)`, `BarcodeScanAction.LowLightChanged`,
+  `BarcodeScanState.suggestLight`). The torch never turns itself on.
+- **Debug timings**, tag `Scanner`: camera up, first read, and on Android the
+  decoder's time per frame (`ScanTiming.kt`).
+
 ## Server: miss logging
 - `V13__barcode_misses.sql`, additive and idempotent (`IF NOT EXISTS`,
   `CREATE OR REPLACE VIEW`):

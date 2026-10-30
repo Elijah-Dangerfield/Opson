@@ -1,5 +1,9 @@
 package com.opson.features.today.impl.activity
 
+import com.opson.features.today.impl.BurnedGap
+import com.opson.features.today.impl.burnedUnavailableText
+import com.opson.features.today.impl.label
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,14 +68,12 @@ import opson.libraries.resources.generated.resources.today_activity_health_note
 import opson.libraries.resources.generated.resources.today_activity_resting
 import opson.libraries.resources.generated.resources.today_activity_title
 import opson.libraries.resources.generated.resources.today_activity_total
-import opson.libraries.resources.generated.resources.today_activity_unknown
 import opson.libraries.resources.generated.resources.today_activity_watch_has_it
 import opson.libraries.resources.generated.resources.today_activity_workouts_included
 import opson.libraries.resources.generated.resources.today_burned_add
 import opson.libraries.resources.generated.resources.today_burned_everyday
 import opson.libraries.resources.generated.resources.today_burned_exercise
 import opson.libraries.resources.generated.resources.today_burned_none
-import opson.libraries.resources.generated.resources.today_burned_unknown_action
 import opson.libraries.resources.generated.resources.today_workout_running
 import opson.libraries.resources.generated.resources.today_workout_walking
 import opson.libraries.resources.generated.resources.today_workout_hiking
@@ -107,10 +109,12 @@ fun TodayActivitySection(card: TodayActivityCard, onAction: (TodayActivityAction
     TodayCard(modifier = modifier) {
         Header(card, onAction)
         if (!card.known) {
-            Text(text = stringResource(Res.string.today_activity_unknown), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            // What Burned is waiting on, and the one place to fix it: never a sum with a line missing.
+            val gap = card.gap ?: BurnedGap()
+            Text(text = burnedUnavailableText(gap), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
             FlatButton(
-                text = stringResource(Res.string.today_burned_unknown_action),
-                onClick = { onAction(TodayActivityAction.RestingEnergyTapped) },
+                text = stringResource(gap.fix.label),
+                onClick = { onAction(TodayActivityAction.BurnedFixTapped) },
                 tone = FlatButtonTone.Soft,
                 modifier = Modifier.fillMaxWidth(),
             )

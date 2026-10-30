@@ -13,6 +13,23 @@ import kotlin.test.assertTrue
  */
 class BurnedTest {
 
+    /** What Today names when Burned can't be worked out: missing, or there but outside what the equation takes. */
+    @Test
+    fun unusable_isMissingPlusOutOfRange_andEmptyExactlyWhenTheCalculationAnswers() {
+        val whole = BodyProfile(weightKg = 77.1, heightCm = 180.3, ageYears = 28, sex = BodySex.Male)
+        assertEquals(emptySet(), whole.unusable)
+        assertEquals(1760, RestingEnergies.calculate(whole))
+
+        assertEquals(setOf(BodyDetail.Weight), whole.copy(weightKg = null).unusable)
+        assertEquals(setOf(BodyDetail.Weight), whole.copy(weightKg = 450.0).unusable)
+        assertEquals(setOf(BodyDetail.Height), whole.copy(heightCm = 71.0).unusable, "inches typed as centimetres")
+        assertEquals(setOf(BodyDetail.Age), whole.copy(ageYears = 9).unusable)
+        assertEquals(setOf(BodyDetail.Sex, BodyDetail.Height), whole.copy(sex = null, heightCm = null).unusable)
+        listOf(whole.copy(weightKg = 450.0), whole.copy(heightCm = 71.0), whole.copy(ageYears = 9), whole.copy(sex = null)).forEach {
+            assertNull(RestingEnergies.calculate(it))
+        }
+    }
+
     private val profile = BodyProfile(weightKg = 70.0, heightCm = 170.0, ageYears = 35, sex = BodySex.Female)
 
     @Test

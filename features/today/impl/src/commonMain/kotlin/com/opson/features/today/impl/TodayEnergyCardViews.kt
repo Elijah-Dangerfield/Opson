@@ -45,6 +45,7 @@ import com.opson.libraries.ui.system.color.ColorResource
 import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.today_burned_fix
 import opson.libraries.resources.generated.resources.today_card_active
 import opson.libraries.resources.generated.resources.today_card_burned
 import opson.libraries.resources.generated.resources.today_card_deficit
@@ -120,6 +121,7 @@ private fun InOut(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Co
             BurnedBar(burned)
             if (burned.breakdown) Breakdown(burned)
         }
+        card.burnedUnavailable?.let { BurnedUnavailableRow(it, onAction) }
         card.target?.let { TargetText(it) }
     }
 }
@@ -148,6 +150,7 @@ private fun RangeBarCard(card: EnergyCard, onAction: (TodayAction) -> Unit, macr
                 box = true,
             )
         }
+        card.burnedUnavailable?.let { BurnedUnavailableRow(it, onAction) }
         macros()
         SummaryLink(text = stringResource(Res.string.today_card_energy), onClick = { onAction(TodayAction.EnergyTapped) })
     }
@@ -193,6 +196,7 @@ private fun Rings(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Co
                 FlipContent(card.main.kind) { MainLabel(it, switchable = card.next != null, short = true) }
             }
         }
+        card.burnedUnavailable?.let { BurnedUnavailableRow(it, onAction) }
         macros()
     }
 }
@@ -331,6 +335,24 @@ private fun GoalText(goal: GoalLine) {
         typography = AppTheme.type.secondaryStrong.Tabular,
         color = AppTheme.colors.muted,
     )
+}
+
+/**
+ * "Burned unavailable: needs a weigh-in", and Fix, which opens where that is entered. Drawn where
+ * the Burned line goes whenever energy out is on show and Burned can't be worked out, so the line
+ * never just disappears. No amounts in it.
+ */
+@Composable
+internal fun BurnedUnavailableRow(gap: BurnedGap, onAction: (TodayAction) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = burnedUnavailableText(gap),
+            typography = AppTheme.type.secondary,
+            color = AppTheme.colors.muted,
+            modifier = Modifier.weight(1f),
+        )
+        SummaryLink(text = stringResource(Res.string.today_burned_fix), onClick = { onAction(TodayAction.BurnedFixTapped) })
+    }
 }
 
 @Composable

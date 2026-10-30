@@ -5,6 +5,7 @@ import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.diary.rememberMainNumber
+import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.NumbersSettings
@@ -54,6 +55,54 @@ class TodayEnergyCardTest {
         assertEquals("1,610", card.burned?.resting?.text())
         assertEquals("570", card.burned?.active?.text())
         assertEquals(MainNumberChoice.Balance, card.next, "the label switches to Deficit")
+    }
+
+    // --- Burned that can't be worked out: said where the line goes, never left out ---
+
+    @Test
+    fun burnedUnknown_theCardSaysWhy_inEveryPreset() {
+        val gap = BurnedGap(setOf(BodyDetail.Weight))
+        SummaryCardPreset.entries.forEach { preset ->
+            val card = assertNotNull(
+                (
+                    TodayFixtures.todayState(
+                        policy(PresetId.Full),
+                        settings = Settings(todayCard = preset),
+                        summaryOn = true,
+                        goalsAndEnergyOn = true,
+                        burnedGap = gap,
+                    ).summary as TodaySummary.Energy
+                    ).card,
+            )
+            assertNull(card.burned, "$preset")
+            assertEquals(gap, card.burnedUnavailable, "$preset")
+        }
+    }
+
+    @Test
+    fun burnedUnknown_withNothingToSayWhy_stillSaysItIsUnavailable() {
+        val card = assertNotNull(card(burned = false))
+        assertEquals(BurnedGap(), card.burnedUnavailable)
+        assertEquals(BurnedFix.RestingEnergy, card.burnedUnavailable?.fix)
+    }
+
+    @Test
+    fun burnedKnown_hasNoUnavailableRow() {
+        assertNull(assertNotNull(card()).burnedUnavailable)
+    }
+
+    /** A mode that hides energy out hides Burned on purpose: nothing to fix, so no row. */
+    @Test
+    fun energyOutHidden_hasNoUnavailableRow() {
+        val hidden = policy(PresetId.Full, overrides = mapOf(Metric.EnergyOut to Visibility.Hide))
+        assertNull(assertNotNull(card(policy = hidden, burned = false)).burnedUnavailable)
+    }
+
+    @Test
+    fun theFix_opensWeightForAWeighIn_ProfileForTheRest() {
+        assertEquals(BurnedFix.Weight, BurnedGap(setOf(BodyDetail.Weight)).fix)
+        assertEquals(BurnedFix.Profile, BurnedGap(setOf(BodyDetail.Height)).fix)
+        assertEquals(BurnedFix.Profile, BurnedGap(setOf(BodyDetail.Weight, BodyDetail.Sex)).fix)
     }
 
     @Test

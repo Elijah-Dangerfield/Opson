@@ -36,6 +36,8 @@ data class BarcodeScanState(
     val slot: MealSlot = MealSlot.Dinner,
     val stage: ScanStage = ScanStage.Starting,
     val torch: Torch = Torch.None,
+    /** The camera finds the scene too dark and the light is off: the hint suggests it. */
+    val suggestLight: Boolean = false,
     /**
      * A Builder's "Also read the label" (`release.builders`): null when not offered. On, a code
      * that finds a food opens Check against the pack instead of the detail, so the next tap
@@ -126,6 +128,9 @@ sealed interface BarcodeScanAction {
 
     /** The camera is up, and says whether it has a torch. */
     data class CameraStarted(val hasTorch: Boolean) : BarcodeScanAction
+
+    /** The camera has found the scene too dark to read well for a moment ([low]), or lit again. */
+    data class LowLightChanged(val low: Boolean) : BarcodeScanAction
     data object TorchTapped : BarcodeScanAction
     data object RetryCameraTapped : BarcodeScanAction
     data object TypeCodeTapped : BarcodeScanAction
@@ -184,6 +189,8 @@ data class ScanModel(
     val hasTorch: Boolean = false,
     /** Kept through a lookup and "Scan again", so a dim kitchen stays lit until it is turned off. */
     val torchOn: Boolean = false,
+    /** The camera's last word on the light: too dark to read well. */
+    val lowLight: Boolean = false,
     /** `release.submitFood`, read once when the scanner opens. */
     val canAddFood: Boolean = false,
     /** `release.builders` and an active Builder, read once when the scanner opens. */
@@ -228,10 +235,13 @@ object BarcodeScanStateBuilder {
                 }
             }
         }
+        val torch = torch(stage, model)
         return BarcodeScanState(
             slot = slot,
             stage = stage,
-            torch = torch(stage, model),
+            torch = torch,
+            // Only while aiming, and only when there is a light to turn on.
+            suggestLight = stage == ScanStage.Scanning && torch == Torch.Off && model.lowLight,
             readLabel = model.readLabel.takeIf { model.canReadLabel && stage == ScanStage.Scanning },
         )
     }
