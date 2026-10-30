@@ -34,7 +34,10 @@ pass, 5 to 10 minutes for a normal week.
 5. **Pre-check with your own AI tool.** Open Claude Code (your subscription,
    no API key) and hand it [the prompt](../../scripts/prompts/weekly-food-review.md)
    with the bundle's path. It fills in a decision per food and writes
-   `<bundle>-decided.json`.
+   `<bundle>-decided.json`. The privacy policy says the reviewer's AI
+   assistant runs with model training off, so check once that your Claude
+   account's "Help improve Claude" setting (claude.ai › Settings › Privacy) is
+   off before the first pass, and use Claude, the one assistant the policy names.
 6. **Import and skim.** Review › "Import decisions", pick the decided file.
    The preview shows each decision, any corrected numbers as before → after,
    and anything wrong with a row (an id that isn't pending any more, a reject

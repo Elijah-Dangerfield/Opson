@@ -1,6 +1,6 @@
 Pre-check a week of Opson food submissions.
 
-Hand this to Claude Code (or another AI tool you run yourself) with the path to a review bundle, after `scripts/review_bundle.py photos` has downloaded its photos. It runs on your own subscription. Nothing here calls an API with a key, and nothing is applied until you import the result in the admin console and confirm.
+Hand this to Claude Code (the assistant the privacy policy names, with "Help improve Claude" off) with the path to a review bundle, after `scripts/review_bundle.py photos` has downloaded its photos. It runs on your own subscription. Nothing here calls an API with a key, and nothing is applied until you import the result in the admin console and confirm.
 
 The bundle is `opson-review-<env>-<date>.json`. Each item is one food someone added from photos of its pack:
 
