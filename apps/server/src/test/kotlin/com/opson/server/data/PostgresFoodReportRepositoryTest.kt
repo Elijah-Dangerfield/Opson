@@ -225,6 +225,26 @@ class PostgresFoodReportRepositoryTest : DatabaseTest() {
         assertEquals(RevertOutcome.NotFound, repo.revert(UUID.randomUUID(), "c"))
     }
 
+    /** More decided reports than Postgres takes parameters in one statement (65,535): one ids list would fail. */
+    @Test
+    fun decidedPhotosGo_howeverManyReportsHaveBeenDecided() = runTest {
+        val food = seedMonster()
+        val user = seedAuthUser()
+        val withPhoto = assertIs<ReportOutcome.Created>(
+            repo.report(newReport(food, user, photo = ReportPhoto(TestImages.jpeg, ImageType.Jpeg))),
+        ).report
+        assertEquals(1, repo.reject(listOf(withPhoto.id), null, "elijah"))
+        database.blockingTransaction {
+            TransactionManager.current().exec(
+                "INSERT INTO food_reports (id, food_id, user_id, reason, snapshot, status, resolved_at) " +
+                    "SELECT gen_random_uuid(), '$food', '${user.value}', 'other', '{}'::jsonb, 'rejected', now() - interval '400 days' FROM generate_series(1, 70000)",
+            )
+        }
+        now += 31.days
+        assertEquals(1, repo.purgeDecidedPhotos(now - 30.days))
+        assertNull(repo.photo(withPhoto.id))
+    }
+
     @Test
     fun rejectAndDuplicateCloseOnlyOpenReports_andDecidedPhotosGoAfter30Days() = runTest {
         val food = seedMonster()

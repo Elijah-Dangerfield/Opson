@@ -26,6 +26,7 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inSubQuery
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNotNull
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
@@ -207,12 +208,10 @@ class PostgresFoodVerificationRepository(
         VerificationDecision.Rejected(checkNotNull(find(id)))
     }
 
+    /** One statement: the decided checks are a subquery, never a list of ids sent back to Postgres. */
     override suspend fun purgeDecidedPhotos(before: Instant): Int = database.transaction {
-        val decided = FoodVerificationsTable.select(FoodVerificationsTable.id)
-            .where { FoodVerificationsTable.resolvedAt lessEq before.toJavaInstant() }
-            .map { it[FoodVerificationsTable.id] }
-        if (decided.isEmpty()) return@transaction 0
-        FoodVerificationPhotosTable.deleteWhere { verificationId inList decided }
+        val decided = FoodVerificationsTable.select(FoodVerificationsTable.id).where { FoodVerificationsTable.resolvedAt lessEq before.toJavaInstant() }
+        FoodVerificationPhotosTable.deleteWhere { verificationId inSubQuery decided }
     }
 
     override suspend fun reviewerCounts(since: Instant): List<ReviewerCount> = database.transaction {
