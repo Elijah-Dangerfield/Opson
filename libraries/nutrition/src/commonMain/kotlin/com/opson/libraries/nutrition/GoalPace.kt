@@ -93,11 +93,14 @@ object GoalPace {
         else -> PaceTier.Faster
     }
 
-    /** The fastest pace offered for [direction]: a share of [weightKg], and for a loss never an aim under the low-goal line. */
+    /**
+     * The fastest pace offered for [direction]: a share of [weightKg], and for a loss never an aim
+     * under [GoalTargets.WORKED_OUT_FLOOR_KCAL]. [sex] is kept for callers; the floor is the same for everyone.
+     */
     fun fastestKgPerWeek(direction: GoalDirection, weightKg: Double, burnKcal: Int?, sex: BodySex?): Double = when (direction) {
         GoalDirection.Lose -> {
             val byShare = weightKg * MAX_LOSS_SHARE_A_WEEK
-            val byFloor = burnKcal?.let { maxOf(0, it - GoalSafety.lowGoalKcal(sex)).toDouble() * DAYS_A_WEEK / KCAL_PER_KG }
+            val byFloor = burnKcal?.let { maxOf(0, it - GoalTargets.WORKED_OUT_FLOOR_KCAL).toDouble() * DAYS_A_WEEK / KCAL_PER_KG }
             listOfNotNull(byShare, byFloor).min()
         }
         GoalDirection.Gain -> weightKg * MAX_GAIN_SHARE_A_WEEK

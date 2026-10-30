@@ -172,6 +172,8 @@ sealed interface GoalCard {
         val differenceSign: Int = 0,
         val weekly: Boolean = false,
         val pace: PaceAssessment? = null,
+        /** The target is under the low-goal line for their sex: the low-goal note shows, with Find support. */
+        val lowAim: Boolean = false,
     ) : GoalCard
 
     /** A goal is kept, and the person sets the target ("Set my own target", or a target moved by hand). */
@@ -597,6 +599,7 @@ object TargetsStateBuilder {
             weekly = goal.averaging == GoalAveraging.Weekly,
             // A pace is a weight a week or an amount of energy: only where calories show, or for a weight goal.
             pace = GoalStatuses.pace(goal, weightKg, limit).takeIf { calories || weight != null },
+            lowAim = GoalTargets.belowLowGoal(target.aimKcal, settings.bodySex),
         )
     }
 

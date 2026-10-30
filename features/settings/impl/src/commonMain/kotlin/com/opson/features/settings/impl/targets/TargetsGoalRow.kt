@@ -30,6 +30,7 @@ import com.opson.libraries.nutrition.ui.PaceInfoDialog
 import com.opson.libraries.nutrition.ui.PaceNote
 import com.opson.libraries.prompts.Tips
 import com.opson.libraries.ui.components.CoachMarkAnchor
+import com.opson.libraries.ui.components.ChevronLink
 import com.opson.libraries.ui.components.CoachMarkScreen
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.icon.AppIcons
@@ -93,6 +94,8 @@ import opson.libraries.resources.generated.resources.targets_goal_target
 import opson.libraries.resources.generated.resources.targets_goal_under
 import opson.libraries.resources.generated.resources.targets_goal_use
 import opson.libraries.resources.generated.resources.targets_goal_weekly
+import opson.libraries.resources.generated.resources.settings_targets_low_note
+import opson.libraries.resources.generated.resources.settings_targets_support_link
 import opson.libraries.resources.generated.resources.tip_got_it
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -180,6 +183,10 @@ private fun SettingCard(card: GoalCard.Setting, onAction: (TargetsAction) -> Uni
                     onFindSupport = { onAction(TargetsAction.FindSupportTapped) }.takeIf { pace.needsCare },
                     modifier = Modifier.padding(top = 4.dp),
                 )
+            }
+            if (card.lowAim) {
+                Text(text = stringResource(Res.string.settings_targets_low_note), typography = AppTheme.type.secondary, color = AppTheme.colors.ink)
+                ChevronLink(text = stringResource(Res.string.settings_targets_support_link), onClick = { onAction(TargetsAction.FindSupportTapped) })
             }
             // Only while the target shows: in a mode that hides it, there is nothing here to change.
             if (card.target is Display.Shown) {

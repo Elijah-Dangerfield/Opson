@@ -11,6 +11,7 @@ import com.opson.libraries.diary.totals
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.ExerciseRelease
+import com.opson.libraries.health.goalReadings
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
@@ -143,17 +144,7 @@ class RealBurnedRepository(
         if (!connected) {
             flowOf(HealthReadings.None)
         } else {
-            flow {
-                val today = calendar.today()
-                val days = health.energyBetween(
-                    today.minus(DatePeriod(days = BurnedRepository.HEALTH_DAYS)),
-                    today.minus(DatePeriod(days = 1)),
-                    calendar.timeZone(),
-                ).orEmpty()
-                val resting = days.entries.sortedByDescending { it.key }.firstNotNullOfOrNull { it.value.restingKcal?.takeIf { kcal -> kcal > 0 } }
-                val activity = days.values.mapNotNull { it.toHealthActivity() }.map { (it.movementKcal ?: 0) + (it.workoutKcal ?: 0) }
-                emit(HealthReadings(resting?.wholeKcal(), activity))
-            }
+            flow { emit(health.goalReadings(calendar.today(), calendar.timeZone())) }
         }
     }.distinctUntilChanged()
 

@@ -26,16 +26,28 @@ object GoalTargets {
     const val KEEP_LEEWAY_KCAL: Int = 300
 
     /**
+     * The least a goal's target is ever worked out to, whoever the person is: the lower low-goal
+     * line, as for a set deficit (`Targets.workedOutFloorKcal`, 2026-10-29). Between it and the
+     * person's own line ([GoalSafety.lowGoalKcal]) the target is set and says it is low
+     * ([belowLowGoal]); a big body with a lot to lose isn't held back by a line drawn for an
+     * average one.
+     */
+    val WORKED_OUT_FLOOR_KCAL: Int = max(MIN_GOAL_KCAL, LOW_GOAL_FEMALE_KCAL)
+
+    /** Whether [aimKcal] is under the low-goal line for [sex]: the low-goal note shows with it. */
+    fun belowLowGoal(aimKcal: Int, sex: BodySex?): Boolean = GoalSafety.isLowGoal(aimKcal, sex)
+
+    /**
      * The aim for [type] against [baseline]: the burn, plus what pregnancy or breastfeeding adds,
      * plus the type's delta, solved for digesting food when it counts (a tenth of what the target
-     * has you eat is burned again). Never under the low-goal line for a loss; rounded to 10. Null
-     * for a type that doesn't set a calorie target.
+     * has you eat is burned again). A loss never aims under [WORKED_OUT_FLOOR_KCAL]; rounded to
+     * 10. Null for a type that doesn't set a calorie target.
      */
     fun aimKcal(type: GoalType, baseline: GoalBaseline): Int? {
         val delta = type.deltaKcal ?: return null
         val base = (baseline.burnKcal + baseline.extraKcal + delta).toDouble()
         val raw = if (baseline.digesting) base / (1 - THERMIC_EFFECT_OF_FOOD_SHARE) else base
-        val floored = if (delta < 0) max(raw, GoalSafety.lowGoalKcal(baseline.sex).toDouble()) else raw
+        val floored = if (delta < 0) max(raw, WORKED_OUT_FLOOR_KCAL.toDouble()) else raw
         return (floored / 10).roundToInt() * 10
     }
 

@@ -20,6 +20,9 @@ import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
+import com.opson.libraries.health.goalReadings
+import com.opson.libraries.diary.baselineEnvironment
+import com.opson.libraries.nutrition.HealthReadings
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
 import com.opson.libraries.identity.auth.AuthOutcome
@@ -164,8 +167,14 @@ class OnboardingViewModel(
             OnboardingAction.ContinueTapped -> action.advance()
             OnboardingAction.SkipQuestionTapped -> action.skip()
             is OnboardingAction.PlanChanged -> action.handlePlan(action.change)
-            is OnboardingAction.HealthChanged -> action.updateState {
-                it.copy(health = HealthOffer.from(action.status, health.source, connecting = false)).withViews(policyFor(it.chosen))
+            is OnboardingAction.HealthChanged -> {
+                action.updateState { it.copy(health = HealthOffer.from(action.status, health.source, connecting = false)).withViews(policyFor(it.chosen)) }
+                // What a goal's typical day reads from the health app, read once it is connected,
+                // so the target the plan shows is the one the goal keeps afterwards.
+                if (action.status == HealthStatus.Connected) {
+                    val readings = Catching { health.goalReadings(calendar.today(), calendar.timeZone()) }.getOrNull() ?: HealthReadings.None
+                    action.updateState { it.copy(healthReadings = readings).withViews(policyFor(it.chosen)) }
+                }
             }
             is OnboardingAction.CommitTapped -> action.handleCommit(action.committed)
             is OnboardingAction.MealTimePicked -> action.updateSetup(OnboardingStep.Meals) {
@@ -617,6 +626,8 @@ data class OnboardingState(
     val plan: PlanAnswers = PlanAnswers(),
     /** The phone's health app, as the activity step offers it. */
     val health: HealthOffer = HealthOffer.Unavailable,
+    /** What the health app has read, for a goal's typical day; none until it is connected. */
+    val healthReadings: HealthReadings = HealthReadings.None,
     /** The goal flow's steps as drawn, through the policy of the mode being started. Null until set up. */
     val planView: PlanView? = null,
 ) {
@@ -646,7 +657,7 @@ data class OnboardingState(
 
     /** The goal flow's context for [policy], the mode being started's. Onboarding is a new account. */
     fun planContext(policy: VisibilityPolicy): PlanContext =
-        PlanContext(today = today, hard = answers.hard, policy = policy, fresh = true, health = health)
+        PlanContext(today = today, hard = answers.hard, policy = policy, fresh = true, health = health, environment = Settings().baselineEnvironment(healthReadings))
 
     /**
      * The setup steps for [chosen], in order: meal times where they shape Today, then the goal

@@ -1,6 +1,18 @@
 package com.opson.features.onboarding.impl
 
+import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.nutrition.BaselineEnvironment
+import com.opson.libraries.nutrition.BaselineInputs
+import com.opson.libraries.nutrition.BodyFatFrom
+import com.opson.libraries.nutrition.FatLoss
+import com.opson.libraries.nutrition.Goal
+import com.opson.libraries.nutrition.GoalAveraging
+import com.opson.libraries.nutrition.GoalBaselines
+import com.opson.libraries.nutrition.GoalPace
+import com.opson.libraries.nutrition.GoalTargets
+import com.opson.libraries.nutrition.GoalType
+import com.opson.libraries.nutrition.PaceAssessment
 import com.opson.libraries.nutrition.BodyProfile
 import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.SexChoice
@@ -12,7 +24,6 @@ import com.opson.libraries.nutrition.HeightInput
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.RegionUnits
-import com.opson.libraries.nutrition.RestingEnergies
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Units
@@ -197,8 +208,10 @@ sealed interface HealthOffer {
 
 /**
  * What the flow knows besides the answers. [fresh] is onboarding: a new account, whose targets
- * are still the app's starting ones. [ownRestingKcal] is a resting energy the person typed on
- * Resting energy, which a typical day starts from instead of the equation.
+ * are still the app's starting ones. [environment] is where resting energy comes from and what the
+ * health app has read, from the account's settings ([Settings.baselineEnvironment]), and
+ * [bodyFatPercent] the body fat on Profile: a typical day is worked out from them exactly as the
+ * goal repository later works it out, so the target the flow shows is the one the goal keeps.
  */
 data class PlanContext(
     val today: LocalDate,
@@ -206,7 +219,8 @@ data class PlanContext(
     val policy: VisibilityPolicy,
     val fresh: Boolean,
     val health: HealthOffer = HealthOffer.Unavailable,
-    val ownRestingKcal: Int? = null,
+    val environment: BaselineEnvironment = BaselineEnvironment(),
+    val bodyFatPercent: Double? = null,
 ) {
     val weightShown: Boolean get() = policy.effectiveLevel(Metric.Weight, Surface.Settings) == Visibility.Show
 
@@ -343,16 +357,30 @@ object PlanFlow {
     fun hintShown(answers: PlanAnswers): TargetHint? =
         targetHint(answers)?.takeUnless { it == TargetHint.NotAWeight && answers.goal.target.isBlank }
 
-    /** Resting energy, from the person's own number or the equation; null while details are missing. */
-    fun restingKcal(answers: PlanAnswers, context: PlanContext): Int? =
-        context.ownRestingKcal ?: RestingEnergies.calculate(answers.body.profile(context.today))
+    /**
+     * What a typical day is worked out from for these answers ([GoalBaselines.inputs]): resting
+     * energy from the source the account uses, and activity from the health app's last week or the
+     * everyday level picked. Null while details are missing.
+     */
+    fun inputs(answers: PlanAnswers, context: PlanContext): BaselineInputs? = GoalBaselines.inputs(
+        environment = context.environment,
+        profile = answers.body.profile(context.today),
+        everyday = answers.body.activity,
+        stage = answers.body.sex?.stage ?: BodyStage.None,
+        bodyFatPercent = context.bodyFatPercent,
+    )
+
+    /** Resting energy, from the account's source or the equation; null while details are missing. */
+    fun restingKcal(answers: PlanAnswers, context: PlanContext): Int? = inputs(answers, context)?.restingKcal
+
+    /** A typical day's activity, everyday or the health app's; null while details are missing. */
+    fun activityKcal(answers: PlanAnswers, context: PlanContext): Int? = inputs(answers, context)?.activityKcal
 
     /**
-     * A typical day's burn: resting energy plus the everyday activity picked, as Burned works it
-     * out without a health app. What every target here is aimed at. Null while details are missing.
+     * A typical day's burn: resting energy plus activity. What every target here is aimed at.
+     * Null while details are missing.
      */
-    fun burnKcal(answers: PlanAnswers, context: PlanContext): Int? =
-        restingKcal(answers, context)?.let { it + answers.body.activity.kcalFor(it) }
+    fun burnKcal(answers: PlanAnswers, context: PlanContext): Int? = inputs(answers, context)?.let { it.restingKcal + it.activityKcal }
 
     /** The paces on offer, slowest first; empty without a weight or with no room to plan one. */
     fun rates(answers: PlanAnswers, context: PlanContext): List<Double> {
@@ -394,24 +422,46 @@ object PlanFlow {
     }
 
     /**
+     * The goal these answers set ([weightGoal]) as a goal of the engine's: the same direction,
+     * target and pace, starting today, from the typical day these answers give
+     * ([GoalBaselines.of]). How it averages and its band carry over from a weight goal set
+     * before. Null for no goal, just tracking, or a goal not offered.
+     */
+    fun goal(answers: PlanAnswers, context: PlanContext, current: Settings?): Goal? {
+        val legacy = weightGoal(answers, context)
+        val direction = legacy.direction
+        if (direction != GoalDirection.Lose && direction != GoalDirection.Gain && direction != GoalDirection.Maintain) return null
+        val before = current?.let(GoalBook::weight)
+        return Goal(
+            id = Goal.WEIGHT_ID,
+            type = GoalType.Weight(direction, legacy.targetKg, legacy.kgPerWeek, legacy.startKg),
+            startDate = context.today,
+            averaging = before?.averaging ?: GoalAveraging.Daily,
+            toleranceKcal = before?.toleranceKcal ?: Goal.DEFAULT_TOLERANCE_KCAL,
+            baseline = inputs(answers, context)?.let(GoalBaselines::of),
+        )
+    }
+
+    /**
      * The targets these answers set, and the goal stamped with the aim it wrote; null targets
-     * leave Targets as it is. A goal to lose, keep or gain sets them from a typical day's burn
-     * ([WeightGoals.apply]). Otherwise only a new account ([PlanContext.fresh]) gets a starting
-     * range: from the burn, plus what pregnancy or breastfeeding needs, never under the app's own
-     * starting range. Nothing is written for someone who said numbers have been hard, or whose mode
-     * offered no goal, as the setup steps never wrote one for anyone who didn't see it.
+     * leave Targets as it is. A goal to lose, keep or gain sets them from a typical day
+     * ([GoalTargets.apply]): its own band around the target, whatever range was there. Otherwise
+     * only a new account ([PlanContext.fresh]) gets a starting range: from the burn, plus what
+     * pregnancy or breastfeeding needs, never under the app's own starting range. Nothing is
+     * written for someone who said numbers have been hard, or whose mode offered no goal, as the
+     * setup steps never wrote one for anyone who didn't see it.
      */
     fun planTargets(answers: PlanAnswers, context: PlanContext, current: Settings): Pair<WeightGoal, Targets?> {
         val goal = weightGoal(answers, context)
         val burn = burnKcal(answers, context) ?: return goal to null
         val sex = answers.body.sex
         val scale = current.macroMode == MacroMode.Ratios
+        val planned = goal(answers, context, current)
         return when {
             // With no pace on offer (a burn already near the low-goal line) the aim is the burn itself.
-            goal.direction == GoalDirection.Lose || goal.direction == GoalDirection.Gain || goal.direction == GoalDirection.Maintain -> {
-                val aim = WeightGoals.aimKcal(goal, burn, sex?.sex, sex?.stage ?: BodyStage.None)
-                val (stamped, targets) = WeightGoals.apply(goal, current.targets, aim, scale)
-                stamped to targets
+            planned != null -> {
+                val (stamped, targets) = GoalTargets.apply(planned, current.targets, scale) ?: return goal to null
+                goal.copy(targetsKcal = stamped.targetsKcal) to targets
             }
             context.fresh && !context.hard && context.caloriesShown -> {
                 val aim = burn + (sex?.stage?.extraKcal ?: 0)
@@ -432,6 +482,7 @@ object PlanFlow {
     fun save(current: Settings, answers: PlanAnswers, context: PlanContext): Settings {
         val body = answers.body
         val (goal, targets) = planTargets(answers, context, current)
+        val planned = goal(answers, context, current)
         val withDate = body.birthDate?.let(current::withBirthDate) ?: current
         // The weight field's switch is a choice of unit, as Display's is: it is kept, and the
         // region no longer decides (Settings.withRegionWeightUnit).
@@ -444,9 +495,17 @@ object PlanFlow {
             weightUnit = if (unitPicked) body.weightUnit else current.weightUnit,
             weightUnitChosen = unitPicked || current.weightUnitChosen,
             everydayActivity = body.activity,
-            weightGoal = if (goal.isSet) goal else current.weightGoal,
-            targets = targets ?: current.targets,
-        )
+            targets = if (planned == null) targets ?: current.targets else current.targets,
+        ).let { profiled ->
+            when {
+                // The goal writes its own target ([GoalBook.applyTarget]); one with no typical day
+                // yet is kept, and sets the target once one can be worked out.
+                planned?.baseline != null -> GoalBook.applyTarget(profiled, planned)
+                planned != null -> GoalBook.withGoal(profiled, planned)
+                goal.direction == GoalDirection.JustTrack -> GoalBook.without(profiled, Goal.WEIGHT_ID).copy(weightGoal = goal)
+                else -> profiled
+            }
+        }
     }
 }
 
@@ -497,6 +556,14 @@ data class RateView(
     val atFastest: Boolean,
     /** A weight is known and still no pace fits: the step says Opson won't plan one from here. */
     val noRoom: Boolean = false,
+    /** The pace's tier note, where weight shows (docs/plans/goals-v2.md, "Pace"). */
+    val pace: PaceAssessment? = null,
+    /** The (i): the fat-loss limit where calories show, whether body fat was estimated, and whether one could be worked out. */
+    val limit: Display = Display.Hidden,
+    val limitEstimated: Boolean = false,
+    val limitKnown: Boolean = false,
+    /** The day's target this pace means is under the low-goal line for their sex: the low-goal note shows. */
+    val lowAim: Boolean = false,
 )
 
 /** Which overview the answers lead to. */
@@ -571,6 +638,8 @@ object PlanViews {
 
     fun rate(answers: PlanAnswers, context: PlanContext): RateView {
         val rates = PlanFlow.rates(answers, context)
+        val profile = answers.body.profile(context.today)
+        val limit = FatLoss.limitFor(context.bodyFatPercent, profile.weightKg, profile.heightCm, profile.ageYears, profile.sex)
         val rate = PlanFlow.rate(answers, context)
         val goal = PlanFlow.weightGoal(answers, context)
         val index = rate?.let(rates::indexOf) ?: -1
@@ -584,6 +653,12 @@ object PlanViews {
             forecast = goal.forecast?.let(DateCopy::monthDayYear)?.takeIf { context.weightShown },
             atFastest = rate != null && index == rates.lastIndex,
             noRoom = context.weightShown && answers.body.weightKgOrNull() != null && rates.isEmpty(),
+            pace = rate?.takeIf { context.weightShown }?.let { GoalPace.assess(answers.goal.direction, it, answers.body.weightKgOrNull(), limit) },
+            limit = limit?.kcalPerDay?.let { energy(it, context) } ?: Display.Hidden,
+            limitEstimated = limit?.bodyFat?.from == BodyFatFrom.Estimated,
+            limitKnown = limit != null,
+            lowAim = PlanFlow.goal(answers, context, null)?.let(GoalTargets::of)
+                ?.let { GoalTargets.belowLowGoal(it.aimKcal, answers.body.sex?.sex) } == true,
         )
     }
 
@@ -593,7 +668,13 @@ object PlanViews {
         val (goal, targets) = PlanFlow.planTargets(answers, context, current)
         val burn = PlanFlow.burnKcal(answers, context)
         val aim = targets?.energyKcal
-        val difference = if (aim != null && burn != null) aim - burn - stage.extraKcal else 0
+        // Against what a day burns eating the target, digesting food included where it counts.
+        val planned = PlanFlow.goal(answers, context, current)?.let(GoalTargets::of)
+        val difference = when {
+            planned != null -> planned.deltaKcal
+            aim != null && burn != null -> aim - burn - stage.extraKcal
+            else -> 0
+        }
         val wouldSetTargets = goal.direction == GoalDirection.Lose || goal.direction == GoalDirection.Gain ||
             goal.direction == GoalDirection.Maintain || (context.fresh && context.caloriesShown)
         val kind = when {
@@ -616,7 +697,7 @@ object PlanViews {
             differenceSign = difference.coerceIn(-1, 1),
             compared = aim != null && context.energyOutShown && kind != OverviewKind.NoGoal,
             resting = PlanFlow.restingKcal(answers, context)?.let { burnPart(it, context) } ?: Display.Hidden,
-            everyday = PlanFlow.restingKcal(answers, context)?.let { burnPart(answers.body.activity.kcalFor(it), context) } ?: Display.Hidden,
+            everyday = PlanFlow.activityKcal(answers, context)?.let { burnPart(it, context) } ?: Display.Hidden,
             stageExtra = stage.extraKcal.takeIf { it > 0 && burn != null }?.let { burnPart(it, context) } ?: Display.Hidden,
             burned = burn?.let { burnPart(it + stage.extraKcal, context) } ?: Display.Hidden,
             needsDetails = burn == null && wouldSetTargets,
