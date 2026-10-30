@@ -1,5 +1,7 @@
 package com.opson.features.settings.impl.todayscreen
 
+import com.opson.features.settings.impl.integrations.healthFlag
+import com.opson.libraries.health.ExerciseRelease
 import com.opson.features.settings.impl.FakeBurnedRepository
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.goalsAndEnergyFlag
@@ -32,6 +34,8 @@ class TodayScreenMedicationTest : CoroutineTest() {
         goalsAndEnergyFlag(true),
         todaySummaryFlag(true),
         FastingRelease { false },
+        healthFlag(false),
+        ExerciseRelease { false },
         switch,
     )
 

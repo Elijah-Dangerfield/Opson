@@ -44,7 +44,8 @@
 	-->
 	<!--
 	  Read-only HealthKit (HealthKitReader): active and resting energy and
-	  workouts for Expended so far, Burned and the Activity card; weight,
+	  workouts for Expended so far, Burned and the Activity card; steps for
+	  Trends' Steps card, a steps goal and Today's Activity card; weight,
 	  height, date of birth and biological sex only for what the person asks
 	  for (More, Profile, Fill in from Apple Health, and the opt-in Add
 	  weigh-ins switch on Watch and health apps). The string names each type
@@ -60,7 +61,7 @@
 	  string says plainly that nothing is written.
 	-->
 	<key>NSHealthShareUsageDescription</key>
-	<string>Opson reads your active energy, resting energy and workouts to show what you've burned today. These stay on your phone. If you ask it to, it also reads your weight, height, birth date and sex to fill in your profile and weight log, which sync with your Opson account.</string>
+	<string>Opson reads your active energy, resting energy, steps and workouts to show what you've burned and how much you've moved. These stay on your phone. If you ask it to, it also reads your weight, height, birth date and sex to fill in your profile and weight log, which sync with your Opson account.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Opson only reads from Health. It doesn't write or change anything there.</string>
 	<!--

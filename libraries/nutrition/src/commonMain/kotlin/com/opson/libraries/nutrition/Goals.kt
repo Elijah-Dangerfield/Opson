@@ -140,6 +140,8 @@ sealed interface GoalType {
  * is worked out from, and only changes when the person accepts a recalculation; [declined] the
  * inputs of the last recalculation they kept their target through, which is never offered again.
  * [targetsKcal] is the aim last written to Targets, how an older build's hand edit is spotted.
+ * [history] is every recalculation the person answered, oldest first, at most [MAX_HISTORY]: what
+ * the goal screen lists, so a target that moved says when and why.
  */
 data class Goal(
     val id: String,
@@ -152,6 +154,7 @@ data class Goal(
     val baseline: GoalBaseline? = null,
     val declined: BaselineInputs? = null,
     val targetsKcal: Int? = null,
+    val history: List<GoalRecalculated> = emptyList(),
 ) {
     val isActive: Boolean get() = status == GoalStatus.Active
 
@@ -171,5 +174,24 @@ data class Goal(
 
         /** The id of the one weight goal, so a migration and a later write agree on it. */
         const val WEIGHT_ID = "weight"
+
+        /** How many answered recalculations a goal keeps: about a year of monthly weigh-in drift. */
+        const val MAX_HISTORY = 12
     }
+
+    /** This goal with [entry] added to its history, the oldest dropped past [MAX_HISTORY]. */
+    fun recorded(entry: GoalRecalculated): Goal = copy(history = (history + entry).takeLast(MAX_HISTORY))
 }
+
+/**
+ * A recalculation the person answered on [date]: what changed, the daily target before
+ * ([oldAimKcal], null for a goal set before baselines) and the one offered ([newAimKcal]), and
+ * whether they took it ([accepted]) or kept their target.
+ */
+data class GoalRecalculated(
+    val date: LocalDate,
+    val changes: Set<BaselineChange>,
+    val oldAimKcal: Int?,
+    val newAimKcal: Int,
+    val accepted: Boolean,
+)

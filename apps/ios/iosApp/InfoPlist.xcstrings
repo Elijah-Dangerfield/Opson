@@ -32,7 +32,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Opson reads your active energy, resting energy and workouts to show what you've burned today. These stay on your phone. If you ask it to, it also reads your weight, height, birth date and sex to fill in your profile and weight log, which sync with your Opson account."
+            "value" : "Opson reads your active energy, resting energy, steps and workouts to show what you've burned and how much you've moved. These stay on your phone. If you ask it to, it also reads your weight, height, birth date and sex to fill in your profile and weight log, which sync with your Opson account."
           }
         }
       }

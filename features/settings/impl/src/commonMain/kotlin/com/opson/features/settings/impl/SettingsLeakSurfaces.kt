@@ -47,6 +47,17 @@ import com.opson.features.settings.impl.targets.TargetsDialogKind
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsStateBuilder
 import com.opson.libraries.goals.GoalFixtures
+import com.opson.features.settings.impl.goals.GoalEdit
+import com.opson.features.settings.impl.goals.GoalEditFixtures
+import com.opson.features.settings.impl.goals.GoalEditScreen
+import com.opson.features.settings.impl.goals.GoalsInputs
+import com.opson.features.settings.impl.goals.GoalsScreen
+import com.opson.features.settings.impl.goals.GoalsStateBuilder
+import com.opson.libraries.goals.GoalStatuses
+import com.opson.libraries.nutrition.BaselineChange
+import com.opson.libraries.nutrition.GoalAveraging
+import com.opson.libraries.nutrition.GoalKind
+import com.opson.libraries.nutrition.GoalRecalculated
 import com.opson.features.settings.impl.todayscreen.TodayScreenChoice
 import com.opson.features.settings.impl.todayscreen.TodayScreenFlags
 import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceSheetContent
@@ -138,6 +149,32 @@ object SettingsLeakSurfaces {
                 onAction = {},
             )
         },
+        // Goal screens: setting a weight goal (its target, band and pace), an energy balance
+        // averaged over the week, and the goals page with a goal's week, projection and history.
+        LeakSurface(id = "goal-edit", label = "Set a goal, weight", showsCaloriesInFull = true) { policy ->
+            val context = GoalEditFixtures.context(GoalEditFixtures.base.copy(numbers = policy.settings)).copy(policy = policy)
+            GoalEditScreen(GoalEditFixtures.state(context, GoalEdit.KindPicked(GoalKind.Weight), GoalEdit.TargetTyped("80")), onAction = {})
+        },
+        LeakSurface(id = "goal-edit-balance", label = "Set a goal, energy balance", showsCaloriesInFull = true) { policy ->
+            val context = GoalEditFixtures.context(GoalEditFixtures.base.copy(numbers = policy.settings)).copy(policy = policy)
+            GoalEditScreen(
+                GoalEditFixtures.state(context, GoalEdit.KindPicked(GoalKind.EnergyBalance), GoalEdit.AveragingPicked(GoalAveraging.Weekly)),
+                onAction = {},
+            )
+        },
+        LeakSurface(id = "goals", label = "Goals", showsCaloriesInFull = true) { policy ->
+            val answered = GoalFixtures.lose.recorded(GoalRecalculated(GoalFixtures.monday, setOf(BaselineChange.Weight), 1980, 1930, accepted = true))
+            val settings = GoalFixtures.settings(answered, GoalFixtures.burn, base = GoalEditFixtures.base.copy(numbers = policy.settings))
+            val inputs = GoalsInputs(
+                settings = settings,
+                policy = policy,
+                statuses = GoalStatuses.today(settings, GoalFixtures.week, GoalFixtures.today, GoalFixtures.WEIGHT_KG),
+                days = GoalStatuses.days(settings, GoalFixtures.week, GoalFixtures.monday, GoalFixtures.today, GoalFixtures.today, GoalFixtures.WEIGHT_KG),
+                weightKg = GoalFixtures.WEIGHT_KG,
+                today = GoalFixtures.today,
+            )
+            GoalsScreen(GoalsStateBuilder.build(inputs, focus = null, supportLink = true), onAction = {})
+        },
         LeakSurface(id = "resting-energy", label = "Resting energy", showsCaloriesInFull = false) { policy ->
             val choices = RestingChoices(1610, emptySet(), 1560, HealthSource.HealthConnect, 72.0)
             val settings = SettingsFixtures.settings(policy.settings).copy(restingOwnKcal = 1600)
@@ -179,7 +216,14 @@ object SettingsLeakSurfaces {
             EnergyExplainerSheetContent(EnergyExplainerStateBuilder.build(EnergyTopic.Resting, EnergyExplainerFixtures.inputs(policy.settings), policy), onAction = {})
         },
         LeakSurface(id = "energy-explainer-burned", label = "Total burned (TDEE) explained", showsCaloriesInFull = true) { policy ->
-            EnergyExplainerSheetContent(EnergyExplainerStateBuilder.build(EnergyTopic.Burned, EnergyExplainerFixtures.inputs(policy.settings), policy), onAction = {})
+            // With digesting food counted, so its line is checked too.
+            EnergyExplainerSheetContent(EnergyExplainerStateBuilder.build(EnergyTopic.Burned, EnergyExplainerFixtures.inputs(policy.settings, digesting = true), policy), onAction = {})
+        },
+        LeakSurface(id = "energy-explainer-digesting", label = "Digesting food (TEF) explained", showsCaloriesInFull = true) { policy ->
+            EnergyExplainerSheetContent(
+                EnergyExplainerStateBuilder.build(EnergyTopic.Digesting, EnergyExplainerFixtures.inputs(policy.settings, digesting = true), policy),
+                onAction = {},
+            )
         },
         LeakSurface(id = "energy-explainer-balance", label = "Deficit and surplus explained", showsCaloriesInFull = true) { policy ->
             EnergyExplainerSheetContent(EnergyExplainerStateBuilder.build(EnergyTopic.Balance, EnergyExplainerFixtures.inputs(policy.settings), policy), onAction = {})

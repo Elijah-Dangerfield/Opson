@@ -1,5 +1,7 @@
 package com.opson.features.settings.impl.todayscreen
 
+import com.opson.features.settings.impl.integrations.healthFlag
+import com.opson.libraries.health.ExerciseRelease
 import com.opson.features.settings.impl.FakeBurnedRepository
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
@@ -42,6 +44,7 @@ class TodayScreenSettingsTest : CoroutineTest() {
         goalsAndEnergy: Boolean = true,
         summary: Boolean = true,
         fasting: Boolean = false,
+        steps: Boolean = false,
     ) = TodayScreenSettingsViewModel(
         repository,
         burned,
@@ -49,6 +52,8 @@ class TodayScreenSettingsTest : CoroutineTest() {
         goalsAndEnergyFlag(goalsAndEnergy),
         todaySummaryFlag(summary),
         FastingRelease { fasting },
+        healthFlag(steps),
+        ExerciseRelease { steps },
     )
 
     @Test
@@ -95,6 +100,24 @@ class TodayScreenSettingsTest : CoroutineTest() {
         assertFalse(state.mealsCount)
         assertNull(state.stats, "design sync 4's card has no stats row")
         listOf(state.presetNote, state.mainNumberNote, state.waterNote, state.weightNote, state.nutrientsNote).forEach(::assertNull)
+    }
+
+    @Test
+    fun stepsOnToday_isOfferedWithTheHealthAndExerciseReleases_andWritesItsSetting() = runUnitTest {
+        assertNull(vm().state.steps, "no Activity card to put them on")
+        val repository = FakeSettingsRepository()
+        val vm = vm(repository, steps = true)
+        assertEquals(true, vm.state.steps)
+        vm.takeAction(TodayScreenSettingsAction.Toggled(TodaySwitch.Steps, false))
+        assertFalse(repository.settings.value.todaySteps)
+    }
+
+    @Test
+    fun stepsOnToday_saysWhenWatchEnergyIsHidden() {
+        val hidden = SettingsFixtures.settings(NumbersSettings(overrides = mapOf(Metric.EnergyOut to Visibility.Hide)))
+        val state = TodayScreenSettingsStateBuilder.build(hidden, TodayScreenFlags(steps = true))
+        assertNotNull(state.stepsNote)
+        assertNull(TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings(), TodayScreenFlags(steps = true)).stepsNote)
     }
 
     @Test

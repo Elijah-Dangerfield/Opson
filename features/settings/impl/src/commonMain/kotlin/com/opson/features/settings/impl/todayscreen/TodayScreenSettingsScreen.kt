@@ -97,6 +97,8 @@ import opson.libraries.resources.generated.resources.settings_today_preset_range
 import opson.libraries.resources.generated.resources.settings_today_preset_rings
 import opson.libraries.resources.generated.resources.settings_today_summary_card
 import opson.libraries.resources.generated.resources.settings_today_title
+import opson.libraries.resources.generated.resources.settings_today_steps
+import opson.libraries.resources.generated.resources.settings_today_steps_body
 import opson.libraries.resources.generated.resources.settings_today_water
 import opson.libraries.resources.generated.resources.settings_today_weight
 import opson.libraries.resources.generated.resources.today_cards_groups
@@ -139,18 +141,36 @@ fun TodayScreenSettingsScreen(
                 TodaySwitch.Water,
                 onAction,
                 note = state.waterNote,
-                last = state.fasting == null && state.medication == null && state.weight == null,
+                last = state.fasting == null && state.medication == null && state.steps == null && state.weight == null,
             )
             state.fasting?.let { on ->
-                Switch(Res.string.fasting_title, on, TodaySwitch.Fasting, onAction, Res.string.fasting_cards_body, last = state.medication == null && state.weight == null)
+                Switch(
+                    Res.string.fasting_title,
+                    on,
+                    TodaySwitch.Fasting,
+                    onAction,
+                    Res.string.fasting_cards_body,
+                    last = state.medication == null && state.steps == null && state.weight == null,
+                )
             }
             state.medication?.let { on ->
                 SettingsRow(
                     title = stringResource(Res.string.medication_title),
                     icon = null,
                     subtitle = stringResource(Res.string.medication_today_switch_body),
-                    showDivider = state.weight != null,
+                    showDivider = state.steps != null || state.weight != null,
                     trailing = { AppSwitch(checked = on, onCheckedChange = { onAction(TodayScreenSettingsAction.MedicationToggled(it)) }) },
+                )
+            }
+            state.steps?.let { on ->
+                Switch(
+                    Res.string.settings_today_steps,
+                    on,
+                    TodaySwitch.Steps,
+                    onAction,
+                    Res.string.settings_today_steps_body,
+                    note = state.stepsNote,
+                    last = state.weight == null,
                 )
             }
             state.weight?.let { on ->
@@ -570,5 +590,17 @@ private fun TodayScreenSettingsNowAndThenPreview() {
 private fun TodayScreenSettingsMedicationPreview() {
     SettingsPreview {
         TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings()).copy(medication = true), onAction = {})
+    }
+}
+
+/**
+ * With the health and exercise releases: Steps on Today among the list's rows. The older card
+ * (no presets) keeps the list on screen.
+ */
+@Preview
+@Composable
+private fun TodayScreenSettingsStepsPreview() {
+    SettingsPreview {
+        TodayScreenSettingsScreen(TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings(), TodayScreenFlags(goalsAndEnergy = false, steps = true)), onAction = {})
     }
 }

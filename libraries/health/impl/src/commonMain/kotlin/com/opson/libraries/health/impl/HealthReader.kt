@@ -42,6 +42,13 @@ interface HealthReader {
      */
     suspend fun readDaily(from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, EnergyExpended>
 
+    /**
+     * Steps per local day in [timeZone], from [from] (a midnight) to [to], in one bucketed query.
+     * The store's own merge decides what counts when a phone and a watch both counted the same
+     * walk. Days with nothing recorded, or steps not allowed, are missing.
+     */
+    suspend fun dailySteps(from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, Int>
+
     /** Workouts that started between [from] and [to], oldest first. */
     suspend fun workouts(from: Instant, to: Instant): List<HealthWorkout>
 
@@ -51,11 +58,11 @@ interface HealthReader {
     /** The latest height, and the birth date and sex where the store keeps them. */
     suspend fun profile(): HealthProfile
 
-    /** Names of the apps and devices that wrote energy, workouts or weight between [from] and [to]. */
+    /** Names of the apps and devices that wrote energy, steps, workouts or weight between [from] and [to]. */
     suspend fun sources(from: Instant, to: Instant): Set<String>
 
     /**
-     * Fires when the store gets new energy or workouts, for as long as it is collected (HealthKit's
+     * Fires when the store gets new energy, steps or workouts, for as long as it is collected (HealthKit's
      * observer query). Never ends on its own; empty where the platform has no such thing.
      */
     fun changes(): Flow<Unit>

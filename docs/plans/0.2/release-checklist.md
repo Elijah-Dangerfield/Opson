@@ -19,15 +19,18 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
       because an entitlement with no HealthKit UI risks guideline 2.5.1 on a
       0.1.x hotfix. The framework link and `NSHealthShareUsageDescription`
       are already in.
-- [ ] Play Console, App content › Health apps: declare the six Health
+- [ ] Play Console, App content › Health apps: declare the seven Health
       Connect read permissions before any Android upload that includes them:
       `READ_TOTAL_CALORIES_BURNED`, `READ_ACTIVE_CALORIES_BURNED`,
-      `READ_BASAL_METABOLIC_RATE`, `READ_EXERCISE`, `READ_WEIGHT` and
-      `READ_HEIGHT` (the manifest in `libraries/health/impl` and
-      `HealthConnectReader.PERMISSIONS`). Weight and height were added on
-      2026-10-29 for the weigh-in import and Profile's Fill in. Each needs its
-      reason: energy and exercise for what was burned and the Activity card,
-      weight for weigh-ins the person chooses to add, height for their profile.
+      `READ_BASAL_METABOLIC_RATE`, `READ_STEPS`, `READ_EXERCISE`,
+      `READ_WEIGHT` and `READ_HEIGHT` (the manifest in `libraries/health/impl`
+      and `HealthConnectReader.PERMISSIONS`). Weight and height were added on
+      2026-10-29 for the weigh-in import and Profile's Fill in; steps on
+      2026-10-30 for Trends' Steps card, a steps goal and the count on Today's
+      Activity card. Each needs its reason: energy and exercise for what was
+      burned and the Activity card, steps for the daily count, its chart and a
+      steps goal (read on the phone, never sent anywhere), weight for weigh-ins
+      the person chooses to add, height for their profile.
 - [ ] Privacy before the flag flips: weigh-ins added from the health app and
       details filled into Profile join the person's Opson log, which syncs, so
       that data leaves the phone once the person turns it on or taps Fill in.
@@ -35,10 +38,10 @@ or that need the owner. Do them when 0.2 is cut, before flipping the
       the phone only; add that these two, when the person asks, are stored
       with their account like a typed weigh-in. Then decide the App Privacy
       answer for Health and Fitness (weight, height, from HealthKit, linked to
-      the user) and the Play data safety form. Energy and workouts still never
-      leave the phone. The HealthKit usage string in `Info.plist` already says
+      the user) and the Play data safety form. Energy, steps and workouts still
+      never leave the phone. The HealthKit usage string in `Info.plist` already says
       which is which.
-- [ ] App Review note: Opson reads active and resting energy, workouts,
+- [ ] App Review note: Opson reads active and resting energy, steps, workouts,
       weight, height, date of birth and biological sex; it writes nothing; it
       observes HealthKit only while open (no background delivery).
 - [x] The privacy paragraph is in `legal/privacy.md` ("Features that may not

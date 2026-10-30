@@ -17,7 +17,7 @@ import me.tatarka.inject.annotations.Inject
 @Inject
 class EnergyExplainerViewModel(
     @Assisted private val topic: EnergyTopic,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
     burnedRepository: BurnedRepository,
     policySource: VisibilityPolicySource,
     calendar: LocalCalendar,
@@ -44,6 +44,8 @@ class EnergyExplainerViewModel(
             EnergyExplainerAction.ProfileTapped -> sendEvent(EnergyExplainerEvent.OpenProfile)
             EnergyExplainerAction.RestingEnergyTapped -> sendEvent(EnergyExplainerEvent.OpenRestingEnergy)
             EnergyExplainerAction.DoneTapped -> sendEvent(EnergyExplainerEvent.Dismiss)
+            is EnergyExplainerAction.DigestingToggled -> settingsRepository.update { it.copy(thermicEffectInBurned = action.on) }
+            EnergyExplainerAction.DigestingInfoTapped -> sendEvent(EnergyExplainerEvent.OpenTopic(EnergyTopic.Digesting))
         }
     }
 }
@@ -54,6 +56,9 @@ sealed interface EnergyExplainerEvent {
 
     /** Resting energy, where its source is picked. */
     data object OpenRestingEnergy : EnergyExplainerEvent
+
+    /** Another (i) sheet in this one's place: Burned's link to digesting food. */
+    data class OpenTopic(val topic: EnergyTopic) : EnergyExplainerEvent
     data object Dismiss : EnergyExplainerEvent
 }
 
@@ -62,4 +67,10 @@ sealed interface EnergyExplainerAction {
     data object ProfileTapped : EnergyExplainerAction
     data object RestingEnergyTapped : EnergyExplainerAction
     data object DoneTapped : EnergyExplainerAction
+
+    /** "Count digesting food (TEF)", switched right on the sheet. */
+    data class DigestingToggled(val on: Boolean) : EnergyExplainerAction
+
+    /** Burned's "What digesting food adds". */
+    data object DigestingInfoTapped : EnergyExplainerAction
 }

@@ -69,8 +69,12 @@ class TargetsTest : CoroutineTest() {
     fun aRangeShowsEachEndWithItsSteps() {
         val range = assertNotNull(build().range)
 
-        assertEquals(EndStepper(Display.Shown("1,900"), down = StepState.Open, up = StepState.Open), range.low, "under where it started is fine")
-        assertEquals(EndStepper(Display.Shown("2,300"), down = StepState.Open, up = StepState.Open), range.high)
+        assertEquals(
+            EndStepper(Display.Shown("1,900"), down = StepState.Open, up = StepState.Open, TypedField(TypedField.Kind.Low), "1900"),
+            range.low,
+            "under where it started is fine",
+        )
+        assertEquals(EndStepper(Display.Shown("2,300"), down = StepState.Open, up = StepState.Open, TypedField(TypedField.Kind.High), "2300"), range.high)
         assertFalse(range.lowLocked)
         assertTrue(range.band.start < range.band.endInclusive)
     }

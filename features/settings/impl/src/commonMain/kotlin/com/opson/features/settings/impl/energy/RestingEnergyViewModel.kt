@@ -75,6 +75,7 @@ class RestingEnergyViewModel(
             is RestingEnergyAction.EverydayPicked -> settingsRepository.update { it.copy(everydayActivity = action.activity) }
             RestingEnergyAction.ProfileTapped -> sendEvent(RestingEnergyEvent.OpenProfile)
             RestingEnergyAction.InfoTapped -> sendEvent(RestingEnergyEvent.OpenExplainer)
+            RestingEnergyAction.DigestingInfoTapped -> sendEvent(RestingEnergyEvent.OpenDigestingInfo)
             RestingEnergyAction.ActivityTapped -> sendEvent(RestingEnergyEvent.OpenIntegrations)
             RestingEnergyAction.BackTapped -> sendEvent(RestingEnergyEvent.Close)
         }
@@ -103,6 +104,9 @@ sealed interface RestingEnergyEvent {
 
     /** The (i): what resting energy (BMR) is, and this person's working. */
     data object OpenExplainer : RestingEnergyEvent
+
+    /** The (i) beside "Count digesting food (TEF)": what the thermic effect of food is. */
+    data object OpenDigestingInfo : RestingEnergyEvent
     data object Close : RestingEnergyEvent
 }
 
@@ -123,6 +127,7 @@ sealed interface RestingEnergyAction {
     data class EverydayPicked(val activity: EverydayActivity) : RestingEnergyAction
     data object ProfileTapped : RestingEnergyAction
     data object InfoTapped : RestingEnergyAction
+    data object DigestingInfoTapped : RestingEnergyAction
     data object ActivityTapped : RestingEnergyAction
     data object BackTapped : RestingEnergyAction
 }

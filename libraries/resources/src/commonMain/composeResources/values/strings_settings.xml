@@ -312,7 +312,6 @@
     <string name="settings_resting_add_activity">Add activity to Burned</string>
     <string name="settings_resting_add_activity_line">Off counts resting energy only</string>
     <!-- THERMIC_EFFECT_OF_FOOD_SHARE in libraries/nutrition's Burned.kt; change both together. -->
-    <string name="settings_resting_thermic">Count digesting food</string>
     <string name="settings_resting_thermic_line">Adds about 10% of what you eat, the energy your body uses to digest it.</string>
     <!-- Its line on Today's Activity card and Energy today. -->
     <string name="energy_digesting">Digesting food</string>
@@ -551,6 +550,8 @@
     <string name="settings_today_in_list">In the list</string>
     <string name="settings_today_water">Water</string>
     <string name="settings_today_weight">Weight on days you weigh in</string>
+    <string name="settings_today_steps">Steps on Today</string>
+    <string name="settings_today_steps_body">The day's count on the Activity card, from your health app.</string>
     <string name="settings_today_in_header">In the header</string>
     <string name="settings_today_close_day">Wrap up the day</string>
     <string name="settings_today_streak">Streak</string>
@@ -573,6 +574,7 @@
     <string name="settings_today_nutrients_hidden">Vitamins and minerals are hidden in Display, so this page has nothing to show.</string>
     <string name="settings_today_water_hidden">Water is hidden in Display, so Today has no water card.</string>
     <string name="settings_today_weight_hidden">Weight is hidden in Display, so Today has no Weight row.</string>
+    <string name="settings_today_steps_hidden">Watch energy is hidden in Display, so Today shows no steps.</string>
     <string name="settings_today_link_display">Display</string>
     <string name="settings_today_link_resting">Set up resting energy</string>
 

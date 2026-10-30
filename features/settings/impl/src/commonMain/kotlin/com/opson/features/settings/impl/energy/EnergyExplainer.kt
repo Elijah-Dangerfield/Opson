@@ -38,6 +38,9 @@ enum class EnergyTopic(val wire: String) {
 
     /** A deficit or surplus, the rough 3,500 rule, and how today's goal follows from Burned. */
     Balance(EnergyExplainerRoute.TOPIC_BALANCE),
+
+    /** Digesting food, the thermic effect of food (TEF): what it is, why it's optional, and its switch. */
+    Digesting(EnergyExplainerRoute.TOPIC_DIGESTING),
     ;
 
     companion object {
@@ -59,8 +62,17 @@ data class EnergyExplainerState(
     val inUse: RestingInUse? = null,
     /** Burned: today's parts and their total; null while Burned is unknown or energy out is hidden. */
     val burned: BurnedWorking? = null,
-    /** Burned: whether "Digesting food" counts in this mode, so its part is described at all. */
+    /**
+     * Burned and Digesting: whether digesting food can count in this mode at all (only where
+     * calories show), so it is described and its switch offered.
+     */
     val digesting: Boolean = false,
+    /** Burned and Digesting: "Count digesting food" is on. */
+    val digestingOn: Boolean = false,
+    /** Burned: the parts in use, so the sheet describes this person's Burned and not every possible one. */
+    val parts: BurnedParts = BurnedParts(),
+    /** Digesting: today's digesting food, where it is on and calories show. */
+    val digestingToday: Display = Display.Hidden,
     /** Balance: today's burn, the set amount and the goal it comes to; null for any other goal style. */
     val balance: BalanceWorking? = null,
     /** Balance: the rough rule's numbers ("about 3,500 calories"), only where calories show. */
@@ -68,6 +80,13 @@ data class EnergyExplainerState(
     /** Which unit the rough rule speaks in: a pound or a kilogram of fat. */
     val weightUnit: WeightUnit = WeightUnit.Kg,
 )
+
+/**
+ * Which parts make up this person's Burned (owner feedback, 2026-10-30: "make the TDEE screen
+ * reactive to what the user actually uses"). [health] names the app activity comes from, null
+ * for the everyday activity estimate; [activityCounted] is "Add activity to Burned".
+ */
+data class BurnedParts(val health: HealthSource? = null, val activityCounted: Boolean = true)
 
 /**
  * Mifflin–St Jeor for this person: 10 × [weight] + 6.25 × [heightCm] − 5 × [age] + the [sex]
@@ -135,7 +154,25 @@ object EnergyExplainerStateBuilder {
                 topic = topic,
                 burned = burned(inputs, policy),
                 digesting = digestingShown(policy, Surface.Today, FormatContext(day = inputs.today)),
+                digestingOn = settings.thermicEffectInBurned,
+                parts = BurnedParts(
+                    health = inputs.choices.healthSource.takeIf { inputs.burned?.movementKcal != null || inputs.burned?.workoutKcal != null },
+                    activityCounted = settings.activityInBurned,
+                ),
             )
+            EnergyTopic.Digesting -> {
+                val shown = digestingShown(policy, Surface.Today, FormatContext(day = inputs.today))
+                EnergyExplainerState(
+                    loaded = true,
+                    topic = topic,
+                    digesting = shown,
+                    digestingOn = settings.thermicEffectInBurned,
+                    ruleNumbers = shown,
+                    digestingToday = inputs.burned?.foodKcal?.takeIf { shown && settings.thermicEffectInBurned }
+                        ?.let { policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Today, FormatContext(day = inputs.today)) }
+                        ?: Display.Hidden,
+                )
+            }
             EnergyTopic.Balance -> EnergyExplainerState(
                 loaded = true,
                 topic = topic,

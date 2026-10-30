@@ -45,6 +45,12 @@ interface GoalRepository {
      */
     fun days(from: LocalDate, to: LocalDate): Flow<Map<String, List<GoalDay>>>
 
+    /**
+     * This week, the person's week start to its last day, for every active goal by id: the week
+     * view any goal type draws, steps included. Days still to come are [com.opson.libraries.nutrition.GoalVerdict.Future].
+     */
+    fun weekDays(): Flow<Map<String, List<GoalDay>>> = flowOf(emptyMap())
+
     /** This week for the goal setting the target, or null without one. */
     fun week(): Flow<WeeklyBudget?>
 

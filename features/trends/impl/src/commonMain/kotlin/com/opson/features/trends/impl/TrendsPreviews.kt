@@ -12,6 +12,7 @@ import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
+import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
@@ -268,3 +269,57 @@ private fun PatternsCheckInsBlindPreview() = Phone(dark = true) {
 @Composable
 private fun PatternsEmptyPreview() =
     Phone { PatternsScreen(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(days = emptyList()), full), onAction = {}) }
+
+/** The Steps card on its own, built through the real builder over [TrendsFixtures.steps]. */
+@Composable
+private fun Steps(steps: TrendsStepsInputs, settings: Settings = Settings(), range: TrendsRange = TrendsRange.Week, ui: TrendsUi = TrendsUi(), dark: Boolean = false) =
+    Phone(dark) {
+        val inputs = TrendsFixtures.trendsInputs(settings = settings.copy(trendsRange = range), steps = steps)
+        val state = TrendsStateBuilder.build(inputs, full, ui)
+        Column(Modifier.padding(AppTheme.spacing.page)) {
+            state.steps?.let { StepsCardView(it, onAction = {}) }
+        }
+    }
+
+/** A week of steps against a goal of 8,000 a day: the line, the days at it and the run. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsStepsPreview() = Steps(TrendsFixtures.stepsInputs(), settings = TrendsFixtures.stepsGoalSettings())
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsStepsDarkPreview() = Steps(TrendsFixtures.stepsInputs(), settings = TrendsFixtures.stepsGoalSettings(), dark = true)
+
+/** No steps goal: the bars, today so far, the average and the most in a day. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsStepsNoGoalPreview() = Steps(TrendsFixtures.stepsInputs())
+
+/** A month of days, too many to label: the first day and Today under them. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsStepsMonthPreview() = Steps(TrendsFixtures.stepsInputs(), settings = TrendsFixtures.stepsGoalSettings(), range = TrendsRange.FourWeeks)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsStepsThreeMonthsPreview() = Steps(TrendsFixtures.stepsInputs(), range = TrendsRange.ThreeMonths)
+
+/** The (i) open: where steps come from, and why they don't add to Burned. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsStepsExplainedPreview() = Steps(TrendsFixtures.stepsInputs(), ui = TrendsUi(stepsExplained = true))
+
+/** No health app connected: what the card would show, and Connect. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsStepsConnectPreview() = Steps(TrendsFixtures.stepsInputs(status = HealthStatus.NotConnected))
+
+/** Connected before steps were read: Allow steps. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsStepsAllowPreview() = Steps(TrendsFixtures.stepsInputs(days = emptyMap(), canAskForMore = true))
+
+/** Connected, and nothing from the Health app: steps may be off for Opson there. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TrendsStepsEmptyPreview() = Steps(TrendsFixtures.stepsInputs(days = emptyMap()))

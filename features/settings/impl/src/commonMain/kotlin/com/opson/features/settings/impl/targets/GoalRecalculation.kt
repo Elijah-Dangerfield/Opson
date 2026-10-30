@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.opson.features.onboarding.OnboardingSetupEnabled
 import com.opson.features.settings.GoalRecalculationRoute
 import com.opson.libraries.diary.GoalBook
+import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.goals.GoalRepository
@@ -46,6 +47,7 @@ class GoalRecalculationViewModel(
     private val settingsRepository: SettingsRepository,
     goals: GoalRepository,
     policySource: VisibilityPolicySource,
+    private val calendar: LocalCalendar,
 ) : SEAViewModel<GoalRecalculationState, GoalRecalculationEvent, GoalRecalculationAction>(initialStateArg = GoalRecalculationState()) {
 
     init {
@@ -65,8 +67,8 @@ class GoalRecalculationViewModel(
                 }
                 action.updateState { GoalRecalculationState(offer = offer, dialog = TargetsStateBuilder.recalculated(offer, action.policy)) }
             }
-            GoalRecalculationAction.Accepted -> answer { settings, offer -> GoalBook.accept(settings, offer) }
-            GoalRecalculationAction.Kept -> answer { settings, offer -> GoalBook.keep(settings, offer) }
+            GoalRecalculationAction.Accepted -> answer { settings, offer -> GoalBook.accept(settings, offer, calendar.today()) }
+            GoalRecalculationAction.Kept -> answer { settings, offer -> GoalBook.keep(settings, offer, calendar.today()) }
             GoalRecalculationAction.Dismissed -> sendEvent(GoalRecalculationEvent.Close)
         }
     }

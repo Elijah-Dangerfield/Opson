@@ -16,6 +16,8 @@ import com.opson.libraries.nutrition.Goal
 import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.GoalBaselines
 import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.GoalRecalculated
+import com.opson.libraries.nutrition.BaselineChange
 import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.RestingFrom
 import kotlinx.datetime.LocalDate
@@ -67,6 +69,8 @@ class GoalsSyncTest : IntegrationTest() {
         averaging = GoalAveraging.Weekly,
         toleranceKcal = 150,
         baseline = GoalBaselines.of(inputs),
+        // A recalculation answered, so the goals page's history reaches the other phone too.
+        history = listOf(GoalRecalculated(LocalDate(2026, 10, 31), setOf(BaselineChange.Weight), 1950, 1900, accepted = true)),
     )
     private val track = Goal("track", GoalType.TrackEveryDay, LocalDate(2026, 10, 30))
 

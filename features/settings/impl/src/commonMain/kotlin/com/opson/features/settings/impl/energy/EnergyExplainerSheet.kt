@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -34,6 +35,7 @@ import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
 import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SheetHandle
 import com.opson.libraries.ui.components.button.FlatButton
@@ -44,6 +46,7 @@ import com.opson.libraries.ui.components.icon.IconButton
 import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.minTouchTarget
 import com.opson.system.AppTheme
+import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.energy_digesting
 import opson.libraries.resources.generated.resources.energy_info_balance_body
@@ -92,6 +95,24 @@ import opson.libraries.resources.generated.resources.settings_height_cm
 import opson.libraries.resources.generated.resources.settings_height_ft_in
 import opson.libraries.resources.generated.resources.today_burned_everyday
 import opson.libraries.resources.generated.resources.today_burned_exercise
+import opson.libraries.resources.generated.resources.energy_info_burned_yours
+import opson.libraries.resources.generated.resources.energy_info_part_health_line
+import opson.libraries.resources.generated.resources.energy_info_part_exercise_health
+import opson.libraries.resources.generated.resources.energy_info_part_estimate_line
+import opson.libraries.resources.generated.resources.energy_info_part_exercise_logged
+import opson.libraries.resources.generated.resources.energy_info_activity_off
+import opson.libraries.resources.generated.resources.energy_tef_short
+import opson.libraries.resources.generated.resources.energy_info_tef_off
+import opson.libraries.resources.generated.resources.energy_info_tef_link
+import opson.libraries.resources.generated.resources.energy_tef_title
+import opson.libraries.resources.generated.resources.energy_info_tef_body
+import opson.libraries.resources.generated.resources.energy_info_tef_share
+import opson.libraries.resources.generated.resources.energy_info_tef_optional
+import opson.libraries.resources.generated.resources.energy_info_tef_burned
+import opson.libraries.resources.generated.resources.energy_info_tef_burned_plain
+import opson.libraries.resources.generated.resources.energy_info_tef_today
+import opson.libraries.resources.generated.resources.energy_tef_switch
+import opson.libraries.resources.generated.resources.energy_tef_switch_line
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.math.floor
@@ -114,6 +135,7 @@ fun EnergyExplainerSheetContent(state: EnergyExplainerState, onAction: (EnergyEx
             EnergyTopic.Resting -> RestingTopic(state, onAction)
             EnergyTopic.Burned -> BurnedTopic(state, onAction)
             EnergyTopic.Balance -> BalanceTopic(state)
+            EnergyTopic.Digesting -> DigestingTopic(state, onAction)
         }
         FlatButton(
             text = stringResource(Res.string.energy_info_done),
@@ -172,12 +194,28 @@ private fun RestingTopic(state: EnergyExplainerState, onAction: (EnergyExplainer
 @Composable
 private fun BurnedTopic(state: EnergyExplainerState, onAction: (EnergyExplainerAction) -> Unit) {
     Title(stringResource(Res.string.energy_info_burned_title))
-    Paragraph(stringResource(Res.string.energy_info_burned_body))
+    Paragraph(stringResource(Res.string.energy_info_burned_yours))
+    // Only the parts this person's Burned has: the app, the estimate, or neither, and digesting food once it is on.
+    val health = state.parts.health
     Part(stringResource(Res.string.settings_energy_resting), stringResource(Res.string.energy_info_part_resting_line))
-    Part(stringResource(Res.string.today_burned_everyday), stringResource(Res.string.energy_info_part_everyday_line))
-    Part(stringResource(Res.string.today_burned_exercise), stringResource(Res.string.energy_info_part_exercise_line))
+    if (health != null && state.parts.activityCounted) {
+        Part(stringResource(Res.string.today_burned_everyday), stringResource(Res.string.energy_info_part_health_line, stringResource(health.title)))
+        Part(stringResource(Res.string.today_burned_exercise), stringResource(Res.string.energy_info_part_exercise_health, stringResource(health.title)))
+    } else if (health == null) {
+        Part(stringResource(Res.string.today_burned_everyday), stringResource(Res.string.energy_info_part_estimate_line))
+        if (state.parts.activityCounted) Part(stringResource(Res.string.today_burned_exercise), stringResource(Res.string.energy_info_part_exercise_logged))
+    }
+    if (!state.parts.activityCounted) Note(stringResource(Res.string.energy_info_activity_off))
     // Digesting food is a tenth of what was eaten: it is not a part of Burned where calories hide.
-    if (state.digesting) Part(stringResource(Res.string.energy_digesting), stringResource(Res.string.energy_info_part_digesting_line))
+    if (state.digesting) {
+        if (state.digestingOn) {
+            Part(stringResource(Res.string.energy_tef_short), stringResource(Res.string.energy_info_part_digesting_line))
+        } else {
+            Paragraph(stringResource(Res.string.energy_info_tef_off))
+        }
+        DigestingSwitch(state.digestingOn, onAction)
+        EnergyInfoLink(stringResource(Res.string.energy_info_tef_link), onClick = { onAction(EnergyExplainerAction.DigestingInfoTapped) })
+    }
     state.burned?.let { burned ->
         Heading(stringResource(Res.string.energy_info_burned_working))
         Working {
@@ -186,12 +224,12 @@ private fun BurnedTopic(state: EnergyExplainerState, onAction: (EnergyExplainerA
             NutrientVisible(burned.movement) { Term(stringResource(Res.string.today_burned_everyday), burned.movement, adds = true) }
             NutrientVisible(burned.workouts) { Term(stringResource(Res.string.today_burned_exercise), burned.workouts, adds = true) }
             NutrientVisible(burned.exercise) { Term(stringResource(Res.string.energy_info_burned_logged), burned.exercise, adds = true) }
-            NutrientVisible(burned.food) { Term(stringResource(Res.string.energy_digesting), burned.food, adds = true) }
+            NutrientVisible(burned.food) { Term(stringResource(Res.string.energy_tef_short), burned.food, adds = true) }
             HorizontalDivider(color = AppTheme.colors.line)
             Total(stringResource(Res.string.energy_info_burned_title), burned.total)
         }
     }
-    Note(stringResource(Res.string.energy_info_burned_estimate))
+    if (health == null) Note(stringResource(Res.string.energy_info_burned_estimate))
     Heading(stringResource(Res.string.energy_info_watch_title))
     Paragraph(stringResource(Res.string.energy_info_watch_body))
     FlatButton(
@@ -226,6 +264,45 @@ private fun BalanceTopic(state: EnergyExplainerState) {
             Total(stringResource(Res.string.energy_info_balance_goal), balance.goal, metric = Metric.Calories)
         }
         Note(stringResource(if (balance.held) Res.string.energy_info_balance_held else Res.string.energy_info_balance_moves))
+    }
+}
+
+/**
+ * Digesting food, the thermic effect of food: what it is, about how much, why it is off unless
+ * turned on, and what it does to Burned, with its switch right here (owner feedback, 2026-10-30:
+ * "that's a nice point to educate"). The amounts only where calories show.
+ */
+@Composable
+private fun DigestingTopic(state: EnergyExplainerState, onAction: (EnergyExplainerAction) -> Unit) {
+    Title(stringResource(Res.string.energy_tef_title))
+    Paragraph(stringResource(Res.string.energy_info_tef_body))
+    Paragraph(stringResource(Res.string.energy_info_tef_share))
+    Paragraph(stringResource(Res.string.energy_info_tef_optional))
+    Paragraph(stringResource(if (state.ruleNumbers) Res.string.energy_info_tef_burned else Res.string.energy_info_tef_burned_plain))
+    NutrientVisible(state.digestingToday) {
+        Heading(stringResource(Res.string.energy_info_tef_today))
+        Working { Term(stringResource(Res.string.energy_tef_short), state.digestingToday, adds = null) }
+    }
+    if (state.digesting) DigestingSwitch(state.digestingOn, onAction)
+}
+
+/** "Count digesting food (TEF)" and its switch, on the sheets that explain it. */
+@Composable
+private fun DigestingSwitch(on: Boolean, onAction: (EnergyExplainerAction) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(AppTheme.shapes.inputLarge)
+            .background(AppTheme.colors.surface)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(text = stringResource(Res.string.energy_tef_switch), typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
+            Text(text = stringResource(Res.string.energy_tef_switch_line), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        }
+        AppSwitch(checked = on, onCheckedChange = { onAction(EnergyExplainerAction.DigestingToggled(it)) })
     }
 }
 
@@ -360,11 +437,20 @@ internal object EnergyExplainerFixtures {
         foodKcal = 160,
     )
 
-    fun inputs(numbers: NumbersSettings = NumbersSettings(preset = PresetId.Full)) =
-        EnergyExplainerInputs(settings.copy(numbers = numbers), choices, burned, SettingsFixtures.today)
+    /** [digesting] turns "Count digesting food" on; [health] reads activity from Apple Health. */
+    fun inputs(numbers: NumbersSettings = NumbersSettings(preset = PresetId.Full), digesting: Boolean = false, health: Boolean = false) =
+        EnergyExplainerInputs(
+            settings.copy(numbers = numbers, thermicEffectInBurned = digesting),
+            choices,
+            when {
+                health -> burned.copy(everydayKcal = null, movementKcal = 420, workoutKcal = 180, foodKcal = burned.foodKcal.takeIf { digesting })
+                else -> burned.copy(foodKcal = burned.foodKcal.takeIf { digesting })
+            },
+            SettingsFixtures.today,
+        )
 
-    fun state(topic: EnergyTopic, numbers: NumbersSettings = NumbersSettings(preset = PresetId.Full)) =
-        EnergyExplainerStateBuilder.build(topic, inputs(numbers), SettingsFixtures.policy(numbers))
+    fun state(topic: EnergyTopic, numbers: NumbersSettings = NumbersSettings(preset = PresetId.Full), digesting: Boolean = false, health: Boolean = false) =
+        EnergyExplainerStateBuilder.build(topic, inputs(numbers, digesting, health), SettingsFixtures.policy(numbers))
 }
 
 @Preview
@@ -384,6 +470,28 @@ private fun EnergyExplainerRestingNoNumbersPreview() {
 @Composable
 private fun EnergyExplainerBurnedPreview() {
     SettingsPreview { EnergyExplainerSheetContent(EnergyExplainerFixtures.state(EnergyTopic.Burned), onAction = {}) }
+}
+
+/** With digesting food on and a health app: only the parts this Burned has. */
+@Preview
+@Composable
+private fun EnergyExplainerBurnedDigestingPreview() {
+    SettingsPreview { EnergyExplainerSheetContent(EnergyExplainerFixtures.state(EnergyTopic.Burned, digesting = true, health = true), onAction = {}) }
+}
+
+@Preview
+@Composable
+private fun EnergyExplainerDigestingPreview() {
+    SettingsPreview { EnergyExplainerSheetContent(EnergyExplainerFixtures.state(EnergyTopic.Digesting, digesting = true), onAction = {}) }
+}
+
+/** Off, and in a mode without calories: the words, no amounts, no switch. */
+@Preview
+@Composable
+private fun EnergyExplainerDigestingNoNumbersPreview() {
+    SettingsPreview {
+        EnergyExplainerSheetContent(EnergyExplainerFixtures.state(EnergyTopic.Digesting, NumbersSettings(preset = PresetId.NoNumbers)), onAction = {})
+    }
 }
 
 @Preview

@@ -33,7 +33,7 @@ interface HealthRecords {
     /** Weigh-ins measured from [since] to now, oldest first. */
     suspend fun weighIns(since: Instant): List<HealthWeighIn>?
 
-    /** The apps and devices that wrote energy, workouts or weight in the last few weeks, by name. */
+    /** The apps and devices that wrote energy, steps, workouts or weight in the last few weeks, by name. */
     suspend fun sources(): List<String>?
 
     /**

@@ -188,8 +188,6 @@
     <string name="targets_goal_not_yet">Your weight goal isn't setting this yet</string>
     <string name="targets_goal_not_yet_body">Opson needs your birthday, height and weight to work out a target from your goal. Add them on Profile.</string>
     <string name="targets_goal_use">Use my goal</string>
-    <string name="targets_goal_none">Set a weight goal</string>
-    <string name="targets_goal_none_body">Opson can set this target from your weight goal.</string>
 
     <!-- Profile -->
     <string name="profile_birthday">Birthday</string>
@@ -259,7 +257,7 @@
     <string name="goal_recalc_activity_source">Your activity comes from somewhere new</string>
     <string name="goal_recalc_activity_level">You picked a different everyday activity</string>
     <string name="goal_recalc_activity">Your health app's activity changed over the last week</string>
-    <string name="goal_recalc_digesting">Count digesting food was switched</string>
+    <string name="goal_recalc_digesting">Count digesting food (TEF) was switched</string>
     <string name="goal_recalc_weight">Your weight changed</string>
     <string name="goal_recalc_height">Your height changed</string>
     <string name="goal_recalc_age">Your age changed</string>

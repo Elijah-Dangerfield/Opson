@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons as MaterialIcons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.WaterDrop
@@ -313,6 +314,9 @@ object AppIcons {
     /** Exercise logged by hand: the add sheet's Exercise and Today's Burned section. */
     val FitnessCenter get() = icon("fitness_center", MaterialIcons.Rounded.FitnessCenter)
 
+    /** Steps from the health app: Today's Activity card. */
+    val DirectionsWalk get() = icon("directions_walk", MaterialIcons.AutoMirrored.Rounded.DirectionsWalk)
+
     /** Widgets (More), as v3's "widgets" glyph. */
     val Widgets get() = icon("widgets", MaterialIcons.Rounded.Widgets)
 
@@ -379,7 +383,7 @@ object AppIcons {
             EventRepeat, EventAvailable, Star, Favorite, Science, Builder, Verified,
 
             FormatListBulleted, BeachAccess, Watch, Widgets, Call, Sms, Public, SupportAgent,
-            DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove, FitnessCenter,
+            DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove, FitnessCenter, DirectionsWalk,
             FlashlightOn, FlashlightOff, BugReport, Feedback, Article, Repeat, Medication,
         )
 

@@ -8,6 +8,7 @@ import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.GoalBaseline
 import com.opson.libraries.nutrition.GoalBaselines
 import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.GoalRecalculated
 import com.opson.libraries.nutrition.GoalStatus
 import com.opson.libraries.nutrition.GoalTargets
 import com.opson.libraries.nutrition.GoalType
@@ -93,17 +94,21 @@ object GoalBook {
      * [recalculation] accepted: the goal's baseline is the new one, nothing declined is kept, and
      * the new target is written. [settings] unchanged when the goal is gone.
      */
-    fun accept(settings: Settings, recalculation: Recalculation): Settings {
+    fun accept(settings: Settings, recalculation: Recalculation, on: LocalDate? = null): Settings {
         val goal = goals(settings).firstOrNull { it.id == recalculation.goalId } ?: return settings
-        return applyTarget(settings, goal.copy(baseline = recalculation.newBaseline, declined = null))
+        return applyTarget(settings, goal.copy(baseline = recalculation.newBaseline, declined = null).record(recalculation, on, accepted = true))
     }
 
     /** [recalculation] declined: the target stays, and these inputs are never offered again. */
-    fun keep(settings: Settings, recalculation: Recalculation): Settings {
+    fun keep(settings: Settings, recalculation: Recalculation, on: LocalDate? = null): Settings {
         val goal = goals(settings).firstOrNull { it.id == recalculation.goalId } ?: return settings
         val inputs = recalculation.newBaseline.inputs ?: return settings
-        return withGoal(settings, goal.copy(declined = inputs))
+        return withGoal(settings, goal.copy(declined = inputs).record(recalculation, on, accepted = false))
     }
+
+    /** The answer kept in the goal's history, when the caller knows the day it was given [on]. */
+    private fun Goal.record(recalculation: Recalculation, on: LocalDate?, accepted: Boolean): Goal =
+        if (on == null) this else recorded(GoalRecalculated(on, recalculation.changes, recalculation.oldAimKcal, recalculation.newAimKcal, accepted))
 
     /**
      * "Set my own target": the goal setting the target stops setting it and is kept; Targets is

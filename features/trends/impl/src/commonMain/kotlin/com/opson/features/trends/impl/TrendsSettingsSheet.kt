@@ -22,6 +22,7 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.trends_settings_card_calendar
 import opson.libraries.resources.generated.resources.trends_settings_card_expended
 import opson.libraries.resources.generated.resources.trends_settings_card_running
+import opson.libraries.resources.generated.resources.trends_settings_card_steps
 import opson.libraries.resources.generated.resources.trends_settings_card_intake
 import opson.libraries.resources.generated.resources.trends_settings_card_journal
 import opson.libraries.resources.generated.resources.trends_settings_card_nutrients
@@ -115,4 +116,5 @@ private val TrendsCard.label: StringResource
         TrendsCard.Journal -> Res.string.trends_settings_card_journal
         TrendsCard.Calendar -> Res.string.trends_settings_card_calendar
         TrendsCard.Running -> Res.string.trends_settings_card_running
+        TrendsCard.Steps -> Res.string.trends_settings_card_steps
     }
