@@ -14,6 +14,16 @@ fun interface FileShareLauncher {
     fun share(name: String, mimeType: String, bytes: ByteArray): Catching<Unit>
 }
 
+/** Hands a line of text, such as a link, to the platform share sheet. Feature code calls [Router.shareText]. */
+fun interface TextShareLauncher {
+    fun share(text: String): Catching<Unit>
+
+    companion object {
+        /** Shares nothing: tests, and any platform without an implementation. */
+        val None = TextShareLauncher { Catching.success(Unit) }
+    }
+}
+
 /**
  * The file name to write: the last path segment of [name], so a name can never point outside the
  * share directory. Blank or dot-only names are refused rather than guessed at.

@@ -77,6 +77,12 @@ interface Router {
      * open the sheet is logged, like [openWebLink], since there is nothing a screen can do about it.
      */
     fun shareFile(name: String, mimeType: String, bytes: ByteArray)
+
+    /**
+     * Opens the platform share sheet for a line of text, such as a link: Messages, Mail, Copy,
+     * AirDrop. Like [shareFile], the person picks where it goes.
+     */
+    fun shareText(text: String)
 }
 
 /**
