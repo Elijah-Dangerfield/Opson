@@ -10,6 +10,9 @@ import com.opson.features.foods.AddFoodRoute
 import com.opson.features.foods.CreateMealRoute
 import com.opson.features.foods.EditCopyRoute
 import com.opson.features.foods.FoodsRoute
+import com.opson.features.foods.RecipeEditRoute
+import com.opson.features.foods.RecipeRoute
+import com.opson.features.foods.ScanRecipeRoute
 import com.opson.features.foods.RepeatRoute
 import com.opson.features.logger.FoodSearchRoute
 import com.opson.features.logger.LoggerRoute
@@ -60,6 +63,9 @@ class FoodsFeatureEntryPoint(
                         FoodsEvent.OpenAddFood -> AddFoodRoute()
                         is FoodsEvent.OpenVerify -> CheckPackRoute(event.dayIso)
                         is FoodsEvent.OpenRepeat -> RepeatRoute(ruleId = event.ruleId)
+                        is FoodsEvent.OpenRecipe -> RecipeRoute(event.recipeId)
+                        FoodsEvent.OpenNewRecipe -> RecipeEditRoute()
+                        FoodsEvent.OpenScanRecipe -> ScanRecipeRoute()
                     },
                 )
             }
@@ -140,7 +146,7 @@ class FoodsFeatureEntryPoint(
     }
 }
 
-private suspend fun show(toast: Toast) {
+internal suspend fun show(toast: Toast) {
     val args = toast.args.map { if (it is StringResource) getString(it) else it }
     showSnackBar(message = getString(toast.message, *args.toTypedArray()))
 }

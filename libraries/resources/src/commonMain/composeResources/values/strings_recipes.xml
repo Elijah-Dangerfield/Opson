@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Recipes and sharing them (release.recipes, docs/plans/recipes.md). Same rules as strings.xml:
+  no backslash escapes, positional %1$s arguments.
+-->
+<resources>
+
+    <!-- The Foods tab's Recipes card -->
+    <string name="recipes_section">Recipes</string>
+    <string name="recipes_empty">Make a recipe once, then log a serving of it any day.</string>
+    <string name="recipes_new">New recipe</string>
+    <string name="recipes_scan">Scan a recipe code</string>
+    <string name="recipes_open_cd">Open %1$s</string>
+    <!-- "Makes 6 servings · 4 ingredients". %1$s is the servings with their unit. -->
+    <string name="recipes_makes">Makes %1$s</string>
+    <plurals name="recipes_ingredient_count">
+        <item quantity="one">%1$d ingredient</item>
+        <item quantity="other">%1$d ingredients</item>
+    </plurals>
+    <string name="recipes_shared_tag">Shared</string>
+
+    <!-- New or edit a recipe -->
+    <string name="recipes_new_title">New recipe</string>
+    <string name="recipes_edit_title">Edit recipe</string>
+    <string name="recipes_name">Name</string>
+    <string name="recipes_name_placeholder">Weeknight chili</string>
+    <string name="recipes_makes_label">How many servings it makes</string>
+    <string name="recipes_ingredients">Ingredients</string>
+    <string name="recipes_ingredients_empty">Nothing yet. Add what goes into the whole pot or pan.</string>
+    <string name="recipes_add_ingredient">Add an ingredient</string>
+    <string name="recipes_whole">Whole recipe</string>
+    <string name="recipes_per_serving">Per serving</string>
+    <string name="recipes_notes">Notes · optional</string>
+    <string name="recipes_notes_placeholder">Steps, swaps, where it came from</string>
+    <string name="recipes_save">Save recipe</string>
+    <string name="recipes_saved">Recipe saved.</string>
+
+    <!-- A recipe of one's own -->
+    <string name="recipes_from_someone">Saved from someone's shared recipe. Made by a person, not checked by Opson.</string>
+    <string name="recipes_log_serving">Log a serving</string>
+    <string name="recipes_share">Share</string>
+    <string name="recipes_edit">Edit</string>
+    <string name="recipes_delete">Delete recipe</string>
+    <string name="recipes_delete_title">Delete this recipe?</string>
+    <string name="recipes_delete_body">Anything you logged from it stays in your log.</string>
+    <string name="recipes_delete_shared_body">It's shared now, and deleting it takes the shared copy down too. Anything you logged from it stays in your log.</string>
+    <string name="recipes_delete_confirm">Delete</string>
+    <string name="recipes_cancel">Cancel</string>
+    <string name="recipes_deleted">Recipe deleted.</string>
+    <string name="recipes_notes_title">Notes</string>
+    <string name="recipes_state_live">Shared. Anyone with the link can see it.</string>
+    <string name="recipes_state_hidden">Hidden for now while Opson looks at reports about it.</string>
+    <string name="recipes_state_removed">Opson took the shared copy down. It's still yours to cook and log.</string>
+
+    <!-- Sharing: what becomes public, asked before anything is -->
+    <string name="recipes_share_title">Share this recipe?</string>
+    <string name="recipes_share_intro">Anyone with the link or QR code can see it, and it can show up in Opson search. This part becomes public:</string>
+    <string name="recipes_share_item_name">The name, %1$s</string>
+    <plurals name="recipes_share_item_ingredients">
+        <item quantity="one">The ingredient and its amount</item>
+        <item quantity="other">All %1$d ingredients and their amounts</item>
+    </plurals>
+    <string name="recipes_share_item_nutrition">The nutrition worked out from them</string>
+    <string name="recipes_share_item_notes">Your notes</string>
+    <string name="recipes_share_item_by_anon">Who made it, as an Opson user</string>
+    <string name="recipes_share_item_by_name">Who made it, as %1$s</string>
+    <string name="recipes_share_private">Your log, your goals and anything else in Opson stay private.</string>
+    <string name="recipes_share_show_name">Show my name</string>
+    <string name="recipes_share_show_name_sub">As %1$s. Off, it says an Opson user.</string>
+    <string name="recipes_share_later">Changes you make later show in the shared copy too. You can stop sharing any time.</string>
+    <string name="recipes_share_confirm">Share recipe</string>
+    <string name="recipes_share_sharing">Sharing</string>
+    <string name="recipes_share_offline">You're offline. Try again when you're connected.</string>
+    <string name="recipes_share_failed">That didn't go through. Try again in a minute.</string>
+    <string name="recipes_share_too_many">That's a lot of sharing for now. Try again later.</string>
+    <string name="recipes_share_restricted">This account can't share recipes right now.</string>
+    <string name="recipes_share_removed">Opson took this recipe down, so it can't be shared again.</string>
+    <string name="recipes_share_empty">Add an ingredient before sharing.</string>
+
+    <!-- The link and QR code, once shared -->
+    <string name="recipes_link_title">Shared recipe</string>
+    <string name="recipes_link_body">Scanning the code or opening the link shows the recipe in Opson, or on the web for anyone without the app.</string>
+    <string name="recipes_qr_cd">QR code for %1$s</string>
+    <string name="recipes_share_link">Share link</string>
+    <string name="recipes_save_qr">Save or send the QR code</string>
+    <string name="recipes_copy_link">Copy link</string>
+    <string name="recipes_link_copied">Link copied.</string>
+    <string name="recipes_stop_sharing">Stop sharing</string>
+    <string name="recipes_stopped">Stopped sharing. The link doesn't open it anymore.</string>
+    <string name="recipes_stop_failed">Couldn't stop sharing. Try again.</string>
+    <string name="recipes_hidden_note">Hidden for now while Opson looks at reports about it. The link shows nothing until then.</string>
+
+    <!-- Someone's shared recipe -->
+    <string name="recipes_public_by_anon">By an Opson user</string>
+    <string name="recipes_public_by">By %1$s</string>
+    <string name="recipes_public_unverified">Made by a person, not checked by Opson.</string>
+    <!-- %1$d of %2$d: how many ingredients came from foods Opson checked. -->
+    <plurals name="recipes_public_checked">
+        <item quantity="one">%1$d of %2$d ingredient comes from a food Opson checked.</item>
+        <item quantity="other">%1$d of %2$d ingredients come from foods Opson checked.</item>
+    </plurals>
+    <string name="recipes_checked_cd">From a food Opson checked</string>
+    <string name="recipes_public_save">Save to my recipes</string>
+    <string name="recipes_public_saved">Saved to your recipes.</string>
+    <string name="recipes_public_yours">This is your recipe.</string>
+    <string name="recipes_public_open_mine">Open my recipe</string>
+    <string name="recipes_public_report">Report this recipe</string>
+    <string name="recipes_public_not_shared_title">This recipe isn't shared right now</string>
+    <string name="recipes_public_not_shared_body">Whoever made it stopped sharing it, or Opson took it down.</string>
+    <string name="recipes_public_not_found_title">No recipe has that code</string>
+    <string name="recipes_public_not_found_body">Check the link, or ask for a new one.</string>
+    <string name="recipes_public_failed_title">Can't load this recipe</string>
+    <string name="recipes_public_offline_body">You're offline. It opens when you're connected.</string>
+    <string name="recipes_public_failed_body">Something went wrong on our side. Try again in a minute.</string>
+    <string name="recipes_try_again">Try again</string>
+
+    <!-- Log a serving -->
+    <string name="recipes_log_overline">Log a serving</string>
+    <string name="recipes_log_amount">How much</string>
+    <string name="recipes_log_meal">Meal</string>
+    <string name="recipes_log_button">Log it</string>
+    <string name="recipes_log_day_closed">Today is closed. Reopen it on Today to add more.</string>
+
+    <!-- Report a shared recipe -->
+    <string name="recipes_report_title">Report this recipe</string>
+    <string name="recipes_report_intro">Tell Opson what's wrong. Whoever made it isn't told who reported it.</string>
+    <string name="recipes_report_wrong">The numbers look wrong</string>
+    <string name="recipes_report_unsafe">It pushes unsafe eating</string>
+    <string name="recipes_report_offensive">It's offensive</string>
+    <string name="recipes_report_spam">It's spam or an ad</string>
+    <string name="recipes_report_other">Something else</string>
+    <string name="recipes_report_note">Anything to add · optional</string>
+    <string name="recipes_report_send">Send report</string>
+    <string name="recipes_report_sending">Sending</string>
+    <string name="recipes_report_sent">Thanks. Opson will take a look.</string>
+    <string name="recipes_report_too_many">That's a lot of reports for now. Try again later.</string>
+    <string name="recipes_report_restricted">This account can't send reports right now.</string>
+
+    <!-- Scan a recipe code -->
+    <string name="recipes_scan_title">Scan a recipe code</string>
+    <string name="recipes_scan_hint">Point the camera at an Opson recipe's QR code.</string>
+    <string name="recipes_scan_not_recipe">That code isn't an Opson recipe.</string>
+    <string name="recipes_scan_camera_off">The camera is off for Opson. Turn it on in Settings to scan.</string>
+    <string name="recipes_scan_settings">Open Settings</string>
+    <string name="recipes_scan_allow">Allow camera</string>
+    <string name="recipes_scan_ask">Opson uses the camera only to read the code. Nothing is recorded.</string>
+    <string name="recipes_scan_unavailable">The camera isn't available right now.</string>
+
+    <!-- Search -->
+    <string name="recipes_search_section">Recipes</string>
+    <string name="recipes_search_public">Public recipe</string>
+    <string name="recipes_search_yours">Your recipe</string>
+</resources>

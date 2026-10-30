@@ -57,6 +57,14 @@ import opson.libraries.resources.generated.resources.foods_search
 import opson.libraries.resources.generated.resources.foods_title
 import opson.libraries.resources.generated.resources.foods_yours
 import opson.libraries.resources.generated.resources.foods_yours_empty
+import opson.libraries.resources.generated.resources.recipes_empty
+import opson.libraries.resources.generated.resources.recipes_ingredient_count
+import opson.libraries.resources.generated.resources.recipes_makes
+import opson.libraries.resources.generated.resources.recipes_new
+import opson.libraries.resources.generated.resources.recipes_open_cd
+import opson.libraries.resources.generated.resources.recipes_scan
+import opson.libraries.resources.generated.resources.recipes_section
+import opson.libraries.resources.generated.resources.recipes_shared_tag
 import opson.libraries.resources.generated.resources.repeat_empty
 import opson.libraries.resources.generated.resources.repeat_new
 import opson.libraries.resources.generated.resources.repeat_open_cd
@@ -64,6 +72,7 @@ import opson.libraries.resources.generated.resources.repeat_paused
 import opson.libraries.resources.generated.resources.repeat_section
 import opson.libraries.resources.generated.resources.repeat_until
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import com.opson.libraries.ui.components.BuilderCard
 import opson.libraries.resources.generated.resources.builder_verify_foods_title
@@ -126,6 +135,7 @@ private fun LazyListScope.foodsContent(state: FoodsState, onAction: (FoodsAction
     if (state.loading) return
     rowsCard("favorites", Res.string.foods_favorites, state.favorites, onAction, empty = Res.string.foods_favorites_empty)
     if (state.savedMeals.isNotEmpty()) rowsCard("saved", Res.string.foods_saved, state.savedMeals, onAction)
+    if (state.recipesOn) recipesCard(state.recipes, onAction)
     if (state.repeatsOn) repeatsCard(state.repeats, onAction)
     rowsCard("yours", Res.string.foods_yours, state.yourFoods, onAction, empty = Res.string.foods_yours_empty)
     if (state.recent.isNotEmpty()) rowsCard("recent", Res.string.foods_recent, state.recent, onAction)
@@ -284,6 +294,44 @@ private fun LazyListScope.repeatsCard(rows: List<RepeatRowUi>, onAction: (FoodsA
                 Icon(icon = AppIcons.Add, size = 24.dp, color = AppTheme.colors.accent)
                 Text(text = stringResource(Res.string.repeat_new), typography = AppTheme.type.cardTitle, color = AppTheme.colors.accent)
             }
+        }
+    }
+}
+
+/**
+ * Recipes (`release.recipes`): each recipe with what it makes and one serving's calories, then New
+ * recipe and Scan a recipe code. Drawn even with none, since this card is the way in.
+ */
+private fun LazyListScope.recipesCard(rows: List<RecipeRowUi>, onAction: (FoodsAction) -> Unit) {
+    item(key = "recipes:label", contentType = "foods-card-label") {
+        CardSlice(top = true) { FoodsCardLabel(stringResource(Res.string.recipes_section)) }
+    }
+    if (rows.isEmpty()) {
+        item(key = "recipes:empty", contentType = "foods-card-note") { CardSlice { FoodsCardNote(stringResource(Res.string.recipes_empty)) } }
+    }
+    itemsIndexed(rows, key = { _, row -> "recipes:${row.id}" }, contentType = { _, _ -> "foods-row" }) { _, row ->
+        CardSlice {
+            FoodsRow(
+                name = row.name,
+                sub = listOfNotNull(
+                    stringResource(Res.string.recipes_makes, row.servings),
+                    pluralStringResource(Res.plurals.recipes_ingredient_count, row.ingredientCount, row.ingredientCount),
+                    stringResource(Res.string.recipes_shared_tag).takeIf { row.shared },
+                ).joinToString(" · "),
+                calories = row.perServing,
+                buttonIcon = AppIcons.ChevronRight,
+                buttonDescription = stringResource(Res.string.recipes_open_cd, row.name),
+                onButton = { onAction(FoodsAction.RecipeTapped(row.id)) },
+                onClick = { onAction(FoodsAction.RecipeTapped(row.id)) },
+            )
+        }
+    }
+    item(key = "recipes:new", contentType = "foods-card-action") {
+        CardSlice { ActionLine(AppIcons.Add, stringResource(Res.string.recipes_new), onClick = { onAction(FoodsAction.NewRecipeTapped) }) }
+    }
+    item(key = "recipes:scan", contentType = "foods-card-action") {
+        CardSlice(bottom = true) {
+            ActionLine(AppIcons.QrCodeScanner, stringResource(Res.string.recipes_scan), onClick = { onAction(FoodsAction.ScanRecipeTapped) })
         }
     }
 }

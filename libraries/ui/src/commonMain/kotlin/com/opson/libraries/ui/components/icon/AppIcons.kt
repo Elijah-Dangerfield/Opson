@@ -16,7 +16,10 @@ import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material.icons.rounded.Watch
 import androidx.compose.material.icons.rounded.Widgets
 import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.QrCodeScanner
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.SupportAgent
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material.icons.outlined.Sms as OutlinedSms
@@ -326,6 +329,15 @@ object AppIcons {
     /** The country picker's globe. */
     val Public get() = icon("public", MaterialIcons.Rounded.Public)
 
+    /** Scan a recipe's QR code. */
+    val QrCodeScanner get() = icon("qr_code_scanner", MaterialIcons.Rounded.QrCodeScanner)
+
+    /** Share a recipe, or its link. */
+    val Share get() = icon("share", MaterialIcons.Rounded.Share)
+
+    /** A recipe's link. */
+    val Link get() = icon("link", MaterialIcons.Rounded.Link)
+
     /** "Find support near you" and "Talk to someone": the headset. */
     val SupportAgent get() = icon("support_agent", MaterialIcons.Rounded.SupportAgent)
 
@@ -381,6 +393,7 @@ object AppIcons {
             FormatListBulleted, BeachAccess, Watch, Widgets, Call, Sms, Public, SupportAgent,
             DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove, FitnessCenter,
             FlashlightOn, FlashlightOff, BugReport, Feedback, Article, Repeat, Medication,
+            QrCodeScanner, Share, Link,
         )
 
     private fun icon(name: String, vector: ImageVector) = IconResource(
