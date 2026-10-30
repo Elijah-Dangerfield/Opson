@@ -138,6 +138,9 @@ class BarcodeScanViewModel(
             is BarcodeScanAction.CameraStarted -> if (model.hasTorch != action.hasTorch) {
                 action.rebuild { copy(hasTorch = action.hasTorch) }
             }
+            is BarcodeScanAction.LowLightChanged -> if (model.lowLight != action.low) {
+                action.rebuild { copy(lowLight = action.low) }
+            }
             BarcodeScanAction.TorchTapped -> if (model.hasTorch) action.rebuild { copy(torchOn = !torchOn) }
             // Composing the viewfinder again starts a new camera session.
             BarcodeScanAction.RetryCameraTapped -> action.rebuild { copy(cameraUnavailable = false) }
