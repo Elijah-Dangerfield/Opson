@@ -109,8 +109,15 @@ not offered from search: it is the + sheet's Estimate a meal tile alone
 A food of the person's own that they sent for review reads "Unverified" in
 place of its source badge until a reviewer approves it, in every mode (it is
 a word, not a number); a catalog food they added and nobody has checked
-reads the same. An approved one is Opson's: the "Opson" badge with the
-verified check, with the search options on (2026-10-28).
+reads the same.
+
+**Verified** (2026-10-30, docs/decisions.md): a catalog food a person checked
+against its package (a Builder's verification, a reviewer's correction, or an
+approved submission; the server's `checked`) reads "Verified" with a seal in
+the Builders color in place of its source badge, with or without the search
+options. Its screen-reader label says what it means. Generic data (USDA's
+reference foods, NEVO) has no package and no badge; any other catalog food is
+Unverified, which search leaves unsaid and the detail and Pick a match say.
 
 Kept from the speed work: the catalog's five-minute client cache answers with
 no debounce, otherwise 250 ms; the spinner only after a delay.
@@ -122,7 +129,12 @@ miss offers only Save the name.
 
 ## Food detail (13.4d)
 
-Back, the name, ⋮ (Meal, Time, Save to favorites). Then:
+Back, the name, the star and ⋮ (Remove from recents, Report a problem, Edit
+a copy). The star fills when the food is a favorite; a tap says "Added to
+favorites" or "Removed from favorites" on a snackbar whose Undo sets it back
+(`Settings.setFavorite`, which a second Undo cannot double). A catalog food
+starred is also kept on the phone (`FoodCatalog.setFavorite`), so the Foods
+tab can list it before it is ever logged. Then:
 
 - **Amount**: a typed number, the unit dropdown (each unit with its grams,
   then "Custom size…"), and serving chips: one and two of the first household
@@ -133,6 +145,11 @@ Back, the name, ⋮ (Meal, Time, Save to favorites). Then:
 - **Energy card**: kcal, "All nutrients ›" (opens the vitamins and minerals
   below, only when micros are visible), Protein, Carbs and Fat tiles in their
   colours, and "Today with this 1,435 kcal".
+- **Verify this food**: for an active Builder (`release.builders`) on a
+  packaged catalog food nobody has checked (`Food.canBeVerified`), a card in
+  the Builders color with their mark, under the amount. Never in the ⋮ menu,
+  never for a verified food or generic data. It opens Verify this food
+  (`CheckFoodRoute`, below).
 - **Add to {meal}** pinned.
 
 `Precision.Label` ("label") is new in `:libraries:diary` and on the server
@@ -150,6 +167,41 @@ no catalog food "An estimate" (Describe it, a photo) or "Numbers you entered"
 (`CreditsRoute`) under it; Open Food Facts' line carries its ODbL credit in
 full. NCCDB is not in the catalog (`food-data-sources.md`: a paid licence
 nobody has signed), so nothing names it.
+
+Under the source, Verified or Unverified (see search above) for a catalog
+food; a tap says what it means: "A person checked these numbers against the
+package." or "From Open Food Facts. Nobody has checked it against the
+package yet." Generic data shows neither.
+
+## Verify this food (`CheckFoodRoute`, Builders)
+
+A sheet: the front of the pack (optional, "Skip the front"), then the
+nutrition label, read on the phone (`PhoneLabelReader`: Vision or ML Kit and
+`LabelTextParser`; no server reads it). The label is compared with what Opson
+has (`CheckFoodCompare`, label rounding allowed) and the sheet says "It
+matches what Opson has" or shows pack against Opson per serving.
+
+"Something was wrong" (a switch, on by itself when the label differs) lists
+Calories, Protein carbs or fat, Serving size, Name or brand, Ingredients or
+allergens, and Barcode, each with Wrong and Missing chips (a part that
+differs is already marked). "What the pack says" asks only for the values the
+marked parts need, pre-filled: the label's figures for its serving, and
+Opson's name, brand and barcode to correct. A note for the reviewer is
+optional. In a mode that hides numbers the number fields are left out and the
+label's own figures go.
+
+Verify (or Send for review) is one `POST /v1/foods/{id}/verifications` with
+the label's text, the answers and both photos. A match with nothing wrong is
+Verified on the spot and the server drops the photos; anything else waits for
+a reviewer, who corrects the food that is already there (the corrections
+overlay), never a new one. A server from before reviews never answers
+`review: "open"`, so the answers go as a Report a problem instead.
+
+Verify a food, the same flow from a scan, is a tile on the + sheet (last, in
+the Builders color, also on a closed day), a card on the Foods tab, and More ›
+Builders. It opens the scanner with Also read the label on (`CheckPackRoute`);
+a food someone already verified opens its detail with "… is already
+verified."
 
 ## An entry on the log (`LoggedFoodRoute`)
 
@@ -177,11 +229,13 @@ alone.
   the closed sheet, as Add does.
 - **Remove from log** under it tombstones that entry (`removeItem`); the page
   closes and the snackbar's Undo restores that id (`DiaryItemEditor.restoreItems`).
-- **⋮**: the favorite and Report a problem (only with a food behind it; for a
+- **The star** and **⋮** Report a problem (only with a food behind it; for a
   catalog food with `release.foodReports` on, the report sheet: what is wrong,
-  the right numbers for the amount on screen, a label photo and a note, sent
-  to Opson's reviewers; for the person's own food, or with the flag off, the
-  bug report),
+  as many reasons as apply (Wrong calories or nutrients, Missing information,
+  Wrong serving size, Wrong name or brand, a duplicate, not a food, something
+  else), the right numbers for the amount on screen, photos of the front and
+  the back of the pack, each optional, and a note, sent to Opson's reviewers;
+  for the person's own food, or with the flag off, the bug report),
   Repeat this or Edit repeat (`release.repeats`), and Edit a copy, which opens
   `EditCopyRoute(dayIso, entryId)` with its "Use for this entry" switch; the
   page gives way to it, so the entry is never saved back from a stale page.

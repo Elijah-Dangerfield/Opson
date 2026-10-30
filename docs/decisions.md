@@ -25,6 +25,13 @@ overlay, never a new food) and counts toward Builder Pro; photos go 30 days
 after the decision, like report photos. Reports take several reasons at once,
 including "missing information", and a front photo beside the label.
 
+In the app, Builders get a color of their own (`AppTheme.colors.builder`, an
+indigo nothing else uses) and a mark (`AppIcons.Builder`), on what only they
+see (Verify this food on a detail, Verify a food on the + sheet and the Foods
+tab) and on the Verified badge. Verify is never in a menu and never offered
+for a verified food or generic data. The label is read on the phone, the same
+`PhoneLabelReader` as Add a packaged food; nothing on the server reads it.
+
 **Alternatives:** storing a `checked` column on `foods`; rejected because
 `off_foods` is swapped monthly and a column cannot follow a rollback or a
 reverted correction without a job. Counting USDA's generic rows as verified;
