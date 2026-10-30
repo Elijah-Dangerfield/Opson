@@ -1,7 +1,14 @@
 package com.opson.features.onboarding.impl
 
 import com.opson.libraries.core.fixed
+import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.baselineEnvironment
+import com.opson.libraries.diary.baselineInputs
+import com.opson.libraries.nutrition.GoalBaselines
+import com.opson.libraries.nutrition.HealthReadings
+import com.opson.libraries.nutrition.PaceTier
+import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.Display
@@ -60,8 +67,8 @@ class PlanFlowTest {
         repeat(20) { fastest = PlanFlow.stepRate(fastest, full, faster = true) }
         assertTrue(PlanViews.rate(fastest, full).atFastest)
         assertFalse(PlanViews.rate(fastest, full).canFaster)
-        // 1% of 180 lb a week is 1.8 lb: the stepper stops at 1.75.
-        assertEquals("1.75 lb", PlanViews.rate(fastest, full).rate)
+        // A typical day of about 2,450 leaves about 1,250 over the 1,200 line: 2.5 lb a week.
+        assertEquals("2.5 lb", PlanViews.rate(fastest, full).rate)
     }
 
     @Test
@@ -195,6 +202,47 @@ class PlanFlowTest {
 
         val tracking = PlanFlow.answersFrom(Settings(weightGoal = WeightGoal(GoalDirection.JustTrack)), null, HeightUnit.Cm)
         assertEquals(GoalDirection.None, tracking.goal.direction, "asked again, from nothing picked")
+    }
+
+    @Test
+    fun aBigBody_canPlanPastOnePercent_withNotesAndNoBlock() {
+        val kg = lose.withWeightUnit(WeightUnit.Kg)
+        val big = kg.copy(
+            body = kg.body.copy(weight = WeightInput("150", WeightUnit.Kg)),
+            goal = kg.goal.copy(target = WeightInput("120", WeightUnit.Kg), kgPerWeek = null),
+        )
+        val rates = PlanFlow.rates(big, full)
+        assertTrue(rates.last() >= 1.5 - 1e-9, "1% of 150 kg is on offer, and more: ${rates.last()}")
+        var fastest = big
+        repeat(40) { fastest = PlanFlow.stepRate(fastest, full, faster = true) }
+        val view = PlanViews.rate(fastest, full)
+        assertTrue(view.lowAim, "under the 1,500 line for a man, so the low-goal note shows")
+        assertTrue(view.limitKnown)
+        assertEquals(PaceTier.Steady, PlanViews.rate(big.copy(goal = big.goal.copy(kgPerWeek = 1.5)), full).pace?.tier)
+    }
+
+    @Test
+    fun theTargetSaved_isTheOneTheGoalKeeps_soNothingIsOfferedRightAfter() {
+        val readings = HealthReadings(restingKcal = 1900, activityKcal = listOf(600, 650, 700, 640))
+        val current = Settings(restingSource = RestingSource.Health)
+        val withHealth = full.copy(environment = current.baselineEnvironment(readings))
+        val saved = PlanFlow.save(current, lose, withHealth)
+        val goal = GoalBook.driving(saved)!!
+        val repository = saved.baselineInputs(lose.body.weightKgOrNull(), today, readings)!!
+        assertEquals(repository, goal.baseline?.inputs)
+        assertNull(GoalBaselines.recalculation(goal, repository))
+        // Resting from the health app, and its activity: 1,900 + 650, less the half pound's 250.
+        assertEquals(2300, saved.targets.energyKcal)
+    }
+
+    @Test
+    fun theGoalsBand_isItsOwn_whateverRangeWasThere() {
+        val narrow = Settings(targets = Targets.Default.step(com.opson.libraries.nutrition.RangeEnd.Low, up = true)!!.step(com.opson.libraries.nutrition.RangeEnd.Low, up = true)!!)
+        val wide = Settings(targets = Targets.Default.step(com.opson.libraries.nutrition.RangeEnd.High, up = true)!!)
+        val a = PlanFlow.save(narrow, lose, full).targets
+        val b = PlanFlow.save(wide, lose, full).targets
+        assertEquals(Triple(a.energyKcal, a.minKcal, a.maxKcal), Triple(b.energyKcal, b.minKcal, b.maxKcal))
+        assertEquals(200, a.maxKcal - a.minKcal)
     }
 
     private fun context(preset: PresetId, overrides: Map<Metric, Visibility> = emptyMap()) = PlanContext(

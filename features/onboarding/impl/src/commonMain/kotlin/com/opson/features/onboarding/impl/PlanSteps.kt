@@ -36,6 +36,8 @@ import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.nutrition.ui.PaceInfoDialog
+import com.opson.libraries.nutrition.ui.PaceNote
 import com.opson.libraries.nutrition.ui.testTag
 import com.opson.libraries.ui.components.ChevronLink
 import com.opson.libraries.ui.components.ChoiceRow
@@ -139,6 +141,7 @@ import opson.libraries.resources.generated.resources.plan_rate_body
 import opson.libraries.resources.generated.resources.plan_rate_estimate
 import opson.libraries.resources.generated.resources.plan_rate_estimate_plain
 import opson.libraries.resources.generated.resources.plan_rate_fastest
+import opson.libraries.resources.generated.resources.settings_targets_low_note
 import opson.libraries.resources.generated.resources.plan_rate_forecast
 import opson.libraries.resources.generated.resources.plan_rate_gain
 import opson.libraries.resources.generated.resources.plan_rate_kcal_gain
@@ -502,6 +505,28 @@ private fun RateStep(view: RateView, busy: Boolean, onPlan: (PlanAction) -> Unit
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+        view.pace?.let { pace ->
+            var explained by remember { mutableStateOf(false) }
+            PaceNote(
+                assessment = pace,
+                onInfo = { explained = true },
+                onFindSupport = { onPlan(PlanAction.FindSupportTapped) }.takeIf { pace.needsCare },
+            )
+            if (explained) {
+                PaceInfoDialog(
+                    limitText = (view.limit as? Display.Shown)?.text,
+                    estimated = view.limitEstimated,
+                    canWorkOut = view.limitKnown,
+                    onDismiss = { explained = false },
+                )
+            }
+        }
+        if (view.lowAim) {
+            EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.InsetPadding, verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
+                Text(text = stringResource(Res.string.settings_targets_low_note), typography = AppTheme.type.body, color = AppTheme.colors.ink)
+                ChevronLink(text = stringResource(Res.string.plan_goal_find_support), onClick = { onPlan(PlanAction.FindSupportTapped) })
+            }
         }
         if (view.atFastest) Note(stringResource(Res.string.plan_rate_fastest))
         // The rule's own numbers are calorie amounts: only where calories show.

@@ -31,6 +31,46 @@ train a custom vision model now (no labelled data yet; see the research doc).
 **Why:** the owner's call: no AI bill that grows with users. The phone's read
 is free and offline, and human review was already the fallback.
 
+---
+
+## 2026-10-30: Goals own their inputs, lock the target, and pace by a personal fat-loss limit
+
+**Decision:** goals are a list of typed goals in a new top-level settings key,
+`goals` (weight, a set energy balance, burn, steps, tracking every day, meals),
+read and written through `GoalBook`, which migrates `weightGoal` and keeps it
+written for older builds. A goal that sets the calorie target stores a
+baseline: the typical day's burn and every input behind it. Its target is a
+pure function of the goal and that baseline, written as one number with its
+own band (±100 kcal by default), so "Use my goal" lands on the same target
+every time. When an input changes enough to move the target (10 kcal after
+something the person did, 100 after drift such as weigh-ins), a dialog offers
+the new target on Targets and over Today (`goal_recalculated`); keeping the
+current one is remembered. While a goal sets the target, Targets shows it
+read-only and Change asks: edit the goal, or set my own target (the goal stays
+and stops setting it). An own target that points against the goal asks again
+and pauses the goal only if confirmed. Paces go to 2% of body weight a week,
+each with a tier note (gentle, steady, faster than most guidance, above your
+estimated fat-loss limit) and an (i); the limit is Alpert's 69.2 kcal per kg of
+fat a day, from Profile's body fat or Deurenberg's estimate, labelled as one.
+A goal's target is never worked out under 1,200 for anyone, with the low-goal
+note under a person's own line. A weekly average is an opt-in per goal, capped
+both ways and never carried across weeks. Everything is behind
+`release.onboardingSetup`. The design and the math: `docs/plans/goals-v2.md`.
+
+**Alternatives:** aiming the goal at each day's live Burned (moves through the
+day, and was the non-determinism the owner hit); keeping the range width the
+person had (the other half of it); applying small input changes silently (a
+target that moves by itself); blocking past 1% a week or at the fat-loss
+limit (the owner asked for notes, never blocks); weekly averaging on by
+default (its tightening side is the restrict-after-binge loop).
+
+**Why:** owner feedback, 2026-10-30: paces too restrictive for big bodies and
+too loose for lean ones, "Use my goal" landing somewhere new each tap, a goal a
+stray stepper could override, and no word when connecting Apple Health
+changed the math.
+
+---
+
 ## 2026-10-29: A weight goal sets Targets as a fixed range, and says when it no longer does
 
 **Decision:** onboarding's setup (behind `release.onboardingSetup`) and a new
