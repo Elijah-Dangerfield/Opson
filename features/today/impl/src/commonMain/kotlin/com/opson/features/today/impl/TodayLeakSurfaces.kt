@@ -50,6 +50,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
+import kotlinx.datetime.LocalTime
 
 /**
  * Today's surfaces for `CaloriesHiddenLeakTest` (`docs/plans/screens/blind-leak-test.md`).
@@ -177,6 +178,14 @@ object TodayLeakSurfaces {
         // progress and Today with the streak in its header. They count days showed up, never an amount.
         LeakSurface(id = "day-close-streak", label = "Day close, wrapped up, with the run", showsCaloriesInFull = true) { policy ->
             DayCloseScreen(state = TodayFixtures.dayCloseState(policy, closed = true, celebrating = TodayFixtures.celebrating()), onAction = {})
+        },
+        // Opened early: the note says the time of day and the usual wrap-up time, never an amount.
+        LeakSurface(id = "day-close-early", label = "Day close, opened early", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(state = TodayFixtures.dayCloseState(policy, now = LocalTime(7, 0), usualWrapUp = LocalTime(20, 0)), onAction = {})
+        },
+        // release.recaps: the week's last day wrapped up links to its recap, named by its dates.
+        LeakSurface(id = "day-close-week-recap", label = "Day close, the week's last day wrapped up", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(state = TodayFixtures.dayCloseState(policy, closed = true, recapsOn = true), onAction = {})
         },
         LeakSurface(id = "celebration", label = "A milestone's celebration", showsCaloriesInFull = false) { _ ->
             CelebrationScreen(state = CelebrationState(Milestone.Week1, offerTurnOff = true), onAction = {})

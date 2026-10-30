@@ -120,6 +120,46 @@ class LoggingHabitsTest {
         assertEquals(2.0, habits.typicalEntries)
     }
 
+    private fun closed(date: LocalDate, hour: Int, minute: Int = 0, on: LocalDate = date, untracked: Boolean = false) =
+        Day(date = date, closedAt = LocalDateTime(on, LocalTime(hour, minute)).toInstant(zone), untracked = untracked)
+
+    @Test
+    fun theUsualWrapUp_isTheMiddleOfRecentWrapUps_roundedToFiveMinutes() {
+        val days = listOf(20 to 10, 20 to 14, 21 to 3, 20 to 20).mapIndexed { i, (hour, minute) -> closed(ago(i + 1), hour, minute) }
+        assertEquals(LocalTime(20, 15), habits(days).wrapUp)
+    }
+
+    @Test
+    fun theUsualWrapUp_waitsForThreeWrapUps() {
+        assertNull(habits(listOf(closed(ago(1), 20), closed(ago(2), 20))).wrapUp)
+        assertEquals(LocalTime(20, 0), habits((1..3).map { closed(ago(it), 20) }).wrapUp)
+    }
+
+    @Test
+    fun aWrapUpJustAfterMidnight_belongsToTheNightBefore_andOneDaysLaterSaysNothing() {
+        // Three nights wrapped up at 12:20 AM the next morning, one caught up three days later at noon.
+        val lateNights = (2..4).map { closed(ago(it), 0, 20, on = ago(it - 1)) }
+        val caughtUp = closed(ago(8), 12, 0, on = ago(5))
+        assertEquals(LocalTime(0, 20), habits(lateNights + caughtUp).wrapUp)
+    }
+
+    @Test
+    fun aLateNightAndAnEveningAverage_acrossMidnight_notAtNoon() {
+        val days = listOf(
+            closed(ago(1), 23, 30),
+            closed(ago(2), 0, 30, on = ago(1)),
+            closed(ago(3), 23, 50),
+        )
+        assertEquals(LocalTime(23, 50), habits(days).wrapUp)
+    }
+
+    @Test
+    fun untrackedDaysAndOldWrapUps_areLeftOut() {
+        val old = (LoggingHabitsEstimator.WINDOW_DAYS + 1..LoggingHabitsEstimator.WINDOW_DAYS + 5).map { closed(ago(it), 18) }
+        val away = (1..3).map { closed(ago(it), 9, untracked = true) }
+        assertNull(habits(old + away).wrapUp)
+    }
+
     @Test
     fun theWeightedMedian_takesTheValueWhereHalfTheWeightLies() {
         assertEquals(10, LoggingHabitsEstimator.weightedMedian(listOf(10 to 3.0, 20 to 1.0, 30 to 1.0)))

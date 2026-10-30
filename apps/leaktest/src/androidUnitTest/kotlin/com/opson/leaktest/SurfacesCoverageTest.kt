@@ -117,7 +117,7 @@ class SurfacesCoverageTest {
                 "today-closed", "day-closed-sheet", "day-close-closed", "food-actions-closed",
                 "day-close-recap-deficit", "day-close-recap-surplus", "check-in",
                 "today-flipped", "today-flipped-percent", "today-flipped-stats", "today-sticky-flipped",
-                "day-close-streak", "celebration", "celebration-gentle", "progress", "today-streak",
+                "day-close-streak", "celebration", "celebration-gentle", "progress", "today-streak", "day-close-early", "day-close-week-recap",
                 "today-burned-unavailable", "today-activity-unavailable",
             ),
             "LoggerLeakSurfaces" to listOf(
@@ -185,7 +185,7 @@ class SurfacesCoverageTest {
             "provider-summary", "provider-summary-warning", "provider-summary-custom",
             "today-closed", "day-close-closed", "food-actions-closed", "day-close-recap-deficit", "day-close-recap-surplus",
             "today-flipped", "today-flipped-percent", "today-flipped-stats", "today-sticky-flipped",
-            "day-close-streak", "today-streak", "today-burned-unavailable",
+            "day-close-streak", "today-streak", "today-burned-unavailable", "day-close-early", "day-close-week-recap",
             "search-unverified", "food-detail-in-review", "submit-food-save-review", "foods-add-food-pack", "foods-unverified",
             "foods-repeating", "foods-repeat", "foods-repeat-edit",
             "food-detail-entry", "food-detail-entry-changed", "food-detail-entry-more", "food-detail-entry-quick",

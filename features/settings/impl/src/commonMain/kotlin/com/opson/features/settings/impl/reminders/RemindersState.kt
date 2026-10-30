@@ -1,6 +1,8 @@
 package com.opson.features.settings.impl.reminders
 
 import com.opson.libraries.diary.EventLevel
+import com.opson.libraries.diary.LoggingHabits
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.reminders.NotificationPermission
@@ -27,6 +29,8 @@ data class RemindersState(
     val pickingTime: MealSlot? = null,
     /** Celebrations (`release.celebrations`); null while the flag is off. */
     val celebrations: CelebrationsChoice? = null,
+    /** The times come from when this person usually logs: "Based on when you usually log." */
+    val timesLearned: Boolean = false,
 ) {
     /** Something is on and the system will not show it. */
     val showPermissionNote: Boolean
@@ -54,14 +58,16 @@ object RemindersStateBuilder {
         permission: NotificationPermission = NotificationPermission.Granted,
         pickingTime: MealSlot? = null,
         celebrationsOn: Boolean = false,
+        habits: LoggingHabits = LoggingHabits(),
     ): RemindersState {
         val level = settings.mealReminderLevel
+        val times = suggestedTimes(settings, habits) ?: settings.mealTimes
         return RemindersState(
             quiet = settings.quiet,
             bigDay = settings.bigDayEvent,
             mealLevel = level,
             meals = MealSlot.meals.map { slot ->
-                val time = settings.mealTimes.at(slot)
+                val time = times.at(slot)
                 MealReminderRow(
                     slot = slot,
                     on = level != EventLevel.Off && settings.mealReminders.isOn(slot),
@@ -76,6 +82,16 @@ object RemindersStateBuilder {
             } else {
                 null
             },
+            timesLearned = habits.learned.isNotEmpty() && habits.learned.all { times.at(it) == habits.usual.at(it) },
         )
     }
+
+    /**
+     * The meal times reminders start from, learned from when this person usually logs: only before
+     * they have ever chosen reminders, and only while their meal times are still the defaults, so a
+     * time they set themselves (in onboarding or here) is never replaced. Null when there is
+     * nothing to suggest.
+     */
+    fun suggestedTimes(settings: Settings, habits: LoggingHabits): MealTimes? =
+        habits.usual.takeIf { !settings.remindersChosen && settings.mealTimes == MealTimes() && habits.learned.isNotEmpty() }
 }

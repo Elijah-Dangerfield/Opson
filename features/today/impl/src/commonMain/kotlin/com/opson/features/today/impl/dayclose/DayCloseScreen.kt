@@ -25,6 +25,8 @@ import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.DayReflection
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
+import com.opson.libraries.diary.HabitsSource
+import com.opson.libraries.diary.RecapsRelease
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.ui.BigDayHeroCard
@@ -69,6 +71,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
@@ -197,6 +202,9 @@ class DayCloseViewModel(
     private val burnedRepository: BurnedRepository,
     private val promptEvents: PromptEvents = PromptEvents.None,
     private val celebrations: CelebrationsSource = CelebrationsSource.None,
+    private val clock: Clock = Clock.System,
+    recaps: RecapsRelease = RecapsRelease.Off,
+    private val habits: HabitsSource = HabitsSource.None,
 ) : SEAViewModel<DayCloseState, DayCloseEvent, DayCloseAction>(initialStateArg = DayCloseState()) {
 
     private var model = Model()
@@ -210,15 +218,25 @@ class DayCloseViewModel(
         val prefilled: Boolean = false,
         val committed: Boolean = false,
         val celebrating: Celebrating? = null,
+        val usualWrapUp: LocalTime? = null,
     )
+
+    /** When the page opened, read once: the early note is about the moment someone came to wrap up. */
+    private val openedAt: LocalTime = clock.now().toLocalDateTime(calendar.timeZone()).time
 
     init {
         // Read once when the page opens, like every release flag.
         val checkInOn = checkInEnabled()
+        val recapsOn = recaps.isOn()
         viewModelScope.launch {
             combine(diary.observeDay(day), settingsRepository.settings, policySource.policy, expended(), burned()) { d, settings, policy, expended, burned ->
-                DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInOn, burned = burned), policy)
+                val inputs = DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInOn, burned = burned, now = openedAt, recapsOn = recapsOn)
+                DayCloseAction.InputsArrived(inputs, policy)
             }.collect(::takeAction)
+        }
+        // Only today can be wrapped up early; the habits are read once, from the last few weeks.
+        if (day == calendar.today()) {
+            viewModelScope.launch { takeAction(DayCloseAction.UsualWrapUpArrived(habits.current().wrapUp)) }
         }
         viewModelScope.launch { celebrations.observe().collect { takeAction(DayCloseAction.CelebratingArrived(it)) } }
     }
@@ -278,6 +296,9 @@ class DayCloseViewModel(
                 sendEvent(DayCloseEvent.Close)
             }
             DayCloseAction.BackTapped -> sendEvent(DayCloseEvent.Close)
+            DayCloseAction.NotYetTapped -> sendEvent(DayCloseEvent.Close)
+            DayCloseAction.WeekRecapTapped -> state.weekRecap?.let { sendEvent(DayCloseEvent.OpenRecap(it)) }
+            is DayCloseAction.UsualWrapUpArrived -> action.rebuild { copy(usualWrapUp = action.usual) }
         }
     }
 
@@ -286,7 +307,9 @@ class DayCloseViewModel(
         val current = model
         val inputs = current.inputs ?: return
         val policy = current.policy ?: return
-        updateState { DayCloseStateBuilder.build(inputs, policy, current.note, current.committed, current.feeling, current.celebrating) }
+        updateState {
+            DayCloseStateBuilder.build(inputs.copy(usualWrapUp = current.usualWrapUp), policy, current.note, current.committed, current.feeling, current.celebrating)
+        }
     }
 
     internal companion object {
@@ -341,8 +364,10 @@ fun DayCloseScreen(
                     DelayedLoadingIndicator(contentDescription = stringResource(Res.string.today_dayclose_loading_cd))
                     return@Column
                 }
+                state.early?.let { EarlyWrapUpCard(it, onNotYet = { onAction(DayCloseAction.NotYetTapped) }) }
                 state.recap?.let { RecapText(it, state.isToday) }
                 state.streak?.let { StreakLineCard(it) }
+                state.weekRecap?.let { WeekRecapLink(it, onOpen = { onAction(DayCloseAction.WeekRecapTapped) }) }
                 if (state.revealNote) {
                     InfoBanner(
                         icon = AppIcons.Lock,

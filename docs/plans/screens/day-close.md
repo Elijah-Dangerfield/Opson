@@ -11,6 +11,17 @@
 > says "You can reopen it later if you need to add something." State
 > `closed`.
 
+> **Opened early, and the week's recap (2026-10-30):** Wrap up the day opened
+> for today before noon, or more than three hours before the time this person
+> usually wraps up (`LoggingHabits.wrapUp`, the weighted median of the last four
+> weeks' wrap-ups, a wrap-up in the small hours counting for the night before),
+> shows a note at the top: "It's only 7:00 AM", "You usually wrap up around
+> 8:00 PM.", "Based on when you usually wrap up." and **Not yet**, which goes
+> back to Today (`NotYetTapped`). It never blocks wrapping up. Someone whose
+> usual time is in the morning is held to it, not to noon (`EarlyWrapUp.of`).
+> With `release.recaps`, today wrapped up on its week's last day adds "See your
+> week, Oct 19 to 25" under the run (`WeekRecapTapped`, `OpenRecap`).
+
 > **The recap and a separate check-in (2026-10-29, `docs/decisions.md`):**
 > under the title a line says how much of the day was logged, in words, in every
 > mode. Then, each only where every amount in it is shown: **Eaten and burned**

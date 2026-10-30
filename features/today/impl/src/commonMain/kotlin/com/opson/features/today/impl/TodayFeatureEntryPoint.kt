@@ -86,6 +86,7 @@ import com.opson.features.today.impl.water.WaterSheetEvent
 import com.opson.features.today.impl.water.WaterSheetViewModel
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
+import com.opson.features.trends.RecapRoute
 import com.opson.features.trends.WeightRoute
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.ObserveEvents
@@ -238,6 +239,7 @@ class TodayFeatureEntryPoint(
                     DayCloseEvent.OpenSupport -> router.navigate(if (findSupportEnabled()) FindSupportRoute() else SupportRoute())
                     is DayCloseEvent.OpenCheckIn -> router.navigate(CheckInRoute(event.day.toString()))
                     is DayCloseEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
+                    is DayCloseEvent.OpenRecap -> router.navigate(RecapRoute(event.period.kind.wire, event.period.start.toString()))
                     is DayCloseEvent.ShowToast -> showToast(event.toast)
                 }
             }
