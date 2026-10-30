@@ -6,6 +6,33 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-30: Opson is for 16 and over, and a hard stretch gets a kind note worked out on the phone
+
+**Decision:** onboarding asks for a birthday after Welcome and before sign-in
+(`AgeGate`, `OnboardingStep.Age`). Under 16 sees a kind screen with Find
+support, makes no account, and the phone keeps the gate closed until the
+sixteenth birthday (`AppData.ageGateOpensOn`, the date only). 16 and 17 get the
+goal flow's gentle path (no weights, weight goals or deficits, as after
+"numbers have been hard") and celebrations without counts; `weightPlansOff`
+keeps the goal flow and its Today card off for anyone under 18. Terms and
+privacy say 16. Separately, `HardStretch` reads the last four weeks of the log
+on the phone (very low complete days, restrict and big-day swings, many
+weigh-ins a day, fast loss, plus weaker signals that need a second) and the
+`kind_note` prompt offers Find support, fewer numbers or Not now, at most
+every 21 days, behind `release.findSupport` and the person's own
+`hardStretchNotes` switch. A prompt can be `sensitive`: no app event, no log
+line. Thresholds are TODO(clinician).
+
+**Alternatives:** 13 (the old terms; COPPA's line, but calorie tracking is
+linked with disordered eating in teens and Opson has no supervision); 18
+(MyFitnessPal and Noom's line, but it shuts out older teens who would find a
+tracker elsewhere with fewer protections). Asking age after sign-in (an
+account would already exist for a child). Reading the store's age signal
+(Declared Age Range, Play Age Signals) instead of asking: a follow-up, since
+it covers only some regions so far. Detecting patterns on the server: no
+health inference should leave the phone. Full reasoning in
+[ed-safety-review.md](research/ed-safety-review.md).
+
 ## 2026-10-30: No server AI in v1; labels are read on the phone and a person reviews weekly
 
 **Decision:** the server calls no model unless `AI_CALLS_ENABLED=true` is set
