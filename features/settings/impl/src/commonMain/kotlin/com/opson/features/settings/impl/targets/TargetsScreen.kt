@@ -51,6 +51,7 @@ import com.opson.features.settings.impl.energy.EnergyInfoLink
 import com.opson.features.settings.impl.energy.EnergyTopic
 import com.opson.features.settings.impl.integrations.title
 import com.opson.libraries.diary.MacroMode
+import com.opson.libraries.goals.GoalFixtures
 import com.opson.libraries.goals.ui.InlineNumberField
 import com.opson.libraries.goals.ui.ProjectionChart
 import com.opson.libraries.goals.ui.ProjectionChartUi
@@ -1477,6 +1478,23 @@ private fun TargetsDeficitPreview() {
             onAction = {},
         )
     }
+}
+
+/** A set deficit with a weigh-in and a typical day: where it leads (owner feedback, 2026-10-30). */
+@Preview(heightDp = 1800)
+@Composable
+private fun TargetsDeficitProjectionPreview() {
+    val settings = SettingsFixtures.settings(targets = SettingsFixtures.deficitTargets)
+    val state = TargetsStateBuilder.build(
+        settings,
+        SettingsFixtures.policy(settings.numbers),
+        burned = SettingsFixtures.burned,
+        goalsAndEnergy = true,
+        weightGoals = true,
+        today = GoalFixtures.today,
+        inputs = GoalFixtures.inputs,
+    )
+    SettingsPreview { TargetsScreen(state, onAction = {}) }
 }
 
 @Preview

@@ -12,6 +12,17 @@ import androidx.compose.ui.unit.dp
 import com.opson.features.settings.impl.SectionLabel
 import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
+import com.opson.features.settings.impl.SettingsFixtures
+import com.opson.features.settings.impl.SettingsPreview
+import com.opson.libraries.diary.OnboardingAnswers
+import com.opson.libraries.diary.Settings
+import com.opson.libraries.goals.GoalFixtures
+import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.GoalAveraging
+import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.nutrition.Surface
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.opson.libraries.goals.ui.AveragingChoice
 import com.opson.libraries.goals.ui.BandChoice
 import com.opson.libraries.goals.ui.GoalPanel
@@ -395,3 +406,136 @@ private fun Revealed(saved: GoalSaved, onAction: (GoalEditAction) -> Unit) {
 private fun Note(text: String) {
     Text(text = text, typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
 }
+
+
+// ---------- Previews: every state the editor draws, built through the real editor ----------
+
+/** The person in GoalFixtures, with their settings in [preset], changing [existing] or setting a new goal. */
+internal object GoalEditFixtures {
+    val base: Settings = SettingsFixtures.settings().copy(heightCm = 180.0, birthYear = 1996, bodySex = BodySex.Male)
+
+    fun context(
+        settings: Settings = base,
+        preset: PresetId = PresetId.Full,
+        existing: Goal? = null,
+        weighedIn: Boolean = true,
+    ) = GoalEditContext(
+        today = GoalFixtures.today,
+        settings = settings.copy(numbers = NumbersSettings(preset = preset)),
+        policy = SettingsFixtures.policy(preset),
+        inputs = GoalFixtures.inputs.takeIf { weighedIn },
+        weightKg = GoalFixtures.WEIGHT_KG.takeIf { weighedIn },
+        existing = existing,
+    )
+
+    fun state(context: GoalEditContext = context(), vararg edits: GoalEdit, from: GoalDraft? = null): GoalEditState {
+        val draft = edits.fold(from ?: GoalEditor.draft(context.existing, null, context)) { draft, edit -> GoalEditor.reduce(draft, edit, context) }
+        return GoalEditState(loaded = true, view = GoalEditor.view(draft, context), supportLink = true)
+    }
+}
+
+@Composable
+private fun GoalEditPreview(state: GoalEditState, dark: Boolean = false, largeText: Boolean = false) {
+    SettingsPreview(dark = dark, largeText = largeText) { GoalEditScreen(state, onAction = {}) }
+}
+
+/** A new goal: the types on offer. */
+@Preview(heightDp = 1000)
+@Composable
+private fun GoalEditKindsPreview() = GoalEditPreview(GoalEditFixtures.state())
+
+/** After "numbers have been hard": only the gentle goals. */
+@Preview
+@Composable
+private fun GoalEditKindsGentlePreview() =
+    GoalEditPreview(GoalEditFixtures.state(GoalEditFixtures.context(GoalEditFixtures.base.copy(onboarding = OnboardingAnswers(hard = true)))))
+
+/** Losing to 80 kg: the pace, the target it comes to, the band and where it leads. */
+@Preview(heightDp = 2000)
+@Composable
+private fun GoalEditWeightPreview() = GoalEditPreview(
+    GoalEditFixtures.state(GoalEditFixtures.context(), GoalEdit.KindPicked(GoalKind.Weight), GoalEdit.TargetTyped("80")),
+)
+
+/** A goal weight above the weight now, with Lose picked. */
+@Preview(heightDp = 1100)
+@Composable
+private fun GoalEditWeightWrongWayPreview() = GoalEditPreview(
+    GoalEditFixtures.state(GoalEditFixtures.context(), GoalEdit.KindPicked(GoalKind.Weight), GoalEdit.TargetTyped("95")),
+)
+
+/** Changing the weight goal, faster than a lean body's fat-loss limit, dark. */
+@Preview(heightDp = 2000)
+@Composable
+private fun GoalEditWeightFastDarkPreview() {
+    val context = GoalEditFixtures.context(GoalFixtures.settings(GoalFixtures.loseFast, base = GoalEditFixtures.base), existing = GoalFixtures.loseFast)
+    GoalEditPreview(GoalEditFixtures.state(context), dark = true)
+}
+
+/** No weigh-in yet: what the goal needs, and a way to add it. */
+@Preview
+@Composable
+private fun GoalEditWeightNeedsDetailsPreview() = GoalEditPreview(
+    GoalEditFixtures.state(GoalEditFixtures.context(weighedIn = false), GoalEdit.KindPicked(GoalKind.Weight)),
+)
+
+/** 450 under, averaged over the week; the weight goal it would pause. */
+@Preview(heightDp = 2000)
+@Composable
+private fun GoalEditBalanceWeeklyPreview() {
+    val context = GoalEditFixtures.context(GoalFixtures.settings(base = GoalEditFixtures.base))
+    GoalEditPreview(
+        GoalEditFixtures.state(
+            context,
+            GoalEdit.KindPicked(GoalKind.EnergyBalance),
+            GoalEdit.AmountTyped("450"),
+            GoalEdit.AveragingPicked(GoalAveraging.Weekly),
+        ),
+    )
+}
+
+@Preview(heightDp = 1000)
+@Composable
+private fun GoalEditBurnPreview() = GoalEditPreview(GoalEditFixtures.state(GoalEditFixtures.context(), GoalEdit.KindPicked(GoalKind.Burn)))
+
+@Preview
+@Composable
+private fun GoalEditStepsPreview() = GoalEditPreview(GoalEditFixtures.state(GoalEditFixtures.context(), GoalEdit.KindPicked(GoalKind.Steps)))
+
+@Preview
+@Composable
+private fun GoalEditMealsLargeTextPreview() =
+    GoalEditPreview(GoalEditFixtures.state(GoalEditFixtures.context(), GoalEdit.KindPicked(GoalKind.Meals)), largeText = true)
+
+@Preview
+@Composable
+private fun GoalEditTrackPreview() = GoalEditPreview(GoalEditFixtures.state(GoalEditFixtures.context(), GoalEdit.KindPicked(GoalKind.TrackEveryDay)))
+
+/** Macros with grams: a weight goal with no calorie numbers. */
+@Preview(heightDp = 1400)
+@Composable
+private fun GoalEditWeightGramsPreview() = GoalEditPreview(
+    GoalEditFixtures.state(GoalEditFixtures.context(preset = PresetId.MacrosWithGrams), GoalEdit.KindPicked(GoalKind.Weight), GoalEdit.TargetTyped("80")),
+)
+
+/** Saved: the reveal, at rest as a screenshot sees it. */
+@Preview(heightDp = 1000)
+@Composable
+private fun GoalEditRevealPreview() {
+    val context = GoalEditFixtures.context()
+    GoalEditPreview(
+        GoalEditState(
+            loaded = true,
+            saved = GoalSaved(
+                kind = GoalKind.Weight,
+                chart = GoalEditor.chart(GoalFixtures.lose, context),
+                target = context.policy.resolve(Metric.Calories, 1930.0, Surface.Settings),
+            ),
+        ),
+    )
+}
+
+/** Saved with nothing to draw: a meals goal. */
+@Preview
+@Composable
+private fun GoalEditRevealMealsPreview() = GoalEditPreview(GoalEditState(loaded = true, saved = GoalSaved(GoalKind.Meals, chart = null, target = Display.Hidden)))

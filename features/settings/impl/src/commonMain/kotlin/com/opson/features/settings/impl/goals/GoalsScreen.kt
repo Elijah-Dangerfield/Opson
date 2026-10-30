@@ -20,6 +20,21 @@ import androidx.compose.ui.unit.dp
 import com.opson.features.settings.impl.SectionLabel
 import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
+import com.opson.features.settings.impl.SettingsFixtures
+import com.opson.features.settings.impl.SettingsPreview
+import com.opson.libraries.diary.GoalBook
+import com.opson.libraries.diary.OnboardingAnswers
+import com.opson.libraries.diary.Settings
+import com.opson.libraries.goals.GoalFixtures
+import com.opson.libraries.goals.GoalStatuses
+import com.opson.libraries.nutrition.BaselineChange
+import com.opson.libraries.nutrition.BodySex
+import com.opson.libraries.nutrition.GoalRecalculated
+import com.opson.libraries.nutrition.NumbersSettings
+import com.opson.libraries.nutrition.PresetId
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.plus
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.opson.features.settings.impl.targets.reason
 import com.opson.libraries.goals.ui.GoalPanel
 import com.opson.libraries.goals.ui.ProjectionChart
@@ -317,3 +332,62 @@ private fun Note(text: String) {
 }
 
 private val DotSize = 26.dp
+
+
+// ---------- Previews ----------
+
+@Composable
+private fun GoalsPreview(settings: Settings, preset: PresetId = PresetId.Full, dark: Boolean = false, largeText: Boolean = false) {
+    val numbers = settings.copy(numbers = NumbersSettings(preset = preset))
+    val days = GoalStatuses.days(numbers, GoalFixtures.week, GoalFixtures.monday, GoalFixtures.monday.plus(DatePeriod(days = 6)), GoalFixtures.today, GoalFixtures.WEIGHT_KG)
+    val inputs = GoalsInputs(
+        settings = numbers,
+        policy = SettingsFixtures.policy(preset),
+        statuses = GoalStatuses.today(numbers, GoalFixtures.week, GoalFixtures.today, GoalFixtures.WEIGHT_KG),
+        days = days,
+        weightKg = GoalFixtures.WEIGHT_KG,
+        today = GoalFixtures.today,
+    )
+    SettingsPreview(dark = dark, largeText = largeText) { GoalsScreen(GoalsStateBuilder.build(inputs, focus = null, supportLink = true), onAction = {}) }
+}
+
+private val goalsBase: Settings = SettingsFixtures.settings().copy(heightCm = 180.0, birthYear = 1996, bodySex = BodySex.Male)
+
+/** A weight goal setting the target, with its week, projection and a recalculation taken; meals beside it. */
+@Preview(heightDp = 2000)
+@Composable
+private fun GoalsWeightAndMealsPreview() {
+    val answered = GoalFixtures.lose.recorded(GoalRecalculated(GoalFixtures.monday, setOf(BaselineChange.ActivitySource), 1980, 1930, accepted = true))
+    GoalsPreview(GoalFixtures.settings(answered, GoalFixtures.meals, base = goalsBase))
+}
+
+/** Averaged over the week, after a big Tuesday: today's number, and the steps goal beside it. Dark. */
+@Preview(heightDp = 2000)
+@Composable
+private fun GoalsWeeklyDarkPreview() = GoalsPreview(GoalFixtures.settings(GoalFixtures.loseWeekly, GoalFixtures.steps, base = goalsBase), dark = true)
+
+/** An energy balance goal, its twelve weeks drawn, and a burn goal. */
+@Preview(heightDp = 1800)
+@Composable
+private fun GoalsBalancePreview() = GoalsPreview(GoalFixtures.settings(GoalFixtures.balance, GoalFixtures.burn, base = goalsBase))
+
+/** The weight goal paused. */
+@Preview(heightDp = 1000)
+@Composable
+private fun GoalsPausedPreview() = GoalsPreview(GoalBook.pause(GoalFixtures.settings(base = goalsBase), GoalFixtures.lose.id))
+
+/** No goals yet. */
+@Preview
+@Composable
+private fun GoalsEmptyPreview() = GoalsPreview(goalsBase)
+
+/** Macros with grams: the weight goal in words, no calories. */
+@Preview(heightDp = 1600)
+@Composable
+private fun GoalsGramsPreview() = GoalsPreview(GoalFixtures.settings(base = goalsBase), preset = PresetId.MacrosWithGrams)
+
+/** After "numbers have been hard": the gentle goals only. Large text. */
+@Preview(heightDp = 1200)
+@Composable
+private fun GoalsGentleLargeTextPreview() =
+    GoalsPreview(GoalFixtures.gentleSettings().copy(onboarding = OnboardingAnswers(hard = true)), largeText = true)

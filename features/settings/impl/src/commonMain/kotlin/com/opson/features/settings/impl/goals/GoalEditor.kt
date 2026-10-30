@@ -313,7 +313,8 @@ object GoalEditor {
 
     fun view(draft: GoalDraft, context: GoalEditContext): GoalEditView {
         val editing = context.existing != null
-        val kind = draft.kind ?: return GoalEditView(kinds = kinds(context), kind = null, editing = editing)
+        // A type the mode doesn't offer (the mode changed since it was picked) isn't drawn: its amounts would show.
+        val kind = draft.kind?.takeIf { it in kinds(context) } ?: return GoalEditView(kinds = kinds(context), kind = null, editing = editing)
         val goal = goal(draft, context)
         val setsCalories = kind == GoalKind.Weight || kind == GoalKind.EnergyBalance
         val target = goal?.let(GoalTargets::of)
