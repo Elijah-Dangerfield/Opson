@@ -13,7 +13,7 @@ import com.opson.libraries.foods.PublicRecipes
 import com.opson.libraries.foods.PublishResult
 import com.opson.libraries.foods.RecipeActionResult
 import com.opson.libraries.identity.profile.ProfileRepository
-import com.opson.libraries.identity.profile.displayNameOrNull
+import com.opson.libraries.identity.profile.Profile
 import com.opson.libraries.ui.qr.QrCode
 import com.opson.libraries.ui.qr.QrPng
 import kotlinx.coroutines.launch
@@ -101,7 +101,9 @@ class RecipeShareViewModel(
     init {
         viewModelScope.launch {
             val recipe = recipes.get(route.recipeId)
-            val name = Catching { profiles.current().displayNameOrNull }.getOrNull()?.takeUnless { GENERATED_NAME.matches(it) }
+            // The server shows the account's own name, so only a signed-in profile's counts.
+            val name = Catching { (profiles.current() as? Profile.Authenticated)?.displayName }.getOrNull()
+                ?.takeUnless { it.isBlank() || GENERATED_NAME.matches(it) }
             takeAction(RecipeShareAction.Loaded(recipe, name))
         }
     }

@@ -38,6 +38,8 @@ kotlin {
 
         commonTest.dependencies {
             implementation(projects.libraries.flowroutines.testing)
+            implementation(projects.libraries.identity)
+            implementation(projects.libraries.scanner)
             // FoodsEvent.OpenLogger carries a Route.
             implementation(projects.libraries.navigation)
             implementation(projects.features.foods)
