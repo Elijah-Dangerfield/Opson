@@ -3,6 +3,7 @@ package com.opson.features.onboarding.impl
 import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.Birthdays
+import com.opson.libraries.goals.GoalStreaks
 import com.opson.libraries.nutrition.BaselineEnvironment
 import com.opson.libraries.nutrition.BaselineInputs
 import com.opson.libraries.nutrition.BodyFatFrom
@@ -748,9 +749,19 @@ object PlanFlow {
         } else {
             goaled
         }
-        val streak = answers.streak?.takeIf { PlanStep.Streak in steps }
-        return if (streak != null) answered.copy(celebrationsEnabled = streak) else answered
+        val streak = answers.streak?.takeIf { PlanStep.Streak in steps } ?: return answered
+        // The showing-up streak is celebrations'; a goal whose "met" is never eating less also
+        // gets its own run (GoalStreaks), and a weight or energy balance goal never does.
+        val withGoalStreak = if (goalStreakOffered(answers, context)) answered.copy(goalStreakEnabled = streak) else answered
+        return withGoalStreak.copy(celebrationsEnabled = streak)
     }
+
+    /**
+     * Whether "Keep a streak?" also starts the goal's own streak: only for a goal whose "met" can
+     * never mean eating less ([GoalStreaks.eligible]): showing up, meals, moving more.
+     */
+    fun goalStreakOffered(answers: PlanAnswers, context: PlanContext): Boolean =
+        goal(answers, context, null)?.type?.let(GoalStreaks::eligible) == true
 }
 
 // ---------- What each step draws ----------

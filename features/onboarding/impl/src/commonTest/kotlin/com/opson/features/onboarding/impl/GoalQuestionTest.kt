@@ -142,11 +142,20 @@ class GoalQuestionTest {
     }
 
     @Test
-    fun theStreak_answer_setsCelebrations() {
+    fun theStreak_answer_setsCelebrations_andTheGoalsOwnStreak_onlyWhereMetIsNeverEatingLess() {
         val kept = PlanFlow.save(Settings(celebrationsEnabled = false), PlanAnswers(wants = true, pick = GoalPick.ShowUp, streak = true), full)
         assertTrue(kept.celebrationsEnabled)
+        assertTrue(kept.goalStreakEnabled)
         val declined = PlanFlow.save(Settings(), PlanAnswers(wants = true, pick = GoalPick.ShowUp, streak = false), full)
         assertFalse(declined.celebrationsEnabled)
+        assertFalse(declined.goalStreakEnabled)
+
+        val balance = OnboardingFixtures.balance().copy(wants = true, streak = true)
+        assertFalse(PlanFlow.goalStreakOffered(balance, full))
+        val showingUpOnly = PlanFlow.save(Settings(celebrationsEnabled = false), balance, full)
+        assertTrue(showingUpOnly.celebrationsEnabled)
+        assertFalse(showingUpOnly.goalStreakEnabled, "never a streak for an energy balance")
+        assertTrue(PlanFlow.goalStreakOffered(PlanAnswers(wants = true, pick = GoalPick.Burn), full))
         val notAsked = PlanFlow.save(Settings(), PlanAnswers(wants = true, pick = GoalPick.ShowUp, streak = false), full.copy(streakOffered = false))
         assertTrue(notAsked.celebrationsEnabled, "a streak never asked leaves celebrations as they were")
     }

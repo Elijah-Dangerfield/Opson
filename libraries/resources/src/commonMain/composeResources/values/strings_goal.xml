@@ -154,6 +154,9 @@
     <string name="plan_streak_title">Keep a streak?</string>
     <string name="plan_streak_body">Opson counts the days you show up: log anything, check in or wrap up the day. One quiet day won't end it.</string>
     <string name="plan_streak_note">It never counts what or how much you eat.</string>
+    <!-- The same, for a goal that has a streak of its own: showing up, meals, moving more -->
+    <string name="plan_streak_body_goal">Opson counts the days you show up, and the days you meet this goal. One quiet day won't end either.</string>
+    <string name="plan_streak_note_goal">Neither one is about eating less.</string>
     <string name="plan_streak_yes">Yes, keep a streak</string>
     <string name="plan_streak_no">No streak</string>
     <string name="plan_streak_footnote">You can turn it off any time in More.</string>

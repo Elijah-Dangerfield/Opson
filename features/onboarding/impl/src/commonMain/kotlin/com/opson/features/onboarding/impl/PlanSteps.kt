@@ -95,6 +95,8 @@ import opson.libraries.resources.generated.resources.plan_meals_body
 import opson.libraries.resources.generated.resources.plan_meals_count
 import opson.libraries.resources.generated.resources.plan_streak_title
 import opson.libraries.resources.generated.resources.plan_streak_body
+import opson.libraries.resources.generated.resources.plan_streak_body_goal
+import opson.libraries.resources.generated.resources.plan_streak_note_goal
 import opson.libraries.resources.generated.resources.plan_streak_note
 import opson.libraries.resources.generated.resources.plan_streak_yes
 import opson.libraries.resources.generated.resources.plan_streak_no
@@ -214,6 +216,8 @@ data class PlanView(
     val mealCount: MealCountView = MealCountView(GoalType.DEFAULT_MEALS, canLess = true, canMore = true),
     /** Onboarding, where a goal is optional: no Skip on a goal's own steps, as Back changes the kind. */
     val asks: Boolean = false,
+    /** "Keep a streak?" also starts the goal's own streak: a goal whose "met" is never eating less. */
+    val goalStreak: Boolean = false,
 )
 
 fun PlanViews.all(answers: PlanAnswers, context: PlanContext, current: Settings): PlanView {
@@ -233,6 +237,7 @@ fun PlanViews.all(answers: PlanAnswers, context: PlanContext, current: Settings)
         burn = burn(answers, context).takeIf { PlanStep.Burn in steps },
         mealCount = mealCount(answers),
         asks = context.asks,
+        goalStreak = PlanFlow.goalStreakOffered(answers, context),
     )
 }
 
@@ -278,7 +283,7 @@ internal fun ColumnScope.PlanStepContent(
             PlanStep.Burn -> view.burn?.let { BurnStep(it, busy, onPlan) }
             PlanStep.MealCount -> MealCountStep(view.mealCount, busy, onPlan)
             PlanStep.Overview -> OverviewStep(view.overview)
-            PlanStep.Streak -> StreakStep()
+            PlanStep.Streak -> StreakStep(view.goalStreak)
             PlanStep.Commit -> CommitStep(view.hard)
         }
     }
@@ -483,10 +488,18 @@ private fun MealCountStep(view: MealCountView, busy: Boolean, onPlan: (PlanActio
 // ---------- Keep a streak? ----------
 
 @Composable
-private fun StreakStep() {
+/**
+ * Which streak: always the days shown up for, and for a goal whose "met" is never eating less
+ * (showing up, meals, moving more) the goal's own run too. A weight or energy balance goal gets
+ * only the first.
+ */
+private fun StreakStep(goalStreak: Boolean) {
     Spacer(Modifier.height(Dimension.D900))
-    StepTitle(title = stringResource(Res.string.plan_streak_title), body = stringResource(Res.string.plan_streak_body))
-    Note(stringResource(Res.string.plan_streak_note))
+    StepTitle(
+        title = stringResource(Res.string.plan_streak_title),
+        body = stringResource(if (goalStreak) Res.string.plan_streak_body_goal else Res.string.plan_streak_body),
+    )
+    Note(stringResource(if (goalStreak) Res.string.plan_streak_note_goal else Res.string.plan_streak_note))
 }
 
 // ---------- 1. Profile ----------

@@ -1213,6 +1213,11 @@ private fun OnboardingStreakPreview() = OnboardingPreview(Fixtures.plan(PlanStep
 private fun OnboardingStreakDarkPreview() =
     OnboardingPreview(Fixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalPick.Meals)), darkTheme = true)
 
+/** After a weight goal: only the showing-up streak, never one for the goal itself. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingStreakWeightPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Streak, Fixtures.LoseTen))
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingStreakLargeTextPreview() =

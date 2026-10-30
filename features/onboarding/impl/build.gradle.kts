@@ -33,6 +33,8 @@ kotlin {
             implementation(projects.libraries.prompts)
             // BetaRelease, for the beta card on Welcome.
             implementation(projects.libraries.entitlements)
+            // GoalStreaks, which goals "Keep a streak?" can start a goal streak for.
+            implementation(projects.libraries.goals)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
