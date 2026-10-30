@@ -17,7 +17,9 @@ import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.RegionUnits
-import com.opson.libraries.nutrition.RestingSource
+import com.opson.libraries.diary.baselineEnvironment
+import com.opson.libraries.health.goalReadings
+import com.opson.libraries.nutrition.HealthReadings
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.flow.first
@@ -81,8 +83,13 @@ class GoalSetupViewModel(
                 logStep(PlanStep.Profile)
             }
             is GoalSetupAction.PolicyChanged -> action.updateState { it.copy(policy = action.policy).rebuilt() }
-            is GoalSetupAction.HealthChanged -> action.updateState {
-                it.copy(health = HealthOffer.from(action.status, health.source, connecting = false)).rebuilt()
+            is GoalSetupAction.HealthChanged -> {
+                action.updateState { it.copy(health = HealthOffer.from(action.status, health.source, connecting = false)).rebuilt() }
+                // What a goal's typical day reads from the health app, read once it is connected.
+                if (action.status == HealthStatus.Connected) {
+                    val readings = Catching { health.goalReadings(calendar.today(), calendar.timeZone()) }.getOrNull() ?: HealthReadings.None
+                    action.updateState { it.copy(readings = readings).rebuilt() }
+                }
             }
             is GoalSetupAction.Plan -> action.handlePlan(action.change)
             GoalSetupAction.ContinueTapped -> action.move(forward = true, skip = false)
@@ -167,7 +174,8 @@ class GoalSetupViewModel(
             policy = policy,
             fresh = false,
             health = health,
-            ownRestingKcal = settings.restingOwnKcal?.takeIf { settings.restingSource == RestingSource.Own },
+            environment = settings.baselineEnvironment(readings),
+            bodyFatPercent = settings.bodyFat,
         )
         return copy(context = context, view = PlanViews.all(answers, context, settings))
     }
@@ -184,6 +192,8 @@ data class GoalSetupState(
     val answers: PlanAnswers = PlanAnswers(),
     val saving: Boolean = false,
     val health: HealthOffer = HealthOffer.Unavailable,
+    /** What the health app has read, for a goal's typical day; none until it is connected. */
+    val readings: HealthReadings = HealthReadings.None,
     /** The account's settings when the flow opened: what saving builds on and what the views compare with. */
     val settings: Settings? = null,
     val policy: VisibilityPolicy? = null,

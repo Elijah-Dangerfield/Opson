@@ -184,7 +184,7 @@ class SearchOptionsStateBuilderTest {
 
         val typed = results(LoggerFixtures.optionsState(full, settings = settings))
         assertEquals("f:sinangag", typed.first().key, "garlic fried rice was logged an hour ago")
-        assertEquals(PickSource.Recent, typed.first().source)
+        assertEquals(PickSource.Search, typed.first().source, "found by typing, so it logs as a search")
     }
 
     @Test

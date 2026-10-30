@@ -80,9 +80,12 @@ import kotlin.time.Duration.Companion.seconds
  * on the name beats a match only through the brand, a query that names a
  * brand ranks its products first, and otherwise generic foods come before
  * branded ones. SEARCH_SQL's comment has the full order. Within a match tier:
- * verified first, lower source tier, whole words, the plain form of a food
- * ("raw", "NFS", "plain", "whole", "brewed", "cooked") over prepared dishes,
- * similarity rounded to one decimal, popularity, shorter names.
+ * verified first, lower source tier, whole words, in full text a name that
+ * starts with what was typed ("ban" is "Bananas" before "Peppers, banana"),
+ * the plain form of a food ("raw", "NFS", "plain", "whole", "brewed",
+ * "cooked") over prepared dishes, and for exact and head matches the fewest
+ * other segments after the food ("Rice, cooked, NFS" before "Rice, fried,
+ * NFS"), similarity rounded to one decimal, popularity, shorter names.
  *
  * Any change to the ranking answers to the relevance suite
  * (`SearchRelevanceTest`, `search-relevance.tsv`).
@@ -377,10 +380,12 @@ class PostgresFoodCatalogRepository(
          * Category words USDA puts before the food ("Fish, salmon, raw",
          * "Nuts, almonds"). A head match also looks past them, so `salmon`
          * finds "Fish, salmon, raw" as it finds "Salmon, raw". Not meats:
-         * "Beef, bacon" is not what `bacon` means.
+         * "Beef, bacon" is not what `bacon` means. Not oil either: "Oil,
+         * almond" is what `almond oil` means, never `almonds`, and `olive oil`
+         * still finds it as a two-segment head.
          */
         private const val CATEGORIES =
-            "fish,shellfish,crustaceans,mollusks,nuts,seeds,spices,beverages,candies,cereals,snacks,oil,cheese"
+            "fish,shellfish,crustaceans,mollusks,nuts,seeds,spices,beverages,candies,cereals,snacks,cheese"
 
         /**
          * The column order here is what [toFood] on a ResultSet reads.
@@ -418,8 +423,9 @@ class PostgresFoodCatalogRepository(
          *  5. USDA's restaurant and brand rows in the generic tables
          *     ("CHICK-FIL-A, ...") after plain foods, unless the query names them;
          *  6. match tier (exact, head, whole-word prefix, full text, similar),
-         *     verified, source tier, whole words, plain forms, similarity,
-         *     popularity, shorter names.
+         *     verified, source tier, whole words, a full-text name starting
+         *     with the query, plain forms, fewest other segments (exact and
+         *     head only), similarity, popularity, shorter names.
          * Head includes the name's first two segments when they are exactly
          * the query's words in any order ("Rice, brown" for "brown rice").
          */
@@ -468,6 +474,7 @@ class PostgresFoodCatalogRepository(
                        ?::text AS normalized,
                        ?::boolean AS brandable,
                        string_to_array(?, '|') AS like_words,
+                       ?::text AS like_prefix,
                        ' ' || ${wordsOf("?::text")} || ' ' AS phrase
             ),
             named AS (
@@ -503,6 +510,9 @@ class PostgresFoodCatalogRepository(
                             ELSE false
                        END AS caps_unnamed,
                        n.lname ~ '\m(raw|nfs|plain|whole|brewed|cooked)\M' AS staple,
+                       regexp_count(n.core, ',')
+                           - regexp_count(n.core, ',\s*(raw|nfs|plain|whole|brewed|cooked|fresh|ns as to [a-z ]+)\s*(?=,|$)') AS extras,
+                       n.lname LIKE p.like_prefix AS starts,
                        extensions.similarity(n.lname, p.normalized) AS sim,
                        p.prefix_ts AS q_prefix_ts,
                        p.normalized AS q_normalized
@@ -551,7 +561,9 @@ class PostgresFoodCatalogRepository(
                      r.verified DESC,
                      r.tier,
                      r.whole_words DESC,
+                     (r.match_tier = 3 AND r.starts) DESC,
                      r.staple DESC,
+                     CASE WHEN r.match_tier <= 1 THEN r.extras ELSE 0 END,
                      round(r.sim::numeric, 1) DESC,
                      r.popularity DESC,
                      length(r.name),
@@ -588,6 +600,7 @@ class PostgresFoodCatalogRepository(
                 text to terms.normalized, // p.normalized
                 BooleanColumnType() to terms.canNameBrand, // p.brandable
                 text to terms.likeWords, // p.like_words
+                text to terms.likePrefix, // p.like_prefix
                 text to terms.phrase, // p.phrase
                 IntegerColumnType() to limit,
             )
@@ -702,19 +715,37 @@ internal class SearchTerms private constructor(
         }
 
         /**
-         * A word plus a naive singular or plural, because the `simple` text
-         * config does no stemming and USDA names mix both ("Bananas, raw",
-         * "Banana, raw").
+         * A word plus its English singular or plural, because the `simple`
+         * text config does no stemming and USDA names mix both ("Bananas,
+         * raw", "Banana, raw"). The spelling rules matter more than they
+         * look: with only "add an s", `strawberry` never reached
+         * "Strawberries, raw" and "Strawberry milk" came first.
          */
         fun variantsOf(word: String): List<String> {
             val variants = linkedSetOf(word)
+            val letters = word.all { it.isLetter() }
             when {
                 word.length > 4 && word.endsWith("ies") -> variants += word.dropLast(3) + "y"
                 word.length > 4 && word.endsWith("oes") -> variants += word.dropLast(2)
+                word.length > 4 && SIBILANT_PLURAL.any { word.endsWith(it) } -> {
+                    variants += word.dropLast(2) // peaches, peach
+                    variants += word.dropLast(1)
+                }
                 word.length > 3 && word.endsWith("s") && !word.endsWith("ss") -> variants += word.dropLast(1)
-                word.length > 2 && !word.endsWith("s") && word.all { it.isLetter() } -> variants += word + "s"
+                !letters || word.length <= 2 -> Unit
+                word.endsWith("ss") || SIBILANT.any { word.endsWith(it) } -> variants += word + "es"
+                word.length > 3 && word.endsWith("y") && word[word.length - 2] !in VOWELS -> variants += word.dropLast(1) + "ies"
+                word.length > 3 && word.endsWith("o") && word[word.length - 2] !in VOWELS -> {
+                    variants += word + "es" // tomatoes, potatoes
+                    variants += word + "s" // avocados, burritos
+                }
+                !word.endsWith("s") -> variants += word + "s"
             }
             return variants.toList()
         }
+
+        private const val VOWELS = "aeiou"
+        private val SIBILANT = listOf("ch", "sh", "x", "z")
+        private val SIBILANT_PLURAL = listOf("ches", "shes", "xes", "zes", "sses")
     }
 }

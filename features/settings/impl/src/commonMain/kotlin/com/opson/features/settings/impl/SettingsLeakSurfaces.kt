@@ -43,8 +43,10 @@ import com.opson.features.settings.impl.support.SupportCountry
 import com.opson.features.settings.impl.support.SupportScreen
 import com.opson.features.settings.impl.support.SupportState
 import com.opson.features.settings.impl.support.SupportStateBuilder
+import com.opson.features.settings.impl.targets.TargetsDialogKind
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsStateBuilder
+import com.opson.libraries.goals.GoalFixtures
 import com.opson.features.settings.impl.todayscreen.TodayScreenChoice
 import com.opson.features.settings.impl.todayscreen.TodayScreenFlags
 import com.opson.features.settings.impl.todayscreen.TodayScreenChoiceSheetContent
@@ -115,6 +117,24 @@ object SettingsLeakSurfaces {
             val settings = SettingsFixtures.settings(policy.settings, SettingsFixtures.deficitTargets)
             TargetsScreen(
                 TargetsStateBuilder.build(settings, policy, burned = SettingsFixtures.burned, goalsAndEnergy = true, healthSource = HealthSource.HealthConnect),
+                onAction = {},
+            )
+        },
+        // Goals v2: a goal setting the target (its band, deficit and pace note), and the
+        // recalculation it offers, in every mode.
+        LeakSurface(id = "targets-goal", label = "Targets, set by a goal", showsCaloriesInFull = true) { policy ->
+            val settings = GoalFixtures.settings(base = SettingsFixtures.settings(policy.settings))
+            TargetsScreen(
+                TargetsStateBuilder.build(
+                    settings,
+                    policy,
+                    burned = SettingsFixtures.burned,
+                    goalsAndEnergy = true,
+                    weightGoals = true,
+                    today = GoalFixtures.today,
+                    weightKg = GoalFixtures.WEIGHT_KG,
+                    dialog = TargetsDialogKind.Recalculate(GoalFixtures.connectedHealth),
+                ),
                 onAction = {},
             )
         },

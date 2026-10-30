@@ -33,6 +33,11 @@ private fun FullLightPreview() = Search(LoggerFixtures.searchState(full), dark =
 @Composable
 private fun FullBlindPreview() = Search(LoggerFixtures.searchState(blind))
 
+/** Their favorite, what they log, what they keep choosing for "rice" and their own food first, each saying why. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun PersonalPreview() = Search(LoggerFixtures.searchPersonalState(full), dark = false)
+
 /** Before typing: usual at dinner, then recent. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

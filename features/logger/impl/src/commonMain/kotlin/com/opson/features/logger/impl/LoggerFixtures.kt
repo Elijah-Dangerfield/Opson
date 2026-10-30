@@ -6,6 +6,7 @@ import com.opson.libraries.diary.FoodUnit
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.LoggedFood
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealSlotPicker
@@ -24,6 +25,7 @@ import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.foods.FoodTier
+import com.opson.libraries.foods.LearnedPicks
 import com.opson.libraries.foods.NutrientProfile
 import com.opson.libraries.foods.ParsedItem
 import com.opson.libraries.foods.Portion
@@ -296,6 +298,12 @@ object LoggerFixtures {
         savedMeals = if (firstRun) emptyList() else savedMeals,
         history = if (firstRun) emptyList() else listOf(rice, banana, yogurt, arroz).mapIndexed { i, food -> item(food, MealSlot.Dinner, date.minus(1, DateTimeUnit.DAY), minutesAgo = i) },
         frequent = if (firstRun) emptyList() else listOf(rice, banana).map { item(it, MealSlot.Dinner, date.minus(1, DateTimeUnit.DAY)) },
+        // Jasmine rice is a habit, so search puts it first and says "Logged 4 times".
+        logged = if (firstRun) {
+            emptyList()
+        } else {
+            listOf(rice to 4, banana to 2, yogurt to 1).map { (food, times) -> LoggedFood(item(food, MealSlot.Dinner, date.minus(1, DateTimeUnit.DAY)), times) }
+        },
     )
 
     fun search(query: String = "rice", offline: Boolean = false): SearchOutcome = SearchOutcome(
@@ -359,6 +367,22 @@ object LoggerFixtures {
         added = false,
         reviews = mapOf(granola.id to ReviewStatus.Pending),
     )
+
+    /**
+     * Search in this person's order: the rice cakes they keep choosing for "rice", their favorite
+     * brown rice, the jasmine rice they log, their own rice bowl, then the catalog's order. Each
+     * says why on its row, but the rice cakes, which they chose and never logged.
+     */
+    fun searchPersonalState(policy: VisibilityPolicy): FoodSearchState {
+        val inputs = searchInputs(settings = Settings(favoriteFoods = listOf("f:brown-rice"))).let { inputs ->
+            val at = inputs.now.toInstant(inputs.timeZone)
+            inputs.copy(
+                customFoods = listOf(riceBowl),
+                learned = LearnedPicks().picked("rice", "f:rice-cakes", at).picked("rice", "f:rice-cakes", at),
+            )
+        }
+        return FoodSearchStateBuilder.build(inputs, policy, SearchChoices(slot = MealSlot.Dinner, query = "rice", search = search()))
+    }
 
     // More rice for 13.4c.
     val brownRice = food("brown-rice", "Brown rice, cooked", "1 cup", 195.0, 215.0, 5.0, 45.0, 1.8)

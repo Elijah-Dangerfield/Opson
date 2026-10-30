@@ -32,6 +32,10 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "search-full", label = "Food search", showsCaloriesInFull = true) { policy ->
             FoodSearchContent(state = LoggerFixtures.searchState(policy), onAction = {})
         },
+        // Their own foods first, each saying why: "Logged 4 times" counts logs, never food.
+        LeakSurface(id = "search-personal", label = "Food search, in their order", showsCaloriesInFull = true) { policy ->
+            FoodSearchContent(state = LoggerFixtures.searchPersonalState(policy), onAction = {})
+        },
         LeakSurface(id = "search-browse", label = "Food search, before typing", showsCaloriesInFull = true) { policy ->
             FoodSearchContent(state = LoggerFixtures.searchState(policy, query = "", added = false), onAction = {})
         },

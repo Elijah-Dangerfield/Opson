@@ -94,15 +94,26 @@ CAP_SIMILAR = 50
 
 
 def variants(word: str) -> list[str]:
-    """SearchTerms.variantsOf: the word plus a naive singular or plural."""
+    """SearchTerms.variantsOf: the word plus its English singular or plural."""
     out = [word]
+    letters = word.isalpha()
     if len(word) > 4 and word.endswith("ies"):
         out.append(word[:-3] + "y")
     elif len(word) > 4 and word.endswith("oes"):
         out.append(word[:-2])
+    elif len(word) > 4 and word.endswith(("ches", "shes", "xes", "zes", "sses")):
+        out += [word[:-2], word[:-1]]
     elif len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
         out.append(word[:-1])
-    elif len(word) > 2 and not word.endswith("s") and word.isalpha():
+    elif not letters or len(word) <= 2:
+        pass
+    elif word.endswith(("ss", "ch", "sh", "x", "z")):
+        out.append(word + "es")
+    elif len(word) > 3 and word.endswith("y") and word[-2] not in "aeiou":
+        out.append(word[:-1] + "ies")
+    elif len(word) > 3 and word.endswith("o") and word[-2] not in "aeiou":
+        out += [word + "es", word + "s"]
+    elif not word.endswith("s"):
         out.append(word + "s")
     return list(dict.fromkeys(out))
 

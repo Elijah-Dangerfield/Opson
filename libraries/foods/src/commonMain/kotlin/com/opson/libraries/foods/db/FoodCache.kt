@@ -13,7 +13,8 @@ import kotlinx.coroutines.flow.Flow
  * Catalog foods this user has picked or starred, so Favorites, Recent and an
  * offline search have something to show. [json] is the whole `Food`; the other
  * columns exist to be queried. User-scoped: what someone eats is theirs, so a
- * user change wipes it.
+ * user change wipes it. Bounded: the 500 most recently used besides favorites
+ * ([FoodCacheDao.trim]).
  */
 @Entity(
     tableName = "food_cache",
@@ -29,6 +30,14 @@ data class FoodCacheEntity(
     val favorite: Boolean,
 )
 
+/** A [FoodCacheEntity] without its JSON: what the offline search matches on. */
+data class FoodCacheSearchRow(
+    val id: String,
+    val searchText: String,
+    val favorite: Boolean,
+    val lastUsedAtEpochMs: Long?,
+)
+
 @Dao
 interface FoodCacheDao : ClearableDao {
     @Upsert
@@ -40,12 +49,25 @@ interface FoodCacheDao : ClearableDao {
     @Query("SELECT * FROM food_cache WHERE barcode = :barcode LIMIT 1")
     suspend fun getByBarcode(barcode: String): FoodCacheEntity?
 
-    /** [pattern] is a LIKE pattern over [FoodCacheEntity.searchText], already lowercased. */
+    /**
+     * What the offline search reads to choose, without each food's JSON: favorites, then the most
+     * recently used. The cache is bounded ([trim]), so this is a few hundred short rows.
+     */
+    @Query("SELECT id, searchText, favorite, lastUsedAtEpochMs FROM food_cache ORDER BY favorite DESC, lastUsedAtEpochMs DESC")
+    suspend fun searchable(): List<FoodCacheSearchRow>
+
+    @Query("SELECT * FROM food_cache WHERE id IN (:ids)")
+    suspend fun getAll(ids: List<String>): List<FoodCacheEntity>
+
+    /**
+     * Keeps the [keep] most recently used foods besides favorites and deletes the rest, oldest
+     * first; a food kept from a scan and never logged goes before any logged one.
+     */
     @Query(
-        "SELECT * FROM food_cache WHERE searchText LIKE :pattern " +
-            "ORDER BY favorite DESC, lastUsedAtEpochMs DESC LIMIT :limit",
+        "DELETE FROM food_cache WHERE favorite = 0 AND id NOT IN " +
+            "(SELECT id FROM food_cache WHERE favorite = 0 ORDER BY lastUsedAtEpochMs DESC LIMIT :keep)",
     )
-    suspend fun search(pattern: String, limit: Int): List<FoodCacheEntity>
+    suspend fun trim(keep: Int)
 
     @Query("SELECT * FROM food_cache WHERE favorite = 1 ORDER BY searchText")
     fun observeFavorites(): Flow<List<FoodCacheEntity>>

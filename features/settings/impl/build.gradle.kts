@@ -27,6 +27,8 @@ kotlin {
             implementation(projects.libraries.reminders)
             implementation(projects.libraries.config)
             implementation(projects.libraries.health)
+            // Goals: the goal setting the target, its recalculations and pace (Targets).
+            implementation(projects.libraries.goals)
             // The first-run tips registry (Tips), for the weight goal row's tip.
             implementation(projects.libraries.prompts)
             // The Widgets page and its More row, and the widget's leak surface.
@@ -65,6 +67,9 @@ kotlin {
             implementation(projects.libraries.reminders)
             implementation(projects.libraries.config)
             implementation(projects.libraries.health)
+            implementation(projects.libraries.goals)
+            // PromptCandidate, for the goal recalculation prompt.
+            implementation(projects.libraries.prompts)
             implementation(projects.libraries.widgets)
             implementation(projects.libraries.progressphotos)
             // PdfWriter, for the provider summary.

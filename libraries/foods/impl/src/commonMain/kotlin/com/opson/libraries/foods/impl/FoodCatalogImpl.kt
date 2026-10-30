@@ -6,6 +6,7 @@ import com.opson.libraries.foods.Confidence
 import com.opson.libraries.foods.EnergyCheck
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
+import com.opson.libraries.foods.FoodQuery
 import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSearchResult
 import com.opson.libraries.foods.FoodSource
@@ -129,6 +130,7 @@ class FoodCatalogImpl(
     override suspend fun markUsed(food: Food) {
         val existing = cache.get(food.id)
         cache.upsert(food.toCacheRow(lastUsedAt = clock.now().toEpochMilliseconds(), favorite = existing?.favorite ?: false))
+        cache.trim(keep = CACHE_LIMIT)
     }
 
     override suspend fun setFavorite(food: Food, favorite: Boolean) {
@@ -136,15 +138,22 @@ class FoodCatalogImpl(
         cache.upsert(food.toCacheRow(lastUsedAt = existing?.lastUsedAtEpochMs, favorite = favorite))
     }
 
+    /**
+     * The words typed against every food on the phone ([FoodQuery], as the server reads them),
+     * favorites first, then the most recently used. Only the matches' JSON is read.
+     */
     private suspend fun searchCache(query: String, limit: Int): List<Food> {
-        // LIKE wildcards in what the user typed would match far too much.
-        val needle = query.lowercase().replace("%", "").replace("_", "").trim()
-        if (needle.isEmpty()) return emptyList()
-        return cache.search("%$needle%", limit).mapNotNull { it.decode() }
+        val ids = cache.searchable().filter { FoodQuery.matches(query, it.searchText) }.take(limit).map { it.id }
+        if (ids.isEmpty()) return emptyList()
+        val rows = cache.getAll(ids).associateBy { it.id }
+        return ids.mapNotNull { rows[it]?.decode() }
     }
 
-    private companion object {
+    internal companion object {
         const val MAX_LIMIT = 50
+
+        /** Catalog foods kept on the phone besides favorites: the long tail search and logging use offline. */
+        const val CACHE_LIMIT = 500
     }
 }
 
@@ -161,7 +170,7 @@ private fun FoodCacheEntity.decode(): Food? = Catching { CacheJson.decodeFromStr
 
 private fun Food.searchText(): String = listOfNotNull(name, brand).joinToString(" ").lowercase()
 
-private fun Food.toCacheRow(lastUsedAt: Long?, favorite: Boolean) = FoodCacheEntity(
+internal fun Food.toCacheRow(lastUsedAt: Long?, favorite: Boolean) = FoodCacheEntity(
     id = id,
     json = encode(),
     searchText = searchText(),
