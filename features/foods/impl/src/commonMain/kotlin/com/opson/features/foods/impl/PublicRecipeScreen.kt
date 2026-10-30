@@ -41,6 +41,7 @@ import opson.libraries.resources.generated.resources.recipes_public_open_mine
 import opson.libraries.resources.generated.resources.recipes_public_report
 import opson.libraries.resources.generated.resources.recipes_public_save
 import opson.libraries.resources.generated.resources.recipes_public_unverified
+import opson.libraries.resources.generated.resources.recipes_public_saved_before
 import opson.libraries.resources.generated.resources.recipes_public_yours
 import opson.libraries.resources.generated.resources.recipes_try_again
 import org.jetbrains.compose.resources.pluralStringResource
@@ -98,7 +99,11 @@ private fun Loaded(state: PublicRecipeState.Loaded, onAction: (PublicRecipeActio
                 pluralStringResource(Res.plurals.recipes_public_checked, state.ingredients.size, state.checkedCount, state.ingredients.size),
             ).joinToString(" "),
         )
-        if (state.mineId != null) NoteBanner(stringResource(Res.string.recipes_public_yours))
+        if (state.mineId != null) {
+            NoteBanner(stringResource(Res.string.recipes_public_yours))
+        } else if (state.savedId != null) {
+            NoteBanner(stringResource(Res.string.recipes_public_saved_before))
+        }
         NumbersCard(state.perServing, whole = null)
         FoodsCard(label = stringResource(Res.string.recipes_ingredients)) {
             state.ingredients.forEachIndexed { index, item -> IngredientRow(item, showDivider = index < state.ingredients.lastIndex) }
@@ -107,11 +112,17 @@ private fun Loaded(state: PublicRecipeState.Loaded, onAction: (PublicRecipeActio
         ButtonPrimary(onClick = { onAction(PublicRecipeAction.LogTapped) }, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(Res.string.recipes_log_serving))
         }
-        if (state.mineId != null) {
+        if (state.mineId != null || state.savedId != null) {
             ButtonSecondary(onClick = { onAction(PublicRecipeAction.OpenMineTapped) }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(Res.string.recipes_public_open_mine))
             }
-        } else {
+        }
+        if (state.mineId == null && state.savedId != null) {
+            ButtonGhost(onClick = { onAction(PublicRecipeAction.ReportTapped) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(Res.string.recipes_public_report))
+            }
+        }
+        if (state.mineId == null && state.savedId == null) {
             ButtonSecondary(
                 onClick = { onAction(PublicRecipeAction.SaveTapped) },
                 icon = AppIcons.BookmarkAdd,

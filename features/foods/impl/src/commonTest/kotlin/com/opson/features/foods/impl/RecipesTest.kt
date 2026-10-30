@@ -9,6 +9,7 @@ import com.opson.features.foods.ReportRecipeRoute
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.PickedForMeal
+import com.opson.libraries.diary.Recipe
 import com.opson.libraries.diary.RecipeShareState
 import com.opson.libraries.diary.RecipeSharing
 import com.opson.libraries.diary.RecipesRelease
@@ -31,8 +32,12 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.recipes_ingredients_full
+import opson.libraries.resources.generated.resources.recipes_ingredients_left_out
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -112,6 +117,28 @@ class RecipesTest : CoroutineTest() {
         assertEquals(6.0, saved.servings)
         assertEquals(RecipeEditEvent.Saved(saved.id, created = true), events.last())
         assertEquals(2, recipes.recipes.value.size, "a second Save writes nothing")
+    }
+
+    @Test
+    fun picksPastTheLimitAreLeftOutAndSaidSo_andAFullRecipeOffersNoMore() = runUnitTest {
+        val vm = RecipeEditViewModel(RecipeEditRoute(), recipes, mealPicks, policySource)
+        val events = events(vm)
+        advanceUntilIdle()
+        vm.takeAction(RecipeEditAction.AddIngredientTapped)
+        advanceUntilIdle()
+        val request = assertIs<RecipeEditEvent.OpenPicker>(events.last())
+        val many = List(Recipe.MAX_INGREDIENTS + 5) { RecipeFixtures.chiliIngredients.first() }
+
+        mealPicks.picked(PickedForMeal(request.requestId, many))
+        advanceUntilIdle()
+
+        assertEquals(Recipe.MAX_INGREDIENTS, vm.state.ingredients.size)
+        assertEquals(RecipeEditEvent.ShowToast(Toast(Res.string.recipes_ingredients_left_out, listOf(Recipe.MAX_INGREDIENTS))), events.last())
+        assertFalse(vm.state.canAddIngredient)
+        vm.takeAction(RecipeEditAction.AddIngredientTapped)
+        advanceUntilIdle()
+        assertEquals(RecipeEditEvent.ShowToast(Toast(Res.string.recipes_ingredients_full, listOf(Recipe.MAX_INGREDIENTS))), events.last())
+        assertEquals(1, events.count { it is RecipeEditEvent.OpenPicker }, "no picker for a full recipe")
     }
 
     @Test
@@ -234,6 +261,30 @@ class RecipesTest : CoroutineTest() {
         val copy = recipes.recipes.value.values.single { it.savedFrom == RecipeFixtures.oats.code }
         assertEquals(RecipeFixtures.oats.ingredients.size, copy.ingredients.size)
         assertEquals(listOf(RecipeFixtures.oats.code), publicRecipes.saves)
+        assertEquals(PublicRecipeEvent.OpenRecipe(copy.id), events.last())
+    }
+
+    @Test
+    fun aRecipeSavedBeforeOffersTheCopyInsteadOfASecond() = runUnitTest {
+        publicRecipes.lookup = PublicRecipeLookup.Found(RecipeFixtures.oats)
+        val first = PublicRecipeViewModel(PublicRecipeRoute(RecipeFixtures.oats.code), publicRecipes, recipes, policySource)
+        advanceUntilIdle()
+        first.takeAction(PublicRecipeAction.SaveTapped)
+        advanceUntilIdle()
+        val copy = recipes.recipes.value.values.single { it.savedFrom == RecipeFixtures.oats.code }
+
+        val again = PublicRecipeViewModel(PublicRecipeRoute(RecipeFixtures.oats.code), publicRecipes, recipes, policySource)
+        val events = events(again)
+        advanceUntilIdle()
+        val loaded = assertIs<PublicRecipeState.Loaded>(again.state)
+        assertEquals(copy.id, loaded.savedId)
+        assertNull(loaded.mineId, "a saved copy is not their own recipe")
+        again.takeAction(PublicRecipeAction.SaveTapped)
+        again.takeAction(PublicRecipeAction.OpenMineTapped)
+        advanceUntilIdle()
+
+        assertEquals(1, recipes.recipes.value.values.count { it.savedFrom == RecipeFixtures.oats.code }, "no second copy")
+        assertEquals(listOf(RecipeFixtures.oats.code), publicRecipes.saves, "and no second count")
         assertEquals(PublicRecipeEvent.OpenRecipe(copy.id), events.last())
     }
 

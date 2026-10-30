@@ -28,6 +28,9 @@
     <string name="recipes_ingredients">Ingredients</string>
     <string name="recipes_ingredients_empty">Nothing yet. Add what goes into the whole pot or pan.</string>
     <string name="recipes_add_ingredient">Add an ingredient</string>
+    <!-- %1$d is the most ingredients a recipe holds, 60 -->
+    <string name="recipes_ingredients_full">This recipe has %1$d ingredients, the most one can hold.</string>
+    <string name="recipes_ingredients_left_out">Some didn't fit. A recipe holds up to %1$d ingredients.</string>
     <string name="recipes_whole">Whole recipe</string>
     <string name="recipes_per_serving">Per serving</string>
     <string name="recipes_notes">Notes · optional</string>
@@ -103,6 +106,7 @@
     <string name="recipes_public_save">Save to my recipes</string>
     <string name="recipes_public_saved">Saved to your recipes.</string>
     <string name="recipes_public_yours">This is your recipe.</string>
+    <string name="recipes_public_saved_before">You saved a copy of this one to your recipes.</string>
     <string name="recipes_public_open_mine">Open my recipe</string>
     <string name="recipes_public_report">Report this recipe</string>
     <string name="recipes_public_not_shared_title">This recipe isn't shared right now</string>

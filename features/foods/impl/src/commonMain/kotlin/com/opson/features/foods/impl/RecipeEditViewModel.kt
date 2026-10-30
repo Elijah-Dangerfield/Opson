@@ -3,6 +3,7 @@ package com.opson.features.foods.impl
 import androidx.lifecycle.viewModelScope
 import com.opson.features.foods.RecipeEditRoute
 import com.opson.libraries.diary.MealPicks
+import com.opson.libraries.diary.Recipe
 import com.opson.libraries.diary.RecipeDraft
 import com.opson.libraries.diary.RecipeRepository
 import com.opson.libraries.flowroutines.SEAViewModel
@@ -14,6 +15,8 @@ import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.recipes_ingredients_full
+import opson.libraries.resources.generated.resources.recipes_ingredients_left_out
 import opson.libraries.resources.generated.resources.recipes_saved
 import kotlin.random.Random
 
@@ -75,10 +78,20 @@ class RecipeEditViewModel(
             is RecipeEditAction.IngredientRemoveTapped -> action.change {
                 copy(ingredients = ingredients.filterIndexed { index, _ -> index != action.index })
             }
-            RecipeEditAction.AddIngredientTapped -> sendEvent(RecipeEditEvent.OpenPicker(requestId))
+            RecipeEditAction.AddIngredientTapped -> if (draft.ingredients.size < Recipe.MAX_INGREDIENTS) {
+                sendEvent(RecipeEditEvent.OpenPicker(requestId))
+            } else {
+                sendEvent(RecipeEditEvent.ShowToast(Toast(Res.string.recipes_ingredients_full, listOf(Recipe.MAX_INGREDIENTS))))
+            }
             is RecipeEditAction.IngredientsPicked -> {
                 mealPicks.consumed(action.picks)
-                action.change { copy(ingredients = ingredients + action.picks.items) }
+                // The server keeps a recipe to its limit; past it, the rest are left out here, and said so.
+                val room = (Recipe.MAX_INGREDIENTS - draft.ingredients.size).coerceAtLeast(0)
+                val picked = action.picks.items
+                action.change { copy(ingredients = ingredients + picked.take(room)) }
+                if (picked.size > room) {
+                    sendEvent(RecipeEditEvent.ShowToast(Toast(Res.string.recipes_ingredients_left_out, listOf(Recipe.MAX_INGREDIENTS))))
+                }
             }
             RecipeEditAction.SaveTapped -> save()
             RecipeEditAction.CloseTapped -> sendEvent(RecipeEditEvent.Close)
