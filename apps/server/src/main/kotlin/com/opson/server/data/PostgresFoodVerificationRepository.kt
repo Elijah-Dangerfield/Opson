@@ -26,7 +26,13 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inSubQuery
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNotNull
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
+import org.jetbrains.exposed.sql.TextColumnType
+import org.jetbrains.exposed.sql.statements.StatementType
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
@@ -60,13 +66,20 @@ class PostgresFoodVerificationRepository(
         find(verification.id)?.let { found ->
             return@transaction if (found.userId == verification.userId) VerifyOutcome.Existing(found) else VerifyOutcome.Conflict
         }
+        // Matches of one food are decided one at a time, so two Builders' arriving together still agree.
+        if (verification.awaitsAgreement) lockFood(verification.foodId)
         val confirmedBefore = verification.outcome == VerificationOutcome.Confirmed &&
             FoodVerificationsTable.selectAll().where {
                 (FoodVerificationsTable.userId eq verification.userId.value) and
                     (FoodVerificationsTable.foodId eq verification.foodId) and
                     (FoodVerificationsTable.outcome eq VerificationOutcome.Confirmed.wire)
             }.any()
-        val stored = if (confirmedBefore) verification.copy(outcome = VerificationOutcome.Unconfirmed) else verification
+        val stored = when {
+            !confirmedBefore -> verification
+            // The same person matching the same pack again: nothing to wait for, nothing to count.
+            verification.awaitsAgreement -> verification.copy(outcome = VerificationOutcome.Unconfirmed, status = null, snapshot = null)
+            else -> verification.copy(outcome = VerificationOutcome.Unconfirmed)
+        }
         val queued = stored.status == VerificationStatus.Open
         FoodVerificationsTable.insert {
             it[id] = stored.id
@@ -92,7 +105,39 @@ class PostgresFoodVerificationRepository(
                 }
             }
         }
-        VerifyOutcome.Recorded(stored.copy(photos = if (queued) photos.keys else emptySet()))
+        if (stored.awaitsAgreement) agree(stored)
+        VerifyOutcome.Recorded(checkNotNull(find(stored.id)))
+    }
+
+    /**
+     * Accepts [match] and every match of the same food waiting for it when another Builder's
+     * match stands: one waiting, one accepted, or one decided on arrival. A match made against
+     * other numbers (a correction landed between the two) doesn't agree with it.
+     */
+    private fun agree(match: FoodVerification) {
+        val others = FoodVerificationsTable.selectAll().where {
+            (FoodVerificationsTable.foodId eq match.foodId) and
+                (FoodVerificationsTable.userId neq match.userId.value) and
+                (FoodVerificationsTable.outcome eq VerificationOutcome.Confirmed.wire) and
+                FoodVerificationsTable.problem.isNull() and
+                (FoodVerificationsTable.status.isNull() or (FoodVerificationsTable.status inList AGREEABLE))
+        }.map { it.toVerification(emptySet()) }
+            .filter { other -> other.snapshot == null || match.snapshot == null || other.snapshot == match.snapshot }
+        if (others.isEmpty()) return
+        val waiting = others.filter { it.status == VerificationStatus.Open }.map { it.id } + match.id
+        FoodVerificationsTable.update({ FoodVerificationsTable.id inList waiting }) {
+            it[status] = VerificationStatus.Accepted.wire
+            it[resolvedAt] = clock.now().toJavaInstant()
+            it[resolvedBy] = FoodVerification.AGREED_BY
+        }
+    }
+
+    private fun lockFood(foodId: UUID) {
+        TransactionManager.current().exec(
+            stmt = "SELECT pg_advisory_xact_lock(hashtext('food_verification'), hashtext(?))",
+            args = listOf(TextColumnType() to foodId.toString()),
+            explicitStatementType = StatementType.SELECT,
+        ) { }
     }
 
     override suspend fun get(id: UUID): FoodVerification? = database.transaction { find(id) }
@@ -163,12 +208,10 @@ class PostgresFoodVerificationRepository(
         VerificationDecision.Rejected(checkNotNull(find(id)))
     }
 
+    /** One statement: the decided checks are a subquery, never a list of ids sent back to Postgres. */
     override suspend fun purgeDecidedPhotos(before: Instant): Int = database.transaction {
-        val decided = FoodVerificationsTable.select(FoodVerificationsTable.id)
-            .where { FoodVerificationsTable.resolvedAt lessEq before.toJavaInstant() }
-            .map { it[FoodVerificationsTable.id] }
-        if (decided.isEmpty()) return@transaction 0
-        FoodVerificationPhotosTable.deleteWhere { verificationId inList decided }
+        val decided = FoodVerificationsTable.select(FoodVerificationsTable.id).where { FoodVerificationsTable.resolvedAt lessEq before.toJavaInstant() }
+        FoodVerificationPhotosTable.deleteWhere { verificationId inSubQuery decided }
     }
 
     override suspend fun reviewerCounts(since: Instant): List<ReviewerCount> = database.transaction {
@@ -224,6 +267,8 @@ class PostgresFoodVerificationRepository(
     )
 
     private companion object {
+        /** The statuses of a match another can agree with; a rejected one never counts. */
+        val AGREEABLE = listOf(VerificationStatus.Open.wire, VerificationStatus.Accepted.wire)
         const val MAX_ENGINE = 32
         const val MAX_ACTOR = 100
         const val MAX_RESOLUTION = 500
@@ -238,7 +283,7 @@ class PostgresFoodVerificationRepository(
                 FROM food_reports WHERE resolved_at >= ? AND resolved_by IS NOT NULL
                 UNION ALL
                 SELECT resolved_by, 0, 0, 0, (status = 'accepted')::int, (status = 'rejected')::int
-                FROM food_verifications WHERE resolved_at >= ? AND resolved_by IS NOT NULL
+                FROM food_verifications WHERE resolved_at >= ? AND resolved_by IS NOT NULL AND resolved_by NOT LIKE 'auto:%'
             ) d
             GROUP BY reviewer
         """.trimIndent()
@@ -247,15 +292,19 @@ class PostgresFoodVerificationRepository(
 
 /** Reading `food_verifications` inside whatever transaction is current, for the catalog's Verified mark. */
 internal object FoodVerificationsSql {
-    /** Which of [foodIds] a Builder's verification confirmed or a reviewer accepted. One query. */
+    /**
+     * Which of [foodIds] have a verification that stands: accepted (by a reviewer, or because two
+     * Builders' matches agreed), or a match decided on arrival (an owner's or admin's, or one from
+     * before matches waited for agreement). A match still waiting doesn't count. One query.
+     */
     fun verified(foodIds: Collection<UUID>): Set<UUID> {
         if (foodIds.isEmpty()) return emptySet()
         return FoodVerificationsTable.select(FoodVerificationsTable.foodId)
             .where {
                 (FoodVerificationsTable.foodId inList foodIds.distinct()) and
                     (
-                        (FoodVerificationsTable.outcome eq VerificationOutcome.Confirmed.wire) or
-                            (FoodVerificationsTable.status eq VerificationStatus.Accepted.wire)
+                        (FoodVerificationsTable.status eq VerificationStatus.Accepted.wire) or
+                            (FoodVerificationsTable.status.isNull() and (FoodVerificationsTable.outcome eq VerificationOutcome.Confirmed.wire))
                         )
             }
             .withDistinct()

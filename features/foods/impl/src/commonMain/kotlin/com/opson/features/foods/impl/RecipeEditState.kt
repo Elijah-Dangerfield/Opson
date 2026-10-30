@@ -20,6 +20,8 @@ data class RecipeEditState(
     val notes: String = "",
     /** A name and at least one ingredient. */
     val canSave: Boolean = false,
+    /** False at [Recipe.MAX_INGREDIENTS], the server's limit: the screen says so instead of offering another. */
+    val canAddIngredient: Boolean = true,
 )
 
 /** What the person has typed and picked so far. The view model holds it; [RecipeEditStateBuilder] draws it. */
@@ -90,6 +92,7 @@ object RecipeEditStateBuilder {
             perServing = RecipeNumbers.perServing(recipe, policy),
             notes = draft.notes,
             canSave = draft.name.isNotBlank() && draft.ingredients.isNotEmpty(),
+            canAddIngredient = draft.ingredients.size < Recipe.MAX_INGREDIENTS,
         )
     }
 }

@@ -194,9 +194,10 @@ optional. In a mode that hides numbers the number fields are left out and the
 label's own figures go.
 
 Verify (or Send for review) is one `POST /v1/foods/{id}/verifications` with
-the label's text, the answers and both photos. A match with nothing wrong is
-Verified on the spot and the server drops the photos; anything else waits for
-a reviewer, who corrects the food that is already there (the corrections
+the label's text, the answers and both photos. A match with nothing wrong waits
+with its photos until a second Builder's match or a reviewer agrees, then the
+food is Verified (an owner's or admin's match is Verified on the spot); anything
+else waits for a reviewer, who corrects the food that is already there (the corrections
 overlay), never a new one. A server from before reviews never answers
 `review: "open"`, so the answers go as a Report a problem instead.
 

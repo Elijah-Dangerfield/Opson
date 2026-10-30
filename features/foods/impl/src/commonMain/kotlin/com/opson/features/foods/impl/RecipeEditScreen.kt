@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.Recipe
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.Stepper
 import com.opson.libraries.ui.components.icon.AppIcons
@@ -16,6 +17,7 @@ import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.foods_meal_remove_cd
 import opson.libraries.resources.generated.resources.recipes_add_ingredient
+import opson.libraries.resources.generated.resources.recipes_ingredients_full
 import opson.libraries.resources.generated.resources.recipes_edit_title
 import opson.libraries.resources.generated.resources.recipes_ingredients
 import opson.libraries.resources.generated.resources.recipes_ingredients_empty
@@ -92,7 +94,11 @@ fun RecipeEditScreen(
             HorizontalDivider(color = AppTheme.colors.line)
             AmountRow(stringResource(Res.string.recipes_per_serving), state.perServing, strong = true)
         }
-        ActionCard(AppIcons.Add, stringResource(Res.string.recipes_add_ingredient), onClick = { onAction(RecipeEditAction.AddIngredientTapped) })
+        if (state.canAddIngredient) {
+            ActionCard(AppIcons.Add, stringResource(Res.string.recipes_add_ingredient), onClick = { onAction(RecipeEditAction.AddIngredientTapped) })
+        } else {
+            FoodsCard { FoodsCardNote(stringResource(Res.string.recipes_ingredients_full, Recipe.MAX_INGREDIENTS)) }
+        }
         FormCard {
             FieldLabel(stringResource(Res.string.recipes_notes))
             TextArea(

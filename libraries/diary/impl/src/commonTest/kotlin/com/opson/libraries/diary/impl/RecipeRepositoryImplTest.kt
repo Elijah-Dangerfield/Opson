@@ -71,6 +71,17 @@ class RecipeRepositoryImplTest : CoroutineTest() {
     }
 
     @Test
+    fun markShared_readsAndWritesInOneTransaction() = runUnitTest {
+        val recipe = repo.create(draft)
+        db.writesOutsideTransaction.clear()
+
+        repo.markShared(recipe.id, RecipeSharing("abcd2345", RecipeShareState.Live, showName = false))
+
+        assertEquals(emptyList(), db.writesOutsideTransaction)
+        assertEquals("abcd2345", repo.get(recipe.id)?.sharing?.code)
+    }
+
+    @Test
     fun delete_isATombstoneThatSyncs() = runUnitTest {
         val recipe = repo.create(draft)
         db.outbox.clear()

@@ -53,7 +53,18 @@ class FakeFoodCatalog(foods: List<Food> = emptyList()) : FoodCatalogRepository {
         }
     }
 
-    override suspend fun findById(id: UUID): Food? = foods.firstOrNull { it.id == id }
+    /** Calls to [findById] and [findByIds], which stand for a transaction each in the real catalog. */
+    var loads = 0
+
+    override suspend fun findById(id: UUID): Food? {
+        loads++
+        return foods.firstOrNull { it.id == id }
+    }
+
+    override suspend fun findByIds(ids: Collection<UUID>): Map<UUID, Food> {
+        loads++
+        return foods.filter { it.id in ids }.associateBy { it.id }
+    }
 
     override suspend fun findByBarcode(barcode: String): Food? = findAllByBarcode(barcode).firstOrNull()
 

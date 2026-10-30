@@ -35,6 +35,8 @@ class BodyLimitTest {
             routing {
                 post("/json") { call.respondText("keys=${call.receive<JsonObject>().size}") }
                 post("/raw") { call.respondText("bytes=${call.receiveChannel().readRemaining().readByteArray().size}") }
+                bodyLimit(256) { post("/small") { call.respondText("keys=${call.receive<JsonObject>().size}") } }
+                bodyLimit(limit * 4) { post("/roomy") { call.respondText("keys=${call.receive<JsonObject>().size}") } }
             }
         }
     }
@@ -76,5 +78,14 @@ class BodyLimitTest {
             val response = client.post(path) { setBody(chunked(json(5_000))) }
             assertEquals(HttpStatusCode.PayloadTooLarge, response.status, path)
         }
+    }
+
+    @Test
+    fun aRoutesOwnCapIsTighter_andNeverLooserThanTheServers() = testApplication {
+        app()
+        assertEquals(HttpStatusCode.OK, client.post("/small") { contentType(ContentType.Application.Json); setBody(json(200)) }.status)
+        assertEquals(HttpStatusCode.PayloadTooLarge, client.post("/small") { contentType(ContentType.Application.Json); setBody(json(300)) }.status)
+        assertEquals(HttpStatusCode.PayloadTooLarge, client.post("/small") { setBody(chunked(json(300))) }.status)
+        assertEquals(HttpStatusCode.PayloadTooLarge, client.post("/roomy") { setBody(chunked(json(2_000))) }.status)
     }
 }

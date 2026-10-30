@@ -31,6 +31,11 @@ pass, 5 to 10 minutes for a normal week.
    unset ADMIN_TOKEN BUNDLE
    ```
 
+   The script sends the token only to the server the bundle's `env` names
+   (Dev or Prod), over https, for a submission's own photo path, and never
+   follows a redirect. A photo it won't fetch is listed with the reason; a
+   bundle someone edited to point elsewhere gets nothing.
+
 5. **Pre-check with your own AI tool.** Open Claude Code (your subscription,
    no API key) and hand it [the prompt](../../scripts/prompts/weekly-food-review.md)
    with the bundle's path. It fills in a decision per food and writes

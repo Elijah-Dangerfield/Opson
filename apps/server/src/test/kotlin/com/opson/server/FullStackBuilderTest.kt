@@ -28,6 +28,9 @@ import com.opson.server.domain.DecideOutcome
 import com.opson.server.domain.LabelRegion
 import com.opson.server.domain.ShoppingFrequency
 import com.opson.server.domain.CarbBasis
+import com.opson.server.domain.FoodLabelLimiter
+import com.opson.server.domain.FoodVerification
+import com.opson.server.domain.FoodVerificationLimits
 import com.opson.server.domain.ImageType
 import com.opson.server.domain.LabelChecks
 import com.opson.server.domain.LabelFacts
@@ -554,13 +557,22 @@ class FullStackBuilderTest : DatabaseTest() {
 
             val first = check(builder, panel).body<VerificationResponse>()
             assertEquals("confirmed", first.outcome)
-            assertEquals("unconfirmed", check(builder, panel).body<VerificationResponse>().outcome)
+            assertEquals("agreement", first.awaiting)
+            val repeat = check(builder, panel).body<VerificationResponse>()
+            assertEquals("unconfirmed", repeat.outcome)
+            assertNull(repeat.review, "a repeat waits for nothing")
             val wrong = check(builder, panel.map { it.replace("Protein 3g", "Protein 9g") }).body<VerificationResponse>()
             assertEquals(listOf("protein_g"), wrong.missing)
+            assertEquals(0, client.me(builder).accepted30d, "a match counts once someone agrees")
+
+            val second = seedUser(ageDays = 10)
+            becomeBuilder(component, second)
+            assertNull(check(second, panel).body<VerificationResponse>().awaiting, "a second Builder's match agrees")
 
             val me = client.me(builder)
             assertEquals(1, me.accepted30d)
             assertEquals(1, me.stats.checks)
+            assertEquals(1, client.me(second).accepted30d)
         }
     }
 
@@ -690,27 +702,120 @@ class FullStackBuilderTest : DatabaseTest() {
 
             val confirmed = client.verify(builder, clean, request(panel, withPhotos = true)).body<VerificationResponse>()
             assertEquals("confirmed", confirmed.outcome)
-            assertNull(confirmed.review)
-            assertEquals(true, client.food(builder, clean).checked)
+            assertEquals("open", confirmed.review, "what an app from before agreement reads")
+            assertEquals("agreement", confirmed.awaiting)
+            assertNull(client.food(builder, clean).checked, "the app's text alone doesn't mark it")
 
             val noProtein = panel.map { it.replace("Protein 3g", "Protein 9g") }
             val waiting = client.verify(builder, unread, request(noProtein, withPhotos = true)).body<VerificationResponse>()
             assertEquals("open", waiting.review)
+            assertNull(waiting.awaiting)
             // An app from before V34 sends no photos: as before, nothing waits.
             val legacy = client.verify(builder, old, request(noProtein, withPhotos = false)).body<VerificationResponse>()
             assertNull(legacy.review)
-            assertEquals(1, client.verificationQueue().open)
+            assertEquals(2, client.verificationQueue().open)
 
             val rejected = client.decideVerification(waiting.id, "reject", """{"reason": "The photo is blurry"}""").body<FoodVerificationAdminResponse>()
             assertEquals("rejected", rejected.status)
             assertNull(client.food(builder, unread).checked)
-            assertEquals(0, client.verificationQueue().open)
+            assertEquals(1, client.verificationQueue().open)
             assertEquals(listOf(waiting.id), client.verificationQueue("decided").verifications.map { it.id })
+
+            val match = client.verificationQueue().verifications.single()
+            assertEquals(confirmed.id, match.id)
+            assertTrue(match.hasFrontPhoto && match.hasLabelPhoto, "kept for the reviewer")
+            assertEquals(HttpStatusCode.OK, client.decideVerification(match.id, "accept", "{}").status)
+            assertEquals(true, client.food(builder, clean).checked)
+            assertEquals(1, client.me(builder).accepted30d)
 
             val bad = client.verify(builder, old, request(panel, withPhotos = false).copy(problem = VerificationProblemJson(wrong = listOf("taste"))))
             assertEquals(HttpStatusCode.BadRequest, bad.status)
             val both = client.verify(builder, old, request(panel, withPhotos = false).copy(problem = VerificationProblemJson(wrong = listOf("serving"), missing = listOf("serving"))))
             assertEquals(HttpStatusCode.BadRequest, both.status)
+        }
+    }
+
+    @Test
+    fun twoBuildersMatchesAgree_andAnOwnersMatchStandsOnArrival() = runTest {
+        val first = seedUser(ageDays = 10)
+        val second = seedUser(ageDays = 10)
+        val owner = seedUser(ageDays = 100)
+        val component = component()
+        component.userRoleRepository.setRole(owner, Role.Owner, "test", null)
+        val food = seedBrandedGranola()
+        val other = seedBrandedGranola()
+        becomeBuilder(component, first)
+        becomeBuilder(component, second)
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier), adminConfig = AdminConfig(adminToken)) }
+            val client = jsonClient()
+            fun request() = VerificationRequest(UUID.randomUUID().toString(), "vision", panel.map { CaptureLineJson(it, 0.9) }, photos = photos)
+
+            assertEquals("agreement", client.verify(first, food, request()).body<VerificationResponse>().awaiting)
+            assertNull(client.food(first, food).checked)
+            assertEquals(0, client.me(first).accepted30d)
+
+            val agreed = client.verify(second, food, request()).body<VerificationResponse>()
+            assertEquals("confirmed", agreed.outcome)
+            assertNull(agreed.review)
+            assertNull(agreed.awaiting)
+            assertEquals(true, client.food(first, food).checked)
+            assertEquals(0, client.verificationQueue().open)
+            val decided = client.verificationQueue("decided").verifications
+            assertEquals(listOf(FoodVerification.AGREED_BY, FoodVerification.AGREED_BY), decided.map { it.resolvedBy })
+            assertEquals(1, client.me(first).accepted30d)
+            assertEquals(1, client.me(second).accepted30d)
+            val reviewers = client.get("/v1/admin/food-review/reviewers") { header("X-Admin-Token", adminToken) }.body<ReviewerCountsResponse>()
+            assertTrue(reviewers.reviewers.none { it.reviewer.startsWith("auto:") }, "agreement is not a reviewer")
+
+            val owners = client.verify(owner, other, request()).body<VerificationResponse>()
+            assertEquals("confirmed", owners.outcome)
+            assertNull(owners.review)
+            assertEquals(true, client.food(owner, other).checked)
+        }
+    }
+
+    @Test
+    fun someoneWhoIsNotABuilderIsRefusedBeforeTheirBodyIsRead_andABuildersBodyOverTheCapIs413() = runTest {
+        val builder = seedUser(ageDays = 10)
+        val stranger = seedUser(ageDays = 10)
+        val component = component()
+        val food = seedBrandedGranola()
+        becomeBuilder(component, builder)
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier)) }
+            val client = jsonClient()
+            suspend fun raw(user: UserId, body: String) = client.post("/v1/foods/$food/verifications") {
+                header(HttpHeaders.Authorization, "Bearer ${jwt(user)}")
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+            // Not even JSON: it is never read, so the answer is the refusal, not a parse error.
+            assertEquals(HttpStatusCode.Forbidden, raw(stranger, "not json").status)
+            val oversized = "{\"id\": \"${UUID.randomUUID()}\", \"lines\": [], \"photos\": {\"front\": \"" +
+                "A".repeat(FoodVerificationLimits.MAX_BODY_BYTES.toInt()) + "\"}}"
+            assertEquals(HttpStatusCode.PayloadTooLarge, raw(builder, oversized).status)
+        }
+    }
+
+    @Test
+    fun aRetriedCheckAnswersAsBefore_withoutSpendingTheHoursQuota() = runTest {
+        val builder = seedUser(ageDays = 10)
+        val component = component()
+        val food = seedBrandedGranola()
+        becomeBuilder(component, builder)
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier)) }
+            val client = jsonClient()
+            val request = VerificationRequest(UUID.randomUUID().toString(), "vision", panel.map { CaptureLineJson(it, 0.9) })
+            assertEquals(HttpStatusCode.Created, client.verify(builder, food, request).status)
+            repeat(FoodLabelLimiter.VERIFY_BURST + 1) {
+                val again = client.verify(builder, food, request)
+                assertEquals(HttpStatusCode.OK, again.status, "retry ${it + 1}")
+                assertEquals(request.id, again.body<VerificationResponse>().id)
+            }
+            val next = client.verify(builder, seedBrandedGranola(), request.copy(id = UUID.randomUUID().toString()))
+            assertEquals(HttpStatusCode.Created, next.status, "the retries took none of the quota")
         }
     }
 

@@ -229,6 +229,14 @@ interface FoodCatalogRepository {
     suspend fun findById(id: UUID): Food?
 
     /**
+     * Each of [ids] as [findById] would serve it, for a page that names many foods at once (a
+     * recipe's ingredients). An id with no food is left out. The database does it in one
+     * transaction, whatever the count.
+     */
+    suspend fun findByIds(ids: Collection<UUID>): Map<UUID, Food> =
+        ids.distinct().mapNotNull { id -> findById(id)?.let { id to it } }.toMap()
+
+    /**
      * The food for a scanned code in any of its equivalent forms
      * ([Barcodes.equivalents]). When two rows carry the same product under
      * different forms (an Open Food Facts copy and the Branded Foods row),

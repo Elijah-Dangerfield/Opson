@@ -491,9 +491,22 @@ class DiarySyncer(
                     if (base == null) tables.exercises.delete(row.entityId)
                     else tables.exercises.upsert(listOf(decode(ExerciseRowDto.serializer(), base).toEntity()))
 
+                // The base is the row as it went up, which carries no sharing: the recipe keeps the
+                // sharing the server last gave it, or the rollback would unshare it on this phone.
                 SyncEntity.Recipe ->
-                    if (base == null) tables.recipes.delete(row.entityId)
-                    else tables.recipes.upsert(listOf(decode(RecipeRowDto.serializer(), base).toEntity()))
+                    if (base == null) {
+                        tables.recipes.delete(row.entityId)
+                    } else {
+                        val before = decode(RecipeRowDto.serializer(), base).toEntity()
+                        val sharing = tables.recipes.get(row.entityId)
+                        tables.recipes.upsert(
+                            listOf(
+                                sharing?.let {
+                                    before.copy(publicCode = it.publicCode, publicState = it.publicState, publicShowName = it.publicShowName)
+                                } ?: before,
+                            ),
+                        )
+                    }
 
                 SyncEntity.Settings -> Unit
             }

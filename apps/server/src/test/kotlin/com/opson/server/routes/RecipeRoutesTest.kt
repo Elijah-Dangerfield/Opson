@@ -12,9 +12,11 @@ import com.opson.server.domain.Food
 import com.opson.server.domain.Nutrients
 import com.opson.server.domain.Recipe
 import com.opson.server.domain.RecipeLimiter
+import com.opson.server.domain.RecipeRules
 import com.opson.server.domain.UserId
 import com.opson.server.plugins.ProblemResponse
 import com.opson.server.plugins.installAuthentication
+import com.opson.server.plugins.installBodyLimit
 import com.opson.server.plugins.installRateLimits
 import com.opson.server.plugins.installSerialization
 import com.opson.server.plugins.installStatusPages
@@ -32,12 +34,19 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.junit.After
 import java.util.UUID
@@ -75,12 +84,13 @@ class RecipeRoutesTest : DatabaseTest() {
             override suspend fun check(userId: UserId, signals: ContributionSignals) = ContributionVerdict.Allowed
             override suspend fun mayReceiveFreePro(userId: UserId) = true
         },
+        catalog: FakeFoodCatalog = FakeFoodCatalog(listOf(beans)),
         block: suspend (HttpClient) -> Unit,
     ) {
-        val catalog = FakeFoodCatalog(listOf(beans))
         testApplication {
             application {
                 installSerialization()
+                installBodyLimit()
                 installRateLimits()
                 installStatusPages()
                 installAuthentication(TestJwt.verification)
@@ -151,6 +161,81 @@ class RecipeRoutesTest : DatabaseTest() {
             assertEquals(code, again.code)
             assertEquals(HttpStatusCode.NotFound, client.get("/v1/recipes/public/zzzz2222").status)
             assertEquals(HttpStatusCode.NotFound, client.get("/v1/recipes/public/not-a-code").status)
+        }
+    }
+
+    @Test
+    fun aBodyOverTheRoutesCapIs413_whetherItSaysItsLengthOrNot() = runTest {
+        val owner = seedAuthUser()
+        val recipe = DiaryFixtures.recipe()
+        withApp { client ->
+            val padded = PublishRecipeRequest(recipe.toRowDto().copy(notes = "x".repeat(RecipeRules.MAX_PUBLISH_BODY_BYTES.toInt())))
+            val publish = client.post("/v1/recipes/${recipe.id}/publish") {
+                header(HttpHeaders.Authorization, TestJwt.bearer(owner))
+                contentType(ContentType.Application.Json)
+                setBody(padded)
+            }
+            assertEquals(HttpStatusCode.PayloadTooLarge, publish.status)
+            val code = client.publish(owner, recipe).body<PublishRecipeResponse>().code
+            val report = client.post("/v1/recipes/public/$code/reports") {
+                header(HttpHeaders.Authorization, TestJwt.bearer(seedAuthUser()))
+                setBody(chunkedJson("{\"id\": \"${UUID.randomUUID()}\", \"reason\": \"spam\", \"note\": \"${"x".repeat(RecipeRules.MAX_REPORT_BODY_BYTES.toInt())}\"}"))
+            }
+            assertEquals(HttpStatusCode.PayloadTooLarge, report.status)
+        }
+    }
+
+    /** A body sent chunked, with no Content-Length to check up front. */
+    private fun chunkedJson(text: String) = object : OutgoingContent.WriteChannelContent() {
+        override val contentType = ContentType.Application.Json
+        override suspend fun writeTo(channel: ByteWriteChannel) = channel.writeFully(text.encodeToByteArray())
+    }
+
+    /** A recipe whose every ingredient is a different catalog food, by weight. */
+    private fun recipeOf(foods: List<Food>, name: String = "Bean salad"): Recipe {
+        val items = buildJsonArray {
+            for (food in foods) {
+                add(
+                    buildJsonObject {
+                        put("name", food.name)
+                        put("grams", 100.0)
+                        put("kcal", 50.0)
+                        put("foodId", food.id.toString())
+                    },
+                )
+            }
+        }
+        return DiaryFixtures.recipe(name = name).copy(itemsJson = items.toString(), itemCount = foods.size)
+    }
+
+    @Test
+    fun aRecipesIngredientsLoadInOneGo_andTheNextReadOfTheSameRecipeIsServedAsBefore() = runTest {
+        val owner = seedAuthUser()
+        val searcher = seedAuthUser()
+        val foods = List(6) { beans.copy(id = UUID.randomUUID(), sourceId = "beans-$it", name = "Beans $it") }
+        val catalog = FakeFoodCatalog(foods)
+        val salad = recipeOf(foods.take(3), name = "Bean salad")
+        val stew = recipeOf(foods.drop(3), name = "Bean stew")
+        withApp(catalog = catalog) { client ->
+            val code = client.publish(owner, salad).body<PublishRecipeResponse>().code
+            client.publish(owner, stew)
+
+            catalog.loads = 0
+            val page = client.get("/v1/recipes/public/$code").body<PublicRecipeResponse>()
+            assertEquals(3, page.ingredients.count { it.nutrients.kcal == 91.0 }, "worked out from the catalog")
+            assertEquals(1, catalog.loads, "three foods, one load")
+            client.get("/v1/recipes/public/$code")
+            assertEquals(1, catalog.loads, "the same recipe again is served as before")
+
+            client.publish(owner, salad.copy(name = "Bean salad, bigger", clientUpdatedAt = salad.clientUpdatedAt + 1.hours))
+            assertEquals("Bean salad, bigger", client.get("/v1/recipes/public/$code").body<PublicRecipeResponse>().name)
+            assertEquals(2, catalog.loads, "an edit is served fresh")
+
+            catalog.loads = 0
+            val hits = client.get("/v1/recipes/search?q=bean") { header(HttpHeaders.Authorization, TestJwt.bearer(searcher)) }
+                .body<RecipeSearchResponse>()
+            assertEquals(2, hits.recipes.size)
+            assertEquals(1, catalog.loads, "six foods across two recipes, one load")
         }
     }
 
@@ -254,6 +339,43 @@ class RecipeRoutesTest : DatabaseTest() {
 
             client.post("/v1/admin/recipes/${recipe.id}/restore") { header("X-Admin-Token", adminToken) }
             assertEquals(HttpStatusCode.OK, client.publish(owner, recipe.copy(clientUpdatedAt = recipe.clientUpdatedAt + 2.hours)).status)
+        }
+    }
+
+    @Test
+    fun stoppingAndSharingAgainCantPutAHiddenRecipeBackUp() = runTest {
+        val owner = seedAuthUser()
+        val recipe = DiaryFixtures.recipe()
+        withApp { client ->
+            val code = client.publish(owner, recipe).body<PublishRecipeResponse>().code
+            repeat(RecipeRules.HIDE_AFTER_REPORTS) { client.report(seedAuthUser(), code) }
+            assertEquals(HttpStatusCode.Gone, client.get("/v1/recipes/public/$code").status)
+
+            client.post("/v1/recipes/${recipe.id}/unpublish") { header(HttpHeaders.Authorization, TestJwt.bearer(owner)) }
+            val again = client.publish(owner, recipe.copy(clientUpdatedAt = recipe.clientUpdatedAt + 1.hours)).body<PublishRecipeResponse>()
+            assertEquals("hidden", again.state)
+            assertEquals(HttpStatusCode.Gone, client.get("/v1/recipes/public/$code").status)
+
+            client.post("/v1/admin/recipes/${recipe.id}/dismiss-reports") { header("X-Admin-Token", adminToken) }
+            assertEquals(HttpStatusCode.OK, client.get("/v1/recipes/public/$code").status, "a person looked and it is back")
+        }
+    }
+
+    @Test
+    fun aSaveCountsOncePerPerson_andNeverForTheOwner() = runTest {
+        val owner = seedAuthUser()
+        val savers = List(2) { seedAuthUser() }
+        val recipe = DiaryFixtures.recipe()
+        withApp { client ->
+            val code = client.publish(owner, recipe).body<PublishRecipeResponse>().code
+            suspend fun save(user: UserId) = client.post("/v1/recipes/public/$code/saves") { header(HttpHeaders.Authorization, TestJwt.bearer(user)) }
+            repeat(3) { assertEquals(HttpStatusCode.NoContent, save(savers[0]).status) }
+            assertEquals(HttpStatusCode.NoContent, save(savers[1]).status)
+            assertEquals(HttpStatusCode.NoContent, save(owner).status)
+            assertEquals(HttpStatusCode.NotFound, client.post("/v1/recipes/public/zzzz2222/saves") { header(HttpHeaders.Authorization, TestJwt.bearer(owner)) }.status)
+
+            val live = client.get("/v1/admin/recipes?filter=live") { header("X-Admin-Token", adminToken) }.body<AdminRecipeListResponse>()
+            assertEquals(2, live.recipes.single().saveCount)
         }
     }
 

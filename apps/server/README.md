@@ -98,6 +98,9 @@ fun Route.thingRoutes(repo: ThingRepository) {
 - real paths are versioned under `/v1`; `/_health` is the deliberate exception.
 - DTOs live in `XxxDto.kt`, named `*Response` / `*Request`; map with `Thing.toResponse()`.
 - the caller's id is the JWT `sub` via `call.userId()`: never trust a body field.
+- every body is capped at 16 MB (`installBodyLimit`, 413 `request_too_large`); a route
+  that knows its bodies are smaller wraps itself in `bodyLimit(bytes) { }`, and one
+  that takes photos checks who may send them before it reads the body.
 - map domain outcomes to status codes with an exhaustive `when`; errors use the
   one `ProblemResponse` envelope (`call.respond(status, problem("code", "msg"))`).
 - mount it in `installApp`.
@@ -109,6 +112,16 @@ the next one. Mirror schema changes into `Tables.kt` and add a line to
 `DatabaseSchemaTest`. Repositories run every method in `database.transaction { }`,
 take an injected `Clock`, and treat a unique-violation (SQLSTATE `23505`) as the
 arbiter rather than pre-checking.
+
+Migrations run with `lock_timeout = '5s'` (Flyway's `initSql` in
+`Database.runMigrations`). An `ALTER TABLE` waiting for its exclusive lock
+holds up every query behind it, so a migration that can't get its lock within
+five seconds fails: Flyway rolls it back, the new machine doesn't boot, the old
+one keeps serving, and the next deploy tries again. The setting lives in code
+rather than in each file because Flyway validates the checksum of every
+applied migration, so editing one already on dev (V33, say) would stop that
+database from booting. Don't edit an applied migration to change how it locks;
+change it here.
 
 ## Auth
 
@@ -218,8 +231,10 @@ checks it against `CatalogSource`.
 **Checked (the app's Verified mark, V34).** `verified` says the source is
 accountable and search ranks by it. `checked` says a person checked this food
 against its pack, or a reviewer stood behind it: a Builder's verification
-confirmed by the label's text or accepted by a reviewer, a live reviewer's
-correction, or an approved `user_submitted` food (`FoodCheck`). Nothing stores
+accepted by a reviewer or by a second Builder's agreeing match, an owner's or
+admin's match, a live reviewer's correction, or an approved `user_submitted`
+food (`FoodCheck`). A single Builder's match waits: the label's text is the
+app's, so it proves little alone. Nothing stores
 it: the catalog works it out as it serves a food (`served()`, one query on
 `food_verifications` beside the corrections overlay), so a reverted correction
 or a rolled-back Builder takes the mark away by itself. Every food answer
@@ -601,7 +616,7 @@ Micros keys carry their unit: `sugars_g`, `added_sugars_g`, `saturated_fat_g`,
 `thiamin_mg`, `riboflavin_mg`, `niacin_mg`, `vitamin_b6_mg`,
 `folate_dfe_ug`, `vitamin_b12_ug`, `choline_mg`.
 
-### Recipes and sharing them (`V35__recipes.sql`, behind `release.recipes` in the app)
+### Recipes and sharing them (`V35__recipes.sql`, `V36__recipe_saves.sql`, behind `release.recipes` in the app)
 
 A recipe is ingredients for the whole batch (the client's `LogDraft` snapshots,
 like a saved meal's items), how many servings it makes and optional notes. It
@@ -612,7 +627,11 @@ was saved from. The sharing columns on the same row (`public_code`,
 `published_at`, `removed_*`, `save_count`) are written only by the routes
 below and the console, never by sync (`RecipesTable` marks them
 database-generated so an Exposed upsert can't null them), and changing them
-bumps `server_seq`, so the owner's other phones learn a recipe is shared. A
+bumps `server_seq`, so the owner's other phones learn a recipe is shared.
+Every one of those writes (publish, stop, a save, a report and the hiding it
+can cause, the console's remove, restore and dismiss, a moderation rollback)
+takes the owner's diary lock (`lockUser`) at READ COMMITTED, as sync's do, so
+it can't commit below a cursor one of their phones already pulled past. A
 public read never shows the creator's totals: `PublicRecipes.serve` works each
 catalog ingredient with a weight out again from the catalog's numbers (with
 corrections), and counts it as checked when that food is verified and
@@ -621,12 +640,12 @@ server made up (`user-1a2b3c4d`) never does. Docs: `docs/plans/recipes.md`.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/v1/recipes/public/{code}` | **No account.** CORS open for this GET alone (the website's recipe page reads it). 404 `not_found`, 410 `not_shared` (stopped, removed, hidden, or deleted). 60/min per IP. `Cache-Control: max-age=60`. |
-| POST | `/v1/recipes/{id}/publish` `{recipe, showName}` | Writes the row as sync would, then shares it: `{code, state}`. A contribution: `refuseIfRestricted` and the device headers; 10 an hour and 30 a day per user (`RecipeLimiter`). 400 `invalid_id`, `invalid_recipe`, `empty_recipe`; 403 `contributions_restricted`, `removed`; 404 `not_found` (someone else's id, or deleted); 429. |
-| POST | `/v1/recipes/{id}/unpublish` | 204, or 404. Never gated. The code is kept, so sharing again gives the same link. |
-| GET | `/v1/recipes/search?q=&limit=10` | Live recipes whose name holds `q` (2 to 100 characters), exact and prefix first, then saves. |
-| POST | `/v1/recipes/public/{code}/reports` `{id, reason, note?}` | `wrong_nutrition`, `unsafe`, `offensive`, `spam`, `other`. A contribution; 10 in 10 minutes and 30 a day. 201, 200 for a repeat, 400 `own_recipe`. Three open reports from different people hide the recipe. |
-| POST | `/v1/recipes/public/{code}/saves` | Someone saved it. 204. |
+| GET | `/v1/recipes/public/{code}` | **No account.** CORS open for this GET alone (the website's recipe page reads it). 404 `not_found`, 410 `not_shared` (stopped, removed, hidden, or deleted). 60/min per IP. `Cache-Control: max-age=60`. The ingredients' foods load in one transaction (`FoodCatalogRepository.findByIds`, corrections and checks included), and the page is kept in memory for 5 minutes per code and edit (`PublicRecipeCache`), so a correction shows within that. |
+| POST | `/v1/recipes/{id}/publish` `{recipe, showName}` | Writes the row as sync would, then shares it: `{code, state}`. A contribution: `refuseIfRestricted` and the device headers; 10 an hour and 30 a day per user (`RecipeLimiter`). Body at most 512 KB. 400 `invalid_id`, `invalid_recipe`, `empty_recipe`; 403 `contributions_restricted`, `removed`; 404 `not_found` (someone else's id, or deleted); 429. |
+| POST | `/v1/recipes/{id}/unpublish` | 204, or 404. Never gated. The code is kept, so sharing again gives the same link. Reports stay open through a stop, so sharing again while three of them stand comes back `hidden`. |
+| GET | `/v1/recipes/search?q=&limit=10` | Live recipes whose name holds `q` (2 to 100 characters), exact and prefix first, then saves. Every hit's ingredients load in one transaction. |
+| POST | `/v1/recipes/public/{code}/reports` `{id, reason, note?}` | `wrong_nutrition`, `unsafe`, `offensive`, `spam`, `other`. A contribution; 10 in 10 minutes and 30 a day. Body at most 16 KB. 201, 200 for a repeat, 400 `own_recipe`. Three open reports from different people hide the recipe. |
+| POST | `/v1/recipes/public/{code}/saves` | Someone saved it. 204, or 404. Counted once per person and never for the owner: the first save is a `recipe_saves` row (V36) and adds one to `save_count`, a repeat adds nothing. |
 | GET | `/v1/admin/recipes?filter=reported\|hidden\|live\|removed` | Admin token. The console's Review area. |
 | GET | `/v1/admin/recipes/{id}` | As the public sees it, with every report. |
 | POST | `/v1/admin/recipes/{id}/remove` `{reason}` | Takes it down and upholds its reports; the owner can't share it again. |
@@ -634,8 +653,8 @@ server made up (`user-1a2b3c4d`) never does. Docs: `docs/plans/recipes.md`.
 | POST | `/v1/admin/recipes/{id}/dismiss-reports` | Closes the open reports; hidden goes back up. |
 
 A moderation rollback (`RecipeReverter`, kind `recipe`) removes every public
-recipe of the account. Deleting the account deletes its recipes and its
-reports. `analytics.recipes_daily` (made, first shared) and
+recipe of the account. Deleting the account deletes its recipes, its
+reports and its saves. `analytics.recipes_daily` (made, first shared) and
 `analytics.recipe_sharing` (live, hidden, removed, saves, open reports, oldest
 open report) carry counts only.
 
@@ -972,7 +991,8 @@ held only while the person is active: `BuilderService.roleWindow` gives the
 role's bundles an end, `BuilderRules.proUntil`, in closed form. A first month
 from joining, then 30 days after the last time ten accepted contributions fell
 inside 30 days (approved submissions not failed by an audit, accepted reports,
-confirmed checks, counted from the reviewer's decision when one decided). Worked out on every entitlement read, so no job runs and a
+confirmed checks that stand, counted from the decision: a reviewer's, or the
+second Builder's match that agreed). Worked out on every entitlement read, so no job runs and a
 reviewer's decision counts at once; the role source carries the date, so
 `/v1/me/entitlements` tells the app. A `builder` role set by hand in the console,
 with no membership row, keeps V28's unconditional Pro.
@@ -1021,7 +1041,7 @@ submission limit is 60, up from 20. Photos of an active Builder who chose
 | POST | `/v1/builders/join` `{acceptTerms, termsVersion, photoRetention}` | Older apps' Join: applies. 400 `terms_required`; 403 `guest`, `too_new`, `removed`; 409 `full` (also a declined application still waiting). |
 | POST | `/v1/builders/leave` | The role goes; the row stays (`left`). Coming back is a new application; acceptance keeps the first join date. |
 | PUT | `/v1/builders/me` `{photoRetention}` | |
-| POST | `/v1/foods/{id}/verifications` `{id, engine, lines, problem?, photos?}` | A Builder's check against the pack: the label's text, read on the phone. `confirmed` when the food's four headline numbers, per 100 or per serving, are on their rows; once per person and food. V34: `problem` ("Something was wrong": `wrong` and `missing` field codes from `calories`, `macros`, `serving`, `name_brand`, `ingredients`, `barcode`, never both for one field; `values` the right ones for a basis like a report's `suggested`, plus `name`, `brand`, `barcode`; `note`) and `photos` (`front`, `label`, base64, 4 MB each). With a problem, or with photos and numbers the text did not show, it waits for a reviewer with the photos and the food as served, and the answer says `review: "open"`; an app before V34 sends neither and gets the old behaviour, and a server before V34 never says `review`. 400 `invalid_problem`, `invalid_image`; 403 `not_a_builder`, `contributions_restricted`; 404; 409; 413; 429. |
+| POST | `/v1/foods/{id}/verifications` `{id, engine, lines, problem?, photos?}` | A Builder's check against the pack: the label's text, read on the phone. `confirmed` when the food's four headline numbers, per 100 or per serving, are on their rows; once per person and food. V34: `problem` ("Something was wrong": `wrong` and `missing` field codes from `calories`, `macros`, `serving`, `name_brand`, `ingredients`, `barcode`, never both for one field; `values` the right ones for a basis like a report's `suggested`, plus `name`, `brand`, `barcode`; `note`) and `photos` (`front`, `label`, base64, 4 MB each). With a problem, or with photos and numbers the text did not show, it waits for a reviewer with the photos and the food as served, and the answer says `review: "open"`. A match from a Builder waits too, with its photos, and says `awaiting: "agreement"` as well: a second Builder's match of the same food accepts both (`resolved_by` `auto:agreed`, which the reviewer counts leave out), or a reviewer accepts it; until then it neither marks the food nor counts toward Pro. An owner's or admin's match (`food.edit.direct`) stands on arrival; an app before V34 sends neither and gets the old behaviour, and a server before V34 never says `review`. The body is at most 12 MB and is read only after the Builder check. A retry of an id already recorded answers as it did the first time and spends none of the hourly limit. 400 `invalid_problem`, `invalid_image`; 403 `not_a_builder`, `contributions_restricted`; 404; 409; 413; 429. |
 | GET | `/v1/admin/food-verifications?status=open\|decided&limit=50` | `{open, verifications}`: waiting oldest first, or the latest decisions. Each has `wrong`, `missing`, `values`, `valuesPer100` (as accepting would store them), `note`, `snapshot` (as the Builder saw it), `now` (as served), `hasFrontPhoto`, `hasLabelPhoto`, the outcome and the decision. Each call deletes photos of verifications decided over 30 days ago. |
 | GET | `/v1/admin/food-verifications/{id}/photos/{front\|label}` | `Cache-Control: no-store`. |
 | POST | `/v1/admin/food-verifications/{id}/accept` `{values?, note?}` | Stands behind it: the outcome becomes `confirmed` (it counts toward Builder Pro, once per person and food) and the food is checked. `values` (per 100, name, brand, serving) lay a correction over the existing food through the V29 overlay. 409 `not_open`. |

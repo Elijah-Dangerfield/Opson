@@ -122,6 +122,9 @@ interface FoodApi {
 
     suspend fun detail(id: String): Catching<FoodResponse>
 
+    /** [detail], with null for a 404 or 410: the server no longer has the food. */
+    suspend fun detailOrGone(id: String): Catching<FoodResponse?> = detail(id).map { it }
+
     /** Null for a 404: neither the catalog nor Open Food Facts knows the code. */
     suspend fun barcode(code: String): Catching<FoodResponse?>
 
@@ -165,6 +168,15 @@ class HttpFoodApi(private val networkClient: NetworkClient) : FoodApi {
     override suspend fun detail(id: String): Catching<FoodResponse> =
         networkClient.authedCall("foods.detail", retry = RetryPolicy.idempotent()) { client ->
             client.get("/v1/foods/${id.encodeURLPathPart()}").body<FoodResponse>()
+        }
+
+    override suspend fun detailOrGone(id: String): Catching<FoodResponse?> =
+        networkClient.authedCall("foods.detail", retry = RetryPolicy.idempotent()) { client ->
+            try {
+                client.get("/v1/foods/${id.encodeURLPathPart()}").body<FoodResponse>()
+            } catch (e: ClientRequestException) {
+                if (e.response.status == HttpStatusCode.NotFound || e.response.status == HttpStatusCode.Gone) null else throw e
+            }
         }
 
     override suspend fun barcode(code: String): Catching<FoodResponse?> = barcode(code, allMatches = false)

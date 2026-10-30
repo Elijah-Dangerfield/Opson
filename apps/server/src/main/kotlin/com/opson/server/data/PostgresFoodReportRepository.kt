@@ -31,6 +31,7 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inSubQuery
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
 import org.jetbrains.exposed.sql.and
@@ -235,12 +236,10 @@ class PostgresFoodReportRepository(
         RevertOutcome.Reverted(reverted, older?.copy(supersededBy = null))
     }
 
+    /** One statement: the decided reports are a subquery, never a list of ids sent back to Postgres. */
     override suspend fun purgeDecidedPhotos(before: Instant): Int = database.transaction {
-        val decided = FoodReportsTable.select(FoodReportsTable.id)
-            .where { FoodReportsTable.resolvedAt lessEq before.toJavaInstant() }
-            .map { it[FoodReportsTable.id] }
-        if (decided.isEmpty()) return@transaction 0
-        FoodReportPhotosTable.deleteWhere { reportId inList decided }
+        val decided = FoodReportsTable.select(FoodReportsTable.id).where { FoodReportsTable.resolvedAt lessEq before.toJavaInstant() }
+        FoodReportPhotosTable.deleteWhere { reportId inSubQuery decided }
     }
 
     private fun openReports(ids: List<UUID>, foodId: UUID?): List<UUID> {

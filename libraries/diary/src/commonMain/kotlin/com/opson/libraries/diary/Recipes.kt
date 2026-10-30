@@ -189,6 +189,12 @@ object RecipeLinks {
 
     fun app(code: String): String = APP_PREFIX + code
 
+    /**
+     * The website's page for the recipe at an address the app does not claim (it claims only `/r/` addresses), so
+     * the app can open it in the browser without the link coming straight back to the app.
+     */
+    fun page(code: String): String = "https://$WEB_HOST/recipe/?c=$code"
+
     fun isCode(value: String): Boolean = value.length == LENGTH && value.all { it in ALPHABET }
 
     /**

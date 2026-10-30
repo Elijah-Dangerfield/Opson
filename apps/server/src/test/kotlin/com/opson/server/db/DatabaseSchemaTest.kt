@@ -216,6 +216,37 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     /**
+     * V36 is additive and safe to run twice. One save per person and recipe; deleting the saver
+     * takes their saves, and deleting the recipe takes its saves.
+     */
+    @Test
+    fun recipeSavesMigrationIsIdempotentAndCascades() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V36__recipe_saves.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val owner = seedAuthUser().value
+        val saver = seedAuthUser().value
+        val recipe = java.util.UUID.randomUUID()
+        database.blockingTransaction {
+            exec(
+                "INSERT INTO recipes (id, user_id, name, servings, client_updated_at, public_code, public_state) " +
+                    "VALUES ('$recipe', '$owner', 'Chili', 6, now(), 'efgh2345', 'live')",
+            )
+            exec("INSERT INTO recipe_saves (recipe_id, user_id) VALUES ('$recipe', '$saver')")
+        }
+        assertFailsWith<Exception> {
+            database.blockingTransaction { exec("INSERT INTO recipe_saves (recipe_id, user_id) VALUES ('$recipe', '$saver')") }
+        }
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$saver'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM recipe_saves WHERE recipe_id = '$recipe'"))
+
+        val again = seedAuthUser().value
+        database.blockingTransaction { exec("INSERT INTO recipe_saves (recipe_id, user_id) VALUES ('$recipe', '$again')") }
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$owner'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM recipe_saves WHERE user_id = '$again'"))
+    }
+
+    /**
      * V25 is additive and safe to run twice. Deleting an account deletes its
      * submissions and photos, and the food with them unless a reviewer
      * approved it: an approved food is catalog data and stays.

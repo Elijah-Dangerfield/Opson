@@ -287,7 +287,7 @@ private class CameraSession(
     /** Main thread. */
     private fun delivered(code: ScannedCode) {
         if (stopped) return
-        timing.read(code.value)
+        timing.read(code)
         onCode(code)
     }
 

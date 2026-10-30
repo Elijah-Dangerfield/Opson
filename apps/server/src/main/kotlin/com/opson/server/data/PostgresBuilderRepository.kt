@@ -164,7 +164,7 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
                 )
             }
         }
-        query("SELECT count(*) FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed'", listOf(uuid to id)) { rs ->
+        query("SELECT count(*) FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed' AND $STANDS", listOf(uuid to id)) { rs ->
             if (rs.next()) stats = stats.copy(checks = rs.getInt(1))
         }
         var created: Instant? = null
@@ -237,6 +237,12 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
         private val int = org.jetbrains.exposed.sql.IntegerColumnType()
         private val time = JavaInstantColumnType()
 
+        /**
+         * A Builder's check that counts: decided on arrival, or accepted by a reviewer or by a second
+         * Builder's agreeing match. A match still waiting for that counts once it is accepted, from then.
+         */
+        private const val STANDS = "(status IS NULL OR status = 'accepted')"
+
         /** A person decided it, not the routing: `auto:` and `owner:` reviewers are the lanes. */
         private const val BY_A_PERSON = "reviewed_by IS NOT NULL AND reviewed_by NOT LIKE 'auto:%' AND reviewed_by NOT LIKE 'owner:%'"
 
@@ -251,7 +257,7 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
             UNION ALL
             SELECT resolved_at FROM food_reports WHERE user_id = ? AND status = 'accepted' AND resolved_at IS NOT NULL
             UNION ALL
-            SELECT coalesce(resolved_at, created_at) FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed'
+            SELECT coalesce(resolved_at, created_at) FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed' AND $STANDS
         """.trimIndent()
 
         private val ACCEPTED_SQL = "SELECT accepted_at FROM ($ACCEPTED_UNION) a ORDER BY accepted_at DESC LIMIT ?"
@@ -260,7 +266,7 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
             SELECT
               (SELECT count(*) FROM food_submissions WHERE user_id = ? AND status = 'approved' AND reviewed_at > ? AND audit IS DISTINCT FROM 'failed')
             + (SELECT count(*) FROM food_reports WHERE user_id = ? AND status = 'accepted' AND resolved_at > ?)
-            + (SELECT count(*) FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed' AND coalesce(resolved_at, created_at) > ?)
+            + (SELECT count(*) FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed' AND $STANDS AND coalesce(resolved_at, created_at) > ?)
         """.trimIndent()
 
         private val REVIEWED_SQL = """

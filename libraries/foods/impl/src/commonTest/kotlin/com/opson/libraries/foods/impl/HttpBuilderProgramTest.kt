@@ -230,6 +230,23 @@ class HttpBuilderProgramTest : CoroutineTest() {
     }
 
     @Test
+    fun aMatchWaitingForASecondCheckIsReadAsThat_notAsTheReviewItAlsoSitsIn() = runUnitTest {
+        val checks = HttpFoodChecks(
+            FakeNetworkClient {
+                respond(
+                    """{"id":"c3","outcome":"confirmed","grounded":4,"groundable":4,"review":"open","awaiting":"agreement"}""",
+                    HttpStatusCode.Created,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+
+        val result = checks.verify(FoodVerification("c3", "food-1", "mlkit", listOf(LabelTextLine("Calories 230", 0.9))))
+
+        assertEquals(FoodCheckResult.AwaitingAgreement, result)
+    }
+
+    @Test
     fun somethingWrongGoesWithItsPhotosAndWaitsForAReviewer() = runUnitTest {
         val seen = mutableListOf<String>()
         val checks = HttpFoodChecks(

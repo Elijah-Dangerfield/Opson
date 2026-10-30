@@ -85,6 +85,11 @@ private fun CheckFoodUnreadablePreview() = Check(granola.copy(front = front, ste
 @Composable
 private fun CheckFoodConfirmedPreview() = Check(granola.copy(step = CheckStep.Done(CheckDone.Confirmed)))
 
+/** It matched, and waits for a second check or a reviewer before it shows as Verified. */
+@Preview(widthDp = 390, heightDp = 600)
+@Composable
+private fun CheckFoodAwaitingAgreementPreview() = Check(granola.copy(step = CheckStep.Done(CheckDone.AwaitingAgreement)))
+
 /** Sent for review. */
 @Preview(widthDp = 390, heightDp = 600)
 @Composable

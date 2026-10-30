@@ -2,10 +2,10 @@ package com.opson.server.routes
 
 import com.opson.server.domain.ContributionGate
 import com.opson.server.domain.DiaryRules
-import com.opson.server.domain.Food
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.NewRecipeReport
 import com.opson.server.domain.OpenContributionGate
+import com.opson.server.domain.PublicRecipeCache
 import com.opson.server.domain.PublicRecipeRepository
 import com.opson.server.domain.PublicRecipes
 import com.opson.server.domain.PublicState
@@ -18,12 +18,15 @@ import com.opson.server.domain.RecipeRules
 import com.opson.server.domain.StoredRecipe
 import com.opson.server.plugins.RECIPE_READ_LIMIT
 import com.opson.server.plugins.RECIPE_WRITE_LIMIT
+import com.opson.server.plugins.RequestTooLargeException
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
+import com.opson.server.plugins.bodyLimit
 import com.opson.server.plugins.problem
 import com.opson.server.plugins.userId
 import io.ktor.http.CacheControl
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
 import io.ktor.server.auth.authenticate
 import io.ktor.server.plugins.cors.routing.CORS
@@ -38,6 +41,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import org.slf4j.LoggerFactory
 import java.util.UUID
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 
 /**
@@ -47,7 +51,11 @@ import kotlin.time.Clock
  * removed, that reports have hidden, or that was deleted. CORS is open for this GET alone: it
  * carries no credentials and answers only what anyone with the link can see.
  */
-fun Route.publicRecipeRoutes(recipes: PublicRecipeRepository, catalog: FoodCatalogRepository) {
+fun Route.publicRecipeRoutes(
+    recipes: PublicRecipeRepository,
+    catalog: FoodCatalogRepository,
+    cache: PublicRecipeCache = PublicRecipeCache(Clock.System),
+) {
     route("/v1/recipes/public/{code}") {
         install(CORS) {
             anyHost()
@@ -64,7 +72,8 @@ fun Route.publicRecipeRoutes(recipes: PublicRecipeRepository, catalog: FoodCatal
                     return@get call.respond(HttpStatusCode.Gone, problem("not_shared", "This recipe isn't shared right now."))
                 }
                 call.response.cacheControl(CacheControl.MaxAge(maxAgeSeconds = PUBLIC_MAX_AGE_SECONDS))
-                call.respond(PublicRecipes.serve(stored, catalogLookup(catalog)).toResponse())
+                val served = cache.serve(stored) { PublicRecipes.serve(stored, catalog.findByIds(PublicRecipes.foodIds(stored))) }
+                call.respond(served.toResponse())
             }
         }
     }
@@ -83,7 +92,8 @@ fun Route.publicRecipeRoutes(recipes: PublicRecipeRepository, catalog: FoodCatal
  *  - `POST /v1/recipes/public/{code}/reports {id, reason, note?}`: 201, or 200 for a repeat. A
  *    contribution, like a food report. 400 `invalid_id`, `invalid_reason`, `invalid_note`,
  *    `own_recipe`; 404; 429.
- *  - `POST /v1/recipes/public/{code}/saves`: someone saved it to their recipes. 204, or 404.
+ *  - `POST /v1/recipes/public/{code}/saves`: someone saved it to their recipes, counted once per
+ *    person and never for its owner. 204, or 404.
  *
  * Logs carry outcomes and codes only, never a recipe's name or contents.
  */
@@ -99,40 +109,42 @@ fun Route.recipeRoutes(
 
     authenticate(SUPABASE_JWT_AUTH) {
         rateLimit(RateLimitName(RECIPE_WRITE_LIMIT)) {
-            post("/v1/recipes/{id}/publish") {
-                val userId = call.userId() ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val id = call.parameters["id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                    ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "The recipe id must be a UUID"))
-                val request = runCatching { call.receive<PublishRecipeRequest>() }.getOrNull()
-                val row = request?.recipe
-                    ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_recipe", "recipe is required"))
-                val recipe = try {
-                    DiaryRules.clampClock(row.toDomain(), clock.now()) as Recipe
-                } catch (e: IllegalArgumentException) {
-                    return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_recipe", e.message ?: "recipe is invalid"))
-                }
-                if (recipe.id != id) return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "The id doesn't match the recipe"))
-                DiaryRules.validate(recipe, clock.now())?.let { message ->
-                    return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_recipe", message))
-                }
-                if (recipe.deleted || recipe.itemCount == 0) {
-                    return@post call.respond(HttpStatusCode.BadRequest, problem("empty_recipe", "A recipe needs an ingredient to share"))
-                }
-                if (call.refuseIfRestricted(contributionGate, userId, id.toString(), logger, "recipe publish")) return@post
-                if (!limiter.tryPublish(userId)) {
-                    logger.info("recipe publish outcome=rate_limited")
-                    return@post call.respond(HttpStatusCode.TooManyRequests, problem("rate_limited", "That's a lot of sharing for now. Try again later."))
-                }
-                when (val outcome = recipes.publish(userId, recipe, request.showName)) {
-                    is PublishOutcome.Published -> {
-                        logger.info("recipe publish outcome=published state={}", outcome.state.wire)
-                        call.respond(PublishRecipeResponse(outcome.code, outcome.state.wire))
+            bodyLimit(RecipeRules.MAX_PUBLISH_BODY_BYTES) {
+                post("/v1/recipes/{id}/publish") {
+                    val userId = call.userId() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val id = call.parameters["id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                        ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "The recipe id must be a UUID"))
+                    val request = call.receiveOrNull<PublishRecipeRequest>()
+                    val row = request?.recipe
+                        ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_recipe", "recipe is required"))
+                    val recipe = try {
+                        DiaryRules.clampClock(row.toDomain(), clock.now()) as Recipe
+                    } catch (e: IllegalArgumentException) {
+                        return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_recipe", e.message ?: "recipe is invalid"))
                     }
-                    PublishOutcome.Removed -> {
-                        logger.info("recipe publish outcome=removed")
-                        call.respond(HttpStatusCode.Forbidden, problem("removed", "This recipe was taken down and can't be shared again."))
+                    if (recipe.id != id) return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "The id doesn't match the recipe"))
+                    DiaryRules.validate(recipe, clock.now())?.let { message ->
+                        return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_recipe", message))
                     }
-                    PublishOutcome.NotYours -> call.respond(HttpStatusCode.NotFound, problem("not_found", "No such recipe"))
+                    if (recipe.deleted || recipe.itemCount == 0) {
+                        return@post call.respond(HttpStatusCode.BadRequest, problem("empty_recipe", "A recipe needs an ingredient to share"))
+                    }
+                    if (call.refuseIfRestricted(contributionGate, userId, id.toString(), logger, "recipe publish")) return@post
+                    if (!limiter.tryPublish(userId)) {
+                        logger.info("recipe publish outcome=rate_limited")
+                        return@post call.respond(HttpStatusCode.TooManyRequests, problem("rate_limited", "That's a lot of sharing for now. Try again later."))
+                    }
+                    when (val outcome = recipes.publish(userId, recipe, request.showName)) {
+                        is PublishOutcome.Published -> {
+                            logger.info("recipe publish outcome=published state={}", outcome.state.wire)
+                            call.respond(PublishRecipeResponse(outcome.code, outcome.state.wire))
+                        }
+                        PublishOutcome.Removed -> {
+                            logger.info("recipe publish outcome=removed")
+                            call.respond(HttpStatusCode.Forbidden, problem("removed", "This recipe was taken down and can't be shared again."))
+                        }
+                        PublishOutcome.NotYours -> call.respond(HttpStatusCode.NotFound, problem("not_found", "No such recipe"))
+                    }
                 }
             }
 
@@ -148,32 +160,34 @@ fun Route.recipeRoutes(
                 }
             }
 
-            post("/v1/recipes/public/{code}/reports") {
-                val userId = call.userId() ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                val code = call.parameters["code"]?.lowercase()?.takeIf(RecipeRules::isCode)
-                    ?: return@post call.respond(HttpStatusCode.NotFound, problem("not_found", "No recipe has that code."))
-                val request = runCatching { call.receive<RecipeReportRequest>() }.getOrNull() ?: RecipeReportRequest()
-                val reportId = request.id?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                    ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "id must be a UUID"))
-                val reason = RecipeReportReason.fromWire(request.reason)
-                    ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_reason", "Unknown reason"))
-                val note = request.note?.trim()?.ifEmpty { null }
-                if (note != null && (note.length > RecipeRules.MAX_REPORT_NOTE || '\u0000' in note)) {
-                    return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_note", "At most ${RecipeRules.MAX_REPORT_NOTE} characters"))
-                }
-                if (call.refuseIfRestricted(contributionGate, userId, reportId.toString(), logger, "recipe report")) return@post
-                if (!limiter.tryReport(userId)) {
-                    logger.info("recipe report outcome=rate_limited")
-                    return@post call.respond(HttpStatusCode.TooManyRequests, problem("rate_limited", "That's a lot of reports for now. Try again later."))
-                }
-                when (recipes.report(NewRecipeReport(reportId, userId, code, reason, note))) {
-                    RecipeReportOutcome.Created -> {
-                        logger.info("recipe report outcome=created reason={}", reason.wire)
-                        call.respond(HttpStatusCode.Created)
+            bodyLimit(RecipeRules.MAX_REPORT_BODY_BYTES) {
+                post("/v1/recipes/public/{code}/reports") {
+                    val userId = call.userId() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                    val code = call.parameters["code"]?.lowercase()?.takeIf(RecipeRules::isCode)
+                        ?: return@post call.respond(HttpStatusCode.NotFound, problem("not_found", "No recipe has that code."))
+                    val request = call.receiveOrNull<RecipeReportRequest>() ?: RecipeReportRequest()
+                    val reportId = request.id?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                        ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "id must be a UUID"))
+                    val reason = RecipeReportReason.fromWire(request.reason)
+                        ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_reason", "Unknown reason"))
+                    val note = request.note?.trim()?.ifEmpty { null }
+                    if (note != null && (note.length > RecipeRules.MAX_REPORT_NOTE || '\u0000' in note)) {
+                        return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_note", "At most ${RecipeRules.MAX_REPORT_NOTE} characters"))
                     }
-                    RecipeReportOutcome.Repeat -> call.respond(HttpStatusCode.OK)
-                    RecipeReportOutcome.NotFound -> call.respond(HttpStatusCode.NotFound, problem("not_found", "No recipe has that code."))
-                    RecipeReportOutcome.OwnRecipe -> call.respond(HttpStatusCode.BadRequest, problem("own_recipe", "This is your own recipe."))
+                    if (call.refuseIfRestricted(contributionGate, userId, reportId.toString(), logger, "recipe report")) return@post
+                    if (!limiter.tryReport(userId)) {
+                        logger.info("recipe report outcome=rate_limited")
+                        return@post call.respond(HttpStatusCode.TooManyRequests, problem("rate_limited", "That's a lot of reports for now. Try again later."))
+                    }
+                    when (recipes.report(NewRecipeReport(reportId, userId, code, reason, note))) {
+                        RecipeReportOutcome.Created -> {
+                            logger.info("recipe report outcome=created reason={}", reason.wire)
+                            call.respond(HttpStatusCode.Created)
+                        }
+                        RecipeReportOutcome.Repeat -> call.respond(HttpStatusCode.OK)
+                        RecipeReportOutcome.NotFound -> call.respond(HttpStatusCode.NotFound, problem("not_found", "No recipe has that code."))
+                        RecipeReportOutcome.OwnRecipe -> call.respond(HttpStatusCode.BadRequest, problem("own_recipe", "This is your own recipe."))
+                    }
                 }
             }
         }
@@ -186,16 +200,18 @@ fun Route.recipeRoutes(
                     return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_query", "q must be ${RecipeRules.MIN_QUERY} to ${RecipeRules.MAX_QUERY} characters"))
                 }
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull()?.coerceIn(1, MAX_SEARCH) ?: DEFAULT_SEARCH
-                val lookup = catalogLookup(catalog)
-                val hits = recipes.search(query, limit).map { PublicRecipes.serve(it, lookup).toResponse() }
+                val found = recipes.search(query, limit)
+                // Every hit's ingredients in one load, however many recipes name them.
+                val foods = catalog.findByIds(found.flatMapTo(HashSet(), PublicRecipes::foodIds))
+                val hits = found.map { PublicRecipes.serve(it, foods).toResponse() }
                 call.respond(RecipeSearchResponse(query, hits))
             }
 
             post("/v1/recipes/public/{code}/saves") {
-                call.userId() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val userId = call.userId() ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val code = call.parameters["code"]?.lowercase()?.takeIf(RecipeRules::isCode)
                     ?: return@post call.respond(HttpStatusCode.NotFound, problem("not_found", "No recipe has that code."))
-                if (recipes.countSave(code)) {
+                if (recipes.countSave(code, userId)) {
                     call.respond(HttpStatusCode.NoContent)
                 } else {
                     call.respond(HttpStatusCode.NotFound, problem("not_found", "No recipe has that code."))
@@ -205,13 +221,11 @@ fun Route.recipeRoutes(
     }
 }
 
-private fun StoredRecipe.isLive(): Boolean = state == PublicState.Live && !deleted && code != null
+/** The body, or null when it isn't one. A body over the route's cap still answers 413. */
+private suspend inline fun <reified T : Any> ApplicationCall.receiveOrNull(): T? =
+    runCatching { receive<T>() }.getOrElse { if (it is RequestTooLargeException || it is CancellationException) throw it else null }
 
-/** Catalog foods by id for one request, each looked up once however many recipes name it. */
-private fun catalogLookup(catalog: FoodCatalogRepository): suspend (UUID) -> Food? {
-    val seen = HashMap<UUID, Food?>()
-    return { id -> if (seen.containsKey(id)) seen[id] else catalog.findById(id).also { seen[id] = it } }
-}
+private fun StoredRecipe.isLive(): Boolean = state == PublicState.Live && !deleted && code != null
 
 private const val PREFLIGHT_MAX_AGE_SECONDS = 600L
 private const val PUBLIC_MAX_AGE_SECONDS = 60

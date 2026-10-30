@@ -689,14 +689,26 @@ class FoodDetailTest : CoroutineTest() {
 
         // Each tap says so on a snackbar, whose Undo sets the star back.
         assertEquals(
-            listOf<FoodDetailEvent>(
-                FoodDetailEvent.FavoriteChanged("f:peanut-butter", starred = true),
-                FoodDetailEvent.FavoriteChanged("f:peanut-butter", starred = false),
-            ),
-            events,
+            listOf("f:peanut-butter" to true, "f:peanut-butter" to false),
+            events.filterIsInstance<FoodDetailEvent.FavoriteChanged>().map { it.key to it.starred },
         )
+        assertEquals(events.size, events.filterIsInstance<FoodDetailEvent.FavoriteChanged>().size)
         // A catalog food is kept on the phone as a favorite, so the Foods tab can show it.
         assertEquals(listOf("peanut-butter" to true, "peanut-butter" to false), catalog.favorited)
+    }
+
+    @Test
+    fun undoingTheStarPutsItBackOnThePhonesCopyToo() = runUnitTest {
+        val vm = vm()
+        val events = events(vm)
+        vm.takeAction(FoodDetailAction.FavoriteTapped)
+        val changed = events.filterIsInstance<FoodDetailEvent.FavoriteChanged>().single()
+
+        // What the snackbar's Undo runs.
+        FoodStar(settings, catalog).set(changed.key, changed.food, on = !changed.starred)
+
+        assertTrue(settings.state.value.favoriteFoods.isEmpty())
+        assertEquals(listOf("peanut-butter" to true, "peanut-butter" to false), catalog.favorited, "the Foods tab no longer lists it")
     }
 
     @Test

@@ -25,12 +25,15 @@ internal object VerificationReview {
     }
 
     /**
-     * Why it is waiting: the Builder said something was wrong, or the label's text did not show
-     * the food's numbers (3 of 4 found).
+     * Why it is waiting: the Builder said something was wrong, the label's text did not show the
+     * food's numbers (3 of 4 found), or it did and the match waits for a second Builder or a
+     * reviewer to agree before the food shows as Verified.
      */
     fun why(verification: FoodVerificationDto): String = when {
         verification.wrong.isNotEmpty() || verification.missing.isNotEmpty() || verification.note != null || verification.values != null ->
             "The Builder said something was wrong"
+        verification.outcome == "confirmed" ->
+            "The label's text showed all ${verification.groundable} numbers. Accept it if the photos agree, or wait for a second Builder"
         else -> "The label's text showed ${verification.grounded} of ${verification.groundable} numbers"
     }
 

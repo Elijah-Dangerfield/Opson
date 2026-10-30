@@ -132,6 +132,8 @@ class DeleteEverythingTest : IntegrationTest() {
             "INSERT INTO recipe_reports (id, recipe_id, user_id, reason) VALUES (?::uuid, ?::uuid, ?::uuid, 'spam')",
             UUID.randomUUID().toString(), recipe, user,
         )
+        // A save of a shared recipe (V36) goes with the account that saved it.
+        sql("INSERT INTO recipe_saves (recipe_id, user_id) VALUES (?::uuid, ?::uuid)", recipe, user)
         sql("INSERT INTO device_sightings (user_id, device_hash, platform) VALUES (?::uuid, 'hash', 'ios')", user)
         sql(
             "INSERT INTO device_markers (id, device_hash, platform, action_id, user_id, created_by) " +

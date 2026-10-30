@@ -157,6 +157,14 @@ internal object OpenFoodFactsSearch {
         FROM off_foods o WHERE o.id = ?
     """.trimIndent()
 
+    /** [BY_ID_SQL] for several; the argument is the ids joined with `|`. */
+    val BY_IDS_SQL = """
+        SELECT o.id, o.source, o.barcode AS source_id, o.name, o.brand, o.barcode,
+               o.kcal_100g, o.protein_100g, o.carbs_100g, o.fat_100g, o.fiber_100g,
+               o.micros::text AS micros, o.portions::text AS portions, o.tier, o.verified
+        FROM off_foods o WHERE o.id = ANY (string_to_array(?, '|')::uuid[])
+    """.trimIndent()
+
     /** By the `off_foods_barcode_key` unique index; the argument is the code's forms joined with `|`. */
     val BY_BARCODE_SQL = """
         SELECT o.id, o.source, o.barcode AS source_id, o.name, o.brand, o.barcode,

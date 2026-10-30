@@ -51,6 +51,7 @@ import opson.libraries.resources.generated.resources.builder_offline
 import opson.libraries.resources.generated.resources.builder_verify_again
 import opson.libraries.resources.generated.resources.builder_verify_barcode
 import opson.libraries.resources.generated.resources.builder_verify_brand
+import opson.libraries.resources.generated.resources.builder_verify_awaiting_agreement
 import opson.libraries.resources.generated.resources.builder_verify_confirmed
 import opson.libraries.resources.generated.resources.builder_verify_field_barcode
 import opson.libraries.resources.generated.resources.builder_verify_field_calories
@@ -365,6 +366,7 @@ private val LabelNutrient.label: StringResource
 private val CheckDone.message: StringResource
     get() = when (this) {
         CheckDone.Confirmed -> Res.string.builder_verify_confirmed
+        CheckDone.AwaitingAgreement -> Res.string.builder_verify_awaiting_agreement
         CheckDone.Unconfirmed -> Res.string.builder_check_unconfirmed
         CheckDone.InReview -> Res.string.builder_verify_in_review
         CheckDone.Corrected -> Res.string.builder_check_corrected

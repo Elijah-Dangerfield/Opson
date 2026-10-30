@@ -70,6 +70,40 @@ class OpenFoodFactsCatalogTest : DatabaseTest() {
     }
 
     @Test
+    fun manyIdsAtOnceAnswerAsEachDoesAlone_fromBothTablesWithTheirChecks() = runTest {
+        val bread = UUID.randomUUID()
+        database.blockingTransaction {
+            FoodsTable.insert {
+                it[id] = bread
+                it[sourceKind] = "usda_branded"
+                it[sourceId] = bread.toString()
+                it[name] = "Bread, white"
+                it[kcal100g] = 266f
+            }
+            // Accepted by a reviewer: the catalog serves it as checked.
+            TransactionManager.current().exec(
+                "INSERT INTO food_verifications (id, food_id, user_id, outcome, grounded, groundable, status) " +
+                    "VALUES ('${UUID.randomUUID()}', '$bread', '${seedAuthUser().value}', 'confirmed', 4, 4, 'accepted')",
+            )
+        }
+        val offId = seedOff("Pain de mie", "03000000000017")
+        val nobody = UUID.randomUUID()
+        try {
+            for (enabled in listOf(true, false)) {
+                val catalog = repo(enabled)
+                val many = catalog.findByIds(listOf(bread, offId, nobody, bread))
+                val alone = listOf(bread, offId, nobody).mapNotNull { id -> catalog.findById(id)?.let { id to it } }.toMap()
+                assertEquals(alone, many, "Open Food Facts on: $enabled")
+                assertEquals(true, many.getValue(bread).checked)
+            }
+            assertEquals(setOf(bread, offId), repo(enabled = true).findByIds(listOf(bread, offId, nobody)).keys)
+            assertEquals(emptyMap(), repo(enabled = true).findByIds(emptyList()))
+        } finally {
+            database.blockingTransaction { TransactionManager.current().exec("DELETE FROM food_verifications WHERE food_id = '$bread'") }
+        }
+    }
+
+    @Test
     fun offByDefaultSearchAnswersAsIn01() = runTest {
         seedGeneric("Bread, white")
         val offId = seedOff("Pain de mie", "03000000000017")

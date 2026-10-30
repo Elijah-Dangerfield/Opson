@@ -138,8 +138,14 @@ object PublicRecipes {
     fun items(itemsJson: String): List<RecipeItemJson> =
         runCatching { json.decodeFromString(ITEMS, itemsJson) }.getOrDefault(emptyList())
 
-    suspend fun serve(recipe: StoredRecipe, findFood: suspend (UUID) -> Food?): PublicRecipe {
-        val ingredients = items(recipe.itemsJson).map { item -> ingredient(item, findFood) }
+    /** The catalog foods [serve] works [recipe] out from: those with a weight. Load them together. */
+    fun foodIds(recipe: StoredRecipe): Set<UUID> = items(recipe.itemsJson).mapNotNullTo(LinkedHashSet()) { item ->
+        item.grams.weight()?.let { item.catalogId() }
+    }
+
+    /** [recipe] as the public sees it, from [foods], its [foodIds] loaded in one go. */
+    fun serve(recipe: StoredRecipe, foods: Map<UUID, Food>): PublicRecipe {
+        val ingredients = items(recipe.itemsJson).map { item -> ingredient(item, foods) }
         fun sum(pick: (Nutrients) -> Double?): Double? =
             ingredients.mapNotNull { pick(it.nutrients) }.takeIf { it.isNotEmpty() }?.sum()
         return PublicRecipe(
@@ -155,10 +161,10 @@ object PublicRecipes {
         )
     }
 
-    private suspend fun ingredient(item: RecipeItemJson, findFood: suspend (UUID) -> Food?): PublicIngredient {
-        val foodId = item.foodId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-        val grams = item.grams?.takeIf { it.isFinite() && it > 0.0 }
-        val food = if (foodId != null && grams != null) findFood(foodId) else null
+    private fun ingredient(item: RecipeItemJson, foods: Map<UUID, Food>): PublicIngredient {
+        val foodId = item.catalogId()
+        val grams = item.grams.weight()
+        val food = if (foodId != null && grams != null) foods[foodId] else null
         val own = Nutrients(item.kcal.clean(), item.protein.clean(), item.carbs.clean(), item.fat.clean(), item.fiber.clean())
         if (food == null || grams == null) {
             return PublicIngredient(item.name, item.amountText, grams, own, foodId, checked = false)
@@ -175,10 +181,49 @@ object PublicRecipes {
         return PublicIngredient(item.name, item.amountText, grams, fromCatalog, foodId, checked)
     }
 
+    private fun RecipeItemJson.catalogId(): UUID? = foodId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+
+    private fun Double?.weight(): Double? = this?.takeIf { it.isFinite() && it > 0.0 }
+
     private fun Double?.clean(): Double? = this?.takeIf { it.isFinite() && it >= 0.0 && it <= DiaryRules.MAX_NUTRIENT }
 
     private const val GRAMS_PER_100 = 100.0
     private val ITEMS = kotlinx.serialization.builtins.ListSerializer(RecipeItemJson.serializer())
+}
+
+/**
+ * Shared recipe pages as last served, keyed by everything on the recipe that changes one: its
+ * code, when its owner last edited it and the name it shows. A link dropped in a group chat is
+ * opened by many people at once, and serving one loads every ingredient's food. An answer is kept
+ * [ttl], so a correction or a check on one of those foods shows within that; least recently used
+ * goes first past [maxEntries]. Whether the recipe is still shared is read every time, never kept.
+ */
+@OptIn(ExperimentalTime::class)
+class PublicRecipeCache(
+    private val clock: Clock,
+    private val maxEntries: Int = DEFAULT_ENTRIES,
+    private val ttl: Duration = 5.minutes,
+) {
+    private data class Key(val code: String, val updatedAt: Instant, val by: String?)
+
+    private class Entry(val recipe: PublicRecipe, val at: Instant)
+
+    private val entries = object : LinkedHashMap<Key, Entry>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Key, Entry>): Boolean = size > maxEntries
+    }
+
+    suspend fun serve(recipe: StoredRecipe, serve: suspend () -> PublicRecipe): PublicRecipe {
+        val key = Key(checkNotNull(recipe.code) { "a shared recipe has a code" }, recipe.updatedAt, recipe.ownerName?.takeIf { recipe.showName })
+        synchronized(entries) {
+            val entry = entries[key]
+            if (entry != null && clock.now() - entry.at < ttl) return entry.recipe
+        }
+        return serve().also { served -> synchronized(entries) { entries[key] = Entry(served, clock.now()) } }
+    }
+
+    private companion object {
+        const val DEFAULT_ENTRIES = 500
+    }
 }
 
 /** The limits on a recipe, checked by [DiaryRules] on sync and again on publish. */
@@ -200,6 +245,15 @@ object RecipeRules {
 
     /** Open reports from this many different people hide a shared recipe until someone looks. */
     const val HIDE_AFTER_REPORTS = 3
+
+    /**
+     * A publish body: the row sync would send, whose items are at most [DiaryRules.MAX_JSON_CHARS]
+     * characters, with room for escaping and the notes.
+     */
+    const val MAX_PUBLISH_BODY_BYTES = 512L * 1024
+
+    /** A report body: an id, a reason and a note of [MAX_REPORT_NOTE] characters. */
+    const val MAX_REPORT_BODY_BYTES = 16L * 1024
 
     fun newCode(random: Random = Random.Default): String =
         String(CharArray(CODE_LENGTH) { CODE_ALPHABET[random.nextInt(CODE_ALPHABET.length)] })
@@ -284,8 +338,11 @@ interface PublicRecipeRepository {
     /** Live recipes whose name holds [query], best first. */
     suspend fun search(query: String, limit: Int): List<StoredRecipe>
 
-    /** Someone saved it to their recipes. Counted for ranking and the board. */
-    suspend fun countSave(code: String): Boolean
+    /**
+     * [userId] saved it to their recipes. Counted for ranking and the board, once per person
+     * (`recipe_saves`, V36), and never for its owner. False when no live recipe has [code].
+     */
+    suspend fun countSave(code: String, userId: UserId): Boolean
 
     suspend fun report(report: NewRecipeReport): RecipeReportOutcome
 

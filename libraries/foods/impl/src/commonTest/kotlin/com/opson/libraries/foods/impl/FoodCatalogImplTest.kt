@@ -21,6 +21,7 @@ import com.opson.libraries.foods.SearchSource
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.foods.db.FoodCacheEntity
 import com.opson.libraries.foods.db.FoodCacheSearchRow
+import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -374,6 +375,19 @@ private class FakeFoodApi : FoodApi {
         return detailsById[id]?.let { Result.success(it) } ?: detailResult ?: Result.failure(IllegalStateException("not found"))
     }
 
+    /** Ids the server answers 404 for. Any other id it lacks fails as [unreachable] does. */
+    val goneIds = mutableSetOf<String>()
+    var unreachable: Throwable = IOException("offline")
+
+    override suspend fun detailOrGone(id: String): Result<FoodResponse?> {
+        detailsAsked += id
+        return when (id) {
+            in detailsById -> Result.success(detailsById.getValue(id))
+            in goneIds -> Result.success(null)
+            else -> Result.failure(unreachable)
+        }
+    }
+
     override suspend fun barcode(code: String) = barcodeResult
 
     var matchesAsked = 0
@@ -467,12 +481,33 @@ class LongTailFoodCacheTest : CoroutineTest() {
     @Test
     fun aFoodTheServerNoLongerHasIsNotAskedForAgain() = runUnitTest {
         api.detailsById += "kept" to food("kept", "Oats, raw")
+        api.goneIds += "gone"
         logged.value = listOf(logged("gone", at = 20L), logged("kept", at = 10L))
 
         longTail.sync()
         longTail.sync()
 
         assertEquals(listOf("gone", "kept"), api.detailsAsked)
+    }
+
+    @Test
+    fun foodsThatAreAllGoneAreAnAnswerNotAFailure() = runUnitTest {
+        api.goneIds += List(5) { "gone-$it" }
+        logged.value = List(5) { logged("gone-$it", at = 100L - it) }
+
+        assertTrue(longTail.sync().isSuccess, "a 404 is the server answering")
+        assertEquals(5, api.detailsAsked.size, "each is asked once, none stops the run")
+        assertTrue(longTail.sync().isSuccess)
+        assertEquals(5, api.detailsAsked.size, "and none is asked for again")
+    }
+
+    @Test
+    fun aRefusalOtherThanTransportIsNotRetriedAndDoesNotFail() = runUnitTest {
+        api.unreachable = IllegalStateException("not a food")
+        logged.value = List(4) { logged("odd-$it", at = 100L - it) }
+
+        assertTrue(longTail.sync().isSuccess)
+        assertEquals(4, api.detailsAsked.size)
     }
 
     private fun food(id: String, name: String) = FoodResponse(

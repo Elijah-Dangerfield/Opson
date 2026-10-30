@@ -9,6 +9,7 @@ import com.opson.libraries.foods.PublicRecipeLookup
 import com.opson.libraries.foods.PublicRecipes
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
@@ -25,7 +26,8 @@ sealed interface PublicRecipeState {
 
     /**
      * [by] is the maker's display name when they show it. [checkedCount] of [ingredients] came from
-     * foods Opson checked. [mineId] is set when this is the person's own recipe.
+     * foods Opson checked. [mineId] is set when this is the person's own recipe, [savedId] when
+     * they already saved a copy of it ([com.opson.libraries.diary.Recipe.savedFrom]).
      */
     data class Loaded(
         val name: String,
@@ -36,12 +38,13 @@ sealed interface PublicRecipeState {
         val checkedCount: Int,
         val notes: String?,
         val mineId: String? = null,
+        val savedId: String? = null,
         val saving: Boolean = false,
     ) : PublicRecipeState
 }
 
 sealed interface PublicRecipeAction {
-    data class Arrived(val lookup: PublicRecipeLookup, val mineId: String?) : PublicRecipeAction
+    data class Arrived(val lookup: PublicRecipeLookup, val mineId: String?, val savedId: String? = null) : PublicRecipeAction
     data class PolicyArrived(val policy: VisibilityPolicy) : PublicRecipeAction
     data object RetryTapped : PublicRecipeAction
     data object LogTapped : PublicRecipeAction
@@ -62,7 +65,7 @@ sealed interface PublicRecipeEvent {
 }
 
 object PublicRecipeStateBuilder {
-    fun build(recipe: PublicRecipe, policy: VisibilityPolicy, mineId: String?): PublicRecipeState.Loaded = PublicRecipeState.Loaded(
+    fun build(recipe: PublicRecipe, policy: VisibilityPolicy, mineId: String?, savedId: String? = null): PublicRecipeState.Loaded = PublicRecipeState.Loaded(
         name = recipe.name,
         by = recipe.by,
         servings = RecipeNumbers.servings(recipe.servings),
@@ -71,6 +74,7 @@ object PublicRecipeStateBuilder {
         checkedCount = recipe.checkedCount,
         notes = recipe.notes?.takeIf { it.isNotBlank() },
         mineId = mineId,
+        savedId = savedId,
     )
 }
 
@@ -102,7 +106,9 @@ class PublicRecipeViewModel(
         viewModelScope.launch {
             val lookup = publicRecipes.get(route.code)
             val mine = recipes.byShareCode(route.code)?.id
-            takeAction(PublicRecipeAction.Arrived(lookup, mine))
+            // A copy saved before: opening the link again offers it rather than a second copy.
+            val saved = recipes.observeAll().first().firstOrNull { it.savedFrom == route.code }?.id
+            takeAction(PublicRecipeAction.Arrived(lookup, mine, saved))
         }
     }
 
@@ -112,7 +118,7 @@ class PublicRecipeViewModel(
                 when (val lookup = action.lookup) {
                     is PublicRecipeLookup.Found -> {
                         recipe = lookup.recipe
-                        PublicRecipeStateBuilder.build(lookup.recipe, policy, action.mineId)
+                        PublicRecipeStateBuilder.build(lookup.recipe, policy, action.mineId, action.savedId)
                     }
                     PublicRecipeLookup.NotShared -> PublicRecipeState.Missing(PublicRecipeState.Missing.Why.NotShared)
                     PublicRecipeLookup.NotFound -> PublicRecipeState.Missing(PublicRecipeState.Missing.Why.NotFound)
@@ -125,7 +131,7 @@ class PublicRecipeViewModel(
                 policy = action.policy
                 val current = recipe ?: return
                 action.updateState { state ->
-                    (state as? PublicRecipeState.Loaded)?.let { PublicRecipeStateBuilder.build(current, action.policy, it.mineId).copy(saving = it.saving) } ?: state
+                    (state as? PublicRecipeState.Loaded)?.let { PublicRecipeStateBuilder.build(current, action.policy, it.mineId, it.savedId).copy(saving = it.saving) } ?: state
                 }
             }
             PublicRecipeAction.RetryTapped -> {
@@ -134,7 +140,7 @@ class PublicRecipeViewModel(
             }
             PublicRecipeAction.LogTapped -> sendEvent(PublicRecipeEvent.OpenLog(route.code))
             PublicRecipeAction.SaveTapped -> save(action)
-            PublicRecipeAction.OpenMineTapped -> (state as? PublicRecipeState.Loaded)?.mineId?.let {
+            PublicRecipeAction.OpenMineTapped -> (state as? PublicRecipeState.Loaded)?.let { it.mineId ?: it.savedId }?.let {
                 sendEvent(PublicRecipeEvent.OpenRecipe(it))
             }
             PublicRecipeAction.ReportTapped -> recipe?.let { sendEvent(PublicRecipeEvent.OpenReport(route.code, it.name)) }
@@ -145,7 +151,7 @@ class PublicRecipeViewModel(
     private suspend fun save(action: PublicRecipeAction) {
         val current = recipe ?: return
         val loaded = state as? PublicRecipeState.Loaded ?: return
-        if (saved || loaded.mineId != null) return
+        if (saved || loaded.mineId != null || loaded.savedId != null) return
         saved = true
         action.updateState { loaded.copy(saving = true) }
         val copy = recipes.create(current.toDraft())

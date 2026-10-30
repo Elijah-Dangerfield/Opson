@@ -19,6 +19,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.AmountUnit
+import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.PortionAmount
@@ -129,8 +130,11 @@ sealed interface FoodDetailEvent {
     /** Verify a catalog food against the pack in hand. */
     data class OpenVerify(val foodId: String, val name: String) : FoodDetailEvent
 
-    /** The star changed: a snackbar says so, and its Undo sets [key] back to not [starred]. */
-    data class FavoriteChanged(val key: String, val starred: Boolean) : FoodDetailEvent
+    /**
+     * The star changed: a snackbar says so, and its Undo sets [key] back to not [starred], [food]
+     * (the catalog food, null for one's own) with it ([FoodStar]).
+     */
+    data class FavoriteChanged(val key: String, val starred: Boolean, val food: Food? = null) : FoodDetailEvent
 
     /** Edit a copy of this food, which logs to [day] and [slot] once it is saved. */
     data class OpenEditCopy(val ref: FoodRef, val day: LocalDate, val slot: MealSlot) : FoodDetailEvent
@@ -438,9 +442,9 @@ class FoodDetailViewModel(
      */
     private suspend fun favorite() {
         val ref = ref ?: return
-        val starred = settingsRepository.update { it.toggleFavorite(ref.key) }.isFavorite(ref.key)
-        model.food?.let(FoodDetailStateBuilder::catalogFood)?.let { foodCatalog.setFavorite(it, starred) }
-        sendEvent(FoodDetailEvent.FavoriteChanged(ref.key, starred))
+        val food = model.food?.let(FoodDetailStateBuilder::catalogFood)
+        val starred = FoodStar(settingsRepository, foodCatalog).toggle(ref.key, food)
+        sendEvent(FoodDetailEvent.FavoriteChanged(ref.key, starred, food))
     }
 
     private fun reportTarget(): ReportTarget? {

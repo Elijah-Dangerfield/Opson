@@ -40,6 +40,10 @@ private fun RecipeEditDarkPreview() = FoodsPreviewFrame(dark = true) { RecipeEdi
 
 @Preview(widthDp = 390, heightDp = 1200)
 @Composable
+private fun RecipeEditFullPreview() = FoodsPreviewFrame { RecipeEditScreen(RecipeFixtures.editState(full, editing = true).copy(canAddIngredient = false), onAction = {}) }
+
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
 private fun RecipeEditBlindPreview() = FoodsPreviewFrame { RecipeEditScreen(RecipeFixtures.editState(blind, editing = true), onAction = {}) }
 
 @Preview(widthDp = 390, heightDp = 1300)
@@ -74,6 +78,12 @@ private fun RecipePublicBlindPreview() = FoodsPreviewFrame { PublicRecipeScreen(
 @Preview(widthDp = 390, heightDp = 1100)
 @Composable
 private fun RecipePublicMinePreview() = FoodsPreviewFrame { PublicRecipeScreen(RecipeFixtures.publicState(full, mine = true), onAction = {}) }
+
+@Preview(widthDp = 390, heightDp = 1300)
+@Composable
+private fun RecipePublicSavedBeforePreview() = FoodsPreviewFrame {
+    PublicRecipeScreen(RecipeFixtures.publicState(full).copy(savedId = "recipe-oats-copy"), onAction = {})
+}
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

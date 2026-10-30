@@ -61,8 +61,9 @@ class RecipeRepositoryImpl(
         put(existing.copy(deleted = true, clientUpdatedAtEpochMs = stamp(existing.clientUpdatedAtEpochMs)), existing)
     }
 
-    override suspend fun markShared(id: String, sharing: RecipeSharing) {
-        val existing = tables.recipes.get(id) ?: return
+    /** Read and written in one transaction, so an edit or a pull landing in between is not undone. Queues nothing. */
+    override suspend fun markShared(id: String, sharing: RecipeSharing) = writer.write {
+        val existing = tables.recipes.get(id) ?: return@write
         tables.recipes.upsert(
             listOf(existing.copy(publicCode = sharing.code ?: existing.publicCode, publicState = sharing.state.wire, publicShowName = sharing.showName)),
         )
