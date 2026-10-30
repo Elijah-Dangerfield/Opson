@@ -67,13 +67,9 @@ private fun SubmitFoodSavingPreview() = Submit(SubmitFoodFixtures.calmState(Subm
 @Composable
 private fun SubmitFoodNoLabelPreview() = Submit(SubmitFoodFixtures.calmState(SubmitStep.NoLabel, full))
 
-@Preview(widthDp = 390, heightDp = 844)
+@Preview(widthDp = 390, heightDp = 1600)
 @Composable
-private fun SubmitFoodTooManyPreview() = Submit(SubmitFoodFixtures.calmState(SubmitStep.TooMany, full))
-
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun SubmitFoodReadFailedPreview() = Submit(SubmitFoodFixtures.calmState(SubmitStep.ReadFailed(offline = true), full))
+private fun SubmitFoodReadPartlyPreview() = Submit(SubmitFoodFixtures.partlyState(full))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

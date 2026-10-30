@@ -47,6 +47,17 @@ private fun FoodReportCaloriesPreview() = Report(
     ),
 )
 
+/** A label photo read on the phone: the numbers it found, filled in, with the note to check them. */
+@Preview(widthDp = 390, heightDp = 1500)
+@Composable
+private fun FoodReportFromPhotoPreview() = Report(
+    monster.copy(
+        reason = FoodReportReason.WrongNutrients,
+        fields = mapOf(FoodReportStateBuilder.KCAL to "10", FoodReportStateBuilder.CARBS to "3"),
+        fromPhoto = setOf(FoodReportStateBuilder.KCAL, FoodReportStateBuilder.CARBS),
+    ),
+)
+
 /** No numbers: the reason and the serving, never a calorie or a macro to type. */
 @Preview(widthDp = 390, heightDp = 1300)
 @Composable

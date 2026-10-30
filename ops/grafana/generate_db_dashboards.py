@@ -727,7 +727,7 @@ b.loki_series("Add this food, step by step", [
     loki("A", f'sum(count_over_time({CLIENT} | event_name="barcode.miss" [$__interval]))', "barcode missed"),
     loki("B", f'sum(count_over_time({CLIENT} | event_name="food_add.started" [$__interval]))', "add started"),
     loki("C", f'sum(count_over_time({CLIENT} | event_name="food_add.photo_taken" | side="label" [$__interval]))', "label photo taken"),
-    loki("D", f'sum(count_over_time({CLIENT} | event_name="food_add.read" | outcome="read" [$__interval]))', "label read"),
+    loki("D", f'sum(count_over_time({CLIENT} | event_name="food_add.read" | outcome=~"read|on_phone|partly" [$__interval]))', "label read"),
     loki("E", f'sum(count_over_time({CLIENT} | event_name="food_add.submitted" | sent="true" [$__interval]))', "sent for review"),
 ], "Client events, no barcode or food in any of them. Approval is the Postgres half above.", w=24)
 b.loki_table("Where people stop",
@@ -735,8 +735,9 @@ b.loki_table("Where people stop",
              "Add this food left before anything was logged, by the step it was left at.")
 b.loki_table("How reads end",
              f'sum by (outcome) (count_over_time({CLIENT} | event_name="food_add.read" [$__range]))',
-             "Read: the form filled in. no_label: the second photo had no panel. unavailable: no model key on the "
-             "server, so the form opened empty.")
+             "on_phone: the phone read the panel and filled the form. partly: some of it. no_label: the phone "
+             "found no panel. unavailable: the phone could not read text, so the form opened empty. read, too_many, "
+             "offline and error come from builds before v1, which asked the server.")
 b.write()
 
 # ── Builders: contributions and abuse ──────────────────────────────────────

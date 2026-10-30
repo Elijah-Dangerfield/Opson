@@ -6,8 +6,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import kotlinx.browser.document
 import kotlinx.browser.window
+import org.w3c.dom.HTMLElement
+import org.w3c.dom.events.Event
+import org.w3c.dom.events.KeyboardEvent
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.placeholder
 import org.jetbrains.compose.web.attributes.selected
@@ -41,6 +46,29 @@ private const val AUDITS = "audits"
 /** How many routing reasons a queue row shows before "and N more". */
 private const val REASONS_IN_ROW = 2
 
+/** The open submission's wrapper, scrolled into view when it changes. */
+private const val PANEL_ID = "review-panel"
+
+/** The reject reason field, focused by the r key. */
+private const val REJECT_REASON_ID = "review-reject-reason"
+
+/** A key's command for the open submission. [seq] tells two presses of the same key apart. */
+private data class IssuedCommand(val command: ReviewCommand, val id: String, val seq: Int)
+
+@Composable
+private fun KeyLegend() {
+    Table(attrs = { classes("flags"); style { property("margin-top", "8px") } }) {
+        Tbody {
+            ReviewKeys.LEGEND.forEach { (keys, what) ->
+                Tr {
+                    Td { Span(attrs = { classes("mono") }) { Text(keys) } }
+                    Td { Text(what) }
+                }
+            }
+        }
+    }
+}
+
 /**
  * The food review queue (`/v1/admin/food-submissions`, `/v1/admin/barcode-links`): foods people
  * added from photos of a pack, and barcodes suggested by a miss followed by a search. A
@@ -49,6 +77,10 @@ private const val REASONS_IN_ROW = 2
  * stands, with the checks the server ran. The reviewer can correct any field, approve (the food
  * joins search and barcode lookup for everyone) or reject with a reason and a code. The Audits tab
  * lists auto-approvals picked for a person to pass or fail.
+ *
+ * Built for a fast weekly pass (docs/practices/food-review-runbook.md): the keys in [ReviewKeys],
+ * the next pending food opening after each decision, and above the queue [WeeklyPass] (bulk
+ * approve, export for an offline pre-check, import its decisions).
  *
  * Below them, reports on foods already in the catalog ([FoodReportsView]): "Report a problem" from
  * any food's detail, and the server's own energy check.
@@ -64,12 +96,48 @@ internal fun ReviewView(ctx: AdminCtx, openId: String?) {
     var selected by remember { mutableStateOf(openId) }
     var links by remember { mutableStateOf<List<BarcodeLinkDto>?>(null) }
     var refresh by remember { mutableStateOf(0) }
+    var showLegend by remember { mutableStateOf(false) }
+    var showText by remember { mutableStateOf(true) }
+    var command by remember { mutableStateOf<IssuedCommand?>(null) }
+    var issued by remember { mutableStateOf(0) }
 
     LaunchedEffect(status, refresh) {
         Catching { list = if (status == AUDITS) ctx.api.listAudits() else ctx.api.listSubmissions(status) }
             .onFailure { ctx.setStatus(Status(false, it.message ?: "Couldn't load the queue")) }
         Catching { links = ctx.api.listBarcodeLinks() }
             .onFailure { ctx.setStatus(Status(false, it.message ?: "Couldn't load barcode links")) }
+    }
+
+    // The open submission comes into view however it was opened: a click, a key, or after a decision.
+    LaunchedEffect(selected) {
+        if (selected != null) document.getElementById(PANEL_ID)?.scrollIntoView()
+    }
+
+    val ids = list?.submissions?.map { it.id }.orEmpty()
+    val currentIds by rememberUpdatedState(ids)
+    val currentSelected by rememberUpdatedState(selected)
+    DisposableEffect(Unit) {
+        val listener: (Event) -> Unit = handler@{ event ->
+            val key = event as? KeyboardEvent ?: return@handler
+            // A confirm sheet is open: its own keys (Escape) are the only ones that count.
+            if (document.body?.classList?.contains("modal-open") == true) return@handler
+            val target = key.target as? HTMLElement
+            if (ReviewKeys.isTextTarget(target?.tagName, target?.isContentEditable == true)) return@handler
+            val onControl = target?.tagName?.uppercase() in setOf("BUTTON", "A")
+            val next = ReviewKeys.command(key.key, key.ctrlKey || key.metaKey || key.altKey, currentSelected != null, onControl)
+                ?: return@handler
+            key.preventDefault()
+            when (next) {
+                ReviewCommand.Next, ReviewCommand.Previous, ReviewCommand.Open -> selected = ReviewKeys.move(currentIds, currentSelected, next)
+                ReviewCommand.Close -> selected = null
+                ReviewCommand.Legend -> showLegend = !showLegend
+                ReviewCommand.ToggleText -> showText = !showText
+                ReviewCommand.Approve, ReviewCommand.FocusReject, ReviewCommand.Save ->
+                    currentSelected?.let { command = IssuedCommand(next, it, ++issued) }
+            }
+        }
+        window.addEventListener("keydown", listener)
+        onDispose { window.removeEventListener("keydown", listener) }
     }
 
     val what = if (status == AUDITS) "waiting for audit" else status
@@ -94,9 +162,16 @@ internal fun ReviewView(ctx: AdminCtx, openId: String?) {
                 },
             )
         }
+        Div(attrs = { classes("muted", "hint") }) {
+            Text("Keys: j and k move, a approves, r rejects, s saves, t shows the text, Esc closes. ? lists them.")
+        }
+        if (showLegend) KeyLegend()
     }
 
     val current = list
+    if (status == "pending" && current != null) {
+        WeeklyPass(ctx, current.submissions, onChanged = { refresh++ })
+    }
     when {
         current == null -> P(attrs = { classes("muted") }) { Text("Loading…") }
         current.submissions.isEmpty() -> P(attrs = { classes("muted") }) { Text("Nothing $what.") }
@@ -104,7 +179,21 @@ internal fun ReviewView(ctx: AdminCtx, openId: String?) {
     }
 
     selected?.let { id ->
-        SubmissionPanel(ctx, id, onDecided = { selected = null; refresh++ })
+        Div(attrs = { attr("id", PANEL_ID) }) {
+            SubmissionPanel(
+                ctx = ctx,
+                id = id,
+                command = command?.takeIf { it.id == id },
+                onCommandHandled = { command = null },
+                showText = showText,
+                onToggleText = { showText = !showText },
+                onDecided = {
+                    // The weekly pass goes on to the next pending food without a click.
+                    selected = if (status == "pending") ReviewKeys.afterDecision(ids, id) else null
+                    refresh++
+                },
+            )
+        }
     }
 
     FoodReportsView(ctx, refresh)
@@ -175,7 +264,16 @@ private fun RoutingCell(row: SubmissionSummaryDto) {
 }
 
 @Composable
-private fun SubmissionPanel(ctx: AdminCtx, id: String, onDecided: () -> Unit) {
+@Suppress("LongParameterList")
+private fun SubmissionPanel(
+    ctx: AdminCtx,
+    id: String,
+    command: IssuedCommand?,
+    onCommandHandled: () -> Unit,
+    showText: Boolean,
+    onToggleText: () -> Unit,
+    onDecided: () -> Unit,
+) {
     var detail by remember(id) { mutableStateOf<SubmissionDetailDto?>(null) }
     var edits by remember(id) { mutableStateOf<Map<String, String>>(emptyMap()) }
     var unit by remember(id) { mutableStateOf<String?>(null) }
@@ -192,6 +290,49 @@ private fun SubmissionPanel(ctx: AdminCtx, id: String, onDecided: () -> Unit) {
     val base = loaded.reviewed ?: loaded.submitted
     val pending = loaded.summary.status == "pending"
     val edited = ReviewForm.facts(base, edits, unit ?: base.servingUnit)
+    val changed = edits.isNotEmpty() || unit != null
+
+    fun save() {
+        if (!pending || !changed) return
+        ctx.confirmWrite(
+            title = "Save the corrections",
+            flagPath = null,
+            before = describeFacts(base),
+            after = describeFacts(edited),
+            success = "Saved. The checks were run again.",
+        ) {
+            detail = ctx.api.editSubmission(id, edited)
+            edits = emptyMap()
+            unit = null
+        }
+    }
+
+    fun approve() {
+        if (!pending) return
+        ctx.confirmWrite(
+            title = "Approve for everyone",
+            flagPath = null,
+            before = "Only its submitter sees this food",
+            after = describeFacts(edited),
+            success = "Approved. Search and barcode lookup find it now.",
+            warning = if (ctx.isProd) "Everyone who searches or scans this product will see these numbers." else null,
+        ) {
+            ctx.api.approveSubmission(id, if (changed) edited else null)
+            onDecided()
+        }
+    }
+
+    // A key pressed for this submission: handled once, then forgotten so it can't fire on the next one.
+    LaunchedEffect(command) {
+        val issued = command ?: return@LaunchedEffect
+        onCommandHandled()
+        when (issued.command) {
+            ReviewCommand.Approve -> approve()
+            ReviewCommand.Save -> save()
+            ReviewCommand.FocusReject -> (document.getElementById(REJECT_REASON_ID) as? HTMLElement)?.focus()
+            else -> Unit
+        }
+    }
 
     Div(attrs = { classes("panel") }) {
         H3 { Text(loaded.summary.name ?: "(no name)") }
@@ -235,39 +376,25 @@ private fun SubmissionPanel(ctx: AdminCtx, id: String, onDecided: () -> Unit) {
         }
 
         val hasDraft = loaded.capture?.draft != null
-        Table(attrs = { classes("flags") }) {
-            Thead {
-                Tr {
-                    Th { Text("Field") }
-                    Th { Text("Model read") }
-                    if (hasDraft) Th { Text("Phone draft") }
-                    Th { Text("Sent") }
-                    Th { Text(if (pending) "Now (edit)" else "Final") }
-                }
+        val lines = loaded.capture?.lines.orEmpty()
+        // The fields and the text the phone read, side by side: the numbers are checked against both.
+        Div(attrs = { classes("side-by-side") }) {
+            Div(attrs = { classes("side-main") }) {
+                FieldsTable(loaded, hasDraft, pending, edits) { key, value -> edits = edits + (key to value) }
             }
-            Tbody {
-                ReviewForm.rows(loaded).forEach { row ->
-                    Tr(attrs = { if (row.needsLook) classes("selected") }) {
-                        Td { Text(if (row.unit.isEmpty()) row.label else "${row.label} (${row.unit})") }
-                        Td {
-                            Text(row.read ?: "")
-                            row.confidence?.let { c ->
-                                Span(attrs = { classes(if (c < ReviewRow.LOW_CONFIDENCE) "err" else "muted", "hint") }) {
-                                    Text(" ${(c * 100).toInt()}%")
-                                }
-                            }
-                        }
-                        if (hasDraft) Td { Text(row.draft ?: "") }
-                        Td { Text(row.sent ?: "") }
-                        Td {
-                            if (pending) {
-                                TextInput(edits[row.key] ?: row.current) {
-                                    onInput { value -> edits = edits + (row.key to value.value) }
-                                    placeholder(row.label)
-                                }
-                            } else {
-                                Text(row.current)
-                            }
+            if (lines.isNotEmpty()) {
+                Div(attrs = { classes("side-aside") }) {
+                    Div(attrs = { classes("row") }) {
+                        Span(attrs = { classes("muted") }) { Text("What the phone read (${lines.size} lines)") }
+                        Button(attrs = { onClick { onToggleText() } }) { Text(if (showText) "Hide" else "Show") }
+                    }
+                    if (showText) {
+                        Pre(attrs = { classes("ocr") }) {
+                            Text(
+                                lines.joinToString("\n") { line ->
+                                    if (line.confidence < 1.0) "${line.text}  (${ReviewForm.percent(line.confidence)}%)" else line.text
+                                },
+                            )
                         }
                     }
                 }
@@ -277,38 +404,15 @@ private fun SubmissionPanel(ctx: AdminCtx, id: String, onDecided: () -> Unit) {
         if (pending) {
             Div(attrs = { classes("row"); style { property("margin-top", "10px") } }) {
                 Button(attrs = {
-                    if (edits.isEmpty() && unit == null) attr("disabled", "true")
-                    onClick {
-                        ctx.confirmWrite(
-                            title = "Save the corrections",
-                            flagPath = null,
-                            before = describeFacts(base),
-                            after = describeFacts(edited),
-                            success = "Saved. The checks were run again.",
-                        ) {
-                            detail = ctx.api.editSubmission(id, edited)
-                            edits = emptyMap()
-                            unit = null
-                        }
-                    }
+                    if (!changed) attr("disabled", "true")
+                    onClick { save() }
                 }) { Text("Save corrections") }
                 Button(attrs = {
                     classes("primary")
-                    onClick {
-                        ctx.confirmWrite(
-                            title = "Approve for everyone",
-                            flagPath = null,
-                            before = "Only its submitter sees this food",
-                            after = describeFacts(edited),
-                            success = "Approved. Search and barcode lookup find it now.",
-                            warning = if (ctx.isProd) "Everyone who searches or scans this product will see these numbers." else null,
-                        ) {
-                            ctx.api.approveSubmission(id, if (edits.isEmpty() && unit == null) null else edited)
-                            onDecided()
-                        }
-                    }
+                    onClick { approve() }
                 }) { Text("Approve") }
                 TextInput(reason) {
+                    attr("id", REJECT_REASON_ID)
                     onInput { reason = it.value }
                     placeholder("why it is rejected (the submitter keeps their own copy)")
                     style { property("min-width", "340px") }
@@ -412,10 +516,58 @@ private fun RoutingFacts(routing: RoutingDto, summary: SubmissionSummaryDto) {
     }
 }
 
-/** What the phone read off the label: the engine, where the photo came from, its score, and the lines. */
+/** Every field as the model read it, as the phone drafted it, as sent, and as it stands (editable while pending). */
+@Composable
+private fun FieldsTable(
+    loaded: SubmissionDetailDto,
+    hasDraft: Boolean,
+    pending: Boolean,
+    edits: Map<String, String>,
+    onEdit: (key: String, value: String) -> Unit,
+) {
+    Table(attrs = { classes("flags") }) {
+        Thead {
+            Tr {
+                Th { Text("Field") }
+                Th { Text("Model read") }
+                if (hasDraft) Th { Text("Phone draft") }
+                Th { Text("Sent") }
+                Th { Text(if (pending) "Now (edit)" else "Final") }
+            }
+        }
+        Tbody {
+            ReviewForm.rows(loaded).forEach { row ->
+                Tr(attrs = { if (row.needsLook) classes("selected") }) {
+                    Td { Text(if (row.unit.isEmpty()) row.label else "${row.label} (${row.unit})") }
+                    Td {
+                        Text(row.read ?: "")
+                        row.confidence?.let { c ->
+                            Span(attrs = { classes(if (c < ReviewRow.LOW_CONFIDENCE) "err" else "muted", "hint") }) {
+                                Text(" ${(c * 100).toInt()}%")
+                            }
+                        }
+                    }
+                    if (hasDraft) Td { Text(row.draft ?: "") }
+                    Td { Text(row.sent ?: "") }
+                    Td {
+                        if (pending) {
+                            TextInput(edits[row.key] ?: row.current) {
+                                onInput { value -> onEdit(row.key, value.value) }
+                                placeholder(row.label)
+                            }
+                        } else {
+                            Text(row.current)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** What the phone read off the label: the engine, where the photo came from and its score. The lines sit beside the fields. */
 @Composable
 private fun CaptureFacts(capture: CaptureDto) {
-    var showLines by remember(capture) { mutableStateOf(false) }
     P { Text("The phone's reading:") }
     Table(attrs = { classes("flags") }) {
         Tbody {
@@ -433,21 +585,6 @@ private fun CaptureFacts(capture: CaptureDto) {
     }
     if (capture.lines.isEmpty()) {
         P(attrs = { classes("muted") }) { Text("No lines of text were sent.") }
-        return
-    }
-    Div(attrs = { classes("row"); style { property("margin-top", "6px") } }) {
-        Button(attrs = { onClick { showLines = !showLines } }) {
-            Text(if (showLines) "Hide the text" else "Show the ${capture.lines.size} lines it read")
-        }
-    }
-    if (showLines) {
-        Pre {
-            Text(
-                capture.lines.joinToString("\n") { line ->
-                    if (line.confidence < 1.0) "${line.text}  (${ReviewForm.percent(line.confidence)}%)" else line.text
-                },
-            )
-        }
     }
 }
 

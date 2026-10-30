@@ -16,7 +16,6 @@ import com.opson.libraries.foods.LabelCheckCode
 import com.opson.libraries.foods.LabelChecks
 import com.opson.libraries.foods.LabelConfidence
 import com.opson.libraries.foods.LabelFacts
-import com.opson.libraries.foods.LabelParse
 import com.opson.libraries.foods.SubmissionCapture
 import com.opson.libraries.foods.SubmissionOrigin
 import com.opson.libraries.foods.SubmitResult
@@ -35,13 +34,16 @@ import me.tatarka.inject.annotations.Inject
 import kotlin.uuid.Uuid
 
 /**
- * "Add a packaged food": two photos, the server's reading, the person's
- * corrections, then the food saved as their own custom food at once (and
+ * "Add a packaged food": two photos, the label read on the phone (for everyone,
+ * never by the server: v1 has no server AI), the person's corrections, then
+ * the food saved as their own custom food at once (and
  * logged, when the route names a meal) and a copy sent to Opson's food
  * database for review. Saving comes first and never waits on the network: if
  * the review copy cannot go, the person still has their food, and can try
  * sending it again. Once the copy is in, [SubmittedFoods] marks their food
- * unverified until a reviewer approves it.
+ * unverified until a reviewer approves it. The copy carries the photos and what
+ * the phone read off the label (the OCR lines and its draft), so the person
+ * who reviews it later can see where every number came from.
  *
  * The submission id is made once, so trying again is the same submission on
  * the server. Nothing here runs until the screen opens; every way in is
@@ -65,11 +67,7 @@ class SubmitFoodViewModel(
 ) : SEAViewModel<SubmitFoodState, SubmitFoodEvent, SubmitFoodAction>(
     initialStateArg = SubmitFoodState(slot = route.slot?.takeIf { route.logs }, canTakePhoto = picker.canTakePhoto),
 ) {
-    /**
-     * Builder mode (`release.builders`, an active Builder): an ingredients slot, and the label read
-     * on the phone first. The server's read stays the way back when the phone can't place the
-     * panel, so nobody is left typing a label the server could have read.
-     */
+    /** Builder mode (`release.builders`, an active Builder): an ingredients photo too. */
     private val builderMode = buildersEnabled.value && builders.isBuilder
 
     /** What the phone read off the label, sent with the submission so review can ground the numbers. */
@@ -87,7 +85,9 @@ class SubmitFoodViewModel(
 
     private var model = SubmitModel(slot = slot, barcodeLocked = barcode != null, canTakePhoto = picker.canTakePhoto, builderMode = builderMode)
     private var policy: VisibilityPolicy = policySource.policy.value
-    private var lastRead: LabelParse.Read? = null
+
+    /** The name guessed from the front, kept for "Type it in" after a label the phone could not place. */
+    private var guessedName: String? = null
     private var pendingSide: PackSide = PackSide.Front
     private var readJob: Job? = null
 
@@ -135,16 +135,13 @@ class SubmitFoodViewModel(
             SubmitFoodAction.OpenSettingsTapped -> permissions.openSettings()
             is SubmitFoodAction.PhotoAnswered -> photoAnswered(action)
             SubmitFoodAction.ReadTapped -> read(action)
-            is SubmitFoodAction.ReadArrived -> readArrived(action)
             is SubmitFoodAction.ReadOnPhoneArrived -> readOnPhoneArrived(action)
             SubmitFoodAction.TypeItInTapped -> if (model.step != SubmitStep.Review) {
-                action.change { SubmitFoodForm.fromReading(this, lastRead, barcode).copy(step = SubmitStep.Review, notice = ReviewNotice.ByHand) }
+                action.change {
+                    SubmitFoodForm.fromDraft(this, null, barcode, guessedName).copy(step = SubmitStep.Review, notice = ReviewNotice.ByHand)
+                }
             }
-            SubmitFoodAction.TryAgainTapped -> when (model.step) {
-                is SubmitStep.ReadFailed, SubmitStep.TooMany -> read(action)
-                is SubmitStep.SendFailed -> send(action)
-                else -> Unit
-            }
+            SubmitFoodAction.TryAgainTapped -> if (model.step is SubmitStep.SendFailed) send(action)
             SubmitFoodAction.RetakeLabelTapped -> action.change { copy(label = null, step = SubmitStep.Photos) }
             is SubmitFoodAction.FieldTyped -> if (model.step == SubmitStep.Review) {
                 if (action.key == SubmitFoodForm.BARCODE && model.barcodeLocked) return
@@ -185,36 +182,52 @@ class SubmitFoodViewModel(
         }
     }
 
+    /**
+     * Reads the label, then the front for a name, both on the phone. The server is never asked:
+     * whatever the phone could not read, the person fills in from their photos.
+     */
     private suspend fun read(action: SubmitFoodAction) {
         val front = model.front ?: return
         val label = model.label ?: return
         readJob?.cancel()
-        action.change { copy(step = SubmitStep.Reading, readingOnPhone = builderMode) }
+        phoneReading = null
+        action.change { copy(step = SubmitStep.Reading) }
         readJob = viewModelScope.launch {
-            if (builderMode) {
-                val onPhone = phoneReader.read(label.jpeg)
-                phoneReading = (onPhone as? PhoneRead.Read)?.reading
-                val draft = phoneReading?.draft
-                if (draft != null && SubmitFoodForm.usable(draft)) {
-                    takeAction(SubmitFoodAction.ReadOnPhoneArrived(draft))
-                    return@launch
-                }
-            }
-            takeAction(SubmitFoodAction.ReadArrived(labels.parse(front.jpeg, label.jpeg)))
+            val onLabel = phoneReader.read(label.jpeg)
+            val name = phoneReader.guessName(front.jpeg)
+            takeAction(SubmitFoodAction.ReadOnPhoneArrived(onLabel, name))
         }
     }
 
     private suspend fun readOnPhoneArrived(action: SubmitFoodAction.ReadOnPhoneArrived) {
         if (model.step != SubmitStep.Reading) return
-        telemetry.read(ReadOutcome.OnPhone, LabelChecks.check(action.draft.facts).size, action.draft.fieldConfidence.count { it.value < SubmitFoodStateBuilder.LOW_CONFIDENCE })
-        action.change {
-            SubmitFoodForm.fromDraft(this, action.draft, barcode).copy(step = SubmitStep.Review, notice = ReviewNotice.ReadOnPhone, readingOnPhone = false)
+        guessedName = action.name
+        val reading = (action.read as? PhoneRead.Read)?.reading
+        phoneReading = reading
+        val draft = reading?.draft
+        val outcome = when {
+            draft == null -> ReadOutcome.Unavailable
+            SubmitFoodForm.usable(draft) -> ReadOutcome.OnPhone
+            SubmitFoodForm.partly(draft) -> ReadOutcome.Partly
+            else -> ReadOutcome.NoLabel
         }
+        val checks = draft?.let { LabelChecks.check(it.facts).size } ?: 0
+        val unsure = draft?.fieldConfidence?.count { it.value < SubmitFoodStateBuilder.LOW_CONFIDENCE } ?: 0
+        telemetry.read(outcome, checks, unsure)
+        if (outcome == ReadOutcome.NoLabel) return action.change { copy(step = SubmitStep.NoLabel) }
+        val notice = when (outcome) {
+            ReadOutcome.OnPhone -> ReviewNotice.ReadOnPhone
+            ReadOutcome.Partly -> ReviewNotice.ReadPartly
+            else -> ReviewNotice.Unavailable
+        }
+        action.change { SubmitFoodForm.fromDraft(this, draft, barcode, action.name).copy(step = SubmitStep.Review, notice = notice) }
     }
 
-    /** The phone's reading as sent with the submission, with the signals measured against what the person kept. */
+    /**
+     * The phone's reading as sent with the submission, with the signals measured against what the
+     * person kept, from everyone: it is what lets a reviewer check each number against the photo's text.
+     */
     private fun capture(facts: LabelFacts): SubmissionCapture? {
-        if (!builderMode) return null
         val reading = phoneReading ?: return null
         val signals = LabelConfidence.signals(reading.draft, reading.lines, facts)
         return SubmissionCapture(
@@ -225,35 +238,6 @@ class SubmitFoodViewModel(
             signals = signals,
             score = LabelConfidence.score(signals),
         )
-    }
-
-    private suspend fun readArrived(action: SubmitFoodAction.ReadArrived) {
-        if (model.step != SubmitStep.Reading) return
-        when (val parse = action.parse) {
-            is LabelParse.Read -> {
-                lastRead = parse
-                val unsure = parse.confidence.count { it.value < SubmitFoodStateBuilder.LOW_CONFIDENCE }
-                if (!parse.readable) {
-                    telemetry.read(ReadOutcome.NoLabel, parse.checks.size, unsure)
-                    action.change { copy(step = SubmitStep.NoLabel) }
-                } else {
-                    telemetry.read(ReadOutcome.Read, parse.checks.size, unsure)
-                    action.change { SubmitFoodForm.fromReading(this, parse, barcode).copy(step = SubmitStep.Review, notice = null) }
-                }
-            }
-            LabelParse.Unavailable -> {
-                telemetry.read(ReadOutcome.Unavailable, 0, 0)
-                action.change { SubmitFoodForm.fromReading(this, null, barcode).copy(step = SubmitStep.Review, notice = ReviewNotice.Unavailable) }
-            }
-            LabelParse.TooMany -> {
-                telemetry.read(ReadOutcome.TooMany, 0, 0)
-                action.change { copy(step = SubmitStep.TooMany) }
-            }
-            is LabelParse.Failed -> {
-                telemetry.read(if (parse.offline) ReadOutcome.Offline else ReadOutcome.Error, 0, 0)
-                action.change { copy(step = SubmitStep.ReadFailed(parse.offline)) }
-            }
-        }
     }
 
     private suspend fun submit(action: SubmitFoodAction) {
@@ -290,7 +274,7 @@ class SubmitFoodViewModel(
         val facts = SubmitFoodForm.facts(model)
         val submission = FoodSubmission(
             id = submissionId,
-            parseId = model.parseId,
+            parseId = null,
             origin = origin,
             barcode = barcode,
             front = front.jpeg,
@@ -385,8 +369,6 @@ class SubmitFoodViewModel(
         SubmitStep.Review -> "review"
         SubmitStep.Saving -> "saving"
         SubmitStep.NoLabel -> "no_label"
-        SubmitStep.TooMany -> "too_many"
-        is SubmitStep.ReadFailed -> "read_failed"
         is SubmitStep.CameraOff -> "camera_off"
         is SubmitStep.SendFailed -> "send_failed"
     }

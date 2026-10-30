@@ -115,14 +115,34 @@ way.
   opens with the front, label and (when there is one) ingredients photos side
   by side, then the routing record (lane, trust, mode, confidence, which
   headline numbers the photo's text showed, the second read's verdict) and
-  what the phone read (engine, camera or library, score, and the OCR lines
-  behind a button), then every field as the model read it (with its
-  confidence), as the phone drafted it, as the person sent it, and as it
-  stands, and the checks the server ran on each. Correct any field and save,
-  approve (the food joins search and barcode lookup for everyone, with the
-  barcode and `verified` set) or reject with a reason and an optional code
-  (the submitter keeps their own copy; fake data or copied data ends their
-  chance of Trusted). **Audits** lists auto-approvals picked for a person to
+  what the phone read (engine, camera or library, score), then every field as
+  the model read it (with its confidence), as the phone drafted it, as the
+  person sent it, and as it stands, with the OCR lines beside them (shown by
+  default, `t` hides them), and the checks the server ran on each. Correct
+  any field and save, approve (the food joins search and barcode lookup for
+  everyone, with the barcode and `verified` set) or reject with a reason and
+  an optional code (the submitter keeps their own copy; fake data or copied
+  data ends their chance of Trusted). After a decision the next pending one
+  opens. Keys, outside a text field: `j`/`k` (or the arrows) move, `o` or
+  Enter opens the first, `a` approves (with the usual confirm), `r` jumps to
+  the reject reason, `s` saves corrections, `t` toggles the text, `Esc`
+  closes, `?` lists them.
+
+  Above the pending list sit the weekly pass's shortcuts (the
+  [runbook](../../docs/practices/food-review-runbook.md) walks through them).
+  **Approve N that passed every check** approves, one at a time after one
+  confirm, the pending foods with photos, every check passing and no routing
+  reason about the photo or the numbers: only `not_trusted`, `no_cloud_read`,
+  `mode:*`, and `low_confidence` at 85% or more (`ReviewBundle.eligible`).
+  **Export pending (JSON)** downloads the oldest 200 as an
+  `opson-review-bundle/1` file (fields, the phone's draft and OCR lines,
+  checks, reasons, photo URLs that need the token, and an empty `decision`
+  each) for an AI tool you run yourself to pre-check offline;
+  `scripts/review_bundle.py photos` downloads the photos beside it so the
+  tool never sees the token. **Import decisions** reads the filled file back
+  and shows every decision with its corrections as before → after and any
+  problem (unknown id, no longer pending, a reject with no reason). Only the
+  ticked rows are applied, after a confirm. **Audits** lists auto-approvals picked for a person to
   check: pass one, or fail it with a note the Builder is told, which puts the
   food back to pending. Below the queue, barcodes suggested by a miss followed by
   a search: attach one to its food or dismiss it. The photos are fetched with

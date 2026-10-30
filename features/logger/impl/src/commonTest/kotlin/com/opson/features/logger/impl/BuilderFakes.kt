@@ -15,7 +15,9 @@ import com.opson.libraries.foods.FoodChecks
 import com.opson.libraries.foods.FoodReport
 import com.opson.libraries.foods.FoodReportResult
 import com.opson.libraries.foods.FoodReports
+import com.opson.libraries.foods.LabelModelResult
 import com.opson.libraries.foods.LabelTextLine
+import com.opson.libraries.foods.LabelTextModel
 import com.opson.libraries.scanner.RecognizedLine
 import com.opson.libraries.scanner.RecognizedText
 import com.opson.libraries.scanner.TextRecognition
@@ -47,21 +49,52 @@ class FakeBuilderProgram(active: Boolean = false) : BuilderProgram {
     override suspend fun markDecisionSeen(id: String) = Unit
 }
 
-/** Reads [lines] off any photo, or answers [result] when set. */
+/**
+ * Reads [lines] off any photo, or answers [result] when set. [front] answers for the photo whose
+ * bytes are [frontJpeg] instead, so a test can give the front of a pack its own text. A line in
+ * [hazy] reads with a low confidence, as a blurry digit does.
+ */
 @HiddenFromObjC
 class FakeTextRecognizer(
-    private val lines: List<String> = emptyList(),
+    var lines: List<String> = emptyList(),
     var result: TextRecognition? = null,
+    var frontJpeg: ByteArray? = null,
+    var front: List<RecognizedLine> = emptyList(),
+    var hazy: Set<String> = emptySet(),
 ) : TextRecognizer {
     var calls = 0
 
     override suspend fun recognize(jpeg: ByteArray): TextRecognition {
         calls++
+        if (frontJpeg?.contentEquals(jpeg) == true) return TextRecognition.Read(RecognizedText(front, 1200, 1600, "vision"))
         return result ?: TextRecognition.Read(
-            RecognizedText(lines.map { RecognizedLine(it, 0.95, 0.1, 0.0, 0.8, 0.02) }, 1200, 1600, "vision"),
+            RecognizedText(lines.map { RecognizedLine(it, if (it in hazy) 0.4 else 0.95, 0.1, 0.0, 0.8, 0.02) }, 1200, 1600, "vision"),
         )
     }
 }
+
+/** Answers [answer] for any text, and counts the asks. */
+@HiddenFromObjC
+class FakeLabelTextModel(var answer: LabelModelResult = LabelModelResult.Unavailable) : LabelTextModel {
+    var calls = 0
+
+    override suspend fun extract(lines: List<LabelTextLine>): LabelModelResult {
+        calls++
+        return answer
+    }
+}
+
+fun labelModelFlag(on: Boolean): LabelModelEnabled = LabelModelEnabled(
+    object : AppConfigMap() {
+        override val map: Map<String, *> = mapOf("labels" to mapOf("onDeviceModel" to on))
+    },
+)
+
+fun phoneReader(
+    recognizer: TextRecognizer,
+    model: LabelTextModel = FakeLabelTextModel(),
+    modelOn: Boolean = false,
+): PhoneLabelReader = PhoneLabelReader(recognizer, model, labelModelFlag(modelOn))
 
 class FakeFoodChecks(var answer: FoodCheckResult = FoodCheckResult.Confirmed) : FoodChecks {
     val sent = mutableListOf<List<LabelTextLine>>()

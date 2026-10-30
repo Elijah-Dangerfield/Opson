@@ -390,23 +390,29 @@ stty -echo; printf "Nutritionix app id: "; read -r NX_ID; printf "\nNutritionix 
 `EstimateProvider` what foods a meal photo holds, then matches each one
 through `CatalogFoodDescriber`, so the answer is the same `DescribeResponse`
 typed text gets. The provider is `AnthropicEstimateProvider` (the official
-Java SDK, structured JSON output) when `ANTHROPIC_API_KEY` is set; without it
-the route answers 503 `photo_estimate_unavailable` and the app shows a calm
-"not available" state. Limits: body 6 MB, decoded image 4 MB (JPEG, PNG or
+Java SDK, structured JSON output) when `AI_CALLS_ENABLED=true` and
+`ANTHROPIC_API_KEY` are both set; otherwise the route answers 503
+`photo_estimate_unavailable` and the app shows a calm "not available" state.
+v1 runs with no server AI, so this is off and `release.photo` stays off. Limits: body 6 MB, decoded image 4 MB (JPEG, PNG or
 WebP by its bytes), note 300 characters, 10 per user per 10 minutes and 40 per
 day (`PhotoEstimateLimiter`, in memory). The image is never stored and nothing
 from it or the note is logged, only the outcome, item count and latency. Do
 not set the SDK's `ANTHROPIC_LOG=debug` in production: it logs request
-bodies, which here are meal photos. To turn it on:
+bodies, which here are meal photos. To turn it on later, set both, on purpose:
 
 ```bash
 stty -echo; printf "Anthropic API key: "; read -r AK; stty echo; printf "\n"
-[ -n "$AK" ] && fly secrets set ANTHROPIC_API_KEY="$AK" -a opson-server-prod; unset AK
+[ -n "$AK" ] && fly secrets set ANTHROPIC_API_KEY="$AK" AI_CALLS_ENABLED=true -a opson-server-prod; unset AK
 ```
 
 **Foods people add (`V25__food_submissions.sql`, 0.2, behind `release.submitFood`).**
 When a scan or a search finds nothing, the app photographs the pack's front
-and its nutrition label. `POST /v1/foods/labels/parse` sends both to
+and its nutrition label and reads the label **on the phone** (Vision or ML
+Kit, then `LabelTextParser`), for everyone; it never waits on the server.
+The submission carries the OCR lines and the phone's draft as `capture`, so
+the review queue can ground every number in the photo's text. Older builds
+still call `POST /v1/foods/labels/parse`, which with `AI_CALLS_ENABLED` off
+(v1) answers 503 and they fall back to typing. Switched on, it sends both to
 `AnthropicLabelParser`: `claude-fable-5-1` (`ANTHROPIC_LABEL_MODEL`) at effort
 `high`, structured output, one request with both images. The model only
 transcribes, in the units printed; `LabelOutputReader` converts (kJ to kcal,
@@ -904,7 +910,9 @@ audited.
 - A Builder's submission with a `capture` (the phone's OCR lines, draft and
   confidence): one blind read of the label photo alone by `CloudLabelReader`
   (`ANTHROPIC_CHECK_MODEL`, `claude-haiku-5-5`, effort low, about 0.15 cents),
-  compared field by field with what was sent (1 kcal, 0.2 g or 2%).
+  compared field by field with what was sent (1 kcal, 0.2 g or 2%). Only with
+  `AI_CALLS_ENABLED=true`; in v1 there is no second read and the submission
+  waits for a person (the weekly pass, [docs/practices/food-review-runbook.md](../../docs/practices/food-review-runbook.md)).
 - `SubmissionRouter.decide` is pure. The auto lane needs a Trusted Builder, a
   camera photo, no failing check, every headline number (serving, energy,
   protein, carbs, fat) found on its own row of the OCR text (`LabelGrounding`),
@@ -990,10 +998,11 @@ choices and how long it waited but never what the person wrote.
 | `NUTRITIONIX_APP_ID` | no |, | With `NUTRITIONIX_APP_KEY`, turns on Nutritionix barcode lookups (tier 3, asked before Open Food Facts). |
 | `NUTRITIONIX_APP_KEY` | no |, | Secret. Both keys or neither. |
 | `NUTRITIONIX_CACHE_RESULTS` | no | `false` | `true` stores Nutritionix answers in `foods`. Only if the contract allows it. |
-| `ANTHROPIC_API_KEY` | no |, | Secret. Turns on photo estimates. Unset → `/v1/describe/photo` answers 503. |
+| `AI_CALLS_ENABLED` | no | `false` | The hard switch for every model call (photo estimates, server label reads, the Builder second read). Only `true` turns them on, and only with `ANTHROPIC_API_KEY`. Off in v1. |
+| `ANTHROPIC_API_KEY` | no |, | Secret. Does nothing without `AI_CALLS_ENABLED=true`; the boot log says so when it is set alone. Unset or switched off → `/v1/describe/photo` and `/v1/foods/labels/parse` answer 503. |
 | `ANTHROPIC_PHOTO_MODEL` | no | `claude-opus-5-5` | The model that reads meal photos (effort `low`). A cheaper model is a config change, not a release. |
 | `ANTHROPIC_LABEL_MODEL` | no | `claude-fable-5-1` | The model that reads pack labels (effort `high`). A request it refuses outright (a 400, such as an organisation's data retention it does not accept) is retried on `ANTHROPIC_PHOTO_MODEL`. |
-| `ANTHROPIC_CHECK_MODEL` | no | `claude-haiku-5-5` | The second, blind read of a Builder's label photo for routing (effort `low`). Only with `ANTHROPIC_API_KEY`. |
+| `ANTHROPIC_CHECK_MODEL` | no | `claude-haiku-5-5` | The second, blind read of a Builder's label photo for routing (effort `low`). Only with `AI_CALLS_ENABLED=true` and `ANTHROPIC_API_KEY`. |
 | `WAITLIST_ALLOWED_ORIGINS` | no | dev: `http://localhost:4321,https://elijah-dangerfield.github.io`; prod: none | Comma-separated exact origins (`scheme://host[:port]`) allowed to call `POST /v1/waitlist` from a browser. Only that route uses it. |
 
 At boot the server logs one `Features (<env>): database=on auth=on …` line

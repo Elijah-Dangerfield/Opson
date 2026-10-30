@@ -16,6 +16,7 @@
     <string name="food_report_reason_not_food">It isn't a food</string>
     <string name="food_report_reason_other">Something else</string>
     <string name="food_report_values_title">The right numbers (optional)</string>
+    <string name="food_report_from_photo">Filled in from your label photo. Check them against the pack.</string>
     <!-- The amount the detail had on screen: "1 can (473 g)". -->
     <string name="food_report_values_for">As the pack gives them for %1$s.</string>
     <string name="food_report_values_for_100">As the pack gives them for 100 g.</string>

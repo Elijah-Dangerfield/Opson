@@ -133,8 +133,6 @@
     <string name="builder_ingredients_title">Ingredients (optional)</string>
     <string name="builder_ingredients_hint">The ingredients list, for allergens later.</string>
     <string name="builder_read_on_phone">Read on your phone</string>
-    <string name="builder_reading_on_phone">Reading the label…</string>
-    <string name="builder_read_notice">Your phone read this label. Check every number against the pack before you send it.</string>
     <string name="builder_sent_published">%1$s is in Opson's food database. Thanks for adding it.</string>
 
     <!-- Check against the pack -->
