@@ -2,10 +2,10 @@ package com.opson.server.routes
 
 import com.opson.server.domain.ContributionGate
 import com.opson.server.domain.DiaryRules
-import com.opson.server.domain.Food
 import com.opson.server.domain.FoodCatalogRepository
 import com.opson.server.domain.NewRecipeReport
 import com.opson.server.domain.OpenContributionGate
+import com.opson.server.domain.PublicRecipeCache
 import com.opson.server.domain.PublicRecipeRepository
 import com.opson.server.domain.PublicRecipes
 import com.opson.server.domain.PublicState
@@ -51,7 +51,11 @@ import kotlin.time.Clock
  * removed, that reports have hidden, or that was deleted. CORS is open for this GET alone: it
  * carries no credentials and answers only what anyone with the link can see.
  */
-fun Route.publicRecipeRoutes(recipes: PublicRecipeRepository, catalog: FoodCatalogRepository) {
+fun Route.publicRecipeRoutes(
+    recipes: PublicRecipeRepository,
+    catalog: FoodCatalogRepository,
+    cache: PublicRecipeCache = PublicRecipeCache(Clock.System),
+) {
     route("/v1/recipes/public/{code}") {
         install(CORS) {
             anyHost()
@@ -68,7 +72,8 @@ fun Route.publicRecipeRoutes(recipes: PublicRecipeRepository, catalog: FoodCatal
                     return@get call.respond(HttpStatusCode.Gone, problem("not_shared", "This recipe isn't shared right now."))
                 }
                 call.response.cacheControl(CacheControl.MaxAge(maxAgeSeconds = PUBLIC_MAX_AGE_SECONDS))
-                call.respond(PublicRecipes.serve(stored, catalogLookup(catalog)).toResponse())
+                val served = cache.serve(stored) { PublicRecipes.serve(stored, catalog.findByIds(PublicRecipes.foodIds(stored))) }
+                call.respond(served.toResponse())
             }
         }
     }
@@ -194,8 +199,10 @@ fun Route.recipeRoutes(
                     return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_query", "q must be ${RecipeRules.MIN_QUERY} to ${RecipeRules.MAX_QUERY} characters"))
                 }
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull()?.coerceIn(1, MAX_SEARCH) ?: DEFAULT_SEARCH
-                val lookup = catalogLookup(catalog)
-                val hits = recipes.search(query, limit).map { PublicRecipes.serve(it, lookup).toResponse() }
+                val found = recipes.search(query, limit)
+                // Every hit's ingredients in one load, however many recipes name them.
+                val foods = catalog.findByIds(found.flatMapTo(HashSet(), PublicRecipes::foodIds))
+                val hits = found.map { PublicRecipes.serve(it, foods).toResponse() }
                 call.respond(RecipeSearchResponse(query, hits))
             }
 
@@ -218,12 +225,6 @@ private suspend inline fun <reified T : Any> ApplicationCall.receiveOrNull(): T?
     runCatching { receive<T>() }.getOrElse { if (it is RequestTooLargeException || it is CancellationException) throw it else null }
 
 private fun StoredRecipe.isLive(): Boolean = state == PublicState.Live && !deleted && code != null
-
-/** Catalog foods by id for one request, each looked up once however many recipes name it. */
-private fun catalogLookup(catalog: FoodCatalogRepository): suspend (UUID) -> Food? {
-    val seen = HashMap<UUID, Food?>()
-    return { id -> if (seen.containsKey(id)) seen[id] else catalog.findById(id).also { seen[id] = it } }
-}
 
 private const val PREFLIGHT_MAX_AGE_SECONDS = 600L
 private const val PUBLIC_MAX_AGE_SECONDS = 60

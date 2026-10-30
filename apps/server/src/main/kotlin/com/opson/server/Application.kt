@@ -15,6 +15,7 @@ import com.opson.server.plugins.JwtVerification
 import com.opson.server.plugins.installAdminWeb
 import com.opson.server.plugins.installAuthentication
 import com.opson.server.plugins.installBodyLimit
+import com.opson.server.domain.PublicRecipeCache
 import com.opson.server.plugins.installCors
 import com.opson.server.plugins.installHttpServerTracing
 import com.opson.server.plugins.installObservability
@@ -212,7 +213,7 @@ fun Application.installApp(
             // The website's form: public, its own CORS and rate limits.
             waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
             // A shared recipe: no account, its own CORS (the website's recipe page reads it).
-            publicRecipeRoutes(component.publicRecipeRepository, component.foodCatalogRepository)
+            publicRecipeRoutes(component.publicRecipeRepository, component.foodCatalogRepository, PublicRecipeCache(component.clock))
         }
         if (component != null && verification != null) {
             meRoutes(

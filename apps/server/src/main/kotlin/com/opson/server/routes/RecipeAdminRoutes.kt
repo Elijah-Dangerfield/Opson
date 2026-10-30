@@ -98,7 +98,7 @@ fun Route.recipeAdminRoutes(config: AdminConfig, recipes: PublicRecipeRepository
         if (!call.requireAdmin(config)) return@get
         val id = call.recipeId() ?: return@get
         val stored = recipes.adminGet(id) ?: return@get call.respond(HttpStatusCode.NotFound, problem("not_found", "No shared recipe with that id."))
-        val served = PublicRecipes.serve(stored) { catalog.findById(it) }
+        val served = PublicRecipes.serve(stored, catalog.findByIds(PublicRecipes.foodIds(stored)))
         call.respond(
             AdminRecipeDetailResponse(
                 id = stored.id.toString(),

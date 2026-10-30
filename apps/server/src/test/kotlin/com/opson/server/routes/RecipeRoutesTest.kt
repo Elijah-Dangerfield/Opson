@@ -43,6 +43,10 @@ import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.junit.After
 import java.util.UUID
@@ -80,9 +84,9 @@ class RecipeRoutesTest : DatabaseTest() {
             override suspend fun check(userId: UserId, signals: ContributionSignals) = ContributionVerdict.Allowed
             override suspend fun mayReceiveFreePro(userId: UserId) = true
         },
+        catalog: FakeFoodCatalog = FakeFoodCatalog(listOf(beans)),
         block: suspend (HttpClient) -> Unit,
     ) {
-        val catalog = FakeFoodCatalog(listOf(beans))
         testApplication {
             application {
                 installSerialization()
@@ -185,6 +189,54 @@ class RecipeRoutesTest : DatabaseTest() {
     private fun chunkedJson(text: String) = object : OutgoingContent.WriteChannelContent() {
         override val contentType = ContentType.Application.Json
         override suspend fun writeTo(channel: ByteWriteChannel) = channel.writeFully(text.encodeToByteArray())
+    }
+
+    /** A recipe whose every ingredient is a different catalog food, by weight. */
+    private fun recipeOf(foods: List<Food>, name: String = "Bean salad"): Recipe {
+        val items = buildJsonArray {
+            for (food in foods) {
+                add(
+                    buildJsonObject {
+                        put("name", food.name)
+                        put("grams", 100.0)
+                        put("kcal", 50.0)
+                        put("foodId", food.id.toString())
+                    },
+                )
+            }
+        }
+        return DiaryFixtures.recipe(name = name).copy(itemsJson = items.toString(), itemCount = foods.size)
+    }
+
+    @Test
+    fun aRecipesIngredientsLoadInOneGo_andTheNextReadOfTheSameRecipeIsServedAsBefore() = runTest {
+        val owner = seedAuthUser()
+        val searcher = seedAuthUser()
+        val foods = List(6) { beans.copy(id = UUID.randomUUID(), sourceId = "beans-$it", name = "Beans $it") }
+        val catalog = FakeFoodCatalog(foods)
+        val salad = recipeOf(foods.take(3), name = "Bean salad")
+        val stew = recipeOf(foods.drop(3), name = "Bean stew")
+        withApp(catalog = catalog) { client ->
+            val code = client.publish(owner, salad).body<PublishRecipeResponse>().code
+            client.publish(owner, stew)
+
+            catalog.loads = 0
+            val page = client.get("/v1/recipes/public/$code").body<PublicRecipeResponse>()
+            assertEquals(3, page.ingredients.count { it.nutrients.kcal == 91.0 }, "worked out from the catalog")
+            assertEquals(1, catalog.loads, "three foods, one load")
+            client.get("/v1/recipes/public/$code")
+            assertEquals(1, catalog.loads, "the same recipe again is served as before")
+
+            client.publish(owner, salad.copy(name = "Bean salad, bigger", clientUpdatedAt = salad.clientUpdatedAt + 1.hours))
+            assertEquals("Bean salad, bigger", client.get("/v1/recipes/public/$code").body<PublicRecipeResponse>().name)
+            assertEquals(2, catalog.loads, "an edit is served fresh")
+
+            catalog.loads = 0
+            val hits = client.get("/v1/recipes/search?q=bean") { header(HttpHeaders.Authorization, TestJwt.bearer(searcher)) }
+                .body<RecipeSearchResponse>()
+            assertEquals(2, hits.recipes.size)
+            assertEquals(1, catalog.loads, "six foods across two recipes, one load")
+        }
     }
 
     @Test

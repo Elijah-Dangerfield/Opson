@@ -222,6 +222,28 @@ class PostgresFoodCatalogRepository(
         stored?.let { served(listOf(it)).single() }
     }
 
+    /** One statement for `foods`, one for the `off_foods` ids it lacks, and [served]'s two. */
+    override suspend fun findByIds(ids: Collection<UUID>): Map<UUID, Food> {
+        val wanted = ids.distinct()
+        if (wanted.isEmpty()) return emptyMap()
+        return database.transaction {
+            val stored = FoodsTable.selectAll().where { FoodsTable.id inList wanted }.map { it.toFood() }
+            val missing = wanted - stored.mapTo(HashSet()) { it.id }
+            val openFoodFacts = if (sources.searchOpenFoodFacts && missing.isNotEmpty()) openFoodFactsByIds(missing) else emptyList()
+            served(stored + openFoodFacts).associateBy { it.id }
+        }
+    }
+
+    private fun openFoodFactsByIds(ids: Collection<UUID>): List<Food> {
+        val foods = mutableListOf<Food>()
+        TransactionManager.current().exec(
+            stmt = OpenFoodFactsSearch.BY_IDS_SQL,
+            args = listOf(TextColumnType() to ids.joinToString("|")),
+            explicitStatementType = StatementType.SELECT,
+        ) { rs -> while (rs.next()) foods += rs.toFood() }
+        return foods
+    }
+
     /** An `off_foods` row, which search hands out when Open Food Facts is on. */
     private fun openFoodFactsById(id: UUID): Food? {
         var food: Food? = null
