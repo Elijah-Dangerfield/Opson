@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -57,6 +58,14 @@ fun GoalReveal(chart: ProjectionChartUi, modifier: Modifier = Modifier, animate:
             ProjectionForecastLines(chart)
         }
     }
+}
+
+/** The success tap for a goal saved with nothing to draw: once, never under a preview. */
+@Composable
+fun GoalSetTap() {
+    val preview = LocalInspectionMode.current
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(Unit) { if (!preview) haptics.confirm() }
 }
 
 /**

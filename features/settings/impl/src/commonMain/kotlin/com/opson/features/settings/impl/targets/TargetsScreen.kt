@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -50,6 +51,10 @@ import com.opson.features.settings.impl.energy.EnergyInfoLink
 import com.opson.features.settings.impl.energy.EnergyTopic
 import com.opson.features.settings.impl.integrations.title
 import com.opson.libraries.diary.MacroMode
+import com.opson.libraries.goals.ui.InlineNumberField
+import com.opson.libraries.goals.ui.ProjectionChart
+import com.opson.libraries.goals.ui.ProjectionChartUi
+import com.opson.libraries.goals.ui.ProjectionForecastLines
 import com.opson.libraries.diary.ui.detail
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.health.HealthSource
@@ -65,6 +70,7 @@ import com.opson.libraries.nutrition.RangeEnd
 import com.opson.libraries.nutrition.RestingFrom
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
+import com.opson.libraries.nutrition.ui.testTag
 import com.opson.libraries.nutrition.withPreset
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.ChevronLink
@@ -206,6 +212,11 @@ import opson.libraries.resources.generated.resources.settings_micros_title
 import opson.libraries.resources.generated.resources.settings_targets_unit_g
 import opson.libraries.resources.generated.resources.settings_targets_unit_percent
 import opson.libraries.resources.generated.resources.settings_targets_week
+import opson.libraries.resources.generated.resources.settings_targets_macro_range
+import opson.libraries.resources.generated.resources.settings_targets_macro_range_note
+import opson.libraries.resources.generated.resources.settings_targets_type_amount
+import opson.libraries.resources.generated.resources.targets_projection_body
+import opson.libraries.resources.generated.resources.targets_projection_title
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -243,12 +254,24 @@ fun TargetsScreen(
             StyleList(state, onAction)
             if (state.style == StyleKind.ByDay) ByDayCards(state, onAction)
         }
+        state.projection?.let { OwnProjection(it) }
         state.safety?.let { SafetyNoteCard(it, state.supportLink, onAction) }
         state.burned?.let { BurnedSourceCard(it, onAction) }
         if (state.macros.isNotEmpty()) MacroCard(state, onAction)
         state.exercise?.let { ExerciseAdjustmentCard(it, onAction) }
         if (state.micros) MicrosRow(onAction)
         Disclosure()
+    }
+}
+
+/** Where the person's own target leads, from the latest weigh-in, against a typical day. */
+@Composable
+private fun OwnProjection(chart: ProjectionChartUi) {
+    SectionLabel(stringResource(Res.string.targets_projection_title))
+    EdgeCard(edgeToEdge = false, contentPadding = SettingsDefaults.CardInset, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ProjectionChart(chart)
+        Text(text = stringResource(Res.string.targets_projection_body), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        ProjectionForecastLines(chart)
     }
 }
 
@@ -447,6 +470,7 @@ private fun EndColumn(modifier: Modifier, end: RangeEnd, stepper: EndStepper, gr
                 if (end == RangeEnd.Low) Res.string.settings_targets_low_end_inline else Res.string.settings_targets_high_end_inline,
             ),
             onStep = { up -> onAction(TargetsAction.StepTapped(end, up, group)) },
+            onAction = onAction,
         )
     }
 }
@@ -471,6 +495,7 @@ private fun EndStepperView(
     lower: String? = null,
     raise: String? = null,
     raiseLocked: String? = null,
+    onAction: ((TargetsAction) -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -497,13 +522,7 @@ private fun EndStepperView(
             )
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            NutrientText(
-                metric = Metric.Calories,
-                display = stepper.value,
-                typography = StepperValueType,
-                color = AppTheme.colors.ink,
-                maxLines = 1,
-            )
+            TypedAmount(stepper, endName, StepperValueType, onAction)
         }
         when (stepper.up) {
             StepState.Locked -> Box(modifier = Modifier.size(StepSize), contentAlignment = Alignment.Center) {
@@ -580,6 +599,8 @@ private fun BigStepper(
     onStep: (up: Boolean) -> Unit,
     unit: StringResource = Res.string.settings_targets_kcal_a_day,
     raiseLocked: String = locked,
+    name: String = lower,
+    onAction: ((TargetsAction) -> Unit)? = null,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         BigStep(state = stepper.down, icon = AppIcons.Remove.described(lower), locked = locked, onClick = { onStep(false) })
@@ -588,12 +609,7 @@ private fun BigStepper(
             horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.Bottom,
         ) {
-            NutrientText(
-                metric = Metric.Calories,
-                display = stepper.value,
-                typography = AppTheme.type.h1.Tabular,
-                color = AppTheme.colors.ink,
-            )
+            TypedAmount(stepper, name, AppTheme.type.h1.Tabular, onAction, modifier = Modifier.weight(1f, fill = false))
             Text(
                 text = stringResource(unit),
                 typography = AppTheme.type.bodyBold,
@@ -673,11 +689,13 @@ private fun NumberBody(number: NumberCard, onAction: (TargetsAction) -> Unit) {
 @Composable
 private fun DeficitBody(deficit: BurnGoalCard, onAction: (TargetsAction) -> Unit) {
     BigStepper(
-        stepper = EndStepper(deficit.amount, deficit.down, deficit.up),
+        stepper = EndStepper(deficit.amount, deficit.down, deficit.up, TypedField(TypedField.Kind.Deficit), deficit.text),
         lower = stringResource(Res.string.settings_targets_deficit_less),
         raise = stringResource(Res.string.settings_targets_deficit_more),
         locked = stringResource(Res.string.settings_targets_deficit_locked),
         onStep = { up -> onAction(TargetsAction.DeficitStepped(up)) },
+        name = stringResource(Res.string.settings_targets_deficit_title),
+        onAction = onAction,
     )
     BurnTarget(deficit.target)
     BurnBasis(deficit, onAction)
@@ -693,11 +711,13 @@ private fun DeficitBody(deficit: BurnGoalCard, onAction: (TargetsAction) -> Unit
 @Composable
 private fun SurplusBody(surplus: BurnGoalCard, onAction: (TargetsAction) -> Unit) {
     BigStepper(
-        stepper = EndStepper(surplus.amount, surplus.down, surplus.up),
+        stepper = EndStepper(surplus.amount, surplus.down, surplus.up, TypedField(TypedField.Kind.Surplus), surplus.text),
         lower = stringResource(Res.string.settings_targets_surplus_less),
         raise = stringResource(Res.string.settings_targets_surplus_more),
         locked = stringResource(Res.string.settings_targets_surplus_locked),
         onStep = { up -> onAction(TargetsAction.SurplusStepped(up)) },
+        name = stringResource(Res.string.settings_targets_surplus_title),
+        onAction = onAction,
     )
     if (surplus.fromAim && surplus.target != null) {
         NutrientPhrase(
@@ -943,6 +963,7 @@ private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> U
                 lower = stringResource(Res.string.settings_targets_number_lower),
                 raise = stringResource(Res.string.settings_targets_number_raise),
                 onStep = { up -> onAction(TargetsAction.NumberStepped(up, group.index)) },
+                onAction = onAction,
             )
         }
         group.surplus?.let { surplus ->
@@ -953,6 +974,7 @@ private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> U
                 raise = stringResource(Res.string.settings_targets_surplus_more),
                 raiseLocked = stringResource(Res.string.settings_targets_surplus_locked),
                 onStep = { up -> onAction(TargetsAction.SurplusStepped(up, group.index)) },
+                onAction = onAction,
             )
             GroupSummary(group)
         }
@@ -964,6 +986,7 @@ private fun DayGroupCardView(group: DayGroupCard, onAction: (TargetsAction) -> U
                 raise = stringResource(Res.string.settings_targets_deficit_more),
                 raiseLocked = stringResource(Res.string.settings_targets_deficit_locked),
                 onStep = { up -> onAction(TargetsAction.DeficitStepped(up, group.index)) },
+                onAction = onAction,
             )
             GroupSummary(group)
         }
@@ -1007,11 +1030,41 @@ private fun GroupStepper(
     raise: String,
     onStep: (up: Boolean) -> Unit,
     raiseLocked: String? = null,
+    onAction: ((TargetsAction) -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = title, typography = AppTheme.type.secondaryStrong, color = AppTheme.colors.muted)
-        EndStepperView(stepper = stepper, endName = title, onStep = onStep, lower = lower, raise = raise, raiseLocked = raiseLocked)
+        EndStepperView(stepper = stepper, endName = title, onStep = onStep, lower = lower, raise = raise, raiseLocked = raiseLocked, onAction = onAction)
     }
+}
+
+/**
+ * An amount in a stepper's well, typed in place where it can be ([EndStepper.field]): the same
+ * size and weight as the number it replaces, carrying the calorie tag the leak test reads. Done
+ * says why a number couldn't be used. Elsewhere, the number as it was.
+ */
+@Composable
+private fun TypedAmount(
+    stepper: EndStepper,
+    name: String,
+    typography: TypographyResource,
+    onAction: ((TargetsAction) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val field = stepper.field
+    val text = stepper.text
+    if (onAction == null || field == null || text == null || stepper.value !is Display.Shown) {
+        NutrientText(metric = Metric.Calories, display = stepper.value, typography = typography, color = AppTheme.colors.ink, maxLines = 1, modifier = modifier)
+        return
+    }
+    InlineNumberField(
+        value = text,
+        onValueChange = { onAction(TargetsAction.FieldTyped(field, it)) },
+        label = stringResource(Res.string.settings_targets_type_amount, name),
+        typography = typography,
+        onDone = { onAction(TargetsAction.FieldDone(field)) },
+        modifier = modifier.testTag(Metric.Calories.testTag()),
+    )
 }
 
 internal val ShapeKind.label: StringResource
@@ -1138,15 +1191,30 @@ private fun MacroCard(state: TargetsState, onAction: (TargetsAction) -> Unit) {
         }
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             state.macros.forEach { macro ->
-                NutrientPhrase(
-                    metric = macro.metric,
-                    display = macro.grams,
-                    phrase = { stringResource(macro.metric.gramsPhrase, it) },
-                    typography = AppTheme.type.body.Tabular,
-                    color = AppTheme.colors.ink,
-                    numberWeight = FontWeight.ExtraBold,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    NutrientPhrase(
+                        metric = macro.metric,
+                        display = macro.grams,
+                        phrase = { stringResource(macro.metric.gramsPhrase, it) },
+                        typography = AppTheme.type.body.Tabular,
+                        color = AppTheme.colors.ink,
+                        numberWeight = FontWeight.ExtraBold,
+                    )
+                    val low = macro.low as? Display.Shown
+                    if (low != null) {
+                        NutrientPhrase(
+                            metric = macro.metric,
+                            display = macro.high,
+                            phrase = { stringResource(Res.string.settings_targets_macro_range, low.text, it) },
+                            typography = AppTheme.type.secondary.Tabular,
+                            color = AppTheme.colors.muted,
+                        )
+                    }
+                }
             }
+        }
+        if (state.macroRange) {
+            Text(text = stringResource(Res.string.settings_targets_macro_range_note), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
         }
         state.macroEditor?.let { MacroEditorView(it, onAction) }
         FlatButton(

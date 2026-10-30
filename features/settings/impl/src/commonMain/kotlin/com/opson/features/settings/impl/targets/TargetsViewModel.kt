@@ -36,6 +36,7 @@ import com.opson.libraries.goals.GoalRepository
 import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.GoalTargets
 import com.opson.libraries.nutrition.GoalType
+import com.opson.libraries.nutrition.BaselineInputs
 import com.opson.libraries.nutrition.Recalculation
 import com.opson.libraries.nutrition.fitMacrosTo
 import com.opson.libraries.nutrition.stepMacro
@@ -114,7 +115,7 @@ class TargetsViewModel(
         val connected = if (healthFlag()) health.status.map { it == HealthStatus.Connected } else flowOf(false)
         val burned = if (goalsAndEnergy()) burnedRepository.burned(today) else flowOf(null)
         val goal = if (weightGoals()) {
-            combine(goals.recalculation(), goals.inputs().map { it?.weightKg }, ::GoalSignals)
+            combine(goals.recalculation(), goals.inputs()) { offer, inputs -> GoalSignals(offer, inputs?.weightKg, inputs) }
         } else {
             flowOf(GoalSignals())
         }
@@ -133,12 +134,13 @@ class TargetsViewModel(
             }
             is TargetsAction.StylePicked -> pickStyle(action.kind)
             TargetsAction.RestingEnergyTapped -> sendEvent(TargetsEvent.OpenRestingEnergy)
-            TargetsAction.ChangeGoalTapped -> sendEvent(TargetsEvent.OpenGoalSetup)
+            TargetsAction.ChangeGoalTapped -> changeGoal()
+            TargetsAction.SeeGoalTapped -> sendEvent(TargetsEvent.OpenGoals(GoalBook.calorieGoal(settingsRepository.settings.value)?.id))
             TargetsAction.UseGoalTapped -> settingsRepository.update { GoalBook.resume(it) }
             TargetsAction.ChangeTargetTapped -> openDialog(TargetsDialogKind.ChangeTarget, action)
             TargetsAction.EditGoalChosen -> {
                 closeDialog(action)
-                sendEvent(TargetsEvent.OpenGoalSetup)
+                sendEvent(TargetsEvent.OpenGoalEdit(GoalBook.calorieGoal(settingsRepository.settings.value)?.id))
             }
             TargetsAction.OwnTargetChosen -> {
                 val edit = pending
@@ -192,6 +194,8 @@ class TargetsViewModel(
                 rebuild(action)
             }
             is TargetsAction.NumberTyped -> typeNumber(action)
+            is TargetsAction.FieldTyped -> typeField(action)
+            is TargetsAction.FieldDone -> fieldDone(action)
             TargetsAction.NumberDone -> {
                 drafts = drafts.copy(numberDone = drafts.number != null)
                 rebuild(action)
@@ -279,6 +283,76 @@ class TargetsViewModel(
         if (action is TargetsAction.InputsArrived) return
         if (action !is TargetsAction.MacroTyped) drafts = drafts.copy(macros = emptyMap())
         if (action !is TargetsAction.NumberTyped && action !is TargetsAction.NumberDone) drafts = drafts.copy(number = null, numberDone = false)
+        if (action !is TargetsAction.FieldTyped && action !is TargetsAction.FieldDone) drafts = drafts.copy(fields = emptyMap())
+    }
+
+    /**
+     * The goal card's button: a goal waiting on details opens the flow that asks for them; with no
+     * goal yet, the editor's list of goals; otherwise the goals page.
+     */
+    private suspend fun changeGoal() {
+        val settings = settingsRepository.settings.value
+        val goal = GoalBook.calorieGoal(settings)
+        when {
+            goal == null -> sendEvent(TargetsEvent.OpenGoalEdit(null))
+            goal.isActive && goal.setsTarget && goal.baseline == null -> sendEvent(TargetsEvent.OpenGoalSetup)
+            else -> sendEvent(TargetsEvent.OpenGoals(goal.id))
+        }
+    }
+
+    /**
+     * A range end, a set amount or a day group's number, typed. The draft stays on screen; the
+     * targets change only once the number is one a step could reach ([Targets.withEnd] and the
+     * rest), so "18" on the way to "1875" writes nothing.
+     */
+    private suspend fun typeField(action: TargetsAction.FieldTyped) {
+        val text = NumberInput.sanitize(action.text, allowDecimal = false).take(MAX_GOAL_DIGITS)
+        drafts = drafts.copy(fields = mapOf(action.field to text))
+        rebuild(action)
+        val kcal = text.toIntOrNull() ?: return
+        change { current -> typed(current, action.field, kcal) }
+    }
+
+    private fun typed(current: Settings, field: TypedField, kcal: Int): Targets? {
+        val targets = current.targets
+        val scale = current.macroMode == MacroMode.Ratios
+        return when (field.kind) {
+            TypedField.Kind.Low -> targets.withEnd(RangeEnd.Low, kcal, field.group, scale)
+            TypedField.Kind.High -> targets.withEnd(RangeEnd.High, kcal, field.group, scale)
+            TypedField.Kind.Deficit -> targets.withDeficit(kcal, field.group)
+            TypedField.Kind.Surplus -> targets.withSurplus(kcal, field.group)
+            TypedField.Kind.Number -> field.group?.let { targets.withGroupNumber(kcal, it) }
+        }?.takeIf { it != targets }
+    }
+
+    /**
+     * The keyboard's Done on a typed field: a number that couldn't be used says why, as a step that
+     * can't go further does, and the field goes back to what is saved.
+     */
+    private suspend fun fieldDone(action: TargetsAction.FieldDone) {
+        val text = drafts.fields[action.field]
+        drafts = drafts.copy(fields = emptyMap())
+        rebuild(action)
+        val kcal = text?.toIntOrNull() ?: return
+        val targets = settingsRepository.settings.value.targets
+        val reason = when (action.field.kind) {
+            TypedField.Kind.Low -> targets.endBlock(RangeEnd.Low, kcal, action.field.group)?.toast()
+            TypedField.Kind.High -> targets.endBlock(RangeEnd.High, kcal, action.field.group)?.toast()
+            TypedField.Kind.Deficit -> Res.string.settings_targets_deficit_cap_toast.takeIf { targets.withDeficit(kcal, action.field.group) == null }
+            TypedField.Kind.Surplus -> Res.string.settings_targets_surplus_cap.takeIf { targets.withSurplus(kcal, action.field.group) == null }
+            TypedField.Kind.Number -> when {
+                kcal < targets.floorKcal -> Res.string.settings_targets_floor_toast
+                kcal > MAX_GOAL_KCAL -> Res.string.settings_targets_ceiling_toast
+                else -> null
+            }
+        }
+        reason?.let { toast(Toast(it)) }
+    }
+
+    private fun StepBlock.toast() = when (this) {
+        StepBlock.Floor -> Res.string.settings_targets_floor_toast
+        StepBlock.Ceiling -> Res.string.settings_targets_ceiling_toast
+        StepBlock.Gap -> Res.string.settings_targets_gap_toast
     }
 
     private fun Settings.withStyle(targets: Targets): Settings {
@@ -437,6 +511,7 @@ class TargetsViewModel(
                 weightGoals = weightGoals(),
                 weightKg = goal.weightKg,
                 dialog = shownDialog(),
+                inputs = goal.inputs,
             )
         }
     }
@@ -450,8 +525,11 @@ class TargetsViewModel(
     }
 }
 
-/** What Targets hears from the goal repository: a recalculation to offer, and the latest weigh-in. */
-data class GoalSignals(val recalculation: Recalculation? = null, val weightKg: Double? = null)
+/**
+ * What Targets hears from the goal repository: a recalculation to offer, the latest weigh-in, and a
+ * typical day right now, for where the person's own target leads.
+ */
+data class GoalSignals(val recalculation: Recalculation? = null, val weightKg: Double? = null, val inputs: BaselineInputs? = null)
 
 sealed interface TargetsEvent {
     data class ShowToast(val toast: Toast) : TargetsEvent
@@ -468,8 +546,14 @@ sealed interface TargetsEvent {
     /** Find support, from the note under a low goal or a fast pace. */
     data object OpenFindSupport : TargetsEvent
 
-    /** The goal flow, from the weight goal's row. */
+    /** The goal flow, which asks for the details a goal's target is worked out from. */
     data object OpenGoalSetup : TargetsEvent
+
+    /** The goals page, with [goalId] first. */
+    data class OpenGoals(val goalId: String?) : TargetsEvent
+
+    /** The goal editor: the goal with [goalId], or a new goal for null. */
+    data class OpenGoalEdit(val goalId: String?) : TargetsEvent
     data object Close : TargetsEvent
 }
 
@@ -492,8 +576,11 @@ sealed interface TargetsAction {
     data class ExplainTapped(val topic: EnergyTopic) : TargetsAction
     data object MicrosTapped : TargetsAction
 
-    /** "Change goal", or "Set a weight goal", on the weight goal's row. */
+    /** "Change goal", or "Set a goal", on the goal's card. */
     data object ChangeGoalTapped : TargetsAction
+
+    /** The goal card's row while it sets the target: the goals page. */
+    data object SeeGoalTapped : TargetsAction
 
     /** "Use my goal": the goal sets the target again, from the typical day it already has. */
     data object UseGoalTapped : TargetsAction
@@ -537,6 +624,12 @@ sealed interface TargetsAction {
 
     /** The keyboard's Done on the one number's field: a number under the minimum now says so. */
     data object NumberDone : TargetsAction
+
+    /** A range end, a set amount or a day group's number, as typed. */
+    data class FieldTyped(val field: TypedField, val text: String) : TargetsAction
+
+    /** The keyboard's Done on [field]: a number that couldn't be used says why. */
+    data class FieldDone(val field: TypedField) : TargetsAction
 
     /** One step on a surplus: the style's, or day group [group]'s. */
     data class SurplusStepped(val up: Boolean, val group: Int? = null) : TargetsAction

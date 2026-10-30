@@ -14,6 +14,14 @@ import com.opson.features.home.FeedbackRoute
 import com.opson.features.onboarding.GoalSetupRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.settings.EnergyExplainerRoute
+import com.opson.features.settings.GoalEditRoute
+import com.opson.features.settings.GoalsRoute
+import com.opson.features.settings.impl.goals.GoalEditEvent
+import com.opson.features.settings.impl.goals.GoalEditScreen
+import com.opson.features.settings.impl.goals.GoalEditViewModel
+import com.opson.features.settings.impl.goals.GoalsEvent
+import com.opson.features.settings.impl.goals.GoalsScreen
+import com.opson.features.settings.impl.goals.GoalsViewModel
 import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.CreditsRoute
@@ -177,6 +185,8 @@ class SettingsFeatureEntryPoint(
     private val providerSummaryViewModel: () -> ProviderSummaryViewModel,
     private val energyExplainerViewModel: (EnergyTopic) -> EnergyExplainerViewModel,
     private val goalRecalculationViewModel: () -> GoalRecalculationViewModel,
+    private val goalsViewModel: (GoalsRoute) -> GoalsViewModel,
+    private val goalEditViewModel: (GoalEditRoute) -> GoalEditViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -281,11 +291,43 @@ class SettingsFeatureEntryPoint(
                     TargetsEvent.OpenMicroTargets -> router.navigate(MicroTargetsRoute())
                     TargetsEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
                     TargetsEvent.OpenGoalSetup -> router.navigate(GoalSetupRoute(GoalSetupRoute.FROM_TARGETS))
+                    is TargetsEvent.OpenGoals -> router.navigate(GoalsRoute(event.goalId))
+                    is TargetsEvent.OpenGoalEdit -> router.navigate(GoalEditRoute(goalId = event.goalId))
                     is TargetsEvent.OpenExplainer -> router.navigate(EnergyExplainerRoute(event.topic.wire))
                     TargetsEvent.Close -> router.goBack()
                 }
             }
             TargetsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        // Goals (release.onboardingSetup): each view model closes its page at once with the flag off.
+        screen<GoalsRoute> { backStackEntry ->
+            val route = remember(backStackEntry) { backStackEntry.toRoute<GoalsRoute>() }
+            val viewModel: GoalsViewModel = viewModel { goalsViewModel(route) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    is GoalsEvent.OpenEdit -> router.navigate(GoalEditRoute(goalId = event.id))
+                    GoalsEvent.OpenBurnedInfo -> router.navigate(EnergyExplainerRoute(EnergyExplainerRoute.TOPIC_BURNED))
+                    GoalsEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
+                    GoalsEvent.Close -> router.goBack()
+                }
+            }
+            GoalsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        screen<GoalEditRoute> { backStackEntry ->
+            val route = remember(backStackEntry) { backStackEntry.toRoute<GoalEditRoute>() }
+            val viewModel: GoalEditViewModel = viewModel { goalEditViewModel(route) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    GoalEditEvent.OpenGoalSetup -> router.navigate(GoalSetupRoute(GoalSetupRoute.FROM_TARGETS))
+                    GoalEditEvent.OpenFindSupport -> router.navigate(FindSupportRoute())
+                    GoalEditEvent.Close -> router.goBack()
+                }
+            }
+            GoalEditScreen(state = state, onAction = viewModel::takeAction)
         }
 
         dialog<GoalRecalculationRoute> { _, dialogState ->
@@ -352,6 +394,7 @@ class SettingsFeatureEntryPoint(
                     RestingEnergyEvent.OpenProfile -> router.navigate(ProfileRoute(from = ProfileBack.RestingEnergy.wire))
                     RestingEnergyEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                     RestingEnergyEvent.OpenExplainer -> router.navigate(EnergyExplainerRoute(EnergyExplainerRoute.TOPIC_RESTING))
+                    RestingEnergyEvent.OpenDigestingInfo -> router.navigate(EnergyExplainerRoute(EnergyExplainerRoute.TOPIC_DIGESTING))
                     RestingEnergyEvent.Close -> router.goBack()
                 }
             }
@@ -441,6 +484,10 @@ class SettingsFeatureEntryPoint(
                     EnergyExplainerEvent.OpenRestingEnergy -> router.batch {
                         goBack()
                         navigate(RestingEnergyRoute())
+                    }
+                    is EnergyExplainerEvent.OpenTopic -> router.batch {
+                        goBack()
+                        navigate(EnergyExplainerRoute(event.topic.wire))
                     }
                     // Animate the sheet down first; its dismiss callback pops the route.
                     EnergyExplainerEvent.Dismiss -> sheetState.dismiss()

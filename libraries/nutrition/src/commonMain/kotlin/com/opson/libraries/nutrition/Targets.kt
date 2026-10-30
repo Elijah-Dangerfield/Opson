@@ -234,6 +234,56 @@ data class Targets(
         return copy(style = byDay.copy(groups = groups))
     }
 
+    /**
+     * Why [end] of the base range, or of day group [group], can't be typed as [kcal]: under the
+     * floor, over [MAX_GOAL_KCAL], or closer than one step to the other end. Null when it can.
+     */
+    fun endBlock(end: RangeEnd, kcal: Int, group: Int? = null): StepBlock? {
+        val (min, max) = ends(group) ?: return StepBlock.Gap
+        val (nextMin, nextMax) = if (end == RangeEnd.Low) kcal to max else min to kcal
+        return when {
+            nextMin < floorKcal -> StepBlock.Floor
+            nextMax > MAX_GOAL_KCAL -> StepBlock.Ceiling
+            nextMax - nextMin < STEP_KCAL -> StepBlock.Gap
+            else -> null
+        }
+    }
+
+    /**
+     * [end] of the base range, or of day group [group], typed as [kcal] (owner feedback,
+     * 2026-10-30: "I should be able to type the numbers"). The same limits as a step
+     * ([endBlock]); `null` past one. [scaleMacros] as in [step].
+     */
+    fun withEnd(end: RangeEnd, kcal: Int, group: Int? = null, scaleMacros: Boolean = false): Targets? {
+        if (endBlock(end, kcal, group) != null) return null
+        val (min, max) = ends(group) ?: return null
+        val (nextMin, nextMax) = if (end == RangeEnd.Low) kcal to max else min to kcal
+        if (group == null) return withEnds(nextMin, nextMax, scaleMacros)
+        return withGroup(group) { it.copy(minKcal = nextMin, maxKcal = nextMax) }
+    }
+
+    /** A set deficit, the style's or day group [group]'s, typed as [kcal]: `null` under 0 or past [maxDeficitKcal]. */
+    fun withDeficit(kcal: Int, group: Int? = null): Targets? {
+        val current = deficitOf(group) ?: return null
+        if (kcal < 0 || kcal > maxDeficitKcal(group)) return null
+        if (group == null) return copy(style = TargetStyle.Deficit(kcal, current.startingKcal))
+        return withGroup(group) { it.copy(shape = GroupShape.Deficit(kcal, current.startingKcal)) }
+    }
+
+    /** A surplus, the style's or day group [group]'s, typed as [kcal]: `null` under 0 or past [maxSurplusKcal]. */
+    fun withSurplus(kcal: Int, group: Int? = null): Targets? {
+        val current = surplusOf(group) ?: return null
+        if (kcal < 0 || kcal > maxSurplusKcal(group)) return null
+        if (group == null) return copy(style = TargetStyle.Surplus(kcal, current.startingKcal))
+        return withGroup(group) { it.copy(shape = GroupShape.Surplus(kcal, current.startingKcal)) }
+    }
+
+    /** Day group [group]'s one number typed as [kcal]: `null` under the floor or over [MAX_GOAL_KCAL]. */
+    fun withGroupNumber(kcal: Int, group: Int): Targets? {
+        if (kcal !in floorKcal..MAX_GOAL_KCAL) return null
+        return withGroup(group) { groupAround(it, kcal) }
+    }
+
     /** A plain range. Day groups, a deficit or a surplus are dropped; the base range stays as it is. */
     fun useRange(): Targets = copy(style = TargetStyle.Range)
 

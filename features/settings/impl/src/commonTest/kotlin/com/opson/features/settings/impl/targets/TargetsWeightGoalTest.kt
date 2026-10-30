@@ -153,14 +153,14 @@ class TargetsWeightGoalTest : CoroutineTest() {
     }
 
     @Test
-    fun editMyGoal_opensTheGoalFlow() = runUnitTest {
+    fun editMyGoal_opensTheGoalEditor() = runUnitTest {
         val vm = viewModel(FakeSettingsRepository(settings()))
         val events = eventsOf(vm)
         runCurrent()
         vm.takeAction(TargetsAction.ChangeTargetTapped)
         vm.takeAction(TargetsAction.EditGoalChosen)
         runCurrent()
-        assertEquals(listOf<TargetsEvent>(TargetsEvent.OpenGoalSetup), events)
+        assertEquals(listOf<TargetsEvent>(TargetsEvent.OpenGoalEdit(Goal.WEIGHT_ID)), events)
         assertNull(vm.state.dialog)
     }
 
@@ -250,13 +250,28 @@ class TargetsWeightGoalTest : CoroutineTest() {
     }
 
     @Test
-    fun changeGoal_opensTheGoalFlow() = runUnitTest {
+    fun theGoalCard_opensTheGoalsPage_theEditorWithNoGoal_andTheFlowWhileDetailsAreMissing() = runUnitTest {
         val vm = viewModel(FakeSettingsRepository(settings()))
         val events = eventsOf(vm)
         runCurrent()
         vm.takeAction(TargetsAction.ChangeGoalTapped)
+        vm.takeAction(TargetsAction.SeeGoalTapped)
         runCurrent()
-        assertEquals(listOf<TargetsEvent>(TargetsEvent.OpenGoalSetup), events)
+        assertEquals(listOf<TargetsEvent>(TargetsEvent.OpenGoals(Goal.WEIGHT_ID), TargetsEvent.OpenGoals(Goal.WEIGHT_ID)), events)
+
+        val none = viewModel(FakeSettingsRepository(SettingsFixtures.settings()))
+        val noneEvents = eventsOf(none)
+        runCurrent()
+        none.takeAction(TargetsAction.ChangeGoalTapped)
+        runCurrent()
+        assertEquals(listOf<TargetsEvent>(TargetsEvent.OpenGoalEdit(null)), noneEvents)
+
+        val waiting = viewModel(FakeSettingsRepository(GoalBook.withGoal(SettingsFixtures.settings(), GoalFixtures.lose.copy(baseline = null))))
+        val waitingEvents = eventsOf(waiting)
+        runCurrent()
+        waiting.takeAction(TargetsAction.ChangeGoalTapped)
+        runCurrent()
+        assertEquals(listOf<TargetsEvent>(TargetsEvent.OpenGoalSetup), waitingEvents)
     }
 
     /** Connecting a health app, for the goal these settings hold. */

@@ -16,6 +16,8 @@ import com.opson.features.settings.impl.SettingsRow
 import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.goals.GoalFixtures
+import com.opson.libraries.goals.ui.ProjectionChart
+import com.opson.libraries.goals.ui.ProjectionForecastLines
 import com.opson.libraries.nutrition.BaselineChange
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.GoalDirection
@@ -83,8 +85,9 @@ import opson.libraries.resources.generated.resources.targets_goal_driving_balanc
 import opson.libraries.resources.generated.resources.targets_goal_gain
 import opson.libraries.resources.generated.resources.targets_goal_keep
 import opson.libraries.resources.generated.resources.targets_goal_lose
-import opson.libraries.resources.generated.resources.targets_goal_none
-import opson.libraries.resources.generated.resources.targets_goal_none_body
+import opson.libraries.resources.generated.resources.targets_goal_none_any
+import opson.libraries.resources.generated.resources.targets_goal_none_any_body
+import opson.libraries.resources.generated.resources.targets_goal_see
 import opson.libraries.resources.generated.resources.targets_goal_not_driving
 import opson.libraries.resources.generated.resources.targets_goal_not_driving_body
 import opson.libraries.resources.generated.resources.targets_goal_not_yet
@@ -135,9 +138,9 @@ internal fun GoalCardView(card: GoalCard, onAction: (TargetsAction) -> Unit) {
         is GoalCard.Waiting -> ExplainedCard(Res.string.targets_goal_not_yet, Res.string.targets_goal_not_yet_body, useGoal = false, onAction = onAction)
         GoalCard.None -> SettingsCard {
             SettingsRow(
-                title = stringResource(Res.string.targets_goal_none),
+                title = stringResource(Res.string.targets_goal_none_any),
                 icon = AppIcons.Favorite,
-                subtitle = stringResource(Res.string.targets_goal_none_body),
+                subtitle = stringResource(Res.string.targets_goal_none_any_body),
                 chevron = true,
                 onClick = { onAction(TargetsAction.ChangeGoalTapped) },
             )
@@ -152,8 +155,8 @@ private fun SettingCard(card: GoalCard.Setting, onAction: (TargetsAction) -> Uni
             title = stringResource(if (card.kind == GoalKind.EnergyBalance) Res.string.targets_goal_driving_balance else Res.string.targets_goal_driving),
             icon = AppIcons.Favorite,
             subtitle = subtitle(card),
-            trailingText = stringResource(Res.string.targets_goal_change),
-            onClick = { onAction(TargetsAction.ChangeGoalTapped) },
+            trailingText = stringResource(Res.string.targets_goal_see),
+            onClick = { onAction(TargetsAction.SeeGoalTapped) },
         )
         Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             (card.target as? Display.Shown)?.let {
@@ -178,6 +181,10 @@ private fun SettingCard(card: GoalCard.Setting, onAction: (TargetsAction) -> Uni
                 )
             }
             if (card.weekly) Text(text = stringResource(Res.string.targets_goal_weekly), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            card.chart?.let { chart ->
+                ProjectionChart(chart, modifier = Modifier.padding(top = 8.dp))
+                ProjectionForecastLines(chart)
+            }
             card.pace?.let { pace ->
                 PaceNote(
                     assessment = pace,
@@ -307,7 +314,7 @@ internal fun RecalculatedDialog(
     )
 }
 
-private val BaselineChange.reason: StringResource
+internal val BaselineChange.reason: StringResource
     get() = when (this) {
         BaselineChange.RestingSource -> Res.string.goal_recalc_resting_source
         BaselineChange.OwnResting -> Res.string.goal_recalc_own_resting
