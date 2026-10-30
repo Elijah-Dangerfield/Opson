@@ -109,7 +109,9 @@ import opson.libraries.resources.generated.resources.recap_eaten_caption
 import opson.libraries.resources.generated.resources.recap_eaten_caption_goal
 import opson.libraries.resources.generated.resources.recap_eaten_title
 import opson.libraries.resources.generated.resources.recap_goal_burn
-import opson.libraries.resources.generated.resources.recap_goal_close
+import opson.libraries.resources.generated.resources.goal_wrap_streak
+import opson.libraries.resources.generated.resources.goal_wrap_week_on_track
+import opson.libraries.resources.generated.resources.recap_goal_a_bit
 import opson.libraries.resources.generated.resources.recap_goal_days
 import opson.libraries.resources.generated.resources.recap_goal_deficit
 import opson.libraries.resources.generated.resources.recap_goal_even
@@ -118,7 +120,8 @@ import opson.libraries.resources.generated.resources.recap_goal_gain
 import opson.libraries.resources.generated.resources.recap_goal_keep
 import opson.libraries.resources.generated.resources.recap_goal_lose
 import opson.libraries.resources.generated.resources.recap_goal_meals
-import opson.libraries.resources.generated.resources.recap_goal_on_track
+import opson.libraries.resources.generated.resources.recap_goal_on_plan
+import opson.libraries.resources.generated.resources.recap_goal_streak
 import opson.libraries.resources.generated.resources.recap_goal_steps
 import opson.libraries.resources.generated.resources.recap_goal_surplus
 import opson.libraries.resources.generated.resources.recap_goals_title
@@ -384,7 +387,11 @@ private fun PlanCard(section: PlanSection) {
     }
 }
 
-/** Each goal: the days on track and close, out of the days it could judge. Never a count of days off. */
+/**
+ * Each goal: the days on plan and a bit over or under, out of the days it could judge, in Wrap up
+ * the day's words. Never a count of big days or days well under; a weekly average's week is said
+ * only when it ended on track.
+ */
 @Composable
 private fun GoalsCard(goals: List<GoalWeek>) {
     TrendsCard(verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
@@ -393,8 +400,17 @@ private fun GoalsCard(goals: List<GoalWeek>) {
             if (index > 0) HorizontalDivider(color = AppTheme.colors.line)
             Column {
                 Text(text = goal.type.recapLabel(), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink, modifier = Modifier.padding(top = Dimension.D300))
-                FactRow(stringResource(Res.string.recap_goal_on_track), stringResource(Res.string.recap_goal_days, goal.met, goal.counted))
-                if (goal.near > 0) FactRow(stringResource(Res.string.recap_goal_close), goal.near.toString())
+                FactRow(stringResource(Res.string.recap_goal_on_plan), stringResource(Res.string.recap_goal_days, goal.onPlan, goal.counted))
+                if (goal.aBit > 0) FactRow(stringResource(Res.string.recap_goal_a_bit), goal.aBit.toString())
+                goal.streak?.let { FactRow(stringResource(Res.string.recap_goal_streak), pluralStringResource(Res.plurals.goal_wrap_streak, it, it)) }
+                if (goal.weekOnTrack) {
+                    Text(
+                        text = stringResource(Res.string.goal_wrap_week_on_track),
+                        typography = AppTheme.type.secondary,
+                        color = AppTheme.colors.muted,
+                        modifier = Modifier.padding(bottom = Dimension.D300),
+                    )
+                }
             }
         }
     }

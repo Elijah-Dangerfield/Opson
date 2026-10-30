@@ -248,8 +248,11 @@ In `:libraries:diary`: `Settings.goals` and `GoalBook` (migration, the `weightGo
 
 In `:libraries:goals`: `GoalRepository`, the flows every screen reads (today's status for each
 goal, a span of day verdicts for the Trends calendar, the recap and celebrations, the week's
-budget, the projection, the pending recalculation, accept and keep) and `GoalFixtures` for
-previews.
+budget, the projection, the pending recalculation, accept and keep, and `wrapUp(date)`: each goal
+on a day judged as if wrapped up, with its week after the day and its streak) and `GoalFixtures`
+for previews. `GoalOutcomes` turns a verdict into the words Wrap up the day and the recap pick by
+(on plan, a bit over or under, a big day, well under, not this time), and `GoalStreaks` is the
+opt-in goal streak (only Track every day, Meals, Burn and Steps).
 
 ## Edge cases
 
@@ -267,13 +270,24 @@ previews.
   either: they just don't count.
 - Week start changed mid-week: the week recomputes from the new start; nothing is stored.
 - Modes: nothing in the engine formats a number. Every surface resolves through the policy.
-- **Celebrations** stay about showing up and never read a goal (2026-10-29). The engine gives
-  goal-met days for Track every day and Meals only; nothing about calories reaches a streak.
+- **Celebrations** stay about showing up and never read a goal (2026-10-29). A goal streak is its
+  own opt-in run (`goalStreakEnabled`), only for goals whose "met" isn't eating less; nothing about
+  calories reaches a streak (docs/decisions.md, 2026-10-30).
+
+## Where the app reads a goal
+
+Built on 2026-10-30 (docs/decisions.md, "With a goal, the app is organized around it"):
+
+- **Today**: the card's chip names the goal and opens it; under a weekly average the band moves by
+  `GoalToday.weekAdjustmentKcal` (the morning's band once wrapped up) with "To stay on track this
+  week: about N today"; the burned bar marks a usual day (`UsualBurn`) and a burn goal's line.
+- **Wrap up the day**: a "Your goal" card from `GoalRepository.wrapUp`, and the day's range is the
+  band its week asked of it.
+- **Trends**: the calendar and its day sheet judge days from the goal's start by `GoalRepository.days`;
+  the running total's "Since you started" counts from the goal's start.
 
 ## Not in this package
 
-The goal UI (charts, animations, Today's burn line, typed inputs, macro split ranges, the Daily or
-Weekly average choice and the band picker), onboarding's "Do you want to set a goal?", the steps data
-source, and wiring Trends' calendar, the recap and Today's target to `GoalRepository` (today they
-read Targets, which a goal writes, so a daily goal already reads right; a weekly goal's adjusted
-day needs `GoalRepository.week()`). The API is built for them, and `GoalFixtures` has every state.
+The goal UI (charts, animations, typed inputs, macro split ranges, the Daily or Weekly average
+choice and the band picker), onboarding's "Do you want to set a goal?" and its goal streak question,
+the steps data source, and the recap. The API is built for them, and `GoalFixtures` has every state.

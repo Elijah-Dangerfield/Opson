@@ -12,6 +12,9 @@ import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.DayGoal
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.Goal
+import com.opson.libraries.nutrition.GoalAveraging
+import com.opson.libraries.nutrition.GoalDay
 import com.opson.libraries.nutrition.GoalStyle
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
@@ -67,7 +70,35 @@ data class TrendsInputs(
     val goalStart: LocalDate? = null,
     /** `release.recaps`: the way into last week's and last month's recaps. */
     val recapsOn: Boolean = false,
+    /** The goal setting the target, as the calendar reads it day by day; `null` without one. */
+    val goal: GoalCalendar? = null,
 )
+
+/**
+ * The calorie goal setting the target, for the on-track calendar (docs/plans/goals-v2.md): from
+ * [start] on, a day is colored by the goal's own verdict ([days], `GoalRepository.days`), which
+ * under a weekly average ([weekly]) judges the day by what its week asked of it. [direction] is
+ * which way the goal points.
+ */
+data class GoalCalendar(
+    val start: LocalDate,
+    val weekly: Boolean,
+    val direction: GoalDirection,
+    val days: Map<LocalDate, GoalDay>,
+) {
+    companion object {
+        /** [goal]'s [days] as the calendar reads them. */
+        fun of(goal: Goal, days: List<GoalDay>): GoalCalendar {
+            val delta = goal.type.deltaKcal ?: 0
+            val direction = when {
+                delta < 0 -> GoalDirection.Lose
+                delta > 0 -> GoalDirection.Gain
+                else -> GoalDirection.Hold
+            }
+            return GoalCalendar(goal.startDate, goal.averaging == GoalAveraging.Weekly, direction, days.associateBy { it.date })
+        }
+    }
+}
 
 /** What the person has picked on the page itself, kept by the view model across new inputs. */
 data class TrendsUi(

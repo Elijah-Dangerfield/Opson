@@ -310,6 +310,12 @@ data class Settings(
      */
     val celebrationCounts: Boolean? = null,
     /**
+     * A second streak for a goal whose "met" is never eating less: tracking every day, meals, burn
+     * or steps (`GoalStreaks.eligible`). Off until the person turns it on; onboarding asks when a
+     * goal is set. The showing-up streak doesn't read it. A top-level key, synced with the rest.
+     */
+    val goalStreakEnabled: Boolean = false,
+    /**
      * The kind note on Today when the log suggests a hard stretch ([HardStretch]), with ways to
      * get support. On by default; the note and More › Support and sharing turn it off. What the
      * note is based on is worked out on the phone and never synced; only this choice is.

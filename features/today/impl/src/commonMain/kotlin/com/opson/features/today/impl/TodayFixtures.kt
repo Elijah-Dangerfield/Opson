@@ -5,6 +5,9 @@ import com.opson.features.today.impl.celebration.Celebrating
 import com.opson.libraries.diary.CelebrationStyle
 import com.opson.libraries.diary.DayMark
 import com.opson.libraries.diary.ShowingUp
+import com.opson.libraries.goals.GoalFixtures
+import com.opson.libraries.goals.GoalToday
+import com.opson.libraries.goals.GoalWrapUp
 import com.opson.features.today.NotesOrigin
 import com.opson.features.today.impl.calendar.CalendarState
 import com.opson.features.today.impl.calendar.CalendarStateBuilder
@@ -240,6 +243,8 @@ object TodayFixtures {
         now: LocalTime? = null,
         nudgeDismissedOn: LocalDate? = null,
         burnedGap: BurnedGap? = null,
+        goals: List<GoalToday> = emptyList(),
+        usualBurnKcal: Int? = null,
     ): TodayInputs = TodayInputs(
         today = today,
         timeZone = timeZone,
@@ -257,6 +262,8 @@ object TodayFixtures {
         habits = habits,
         now = now,
         nudgeDismissedOn = nudgeDismissedOn,
+        goals = goals,
+        usualBurnKcal = usualBurnKcal,
     )
 
     /** Four weeks of ordinary days: dinner usually at 7:15 pm, about 1,900 kcal and nine entries a day. */
@@ -322,6 +329,18 @@ object TodayFixtures {
     /** Design sync 4's 13.2b: 300 over what you burn. */
     val surplus300: Settings = Settings(targets = Targets.Default.copy(style = TargetStyle.Surplus(300, 300)))
 
+    /** A usual whole day's Burned lately, for the burned bar's mark: a little over [burned]'s 2,180 so far. */
+    const val USUAL_BURN_KCAL: Int = 2350
+
+    /**
+     * Losing weight averaged over the week, beside a burn goal of 500 active, as Today reads them
+     * after a big Tuesday: today's target is 1,800 (the goal's 1,930 less 130), 1,700 to 1,900.
+     */
+    val weeklyGoals: List<GoalToday> get() = GoalFixtures.today(GoalFixtures.loseWeekly, GoalFixtures.burn)
+
+    /** [weeklyGoals]' settings: the goal's band, 1,830 to 2,030, written to Targets. */
+    val weeklyGoalSettings: Settings get() = GoalFixtures.settings(GoalFixtures.loseWeekly, GoalFixtures.burn)
+
     /** Design sync 4's 13.6c: one number, 2,100. */
     val oneNumber: Settings = Settings(targets = Targets.Default.useExact())
 
@@ -361,6 +380,8 @@ object TodayFixtures {
         habits: LoggingHabits? = null,
         now: LocalTime? = null,
         burnedGap: BurnedGap? = null,
+        goals: List<GoalToday> = emptyList(),
+        usualBurnKcal: Int? = null,
     ): TodayState = TodayStateBuilder.build(
         inputs(
             day,
@@ -375,6 +396,8 @@ object TodayFixtures {
             habits = habits,
             now = now,
             burnedGap = burnedGap,
+            goals = goals,
+            usualBurnKcal = usualBurnKcal,
         ),
         policy,
         menuOpen,
@@ -401,6 +424,7 @@ object TodayFixtures {
         now: LocalTime? = null,
         usualWrapUp: LocalTime? = null,
         recapsOn: Boolean = false,
+        goals: List<GoalWrapUp> = emptyList(),
     ): DayCloseState = DayCloseStateBuilder.build(
         DayCloseInputs(
             today = today,
@@ -412,6 +436,7 @@ object TodayFixtures {
             now = now,
             usualWrapUp = usualWrapUp,
             recapsOn = recapsOn,
+            goals = goals,
         ),
         policy,
         note = note,

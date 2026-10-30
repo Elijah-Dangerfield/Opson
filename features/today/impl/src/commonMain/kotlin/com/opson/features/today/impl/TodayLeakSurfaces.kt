@@ -24,6 +24,7 @@ import com.opson.libraries.diary.Milestone
 import com.opson.features.today.impl.dayclose.DayClosedSheetContent
 import com.opson.features.today.impl.dayclose.DayClosedState
 import com.opson.libraries.diary.MainNumberChoice
+import com.opson.libraries.goals.GoalFixtures
 import com.opson.libraries.diary.Reading
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.ui.components.SheetHandle
@@ -192,6 +193,34 @@ object TodayLeakSurfaces {
         // release.recaps: the week's last day wrapped up links to its recap, named by its dates.
         LeakSurface(id = "day-close-week-recap", label = "Day close, the week's last day wrapped up", showsCaloriesInFull = true) { policy ->
             DayCloseScreen(state = TodayFixtures.dayCloseState(policy, closed = true, recapsOn = true), onAction = {})
+        },
+        // With a goal (2026-10-30): the week's line, the chip, the burned bar's marks, and how the
+        // day went for the goal and its week. Every amount goes through the policy.
+        LeakSurface(id = "today-goal-weekly", label = "Today · a weekly goal and a burn goal", showsCaloriesInFull = true) { policy ->
+            TodayScreen(
+                state = TodayFixtures.todayState(
+                    policy,
+                    settings = TodayFixtures.weeklyGoalSettings,
+                    expended = TodayFixtures.expended,
+                    summaryOn = true,
+                    goalsAndEnergyOn = true,
+                    burned = TodayFixtures.burned,
+                    goals = TodayFixtures.weeklyGoals,
+                    usualBurnKcal = TodayFixtures.USUAL_BURN_KCAL,
+                ),
+                onAction = {},
+            )
+        },
+        LeakSurface(id = "day-close-goal", label = "Day close · a weekly goal, burn and meals", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(
+                state = TodayFixtures.dayCloseState(
+                    policy,
+                    settings = GoalFixtures.settings(GoalFixtures.loseWeekly, GoalFixtures.burn, GoalFixtures.meals).copy(goalStreakEnabled = true),
+                    burned = TodayFixtures.burned,
+                    goals = GoalFixtures.wrapUp(GoalFixtures.loseWeekly, GoalFixtures.burn, GoalFixtures.meals, streaks = true, eatenKcal = 1500.0),
+                ),
+                onAction = {},
+            )
         },
         LeakSurface(id = "celebration", label = "A milestone's celebration", showsCaloriesInFull = false) { _ ->
             CelebrationScreen(state = CelebrationState(Milestone.Week1, offerTurnOff = true), onAction = {})

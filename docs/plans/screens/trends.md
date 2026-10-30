@@ -12,8 +12,11 @@ Weight, Patterns, and the weekly and monthly recaps. Read `shared.md` first.
 > skipped, nothing logged, still to come), showing up (the run and milestones
 > reached, while celebrations are on), how the check-ins felt, eaten (total,
 > daily average, the range, a bar a logged day), each active goal the mode
-> offers with its days on track and close out of the days it could judge (the
-> goal engine's `GoalStatuses.days`; never a count of days off), or with no goal
+> offers with its days on plan and a bit over or under out of the days it could
+> judge, each day wrapped up as Wrap up the day wraps it (`GoalStatuses.wrapUp`,
+> `GoalOutcomes`; never a count of big days or days well under), "Your week is
+> on track." when a weekly average's week ended so, and the goal streak where
+> it is on and celebrations say numbers, or with no goal
 > setting the target the days on plan or close (`OnTrack`'s rules), total burned
 > (TDEE) with resting, activity, exercise and digesting, eaten against burned
 > (the running total's rules and words, with the shared (i) sheets), the weight

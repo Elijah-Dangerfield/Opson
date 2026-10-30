@@ -55,6 +55,8 @@ import com.opson.system.thenIf
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.goal_calendar_note
+import opson.libraries.resources.generated.resources.goal_calendar_note_week
 import opson.libraries.resources.generated.resources.today_cal_initial_fri
 import opson.libraries.resources.generated.resources.today_cal_initial_mon
 import opson.libraries.resources.generated.resources.today_cal_initial_sat
@@ -176,6 +178,13 @@ internal fun CalendarCardView(calendar: OnTrackCalendar, onAction: (TrendsAction
             typography = AppTheme.type.secondary,
             color = AppTheme.colors.muted,
         )
+        calendar.goalSince?.let { since ->
+            Text(
+                text = stringResource(if (calendar.goalWeekly) Res.string.goal_calendar_note_week else Res.string.goal_calendar_note, DateCopy.monthDay(since)),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+            )
+        }
         Legend(calendar)
     }
 }

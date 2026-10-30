@@ -5,6 +5,8 @@ import com.opson.features.today.impl.MacroTile
 import com.opson.features.today.impl.Toast
 import com.opson.features.today.impl.TodayStateBuilder
 import com.opson.features.today.impl.todayRange
+import com.opson.features.today.impl.weekShiftOn
+import com.opson.libraries.goals.GoalWrapUp
 import com.opson.features.today.impl.celebration.Celebrating
 import com.opson.libraries.diary.CelebrationStyle
 import com.opson.libraries.diary.CheckIn
@@ -99,6 +101,8 @@ data class DayCloseState(
     val early: EarlyWrapUp? = null,
     /** Today wrapped up on the last day of its week, with `release.recaps`: the way to the week's recap. */
     val weekRecap: RecapPeriod? = null,
+    /** How the day went for each active goal, the week so far for a weekly average, and a goal streak where one is on. */
+    val goal: GoalWrapCard? = null,
 )
 
 /** "4 days in a row. 3 more to a week." with counts; a kind line without. */
@@ -243,6 +247,8 @@ data class DayCloseInputs(
     val usualWrapUp: LocalTime? = null,
     /** `release.recaps`: wrapping up a week's last day offers its recap. */
     val recapsOn: Boolean = false,
+    /** Every active goal on the day as it is wrapped up (`GoalRepository.wrapUp`). */
+    val goals: List<GoalWrapUp> = emptyList(),
 )
 
 /**
@@ -272,7 +278,7 @@ object DayCloseStateBuilder {
         val today = inputs.today
         val settings = inputs.settings
         val isToday = day.date == today
-        val range = todayRange(settings, day, today, inputs.expended, inputs.burned)
+        val range = todayRange(settings, day, today, inputs.expended, inputs.burned, weekShiftOn(inputs.goals))
         val eaten = day.totals().kcal.known
         val bare = day.formatContext(today, bare = true)
         val eatenDisplay = policy.resolve(Metric.Calories, eaten, Surface.DayClose, day.formatContext(today, of = range.targetKcal.toDouble(), bare = true))
@@ -351,6 +357,7 @@ object DayCloseStateBuilder {
             early = if (isToday && !day.closedByUser) inputs.now?.let { EarlyWrapUp.of(it, inputs.usualWrapUp) } else null,
             weekRecap = RecapPeriod.weekOf(day.date, settings.weekStart)
                 .takeIf { inputs.recapsOn && isToday && day.closedByUser && it.end == day.date },
+            goal = if (day.hasLogged || day.closedByUser) DayCloseGoals.card(inputs.goals, day, today, settings, policy, caloriesShown = shown) else null,
         )
     }
 

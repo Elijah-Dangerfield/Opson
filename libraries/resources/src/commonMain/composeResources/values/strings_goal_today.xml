@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A goal across the app (docs/decisions.md, 2026-10-30, "With a goal, the app is organized around
+  it"): Today's goal chip and week line, the burned bar's marks, the goal's line in Wrap up the day,
+  and the Trends calendar's goal note.
+
+  Eating-disorder sensitive. Never praise eating less, never ask a day to make up for another, and
+  never use failure words: a day off the goal is "a bit over", "a big day" or "not this time".
+  Same rules as strings.xml: no backslash escapes, positional %1$s.
+-->
+<resources>
+
+    <!-- Today: the chip that names the goal and opens it -->
+    <string name="goal_chip_lose">Goal: lose weight</string>
+    <string name="goal_chip_keep">Goal: keep my weight</string>
+    <string name="goal_chip_gain">Goal: gain weight</string>
+    <string name="goal_chip_deficit">Goal: a daily deficit</string>
+    <string name="goal_chip_surplus">Goal: a daily surplus</string>
+    <string name="goal_chip_balance">Goal: eat what I burn</string>
+    <string name="goal_chip_burn">Goal: burn more</string>
+    <string name="goal_chip_steps">Goal: steps</string>
+    <string name="goal_chip_track">Goal: track every day</string>
+    <string name="goal_chip_meals">Goal: regular meals</string>
+    <string name="goal_chip_open">Open your goal</string>
+
+    <!-- Today: a goal averaged over the week -->
+    <string name="goal_week_on_track">On track for the week</string>
+    <string name="goal_week_eat">To stay on track this week: about %1$s today</string>
+    <string name="goal_week_deficit">To stay on track this week: about a %1$s deficit today</string>
+
+    <!-- Today: marks on the burned bar -->
+    <string name="goal_burn_usual">Usual day %1$s</string>
+    <string name="goal_burn_goal">Burn goal %1$s</string>
+
+    <!-- Wrap up the day: how the day went for the goal -->
+    <string name="goal_wrap_title">Your goal</string>
+    <string name="goal_wrap_on_plan">On plan for your goal.</string>
+    <string name="goal_wrap_a_bit_over">A bit over your goal.</string>
+    <string name="goal_wrap_a_bit_over_week">A bit over. Your week is still on track.</string>
+    <string name="goal_wrap_a_bit_under">A bit under your goal.</string>
+    <string name="goal_wrap_a_bit_under_week">A bit under. Your week is still on track.</string>
+    <string name="goal_wrap_big_day">A big day. Your goal is the same tomorrow.</string>
+    <string name="goal_wrap_big_day_week">A big day. Your week can absorb it.</string>
+    <string name="goal_wrap_well_under">Well under your goal. Eating enough is part of it too.</string>
+    <string name="goal_wrap_week_on_track">Your week is on track.</string>
+    <string name="goal_wrap_week_ease">About %1$s a day for the rest of the week keeps it on track.</string>
+    <string name="goal_wrap_track">You showed up today.</string>
+    <string name="goal_wrap_meals_met">Meals goal met: %1$d of %2$d.</string>
+    <string name="goal_wrap_meals_short">%1$d of %2$d meals today.</string>
+    <string name="goal_wrap_burn_met">Burn goal met.</string>
+    <string name="goal_wrap_burn_short">Burned %1$s of your %2$s goal.</string>
+    <string name="goal_wrap_steps_met">Steps goal met.</string>
+    <plurals name="goal_wrap_streak">
+        <item quantity="one">%1$d day in a row</item>
+        <item quantity="other">%1$d days in a row</item>
+    </plurals>
+
+    <!-- Trends: the calendar while a goal sets the target -->
+    <string name="goal_calendar_note">Colored by your goal since %1$s.</string>
+    <string name="goal_calendar_note_week">Colored by your goal since %1$s. Each day is judged by what its week asked of it.</string>
+</resources>

@@ -192,19 +192,19 @@ class RecapStateBuilderTest {
     }
 
     @Test
-    fun eachGoal_saysItsDaysOnTrack_fromTheGoalEngine_neverItsDaysOff() {
+    fun eachGoal_saysItsDaysOnPlan_wrappedUpByTheGoalEngine_neverItsDaysOff() {
         val state = RecapFixtures.state(full, goals = true)
         assertNull(state.plan, "a goal sets the target, so the goal says how the days went")
         assertEquals(listOf(GoalKind.Weight, GoalKind.TrackEveryDay, GoalKind.Meals), state.goals.map { it.type.kind })
 
         // Monday to Sunday: Wednesday skipped (not counted), Thursday empty, the rest logged.
         val track = state.goals.first { it.type == GoalType.TrackEveryDay }
-        assertEquals(5, track.met)
+        assertEquals(5, track.onPlan)
         assertEquals(6, track.counted)
-        // Three meals a day: four full days, and Sunday with two is close; Thursday logged nothing.
+        // Three meals a day: four full days; Sunday with two is not this time, and Thursday logged nothing.
         val meals = state.goals.first { it.type is GoalType.Meals }
-        assertEquals(4, meals.met)
-        assertEquals(1, meals.near)
+        assertEquals(4, meals.onPlan)
+        assertEquals(0, meals.aBit, "a count goal is never a bit over or under")
         assertEquals(5, meals.counted)
     }
 

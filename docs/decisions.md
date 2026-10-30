@@ -11,8 +11,10 @@ the decision, alternatives considered, and *why*. Newest first.
 **Decision:** a weekly or monthly recap (`release.recaps`) adds up only the days
 logged and averages per logged day; a skipped (untracked) day or one with
 nothing logged is left out, and the page says so in one line. Eaten against
-burned follows the running total's rules. Goals come from the goal engine
-(`GoalStatuses.days`), days on track and close, never days off. After numbers
+burned follows the running total's rules. Goals come from the goal engine,
+each day wrapped up as Wrap up the day wraps it (`GoalStatuses.wrapUp`,
+`GoalOutcomes`): days on plan and a bit off, never big days or days well under.
+After numbers
 have been hard a recap is only the days, showing up, check-ins, foods by name
 and the gentle goals. "Your week is ready" on Today shows for three days after
 a week or month ends, once per period, and only with two logged days in it.
@@ -31,6 +33,49 @@ by the third time. A recap notification: reminders would need a new kind on
 both platforms, its own opt-in (0.1 synced `recapEvent` Subtle to everyone) and
 the planner reading last week's log, so it waits; the card on Today and the
 link from Wrap up the day cover the moment.
+
+## 2026-10-30: With a goal, the app is organized around it; a goal streak only where met isn't eating less
+
+**Decision:** an active goal reaches every surface that judges a day, all
+through `GoalRepository` so they agree. Today's card names the goal in a chip
+that opens it (Targets for now, until the goal screen lands). A goal averaged
+over the week moves today's band by the engine's capped adjustment and says
+"To stay on track this week: about 1,800 kcal today", or "On track for the
+week"; an energy balance deficit says the deficit instead. After "numbers have
+been hard" a week asking for less says nothing. The burned bar marks a usual
+day's burn (the median of the last 14 whole days' Burned, at least 4) and a
+burn goal's line, both only where energy out shows. Wrap up the day has a
+"Your goal" card per goal: "On plan for your goal", "A bit over. Your week is
+still on track", "A big day. Your week can absorb it", or for a daily goal
+"Your goal is the same tomorrow". A week with room says "About N a day for the
+rest of the week"; a tighter week is never spelled out there. The Trends
+calendar colors a day from the goal's start by the goal's own verdict (under a
+weekly average, the band its week asked of it), its day sheet agrees, and the
+running total's "Since you started" counts from the goal's start.
+
+The showing-up streak stays exactly as it was. A second, opt-in goal streak
+(`goalStreakEnabled`, a synced top-level settings key, off by default; the
+onboarding goal question may turn it on) counts days met for Track every day,
+Meals, Burn and Steps only (`GoalStreaks.eligible`). It forgives like showing
+up: skipped days rest, one day not met is bridged, two end it. It shows in
+Wrap up the day's goal card, and only where celebrations say numbers.
+
+**Why:** the owner asked for a goal to feel "almost like a mode you enter". A
+streak of days under a calorie target or a deficit rewards eating less and
+turns a big day into a broken chain, the restrict-after-binge loop Opson exists
+to avoid, so weight and energy balance goals never get one; nothing in
+celebrations reads them (2026-10-29). Meals and tracking count something to do,
+not something to withhold. Burn and steps are allowed because the owner listed
+them, with the same forgiveness; compulsive exercise is a real pattern, so
+they never count calories eaten and the streak stays off unless chosen.
+
+**Alternatives:** goal streaks for every type (rejected above); replacing the
+showing-up streak with the goal's (loses the one streak that can't be broken
+by eating); tightening lines in Wrap up the day after a big day ("about 1,750
+a day for the rest of the week" is a day made to pay for another); a usual
+burn from the mean (one long run moves it for two weeks).
+
+---
 
 ## 2026-10-30: Opson is for 16 and over, and a hard stretch gets a kind note worked out on the phone
 
@@ -97,6 +142,8 @@ verification already names the food and the fields.
 **Why:** the owner could not see whether a food had been checked, and asked
 for review to be about cleaning up the existing entry rather than judging a
 new one.
+
+---
 
 ## 2026-10-30: No server AI in v1; labels are read on the phone and a person reviews weekly
 

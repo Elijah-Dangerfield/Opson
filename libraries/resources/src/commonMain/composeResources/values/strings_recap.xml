@@ -69,11 +69,12 @@
         <item quantity="other">Out of %1$d logged days with every amount known.</item>
     </plurals>
 
-    <!-- Each goal over the period: days on track and close, never days off -->
+    <!-- Each goal over the period, in Wrap up the day's words: days on plan and a bit off, never big days or days well under -->
     <string name="recap_goals_title">Your goals</string>
-    <string name="recap_goal_on_track">On track</string>
+    <string name="recap_goal_on_plan">On plan</string>
     <string name="recap_goal_days">%1$d of %2$d days</string>
-    <string name="recap_goal_close">Close</string>
+    <string name="recap_goal_a_bit">A bit over or under</string>
+    <string name="recap_goal_streak">Goal streak</string>
     <string name="recap_goal_lose">Lose weight</string>
     <string name="recap_goal_keep">Keep your weight</string>
     <string name="recap_goal_gain">Gain weight</string>

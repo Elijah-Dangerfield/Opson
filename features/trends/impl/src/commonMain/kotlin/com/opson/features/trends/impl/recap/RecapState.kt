@@ -33,7 +33,6 @@ import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.GoalCatalog
 import com.opson.libraries.nutrition.GoalType
-import com.opson.libraries.nutrition.GoalVerdict
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
@@ -44,12 +43,10 @@ import com.opson.libraries.nutrition.shownOn
 import com.opson.libraries.nutrition.ui.chartReading
 import com.opson.libraries.ui.components.ChartReadout
 import com.opson.libraries.ui.components.IntakeBar
+import com.opson.libraries.goals.GoalOutcome
 import com.opson.libraries.goals.GoalStatuses
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.minus
-import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import kotlin.math.abs
@@ -166,11 +163,21 @@ data class WeightSection(val change: Display, val direction: ScaleDirection, val
 data class PlanSection(val onPlan: Int, val close: Int, val of: Int)
 
 /**
- * One goal over the period, from the goal engine's days ([GoalStatuses.days]): [met] days on
- * track and [near] close, out of the [counted] days it could judge (skipped days, days with
- * nothing logged and unknown amounts don't count either way). Never a count of days off.
+ * One goal over the period, each day wrapped up as Wrap up the day wraps it ([GoalStatuses.wrapUp],
+ * [GoalOutcomes]): [onPlan] days on plan, [aBit] a bit over or under, out of the [counted] days it
+ * could judge (skipped days, days with nothing logged and unknown amounts don't count either way).
+ * Never a count of big days, well under or not this time. [weekOnTrack] is true when a weekly
+ * average's week ended on track, said only then; [streak] the goal's run at the end, where goal
+ * streaks are on and celebrations say numbers.
  */
-data class GoalWeek(val type: GoalType, val met: Int, val near: Int, val counted: Int)
+data class GoalWeek(
+    val type: GoalType,
+    val onPlan: Int,
+    val aBit: Int,
+    val counted: Int,
+    val weekOnTrack: Boolean = false,
+    val streak: Int? = null,
+)
 
 /**
  * The check-ins' answers over the period, each the step nearest its average, and how many days
@@ -441,8 +448,9 @@ object RecapStateBuilder {
 
     /**
      * Each active goal the mode offers ([GoalCatalog.offered]: after numbers have been hard only
-     * the gentle ones, about showing up and meals), with its days from the goal engine. A day a
-     * calorie goal can't read yet (Later) stays out.
+     * the gentle ones, about showing up and meals), each day wrapped up by the goal engine as Wrap
+     * up the day wraps it. Today counts once it is wrapped up; a day a calorie goal can't read yet
+     * (Later) stays out.
      */
     private fun goals(
         inputs: RecapInputs,
@@ -457,22 +465,31 @@ object RecapStateBuilder {
         val offered = GoalCatalog.offered(policy, settings.onboarding.hard, settings.bodyStage, Surface.Week)
         val active = GoalBook.goals(settings).filter { it.isActive && it.type.kind in offered }
         if (active.isEmpty()) return emptyList()
-        // A weekly average replays the week before the period's first day too.
-        val from = period.start.minus(RecapPeriod.DAYS_IN_WEEK, DateTimeUnit.DAY)
-        val facts = generateSequence(from) { it.plus(1, DateTimeUnit.DAY) }.takeWhile { it <= end }
-            .associateWith { date -> GoalStatuses.facts(dayAt(date), inputs.burnedByDay?.get(date)) }
+        // Every day the log holds, so a weekly average replays its week and a goal streak its run.
+        val facts = inputs.days.filter { it.date <= end }.associate { day -> day.date to GoalStatuses.facts(day, inputs.burnedByDay?.get(day.date)) }
         val weightKg = inputs.weighIns.lastOrNull { it.measuredAt.toLocalDateTime(inputs.timeZone).date <= end }?.kg
-        val days = GoalStatuses.days(settings, facts, period.start, end, inputs.today, weightKg)
-        return active.sortedByDescending { it.drivesTarget }.mapNotNull { goal ->
-            val judged = days[goal.id].orEmpty()
-                .filter { it.verdict == GoalVerdict.Met || it.verdict == GoalVerdict.Near || it.verdict == GoalVerdict.Off }
-                .filter { !goal.type.setsCalories || opens(Metric.Calories, dayAt(it.date)) }
-            if (judged.isEmpty()) {
-                null
-            } else {
-                GoalWeek(goal.type, met = judged.count { it.verdict == GoalVerdict.Met }, near = judged.count { it.verdict == GoalVerdict.Near }, counted = judged.size)
-            }
-        }
+        val wrapped = period.days
+            .filter { it < inputs.today || (it == inputs.today && dayAt(it).closedByUser) }
+            .map { date -> GoalStatuses.wrapUp(settings, facts, date, inputs.today, weightKg) }
+        val ids = active.map { it.id }.toSet()
+        return wrapped.flatten().filter { it.goal.id in ids }.groupBy { it.goal.id }.values.mapNotNull { wraps ->
+            val goal = wraps.first().goal
+            // A day wrapped up as its own today can't miss showing up, so a past day nobody showed
+            // up on is counted here as the "not this time" it was.
+            val counted = wraps
+                .filter { it.outcome != GoalOutcome.NotCounted || (goal.type == GoalType.TrackEveryDay && !dayAt(it.day.date).untracked && it.day.date >= goal.startDate) }
+                .filter { !goal.type.setsCalories || opens(Metric.Calories, dayAt(it.day.date)) }
+            if (counted.isEmpty()) return@mapNotNull null
+            val last = wraps.last()
+            GoalWeek(
+                type = goal.type,
+                onPlan = counted.count { it.outcome == GoalOutcome.OnPlan },
+                aBit = counted.count { it.outcome == GoalOutcome.ABitOver || it.outcome == GoalOutcome.ABitUnder },
+                counted = counted.size,
+                weekOnTrack = period.kind == RecapKind.Week && last.day.date == period.end && last.weekOnTrack == true,
+                streak = last.streak?.takeIf { it > 0 && inputs.celebrations == CelebrationStyle.Counts },
+            )
+        }.sortedByDescending { week -> active.first { it.type == week.type }.drivesTarget }
     }
 
     /** Each answer's average, back to the nearest step of its scale; null with no check-in. */
