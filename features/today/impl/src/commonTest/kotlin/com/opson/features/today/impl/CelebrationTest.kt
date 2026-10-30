@@ -6,10 +6,16 @@ import com.opson.features.today.impl.celebration.CelebrationAnswer
 import com.opson.features.today.impl.celebration.CelebrationEvent
 import com.opson.features.today.impl.celebration.CelebrationPrompt
 import com.opson.features.today.impl.celebration.CelebrationStore
+import com.opson.libraries.prompts.OptOut
+import com.opson.libraries.prompts.OptOuts
 import com.opson.features.today.impl.celebration.CelebrationTelemetry
 import com.opson.features.today.impl.celebration.CelebrationViewModel
 import com.opson.features.today.impl.celebration.Celebrating
+import com.opson.features.today.impl.celebration.ProgressAction
+import com.opson.features.today.impl.celebration.ProgressEvent
 import com.opson.features.today.impl.celebration.ProgressStateBuilder
+import com.opson.features.today.impl.celebration.ProgressViewModel
+import com.opson.features.today.impl.celebration.StreakIndicatorViewModel
 import com.opson.features.today.impl.celebration.ShowingUpCelebrationsSource
 import com.opson.features.today.impl.celebration.StreakBadge
 import com.opson.features.today.impl.dayclose.DayCloseViewModel
@@ -90,8 +96,9 @@ class CelebrationTest : CoroutineTest() {
     // The prompt
 
     @Test
-    fun theFirstMilestone_showsOnce_offeringToTurnThemOff_andTheNextDoesNot() = runUnitTest {
-        val prompt = CelebrationPrompt(source(), store)
+    fun eachMilestone_showsOnce_andTheFirstFewOfferToTurnThemOff() = runUnitTest {
+        val optOuts = CountingOptOuts()
+        val prompt = CelebrationPrompt(source(), store, optOuts)
         assertEquals(PromptPresentation.Screen, prompt.presentation)
         assertFalse(prompt.isEligible(), "nothing reached yet")
 
@@ -105,7 +112,12 @@ class CelebrationTest : CoroutineTest() {
         loggedDays(7)
         val next = assertIs<CelebrationRoute>(prompt.screen())
         assertEquals(Milestone.Week1.wire, next.milestone)
-        assertFalse(next.offerTurnOff, "only the very first celebration offers it")
+        assertTrue(next.offerTurnOff, "the first few celebrations offer it, not only the first")
+
+        optOuts.shows[OptOut.Celebrations] = OptOuts.OFFERED_SHOWINGS
+        loggedDays(14)
+        val later = assertIs<CelebrationRoute>(prompt.screen())
+        assertFalse(later.offerTurnOff, "after the first few it is only in More")
     }
 
     @Test
@@ -219,6 +231,34 @@ class CelebrationTest : CoroutineTest() {
         val gentle = ProgressStateBuilder.build(celebrating(8, CelebrationStyle.Gentle))
         assertNull(gentle.counts)
         assertFalse(gentle.loading)
+    }
+
+    @Test
+    fun yourProgress_offersToHideTheStreak_theFirstFewTimes_andHidingItSaysWhereItComesBack() = runUnitTest {
+        val optOuts = CountingOptOuts()
+        loggedDays(4)
+        val first = ProgressViewModel(source(), optOuts = optOuts)
+        assertTrue(first.state.offerHideStreak)
+        assertEquals(1, optOuts.shows[OptOut.Streak], "each opening is a showing")
+
+        optOuts.shows[OptOut.Streak] = OptOuts.OFFERED_SHOWINGS
+        assertFalse(ProgressViewModel(source(), optOuts = optOuts).state.offerHideStreak, "after five it is only in More")
+
+        val events = mutableListOf<ProgressEvent>()
+        backgroundScope.launch { first.eventFlow.toList(events) }
+        first.takeAction(ProgressAction.HideStreakTapped)
+        first.takeAction(ProgressAction.HideStreakTapped)
+        assertEquals(listOf(OptOut.Streak), optOuts.turnedOff)
+        assertEquals(listOf<ProgressEvent>(ProgressEvent.StreakHidden), events)
+    }
+
+    @Test
+    fun theStreak_goesFromTheHeader_withItsSwitchOff_whileCelebrationsCarryOn() = runUnitTest {
+        loggedDays(4)
+        assertEquals(StreakBadge.Counts(4), StreakIndicatorViewModel(source(), settings).state.badge)
+        settings.state.value = Settings(todayStreak = false)
+        assertNull(StreakIndicatorViewModel(source(), settings).state.badge)
+        assertTrue(source().observe().first() != null, "the rest of celebrations is still on")
     }
 
     @Test

@@ -77,11 +77,14 @@ class ShowingUpCelebrationsSource(
     override suspend fun pending(): Milestone? = observe().first()?.progress?.toCelebrate(store.celebrated())
 }
 
-/** Which milestones this phone has celebrated, and whether the way to turn them off was offered. */
+/** Which milestones this phone has celebrated. */
 @Serializable
 data class CelebrationLedger(
     val celebrated: List<String> = emptyList(),
-    /** The first celebration offers "I'd rather not see these"; later ones don't. */
+    /**
+     * Written by builds that offered "I'd rather not see these" on the first celebration only, and
+     * read by none: the offer now follows `OptOuts`, on the first few. Kept so the cache round-trips.
+     */
     val offeredTurnOff: Boolean = false,
 )
 
@@ -101,13 +104,11 @@ class CelebrationStore(cacheFactory: CacheFactory) : UserScopedClearer {
 
     suspend fun celebrated(): Set<Milestone> = cache.get().celebrated.mapNotNullTo(mutableSetOf(), Milestone::fromWire)
 
-    suspend fun offeredTurnOff(): Boolean = cache.get().offeredTurnOff
-
     /** Writes [shown] down, with the lower milestones it covers, before it is drawn. */
     suspend fun shown(shown: Milestone) {
         cache.update { ledger ->
             val wires = (ledger.celebrated + ShowingUp.coveredBy(shown).map { it.wire }).distinct()
-            ledger.copy(celebrated = wires, offeredTurnOff = true)
+            ledger.copy(celebrated = wires)
         }
     }
 

@@ -7,6 +7,8 @@ import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.opson.SessionTracker
+import com.opson.libraries.prompts.OptOut
+import com.opson.libraries.prompts.OptOuts
 import com.opson.libraries.prompts.PromptAccept
 import com.opson.libraries.prompts.PromptCandidate
 import com.opson.libraries.prompts.PromptDebug
@@ -34,9 +36,14 @@ import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
-/** A prompt the processor just put up. */
+/** A prompt the processor just put up. [offersOptOut]: one of the first few optional ones, which offers "I'd rather not see these". */
 @HiddenFromObjC
-data class PromptShowing(val id: String, val presentation: PromptPresentation, val trigger: PromptTrigger)
+data class PromptShowing(
+    val id: String,
+    val presentation: PromptPresentation,
+    val trigger: PromptTrigger,
+    val offersOptOut: Boolean = false,
+)
 
 /**
  * The one place that decides whether Today shows a prompt, and which. Every candidate in the set
@@ -61,6 +68,7 @@ class PromptProcessor(
     private val sessions: SessionTracker,
     private val telemetry: PromptTelemetry,
     private val clock: Clock,
+    private val optOuts: OptOuts = OptOuts.None,
 ) : PromptEvents, PromptDebug {
 
     private val logger = KLog.withTag("Prompts")
@@ -79,6 +87,9 @@ class PromptProcessor(
 
     /** Prompts answered since they last showed. */
     private val answered = mutableSetOf<String>()
+
+    /** The prompts whose latest showing offers "I'd rather not see these". */
+    private val offering = mutableSetOf<String>()
 
     private val _card = MutableStateFlow<PromptShowing?>(null)
 
@@ -178,6 +189,19 @@ class PromptProcessor(
         if (answer(id) { it.copy(dismissals = it.dismissals + 1) }) telemetry.dismissed(id)
     }
 
+    /** Whether [id]'s showing offers "I'd rather not see these": an optional prompt, one of the first few. */
+    fun offersOptOut(id: String): Boolean = id in offering
+
+    /**
+     * "I'd rather not see these": a Not now for this one, and suggestions off, so no optional
+     * prompt shows until More › Today screen turns them back on.
+     */
+    suspend fun turnedOff(id: String) {
+        val candidate = candidate(id) ?: return
+        dismissed(id)
+        if (candidate.optional) optOuts.turnOff(OptOut.Suggestions)
+    }
+
     private suspend fun answer(id: String, change: (PromptRecord) -> PromptRecord): Boolean = mutex.withLock {
         if (!answered.add(id)) return@withLock false
         if (_card.value?.id == id) _card.value = null
@@ -188,12 +212,16 @@ class PromptProcessor(
 
     private suspend fun show(candidate: PromptCandidate, trigger: PromptTrigger, userId: String, session: String, now: Instant): PromptShowing {
         val at = now.toEpochMilliseconds()
-        ledger.update(userId) { account ->
-            account.copy(lastPromptAtMs = at).with(candidate.id) { it.copy(shows = it.shows + 1, lastShownAtMs = at) }
+        val suggestion = OptOut.Suggestions.wire
+        val updated = ledger.update(userId) { account ->
+            val shown = account.copy(lastPromptAtMs = at).with(candidate.id) { it.copy(shows = it.shows + 1, lastShownAtMs = at) }
+            if (candidate.optional) shown.copy(optOutShows = shown.optOutShows + (suggestion to (shown.optOutShows[suggestion] ?: 0) + 1)) else shown
         }
         promptedInSession = session
         answered -= candidate.id
-        val showing = PromptShowing(candidate.id, candidate.presentation, trigger)
+        val offers = candidate.optional && LedgerOptOuts.offers(updated.optOutShows[suggestion] ?: 0)
+        if (offers) offering += candidate.id else offering -= candidate.id
+        val showing = PromptShowing(candidate.id, candidate.presentation, trigger, offers)
         if (candidate.presentation == PromptPresentation.Card) _card.value = showing
         telemetry.shown(candidate.id, candidate.presentation, trigger)
         logger.i { "Prompt ${candidate.id} shown (${trigger.wire})" }

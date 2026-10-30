@@ -90,6 +90,9 @@ abstract class BuilderDecisionPrompt(
 ) : PromptCandidate {
     override val frequency = PromptFrequency(maxShows = 1, maxDismissals = 1)
 
+    /** News about their own application, not a suggestion: it shows with suggestions turned off too. */
+    override val optional = false
+
     override suspend fun isEligible(): Boolean = news() != null
 
     override suspend fun accept(): PromptAccept {

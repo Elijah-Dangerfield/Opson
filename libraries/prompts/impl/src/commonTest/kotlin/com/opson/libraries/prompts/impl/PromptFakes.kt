@@ -4,6 +4,8 @@ import com.opson.libraries.navigation.Route
 import com.opson.libraries.opson.Session
 import com.opson.libraries.opson.SessionStartReason
 import com.opson.libraries.opson.SessionTracker
+import com.opson.libraries.prompts.OptOut
+import com.opson.libraries.prompts.OptOuts
 import com.opson.libraries.prompts.PromptAccept
 import com.opson.libraries.prompts.PromptCandidate
 import com.opson.libraries.prompts.PromptContent
@@ -64,6 +66,18 @@ internal class FakeCandidate(
     }
 
     override suspend fun screen(): Route? = screenRoute
+}
+
+internal class RecordingOptOuts : OptOuts {
+    val turnedOff = mutableListOf<OptOut>()
+
+    override suspend fun showing(optOut: OptOut): Boolean = false
+
+    override suspend fun offered(optOut: OptOut): Boolean = false
+
+    override suspend fun turnOff(optOut: OptOut) {
+        turnedOff += optOut
+    }
 }
 
 internal class InMemoryLedger : PromptLedgerStore {

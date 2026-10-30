@@ -300,6 +300,17 @@ data class Settings(
      * [celebrationStyle].
      */
     val celebrationCounts: Boolean? = null,
+
+    // Things on Today someone can turn off where they show ("I'd rather not see these", offered on
+    // the first few showings, `OptOuts`) and in More › Today screen. Top-level keys, as above.
+    /** The streak in Today's header, while celebrations are on. Your progress stays a tap away in More. */
+    val todayStreak: Boolean = true,
+    /** "Your week is ready" on Today after a week or a month ends (`release.recaps`). The recaps stay in Trends. */
+    val recapBanner: Boolean = true,
+    /** First-run tips: the small bubbles pointing at something new. */
+    val tips: Boolean = true,
+    /** Suggestions on Today that can be skipped: connect Health, try a check-in, meal reminders and the like. */
+    val suggestions: Boolean = true,
 ) {
     /** [birthDate] while it agrees with [birthYear]: an older build that changed only the year leaves the day unknown. */
     val knownBirthDate: LocalDate? get() = birthDate?.takeIf { it.year == birthYear }

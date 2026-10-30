@@ -42,6 +42,7 @@ import com.opson.features.today.impl.celebration.StreakIndicatorEvent
 import com.opson.features.today.impl.celebration.StreakIndicatorViewModel
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.celebrate_turned_off
+import opson.libraries.resources.generated.resources.progress_streak_hidden
 import com.opson.features.today.DayCloseRoute
 import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
@@ -202,6 +203,10 @@ class TodayFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     ProgressEvent.Dismiss -> sheetState.dismiss()
+                    ProgressEvent.StreakHidden -> {
+                        sheetState.dismiss()
+                        showToast(Toast(Res.string.progress_streak_hidden))
+                    }
                 }
             }
             TodaySheet(router, sheetState) { ProgressSheetContent(state = state, onAction = viewModel::takeAction) }

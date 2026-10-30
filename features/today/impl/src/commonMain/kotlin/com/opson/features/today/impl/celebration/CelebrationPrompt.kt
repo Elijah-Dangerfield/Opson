@@ -4,6 +4,8 @@ package com.opson.features.today.impl.celebration
 
 import com.opson.features.today.CelebrationRoute
 import com.opson.libraries.navigation.Route
+import com.opson.libraries.prompts.OptOut
+import com.opson.libraries.prompts.OptOuts
 import com.opson.libraries.prompts.PromptAccept
 import com.opson.libraries.prompts.PromptCandidate
 import com.opson.libraries.prompts.PromptContent
@@ -41,6 +43,7 @@ import kotlin.time.Duration
 class CelebrationPrompt(
     private val source: CelebrationsSource,
     private val store: CelebrationStore,
+    private val optOuts: OptOuts = OptOuts.None,
 ) : PromptCandidate {
     override val id = ID
     override val priority = PromptPriority.CELEBRATION
@@ -54,10 +57,13 @@ class CelebrationPrompt(
 
     override suspend fun accept(): PromptAccept = PromptAccept.Done
 
-    /** Writes the milestone down as shown before it is drawn, so a crash costs a celebration rather than repeating one. */
+    /**
+     * Writes the milestone down as shown before it is drawn, so a crash costs a celebration rather
+     * than repeating one. The first few celebrations offer "I'd rather not see these" ([OptOuts]).
+     */
     override suspend fun screen(): Route? {
         val milestone = source.pending() ?: return null
-        val offerTurnOff = !store.offeredTurnOff()
+        val offerTurnOff = optOuts.showing(OptOut.Celebrations)
         store.shown(milestone)
         return CelebrationRoute(milestone.wire, offerTurnOff = offerTurnOff)
     }

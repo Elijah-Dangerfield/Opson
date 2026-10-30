@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.button.FlatButton
+import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.IconResource
 import com.opson.libraries.ui.components.icon.ToneIcon
@@ -31,7 +33,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 /**
  * A card that offers one gentle thing: a [ToneIcon], a bold [title], a [body], then [actions]
  * side by side (each a [PromptAction] with `Modifier.weight(1f)`). Today's untracked day is this
- * card.
+ * card. [footer] goes under the actions: a quiet "I'd rather not see these" ([PromptCardFooterLink]).
  */
 @Composable
 fun PromptCard(
@@ -40,6 +42,7 @@ fun PromptCard(
     title: String,
     body: String,
     modifier: Modifier = Modifier,
+    footer: (@Composable () -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit,
 ) {
     EdgeCard(
@@ -55,7 +58,14 @@ fun PromptCard(
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row), content = actions)
+        footer?.invoke()
     }
+}
+
+/** A [PromptCard]'s quiet last line, a text button across the card: "I'd rather not see these". */
+@Composable
+fun PromptCardFooterLink(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FlatButton(text = label, onClick = onClick, tone = FlatButtonTone.Text, centered = true, modifier = modifier.fillMaxWidth())
 }
 
 /**
