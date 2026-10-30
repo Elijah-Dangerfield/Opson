@@ -21,8 +21,13 @@ import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.SearchPicks
+import com.opson.libraries.foods.RecipeFinder
+import com.opson.libraries.foods.RecipeHit
 import com.opson.libraries.foods.SubmittedFoods
 import com.opson.libraries.foods.foodRef
+import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.Job
@@ -69,6 +74,7 @@ class FoodSearchViewModel(
     private val submittedFoods: SubmittedFoods,
     private val loggedFoods: LoggedFoods,
     private val searchPicks: SearchPicks,
+    private val recipeFinder: RecipeFinder = RecipeFinder.None,
 ) : SEAViewModel<FoodSearchState, SearchEvent, SearchAction>(
     initialStateArg = FoodSearchState(pickingForMeal = route.pickForMeal != null),
 ) {
@@ -91,6 +97,7 @@ class FoodSearchViewModel(
     )
 
     private var searchJob: Job? = null
+    private var recipeJob: Job? = null
 
     /** The query and filter the running or last search asked for, so a rebuild only searches again when one changed. */
     private var requested: Pair<String, FoodSearchFilter>? = null
@@ -104,6 +111,8 @@ class FoodSearchViewModel(
         val choices: SearchChoices,
         val policy: VisibilityPolicy,
         val inputs: SearchInputs? = null,
+        /** The last recipes found, with the query they answer. */
+        val recipes: Pair<String, List<RecipeHit>>? = null,
     )
 
     init {
@@ -171,6 +180,8 @@ class FoodSearchViewModel(
                 action.choose { copy(tab = action.tab) }
                 searchIfStale()
             }
+            is SearchAction.RecipesArrived -> action.rebuild { copy(recipes = action.query to action.hits) }
+            is SearchAction.RecipeTapped -> sendEvent(SearchEvent.OpenRecipe(action.row.recipeId, action.row.code))
             is SearchAction.SearchOptionsArrived -> {
                 action.choose { copy(openFoodFacts = action.openFoodFacts) }
                 searchIfStale()
@@ -191,7 +202,29 @@ class FoodSearchViewModel(
             updateState { it.copy(query = current.choices.query, scope = current.choices.scope) }
             return
         }
-        updateState { FoodSearchStateBuilder.build(inputs, current.policy, current.choices) }
+        val built = FoodSearchStateBuilder.build(inputs, current.policy, current.choices)
+        updateState { built.copy(recipes = recipeRows(current, built)) }
+    }
+
+    /**
+     * Recipes go under the food results or the empty answer, for the query typed now. Not while
+     * picking for a meal (a recipe is not an ingredient) or on a day that can't take a log.
+     */
+    private fun recipeRows(model: Model, built: FoodSearchState): List<RecipeSearchRow> {
+        val (query, hits) = model.recipes ?: return emptyList()
+        if (pickForMeal != null || query != model.choices.query.trim()) return emptyList()
+        if (built.body !is SearchBody.Results && built.body !is SearchBody.NoResults) return emptyList()
+        val bare = FormatContext(bare = true)
+        return hits.map { hit ->
+            RecipeSearchRow(
+                key = hit.recipeId ?: hit.code.orEmpty(),
+                name = hit.name,
+                mine = hit.mine,
+                calories = model.policy.resolve(Metric.Calories, hit.kcalPerServing, Surface.Logger, bare),
+                recipeId = hit.recipeId,
+                code = hit.code,
+            )
+        }
     }
 
     private suspend fun SearchAction.choose(change: SearchChoices.() -> SearchChoices) = rebuild { copy(choices = choices.change()) }
@@ -202,6 +235,17 @@ class FoodSearchViewModel(
         searchJob?.cancel()
         requested = null
         searchIfStale()
+        findRecipes(text.trim())
+    }
+
+    /** Recipes for [query], after the same pause as the food search; nothing with recipes off or while picking for a meal. */
+    private fun findRecipes(query: String) {
+        recipeJob?.cancel()
+        if (pickForMeal != null || query.length < RECIPE_MIN_QUERY || !recipeFinder.isOn()) return
+        recipeJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE)
+            takeAction(SearchAction.RecipesArrived(query, recipeFinder.find(query)))
+        }
     }
 
     /**
@@ -373,6 +417,9 @@ class FoodSearchViewModel(
     companion object {
         val SEARCH_DEBOUNCE = 250.milliseconds
         const val SEARCH_LIMIT = 25
+
+        /** Recipes are looked for from two characters, as the server's recipe search takes. */
+        const val RECIPE_MIN_QUERY = 2
         const val USUAL_LIMIT = 3
         const val RECENT_LIMIT = 6
 

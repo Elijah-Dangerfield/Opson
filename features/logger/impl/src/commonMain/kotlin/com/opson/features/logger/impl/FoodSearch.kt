@@ -12,6 +12,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.RecipeHit
 import com.opson.libraries.foods.LearnedPicks
 import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.Display
@@ -47,9 +48,25 @@ data class FoodSearchState(
     val picks: PicksFooter? = null,
     /** The options button and the category tabs; null with `release.searchOptions` off. */
     val options: SearchOptionsBar? = null,
+    /**
+     * `release.recipes`: recipes whose name holds the query, under the food results (or the
+     * empty answer). Their own section, so food ranking never moves them: the person's own first,
+     * then shared ones.
+     */
+    val recipes: List<RecipeSearchRow> = emptyList(),
 ) {
     val typing: Boolean get() = query.isNotBlank()
 }
+
+/** A recipe in search: "Weeknight chili", "Your recipe" or "Public recipe", one serving's calories. */
+data class RecipeSearchRow(
+    val key: String,
+    val name: String,
+    val mine: Boolean,
+    val calories: Display,
+    val recipeId: String?,
+    val code: String?,
+)
 
 /** The chips after the meal: All, Your foods, Saved meals. */
 enum class SearchScope { All, YourFoods, SavedMeals }
@@ -216,6 +233,10 @@ sealed interface SearchAction {
     data object SearchOptionsTapped : SearchAction
     data class TabPicked(val tab: SearchTab) : SearchAction
     data class SearchOptionsArrived(val openFoodFacts: Boolean) : SearchAction
+
+    /** Recipes found for [query] (`release.recipes`). */
+    data class RecipesArrived(val query: String, val hits: List<RecipeHit>) : SearchAction
+    data class RecipeTapped(val row: RecipeSearchRow) : SearchAction
 }
 
 sealed interface SearchEvent {
@@ -231,5 +252,8 @@ sealed interface SearchEvent {
 
     /** A + picked or unpicked a food for a meal being put together. */
     data class Picked(val on: Boolean) : SearchEvent
+
+    /** One of the person's recipes ([recipeId]) or a shared one ([code]). */
+    data class OpenRecipe(val recipeId: String?, val code: String?) : SearchEvent
     data object Close : SearchEvent
 }

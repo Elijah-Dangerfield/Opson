@@ -10,6 +10,9 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.SearchSort
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.foods.RecipeFinder
+import com.opson.libraries.nutrition.Display
+import com.opson.libraries.foods.RecipeHit
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSearchResult
@@ -49,6 +52,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
     private val submittedFoods = FakeSubmittedFoods()
     private val loggedFoods = FakeLoggedFoods()
     private val searchPicks = FakeSearchPicks()
+    private var recipeFinder: RecipeFinder = RecipeFinder.None
 
     private fun vm(
         route: FoodSearchRoute = FoodSearchRoute(slot = MealSlot.Dinner),
@@ -75,6 +79,7 @@ class FoodSearchViewModelTest : CoroutineTest() {
         submittedFoods = submittedFoods,
         loggedFoods = loggedFoods,
         searchPicks = searchPicks,
+        recipeFinder = recipeFinder,
     )
 
     private fun TestScope.events(vm: FoodSearchViewModel): List<SearchEvent> {
@@ -93,6 +98,53 @@ class FoodSearchViewModelTest : CoroutineTest() {
         vm.takeAction(SearchAction.SearchTyped(query))
         settle()
         return assertIs<SearchBody.Results>(vm.state.body).rows
+    }
+
+    /** `release.recipes`: own recipes first, then shared ones, in a section of their own under the foods. */
+    private class FakeRecipeFinder(private val hits: List<RecipeHit>) : RecipeFinder {
+        val queries = mutableListOf<String>()
+        override fun isOn() = true
+        override suspend fun find(query: String): List<RecipeHit> {
+            queries += query
+            return hits
+        }
+    }
+
+    @Test
+    fun recipesShowUnderTheFoods_labelledWhoseTheyAre_andOpenTheirPage() = runUnitTest {
+        recipeFinder = FakeRecipeFinder(
+            listOf(RecipeHit("Rice pudding", 210.0, recipeId = "r1"), RecipeHit("Rice bowl", 480.0, code = "abcd2345")),
+        )
+        val vm = vm()
+        val events = events(vm)
+        settle()
+        vm.takeAction(SearchAction.SearchTyped("rice"))
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertIs<SearchBody.Results>(vm.state.body)
+        assertEquals(listOf(true, false), vm.state.recipes.map { it.mine })
+        assertEquals("210", (vm.state.recipes.first().calories as Display.Shown).text)
+        vm.takeAction(SearchAction.RecipeTapped(vm.state.recipes.last()))
+        runCurrent()
+        assertEquals(SearchEvent.OpenRecipe(recipeId = null, code = "abcd2345"), events.last())
+
+        vm.takeAction(SearchAction.SearchTyped("rice p"))
+        runCurrent()
+        assertTrue(vm.state.recipes.isEmpty(), "an answer for another query is not shown")
+    }
+
+    @Test
+    fun pickingForAMealNeverLooksForRecipes() = runUnitTest {
+        val finder = FakeRecipeFinder(listOf(RecipeHit("Rice pudding", 210.0, recipeId = "r1")))
+        recipeFinder = finder
+        val vm = vm(route = FoodSearchRoute(pickForMeal = "meal-1"))
+        settle()
+        vm.takeAction(SearchAction.SearchTyped("rice"))
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertTrue(finder.queries.isEmpty())
+        assertTrue(vm.state.recipes.isEmpty())
     }
 
     @Test

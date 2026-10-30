@@ -54,6 +54,8 @@ import com.opson.libraries.navigation.bottomSheet
 import com.opson.libraries.navigation.nullableSerializableType
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
+import com.opson.features.foods.PublicRecipeRoute
+import com.opson.features.foods.RecipeRoute
 import com.opson.libraries.scanner.BarcodeCamera
 import com.opson.libraries.scanner.BarcodeFormat
 import com.opson.libraries.scanner.MealPhotoPicker
@@ -381,6 +383,9 @@ class LoggerFeatureEntryPoint(
                 is SearchEvent.OpenSearchOptions -> router.navigate(SearchOptionsRoute(event.openFoodFacts))
                 is SearchEvent.Added -> showAdded(event.name, event.event)
                 is SearchEvent.Picked -> haptics.toggle(on = event.on)
+                is SearchEvent.OpenRecipe -> router.navigate(
+                    event.recipeId?.let(::RecipeRoute) ?: PublicRecipeRoute(event.code.orEmpty()),
+                )
                 SearchEvent.Close -> router.goBack()
             }
         }

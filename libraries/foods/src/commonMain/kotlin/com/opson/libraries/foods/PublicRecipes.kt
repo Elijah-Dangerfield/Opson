@@ -131,3 +131,34 @@ interface PublicRecipes {
     /** Someone saved it to their recipes. Best effort. */
     suspend fun countSave(code: String)
 }
+
+/**
+ * A recipe search answered for the logger: one of the person's own ([recipeId]) or someone's
+ * shared one ([code]). [kcalPerServing] is null when it isn't known.
+ */
+data class RecipeHit(
+    val name: String,
+    val kcalPerServing: Double?,
+    val recipeId: String? = null,
+    val code: String? = null,
+) {
+    val mine: Boolean get() = recipeId != null
+}
+
+/**
+ * Recipes for search (`release.recipes`): the person's own whose name holds the query first, then
+ * shared ones the server finds. Kept apart from the food results and their ranking: a shared
+ * recipe is never lifted by what the person logs, only their own recipes come first.
+ */
+interface RecipeFinder {
+    fun isOn(): Boolean
+
+    suspend fun find(query: String): List<RecipeHit>
+
+    /** Finds nothing: tests, and the logger with recipes off. */
+    object None : RecipeFinder {
+        override fun isOn(): Boolean = false
+
+        override suspend fun find(query: String): List<RecipeHit> = emptyList()
+    }
+}
