@@ -133,14 +133,32 @@ class Database private constructor(
             return HikariDataSource(hikariConfig)
         }
 
-        private fun runMigrations(config: DatabaseConfig) {
+        /**
+         * Applies the migrations under [locations] (tests add their own).
+         *
+         * Every migration connection waits at most [MIGRATION_LOCK_TIMEOUT] for a lock. An
+         * `ALTER TABLE` needs an exclusive lock, and while it waits for one every query on that
+         * table queues behind it: one long transaction on `foods` would otherwise turn a
+         * millisecond catalog change into an outage of search for as long as it ran. Timed out,
+         * the migration fails, Flyway rolls it back, the new server doesn't boot and the old one
+         * keeps serving; the next deploy tries again. Set here rather than in each file because
+         * Flyway checksums applied migrations, and an edited V33 would stop every database that
+         * already has it from booting.
+         */
+        internal fun runMigrations(config: DatabaseConfig, locations: List<String> = listOf(MIGRATIONS)) {
             Flyway.configure()
                 .dataSource(config.jdbcUrl, config.username, config.password)
-                .locations("classpath:db/migration")
+                .locations(*locations.toTypedArray())
                 .baselineOnMigrate(true)
+                .initSql("SET lock_timeout = '$MIGRATION_LOCK_TIMEOUT'")
                 .load()
                 .migrate()
         }
+
+        internal const val MIGRATIONS = "classpath:db/migration"
+
+        /** How long a migration waits for a lock before it fails (Postgres interval syntax). */
+        internal const val MIGRATION_LOCK_TIMEOUT = "5s"
 
         private fun SQLException.chain(): Sequence<Throwable> = generateSequence<Throwable>(this) { it.cause }
 

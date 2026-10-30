@@ -113,6 +113,16 @@ the next one. Mirror schema changes into `Tables.kt` and add a line to
 take an injected `Clock`, and treat a unique-violation (SQLSTATE `23505`) as the
 arbiter rather than pre-checking.
 
+Migrations run with `lock_timeout = '5s'` (Flyway's `initSql` in
+`Database.runMigrations`). An `ALTER TABLE` waiting for its exclusive lock
+holds up every query behind it, so a migration that can't get its lock within
+five seconds fails: Flyway rolls it back, the new machine doesn't boot, the old
+one keeps serving, and the next deploy tries again. The setting lives in code
+rather than in each file because Flyway validates the checksum of every
+applied migration, so editing one already on dev (V33, say) would stop that
+database from booting. Don't edit an applied migration to change how it locks;
+change it here.
+
 ## Auth
 
 The server is a pure resource server: it **verifies** Supabase JWTs, it never
