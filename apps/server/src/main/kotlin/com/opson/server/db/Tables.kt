@@ -334,6 +334,42 @@ object ExercisesTable : SyncedTable("exercises") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/**
+ * A recipe (V34): ingredients for the whole batch and how many servings it makes. Sync writes the
+ * columns up to [deleted]; the public ones are the publish routes' and the admin console's alone.
+ */
+object RecipesTable : SyncedTable("recipes") {
+    val id = uuid("id")
+    val name = text("name")
+    val servings = float("servings")
+    val items = jsonb("items")
+    val notes = text("notes").nullable()
+    val createdAt = timestamp("created_at").databaseGenerated()
+    val publicCode = text("public_code").nullable()
+    val publicState = text("public_state")
+    val publicShowName = bool("public_show_name")
+    val publishedAt = timestamp("published_at").nullable()
+    val removedAt = timestamp("removed_at").nullable()
+    val removedBy = text("removed_by").nullable()
+    val removedReason = text("removed_reason").nullable()
+    val saveCount = integer("save_count")
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** A report on a shared recipe (V34). */
+object RecipeReportsTable : Table("recipe_reports") {
+    val id = uuid("id")
+    val recipeId = uuid("recipe_id")
+    val userId = uuid("user_id")
+    val createdAt = timestamp("created_at")
+    val reason = text("reason")
+    val note = text("note").nullable()
+    val status = text("status")
+    val decidedAt = timestamp("decided_at").nullable()
+    val decidedBy = text("decided_by").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
 /** The whole client `Settings` object as one jsonb document per user. */
 object UserSettingsTable : SyncedTable("user_settings") {
     val settings = jsonb("settings")

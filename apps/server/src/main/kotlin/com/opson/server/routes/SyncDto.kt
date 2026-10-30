@@ -14,6 +14,8 @@ import com.opson.server.domain.MealFeeling
 import com.opson.server.domain.MealSlot
 import com.opson.server.domain.Nutrients
 import com.opson.server.domain.Precision
+import com.opson.server.domain.Recipe
+import com.opson.server.domain.RecipeRules
 import com.opson.server.domain.SavedMeal
 import com.opson.server.domain.SyncResult
 import com.opson.server.domain.UserSettings
@@ -49,6 +51,7 @@ data class SyncRequest(
 ) {
     val acceptsFasts: Boolean get() = SyncEntity.Fast.wire in accepts
     val acceptsExercise: Boolean get() = SyncEntity.Exercise.wire in accepts
+    val acceptsRecipes: Boolean get() = SyncEntity.Recipe.wire in accepts
 }
 
 @Serializable
@@ -90,6 +93,8 @@ data class SyncChangesDto(
     val fasts: List<FastRowDto>? = null,
     /** Only for a request that accepts `exercise`; absent otherwise. */
     val exercises: List<ExerciseRowDto>? = null,
+    /** Only for a request that accepts `recipe`; absent otherwise. */
+    val recipes: List<RecipeRowDto>? = null,
 )
 
 /** `entity` values a mutation may carry. */
@@ -107,6 +112,9 @@ enum class SyncEntity(val wire: String) {
 
     /** Exercise logged by hand, `release.exercise`. */
     Exercise("exercise"),
+
+    /** A recipe, `release.recipes` (V34). */
+    Recipe("recipe"),
     ;
 
     companion object {
@@ -243,6 +251,27 @@ data class ExerciseRowDto(
     val deleted: Boolean = false,
 )
 
+/**
+ * A recipe. The `public*` fields are the server's sharing state, sent down so the owner's phones
+ * know a recipe is shared; a row pushed up may carry them and they are ignored.
+ */
+@Serializable
+data class RecipeRowDto(
+    val id: String,
+    val name: String,
+    /** How many servings the whole batch makes. */
+    val servings: Double,
+    /** Ingredient snapshots for the whole batch, the same shape as a saved meal's items. */
+    val items: JsonArray = JsonArray(emptyList()),
+    val notes: String? = null,
+    val clientUpdatedAtEpochMs: Long,
+    val deleted: Boolean = false,
+    val publicCode: String? = null,
+    /** `private`, `live`, `hidden` or `removed`. */
+    val publicState: String? = null,
+    val publicShowName: Boolean? = null,
+)
+
 @Serializable
 data class SettingsRowDto(
     /** The client's whole Settings object. The server only ever reads `preset`, in aggregate. */
@@ -273,6 +302,7 @@ fun SyncEntity.decodeRow(row: JsonObject): DiaryRow = when (this) {
     SyncEntity.Settings -> SyncJson.decodeFromJsonElement(SettingsRowDto.serializer(), row).toDomain()
     SyncEntity.Fast -> SyncJson.decodeFromJsonElement(FastRowDto.serializer(), row).toDomain()
     SyncEntity.Exercise -> SyncJson.decodeFromJsonElement(ExerciseRowDto.serializer(), row).toDomain()
+    SyncEntity.Recipe -> SyncJson.decodeFromJsonElement(RecipeRowDto.serializer(), row).toDomain()
 }
 
 private fun uuid(field: String, value: String): UUID =
@@ -417,6 +447,31 @@ fun Exercise.toRowDto(): ExerciseRowDto = ExerciseRowDto(
     deleted = deleted,
 )
 
+/** The sharing fields are dropped: a client never sets them. */
+fun RecipeRowDto.toDomain(): Recipe = Recipe(
+    id = uuid("id", id),
+    name = name,
+    servings = servings,
+    itemsJson = SyncJson.encodeToString(JsonArray.serializer(), items),
+    itemCount = RecipeRules.itemCount(items),
+    notes = notes,
+    clientUpdatedAt = instant(clientUpdatedAtEpochMs),
+    deleted = deleted,
+)
+
+fun Recipe.toRowDto(): RecipeRowDto = RecipeRowDto(
+    id = id.toString(),
+    name = name,
+    servings = servings,
+    items = SyncJson.decodeFromString(JsonArray.serializer(), itemsJson),
+    notes = notes,
+    clientUpdatedAtEpochMs = clientUpdatedAt.toEpochMilliseconds(),
+    deleted = deleted,
+    publicCode = sharing?.code,
+    publicState = sharing?.state?.wire,
+    publicShowName = sharing?.showName,
+)
+
 fun LogEntry.toRowDto(): LogEntryRowDto = LogEntryRowDto(
     id = id.toString(),
     day = day.toString(),
@@ -518,6 +573,7 @@ fun DiaryChanges.toDto(): SyncChangesDto = SyncChangesDto(
     settings = settings?.toRowDto(),
     fasts = fasts?.map { it.toRowDto() },
     exercises = exercises?.map { it.toRowDto() },
+    recipes = recipes?.map { it.toRowDto() },
 )
 
 fun SyncResult.toResponse(rejected: List<SyncRejectionDto>): SyncResponse = SyncResponse(

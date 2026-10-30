@@ -42,6 +42,9 @@ import com.opson.server.routes.healthRoutes
 import com.opson.server.routes.meRoutes
 import com.opson.server.routes.moderationAdminRoutes
 import com.opson.server.routes.photoRoutes
+import com.opson.server.routes.publicRecipeRoutes
+import com.opson.server.routes.recipeAdminRoutes
+import com.opson.server.routes.recipeRoutes
 import com.opson.server.routes.syncRoutes
 import com.opson.server.routes.userAdminRoutes
 import com.opson.server.routes.waitlistAdminRoutes
@@ -193,6 +196,7 @@ fun Application.installApp(
                     component.clock,
                 )
                 builderAdminRoutes(adminConfig, component.builderService, component.builderRepository, component.builderApplicationRepository)
+                recipeAdminRoutes(adminConfig, component.publicRecipeRepository, component.foodCatalogRepository)
                 moderationAdminRoutes(
                     adminConfig,
                     component.moderationService,
@@ -205,6 +209,8 @@ fun Application.installApp(
             }
             // The website's form: public, its own CORS and rate limits.
             waitlistRoutes(component.waitlistRepository, component.waitlistLimiter, waitlistConfig.allowedOrigins)
+            // A shared recipe: no account, its own CORS (the website's recipe page reads it).
+            publicRecipeRoutes(component.publicRecipeRepository, component.foodCatalogRepository)
         }
         if (component != null && verification != null) {
             meRoutes(
@@ -253,6 +259,13 @@ fun Application.installApp(
             accessRoutes(component.entitlementService)
             photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.entitlementService, component.clock)
             barcodeMissRoutes(component.barcodeMissRepository)
+            recipeRoutes(
+                component.publicRecipeRepository,
+                component.foodCatalogRepository,
+                component.recipeLimiter,
+                component.clock,
+                component.contributionGate,
+            )
             exportRoutes(component.exportRepository)
         }
     }

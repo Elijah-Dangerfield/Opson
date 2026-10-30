@@ -47,6 +47,10 @@ custom_foods.csv
 saved_meals.csv
   Your saved meals, one row per food in each meal.
 
+recipes.csv
+  Your recipes, one row per ingredient, with how many servings each makes,
+  your notes, and its share code if you shared it.
+
 daily_summary.csv
   One row per day with anything in it: how many foods, the day's totals,
   water, exercise, the last weigh-in that day, and whether it was closed or
