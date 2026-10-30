@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Eating-disorder safety: onboarding's age question and its answer for someone too young, and the
+  note Today offers when the log suggests a hard stretch (docs/research/ed-safety-review.md).
+  TODO(clinician): review all of this copy before 1.0.
+-->
+<resources>
+    <!-- Onboarding's age question, before sign-in. It never says where the line is. -->
+    <string name="age_title">When\'s your birthday?</string>
+    <string name="age_body">Your age changes the energy estimates.</string>
+    <string name="age_pick">Pick your birthday</string>
+    <string name="age_dialog">Your birthday</string>
+
+    <!-- Under 16: no account. -->
+    <string name="age_too_young_title">Opson isn\'t for under-16s yet</string>
+    <string name="age_too_young_body">Counting calories while you\'re still growing can make food feel harder than it should. If you want help with eating, a parent, a school nurse or your doctor is a good place to start.</string>
+    <string name="age_too_young_later">Opson will be here when you\'re 16.</string>
+    <string name="age_too_young_support">Find support</string>
+
+    <!-- The note on Today when the log suggests a hard stretch. Never a number or a reason. -->
+    <string name="kind_note_title">This might be a hard stretch</string>
+    <string name="kind_note_body">If food has felt heavy lately, talking to someone can help.</string>
+    <string name="kind_note_support">Find support</string>
+    <string name="kind_note_fewer">Show fewer numbers</string>
+    <string name="kind_note_not_now">Not now</string>
+    <string name="kind_note_private">This came from your log, on your phone only. Nobody else sees it.</string>
+    <string name="kind_note_stop">Don\'t show these notes</string>
+    <string name="kind_note_stopped">Notes are off. Support and sharing turns them back on.</string>
+
+    <!-- More › Support and sharing. -->
+    <string name="settings_kind_notes_title">Notes when things look hard</string>
+    <string name="settings_kind_notes_body">Now and then, ways to get support if your log suggests a hard stretch. Worked out on your phone.</string>
+</resources>

@@ -12,6 +12,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.opson.features.today.impl.celebration.CelebrationScreen
+import com.opson.features.today.impl.kindnote.KindNoteSheetContent
+import com.opson.features.today.impl.kindnote.KindNoteState
 import com.opson.features.today.impl.celebration.CelebrationState
 import com.opson.features.today.impl.celebration.ProgressFixtures
 import com.opson.features.today.impl.celebration.ProgressSheetContent
@@ -66,6 +68,10 @@ object TodayLeakSurfaces {
         // Notes are words and a hunger level, never an amount, in every mode.
         LeakSurface(id = "today-notes", label = "Notes", showsCaloriesInFull = false) { _ ->
             NotesScreen(state = TodayFixtures.notesState(), onAction = {})
+        },
+        // The kind note: never a number or what set it off, in every mode.
+        LeakSurface(id = "today-kind-note", label = "Kind note", showsCaloriesInFull = false) { _ ->
+            KindNoteSheetContent(state = KindNoteState(), onAction = {})
         },
         // Design sync 4: End after a set time ran out. The banner names modes, never an amount.
         LeakSurface(id = "today-timer-ended", label = "Today · the mode timer ran out", showsCaloriesInFull = true) { policy ->

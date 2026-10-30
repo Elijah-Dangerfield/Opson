@@ -172,6 +172,20 @@ class PromptProcessorTest : CoroutineTest() {
     }
 
     @Test
+    fun `a sensitive prompt is counted but never sent as an event`() = runUnitTest {
+        val processor = processor(FakeCandidate("quiet", sensitive = true, frequency = PromptFrequency(maxShows = 5, maxDismissals = 5, minGap = 1.days)))
+
+        assertEquals("quiet", processor.next()?.id)
+        processor.dismissed("quiet")
+        nextDay()
+        assertEquals("quiet", processor.next()?.id)
+        processor.accepted("quiet")
+
+        assertEquals(emptyList(), telemetry.events)
+        assertEquals(2, ledger.account(USER).record("quiet").shows)
+    }
+
+    @Test
     fun `nothing before onboarding is done or signed out`() = runUnitTest {
         val processor = processor(FakeCandidate("a"))
 
