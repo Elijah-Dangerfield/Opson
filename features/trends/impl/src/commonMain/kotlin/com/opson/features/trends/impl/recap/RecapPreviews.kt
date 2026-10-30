@@ -45,6 +45,11 @@ private fun RecapWeekDarkPreview() = Phone(dark = true) { RecapScreen(RecapFixtu
 @Composable
 private fun RecapWeekDeficitBelowPreview() = Phone { RecapContent(RecapFixtures.state(full, deficit = true), onAction = {}, modifier = below()) }
 
+/** Losing weight, showing up every day and three meals a day: each goal's days on track, from the goal engine. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun RecapGoalsBelowPreview() = Phone { RecapContent(RecapFixtures.state(full, goals = true), onAction = {}, modifier = below()) }
+
 /** September, a dot a day and a bar a day. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

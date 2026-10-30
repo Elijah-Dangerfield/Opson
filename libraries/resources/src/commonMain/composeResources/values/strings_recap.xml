@@ -69,6 +69,25 @@
         <item quantity="other">Out of %1$d logged days with every amount known.</item>
     </plurals>
 
+    <!-- Each goal over the period: days on track and close, never days off -->
+    <string name="recap_goals_title">Your goals</string>
+    <string name="recap_goal_on_track">On track</string>
+    <string name="recap_goal_days">%1$d of %2$d days</string>
+    <string name="recap_goal_close">Close</string>
+    <string name="recap_goal_lose">Lose weight</string>
+    <string name="recap_goal_keep">Keep your weight</string>
+    <string name="recap_goal_gain">Gain weight</string>
+    <string name="recap_goal_deficit">A daily deficit</string>
+    <string name="recap_goal_surplus">A daily surplus</string>
+    <string name="recap_goal_even">Eat about what you burn</string>
+    <string name="recap_goal_burn">Burn goal</string>
+    <string name="recap_goal_steps">Steps</string>
+    <string name="recap_goal_every_day">Show up every day</string>
+    <plurals name="recap_goal_meals">
+        <item quantity="one">%1$d meal a day</item>
+        <item quantity="other">%1$d meals a day</item>
+    </plurals>
+
     <!-- Check-ins -->
     <string name="recap_checkins_title">How you felt</string>
     <plurals name="recap_checkins_sub">

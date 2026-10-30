@@ -121,7 +121,7 @@ internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
     listOf("trends", "trends-blind", "trends-coast", "trends-deficit", "nutrients-week", "patterns", "patterns-blind")
         .forEach { put("later" to it, weekOpens) }
     put("later" to "trends-day", pastDayOpens)
-    listOf("recap-week", "recap-deficit", "recap-month", "recap-in-progress").forEach { put("later" to it, weekOpens) }
+    listOf("recap-week", "recap-deficit", "recap-goals", "recap-month", "recap-in-progress").forEach { put("later" to it, weekOpens) }
     put("later-weekly" to "recap-month", monthChecked)
 
     listOf("trends", "trends-blind", "trends-coast", "trends-deficit").forEach { put("later-weekly" to it, lastCheckOpens) }

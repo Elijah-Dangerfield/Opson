@@ -11,8 +11,10 @@ Weight, Patterns, and the weekly and monthly recaps. Read `shared.md` first.
 > day on a week's last day. Top to bottom: the days (a dot each: logged,
 > skipped, nothing logged, still to come), showing up (the run and milestones
 > reached, while celebrations are on), how the check-ins felt, eaten (total,
-> daily average, the range, a bar a logged day), the days on plan or close
-> (targets-based, `OnTrack`'s rules; never a count of days off), total burned
+> daily average, the range, a bar a logged day), each active goal the mode
+> offers with its days on track and close out of the days it could judge (the
+> goal engine's `GoalStatuses.days`; never a count of days off), or with no goal
+> setting the target the days on plan or close (`OnTrack`'s rules), total burned
 > (TDEE) with resting, activity, exercise and digesting, eaten against burned
 > (the running total's rules and words, with the shared (i) sheets), the weight
 > trend, the foods had most and new foods. **Skipped days:** totals add up only
@@ -25,9 +27,8 @@ Weight, Patterns, and the weekly and monthly recaps. Read `shared.md` first.
 > with two logged days in it; a month goes before its week. It offers "I'd
 > rather not see these" on its first five showings (`OptOut.RecapBanner`) and
 > More › Today screen switches it (`Settings.recapBanner`). Opening a recap
-> from anywhere counts as seeing it (`RecapBannerStore`, on the phone). The goal
-> status is targets-based until the goal engine names a span's progress
-> (TODO in `PlanSection`).
+> from anywhere counts as seeing it (`RecapBannerStore`, on the phone). After
+> numbers have been hard only the gentle goals (showing up, meals) are recapped.
 
 ## Source
 - **Design sync 2 is the spec now** (`docs/plans/design-sync-2.md`): the

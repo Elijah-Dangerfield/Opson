@@ -1,12 +1,14 @@
 package com.opson.features.trends.impl.recap
 
 import com.opson.features.trends.impl.TrendsFixtures
+import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayMark
 import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.RecapKind
 import com.opson.libraries.diary.RecapPeriod
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.goals.GoalFixtures
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -48,10 +50,15 @@ object RecapFixtures {
         today: LocalDate = this.today,
         hard: Boolean = false,
         deficit: Boolean = false,
+        goals: Boolean = false,
         days: List<Day> = days(),
     ): RecapInputs {
         val base = Settings(numbers = policy?.settings ?: NumbersSettings(), onboarding = OnboardingAnswers(hard = hard))
-        val settings = if (deficit) base.copy(targets = base.targets.copy(style = TargetStyle.Deficit(kcal = DEFICIT_KCAL, startingKcal = DEFICIT_KCAL))) else base
+        val settings = when {
+            goals -> goalSettings(base)
+            deficit -> base.copy(targets = base.targets.copy(style = TargetStyle.Deficit(kcal = DEFICIT_KCAL, startingKcal = DEFICIT_KCAL)))
+            else -> base
+        }
         return RecapInputs(
             today = today,
             period = period,
@@ -66,8 +73,21 @@ object RecapFixtures {
         )
     }
 
-    fun state(policy: VisibilityPolicy, period: RecapPeriod = week, hard: Boolean = false, deficit: Boolean = false): RecapState =
-        RecapStateBuilder.build(inputs(policy, period, hard = hard, deficit = deficit), policy)
+    fun state(policy: VisibilityPolicy, period: RecapPeriod = week, hard: Boolean = false, deficit: Boolean = false, goals: Boolean = false): RecapState =
+        RecapStateBuilder.build(inputs(policy, period, hard = hard, deficit = deficit, goals = goals), policy)
+
+    /**
+     * Losing half a kilo a week (setting the target), showing up every day and three meals a day,
+     * all since September: the goal engine's own fixtures, started earlier.
+     */
+    fun goalSettings(base: Settings): Settings = GoalFixtures.settings(
+        GoalFixtures.lose.copy(startDate = GOALS_FROM),
+        GoalFixtures.trackEveryDay.copy(startDate = GOALS_FROM),
+        GoalFixtures.meals.copy(startDate = GOALS_FROM),
+        base = base.copy(heightCm = 180.0, birthYear = 1996, bodySex = BodySex.Male),
+    )
+
+    private val GOALS_FROM = LocalDate(2026, 9, 1)
 
     /** The fixtures' week on its last day, at noon: so far. */
     fun inProgress(policy: VisibilityPolicy): RecapState =

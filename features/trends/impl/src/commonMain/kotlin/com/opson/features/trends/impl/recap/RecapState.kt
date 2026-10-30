@@ -15,6 +15,7 @@ import com.opson.libraries.diary.CheckIn
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DayMark
 import com.opson.libraries.diary.Energy
+import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.HungerLevel
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.Milestone
@@ -30,6 +31,9 @@ import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.GoalCatalog
+import com.opson.libraries.nutrition.GoalType
+import com.opson.libraries.nutrition.GoalVerdict
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
@@ -40,8 +44,13 @@ import com.opson.libraries.nutrition.shownOn
 import com.opson.libraries.nutrition.ui.chartReading
 import com.opson.libraries.ui.components.ChartReadout
 import com.opson.libraries.ui.components.IntakeBar
+import com.opson.libraries.goals.GoalStatuses
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -88,6 +97,8 @@ data class RecapState(
     val balance: BalanceSection? = null,
     val weight: WeightSection? = null,
     val plan: PlanSection? = null,
+    /** The period against each active goal the mode offers, the one setting the target first. */
+    val goals: List<GoalWeek> = emptyList(),
     val checkIns: CheckInsSection? = null,
     val topFoods: List<TopFood> = emptyList(),
     val newFoods: List<String> = emptyList(),
@@ -148,14 +159,18 @@ data class BalanceSection(val amount: Display, val side: Balance, val weight: Di
 data class WeightSection(val change: Display, val direction: ScaleDirection, val softened: Boolean)
 
 /**
- * The days against the person's own targets: on plan, or close to it, out of the logged days whose
- * amounts are all known. Never a count of days off plan.
- *
- * TODO(goal engine): the goal engine is being rebuilt (another work package, 2026-10-30). Once it
- * names a goal's progress for a span, show the week against the goal from it here; until then this
- * is targets-based, as Trends' calendar is.
+ * The days against targets the person set by hand: on plan, or close to it, out of the logged days
+ * whose amounts are all known, by Trends' calendar rules. Never a count of days off plan. Only
+ * while no goal sets the target; a goal's own days are [GoalWeek].
  */
 data class PlanSection(val onPlan: Int, val close: Int, val of: Int)
+
+/**
+ * One goal over the period, from the goal engine's days ([GoalStatuses.days]): [met] days on
+ * track and [near] close, out of the [counted] days it could judge (skipped days, days with
+ * nothing logged and unknown amounts don't count either way). Never a count of days off.
+ */
+data class GoalWeek(val type: GoalType, val met: Int, val near: Int, val counted: Int)
 
 /**
  * The check-ins' answers over the period, each the step nearest its average, and how many days
@@ -220,7 +235,8 @@ object RecapStateBuilder {
             burned = burned,
             balance = if (gentle) null else balance(inputs, logged, policy, context, opens),
             weight = if (gentle) null else weight(inputs, policy),
-            plan = if (gentle) null else plan(inputs, logged, policy, context, opens),
+            plan = if (gentle || GoalBook.goals(settings).any { it.drivesTarget }) null else plan(inputs, logged, policy, context, opens),
+            goals = goals(inputs, policy, dayAt, opens),
             checkIns = if (inputs.checkInOn) checkIns(past.map(dayAt).filterNot { it.untracked }.mapNotNull { it.checkIn }) else null,
             topFoods = topFoods(logged, counts = !gentle),
             newFoods = NewFoods.between(inputs.days, period.start, minOf(period.end, inputs.today)),
@@ -421,6 +437,42 @@ object RecapStateBuilder {
         }
         if (tones.isEmpty()) return null
         return PlanSection(onPlan = tones.count { it == PlanTone.On }, close = tones.count { it == PlanTone.Near }, of = tones.size)
+    }
+
+    /**
+     * Each active goal the mode offers ([GoalCatalog.offered]: after numbers have been hard only
+     * the gentle ones, about showing up and meals), with its days from the goal engine. A day a
+     * calorie goal can't read yet (Later) stays out.
+     */
+    private fun goals(
+        inputs: RecapInputs,
+        policy: VisibilityPolicy,
+        dayAt: (LocalDate) -> Day,
+        opens: (Metric, Day) -> Boolean,
+    ): List<GoalWeek> {
+        val settings = inputs.settings
+        val period = inputs.period
+        val end = minOf(period.end, inputs.today)
+        if (end < period.start) return emptyList()
+        val offered = GoalCatalog.offered(policy, settings.onboarding.hard, settings.bodyStage, Surface.Week)
+        val active = GoalBook.goals(settings).filter { it.isActive && it.type.kind in offered }
+        if (active.isEmpty()) return emptyList()
+        // A weekly average replays the week before the period's first day too.
+        val from = period.start.minus(RecapPeriod.DAYS_IN_WEEK, DateTimeUnit.DAY)
+        val facts = generateSequence(from) { it.plus(1, DateTimeUnit.DAY) }.takeWhile { it <= end }
+            .associateWith { date -> GoalStatuses.facts(dayAt(date), inputs.burnedByDay?.get(date)) }
+        val weightKg = inputs.weighIns.lastOrNull { it.measuredAt.toLocalDateTime(inputs.timeZone).date <= end }?.kg
+        val days = GoalStatuses.days(settings, facts, period.start, end, inputs.today, weightKg)
+        return active.sortedByDescending { it.drivesTarget }.mapNotNull { goal ->
+            val judged = days[goal.id].orEmpty()
+                .filter { it.verdict == GoalVerdict.Met || it.verdict == GoalVerdict.Near || it.verdict == GoalVerdict.Off }
+                .filter { !goal.type.setsCalories || opens(Metric.Calories, dayAt(it.date)) }
+            if (judged.isEmpty()) {
+                null
+            } else {
+                GoalWeek(goal.type, met = judged.count { it.verdict == GoalVerdict.Met }, near = judged.count { it.verdict == GoalVerdict.Near }, counted = judged.size)
+            }
+        }
     }
 
     /** Each answer's average, back to the nearest step of its scale; null with no check-in. */

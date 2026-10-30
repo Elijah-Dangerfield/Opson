@@ -35,6 +35,8 @@ import com.opson.libraries.diary.Milestone
 import com.opson.libraries.diary.RecapKind
 import com.opson.libraries.diary.RecapPeriod
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
@@ -106,6 +108,20 @@ import opson.libraries.resources.generated.resources.recap_days_title
 import opson.libraries.resources.generated.resources.recap_eaten_caption
 import opson.libraries.resources.generated.resources.recap_eaten_caption_goal
 import opson.libraries.resources.generated.resources.recap_eaten_title
+import opson.libraries.resources.generated.resources.recap_goal_burn
+import opson.libraries.resources.generated.resources.recap_goal_close
+import opson.libraries.resources.generated.resources.recap_goal_days
+import opson.libraries.resources.generated.resources.recap_goal_deficit
+import opson.libraries.resources.generated.resources.recap_goal_even
+import opson.libraries.resources.generated.resources.recap_goal_every_day
+import opson.libraries.resources.generated.resources.recap_goal_gain
+import opson.libraries.resources.generated.resources.recap_goal_keep
+import opson.libraries.resources.generated.resources.recap_goal_lose
+import opson.libraries.resources.generated.resources.recap_goal_meals
+import opson.libraries.resources.generated.resources.recap_goal_on_track
+import opson.libraries.resources.generated.resources.recap_goal_steps
+import opson.libraries.resources.generated.resources.recap_goal_surplus
+import opson.libraries.resources.generated.resources.recap_goals_title
 import opson.libraries.resources.generated.resources.recap_empty
 import opson.libraries.resources.generated.resources.recap_kind_month
 import opson.libraries.resources.generated.resources.recap_kind_week
@@ -184,6 +200,7 @@ internal fun RecapContent(state: RecapState, onAction: (RecapAction) -> Unit, mo
         state.checkIns?.let { CheckInsCard(it) }
         state.eaten?.let { EatenCard(it) }
         state.plan?.let { PlanCard(it) }
+        if (state.goals.isNotEmpty()) GoalsCard(state.goals)
         state.burned?.let { BurnedCard(it, onAction) }
         state.balance?.let { BalanceCard(it, onAction) }
         state.weight?.let { WeightCard(it) }
@@ -365,6 +382,46 @@ private fun PlanCard(section: PlanSection) {
         }
         Text(text = pluralStringResource(Res.plurals.recap_plan_of, section.of, section.of), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
     }
+}
+
+/** Each goal: the days on track and close, out of the days it could judge. Never a count of days off. */
+@Composable
+private fun GoalsCard(goals: List<GoalWeek>) {
+    TrendsCard(verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
+        CardTitle(stringResource(Res.string.recap_goals_title))
+        goals.forEachIndexed { index, goal ->
+            if (index > 0) HorizontalDivider(color = AppTheme.colors.line)
+            Column {
+                Text(text = goal.type.recapLabel(), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink, modifier = Modifier.padding(top = Dimension.D300))
+                FactRow(stringResource(Res.string.recap_goal_on_track), stringResource(Res.string.recap_goal_days, goal.met, goal.counted))
+                if (goal.near > 0) FactRow(stringResource(Res.string.recap_goal_close), goal.near.toString())
+            }
+        }
+    }
+}
+
+/** How the recap names a goal. */
+@Composable
+private fun GoalType.recapLabel(): String = when (this) {
+    is GoalType.Weight -> stringResource(
+        when (direction) {
+            GoalDirection.Lose -> Res.string.recap_goal_lose
+            GoalDirection.Gain -> Res.string.recap_goal_gain
+            else -> Res.string.recap_goal_keep
+        },
+    )
+    is GoalType.EnergyBalance -> stringResource(
+        when {
+            kcalPerDay < 0 -> Res.string.recap_goal_deficit
+            kcalPerDay > 0 -> Res.string.recap_goal_surplus
+            else -> Res.string.recap_goal_even
+        },
+    )
+    is GoalType.Burn -> stringResource(Res.string.recap_goal_burn)
+    is GoalType.Steps -> stringResource(Res.string.recap_goal_steps)
+    GoalType.TrackEveryDay -> stringResource(Res.string.recap_goal_every_day)
+    is GoalType.Meals -> pluralStringResource(Res.plurals.recap_goal_meals, count, count)
+    is GoalType.Unknown -> stringResource(Res.string.recap_goals_title)
 }
 
 @Composable

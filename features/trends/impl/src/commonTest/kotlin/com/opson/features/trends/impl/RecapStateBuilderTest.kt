@@ -23,6 +23,8 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.GoalKind
+import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingEnergy
 import com.opson.libraries.nutrition.RestingFrom
@@ -187,6 +189,30 @@ class RecapStateBuilderTest {
         assertNotNull(allNumbers.balance)
         assertNotNull(allNumbers.weight)
         assertNotNull(allNumbers.plan)
+    }
+
+    @Test
+    fun eachGoal_saysItsDaysOnTrack_fromTheGoalEngine_neverItsDaysOff() {
+        val state = RecapFixtures.state(full, goals = true)
+        assertNull(state.plan, "a goal sets the target, so the goal says how the days went")
+        assertEquals(listOf(GoalKind.Weight, GoalKind.TrackEveryDay, GoalKind.Meals), state.goals.map { it.type.kind })
+
+        // Monday to Sunday: Wednesday skipped (not counted), Thursday empty, the rest logged.
+        val track = state.goals.first { it.type == GoalType.TrackEveryDay }
+        assertEquals(5, track.met)
+        assertEquals(6, track.counted)
+        // Three meals a day: four full days, and Sunday with two is close; Thursday logged nothing.
+        val meals = state.goals.first { it.type is GoalType.Meals }
+        assertEquals(4, meals.met)
+        assertEquals(1, meals.near)
+        assertEquals(5, meals.counted)
+    }
+
+    @Test
+    fun afterNumbersHaveBeenHard_onlyTheGentleGoalsAreRecapped() {
+        val hard = RecapFixtures.inputs(full, goals = true, hard = true)
+        val state = RecapStateBuilder.build(hard, full)
+        assertEquals(listOf(GoalKind.TrackEveryDay, GoalKind.Meals), state.goals.map { it.type.kind })
     }
 
     @Test

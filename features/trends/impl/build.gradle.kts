@@ -32,6 +32,8 @@ kotlin {
             // Recaps: "I'd rather not see these" on the recap card (OptOuts), and the card's memory.
             implementation(projects.libraries.prompts)
             implementation(projects.libraries.storage)
+            // A recap's week against each goal (the goal engine's days).
+            implementation(projects.libraries.goals)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -63,6 +65,7 @@ kotlin {
             implementation(projects.features.today)
             implementation(projects.libraries.navigation)
             implementation(projects.libraries.diary.ui)
+            implementation(projects.libraries.goals)
         }
     }
 }

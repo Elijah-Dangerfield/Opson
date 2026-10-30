@@ -146,7 +146,7 @@ class SurfacesCoverageTest {
                 "trends", "trends-blind", "trends-coast", "trends-deficit", "trends-day", "trends-settings", "nutrients", "nutrients-week",
                 "nutrient-foods", "nutrient-foods-week", "nutrient-foods-protein",
                 "weight", "patterns", "patterns-blind", "progress-photos", "progress-photos-compare",
-                "recap-week", "recap-deficit", "recap-month", "recap-in-progress", "recap-hard", "recap-empty", "recap-banner",
+                "recap-week", "recap-deficit", "recap-goals", "recap-month", "recap-in-progress", "recap-hard", "recap-empty", "recap-banner",
             ),
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "modes-end-after", "modes-each-number", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
@@ -171,7 +171,7 @@ class SurfacesCoverageTest {
             "food-report-values", "submit-food-builder-review", "check-food-differs",
             "foods", "foods-create-meal", "foods-add-food",
             "trends", "trends-blind", "trends-coast", "trends-deficit", "trends-day", "nutrients", "nutrients-week", "patterns", "patterns-blind",
-            "recap-week", "recap-deficit", "recap-month", "recap-in-progress",
+            "recap-week", "recap-deficit", "recap-goals", "recap-month", "recap-in-progress",
             "targets", "targets-deficit", "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
             "targets-goal-style", "energy-today", "targets-deficit-estimated", "targets-macros", "targets-safety-notes", "targets-goal",
             "energy-explainer-resting", "energy-explainer-burned", "energy-explainer-balance",

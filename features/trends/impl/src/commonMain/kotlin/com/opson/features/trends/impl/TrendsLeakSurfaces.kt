@@ -103,6 +103,9 @@ object TrendsLeakSurfaces {
         LeakSurface(id = "recap-deficit", label = "A week's recap, against a set deficit", showsCaloriesInFull = true) { policy ->
             RecapContent(RecapFixtures.state(policy, deficit = true), onAction = {})
         },
+        LeakSurface(id = "recap-goals", label = "A week's recap, against each goal", showsCaloriesInFull = true) { policy ->
+            RecapContent(RecapFixtures.state(policy, goals = true), onAction = {})
+        },
         LeakSurface(id = "recap-month", label = "A month's recap", showsCaloriesInFull = true) { policy ->
             RecapContent(RecapFixtures.state(policy, RecapFixtures.month), onAction = {})
         },
