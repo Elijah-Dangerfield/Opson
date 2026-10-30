@@ -24,6 +24,7 @@ import com.opson.libraries.navigation.floatingwindow.BottomSheetDestination
 import kotlin.jvm.JvmSuppressWildcards
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
+import kotlinx.serialization.serializer
 
 /**
  * NavTypes for the arguments every [Route] carries on its **base class**.
@@ -75,6 +76,7 @@ inline fun <reified T : Route> NavGraphBuilder.screen(
         null,
     noinline content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit
 ) {
+    UnloggedRoutes.note(serializer<T>().descriptor)
     destination(
         ComposeNavigatorDestinationBuilder(
             provider[ComposeNavigator::class],
@@ -115,6 +117,7 @@ inline fun <reified T : Route> NavGraphBuilder.dialog(
     deepLinks: List<NavDeepLink> = emptyList(),
     noinline content: @Composable (NavBackStackEntry, DialogState) -> Unit
 ) {
+    UnloggedRoutes.note(serializer<T>().descriptor)
     destination(
         FloatingWindowNavDestinationBuilder(
             provider[FloatingWindowNavigator::class],
@@ -184,6 +187,7 @@ inline fun <reified T : Route> NavGraphBuilder.bottomSheet(
     deepLinks: List<NavDeepLink> = emptyList(),
     noinline content: @Composable (NavBackStackEntry, BottomSheetState) -> Unit
 ) {
+    UnloggedRoutes.note(serializer<T>().descriptor)
     destination(
         FloatingWindowNavDestinationBuilder(
             provider[FloatingWindowNavigator::class],

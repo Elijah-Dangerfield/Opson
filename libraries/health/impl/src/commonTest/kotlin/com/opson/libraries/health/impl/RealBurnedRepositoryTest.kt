@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import com.opson.libraries.nutrition.HealthReadings
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
@@ -81,6 +82,18 @@ class RealBurnedRepositoryTest {
 
     private fun entry(kcal: Int, notOnWatch: Boolean = false) =
         ExerciseEntry("e$kcal", today, Instant.parse("2026-10-27T07:00:00Z"), "cycling", minutes = 30, kcal = kcal, notOnWatch = notOnWatch)
+
+    @Test
+    fun aColdStart_asksTheStoreFirst_ratherThanTakingNotConnectedForAnAnswer() = runTest {
+        val readings = repository(health = FakeHealth(coldStart = true)).healthReadings().first()
+        assertEquals(1562, readings.restingKcal, "the health app's, not none")
+    }
+
+    @Test
+    fun aFailedRead_isUnavailable_notAnEmptyStore() = runTest {
+        assertEquals(HealthReadings.Unavailable, repository(health = FakeHealth(readFails = true)).healthReadings().first())
+        assertEquals(HealthReadings.None, repository(health = FakeHealth(connected = false)).healthReadings().first())
+    }
 
     @Test
     fun calculated_fromTheLatestWeighIn() = runTest {
@@ -335,19 +348,26 @@ class RealBurnedRepositoryTest {
             LocalDate(2026, 10, 25) to EnergyExpended(restingKcal = 1562.0, activeKcal = 500.0, workoutKcal = null),
             LocalDate(2026, 10, 20) to EnergyExpended(restingKcal = 1700.0, activeKcal = 500.0, workoutKcal = null),
         ),
+        /** Starts NotConnected, the way the real store does, until the first check says connected. */
+        private val coldStart: Boolean = false,
+        private val readFails: Boolean = false,
     ) : HealthRepository {
         var reads = 0
+        private val mutableStatus = MutableStateFlow(if (connected && !coldStart) HealthStatus.Connected else HealthStatus.NotConnected)
         override val source = HealthSource.HealthConnect
-        override val status: StateFlow<HealthStatus> = MutableStateFlow(if (connected) HealthStatus.Connected else HealthStatus.NotConnected)
-        override suspend fun refresh() = Unit
+        override val status: StateFlow<HealthStatus> = mutableStatus
+        override suspend fun refresh() {
+            if (connected) mutableStatus.value = HealthStatus.Connected
+        }
+        private val connected = connected
         override suspend fun connect(): ConnectOutcome = ConnectOutcome.Connected
         override suspend fun disconnect() = Unit
         override fun energy(day: LocalDate, timeZone: TimeZone): Flow<EnergyExpended?> =
             flowOf(todayEnergy).map { reads++; it }
 
-        override suspend fun energyBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Map<LocalDate, EnergyExpended> {
+        override suspend fun energyBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Map<LocalDate, EnergyExpended>? {
             reads++
-            return week.filterKeys { it in from..to }
+            return if (readFails) null else week.filterKeys { it in from..to }
         }
 
         override fun openSourceSettings(): Boolean = false

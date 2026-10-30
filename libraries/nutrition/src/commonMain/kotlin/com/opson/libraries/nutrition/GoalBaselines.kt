@@ -35,15 +35,29 @@ data class BaselineInputs(
     val sex: BodySex? = null,
     val stage: BodyStage = BodyStage.None,
     val bodyFatPercent: Double? = null,
-)
+) {
+    /** Resting energy or activity came from the health app. */
+    val readsHealth: Boolean get() = restingFrom == RestingFrom.Health || activityFrom == ActivityFrom.Health
+}
 
 /**
  * What the health app has read, for a baseline: its most recent whole day's resting energy, and
  * each of the last whole days' activity (movement and workouts). Empty without one.
  */
-data class HealthReadings(val restingKcal: Int? = null, val activityKcal: List<Int> = emptyList()) {
+data class HealthReadings(
+    val restingKcal: Int? = null,
+    val activityKcal: List<Int> = emptyList(),
+    /**
+     * The store is connected but the read didn't come back (or hasn't yet). Nothing can be said
+     * about what it holds, so a goal whose typical day came from it isn't offered a new one.
+     */
+    val unavailable: Boolean = false,
+) {
     companion object {
         val None = HealthReadings()
+
+        /** [unavailable]: connected, and the read failed. */
+        val Unavailable = HealthReadings(unavailable = true)
     }
 }
 
@@ -99,7 +113,9 @@ enum class BaselineChange(val discrete: Boolean) {
     DigestingFood(discrete = true),
     Weight(discrete = false),
     Height(discrete = true),
-    Age(discrete = true),
+
+    /** A birthday passed: a few kcal of resting energy, so drift, judged by how far the target moves. */
+    Age(discrete = false),
     Sex(discrete = true),
 
     /** Pregnant, breastfeeding, or neither. */
@@ -247,16 +263,24 @@ object GoalBaselines {
         if (!goal.drivesTarget) return null
         val newBaseline = of(current)
         val newAim = GoalTargets.aimKcal(goal.type, newBaseline) ?: return null
-        val old = goal.baseline ?: return Recalculation(goal.id, emptySet(), null, newAim, null, newBaseline)
+        val old = goal.baseline
+        if (old == null) {
+            // Kept through before: offered again only once the inputs move as far as they would
+            // have to for a goal with a baseline, or Keep would be asked again every day.
+            return if (keptThrough(goal, current, newAim)) null else Recalculation(goal.id, emptySet(), null, newAim, null, newBaseline)
+        }
         val oldAim = GoalTargets.aimKcal(goal.type, old) ?: return null
         val changes = changes(old.inputs, current)
         if (!worthOffering(changes, oldAim, newAim)) return null
-        goal.declined?.let { declined ->
-            val sinceDeclined = changes(declined, current)
-            val declinedAim = GoalTargets.aimKcal(goal.type, of(declined)) ?: return@let
-            if (!worthOffering(sinceDeclined, declinedAim, newAim)) return null
-        }
+        if (keptThrough(goal, current, newAim)) return null
         return Recalculation(goal.id, changes, oldAim, newAim, old.inputs, newBaseline)
+    }
+
+    /** The person kept their target through inputs ([Goal.declined]) these barely differ from. */
+    private fun keptThrough(goal: Goal, current: BaselineInputs, newAim: Int): Boolean {
+        val declined = goal.declined ?: return false
+        val declinedAim = GoalTargets.aimKcal(goal.type, of(declined)) ?: return false
+        return !worthOffering(changes(declined, current), declinedAim, newAim)
     }
 
     private fun worthOffering(changes: Set<BaselineChange>, oldAim: Int, newAim: Int): Boolean {

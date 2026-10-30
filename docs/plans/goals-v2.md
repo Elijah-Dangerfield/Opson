@@ -72,10 +72,11 @@ health), activity kcal, digesting food on or off, weight, height, age, sex, preg
 breastfeeding, body fat.
 
 - A **discrete** change (source switched, health connected or disconnected, digesting food toggled,
-  activity level, height, age, sex, stage) offers a recalculation as soon as the new target differs
+  activity level, height, sex, stage) offers a recalculation as soon as the new target differs
   from the current one by 10 kcal or more.
-- A **drift** (weight, a health average) offers one only once the target would move by 100 kcal or
-  more. A weekly weigh-in during a loss crosses that every month or so, which is about right.
+- A **drift** (weight, a health average, a birthday) offers one only once the target would move by
+  100 kcal or more. Age counts whole years from the birthday when the date is known, so it moves
+  on the birthday and never for everyone on 1 January. A weekly weigh-in during a loss crosses that every month or so, which is about right.
 - Body fat changes the personal fat-loss limit, not the target. It never prompts on its own; the
   new limit shows wherever pace is shown.
 
@@ -229,8 +230,11 @@ deep, so the list is replaced whole, which is what we want.
   none, which those builds show as "changed by hand".
 - `weightGoal` that no longer matches what `goals` would write was changed by an older build; the
   weight goal is rebuilt from it and keeps its baseline.
-- A goal type this build doesn't know is kept as it came and never acted on, so an older build
-  doesn't delete a newer build's goal.
+- A goal this build can't read in full is kept as it came, never acted on, and written back
+  byte for byte, so an older build neither deletes nor rewrites a newer build's goal: a kind it
+  doesn't know, a value that doesn't parse, or a status, averaging, measure or baseline input it
+  doesn't know (coercing those to a default would write the default back). While such a goal is a
+  weight goal, `weightGoal` is left as it was.
 
 ## The engine API
 
@@ -314,6 +318,10 @@ Built on 2026-10-30 from the owner's feedback on the goal and target screens. Ev
   number for today, the typical day behind its target (with the TDEE sheet), its projection, and
   `Goal.history`: every recalculation the person answered (`GoalBook.accept` and `keep` record it
   when given the day). Pause and pick up again. Opened from Targets' goal card and Today's chip.
+  When a goal's target moves (a new pace or band in the editor, an accepted recalculation), the
+  old band is kept on the goal (`Goal.pastTargets`, `GoalTargets.keepPast`) for the days before,
+  so the calendar and recaps don't re-judge last week by today's target. Editing keeps a paused
+  goal paused and a goal off the target off it.
 - **Targets**: range ends, a set deficit or surplus and a day group's number are typed in place
   (`Targets.withEnd`, `withDeficit`, `withSurplus`, `withGroupNumber`, the same limits as a step;
   Done on a number that can't be used says why). The macro split shows grams at each end of a range

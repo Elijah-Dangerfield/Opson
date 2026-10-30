@@ -369,11 +369,16 @@ data class Settings(
 
     /**
      * What the resting energy calculation is told: these details and [weightKg], on [today]. Age
-     * is the birth year's; a [birthDate] that arrived without its year (written before
-     * [withBirthDate] kept the two together) still counts, rather than leaving Burned unknown.
+     * is whole years from the birthday when the date is known, so it moves on the birthday rather
+     * than for everyone on 1 January; with only a year, the year's. A [birthDate] that arrived
+     * without its year (written before [withBirthDate] kept the two together) still counts,
+     * rather than leaving Burned unknown; a year an older build changed on its own wins.
      */
-    fun bodyProfile(weightKg: Double?, today: LocalDate): BodyProfile =
-        BodyProfile(weightKg = weightKg, heightCm = heightCm, ageYears = (birthYear ?: birthDate?.year)?.let { today.year - it }, sex = bodySex)
+    fun bodyProfile(weightKg: Double?, today: LocalDate): BodyProfile {
+        val exact = birthDate?.takeIf { birthYear == null || it.year == birthYear }
+        val age = exact?.let { AgeGate.ageOn(it, today) } ?: birthYear?.let { today.year - it }
+        return BodyProfile(weightKg = weightKg, heightCm = heightCm, ageYears = age, sex = bodySex)
+    }
 
     /**
      * Each vitamin and mineral's daily reference on [today]: by the age and sex Resting energy

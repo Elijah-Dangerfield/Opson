@@ -108,6 +108,17 @@ class HardStretchTest {
     }
 
     @Test
+    fun threeMealsWithNoDinner_isADayNotOver_notALowOne() {
+        val noDinner = (1..14).filter { it % 3 == 0 }.map { daysAgo ->
+            val date = date(daysAgo)
+            val early = setOf(MealSlot.Breakfast, MealSlot.Lunch, MealSlot.Snack)
+            Day(date = date, itemsBySlot = MealSlot.entries.associateWith { if (it in early) listOf(item(date, it, 250.0)) else emptyList() })
+        }
+        val days = usual(days = 15..27) + (1..14).filter { it % 3 != 0 }.map { ate(it, 1900.0) } + noDinner
+        assertFalse(StretchSignal.LowDays in check(days).signals)
+    }
+
+    @Test
     fun aWrappedUpDay_isCompleteWithFewerMeals() {
         val wrapped = (1..14).filter { it % 3 == 0 }.map { daysAgo ->
             val date = date(daysAgo)

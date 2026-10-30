@@ -20,7 +20,8 @@ import kotlin.time.Instant
  *
  * A day only counts when Opson can read it fairly: tracked, in the past or wrapped up, and with
  * an amount on everything in it. A forgotten lunch is not restriction, so a low day also has to
- * look complete: wrapped up, or food in at least [COMPLETE_MEALS] meals.
+ * look complete: wrapped up, or food in breakfast, lunch and dinner ([MAIN_MEALS]). Three meals
+ * with dinner still to come is a day that isn't over, not a low one.
  *
  * Strong signals show the note on their own; supporting ones need a second.
  *
@@ -35,8 +36,8 @@ object HardStretch {
     /** How far back someone's usual day ([baselineKcal]) and their weight trend are read. */
     const val BASELINE_DAYS: Int = 28
 
-    /** Meals with food in them that make an unwrapped day look complete. */
-    const val COMPLETE_MEALS: Int = 3
+    /** The meals that, all with food in them, make an unwrapped day look complete. Snacks are extra. */
+    val MAIN_MEALS: List<MealSlot> = listOf(MealSlot.Breakfast, MealSlot.Lunch, MealSlot.Dinner)
 
     /**
      * Under this a complete day is very low. MyFitnessPal's own "eating too little" warning when a
@@ -190,7 +191,7 @@ object HardStretch {
         if (!day.hasLogged && day.feeling == null) return null
         val past = day.date < input.today || day.closedByUser
         val kcal = day.totals().kcal.takeIf { it.unknownCount == 0 && it.knownCount > 0 }?.known
-        val complete = past && kcal != null && (day.closedByUser || day.doneMealCount >= COMPLETE_MEALS)
+        val complete = past && kcal != null && (day.closedByUser || MAIN_MEALS.all(day::isMealDone))
         val loggedLate = day.allItems.any { item -> isLate(item.loggedAt, day.date, input.timeZone) }
         return ReadDay(
             date = day.date,

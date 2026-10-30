@@ -170,9 +170,12 @@ class GoalSetupViewModel(
     private fun GoalSetupState.rebuilt(): GoalSetupState {
         val settings = settings ?: return this
         val policy = policy ?: return this
+        // A birthday typed on this flow's own profile step counts at once: one under 18 turns the
+        // weight and deficit goals off before they can be picked.
+        val withBirthday = answers.body.birthDate?.let(settings::withBirthDate) ?: settings
         val context = PlanContext(
             today = calendar.today(),
-            hard = settings.weightPlansOff(calendar.today()),
+            hard = withBirthday.weightPlansOff(calendar.today()),
             policy = policy,
             fresh = false,
             health = health,

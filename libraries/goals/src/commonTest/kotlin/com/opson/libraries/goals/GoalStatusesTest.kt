@@ -2,7 +2,15 @@ package com.opson.libraries.goals
 
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.GoalBook
+import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.GoalContext
+import com.opson.libraries.nutrition.GoalDays
 import com.opson.libraries.nutrition.GoalVerdict
+import com.opson.libraries.nutrition.RestingEnergy
+import com.opson.libraries.nutrition.RestingFrom
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import com.opson.libraries.nutrition.PaceTier
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -36,6 +44,19 @@ class GoalStatusesTest {
     }
 
     @Test
+    fun aWeeklyAverage_setMidweek_doesntAnswerForTheDaysBeforeIt() {
+        val wednesday = GoalFixtures.loseWeekly.copy(startDate = GoalFixtures.today.minus(DatePeriod(days = 1)))
+        val week = GoalFixtures.today(wednesday).single().week!!
+        assertEquals(0, week.balanceKcal, "Monday and Tuesday came before the goal")
+        assertEquals(1930, week.todayTargetKcal)
+        // The calendar judges Thursday, seen from Friday, by the same budget: not tightened by Tuesday.
+        val thursday = GoalFixtures.today
+        val closed = GoalFixtures.week + (thursday to GoalFixtures.week.getValue(thursday).copy(closed = true))
+        val days = GoalStatuses.days(GoalFixtures.settings(wednesday), closed, GoalFixtures.monday, thursday, thursday.plus(DatePeriod(days = 1)), GoalFixtures.WEIGHT_KG)
+        assertEquals(1930, days.getValue(wednesday.id).last().targetKcal)
+    }
+
+    @Test
     fun theWeekReadsDayByDay() {
         assertEquals(
             listOf(GoalVerdict.Near, GoalVerdict.Off, GoalVerdict.NotCounted, GoalVerdict.InProgress, GoalVerdict.Future, GoalVerdict.Future, GoalVerdict.Future),
@@ -63,6 +84,18 @@ class GoalStatusesTest {
         assertTrue(facts.untracked)
         assertEquals(0, facts.mealsWithFood)
         assertEquals(false, facts.showedUp)
+    }
+
+    @Test
+    fun anActiveBurn_countsRealActivityOnly_andADayWithOnlyTheEstimateIsNotJudged() {
+        val resting = RestingEnergy(1610, RestingFrom.Calculated)
+        val estimate = GoalStatuses.facts(Day(GoalFixtures.monday), Burned(resting, everydayKcal = 600, foodKcal = 150))
+        assertNull(estimate.activeKcal, "the everyday estimate and digesting food aren't activity")
+        val days = GoalDays.verdicts(GoalFixtures.burn, listOf(GoalFixtures.monday), mapOf(GoalFixtures.monday to estimate), GoalContext(today = GoalFixtures.today))
+        assertEquals(GoalVerdict.NotCounted, days.single().verdict)
+
+        val moved = GoalStatuses.facts(Day(GoalFixtures.monday), Burned(resting, movementKcal = 300, workoutKcal = 150, exerciseKcal = 100, foodKcal = 150))
+        assertEquals(550, moved.activeKcal)
     }
 
     @Test

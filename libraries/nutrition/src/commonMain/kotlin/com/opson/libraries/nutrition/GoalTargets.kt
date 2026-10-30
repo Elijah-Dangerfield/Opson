@@ -1,5 +1,8 @@
 package com.opson.libraries.nutrition
 
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -69,6 +72,23 @@ object GoalTargets {
             maxKcal = min(MAX_GOAL_KCAL, aim + tolerance),
             burnKcal = burnKcal(goal.type, baseline),
         )
+    }
+
+    /**
+     * [after], [before] changed on [on], keeping the target [before] had for the days up to [on]
+     * so they keep their verdicts. Nothing new is kept when the target didn't move, when the goal
+     * had no day before [on], or when it already moved earlier on [on] (those days had the first
+     * target, already kept).
+     */
+    fun keepPast(before: Goal, after: Goal, on: LocalDate): Goal {
+        val kept = after.copy(pastTargets = before.pastTargets)
+        val old = of(before) ?: return kept
+        val until = on.minus(DatePeriod(days = 1))
+        if (until < before.startDate || before.pastTargets.any { it.until >= until }) return kept
+        val new = of(after)
+        if (new != null && new.aimKcal == old.aimKcal && new.minKcal == old.minKcal && new.maxKcal == old.maxKcal) return kept
+        val past = before.pastTargets + PastTarget(until, old.aimKcal, old.minKcal, old.maxKcal)
+        return after.copy(pastTargets = past.takeLast(Goal.MAX_PAST_TARGETS))
     }
 
     /**

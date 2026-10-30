@@ -7,6 +7,7 @@ import com.opson.libraries.core.logging.LogEntry
 import com.opson.libraries.core.logging.LogId
 import com.opson.libraries.core.logging.LogTree
 import com.opson.libraries.diary.OnboardingAnswers
+import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.identity.auth.AuthOutcome
 import com.opson.libraries.identity.auth.LinkIdentityOutcome
@@ -81,11 +82,92 @@ class OnboardingViewModelTest : CoroutineTest() {
     fun init_signedInNotOnboarded_opensAtQuestionOne_withNoWayBack() = runUnitTest {
         // A new account that closed the app mid-setup, or a just-confirmed
         // email signup routed back from VerifyEmail.
-        val vm = newVm(auth = FakeAuthRepository(initialAuthState = sampleAuthenticated))
+        val vm = newVm(auth = FakeAuthRepository(initialAuthState = sampleAuthenticated), settings = FakeSettingsRepository(Settings().withBirthDate(ADULT)))
         runCurrent()
 
         assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
         assertFalse(vm.state.canGoBack)
+        assertTrue(vm.state.ageAsked, "the profile step doesn't ask it again")
+    }
+
+    // ---------- The birthday, kept through sign-in ----------
+
+    @Test
+    fun theBirthday_waitsOnThePhone_throughAnEmailSignUp_andIsKeptOnTheNewAccount() = runUnitTest {
+        val cache = FakeAppCache()
+        val first = newVm(cache = cache)
+        first.takeAction(OnboardingAction.GetStartedTapped)
+        first.takeAction(OnboardingAction.AgeTyped(DateParts.of(SIXTEEN)))
+        first.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+        assertEquals(SIXTEEN.toString(), cache.get().pendingBirthDate)
+
+        // Email sign-up and its verification open onboarding afresh, signed in.
+        val settings = FakeSettingsRepository()
+        val second = newVm(cache = cache, settings = settings, auth = FakeAuthRepository(initialAuthState = sampleAuthenticated), setupSteps = true)
+        runCurrent()
+
+        assertEquals(OnboardingStep.Question(SetupQuestion.Reason), second.state.step)
+        assertEquals(SIXTEEN, settings.settings.value.knownBirthDate, "on the account before setup ends")
+        assertEquals(false, settings.settings.value.celebrationCounts)
+        assertNull(cache.get().pendingBirthDate)
+        assertTrue(second.state.planContext(OnboardingFixtures.policy(PresetId.Full)).hard, "the gentle path")
+    }
+
+    @Test
+    fun aNewAccount_keepsTheBirthday_asSoonAsItIsMade() = runUnitTest {
+        val settings = FakeSettingsRepository()
+        val vm = atSignIn(
+            auth = FakeAuthRepository(appleSignInOutcome = SignInOutcome.Success),
+            classifier = StubAuthOutcomeClassifier(AuthOutcome.SignedUp),
+            appleCoordinator = FakeAppleSignInCoordinator(credential = sampleAppleCredential),
+            settings = settings,
+        )
+        vm.takeAction(OnboardingAction.SignInWithAppleTapped)
+        runCurrent()
+
+        assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
+        assertEquals(ADULT, settings.settings.value.knownBirthDate, "a restart now can't lose it")
+    }
+
+    @Test
+    fun anAccountWithNoBirthdayAnywhere_goesBackThroughTheAgeQuestion() = runUnitTest {
+        // Killed after sign-in on an older build, or signed in first after a dead session.
+        val settings = FakeSettingsRepository()
+        val vm = newVm(settings = settings, auth = FakeAuthRepository(initialAuthState = sampleAuthenticated))
+        runCurrent()
+        assertEquals(OnboardingStep.Age, vm.state.step)
+        assertFalse(vm.state.canGoBack, "no Welcome or sign-in behind it")
+
+        vm.takeAction(OnboardingAction.AgeTyped(DateParts.of(ADULT)))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+        assertEquals(OnboardingStep.Question(SetupQuestion.Reason), vm.state.step)
+        assertEquals(ADULT, settings.settings.value.knownBirthDate)
+    }
+
+    @Test
+    fun anAccountWithNoBirthday_underSixteen_closesTheGate() = runUnitTest {
+        val cache = FakeAppCache()
+        val vm = newVm(cache = cache, auth = FakeAuthRepository(initialAuthState = sampleAuthenticated))
+        runCurrent()
+        vm.takeAction(OnboardingAction.AgeTyped(DateParts.of(FOURTEEN)))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+        assertEquals(OnboardingStep.TooYoung, vm.state.step)
+        assertEquals("2028-03-02", cache.get().ageGateOpensOn)
+
+        val again = newVm(cache = cache, auth = FakeAuthRepository(initialAuthState = sampleAuthenticated))
+        runCurrent()
+        assertEquals(OnboardingStep.TooYoung, again.state.step, "an account that isn't set up stays behind the gate")
+    }
+
+    @Test
+    fun underSixteen_typedOnTheProfileStep_isTreatedAsUnderEighteen() {
+        val state = OnboardingState(plan = PlanAnswers(body = BodyAnswer(birthDate = FOURTEEN)))
+        assertTrue(state.underEighteen)
+        assertTrue(state.planContext(OnboardingFixtures.policy(PresetId.Full)).hard)
+        assertEquals(false, Settings().withAgeAnswer(FOURTEEN, FixedCalendar.today()).celebrationCounts)
     }
 
     @Test
@@ -232,7 +314,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         runCurrent()
 
         assertEquals(OnboardingStep.SignIn, vm.state.step)
-        assertTrue(vm.state.olderTeen)
+        assertTrue(vm.state.underEighteen)
         assertTrue(vm.state.planContext(OnboardingFixtures.policy(PresetId.Full)).hard, "no weights, goals or deficits")
         val saved = com.opson.libraries.diary.Settings().withAgeAnswer(SIXTEEN, FixedCalendar.today())
         assertEquals(SIXTEEN, saved.knownBirthDate)
@@ -775,7 +857,7 @@ class OnboardingViewModelTest : CoroutineTest() {
     fun start_writesPresetAndAnswers_unstamped_thenOnboarded_thenToday() = runUnitTest {
         KLog.plant(events)
         val order = mutableListOf<String>()
-        val settings = FakeSettingsRepository(onUpdate = { order += "settings" })
+        val settings = FakeSettingsRepository(initial = Settings().withBirthDate(ADULT), onUpdate = { order += "settings" })
         val cache = FakeAppCache(onSet = { if (it.hasUserOnboarded) order += "onboarded" })
         val vm = atRecommendation(
             answers = listOf(Why.EatingRegularly, NumbersFeel.RatherNot),
@@ -814,7 +896,7 @@ class OnboardingViewModelTest : CoroutineTest() {
     @Test
     fun start_twice_savesOnce() = runUnitTest {
         KLog.plant(events)
-        val settings = FakeSettingsRepository()
+        val settings = FakeSettingsRepository(initial = Settings().withBirthDate(ADULT))
         val vm = atRecommendation(settings = settings)
         val received = collectEvents(vm)
 
@@ -915,6 +997,9 @@ class OnboardingViewModelTest : CoroutineTest() {
         return received
     }
 
+    /** A phone holding an adult's birthday from the age question, as one that just signed up does. */
+    private fun heldBirthday() = FakeAppCache(initial = AppData(pendingBirthDate = ADULT.toString()))
+
     /** A new install that tapped Get started. */
     private fun TestScope.atSignIn(
         cache: FakeAppCache = FakeAppCache(),
@@ -937,7 +1022,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         question: SetupQuestion,
         settings: FakeSettingsRepository = FakeSettingsRepository(),
     ): OnboardingViewModel {
-        val vm = newVm(settings = settings, auth = FakeAuthRepository(initialAuthState = sampleAuthenticated))
+        val vm = newVm(settings = settings, cache = heldBirthday(), auth = FakeAuthRepository(initialAuthState = sampleAuthenticated))
         repeat(question.number - 1) { vm.takeAction(OnboardingAction.ContinueTapped) }
         runCurrent()
         return vm
@@ -947,7 +1032,7 @@ class OnboardingViewModelTest : CoroutineTest() {
     private fun TestScope.atRecommendation(
         answers: List<SetupOption> = emptyList(),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
-        cache: FakeAppCache = FakeAppCache(),
+        cache: FakeAppCache = heldBirthday(),
     ): OnboardingViewModel {
         val vm = newVm(
             settings = settings,
