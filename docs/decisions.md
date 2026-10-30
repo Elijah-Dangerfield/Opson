@@ -6,6 +6,32 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-30: Recaps count only logged days, and optional things offer a way out five times
+
+**Decision:** a weekly or monthly recap (`release.recaps`) adds up only the days
+logged and averages per logged day; a skipped (untracked) day or one with
+nothing logged is left out, and the page says so in one line. Eaten against
+burned follows the running total's rules. Goals come from the goal engine
+(`GoalStatuses.days`), days on track and close, never days off. After numbers
+have been hard a recap is only the days, showing up, check-ins, foods by name
+and the gentle goals. "Your week is ready" on Today shows for three days after
+a week or month ends, once per period, and only with two logged days in it.
+Celebrations, the streak, the recap card, tips and optional prompts each offer
+"I'd rather not see these" on their first five showings (`OptOuts`, counted
+per account in the prompt ledger), keep a switch in More, and say where it is
+when turned off. Wrap up the day notes an early wrap-up against the usual time
+learned on the phone, and never blocks.
+
+**Alternatives:** averaging over every day of the week (a skipped day would
+read as a day of eating nothing, the opposite of what skipping means);
+counting a skipped day's burn in the totals (burned and eaten would then cover
+different days, and the balance would lie). Offering the way out on the first
+showing only (the old celebration rule): someone unsure on day one often knows
+by the third time. A recap notification: reminders would need a new kind on
+both platforms, its own opt-in (0.1 synced `recapEvent` Subtle to everyone) and
+the planner reading last week's log, so it waits; the card on Today and the
+link from Wrap up the day cover the moment.
+
 ## 2026-10-30: Opson is for 16 and over, and a hard stretch gets a kind note worked out on the phone
 
 **Decision:** onboarding asks for a birthday after Welcome and before sign-in

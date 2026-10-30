@@ -393,7 +393,7 @@ class FakeCacheFactory : CacheFactory {
 }
 
 /** [OptOuts] in memory, counting as the real one does. */
-class CountingOptOuts : OptOuts {
+internal class CountingOptOuts : OptOuts {
     val shows = mutableMapOf<OptOut, Int>()
     val turnedOff = mutableListOf<OptOut>()
 

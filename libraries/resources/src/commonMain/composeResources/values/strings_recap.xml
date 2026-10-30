@@ -16,7 +16,7 @@
     <string name="recap_previous_cd">Earlier</string>
     <string name="recap_next_cd">Later</string>
     <string name="recap_loading_cd">Loading your recap</string>
-    <string name="recap_empty">Nothing was logged in these days, so there is nothing to look back on yet.</string>
+    <string name="recap_empty">Nothing logged in these days yet.</string>
 
     <!-- Days -->
     <string name="recap_days_title">Days</string>
@@ -112,7 +112,7 @@
     <!-- %1$s is the month's name: "Your October is ready" -->
     <string name="recap_banner_month_title">Your %1$s is ready</string>
     <!-- %1$s is the dates: "Oct 19 to 25", or the month and year -->
-    <string name="recap_banner_body">A look back at %1$s: the days you logged and how they felt.</string>
+    <string name="recap_banner_body">A look back at %1$s.</string>
     <string name="recap_banner_open">See it</string>
     <string name="recap_banner_off">The recap card is off. Turn it back on in More › Today screen.</string>
 
