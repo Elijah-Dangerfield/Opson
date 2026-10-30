@@ -76,6 +76,15 @@ lacks: a UTF-8 locale for fastlane (now handled in the Fastfile) and
 `local.properties` for this build. Add `grafana.logsWriteToken` to the store so
 `scripts/beta_ios.sh` stops failing the release check as half configured.
 
+**TestFlight 0.2.0 (202610301656), versionCode 706 (2026-10-30).** Built from
+`1d22ccfc` against prod (migrations through V36 deployed). The iOS TestFlight rules
+now cover 700 to 706 for every `release.*` flag, and build 706 alone also gets
+`release.betaNotice`, `release.recaps`, `release.recipes` and `release.reviewAsk`.
+`release.photo`'s rule is disabled (no server AI in v1). The release iOS link
+needs a 14 GB Gradle heap now (`gradle.properties`); stop stale daemons before a
+local beta build. Release entitlements carry HealthKit and Associated Domains,
+both registered on `com.opson.Opson`.
+
 **Website:** live at https://www.opsontracker.com (the bare domain forwards).
 What has to happen before 0.2 ships is in `docs/plans/0.2/release-checklist.md`.
 
