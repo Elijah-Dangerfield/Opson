@@ -20,6 +20,7 @@ import opson.libraries.resources.generated.resources.settings_today_equation_unk
 import opson.libraries.resources.generated.resources.settings_today_balance_hidden
 import opson.libraries.resources.generated.resources.settings_today_balance_unknown
 import opson.libraries.resources.generated.resources.settings_today_nutrients_hidden
+import opson.libraries.resources.generated.resources.settings_today_steps_hidden
 import opson.libraries.resources.generated.resources.settings_today_water_hidden
 import opson.libraries.resources.generated.resources.settings_today_weight_hidden
 import org.jetbrains.compose.resources.StringResource
@@ -67,6 +68,12 @@ data class TodayScreenSettingsState(
     val fasting: Boolean? = null,
     /** The Medication card (`release.medication`), only while medication is tracked; null when the row is not there. */
     val medication: Boolean? = null,
+    /**
+     * The day's steps on the Activity card, with `release.health` and `release.exercise` (which
+     * draws the card); null without.
+     */
+    val steps: Boolean? = null,
+    val stepsNote: OverrideNote? = null,
     /** The Weight row, with `release.todaySummary`, which draws it; null without. */
     val weight: Boolean? = true,
     val weightNote: OverrideNote? = null,
@@ -96,6 +103,8 @@ data class TodayScreenFlags(
     val goalsAndEnergy: Boolean = true,
     val todaySummary: Boolean = true,
     val fasting: Boolean = false,
+    /** `release.health` and `release.exercise`: steps from the health app on the Activity card. */
+    val steps: Boolean = false,
 )
 
 object TodayScreenSettingsStateBuilder {
@@ -155,6 +164,8 @@ object TodayScreenSettingsStateBuilder {
             water = settings.todayWater,
             waterNote = hiddenNote(numbers, Metric.Water, Res.string.settings_today_water_hidden).takeIf { settings.todayWater },
             fasting = settings.fastToday.takeIf { settings.fastingTimerOn(flags.fasting) },
+            steps = settings.todaySteps.takeIf { flags.steps },
+            stepsNote = hiddenNote(numbers, Metric.EnergyOut, Res.string.settings_today_steps_hidden).takeIf { flags.steps && settings.todaySteps },
             weight = settings.todayWeight.takeIf { flags.todaySummary },
             weightNote = hiddenNote(numbers, Metric.Weight, Res.string.settings_today_weight_hidden).takeIf { flags.todaySummary && settings.todayWeight },
             closeDay = settings.todayCloseDay,

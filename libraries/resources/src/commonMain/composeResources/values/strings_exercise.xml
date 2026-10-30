@@ -49,6 +49,12 @@
     <!-- Today's Activity card: the lines that add up to what was burned, then the exercise logged -->
     <string name="today_activity_title">Activity</string>
     <string name="today_activity_from">From %1$s</string>
+    <!-- The day's steps from the health app, a chip under the title (release.health, "Steps on Today"). -->
+    <plurals name="today_activity_steps">
+        <item quantity="one">%1$s step</item>
+        <item quantity="other">%1$s steps</item>
+    </plurals>
+    <string name="today_activity_steps_info_cd">About steps</string>
     <string name="today_activity_resting">Resting energy (BMR)</string>
     <string name="today_activity_active">Everyday activity and exercise</string>
     <string name="today_activity_active_line">Counted by your watch or phone</string>

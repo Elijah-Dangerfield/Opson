@@ -106,6 +106,18 @@ object TodayActivityFixtures {
         workouts,
     )
 
+    /** Apple Health counts the day and 8,214 steps so far, with the steps (i) open when [explained]. */
+    fun withSteps(policy: VisibilityPolicy, explained: Boolean = false): TodayActivityCard? = card(
+        policy,
+        burnedFor(resting, HealthActivity(movementKcal = 380, workoutKcal = 0), EverydayActivity.MostlySitting, ExerciseTotals(0, 0), activityCounted = true),
+        emptyList(),
+        HealthSource.AppleHealth,
+        steps = STEPS,
+        stepsExplained = explained,
+    )
+
+    const val STEPS = 8214
+
     private fun card(
         policy: VisibilityPolicy,
         burned: Burned?,
@@ -113,9 +125,14 @@ object TodayActivityFixtures {
         health: HealthSource? = null,
         workouts: List<HealthWorkout> = emptyList(),
         gap: BurnedGap? = null,
+        steps: Int? = null,
+        stepsExplained: Boolean = false,
     ): TodayActivityCard? =
         TodayActivityStateBuilder.build(
-            TodayActivityInputs(day, Settings(), burned, entries, policy, released = true, timeZone = TimeZone.UTC, healthSource = health, workouts = workouts, gap = gap),
+            TodayActivityInputs(
+                day, Settings(), burned, entries, policy, released = true, timeZone = TimeZone.UTC, healthSource = health, workouts = workouts, gap = gap, steps = steps,
+            ),
+            stepsExplained,
         ).card
 }
 
@@ -181,3 +198,13 @@ private fun TodayActivityUnknownWeighInPreview() = Section(TodayActivityFixtures
 @Composable
 private fun TodayActivityUnknownProfileDarkPreview() =
     Section(TodayActivityFixtures.unknown(full, BurnedGap(setOf(BodyDetail.Age, BodyDetail.Height))), dark = true)
+
+/** The day's steps as a chip under the title. */
+@Preview(widthDp = 390)
+@Composable
+private fun TodayActivityStepsPreview() = Section(TodayActivityFixtures.withSteps(full))
+
+/** The steps (i) open: steps don't add to Burned. */
+@Preview(widthDp = 390)
+@Composable
+private fun TodayActivityStepsExplainedDarkPreview() = Section(TodayActivityFixtures.withSteps(full, explained = true), dark = true)

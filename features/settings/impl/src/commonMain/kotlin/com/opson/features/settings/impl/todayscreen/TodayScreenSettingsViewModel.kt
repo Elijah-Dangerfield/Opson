@@ -14,7 +14,9 @@ import com.opson.libraries.diary.ui.SummaryStats
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.medication.MedicationTodaySwitch
 import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.health.GoalsAndEnergyEnabled
+import com.opson.libraries.health.HealthReleaseFlag
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -38,11 +40,18 @@ class TodayScreenSettingsViewModel(
     private val goalsAndEnergy: GoalsAndEnergyEnabled,
     private val todaySummary: TodaySummaryEnabled,
     private val fastingRelease: FastingRelease,
+    healthFlag: HealthReleaseFlag,
+    exerciseRelease: ExerciseRelease,
     private val medicationCard: MedicationTodaySwitch = MedicationTodaySwitch.None,
 ) : SEAViewModel<TodayScreenSettingsState, TodayScreenSettingsEvent, TodayScreenSettingsAction>(
     initialStateArg = TodayScreenSettingsState(),
 ) {
-    private val flags = TodayScreenFlags(goalsAndEnergy = goalsAndEnergy(), todaySummary = todaySummary(), fasting = fastingRelease.isOn())
+    private val flags = TodayScreenFlags(
+        goalsAndEnergy = goalsAndEnergy(),
+        todaySummary = todaySummary(),
+        fasting = fastingRelease.isOn(),
+        steps = healthFlag() && exerciseRelease.isOn(),
+    )
 
     init {
         viewModelScope.launch {
@@ -124,6 +133,7 @@ enum class TodaySwitch(val set: (Settings, Boolean) -> Settings) {
     MealGroups({ s, on -> s.copy(mealGroups = on) }),
     Water({ s, on -> s.copy(todayWater = on) }),
     Fasting({ s, on -> s.copy(fastToday = on) }),
+    Steps({ s, on -> s.copy(todaySteps = on) }),
     Weight({ s, on -> s.copy(todayWeight = on) }),
     CloseDay({ s, on -> s.copy(todayCloseDay = on) }),
 }

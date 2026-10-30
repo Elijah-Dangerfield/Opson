@@ -300,10 +300,17 @@ the last row.
 - **Burned unknown**: the card says what it needs in the same words as the top
   card ("Burned unavailable: needs a weigh-in") with one button, Add a weigh-in,
   Open Profile or Resting energy.
+- **Steps** (`release.health`, 2026-10-30): the day's count as a chip under the
+  title ("8,214 steps", `StepsRepository.steps`), live for today, with an (i)
+  that opens one line on the card: steps don't add to Burned, walking is already
+  in active energy. Not a line of the sum. Off with More › Today screen ›
+  "Steps on Today" (`Settings.todaySteps`, on by default), which also stops the
+  read; gone with the card wherever energy out is hidden.
 - Previews `today-activity-previews__*` (manual, from Apple Health, with and
-  without entries, with digesting food, Burned unknown); leak surfaces
+  without entries, with digesting food, Burned unknown, steps); leak surfaces
   `today-activity`, `today-activity-health` (both with digesting food counted),
-  `today-burned-unavailable` and `today-activity-unavailable`.
+  `today-activity-steps`, `today-burned-unavailable` and
+  `today-activity-unavailable`.
 
 ## Learned meal times and the late-day card (no flag, 2026-10-29)
 
