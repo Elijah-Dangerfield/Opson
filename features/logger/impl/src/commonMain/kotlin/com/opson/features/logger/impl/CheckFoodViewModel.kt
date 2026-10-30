@@ -30,10 +30,12 @@ import kotlin.uuid.Uuid
  * which parts were wrong or missing, with the right values pre-filled from the label and a note.
  *
  * One request carries it all: the label's text, the answers and both photos. The server looks for
- * the food's numbers in the text: a match with nothing wrong is verified on the spot and the photos
- * are dropped; anything else waits for a reviewer, who corrects the food that is already there. A
+ * the food's numbers in the text: a match with nothing wrong shows as Verified once a second
+ * Builder's check or a reviewer agrees (an older server marks it at once); anything else waits for a
+ * reviewer, who corrects the food that is already there. A
  * server from before reviews ignores the answers, so they go as a Report a problem instead, as the
- * app did before. Both ids are made once, so a retry never files twice.
+ * app did before. Both ids are made once for a set of photos, so a retry never files twice; Take
+ * the photos again is a new check, with new ids, which the server can't mistake for the old one.
  */
 @OptIn(ExperimentalUuidApi::class)
 @Inject
@@ -50,8 +52,8 @@ class CheckFoodViewModel(
 ) : SEAViewModel<CheckFoodState, CheckFoodEvent, CheckFoodAction>(
     initialStateArg = CheckFoodState(name = route.name, canTakePhoto = picker.canTakePhoto),
 ) {
-    private val checkId = Uuid.random().toString()
-    private val reportId = Uuid.random().toString()
+    private var checkId = Uuid.random().toString()
+    private var reportId = Uuid.random().toString()
     private var policy: VisibilityPolicy = policySource.policy.value
     private var model = CheckModel(name = route.name, canTakePhoto = picker.canTakePhoto)
     private var reading: PhoneReading? = null
@@ -102,6 +104,8 @@ class CheckFoodViewModel(
             is CheckFoodAction.NoteTyped -> action.form { copy(note = CheckFoodStateBuilder.note(action.text)) }
             CheckFoodAction.RetakeTapped -> {
                 reading = null
+                checkId = Uuid.random().toString()
+                reportId = Uuid.random().toString()
                 action.change { copy(step = CheckStep.Photos(PackSide.Front), front = null, label = null, somethingWrong = false, problem = problem.keepGone()) }
             }
             CheckFoodAction.SendTapped -> send(action)
@@ -162,6 +166,7 @@ class CheckFoodViewModel(
         )
         val outcome = when (result) {
             FoodCheckResult.InReview -> CheckDone.InReview
+            FoodCheckResult.AwaitingAgreement -> CheckDone.AwaitingAgreement
             // A server from before reviews took the check and dropped the answers: they go as a report.
             FoodCheckResult.Confirmed, is FoodCheckResult.Unconfirmed -> if (problem != null) {
                 return report(action, problem)

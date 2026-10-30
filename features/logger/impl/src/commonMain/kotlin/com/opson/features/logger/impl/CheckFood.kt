@@ -71,7 +71,8 @@ data class CheckRowUi(val nutrient: LabelNutrient, val pack: UnitAmount?, val op
  * Verified on the spot; sent but not counted (a server from before reviews could not find the
  * numbers); waiting for a reviewer; or filed as a report by a server from before reviews.
  */
-enum class CheckDone { Confirmed, Unconfirmed, InReview, Corrected }
+/** [AwaitingAgreement]: the label matched, and the food shows as Verified once a second check or a reviewer agrees. */
+enum class CheckDone { Confirmed, AwaitingAgreement, Unconfirmed, InReview, Corrected }
 
 enum class CheckProblem { Offline, Failed, TooMany, Gone, NotBuilder, Unavailable }
 
@@ -404,7 +405,7 @@ object CheckFoodStateBuilder {
     }?.takeUnless { it.isEmpty }
 
     fun problemOf(result: FoodCheckResult): CheckProblem? = when (result) {
-        FoodCheckResult.Confirmed, is FoodCheckResult.Unconfirmed, FoodCheckResult.InReview -> null
+        FoodCheckResult.Confirmed, FoodCheckResult.AwaitingAgreement, is FoodCheckResult.Unconfirmed, FoodCheckResult.InReview -> null
         FoodCheckResult.NotBuilder -> CheckProblem.NotBuilder
         FoodCheckResult.TooMany -> CheckProblem.TooMany
         FoodCheckResult.Gone -> CheckProblem.Gone

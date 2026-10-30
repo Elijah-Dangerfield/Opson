@@ -176,6 +176,12 @@ sealed interface FoodCheckResult {
     /** Every headline number of the food is on the label. Counts toward Pro, once per food. */
     data object Confirmed : FoodCheckResult
 
+    /**
+     * Every headline number is on the label, and the food shows as Verified once a second
+     * Builder's check or a reviewer agrees. It counts toward Pro then.
+     */
+    data object AwaitingAgreement : FoodCheckResult
+
     /** Some weren't found in the photo's text: [missing] are their field keys (`energy_kcal`). */
     data class Unconfirmed(val missing: List<String>) : FoodCheckResult
 

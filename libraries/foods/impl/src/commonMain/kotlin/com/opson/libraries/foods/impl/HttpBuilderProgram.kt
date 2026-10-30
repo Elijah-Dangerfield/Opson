@@ -284,6 +284,11 @@ data class VerificationResponseDto(
     val missing: List<String> = emptyList(),
     /** `open` when it waits for a reviewer; absent otherwise, and from servers before reviews. */
     val review: String? = null,
+    /**
+     * `agreement` when the label matched but the food shows as Verified only once a second
+     * Builder's check or a reviewer agrees. Absent from servers before that rule, which mark it at once.
+     */
+    val awaiting: String? = null,
 )
 
 /**
@@ -324,6 +329,7 @@ class HttpFoodChecks(
             when (response.status) {
                 HttpStatusCode.Created, HttpStatusCode.OK -> response.body<VerificationResponseDto>().let { body ->
                     when {
+                        body.awaiting == AWAITING_AGREEMENT -> FoodCheckResult.AwaitingAgreement
                         body.review == REVIEW_OPEN -> FoodCheckResult.InReview
                         body.outcome == CONFIRMED -> FoodCheckResult.Confirmed
                         else -> FoodCheckResult.Unconfirmed(body.missing)
@@ -362,6 +368,7 @@ class HttpFoodChecks(
     private companion object {
         const val CONFIRMED = "confirmed"
         const val REVIEW_OPEN = "open"
+        const val AWAITING_AGREEMENT = "agreement"
         const val MAX_NOTE = 1_000
     }
 }

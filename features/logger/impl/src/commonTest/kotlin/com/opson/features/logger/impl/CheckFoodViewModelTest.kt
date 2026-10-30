@@ -20,6 +20,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import opson.libraries.resources.generated.resources.Res
@@ -92,6 +93,37 @@ class CheckFoodViewModelTest : CoroutineTest() {
         assertContentEquals(front.jpeg, sent.front)
         assertContentEquals(label.jpeg, sent.label)
         assertTrue(reports.sent.isEmpty())
+    }
+
+    @Test
+    fun aMatchThatWaitsForASecondCheckSaysSoWithoutTheVerifiedMark() = runUnitTest {
+        checks.answer = FoodCheckResult.AwaitingAgreement
+        val vm = photographed()
+
+        vm.takeAction(CheckFoodAction.SendTapped)
+        settle()
+
+        assertEquals(CheckStage.Done(CheckDone.AwaitingAgreement), vm.state.stage)
+        assertTrue(reports.sent.isEmpty())
+    }
+
+    @Test
+    fun aRetryKeepsTheCheckIdButNewPhotosAreANewCheck() = runUnitTest {
+        checks.answer = FoodCheckResult.Failed(offline = true)
+        val vm = photographed()
+        vm.takeAction(CheckFoodAction.SendTapped)
+        settle()
+        vm.takeAction(CheckFoodAction.SendTapped)
+        settle()
+        assertEquals(1, checks.sent.map { it.id }.distinct().size, "a retry is the same check")
+
+        vm.takeAction(CheckFoodAction.RetakeTapped)
+        photographed(vm)
+        vm.takeAction(CheckFoodAction.SendTapped)
+        settle()
+
+        assertEquals(3, checks.sent.size)
+        assertNotEquals(checks.sent.first().id, checks.sent.last().id, "the server would answer the new photos with the old check")
     }
 
     @Test
