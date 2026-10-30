@@ -1,6 +1,7 @@
 package com.opson.libraries.scanner.impl
 
 import com.opson.libraries.core.logging.KLog
+import com.opson.libraries.scanner.ScannedCode
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
@@ -35,11 +36,11 @@ internal class ScanTiming(private val platform: String) {
         decodeMillis += millis
     }
 
-    fun read(value: String) {
+    fun read(code: ScannedCode) {
         if (firstReadLogged) return
         firstReadLogged = true
         val sinceUp = running?.elapsedNow()?.inWholeMilliseconds
-        log { "first read $value ${sinceUp ?: "?"} ms after the camera came up, ${opened.elapsedNow().inWholeMilliseconds} ms after opening${decodeSummary()}" }
+        log { "first read ${describe(code)} ${sinceUp ?: "?"} ms after the camera came up, ${opened.elapsedNow().inWholeMilliseconds} ms after opening${decodeSummary()}" }
     }
 
     fun closed() {
@@ -56,7 +57,13 @@ internal class ScanTiming(private val platform: String) {
         KLog.withTag(TAG).d("$platform ${message()}")
     }
 
-    private companion object {
-        const val TAG = "Scanner"
+    internal companion object {
+        private const val TAG = "Scanner"
+
+        /**
+         * A read as the log may carry it: its format and length, never its value. A barcode says
+         * what someone eats, and a QR code can be a private link.
+         */
+        fun describe(code: ScannedCode): String = "${code.format.name} (${code.value.length} chars)"
     }
 }

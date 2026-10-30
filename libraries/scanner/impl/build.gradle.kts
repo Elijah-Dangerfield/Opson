@@ -21,6 +21,7 @@ kotlin {
 
         commonTest.dependencies {
             implementation(projects.libraries.scanner)
+            implementation(projects.libraries.core)
         }
 
         androidMain.dependencies {

@@ -203,7 +203,7 @@ private class CaptureSession(
     // already on its way to main when the screen closes is dropped, as on Android.
     private val delegate = MetadataDelegate { code ->
         if (!stopped) {
-            timing.read(code.value)
+            timing.read(code)
             onCode(code)
         }
     }
