@@ -28,6 +28,7 @@ import com.opson.server.domain.FoodLabelLimiter
 import com.opson.server.domain.FoodLabelLimits
 import com.opson.server.domain.FoodSubmissionRepository
 import com.opson.server.domain.FoodVerification
+import com.opson.server.domain.FoodVerificationLimits
 import com.opson.server.domain.FoodVerificationRepository
 import com.opson.server.domain.FoodSnapshot
 import com.opson.server.domain.VerificationStatus
@@ -40,6 +41,7 @@ import com.opson.server.domain.VerificationOutcome
 import com.opson.server.domain.VerifyOutcome
 import com.opson.server.plugins.FOOD_REPORT_LIMIT
 import com.opson.server.plugins.SUPABASE_JWT_AUTH
+import com.opson.server.plugins.bodyLimit
 import com.opson.server.plugins.isAnonymousUser
 import com.opson.server.plugins.problem
 import com.opson.server.plugins.userId
@@ -350,68 +352,71 @@ fun Route.builderRoutes(
         }
 
         rateLimit(RateLimitName(FOOD_REPORT_LIMIT)) {
-            post("/v1/foods/{foodId}/verifications") {
-                val userId = call.userId() ?: return@post call.unauthorized()
-                val foodId = call.parameters["foodId"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                    ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "The food id must be a UUID"))
-                val request = call.receive<VerificationRequest>()
-                val id = request.id?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                    ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "id must be a UUID"))
-                if (request.lines.size > FoodLabelLimits.MAX_CAPTURE_LINES || request.lines.any { it.text.length > FoodLabelLimits.MAX_CAPTURE_LINE }) {
-                    return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_capture", "Too much text"))
-                }
-                val reported = when (val checked = request.problem?.let(::validateProblem)) {
-                    is Checked.Rejected -> return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_problem", checked.message))
-                    is Checked.Ok -> checked.value
-                    null -> null
-                }
-                val photos = when (val decoded = decodeVerificationPhotos(request.photos)) {
-                    is PhotosDecoded.Rejected -> return@post call.respond(decoded.status, problem(decoded.code, decoded.message))
-                    is PhotosDecoded.Ok -> decoded.photos
-                }
-                if (!permissions.can(userId, Permission.FoodContribute)) {
-                    return@post call.respond(HttpStatusCode.Forbidden, problem("not_a_builder", "Checking foods is for Builders."))
-                }
-                if (call.refuseIfRestricted(contributionGate, userId, id.toString(), logger, "food verification")) return@post
-                val food = catalog.findById(foodId)
-                    ?.takeIf { it.source != CatalogSource.UserSubmitted || submissions.isVisible(foodId, userId) }
-                    ?: return@post call.respond(HttpStatusCode.NotFound, problem("not_found", "No such food"))
-                if (!limiter.tryVerify(userId)) {
-                    return@post call.respond(HttpStatusCode.TooManyRequests, problem("rate_limited", "That's a lot of checks for now. Try again later."))
-                }
-                val lines = request.lines.map { CaptureLine(it.text, it.confidence) }
-                val grounding = VerificationCheck.ground(food.per100g, food.portions.firstOrNull()?.grams, lines)
-                val grounded = grounding.complete && grounding.groundable == VerificationCheck.HEADLINE
-                // A person looks at it when the Builder said something was wrong, or when the text
-                // did not show the numbers and they sent the photos a person needs to judge it.
-                val queued = reported != null || (!grounded && photos.isNotEmpty())
-                val outcome = if (grounded && !queued) VerificationOutcome.Confirmed else VerificationOutcome.Unconfirmed
-                val recorded = verifications.record(
-                    FoodVerification(
-                        id = id,
-                        foodId = foodId,
-                        userId = userId,
-                        createdAt = clock.now(),
-                        outcome = outcome,
-                        grounded = grounding.grounded,
-                        groundable = grounding.groundable,
-                        engine = request.engine,
-                        status = VerificationStatus.Open.takeIf { queued },
-                        problem = reported,
-                        snapshot = FoodSnapshot.of(food).takeIf { queued },
-                    ),
-                    photos,
-                )
-                when (recorded) {
-                    is VerifyOutcome.Recorded -> {
-                        logger.info(
-                            "food verification outcome={} grounded={}/{} review={} problem={} photos={}",
-                            recorded.verification.outcome.wire, grounding.grounded, grounding.groundable, queued, reported != null, photos.size,
-                        )
-                        call.respond(HttpStatusCode.Created, recorded.verification.toResponse(grounding.missing))
+            bodyLimit(FoodVerificationLimits.MAX_BODY_BYTES) {
+                post("/v1/foods/{foodId}/verifications") {
+                    val userId = call.userId() ?: return@post call.unauthorized()
+                    val foodId = call.parameters["foodId"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                        ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "The food id must be a UUID"))
+                    // Before the body: anyone signed in can reach this route, and the body is two photos.
+                    if (!permissions.can(userId, Permission.FoodContribute)) {
+                        return@post call.respond(HttpStatusCode.Forbidden, problem("not_a_builder", "Checking foods is for Builders."))
                     }
-                    is VerifyOutcome.Existing -> call.respond(recorded.verification.toResponse(emptyList()))
-                    VerifyOutcome.Conflict -> call.respond(HttpStatusCode.Conflict, problem("id_conflict", "That id is taken"))
+                    val request = call.receive<VerificationRequest>()
+                    val id = request.id?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+                        ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "id must be a UUID"))
+                    if (request.lines.size > FoodLabelLimits.MAX_CAPTURE_LINES || request.lines.any { it.text.length > FoodLabelLimits.MAX_CAPTURE_LINE }) {
+                        return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_capture", "Too much text"))
+                    }
+                    val reported = when (val checked = request.problem?.let(::validateProblem)) {
+                        is Checked.Rejected -> return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_problem", checked.message))
+                        is Checked.Ok -> checked.value
+                        null -> null
+                    }
+                    val photos = when (val decoded = decodeVerificationPhotos(request.photos)) {
+                        is PhotosDecoded.Rejected -> return@post call.respond(decoded.status, problem(decoded.code, decoded.message))
+                        is PhotosDecoded.Ok -> decoded.photos
+                    }
+                    if (call.refuseIfRestricted(contributionGate, userId, id.toString(), logger, "food verification")) return@post
+                    val food = catalog.findById(foodId)
+                        ?.takeIf { it.source != CatalogSource.UserSubmitted || submissions.isVisible(foodId, userId) }
+                        ?: return@post call.respond(HttpStatusCode.NotFound, problem("not_found", "No such food"))
+                    if (!limiter.tryVerify(userId)) {
+                        return@post call.respond(HttpStatusCode.TooManyRequests, problem("rate_limited", "That's a lot of checks for now. Try again later."))
+                    }
+                    val lines = request.lines.map { CaptureLine(it.text, it.confidence) }
+                    val grounding = VerificationCheck.ground(food.per100g, food.portions.firstOrNull()?.grams, lines)
+                    val grounded = grounding.complete && grounding.groundable == VerificationCheck.HEADLINE
+                    // A person looks at it when the Builder said something was wrong, or when the text
+                    // did not show the numbers and they sent the photos a person needs to judge it.
+                    val queued = reported != null || (!grounded && photos.isNotEmpty())
+                    val outcome = if (grounded && !queued) VerificationOutcome.Confirmed else VerificationOutcome.Unconfirmed
+                    val recorded = verifications.record(
+                        FoodVerification(
+                            id = id,
+                            foodId = foodId,
+                            userId = userId,
+                            createdAt = clock.now(),
+                            outcome = outcome,
+                            grounded = grounding.grounded,
+                            groundable = grounding.groundable,
+                            engine = request.engine,
+                            status = VerificationStatus.Open.takeIf { queued },
+                            problem = reported,
+                            snapshot = FoodSnapshot.of(food).takeIf { queued },
+                        ),
+                        photos,
+                    )
+                    when (recorded) {
+                        is VerifyOutcome.Recorded -> {
+                            logger.info(
+                                "food verification outcome={} grounded={}/{} review={} problem={} photos={}",
+                                recorded.verification.outcome.wire, grounding.grounded, grounding.groundable, queued, reported != null, photos.size,
+                            )
+                            call.respond(HttpStatusCode.Created, recorded.verification.toResponse(grounding.missing))
+                        }
+                        is VerifyOutcome.Existing -> call.respond(recorded.verification.toResponse(emptyList()))
+                        VerifyOutcome.Conflict -> call.respond(HttpStatusCode.Conflict, problem("id_conflict", "That id is taken"))
+                    }
                 }
             }
         }

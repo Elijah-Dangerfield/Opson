@@ -201,6 +201,15 @@ object RecipeRules {
     /** Open reports from this many different people hide a shared recipe until someone looks. */
     const val HIDE_AFTER_REPORTS = 3
 
+    /**
+     * A publish body: the row sync would send, whose items are at most [DiaryRules.MAX_JSON_CHARS]
+     * characters, with room for escaping and the notes.
+     */
+    const val MAX_PUBLISH_BODY_BYTES = 512L * 1024
+
+    /** A report body: an id, a reason and a note of [MAX_REPORT_NOTE] characters. */
+    const val MAX_REPORT_BODY_BYTES = 16L * 1024
+
     fun newCode(random: Random = Random.Default): String =
         String(CharArray(CODE_LENGTH) { CODE_ALPHABET[random.nextInt(CODE_ALPHABET.length)] })
 

@@ -12,9 +12,11 @@ import com.opson.server.domain.Food
 import com.opson.server.domain.Nutrients
 import com.opson.server.domain.Recipe
 import com.opson.server.domain.RecipeLimiter
+import com.opson.server.domain.RecipeRules
 import com.opson.server.domain.UserId
 import com.opson.server.plugins.ProblemResponse
 import com.opson.server.plugins.installAuthentication
+import com.opson.server.plugins.installBodyLimit
 import com.opson.server.plugins.installRateLimits
 import com.opson.server.plugins.installSerialization
 import com.opson.server.plugins.installStatusPages
@@ -32,10 +34,13 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.transactions.TransactionManager
@@ -81,6 +86,7 @@ class RecipeRoutesTest : DatabaseTest() {
         testApplication {
             application {
                 installSerialization()
+                installBodyLimit()
                 installRateLimits()
                 installStatusPages()
                 installAuthentication(TestJwt.verification)
@@ -152,6 +158,33 @@ class RecipeRoutesTest : DatabaseTest() {
             assertEquals(HttpStatusCode.NotFound, client.get("/v1/recipes/public/zzzz2222").status)
             assertEquals(HttpStatusCode.NotFound, client.get("/v1/recipes/public/not-a-code").status)
         }
+    }
+
+    @Test
+    fun aBodyOverTheRoutesCapIs413_whetherItSaysItsLengthOrNot() = runTest {
+        val owner = seedAuthUser()
+        val recipe = DiaryFixtures.recipe()
+        withApp { client ->
+            val padded = PublishRecipeRequest(recipe.toRowDto().copy(notes = "x".repeat(RecipeRules.MAX_PUBLISH_BODY_BYTES.toInt())))
+            val publish = client.post("/v1/recipes/${recipe.id}/publish") {
+                header(HttpHeaders.Authorization, TestJwt.bearer(owner))
+                contentType(ContentType.Application.Json)
+                setBody(padded)
+            }
+            assertEquals(HttpStatusCode.PayloadTooLarge, publish.status)
+            val code = client.publish(owner, recipe).body<PublishRecipeResponse>().code
+            val report = client.post("/v1/recipes/public/$code/reports") {
+                header(HttpHeaders.Authorization, TestJwt.bearer(seedAuthUser()))
+                setBody(chunkedJson("{\"id\": \"${UUID.randomUUID()}\", \"reason\": \"spam\", \"note\": \"${"x".repeat(RecipeRules.MAX_REPORT_BODY_BYTES.toInt())}\"}"))
+            }
+            assertEquals(HttpStatusCode.PayloadTooLarge, report.status)
+        }
+    }
+
+    /** A body sent chunked, with no Content-Length to check up front. */
+    private fun chunkedJson(text: String) = object : OutgoingContent.WriteChannelContent() {
+        override val contentType = ContentType.Application.Json
+        override suspend fun writeTo(channel: ByteWriteChannel) = channel.writeFully(text.encodeToByteArray())
     }
 
     @Test

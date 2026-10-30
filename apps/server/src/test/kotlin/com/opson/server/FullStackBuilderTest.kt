@@ -28,6 +28,7 @@ import com.opson.server.domain.DecideOutcome
 import com.opson.server.domain.LabelRegion
 import com.opson.server.domain.ShoppingFrequency
 import com.opson.server.domain.CarbBasis
+import com.opson.server.domain.FoodVerificationLimits
 import com.opson.server.domain.ImageType
 import com.opson.server.domain.LabelChecks
 import com.opson.server.domain.LabelFacts
@@ -711,6 +712,29 @@ class FullStackBuilderTest : DatabaseTest() {
             assertEquals(HttpStatusCode.BadRequest, bad.status)
             val both = client.verify(builder, old, request(panel, withPhotos = false).copy(problem = VerificationProblemJson(wrong = listOf("serving"), missing = listOf("serving"))))
             assertEquals(HttpStatusCode.BadRequest, both.status)
+        }
+    }
+
+    @Test
+    fun someoneWhoIsNotABuilderIsRefusedBeforeTheirBodyIsRead_andABuildersBodyOverTheCapIs413() = runTest {
+        val builder = seedUser(ageDays = 10)
+        val stranger = seedUser(ageDays = 10)
+        val component = component()
+        val food = seedBrandedGranola()
+        becomeBuilder(component, builder)
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier)) }
+            val client = jsonClient()
+            suspend fun raw(user: UserId, body: String) = client.post("/v1/foods/$food/verifications") {
+                header(HttpHeaders.Authorization, "Bearer ${jwt(user)}")
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+            // Not even JSON: it is never read, so the answer is the refusal, not a parse error.
+            assertEquals(HttpStatusCode.Forbidden, raw(stranger, "not json").status)
+            val oversized = "{\"id\": \"${UUID.randomUUID()}\", \"lines\": [], \"photos\": {\"front\": \"" +
+                "A".repeat(FoodVerificationLimits.MAX_BODY_BYTES.toInt()) + "\"}}"
+            assertEquals(HttpStatusCode.PayloadTooLarge, raw(builder, oversized).status)
         }
     }
 

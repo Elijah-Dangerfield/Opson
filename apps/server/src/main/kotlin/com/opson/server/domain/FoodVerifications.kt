@@ -162,6 +162,9 @@ object FoodVerificationLimits {
     const val MAX_NOTE = FoodReportLimits.MAX_NOTE
     const val MAX_NAME = FoodReportLimits.MAX_NAME
     const val MAX_BARCODE = 32
+
+    /** Two photos of up to [FoodReportLimits.MAX_IMAGE_BYTES], base64 (4/3), and the label's text: checked before the body is read. */
+    const val MAX_BODY_BYTES = FoodReportLimits.MAX_BODY_BYTES
 }
 
 /**
