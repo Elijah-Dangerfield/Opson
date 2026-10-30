@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.AgeGate
 import com.opson.libraries.ui.PreviewLightDark
@@ -58,7 +59,8 @@ object Birthdays {
 /**
  * The birthday, typed in three boxes ([DateField]) the phone can fill from the person's own
  * contact card, with what is wrong said under it once every box is typed: no such date, or an
- * age outside [ages]. [note] is the line on why it is asked.
+ * age outside [ages]. [note] is the line on why it is asked. [onDone] and [focusOnOpen] are
+ * [DateField]'s: a step that asks only this submits from the keyboard and opens with it up.
  */
 @Composable
 fun BirthdayField(
@@ -72,15 +74,22 @@ fun BirthdayField(
     note: String? = null,
     enabled: Boolean = true,
     imeAction: ImeAction = ImeAction.Done,
+    onDone: (() -> Unit)? = null,
+    focusOnOpen: Boolean = false,
 ) {
     val problem = Birthdays.problem(parts, today, ages)
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (label != null) Text(text = label, typography = AppTheme.type.secondarySmallStrong, color = AppTheme.colors.muted)
-        if (order != null) {
-            DateField(parts = parts, onChange = onChange, order = order, enabled = enabled, imeAction = imeAction, modifier = Modifier.fillMaxWidth())
-        } else {
-            DateField(parts = parts, onChange = onChange, enabled = enabled, imeAction = imeAction, modifier = Modifier.fillMaxWidth())
-        }
+        DateField(
+            parts = parts,
+            onChange = onChange,
+            order = order ?: DateOrder.forRegion(Locale.current.region),
+            enabled = enabled,
+            imeAction = imeAction,
+            onDone = onDone,
+            focusOnOpen = focusOnOpen,
+            modifier = Modifier.fillMaxWidth(),
+        )
         problem?.let {
             Text(
                 text = stringResource(it.text),

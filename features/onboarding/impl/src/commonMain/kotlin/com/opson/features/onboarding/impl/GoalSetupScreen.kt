@@ -2,7 +2,9 @@ package com.opson.features.onboarding.impl
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.runtime.Composable
@@ -29,7 +31,8 @@ fun GoalSetupScreen(state: GoalSetupState, onAction: (GoalSetupAction) -> Unit, 
         containerColor = AppTheme.colors.bg.color,
         contentWindowInsets = WindowInsets.systemBars,
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        // Above the keyboard, as in onboarding: the pinned button stays in reach while someone types.
+        Column(modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding()) {
             val view = state.view ?: return@Column
             PlanStepContent(
                 step = state.step,

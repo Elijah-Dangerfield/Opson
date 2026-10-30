@@ -82,35 +82,67 @@ internal fun InputBox(
         visualTransformation = visualTransformation,
         cursorBrush = SolidColor(AppTheme.colors.accent.color),
         decorationBox = { innerTextField ->
-            Row(
-                modifier = Modifier
-                    .defaultMinSize(minHeight = minHeight)
-                    .clip(shape)
-                    .background(fill)
-                    .border(1.dp, borderColor.color, shape)
-                    .padding(contentPadding),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
-            ) {
-                // Min constraints passed down so the inner field spans the box and a centred
-                // value is centred in the box, not in its own width.
-                Box(modifier = Modifier.weight(1f), propagateMinConstraints = true) {
-                    if (typed.text.isEmpty() && placeholder != null) {
-                        Text(
-                            text = placeholder,
-                            typography = typography,
-                            color = AppTheme.colors.muted,
-                            textAlign = textAlign,
-                            maxLines = if (singleLine) 1 else Int.MAX_VALUE,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    innerTextField()
-                }
-                if (suffix != null) {
-                    Text(text = suffix, typography = AppTheme.type.body, color = AppTheme.colors.muted, maxLines = 1)
-                }
-            }
+            InputFrame(
+                empty = typed.text.isEmpty(),
+                placeholder = placeholder,
+                suffix = suffix,
+                singleLine = singleLine,
+                textAlign = textAlign,
+                typography = typography,
+                fill = fill,
+                shape = shape,
+                contentPadding = contentPadding,
+                minHeight = minHeight,
+                borderColor = borderColor,
+                innerTextField = innerTextField,
+            )
         },
     )
+}
+
+/** [InputBox]'s box around a text field's own text, for a field built some other way (`DateField`). */
+@Composable
+internal fun InputFrame(
+    empty: Boolean,
+    placeholder: String?,
+    suffix: String?,
+    singleLine: Boolean,
+    textAlign: TextAlign,
+    typography: TypographyResource,
+    fill: ColorResource,
+    shape: Shape,
+    contentPadding: PaddingValues,
+    minHeight: Dp,
+    borderColor: ColorResource,
+    innerTextField: @Composable () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .defaultMinSize(minHeight = minHeight)
+            .clip(shape)
+            .background(fill)
+            .border(1.dp, borderColor.color, shape)
+            .padding(contentPadding),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
+    ) {
+        // Min constraints passed down so the inner field spans the box and a centred
+        // value is centred in the box, not in its own width.
+        Box(modifier = Modifier.weight(1f), propagateMinConstraints = true) {
+            if (empty && placeholder != null) {
+                Text(
+                    text = placeholder,
+                    typography = typography,
+                    color = AppTheme.colors.muted,
+                    textAlign = textAlign,
+                    maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            innerTextField()
+        }
+        if (suffix != null) {
+            Text(text = suffix, typography = AppTheme.type.body, color = AppTheme.colors.muted, maxLines = 1)
+        }
+    }
 }

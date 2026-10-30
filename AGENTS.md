@@ -269,6 +269,7 @@ Everything Kotlin shows a person is in `libraries/resources/src/commonMain/compo
 - Use `Catching { }` from libraries/core instead of `runCatching`
 - Custom UI components in libraries/ui, avoid Material directly
 - A field holding an email, password, one-time code, name or birthday passes `content = FieldContent.X` (`NumberField`, `OutlinedTextField`): that sets the autofill hint on Android and `textContentType` on iOS, where Compose alone only knows email, password and phone. Dates are typed with `DateField` (a birthday with `BirthdayField` in `:libraries:diary:ui`), not picked from a calendar.
+- Several boxes that hand typing on to each other (a date, a code) decide each keystroke inside the edit, on `TextFieldState`s with an `InputTransformation`, and move focus a frame later (`DateBoxes`). Working it out in `onValueChange` from the screen's state loses digits typed faster than that state comes back, and asking for focus inside the edit throws.
 - Check `ComposeApp.h` for Swift names of Kotlin types before using in Swift
 
 ### Comments and docs earn their upkeep, or they lie

@@ -82,6 +82,23 @@ private fun KeyboardActions.done() {
     onDone?.invoke(DoneBarScope)
 }
 
+/**
+ * The return key's [imeAction] run through these actions, for a field built on a `TextFieldState`,
+ * which hands every action to one handler.
+ */
+internal fun KeyboardActions.perform(imeAction: ImeAction) {
+    val handler = when (imeAction) {
+        ImeAction.Done -> onDone
+        ImeAction.Go -> onGo
+        ImeAction.Next -> onNext
+        ImeAction.Previous -> onPrevious
+        ImeAction.Search -> onSearch
+        ImeAction.Send -> onSend
+        else -> null
+    }
+    handler?.invoke(DoneBarScope)
+}
+
 private object DoneBarScope : KeyboardActionScope {
     override fun defaultKeyboardAction(imeAction: ImeAction) = Unit
 }

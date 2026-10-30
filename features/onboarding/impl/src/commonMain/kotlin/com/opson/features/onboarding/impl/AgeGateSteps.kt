@@ -43,7 +43,8 @@ internal fun ColumnScope.AgeStep(state: OnboardingState, onAction: (OnboardingAc
     ScrollingBody {
         StepTitle(title = stringResource(Res.string.age_title), body = stringResource(Res.string.age_body))
         // Typed, and the phone can fill it from the person's own contact card: quicker than a
-        // picker. Any real past date is taken here; the gate's rule is applied on Continue.
+        // picker. Any real past date is taken here; the gate's rule is applied on Continue. The
+        // keyboard is up when the step opens, and its Done is Continue (ignored until there is a date).
         BirthdayField(
             parts = state.ageParts,
             onChange = { onAction(OnboardingAction.AgeTyped(it)) },
@@ -51,6 +52,8 @@ internal fun ColumnScope.AgeStep(state: OnboardingState, onAction: (OnboardingAc
             order = state.dateOrder,
             label = null,
             enabled = !state.isFinishing,
+            onDone = { onAction(OnboardingAction.ContinueTapped) },
+            focusOnOpen = true,
         )
     }
     PinnedPrimary(

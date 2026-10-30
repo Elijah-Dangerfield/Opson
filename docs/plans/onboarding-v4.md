@@ -56,7 +56,10 @@ Welcome (beta card with release.betaNotice)
   not logged.
 - **The birthday** is asked once, on the age question before sign-in, and the profile reuses it.
   It is typed in three boxes in the region's order (`DateField`), with a number pad, moving on
-  when a box is done, and autofill hints for the day, month and year of a birthday. The question
+  when a box is done, and autofill hints for the day, month and year of a birthday. The age step
+  opens with the keyboard up in the first empty box, keeps Continue above it, and the last box's
+  Done (the bar over the iOS number pad) is Continue. Digits typed or pasted faster than the
+  cursor moves carry on into the next boxes, and delete in an empty box goes back one. The question
   stays neutral: under the boxes it only ever says "There's no such date" or "Check the year",
   never where the age line is. Profile in More types it the same way.
 - **Energy balance** is a side (eat less or eat more) and an amount, typed or stepped, 50 to
