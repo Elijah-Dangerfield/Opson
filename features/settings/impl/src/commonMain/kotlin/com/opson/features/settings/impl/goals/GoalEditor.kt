@@ -25,6 +25,7 @@ import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.GoalKind
 import com.opson.libraries.nutrition.GoalPace
 import com.opson.libraries.nutrition.GoalProjections
+import com.opson.libraries.nutrition.GoalStatus
 import com.opson.libraries.nutrition.GoalTargets
 import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.Metric
@@ -304,9 +305,14 @@ object GoalEditor {
             id = existing?.id ?: kind.key,
             type = type,
             startDate = existing?.startDate ?: context.today,
+            // A paused goal stays paused, and one the person took their own target back from stays
+            // that way: changing a band is not picking it up again.
+            status = existing?.status ?: GoalStatus.Active,
             averaging = if (type.setsCalories) draft.averaging else GoalAveraging.Daily,
             toleranceKcal = draft.toleranceKcal,
+            setsTarget = existing?.setsTarget ?: type.setsCalories,
             baseline = context.inputs?.takeIf { type.setsCalories }?.let(GoalBaselines::of),
+            targetsKcal = existing?.targetsKcal,
             history = existing?.history.orEmpty(),
         )
     }
@@ -321,9 +327,13 @@ object GoalEditor {
         return GoalType.Weight(draft.direction, target, rate, before?.startKg ?: current)
     }
 
-    /** Settings with [goal] saved: it writes its target when it sets one and a typical day is known. */
+    /**
+     * Settings with [goal] saved: it writes its target when it sets it (a new calorie goal, or one
+     * already setting it) and a typical day is known. A paused goal, or one whose target the
+     * person set themselves, is saved without touching Targets.
+     */
     fun save(settings: Settings, goal: Goal): Settings =
-        if (goal.type.setsCalories && goal.baseline != null) GoalBook.applyTarget(settings, goal) else GoalBook.withGoal(settings, goal)
+        if (goal.drivesTarget && goal.baseline != null) GoalBook.applyTarget(settings, goal) else GoalBook.withGoal(settings, goal)
 
     fun view(draft: GoalDraft, context: GoalEditContext): GoalEditView {
         val editing = context.existing != null

@@ -195,6 +195,25 @@ class GoalEditorTest {
     }
 
     @Test
+    fun editingAPausedGoal_orOneThePersonTookTheirTargetBackFrom_keepsItThatWay() {
+        val paused = GoalBook.pause(GoalFixtures.settings(GoalFixtures.lose, base = base), GoalFixtures.lose.id)
+        val pausedGoal = GoalBook.weight(paused)!!
+        val pausedContext = context(paused, existing = pausedGoal)
+        val widened = GoalEditor.goal(reduce(pausedContext, GoalEdit.BandPicked(200), from = GoalEditor.draft(pausedGoal, null, pausedContext)), pausedContext)!!
+        val savedPaused = GoalEditor.save(paused, widened)
+        assertEquals(GoalStatus.Paused, GoalBook.weight(savedPaused)?.status, "a band isn't picking it up again")
+        assertEquals(paused.targets, savedPaused.targets)
+
+        val mine = GoalBook.override(GoalFixtures.settings(GoalFixtures.lose, base = base)).let { it.copy(targets = it.targets.raise()) }
+        val ownGoal = GoalBook.weight(mine)!!
+        val ownContext = context(mine, existing = ownGoal)
+        val edited = GoalEditor.goal(reduce(ownContext, GoalEdit.BandPicked(200), from = GoalEditor.draft(ownGoal, null, ownContext)), ownContext)!!
+        val savedOwn = GoalEditor.save(mine, edited)
+        assertEquals(mine.targets, savedOwn.targets, "their own target stays theirs")
+        assertNull(GoalBook.driving(savedOwn))
+    }
+
+    @Test
     fun aGoalWithNoTypicalDay_isKept_andWaits() {
         val context = context().copy(inputs = null)
         val goal = GoalEditor.goal(reduce(context, GoalEdit.KindPicked(GoalKind.EnergyBalance)), context)!!
