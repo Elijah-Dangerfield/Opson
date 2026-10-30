@@ -60,7 +60,7 @@ ingredients came from checked foods. The creator's totals are never trusted.
 user, 10 publishes an hour and 30 a day, and 10 reports in 10 minutes and 30
 a day; per IP, 60 public reads a minute. Three open reports from different
 people hide a recipe until someone looks (`public_state = hidden`). The admin
-console's Recipes tab lists public recipes, reported first, and can remove
+console's Review area has Shared recipes, reported first, and can remove
 (with a reason), restore or dismiss reports. A moderation rollback takes every
 public recipe of the account down (`RecipeReverter`). Account deletion
 cascades.
@@ -73,10 +73,20 @@ drawn in the app from the link by a small encoder in `:libraries:ui` (byte
 mode, level M); no new dependency.
 
 **Finding one.** A link or QR code opens the recipe in the app (when the app
-is installed and the link verifies) or the web page. In the app: More ways in
-are the Foods tab's Recipes card (Scan a recipe code, which turns on QR for
-that scanner only) and search, where public recipes come under the catalog
-results labelled "Public recipe".
+is installed and the link verifies) or the web page. In the app the other ways
+in are the Foods tab's Recipes card (Scan a recipe code, which turns on QR for
+that scanner only) and search. Search shows recipes in a section of their own
+under the food results, the person's own first ("Your recipe"), then shared
+ones ("Public recipe"). The section is outside the food ranking, so a shared
+recipe is never lifted by what the person logs; a shared recipe they already
+have (theirs, or saved from it) shows once, as theirs.
+
+**Logging.** "Log a serving" logs one entry today, to the meal picked (the
+clock's meal to start), in half-serving steps: "Weeknight chili", "1 serving",
+a sixth of everything for a recipe of six, as an estimate, `method = saved`
+(no new wire value, so an older server takes it). Numbers everywhere go
+through the visibility policy on `Surface.Foods`, so No numbers shows none; the
+leak test covers the five recipe screens that carry calories.
 
 **Web fallback.** `website/src/pages/recipe.astro` is a static page;
 `_redirects` rewrites `/r/*` to it. It reads the code from the path, fetches
@@ -94,3 +104,40 @@ the debug entitlements do in v1, so a release build never fails to sign);
 Android needs the Play app signing SHA-256 in a repo variable for
 `assetlinks.json`. Until then links open the web page, whose Open in Opson
 button opens the app.
+
+## How it was checked
+
+- The QR encoder (`QrCode`, `QrPng` in `:libraries:ui`) is checked against the
+  standard's capacities and its worked Reed-Solomon example in `QrCodeTest`.
+  `QrPngFileTest` writes codes to `libraries/ui/build/qr-check/`; on a Mac,
+  `swift decode.swift libraries/ui/build/qr-check/*.png`, with a few lines of
+  Core Image's `CIDetector` (`CIDetectorTypeQRCode`), reads each back. All four
+  (three share links and a version 10 code with several blocks) read back as
+  written on 2026-10-30.
+- `RecipeJourneyTest` (`:apps:integration`) runs the whole thing against the
+  real server: made, synced to a second phone, shared, read with no account
+  (and CORS), found by another account, its numbers worked out from the
+  catalog, saved, logged, reported, and stopped.
+
+## Grafana (for the lead to push)
+
+A row on the Pulse board, from the two views V35 adds (counts only):
+
+| Panel | Query | Viz |
+|---|---|---|
+| Recipes made and shared | `SELECT day AS time, made, shared FROM analytics.recipes_daily WHERE day >= $__timeFrom()::date ORDER BY day` | time series, bars |
+| Shared now | `SELECT live, hidden, removed, saves FROM analytics.recipe_sharing` | stat, four values |
+| Reports waiting | `SELECT open_reports, now() - oldest_open_report_at AS oldest FROM analytics.recipe_sharing` | stat; threshold red at 1 open report older than 7 days |
+| Sharing outcomes | Loki: `sum by (outcome) (count_over_time({service_name="opson-server"} \|= "recipe publish outcome=" \| regexp "outcome=(?P<outcome>\\w+)" [$__interval]))` | time series |
+
+An alert worth having: `open_reports > 0` for more than 7 days (the owner
+reviews weekly).
+
+## Follow-ups
+
+- Release entitlements and `ANDROID_CERT_SHA256` (above).
+- Official store badge artwork on the web page; it uses plain links now.
+- A shared recipe in a language other than English shows its numbers in English
+  on the web page.
+- "Saved" copies aren't matched when someone opens the same shared recipe again;
+  Save would make a second copy.

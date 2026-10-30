@@ -5,7 +5,6 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:www.opsontracker.com</string>
-		<string>applinks:opsontracker.com</string>
 	</array>
 	<key>com.apple.developer.applesignin</key>
 	<array>

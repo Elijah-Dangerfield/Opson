@@ -53,6 +53,8 @@
 
             <!--
               A shared recipe's link (release.recipes): https://www.opsontracker.com/r/<code>.
+              Only www: the bare domain forwards to it, and before Android 12 one host that
+              fails verification fails them all.
               Android opens the app for it once the site's /.well-known/assetlinks.json names
               this app's signing key (website/README.md, "Universal links and App Links");
               until then the link opens the recipe's web page, which offers Open in Opson.
@@ -64,7 +66,6 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" />
                 <data android:host="www.opsontracker.com" />
-                <data android:host="opsontracker.com" />
                 <data android:pathPrefix="/r/" />
             </intent-filter>
         </activity>

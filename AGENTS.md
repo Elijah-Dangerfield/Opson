@@ -227,7 +227,9 @@ navigation<MyGraph>(startDestination = MyRoute()) { screen<...>; bottomSheet<...
 
 **Open external URLs via `Router.openWebLink(url)`**, don't roll your own platform `Intent.ACTION_VIEW` / `UIApplication.shared.open` plumbing. The implementation is in `libraries/navigation/impl/.../{Android,Ios,Jvm}WebLinkLauncher.kt` and is already wired into the DI graph and the `Router` interface.
 
-**Share a file via `Router.shareFile(name, mimeType, bytes)`** (exports). Android writes it to `cache/shared/` and opens the chooser through `ShareFileProvider`; iOS writes it to `tmp/shared/` in Kotlin and the Swift `IOSFileSharePresenter` (passed into `create(...)` in `iOSApp.swift`) shows `UIActivityViewController`. Swift only ever gets a path, never a `KotlinByteArray`.
+**Share a file via `Router.shareFile(name, mimeType, bytes)`** (exports). Android writes it to `cache/shared/` and opens the chooser through `ShareFileProvider`; iOS writes it to `tmp/shared/` in Kotlin and the Swift `IOSFileSharePresenter` (passed into `create(...)` in `iOSApp.swift`) shows `UIActivityViewController`. Swift only ever gets a path, never a `KotlinByteArray`. **Share a line of text (a link) via `Router.shareText(text)`**: the same Swift presenter on iOS (`presentText`), `ACTION_SEND` with `text/plain` on Android.
+
+**Recipe links** (`https://www.opsontracker.com/r/<code>`, `opson://recipe/<code>`, `release.recipes`) are not nav deep links: App.kt asks `RecipeLinkRoutes` and routes them with `router.navigate`, only while the app is someone's, as it does a reminder tap. Android forwards the https link from `MainActivity` (an `autoVerify` filter), iOS gets it in `.onOpenURL`. What the owner sets up for universal links and App Links is in `website/README.md`. The camera reads QR codes only where a caller asks (`BarcodeCamera.Viewfinder(formats = setOf(BarcodeFormat.Qr))`); a food scan passes `BarcodeFormat.Retail`.
 
 ## App-wide state
 
