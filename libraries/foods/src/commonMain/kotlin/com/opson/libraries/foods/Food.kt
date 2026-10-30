@@ -196,7 +196,7 @@ data class FoodSearchResult(
  */
 interface FoodCatalog {
     /**
-     * Online search; offline, a name match over foods picked before, with `fromCache` set.
+     * Online search; offline, the words typed matched against foods kept on the phone ([FoodQuery]), with `fromCache` set.
      * [filter] narrows or reorders it ([FoodSearchFilter.None] is 0.1's search).
      */
     suspend fun search(query: String, limit: Int = 25, filter: FoodSearchFilter = FoodSearchFilter.None): Catching<FoodSearchResult>
