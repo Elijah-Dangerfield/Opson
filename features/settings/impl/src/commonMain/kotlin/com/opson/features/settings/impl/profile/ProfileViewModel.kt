@@ -3,6 +3,7 @@ package com.opson.features.settings.impl.profile
 import androidx.lifecycle.viewModelScope
 import com.opson.features.settings.impl.Toast
 import com.opson.libraries.core.DeviceRegion
+import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
@@ -36,6 +37,7 @@ import opson.libraries.resources.generated.resources.integrations_profile_empty
 import opson.libraries.resources.generated.resources.integrations_profile_failed
 import opson.libraries.resources.generated.resources.integrations_profile_filled
 import opson.libraries.resources.generated.resources.integrations_profile_not_connected
+import opson.libraries.resources.generated.resources.profile_weight_plans_paused
 
 /**
  * More › Profile. A typed field writes its setting only once it holds a sensible value (a year a
@@ -81,7 +83,7 @@ class ProfileViewModel(
             is ProfileAction.BirthdayTyped -> {
                 drafts = drafts.copy(birthday = action.parts)
                 rebuild(action)
-                Birthdays.dateOrNull(action.parts, calendar.today(), Birthdays.EQUATION_AGES)?.let { born -> settingsRepository.update { it.withBirthDate(born) } }
+                Birthdays.dateOrNull(action.parts, calendar.today(), Birthdays.EQUATION_AGES)?.let { born -> saveAgeAware { it.withBirthDate(born) } }
             }
             is ProfileAction.SexPicked -> settingsRepository.update { it.copy(bodySex = action.sex.sex, bodyStage = action.sex.stage) }
             is ProfileAction.HeightUnitPicked -> {
@@ -133,7 +135,7 @@ class ProfileViewModel(
         val profile = if (connected) records.profile() else null
         var filled = false
         if (profile != null) {
-            settingsRepository.update { current -> ProfileFill.apply(current, profile, birthYears())?.also { filled = true } ?: current }
+            saveAgeAware { current -> ProfileFill.apply(current, profile, birthYears())?.also { filled = true } ?: current }
             if (filled) drafts = drafts.copy(height = null)
         }
         filling = false
@@ -145,6 +147,19 @@ class ProfileViewModel(
             else -> Res.string.integrations_profile_filled
         }
         sendEvent(ProfileEvent.ShowToast(Toast(toast)))
+    }
+
+    /**
+     * Writes [edit], which may give a birthday. One under 18 pauses a weight or deficit goal set
+     * before ([GoalBook.pauseWeightPlans]), and the person is told why.
+     */
+    private suspend fun saveAgeAware(edit: (Settings) -> Settings) {
+        var paused = false
+        settingsRepository.update { current ->
+            val edited = edit(current)
+            GoalBook.pauseWeightPlans(edited, calendar.today()).also { paused = it !== edited }
+        }
+        if (paused) sendEvent(ProfileEvent.ShowToast(Toast(Res.string.profile_weight_plans_paused)))
     }
 
     /** Someone at least 13, since the equation is for adults and teenagers, and no older than 120. */

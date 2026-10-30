@@ -137,7 +137,11 @@ support, makes no account, and the phone keeps the gate closed until the
 sixteenth birthday (`AppData.ageGateOpensOn`, the date only). 16 and 17 get the
 goal flow's gentle path (no weights, weight goals or deficits, as after
 "numbers have been hard") and celebrations without counts; `weightPlansOff`
-keeps the goal flow and its Today card off for anyone under 18. Terms and
+keeps the goal flow and its Today card off for anyone under 18, and the goals
+page and editor offer them only the gentle goals. A birthday under 18 typed on
+Profile after a weight or deficit goal was set pauses that goal
+(`GoalBook.pauseWeightPlans`) and puts a deficit target back at a typical
+day's burn, with a toast saying why. Terms and
 privacy say 16. Separately, `HardStretch` reads the last four weeks of the log
 on the phone (very low complete days, restrict and big-day swings, many
 weigh-ins a day, fast loss, plus weaker signals that need a second) and the

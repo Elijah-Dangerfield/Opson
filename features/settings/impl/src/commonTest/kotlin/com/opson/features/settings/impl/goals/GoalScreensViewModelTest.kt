@@ -102,6 +102,15 @@ class GoalScreensViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun theGoalsPage_underEighteen_offersOnlyTheGentleGoals_andDrawsNoWeightGoal() = runUnitTest {
+        val teen = base.withBirthDate(kotlinx.datetime.LocalDate(2010, 1, 1))
+        val vm = goals(FakeSettingsRepository(GoalFixtures.settings(GoalFixtures.lose, GoalFixtures.burn, base = teen)))
+        runCurrent()
+        assertEquals(emptyList(), vm.state.goals.map { it.kind }, "a weight goal and a burn goal are kept, not drawn")
+        assertTrue(vm.state.canAdd, "the gentle goals are on offer")
+    }
+
+    @Test
     fun pausingAndPickingUpAGoal() = runUnitTest {
         val repository = FakeSettingsRepository(GoalFixtures.settings(GoalFixtures.lose, GoalFixtures.steps, base = base))
         val vm = goals(repository)

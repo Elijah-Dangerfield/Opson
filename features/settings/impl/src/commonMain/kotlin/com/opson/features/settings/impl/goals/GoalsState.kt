@@ -6,6 +6,7 @@ import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
 import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.weightPlansOff
 import com.opson.libraries.goals.GoalStatuses
 import com.opson.libraries.goals.GoalToday
 import com.opson.libraries.goals.TargetProjections
@@ -121,7 +122,7 @@ object GoalsStateBuilder {
 
     fun build(inputs: GoalsInputs, focus: String?, supportLink: Boolean, paceInfo: PaceInfoView? = null): GoalsState {
         val settings = inputs.settings
-        val offered = GoalCatalog.offered(inputs.policy, settings.onboarding.hard, settings.bodyStage)
+        val offered = GoalCatalog.offered(inputs.policy, settings.weightPlansOff(inputs.today), settings.bodyStage)
         // A goal whose type the mode doesn't offer stays kept but isn't drawn: its numbers would leak.
         val kept = GoalBook.goals(settings).filter { it.status != GoalStatus.Done && it.type.kind in offered }
         val ordered = kept.sortedWith(compareByDescending<Goal> { it.id == focus }.thenByDescending { it.type.setsCalories }.thenBy { it.status != GoalStatus.Active })

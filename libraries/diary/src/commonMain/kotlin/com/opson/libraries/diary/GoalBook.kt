@@ -136,6 +136,25 @@ object GoalBook {
         return withGoal(settings, goal.copy(status = GoalStatus.Paused))
     }
 
+    /**
+     * Every active weight or energy balance goal paused, once [weightPlansOff] holds on [today]
+     * (a birthday under [AgeGate.ADULT_AGE] typed after the goal was set). The goals are kept, the
+     * way a pause keeps them. A deficit that was setting the target leaves it at what a typical day
+     * burns, so the person isn't left eating to a loss; a gain's target stays. [settings] unchanged
+     * when weight plans are on or nothing needs pausing.
+     */
+    fun pauseWeightPlans(settings: Settings, today: LocalDate): Settings {
+        if (!settings.weightPlansOff(today)) return settings
+        val goals = goals(settings)
+        val pausing = goals.filter { it.isActive && (it.type is GoalType.Weight || it.type is GoalType.EnergyBalance) }
+        if (pausing.isEmpty()) return settings
+        val leading = pausing.firstOrNull { it.drivesTarget }
+        val keep = leading?.takeIf { (it.type.deltaKcal ?: 0) < 0 }
+            ?.let { GoalTargets.apply(it.copy(type = GoalType.Weight(GoalDirection.Maintain)), settings.targets, settings.macroMode == MacroMode.Ratios) }
+        val paused = goals.map { goal -> if (goal in pausing) goal.copy(status = GoalStatus.Paused) else goal }
+        return withGoals(keep?.let { settings.copy(targets = it.second) } ?: settings, paused)
+    }
+
     /** What [Settings.weightGoal] says for [goals], given what it said before ([previous]). */
     fun mirror(goals: List<Goal>, previous: WeightGoal): WeightGoal {
         val goal = goals.firstOrNull { it.type is GoalType.Weight && it.status != GoalStatus.Done }

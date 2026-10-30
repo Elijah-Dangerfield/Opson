@@ -229,6 +229,26 @@ class GoalBookTest {
     }
 
     @Test
+    fun aBirthdayUnderEighteen_pausesWeightAndDeficitGoals_andTheTargetGoesBackToATypicalDay() {
+        val today = LocalDate(2026, 10, 30)
+        val steps = Goal("steps", GoalType.Steps(8000), start)
+        val set = GoalBook.withGoal(GoalBook.applyTarget(Settings(macroMode = MacroMode.Grams), weight), steps)
+        val adult = set.withBirthDate(LocalDate(1990, 1, 1))
+        assertTrue(GoalBook.pauseWeightPlans(adult, today) === adult, "an adult keeps every goal")
+
+        val teen = set.withBirthDate(LocalDate(2010, 1, 1))
+        val paused = GoalBook.pauseWeightPlans(teen, today)
+        val goals = GoalBook.goals(paused)
+        assertEquals(GoalStatus.Paused, goals.first { it.id == Goal.WEIGHT_ID }.status)
+        assertEquals(GoalStatus.Active, goals.first { it.id == "steps" }.status, "a steps goal isn't about weight")
+        assertNull(GoalBook.driving(paused))
+        val typicalDay = GoalTargets.aimKcal(GoalType.Weight(GoalDirection.Maintain), weight.baseline!!)
+        assertEquals(typicalDay, paused.targets.energyKcal, "a deficit no longer sets what they eat")
+        assertTrue(set.targets.energyKcal!! < typicalDay!!)
+        assertTrue(GoalBook.pauseWeightPlans(paused, today) === paused, "nothing left to pause")
+    }
+
+    @Test
     fun aLegacyGoalWithNoStartDate_countsEveryDay() {
         val old = WeightGoal(GoalDirection.Maintain, targetKg = 70.0, startKg = 70.0)
         assertEquals(LocalDate.fromEpochDays(0), GoalBook.goals(Settings(weightGoal = old)).single().startDate)

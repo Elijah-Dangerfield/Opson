@@ -57,6 +57,15 @@ class GoalEditorTest {
     }
 
     @Test
+    fun underEighteen_onlyTheGentleTypes_andNoWeeklyAverage() {
+        val teen = context(base.withBirthDate(kotlinx.datetime.LocalDate(2010, 6, 1)))
+        assertEquals(listOf(GoalKind.TrackEveryDay, GoalKind.Meals), GoalEditor.kinds(teen))
+        val draft = GoalEditor.draft(GoalFixtures.balance, null, teen)
+        assertNull(GoalEditor.view(draft, teen).kind, "a deficit picked before isn't drawn")
+        assertNull(GoalEditor.view(draft, teen).averaging)
+    }
+
+    @Test
     fun aWeightGoal_needsAGoalWeightThatPointsTheRightWay_andSetsATargetFromATypicalDay() {
         val context = context()
         val draft = reduce(context, GoalEdit.KindPicked(GoalKind.Weight), GoalEdit.TargetTyped("92"))

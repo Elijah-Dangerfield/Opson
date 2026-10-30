@@ -6,6 +6,7 @@ import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
 import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.weightPlansOff
 import com.opson.libraries.goals.GoalStatuses
 import com.opson.libraries.goals.TargetProjections
 import com.opson.libraries.goals.ui.ProjectionChartUi
@@ -188,7 +189,7 @@ object GoalEditor {
 
     /** The types a goal may be in this mode, for this person ([GoalCatalog.offered]). */
     fun kinds(context: GoalEditContext): List<GoalKind> =
-        GoalCatalog.offered(context.policy, context.settings.onboarding.hard, context.settings.bodyStage)
+        GoalCatalog.offered(context.policy, context.settings.weightPlansOff(context.today), context.settings.bodyStage)
 
     /** A draft holding [goal]'s answers, or a fresh one of [kind]. */
     fun draft(goal: Goal?, kind: GoalKind?, context: GoalEditContext): GoalDraft {
@@ -343,7 +344,7 @@ object GoalEditor {
             burn = if (kind == GoalKind.Burn) BurnPart(draft.measure, field(draft.burnText, burnRange(draft.measure))) else null,
             steps = if (kind == GoalKind.Steps) field(draft.stepsText, STEPS) else null,
             meals = if (kind == GoalKind.Meals) field(draft.mealsText, MEALS) else null,
-            averaging = draft.averaging.takeIf { setsCalories && GoalCatalog.weeklyOffered(context.policy, context.settings.onboarding.hard) },
+            averaging = draft.averaging.takeIf { setsCalories && GoalCatalog.weeklyOffered(context.policy, context.settings.weightPlansOff(context.today)) },
             toleranceKcal = draft.toleranceKcal.takeIf { setsCalories && context.calories },
             target = kcal(target?.aimKcal),
             low = kcal(target?.minKcal),

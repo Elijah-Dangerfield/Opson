@@ -13,7 +13,11 @@ import com.opson.libraries.health.HealthProfile
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.core.DeviceRegion
+import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.OnboardingAnswers
+import com.opson.libraries.goals.GoalFixtures
+import com.opson.libraries.nutrition.GoalStatus
+import opson.libraries.resources.generated.resources.profile_weight_plans_paused
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
@@ -205,6 +209,23 @@ class ProfileTest : CoroutineTest() {
         assertEquals(SexChoice.Breastfeeding, vm.state.sex)
         vm.takeAction(ProfileAction.SexPicked(SexChoice.Male))
         assertEquals(BodyStage.None, repository.state.value.bodyStage)
+    }
+
+    @Test
+    fun aBirthdayUnderEighteen_pausesAWeightGoalSetBefore_andSaysWhy() = runUnitTest {
+        val repository = FakeSettingsRepository(GoalFixtures.settings(GoalFixtures.lose, GoalFixtures.meals))
+        val vm = viewModel(repository)
+        val events = eventsOf(vm)
+
+        vm.takeAction(ProfileAction.BirthdayTyped(DateParts(day = "1", month = "6", year = "2010")))
+
+        val goals = GoalBook.goals(repository.state.value)
+        assertEquals(GoalStatus.Paused, goals.first { it.id == GoalFixtures.lose.id }.status)
+        assertEquals(GoalStatus.Active, goals.first { it.id == GoalFixtures.meals.id }.status)
+        assertEquals(listOf<ProfileEvent>(ProfileEvent.ShowToast(Toast(Res.string.profile_weight_plans_paused))), events)
+
+        vm.takeAction(ProfileAction.BirthdayTyped(DateParts(day = "2", month = "6", year = "2010")))
+        assertEquals(1, events.size, "said once")
     }
 
     @Test

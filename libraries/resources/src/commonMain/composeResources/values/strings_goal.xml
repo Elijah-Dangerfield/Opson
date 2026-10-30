@@ -176,6 +176,8 @@
 
     <!-- Profile -->
     <string name="profile_birthday">Birthday</string>
+    <!-- Toast after a birthday under 18 paused a weight or deficit goal. -->
+    <string name="profile_weight_plans_paused">Your weight goal is paused. Opson doesn't plan weight changes for anyone under 18.</string>
 
     <!-- Today, on their birthday. -->
     <string name="today_birthday_title">Happy birthday</string>
