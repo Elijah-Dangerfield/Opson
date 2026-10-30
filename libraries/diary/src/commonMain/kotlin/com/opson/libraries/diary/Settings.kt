@@ -300,6 +300,12 @@ data class Settings(
      * [celebrationStyle].
      */
     val celebrationCounts: Boolean? = null,
+    /**
+     * The kind note on Today when the log suggests a hard stretch ([HardStretch]), with ways to
+     * get support. On by default; the note and More › Support and sharing turn it off. What the
+     * note is based on is worked out on the phone and never synced; only this choice is.
+     */
+    val hardStretchNotes: Boolean = true,
 ) {
     /** [birthDate] while it agrees with [birthYear]: an older build that changed only the year leaves the day unknown. */
     val knownBirthDate: LocalDate? get() = birthDate?.takeIf { it.year == birthYear }
