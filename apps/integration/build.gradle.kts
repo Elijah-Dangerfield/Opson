@@ -82,6 +82,9 @@ kotlin {
             implementation(projects.libraries.medication)
             // release.reviewAsk and the review.* values, for ConfigManifestRegistryDriftTest.
             implementation(projects.libraries.review.impl)
+            // release.betaNotice for ConfigManifestRegistryDriftTest, and BetaMembership, which records a beta member.
+            implementation(projects.libraries.entitlements)
+            implementation(projects.libraries.entitlements.impl)
             // The upgrade.* values, and the guard the remote-config journeys drive.
             implementation(projects.features.upgrade)
             implementation(projects.features.upgrade.impl)

@@ -63,6 +63,7 @@ class AccessRoutesTest : DatabaseTest() {
             tx.exec("DELETE FROM access_audit")
             tx.exec("DELETE FROM entitlement_grants")
             tx.exec("DELETE FROM user_roles")
+            tx.exec("DELETE FROM app_config_values WHERE path = 'release.betaNotice'")
             tx.exec("UPDATE app_config_values SET value_jsonb = '[\"photo_estimate\"]'::jsonb WHERE path = 'entitlements.everyone'")
         }
     }
@@ -193,6 +194,53 @@ class AccessRoutesTest : DatabaseTest() {
 
         assertTrue(me(user).entitlements.isEmpty())
         assertEquals(HttpStatusCode.Forbidden, photo(user).status)
+    }
+
+    @Test
+    fun joiningTheBeta_isAGrantMadeOnce_thatUnlocksNothing_andOnlyWhileTheBetaIsOpen() = app {
+        val user = seedAuthUser()
+        val closed = joinBeta(user)
+        assertEquals(HttpStatusCode.Conflict, closed.status, "release.betaNotice is off until the owner turns it on")
+        assertEquals("beta_closed", json.decodeFromString<ProblemResponse>(closed.bodyAsText()).error.code)
+
+        setBeta(open = true)
+        val joined = joinBeta(user)
+        assertEquals(HttpStatusCode.Created, joined.status)
+        val since = json.decodeFromString<BetaMembershipResponse>(joined.bodyAsText()).joinedAtEpochMs
+        val again = joinBeta(user)
+        assertEquals(HttpStatusCode.OK, again.status)
+        assertEquals(since, json.decodeFromString<BetaMembershipResponse>(again.bodyAsText()).joinedAtEpochMs)
+
+        val grant = access(user).grants.single()
+        assertEquals(Triple("bundle", "beta", "beta"), Triple(grant.kind, grant.key, grant.source))
+        assertEquals(listOf("photo_estimate"), me(user).entitlements.map { it.key }, "no beta bundle, so nothing more today")
+
+        setBeta(open = false)
+        assertEquals(HttpStatusCode.OK, joinBeta(user).status, "a member stays one after the beta closes")
+        assertEquals(HttpStatusCode.Conflict, joinBeta(seedAuthUser()).status, "and nobody new joins")
+    }
+
+    @Test
+    fun aGuest_cannotJoinTheBeta() = app {
+        setBeta(open = true)
+        val guest = seedAuthUser()
+        val response = client.post("/v1/me/beta") { header(HttpHeaders.Authorization, TestJwt.bearer(guest, anonymous = true)) }
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+        assertTrue(access(guest).grants.isEmpty())
+    }
+
+    private suspend fun ApplicationTestBuilder.joinBeta(user: UserId): HttpResponse =
+        client.post("/v1/me/beta") { header(HttpHeaders.Authorization, TestJwt.bearer(user)) }
+
+    /** `release.betaNotice` for everyone, past the config cache. */
+    private fun setBeta(open: Boolean) {
+        database.blockingTransaction {
+            TransactionManager.current().exec(
+                "INSERT INTO app_config_values (path, value_jsonb) VALUES ('release.betaNotice', '$open'::jsonb) " +
+                    "ON CONFLICT (path) DO UPDATE SET value_jsonb = EXCLUDED.value_jsonb",
+            )
+        }
+        clock.instant += 31.seconds
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {

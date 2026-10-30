@@ -22,12 +22,14 @@ object TestJwt {
 
     val verification: JwtVerification = JwtVerification.Static(verifier)
 
-    fun token(userId: UserId): String = JWT.create()
+    /** [anonymous] is a guest session, as Supabase marks one with the `is_anonymous` claim. */
+    fun token(userId: UserId, anonymous: Boolean = false): String = JWT.create()
         .withIssuer(ISSUER)
         .withAudience("authenticated")
         .withSubject(userId.value.toString())
         .withExpiresAt(Date(System.currentTimeMillis() + 60_000))
+        .apply { if (anonymous) withClaim("is_anonymous", true) }
         .sign(Algorithm.HMAC256(SECRET))
 
-    fun bearer(userId: UserId): String = "Bearer ${token(userId)}"
+    fun bearer(userId: UserId, anonymous: Boolean = false): String = "Bearer ${token(userId, anonymous)}"
 }

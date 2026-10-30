@@ -38,7 +38,7 @@ class BetaReleaseFlag(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap
     // A literal on purpose: ConfigManifestRegistryDriftTest reads declared paths from source.
     override val path = "release.betaNotice"
     override val default = false
-    override val description = "The beta: Welcome says Pro isn't here yet and beta members get a lifetime discount, and accounts are recorded as beta members"
+    override val description = "The beta: Welcome says Pro isn't here yet and beta members get a lifetime discount, and accounts are recorded as beta members. Turn off when the beta ends"
 
     override fun isOn(): Boolean = value
 }

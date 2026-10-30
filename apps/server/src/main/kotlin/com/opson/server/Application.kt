@@ -252,7 +252,7 @@ fun Application.installApp(
                 component.clock,
                 component.contributionGate,
             )
-            accessRoutes(component.entitlementService)
+            accessRoutes(component.entitlementService, component.appConfigSource, component.entitlementGrantRepository)
             photoRoutes(component.photoDescriber, component.photoEstimateLimiter, component.entitlementService, component.clock)
             barcodeMissRoutes(component.barcodeMissRepository)
             exportRoutes(component.exportRepository)
