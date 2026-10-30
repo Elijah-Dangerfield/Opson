@@ -22,8 +22,12 @@ fun healthReadingsOf(days: Map<LocalDate, EnergyExpended>): HealthReadings {
     return HealthReadings(resting?.roundToInt(), activity)
 }
 
-/** The last [BurnedRepository.HEALTH_DAYS] whole days before [today], read once; none when the read fails. */
+/**
+ * The last [BurnedRepository.HEALTH_DAYS] whole days before [today], read once;
+ * [HealthReadings.Unavailable] when the read fails, so a failed read isn't taken for a store with
+ * nothing in it.
+ */
 suspend fun HealthRepository.goalReadings(today: LocalDate, timeZone: TimeZone): HealthReadings {
     val days = energyBetween(today.minus(DatePeriod(days = BurnedRepository.HEALTH_DAYS)), today.minus(DatePeriod(days = 1)), timeZone)
-    return days?.let(::healthReadingsOf) ?: HealthReadings.None
+    return days?.let(::healthReadingsOf) ?: HealthReadings.Unavailable
 }

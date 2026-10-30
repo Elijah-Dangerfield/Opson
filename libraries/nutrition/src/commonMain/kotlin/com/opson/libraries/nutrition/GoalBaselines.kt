@@ -35,15 +35,29 @@ data class BaselineInputs(
     val sex: BodySex? = null,
     val stage: BodyStage = BodyStage.None,
     val bodyFatPercent: Double? = null,
-)
+) {
+    /** Resting energy or activity came from the health app. */
+    val readsHealth: Boolean get() = restingFrom == RestingFrom.Health || activityFrom == ActivityFrom.Health
+}
 
 /**
  * What the health app has read, for a baseline: its most recent whole day's resting energy, and
  * each of the last whole days' activity (movement and workouts). Empty without one.
  */
-data class HealthReadings(val restingKcal: Int? = null, val activityKcal: List<Int> = emptyList()) {
+data class HealthReadings(
+    val restingKcal: Int? = null,
+    val activityKcal: List<Int> = emptyList(),
+    /**
+     * The store is connected but the read didn't come back (or hasn't yet). Nothing can be said
+     * about what it holds, so a goal whose typical day came from it isn't offered a new one.
+     */
+    val unavailable: Boolean = false,
+) {
     companion object {
         val None = HealthReadings()
+
+        /** [unavailable]: connected, and the read failed. */
+        val Unavailable = HealthReadings(unavailable = true)
     }
 }
 

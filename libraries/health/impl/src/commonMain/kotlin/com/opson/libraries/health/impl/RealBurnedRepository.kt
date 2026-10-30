@@ -1,5 +1,6 @@
 package com.opson.libraries.health.impl
 
+import com.opson.libraries.core.Catching
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.ExerciseRepository
 import com.opson.libraries.diary.LocalCalendar
@@ -26,6 +27,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -165,8 +167,20 @@ class RealBurnedRepository(
     private fun latestWeightKg(): Flow<Double?> =
         weights.observeWeighIns().map { weighIns -> weighIns.maxByOrNull { it.measuredAt }?.kg }.distinctUntilChanged()
 
+    /**
+     * Whether the store is connected, asked first: the status starts at NotConnected until a check
+     * runs, and a cold start that took that for an answer would read a health-based typical day as
+     * the equation's.
+     */
     private fun connected(): Flow<Boolean> =
-        if (healthFlag()) health.status.map { it == HealthStatus.Connected }.distinctUntilChanged() else flowOf(false)
+        if (healthFlag()) {
+            flow {
+                Catching { health.refresh() }
+                emitAll(health.status.map { it == HealthStatus.Connected })
+            }.distinctUntilChanged()
+        } else {
+            flowOf(false)
+        }
 
     private fun healthResting(): Flow<Int?> = connected().flatMapLatest { connected ->
         if (!connected) {
