@@ -90,6 +90,9 @@ import opson.libraries.resources.generated.resources.trends_range_month
 import opson.libraries.resources.generated.resources.trends_range_three_months
 import opson.libraries.resources.generated.resources.trends_range_week
 import opson.libraries.resources.generated.resources.trends_recap
+import opson.libraries.resources.generated.resources.trends_recaps_last_month
+import opson.libraries.resources.generated.resources.trends_recaps_last_week
+import opson.libraries.resources.generated.resources.trends_recaps_title
 import opson.libraries.resources.generated.resources.trends_recap_breakfast
 import opson.libraries.resources.generated.resources.trends_recap_breakfast_value
 import opson.libraries.resources.generated.resources.trends_recap_days
@@ -174,6 +177,7 @@ internal fun TrendsContent(
             )
         }
         state.weeklyCheck?.let { WeeklyCheckCard(it) }
+        state.recaps?.let { RecapLinksCard(it, onAction) }
         state.intake?.let { IntakeCardView(it) }
         state.week?.let { WeekDotsCard(it, onPatterns = { onAction(TrendsAction.PatternsTapped) }) }
         state.calendar?.let { CalendarCardView(it, onAction) }
@@ -344,6 +348,26 @@ private fun RecapCardView(card: RecapCard, onPatterns: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+/** Last week's and last month's recaps, each a link. */
+@Composable
+private fun RecapLinksCard(links: RecapLinks, onAction: (TrendsAction) -> Unit) {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = PaddingValues(horizontal = AppTheme.spacing.cardHorizontal, vertical = Dimension.D400),
+        verticalArrangement = Arrangement.spacedBy(Dimension.D200),
+    ) {
+        CardTitle(stringResource(Res.string.trends_recaps_title))
+        ChevronLink(
+            text = stringResource(Res.string.trends_recaps_last_week, DateCopy.range(links.week.start, links.week.end)),
+            onClick = { onAction(TrendsAction.RecapTapped(links.week)) },
+        )
+        ChevronLink(
+            text = stringResource(Res.string.trends_recaps_last_month, DateCopy.longMonth(links.month.start.month)),
+            onClick = { onAction(TrendsAction.RecapTapped(links.month)) },
+        )
     }
 }
 

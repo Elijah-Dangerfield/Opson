@@ -3,6 +3,7 @@ package com.opson.features.trends.impl
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.NewFoods
+import com.opson.libraries.diary.RecapPeriod
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.diary.WeighIn
@@ -67,6 +68,8 @@ data class TrendsInputs(
     val checkInOn: Boolean = false,
     /** When the current goal began, for the running total's "Since you started". `null` until a goal has a start date. */
     val goalStart: LocalDate? = null,
+    /** `release.recaps`: the way into last week's and last month's recaps. */
+    val recapsOn: Boolean = false,
     /** The goal setting the target, as the calendar reads it day by day; `null` without one. */
     val goal: GoalCalendar? = null,
 )
@@ -130,7 +133,12 @@ data class TrendsState(
     val calendar: OnTrackCalendar? = null,
     /** Eaten against burned, added up, beside the weight trend. */
     val runningTotal: RunningTotalCard? = null,
+    /** `release.recaps`: last week's and last month's recaps, which are over and ready to read. */
+    val recaps: RecapLinks? = null,
 )
+
+/** The last week and the last month that are over: each opens its recap. */
+data class RecapLinks(val week: RecapPeriod, val month: RecapPeriod)
 
 sealed interface RangeLabel {
     /** `Oct 19 to 25`. */
@@ -268,6 +276,7 @@ object TrendsStateBuilder {
             journal = journal?.let { TrendsJournal.journal(it, inputs.notesLinked) },
             calendar = OnTrack.calendar(inputs, policy, dayAt, { metric, day -> opens(metric, day, inputs, policy) }, ui),
             runningTotal = if (checkPending) null else RunningTotals.card(inputs, policy, dayAt, { metric, day -> opens(metric, day, inputs, policy) }, ui),
+            recaps = if (inputs.recapsOn) RecapLinks(RecapPeriod.lastWeek(inputs.today, settings.weekStart), RecapPeriod.lastMonth(inputs.today)) else null,
         )
     }
 

@@ -101,6 +101,7 @@ Surface mapping from the prototype's surface strings: `today` to `Today`;
 | `bigDayEvent` | `EventLevel { Off, Subtle, Full }` | Full | No UI in 0.1 (Reminders is 0.2), so the default holds. |
 | `theme` / `textSize` | `ThemeMode { System, Light, Dark }` / `TextSize` | System / Normal | `theme` is Appearance. 0.1 also wrote `palette`; 0.2 no longer reads or writes it (design sync 4, Slate only). |
 | `onboarding` | `OnboardingAnswers(why, feel, notice, hard)` | empty | The setup answers as option keys, written with the preset when onboarding finishes. Never in telemetry. |
+| `todayStreak`, `recapBanner`, `tips`, `suggestions` | `Boolean` | true | Things on Today someone may not want (2026-10-30): the streak in the header, "Your week is ready" (`release.recaps`), first-run tips and optional prompts. More › Today screen switches each; each also offers "I'd rather not see these" on its first five showings (`OptOuts`, `docs/practices/prompts.md`). |
 | 0.2 | `fasting`, `fastToday`, `fastPlan`, `healthToday`, `healthRows`, `healthOpen`, `quiet`, `mealReminders`, `waterReminders`, other `events` | as prototype `DEFAULTS` | Declared now so the serializer default exists, no UI. |
 
 ## `:libraries:nutrition:ui` additions

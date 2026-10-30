@@ -16,6 +16,7 @@ import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.components.PromptAction
 import com.opson.libraries.ui.components.PromptCard
+import com.opson.libraries.ui.components.PromptCardFooterLink
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonDefaults
 import com.opson.libraries.ui.components.button.FlatButtonTone
@@ -24,6 +25,8 @@ import com.opson.libraries.ui.components.icon.ToneIconSize
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.color.ToneColors
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.prompt_rather_not
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -33,37 +36,61 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * is Today's PromptCard, as the untracked-day card is.
  */
 
-/** Inside the dialog's surface. Previewed on its own, since a hosted dialog needs the app's host to draw. */
+/**
+ * Inside the dialog's surface. Previewed on its own, since a hosted dialog needs the app's host to
+ * draw. With [onTurnOff], "I'd rather not see these" goes under the two buttons.
+ */
 @Composable
-internal fun PromptDialogPanel(content: PromptContent, onAccept: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+internal fun PromptDialogPanel(
+    content: PromptContent,
+    onAccept: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    onTurnOff: (() -> Unit)? = null,
+) {
     PromptBody(
         content = content,
         onAccept = onAccept,
         onDismiss = onDismiss,
+        onTurnOff = onTurnOff,
         modifier = modifier.padding(24.dp),
     )
 }
 
 /** A sheet's content, under its grab handle. */
 @Composable
-internal fun PromptSheetContent(content: PromptContent, onAccept: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+internal fun PromptSheetContent(
+    content: PromptContent,
+    onAccept: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    onTurnOff: (() -> Unit)? = null,
+) {
     PromptBody(
         content = content,
         onAccept = onAccept,
         onDismiss = onDismiss,
+        onTurnOff = onTurnOff,
         modifier = modifier.padding(start = AppTheme.spacing.page, end = AppTheme.spacing.page, bottom = AppTheme.spacing.page),
     )
 }
 
 /** In Today's list. Not now first, as on the late-day card, so neither reads as the wrong answer. */
 @Composable
-internal fun PromptTodayCard(content: PromptContent, onAccept: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+internal fun PromptTodayCard(
+    content: PromptContent,
+    onAccept: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    onTurnOff: (() -> Unit)? = null,
+) {
     PromptCard(
         icon = content.icon,
         tone = accentTone(),
         title = stringResource(content.title),
         body = stringResource(content.body),
         modifier = modifier,
+        footer = onTurnOff?.let { turnOff -> { PromptCardFooterLink(label = stringResource(Res.string.prompt_rather_not), onClick = turnOff) } },
     ) {
         PromptAction(label = stringResource(content.dismiss), onClick = onDismiss, modifier = Modifier.weight(1f))
         PromptAction(label = stringResource(content.accept), onClick = onAccept, modifier = Modifier.weight(1f), emphasis = true)
@@ -71,7 +98,13 @@ internal fun PromptTodayCard(content: PromptContent, onAccept: () -> Unit, onDis
 }
 
 @Composable
-private fun PromptBody(content: PromptContent, onAccept: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+private fun PromptBody(
+    content: PromptContent,
+    onAccept: () -> Unit,
+    onDismiss: () -> Unit,
+    onTurnOff: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
         ToneIcon(icon = content.icon, tone = accentTone(), size = ToneIconSize.Large)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -97,6 +130,16 @@ private fun PromptBody(content: PromptContent, onAccept: () -> Unit, onDismiss: 
                 typography = AppTheme.type.button,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (onTurnOff != null) {
+                FlatButton(
+                    text = stringResource(Res.string.prompt_rather_not),
+                    onClick = onTurnOff,
+                    tone = FlatButtonTone.Text,
+                    centered = true,
+                    typography = AppTheme.type.secondaryStrong,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
@@ -143,6 +186,23 @@ private fun PromptHealthConnectSheetDarkPreview() {
 private fun PromptCheckInCardPreview() {
     PreviewLightDark {
         PromptTodayCard(PromptPreviews.checkIn, onAccept = {}, onDismiss = {})
+    }
+}
+
+/** One of the first few suggestions: the way to turn them off under the buttons. */
+@Preview(widthDp = 390)
+@Composable
+private fun PromptCheckInCardOptOutPreview() {
+    PreviewLightDark {
+        PromptTodayCard(PromptPreviews.checkIn, onAccept = {}, onDismiss = {}, onTurnOff = {})
+    }
+}
+
+@Preview(widthDp = 390)
+@Composable
+private fun PromptHealthSheetOptOutPreview() {
+    PreviewContent(backgroundColor = AppTheme.colors.bg) {
+        PromptSheetContent(PromptPreviews.healthApple, onAccept = {}, onDismiss = {}, onTurnOff = {})
     }
 }
 

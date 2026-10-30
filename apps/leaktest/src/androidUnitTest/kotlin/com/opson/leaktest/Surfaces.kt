@@ -91,6 +91,9 @@ private val closedDayOpens = Reveal.WholeSurface("Closing the day opens Later's 
 private val weekOpens = Reveal.WholeSurface(
     "Later opens the week view all day (Surface.Week). Today is left out of every average on it.",
 )
+private val monthChecked = Reveal.WholeSurface(
+    "A recap of a month that is over: every week in it has had its weekly check, so Later, weekly has opened them all.",
+)
 private val lastCheckOpens = Reveal.WholeSurface(
     "Before this week's check, Later weekly keeps last week's check readable: its daily average is the number shown.",
 )
@@ -112,12 +115,14 @@ private val typedQuickAdd = Reveal.Only(
  * that no longer exists.
  */
 internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
-    listOf("day-close", "day-close-big-day", "day-close-check-in", "day-close-closed", "day-close-streak", "day-close-recap-deficit", "day-close-recap-surplus", "day-close-goal").forEach { put("later" to it, dayCloseOpens) }
+    listOf("day-close", "day-close-big-day", "day-close-check-in", "day-close-closed", "day-close-streak", "day-close-recap-deficit", "day-close-recap-surplus", "day-close-goal", "day-close-early", "day-close-week-recap").forEach { put("later" to it, dayCloseOpens) }
     put("later" to "today-past", pastDayOpens)
     listOf("today-closed", "food-actions-closed").forEach { put("later" to it, closedDayOpens) }
     listOf("trends", "trends-blind", "trends-coast", "trends-deficit", "nutrients-week", "patterns", "patterns-blind")
         .forEach { put("later" to it, weekOpens) }
     put("later" to "trends-day", pastDayOpens)
+    listOf("recap-week", "recap-deficit", "recap-goals", "recap-month", "recap-in-progress").forEach { put("later" to it, weekOpens) }
+    put("later-weekly" to "recap-month", monthChecked)
 
     listOf("trends", "trends-blind", "trends-coast", "trends-deficit").forEach { put("later-weekly" to it, lastCheckOpens) }
 

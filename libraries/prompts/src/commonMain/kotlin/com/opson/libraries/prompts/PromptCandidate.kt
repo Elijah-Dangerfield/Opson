@@ -63,6 +63,17 @@ interface PromptCandidate {
     val sensitive: Boolean get() = false
 
     /**
+     * An offer someone can do without (connect Health, try a check-in): it shows only while
+     * suggestions are on (`Settings.suggestions`), and its first few showings offer "I'd rather
+     * not see these" ([OptOut.Suggestions]). Every dialog, sheet and card that isn't [sensitive] is
+     * one by default; a prompt that answers something the person did (their Builder application)
+     * says false.
+     */
+    val optional: Boolean
+        get() = !sensitive &&
+            (presentation == PromptPresentation.Dialog || presentation == PromptPresentation.Sheet || presentation == PromptPresentation.Card)
+
+    /**
      * Whether it makes sense now: its release flag is on, the thing is not done already. Cheap
      * reads only; it runs while Today settles, and only once every global rule has passed. A throw
      * counts as false.

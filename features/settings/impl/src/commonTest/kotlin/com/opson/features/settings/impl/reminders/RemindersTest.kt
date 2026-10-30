@@ -5,6 +5,9 @@ import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
 import com.opson.libraries.diary.EventLevel
+import com.opson.libraries.diary.HabitsSource
+import com.opson.libraries.diary.LoggingHabits
+import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.Tone
@@ -53,6 +56,43 @@ class RemindersTest : CoroutineTest() {
         assertEquals(listOf("8:30 AM", "1:00 PM", "3:30 PM", "7:15 PM"), state.meals.map { it.timeLabel })
         assertTrue(state.quiet)
         assertEquals(EventLevel.Full, state.bigDay)
+    }
+
+    private val learned = LoggingHabits(
+        usual = MealTimes(breakfast = LocalTime(7, 15), lunch = LocalTime(12, 45), snack = MealTimes.DEFAULT_SNACK, dinner = LocalTime(18, 40)),
+        learned = setOf(MealSlot.Breakfast, MealSlot.Lunch, MealSlot.Dinner),
+    )
+
+    @Test
+    fun turningRemindersOnTheFirstTime_startsFromTheTimesThisPersonUsuallyLogsAt() = runUnitTest {
+        val repository = FakeSettingsRepository(Settings())
+        val vm = RemindersViewModel(repository, FakeNotificationPermissions(), habits = HabitsSource { learned })
+        assertTrue(vm.state.timesLearned, "the rows already show the learned times")
+        assertEquals("7:15 AM", vm.state.meals.first().timeLabel)
+
+        vm.takeAction(RemindersAction.MealLevelPicked(EventLevel.Subtle))
+
+        assertEquals(learned.usual, repository.settings.value.mealTimes)
+        assertTrue(vm.state.timesLearned)
+    }
+
+    @Test
+    fun timesThePersonSetThemselves_areNeverReplaced() = runUnitTest {
+        val own = Settings(mealTimes = MealTimes(breakfast = LocalTime(9, 0)))
+        val repository = FakeSettingsRepository(own)
+        val vm = RemindersViewModel(repository, FakeNotificationPermissions(), habits = HabitsSource { learned })
+        assertFalse(vm.state.timesLearned)
+
+        vm.takeAction(RemindersAction.MealToggled(MealSlot.Breakfast))
+
+        assertEquals(own.mealTimes, repository.settings.value.mealTimes)
+    }
+
+    @Test
+    fun onceRemindersWereChosen_learningNeverMovesTheTimes() {
+        val chosen = Settings(remindersChosen = true)
+        assertEquals(null, RemindersStateBuilder.suggestedTimes(chosen, learned))
+        assertEquals(null, RemindersStateBuilder.suggestedTimes(Settings(), LoggingHabits()), "nothing learned yet")
     }
 
     @Test

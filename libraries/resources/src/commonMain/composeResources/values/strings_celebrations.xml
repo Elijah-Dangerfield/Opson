@@ -51,7 +51,7 @@
     <string name="celebrate_gentle_check_ins_7_line">You keep checking in with yourself.</string>
     <string name="celebrate_gentle_check_ins_30_line">You know your days better than you did.</string>
 
-    <!-- The buttons. The second shows on the very first celebration only. -->
+    <!-- The buttons. The second shows on the first few celebrations only (OptOuts). -->
     <string name="celebrate_can_do_this">I can do this</string>
     <string name="celebrate_rather_not">I'd rather not see these</string>
     <string name="celebrate_turned_off">Celebrations are off. Turn them back on in More.</string>
@@ -108,6 +108,9 @@
     <string name="progress_badge_reached_cd">%1$s, reached</string>
     <string name="progress_badge_ahead_cd">%1$s, ahead</string>
     <string name="progress_forgiven">One quiet day won't end a run. Two in a row start a new one.</string>
+    <!-- On the first few times Your progress opens: hides the streak in Today's header -->
+    <string name="progress_hide_streak">I'd rather not see the streak</string>
+    <string name="progress_streak_hidden">The streak is hidden. Bring it back in More › Today screen.</string>
     <string name="progress_rest">Away or taking a break? Mark the day untracked from the ⋮ menu and your run waits for you.</string>
     <string name="progress_gentle_body">You've been showing up, whatever the days looked like.</string>
     <string name="progress_gentle_counts_off">Day counts are off. You can turn them on in More, under Reminders and celebrations.</string>

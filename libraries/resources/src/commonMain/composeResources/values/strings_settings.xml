@@ -552,6 +552,15 @@
     <string name="settings_today_weight">Weight on days you weigh in</string>
     <string name="settings_today_in_header">In the header</string>
     <string name="settings_today_close_day">Wrap up the day</string>
+    <string name="settings_today_streak">Streak</string>
+    <string name="settings_today_streak_body">How many days in a row you've shown up. Tap it for Your progress.</string>
+    <string name="settings_today_now_and_then">Now and then</string>
+    <string name="settings_today_recap">Recap card</string>
+    <string name="settings_today_recap_body">“Your week is ready” on Today when a week or a month ends. Recaps stay in Trends either way.</string>
+    <string name="settings_today_suggestions">Suggestions</string>
+    <string name="settings_today_suggestions_body">Things to try, like connecting a health app or a check-in.</string>
+    <string name="settings_today_tips">Tips</string>
+    <string name="settings_today_tips_body">A short pointer the first time you see something new.</string>
     <string name="settings_today_card_from_mode">Your mode sets the card's layout.</string>
     <!-- What overrides a choice on Today screen, said under it, with the way to that setting -->
     <string name="settings_today_card_later">With calories on Later, the card uses its simpler layout. The presets need calories on Show.</string>

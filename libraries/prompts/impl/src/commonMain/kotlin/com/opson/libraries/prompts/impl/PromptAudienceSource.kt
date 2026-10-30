@@ -30,6 +30,7 @@ class LivePromptAudienceSource(
             userId = signedIn?.userId,
             onboarded = onboarded && known,
             numbersHard = settings.settings.value.onboarding.hard,
+            suggestions = settings.settings.value.suggestions,
         )
     }
 }

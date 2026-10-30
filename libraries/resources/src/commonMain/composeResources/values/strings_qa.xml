@@ -91,6 +91,7 @@
     <string name="qa_block_shown_recently">shown too recently to come back</string>
     <string name="qa_block_not_this_moment">only follows a moment, not Today opening</string>
     <string name="qa_block_numbers_hard">not offered after numbers have been hard</string>
+    <string name="qa_block_turned_off">suggestions are turned off</string>
     <string name="qa_block_shown_this_session">a prompt already showed this session</string>
     <string name="qa_block_settling_in">this account's first two days here</string>
     <string name="qa_block_prompted_recently">another prompt showed within the gap</string>

@@ -37,6 +37,8 @@ import com.opson.libraries.nutrition.RevealOn
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.prompts.OptOut
+import com.opson.libraries.prompts.OptOuts
 import com.opson.libraries.storage.Cache
 import com.opson.libraries.storage.CacheFactory
 import com.opson.libraries.storage.CacheJsonSerializer
@@ -387,5 +389,23 @@ class FakeCacheFactory : CacheFactory {
         }
 
         override suspend fun update(transform: (T) -> T): T = transform(get()).also { set(it) }
+    }
+}
+
+/** [OptOuts] in memory, counting as the real one does. */
+internal class CountingOptOuts : OptOuts {
+    val shows = mutableMapOf<OptOut, Int>()
+    val turnedOff = mutableListOf<OptOut>()
+
+    override suspend fun showing(optOut: OptOut): Boolean {
+        shows[optOut] = (shows[optOut] ?: 0) + 1
+        return offered(optOut)
+    }
+
+    override suspend fun offered(optOut: OptOut): Boolean =
+        (shows[optOut] ?: 0) in 1..OptOuts.OFFERED_SHOWINGS
+
+    override suspend fun turnOff(optOut: OptOut) {
+        turnedOff += optOut
     }
 }

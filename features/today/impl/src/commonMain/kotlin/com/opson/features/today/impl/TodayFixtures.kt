@@ -421,6 +421,9 @@ object TodayFixtures {
         burned: Burned? = null,
         closed: Boolean = false,
         celebrating: Celebrating? = null,
+        now: LocalTime? = null,
+        usualWrapUp: LocalTime? = null,
+        recapsOn: Boolean = false,
         goals: List<GoalWrapUp> = emptyList(),
     ): DayCloseState = DayCloseStateBuilder.build(
         DayCloseInputs(
@@ -430,6 +433,9 @@ object TodayFixtures {
             expended = expended,
             checkInOn = checkInOn,
             burned = burned,
+            now = now,
+            usualWrapUp = usualWrapUp,
+            recapsOn = recapsOn,
             goals = goals,
         ),
         policy,
