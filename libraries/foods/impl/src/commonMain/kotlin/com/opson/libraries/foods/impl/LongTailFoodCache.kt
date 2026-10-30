@@ -1,8 +1,10 @@
 package com.opson.libraries.foods.impl
 
 import com.opson.libraries.core.Catching
+import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.diary.LoggedFoods
 import com.opson.libraries.foods.db.FoodCacheDao
+import com.opson.libraries.networking.retry.isTransientNetworkFailure
 import com.opson.libraries.opson.UserScopedSyncer
 import kotlinx.coroutines.flow.first
 import me.tatarka.inject.annotations.Inject
@@ -17,8 +19,11 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
  * it (per 100 g and portions).
  *
  * A few foods each sync, newest first, and only the ones the phone lacks, so after the first
- * runs it asks for nothing. A food the server no longer has is not asked for again this run of
- * the app.
+ * runs it asks for nothing. A food the server says it no longer has (404 or 410), or refuses for
+ * good (another 4xx, a body that isn't a food), is not asked for again this run of the app. That
+ * is an answer, not trouble: it neither fails the sync nor logs at error, which would reach
+ * Sentry and hold back a rating ask. Only a transport failure (offline, a timeout, a 5xx) three
+ * times in a row stops the run and fails it, for the coordinator to retry.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = UserScopedSyncer::class, multibinding = true)
@@ -29,6 +34,7 @@ class LongTailFoodCache(
     private val cache: FoodCacheDao,
 ) : UserScopedSyncer {
 
+    private val logger = KLog.withTag("LongTailFoodCache")
     private val gone = mutableSetOf<String>()
 
     override suspend fun sync(): Result<Unit> = Catching {
@@ -37,26 +43,33 @@ class LongTailFoodCache(
             .filter { (id, _) -> id !in gone }
         var fetched = 0
         var failedInARow = 0
-        val failed = mutableListOf<String>()
+        var lastFailure: Throwable? = null
         for ((id, lastLoggedAt) in wanted) {
             if (fetched >= PER_SYNC || failedInARow >= FAILURES_TO_STOP) break
             if (cache.get(id) != null) continue
-            val food = api.detail(id).getOrNull()?.toDomain()
-            if (food == null) {
+            val answer = api.detailOrGone(id)
+            val failure = answer.exceptionOrNull()
+            if (failure != null && isTransientNetworkFailure(failure)) {
                 failedInARow++
-                failed += id
+                lastFailure = failure
                 continue
             }
             failedInARow = 0
+            val food = answer.getOrNull()?.toDomain()
+            if (food == null) {
+                gone += id
+                if (failure == null) {
+                    logger.i { "long-tail food is gone from the server" }
+                } else {
+                    logger.w(failure) { "long-tail food refused, not asked for again this run" }
+                }
+                continue
+            }
             cache.upsert(food.toCacheRow(lastUsedAt = lastLoggedAt, favorite = false))
             fetched++
         }
-        // A failure only means the food is gone when the server answered for others in the same run.
-        if (fetched > 0) {
-            gone += failed
-            cache.trim(keep = FoodCatalogImpl.CACHE_LIMIT)
-        }
-        check(failedInARow < FAILURES_TO_STOP) { "food details unavailable" }
+        if (fetched > 0) cache.trim(keep = FoodCatalogImpl.CACHE_LIMIT)
+        if (failedInARow >= FAILURES_TO_STOP) throw checkNotNull(lastFailure)
     }
 
     private companion object {
