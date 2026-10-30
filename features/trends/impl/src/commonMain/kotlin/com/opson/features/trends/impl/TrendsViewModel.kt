@@ -20,8 +20,6 @@ import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.nutrition.Burned
-import com.opson.libraries.nutrition.Goal
-import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -88,7 +86,7 @@ class TrendsViewModel(
             } else {
                 val from = maxOf(OnTrack.firstDay(today), goal.startDate)
                 goalRepository.days(from, today).map { byGoal ->
-                    byGoal[goal.id]?.let { days -> GoalCalendar(goal.startDate, goal.averaging == GoalAveraging.Weekly, goal.calendarDirection, days.associateBy { it.date }) }
+                    byGoal[goal.id]?.let { days -> GoalCalendar.of(goal, days) }
                 }
             }
         }.onStart { emit(null) }.distinctUntilChanged()
@@ -210,17 +208,6 @@ class TrendsViewModel(
     private fun goalStart(settings: Settings, today: LocalDate): LocalDate? =
         (GoalBook.driving(settings) ?: GoalBook.calorieGoal(settings))?.startDate?.takeIf { it <= today }
             ?: settings.weightGoal.startDate?.takeIf { it <= today }
-
-    /** Which way the goal points, in the calendar's words. */
-    private val Goal.calendarDirection: GoalDirection
-        get() {
-            val delta = type.deltaKcal ?: 0
-            return when {
-                delta < 0 -> GoalDirection.Lose
-                delta > 0 -> GoalDirection.Gain
-                else -> GoalDirection.Hold
-            }
-        }
 
     private class Records(val today: LocalDate, val days: List<Day>, val weighIns: List<WeighIn>)
 

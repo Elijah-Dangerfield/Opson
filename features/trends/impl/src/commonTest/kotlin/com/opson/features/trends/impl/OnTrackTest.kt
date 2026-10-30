@@ -10,7 +10,10 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsCards
 import com.opson.libraries.nutrition.DayGoal
 import com.opson.libraries.nutrition.DayGroup
+import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.GoalDay
+import com.opson.libraries.nutrition.GoalVerdict
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.PresetId
@@ -193,6 +196,44 @@ class OnTrackTest {
         val day = inputs.days.single { it.date == MONDAY }
         val goal = inputs.settings.targets.rangeFor(MONDAY, PresetId.Full, inputs.burnedByDay?.get(MONDAY)?.totalKcal)
         assertEquals(OnTrack.standing(day.totals().kcal.known, goal), monday.standing)
+    }
+
+    @Test
+    fun withAGoal_daysFromItsStartAreJudgedByTheGoalsOwnBand() {
+        val plain = TrendsFixtures.trendsInputs()
+        val monday = plain.days.single { it.date == MONDAY }
+        val eaten = monday.totals().kcal.known
+        // Under a weekly average the week asked more of Monday: its band sits 200 to 400 above what was eaten.
+        val band = GoalDay(MONDAY, GoalVerdict.Near, targetKcal = (eaten + 300).toInt(), minKcal = (eaten + 200).toInt(), maxKcal = (eaten + 400).toInt())
+        val inputs = plain.copy(goal = GoalCalendar(start = MONDAY, weekly = true, direction = GoalDirection.Lose, days = mapOf(MONDAY to band)))
+        val calendar = assertNotNull(TrendsStateBuilder.build(inputs, TrendsFixtures.policy()).calendar)
+        val cell = calendar.shown.cells.filterNotNull().single { it.date == MONDAY }
+        assertEquals(PlanStanding.ABitUnder, cell.standing)
+        assertEquals(PlanTone.Near, cell.tone)
+        assertEquals(GoalDirection.Lose, calendar.direction)
+        assertEquals(MONDAY, calendar.goalSince)
+        assertEquals(true, calendar.goalWeekly)
+        // The day's sheet agrees with its cell, and names the band the goal judged it by.
+        val sheet = TrendsDayStateBuilder.build(monday, TODAY, inputs.settings, TrendsFixtures.policy(), null, inputs.goal)
+        assertEquals(cell.standing, sheet.standing)
+        assertEquals(cell.tone, sheet.tone)
+        assertEquals(band.minKcal, sheet.goal.let { (it as Display.Shown).text }.substringBefore(" ").replace(",", "").toInt())
+        // The day before the goal began reads the plan as it did.
+        val sunday = MONDAY.plusDays(-1)
+        assertEquals(
+            assertNotNull(TrendsStateBuilder.build(plain, TrendsFixtures.policy()).calendar).shown.cells.filterNotNull().single { it.date == sunday },
+            calendar.shown.cells.filterNotNull().single { it.date == sunday },
+        )
+    }
+
+    @Test
+    fun withAGoal_theLoggedOnlyCalendarStaysWithoutAmounts() {
+        val inputs = TrendsFixtures.trendsInputs().let {
+            it.copy(goal = GoalCalendar(start = MONDAY, weekly = false, direction = GoalDirection.Lose, days = mapOf(MONDAY to GoalDay(MONDAY, GoalVerdict.Met, 2000, 1900, 2100))))
+        }
+        val calendar = assertNotNull(TrendsStateBuilder.build(inputs, TrendsFixtures.policy(PresetId.NoNumbers)).calendar)
+        assertNull(calendar.goalSince)
+        assertEquals(PlanTone.Logged, calendar.shown.cells.filterNotNull().single { it.date == MONDAY }.tone)
     }
 
     @Test
