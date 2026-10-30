@@ -661,11 +661,38 @@ class AdminApi(
     suspend fun foodReports(foodId: String): FoodReportFoodDto =
         client.get("$base/v1/admin/food-reports/foods/${encode(foodId)}") { auth() }.require()
 
-    /** A report's label photo, as bytes for a blob URL, like [submissionPhoto]. */
-    suspend fun foodReportPhoto(id: String): ByteArray =
-        client.get("$base/v1/admin/food-reports/${encode(id)}/photo") { auth() }
+    /** A report's photo, `front` or `label`, as bytes for a blob URL, like [submissionPhoto]. */
+    suspend fun foodReportPhoto(id: String, kind: String = "label"): ByteArray =
+        client.get("$base/v1/admin/food-reports/${encode(id)}/photo?kind=${encode(kind)}") { auth() }
             .also { it.requireOk() }
             .readRawBytes()
+
+    suspend fun listFoodVerifications(status: String = "open", limit: Int = 50): FoodVerificationQueueDto =
+        client.get("$base/v1/admin/food-verifications?status=${encode(status)}&limit=$limit") { auth() }.require()
+
+    /** A verification's photo, `front` or `label`, as bytes for a blob URL. */
+    suspend fun foodVerificationPhoto(id: String, kind: String): ByteArray =
+        client.get("$base/v1/admin/food-verifications/${encode(id)}/photos/${encode(kind)}") { auth() }
+            .also { it.requireOk() }
+            .readRawBytes()
+
+    /** Stands behind it; [values] lay a correction over the same food. */
+    suspend fun acceptFoodVerification(id: String, values: CorrectionValuesDto?): FoodVerificationDto =
+        client.post("$base/v1/admin/food-verifications/${encode(id)}/accept") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(AcceptVerificationDto(values))
+        }.require()
+
+    suspend fun rejectFoodVerification(id: String, reason: String?): FoodVerificationDto =
+        client.post("$base/v1/admin/food-verifications/${encode(id)}/reject") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(RejectVerificationDto(reason))
+        }.require()
+
+    suspend fun reviewerCounts(days: Int = 30): ReviewerCountsDto =
+        client.get("$base/v1/admin/food-review/reviewers?days=$days") { auth() }.require()
 
     suspend fun acceptFoodReports(foodId: String, reportIds: List<String>, values: CorrectionValuesDto): FoodCorrectionDto =
         client.post("$base/v1/admin/food-reports/foods/${encode(foodId)}/accept") {

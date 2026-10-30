@@ -203,7 +203,9 @@ object ServedFood {
         val corrected = correction?.applyTo(stored) ?: stored
         val portioned = Portions.served(corrected)
         val guarded = if (correction?.values?.kcal != null) portioned else FoodEnergy.served(portioned)
-        return guarded.copy(checked = FoodCheck.checked(stored, correction, verified))
+        val checked = FoodCheck.checked(stored, correction, verified)
+        // The same object when nothing changes: the guard hands back its input untouched.
+        return if (guarded.checked == checked) guarded else guarded.copy(checked = checked)
     }
 }
 

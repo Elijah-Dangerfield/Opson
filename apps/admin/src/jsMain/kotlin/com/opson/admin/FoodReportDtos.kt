@@ -81,7 +81,13 @@ data class FoodReportDto(
     val resolution: String? = null,
     val correctionId: String? = null,
     val duplicateOf: String? = null,
-)
+    /** Every reason picked, [reason] first; empty from a server before V33. */
+    val reasons: List<String> = emptyList(),
+    val hasFrontPhoto: Boolean = false,
+) {
+    /** What the person picked, from any server. */
+    val allReasons: List<String> get() = reasons.ifEmpty { listOf(reason) }
+}
 
 @Serializable
 data class FoodCorrectionDto(
@@ -127,3 +133,71 @@ internal data class AcceptReportsDto(val reportIds: List<String>, val values: Co
 
 @Serializable
 internal data class CloseReportsDto(val reportIds: List<String>, val reason: String? = null, val duplicateOf: String? = null)
+
+/*
+ * `/v1/admin/food-verifications` and `/v1/admin/food-review/reviewers`, mirrored from the server's
+ * `FoodVerificationAdminRoutes.kt` and `FoodVerificationJson.kt`.
+ */
+
+/** What a Builder says is right, for its basis ([basisLabel], [basisGrams]). */
+@Serializable
+data class VerificationValuesDto(
+    val name: String? = null,
+    val brand: String? = null,
+    val barcode: String? = null,
+    val basisLabel: String? = null,
+    val basisGrams: Double? = null,
+    val kcal: Double? = null,
+    val protein: Double? = null,
+    val carbs: Double? = null,
+    val fat: Double? = null,
+    val servingLabel: String? = null,
+    val servingGrams: Double? = null,
+)
+
+@Serializable
+data class FoodVerificationDto(
+    val id: String,
+    val foodId: String,
+    val userId: String,
+    val createdAtEpochMs: Long,
+    val outcome: String,
+    val grounded: Int = 0,
+    val groundable: Int = 0,
+    val status: String? = null,
+    val wrong: List<String> = emptyList(),
+    val missing: List<String> = emptyList(),
+    val values: VerificationValuesDto? = null,
+    val valuesPer100: CorrectionValuesDto? = null,
+    val note: String? = null,
+    val snapshot: SnapshotDto? = null,
+    val now: FoodNowDto? = null,
+    val hasFrontPhoto: Boolean = false,
+    val hasLabelPhoto: Boolean = false,
+    val resolvedAtEpochMs: Long? = null,
+    val resolvedBy: String? = null,
+    val resolution: String? = null,
+    val correctionId: String? = null,
+)
+
+@Serializable
+data class FoodVerificationQueueDto(val open: Long, val verifications: List<FoodVerificationDto> = emptyList())
+
+@Serializable
+internal data class AcceptVerificationDto(val values: CorrectionValuesDto? = null, val note: String? = null)
+
+@Serializable
+internal data class RejectVerificationDto(val reason: String? = null)
+
+@Serializable
+data class ReviewerCountDto(
+    val reviewer: String,
+    val reportsAccepted: Int = 0,
+    val reportsRejected: Int = 0,
+    val reportsDuplicate: Int = 0,
+    val verificationsAccepted: Int = 0,
+    val verificationsRejected: Int = 0,
+)
+
+@Serializable
+data class ReviewerCountsDto(val days: Int, val reviewers: List<ReviewerCountDto> = emptyList())

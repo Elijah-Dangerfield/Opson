@@ -50,8 +50,10 @@ private const val REASONS_IN_ROW = 2
  * joins search and barcode lookup for everyone) or reject with a reason and a code. The Audits tab
  * lists auto-approvals picked for a person to pass or fail.
  *
- * Below them, reports on foods already in the catalog ([FoodReportsView]): "Report a problem" from
- * any food's detail, and the server's own energy check.
+ * Below them, the database cleanup on foods already in the catalog: Builders' verifications that
+ * need a person ([FoodVerificationsView]), reports ([FoodReportsView]: "Report a problem" from any
+ * food's detail, and the server's own energy check), and how many each reviewer decided
+ * ([ReviewerCountsView]).
  *
  * The photos never have a URL anyone else could open: they are fetched with the admin token and
  * shown through a blob URL that lives in this tab. Grafana's review board links here as
@@ -107,7 +109,10 @@ internal fun ReviewView(ctx: AdminCtx, openId: String?) {
         SubmissionPanel(ctx, id, onDecided = { selected = null; refresh++ })
     }
 
+    // Database cleanup: Builders' verifications and reports both fix foods already in the catalog.
+    FoodVerificationsView(ctx, refresh, onDecided = { refresh++ })
     FoodReportsView(ctx, refresh)
+    ReviewerCountsView(ctx, refresh)
 
     BarcodeLinks(ctx, links, onDecided = { refresh++ })
 }

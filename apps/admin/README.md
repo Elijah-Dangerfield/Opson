@@ -131,16 +131,31 @@ way.
   Grafana Food review board links here. Server side it's
   `/v1/admin/food-submissions` and `/v1/admin/barcode-links`.
 
+  Then the database cleanup, foods already in the catalog. **Builders'
+  verifications** first: a Builder checked a food against its pack and said
+  something was wrong, or the label's text did not show its numbers. Oldest
+  first, each with what they flagged ("Calories wrong", "Ingredients or
+  allergens missing") and how long it has waited. One opens with the food as
+  served now beside what the Builder read (per 100 g), their note, a barcode
+  on the pack that differs from the food's, and the front and label photos.
+  *Accept as it is* marks the food Verified; with values changed, *Accept with
+  correction* lays a correction over the same food first. Either counts toward
+  the Builder's Pro. *Reject* changes nothing. Server side it's
+  `/v1/admin/food-verifications`.
+
   Then **Reports on foods**: "Report a problem" from any food's detail
   (`release.foodReports`) and the server's own energy check, grouped per
   food, most reported first, then oldest. A food opens with what it is served
-  as now beside every suggestion (per 100 g, as accepting stores it), the
-  label photos and the notes. *Accept* writes a correction, prefilled with the
+  as now beside every suggestion (per 100 g, as accepting stores it), every
+  reason each person picked, the front and label photos and the notes. *Accept* writes a correction, prefilled with the
   newest suggestion from a person and editable, that is laid over the
   source's data, so a re-import never undoes it; *Undo* in the food's
   correction history takes it back. *Reject* and *Duplicate* close the
   reports and change nothing. Server side it's `/v1/admin/food-reports` and
-  `/v1/admin/food-corrections`.
+  `/v1/admin/food-corrections`. Last, **Decided in the last 30 days**: every
+  reviewer's accepted, rejected and duplicate counts on reports and
+  verifications (`/v1/admin/food-review/reviewers`); the Builders board in
+  Grafana has the same over time.
 - **Builders.** Applications to Opson Builders, oldest first, with the count
   waiting on the tab. Each shows what they wrote about why they want to help,
   how often they buy packaged food, their label region and photo choice, and
