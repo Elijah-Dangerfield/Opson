@@ -7,6 +7,7 @@ import com.opson.libraries.core.DeviceRegion
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.core.logging.logEvent
+import com.opson.libraries.diary.weightPlansOff
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.PlanCommitment
 import com.opson.libraries.diary.Settings
@@ -163,7 +164,7 @@ class GoalSetupViewModel(
         val policy = policy ?: return this
         val context = PlanContext(
             today = calendar.today(),
-            hard = settings.onboarding.hard,
+            hard = settings.weightPlansOff(calendar.today()),
             policy = policy,
             fresh = false,
             health = health,

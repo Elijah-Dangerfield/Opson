@@ -50,6 +50,13 @@ import kotlinx.coroutines.test.runCurrent
 @OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingViewModelTest : CoroutineTest() {
 
+    private companion object {
+        // FixedCalendar's day is 2026-10-25.
+        val ADULT = kotlinx.datetime.LocalDate(1990, 4, 18)
+        val SIXTEEN = kotlinx.datetime.LocalDate(2010, 1, 5)
+        val FOURTEEN = kotlinx.datetime.LocalDate(2012, 3, 2)
+    }
+
     private val events = RecordingTree()
 
     @AfterTest
@@ -137,19 +144,100 @@ class OnboardingViewModelTest : CoroutineTest() {
     // ---------- Welcome ----------
 
     @Test
-    fun getStarted_opensSignIn_andBackReturnsToWelcome() = runUnitTest {
+    fun getStarted_asksTheBirthday_thenSignIn_andBackWalksBack() = runUnitTest {
         KLog.plant(events)
         val vm = newVm()
 
         vm.takeAction(OnboardingAction.GetStartedTapped)
         runCurrent()
+        assertEquals(OnboardingStep.Age, vm.state.step)
+
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+        assertEquals(OnboardingStep.Age, vm.state.step, "Continue waits for a birthday")
+
+        vm.takeAction(OnboardingAction.AgeAnswered(ADULT))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
         assertEquals(OnboardingStep.SignIn, vm.state.step)
         assertTrue(vm.state.canTapSignIn)
+        assertEquals(ADULT, vm.state.plan.body.birthDate, "the profile step starts with it")
 
         vm.takeAction(OnboardingAction.Back)
         runCurrent()
+        assertEquals(OnboardingStep.Age, vm.state.step)
+        vm.takeAction(OnboardingAction.Back)
+        runCurrent()
         assertEquals(OnboardingStep.Welcome, vm.state.step)
-        assertEquals(listOf("welcome", "sign_in", "welcome"), events.steps())
+        assertEquals(listOf("welcome", "age", "sign_in", "age", "welcome"), events.steps())
+    }
+
+    // ---------- The age gate ----------
+
+    @Test
+    fun underSixteen_makesNoAccount_hasNoWayBack_andSendsNothing() = runUnitTest {
+        KLog.plant(events)
+        val cache = FakeAppCache()
+        val auth = FakeAuthRepository()
+        val vm = newVm(cache = cache, auth = auth)
+        vm.takeAction(OnboardingAction.GetStartedTapped)
+        vm.takeAction(OnboardingAction.AgeAnswered(FOURTEEN))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+
+        assertEquals(OnboardingStep.TooYoung, vm.state.step)
+        assertFalse(vm.state.canGoBack)
+        assertNull(vm.state.ageAnswer, "the birthday isn't kept")
+        assertEquals("2028-03-02", cache.get().ageGateOpensOn, "only the day the gate opens")
+
+        vm.takeAction(OnboardingAction.Back)
+        vm.takeAction(OnboardingAction.SignInWithGoogleTapped)
+        runCurrent()
+        assertEquals(OnboardingStep.TooYoung, vm.state.step)
+        assertEquals(0, auth.oauthSignInCalls, "no account is made")
+        assertEquals(listOf("welcome", "age"), events.steps(), "nothing is sent about someone this young")
+    }
+
+    @Test
+    fun aClosedGate_staysClosedOnThisPhone_untilTheirSixteenthBirthday() = runUnitTest {
+        val closed = newVm(cache = FakeAppCache(initial = AppData(ageGateOpensOn = "2026-10-26")))
+        runCurrent()
+        assertEquals(OnboardingStep.TooYoung, closed.state.step)
+
+        val signInFirst = newVm(cache = FakeAppCache(initial = AppData(ageGateOpensOn = "2026-10-26")), route = OnboardingRoute(signInFirst = true))
+        runCurrent()
+        assertEquals(OnboardingStep.TooYoung, signInFirst.state.step)
+
+        val open = newVm(cache = FakeAppCache(initial = AppData(ageGateOpensOn = "2026-10-25")))
+        runCurrent()
+        assertEquals(OnboardingStep.Welcome, open.state.step, "the gate opens on the birthday itself")
+    }
+
+    @Test
+    fun aGuestFromAnOlderBuild_skipsTheBirthday() = runUnitTest {
+        val vm = newVm(auth = FakeAuthRepository(initialAuthState = sampleAnonymousGuest))
+        runCurrent()
+        vm.takeAction(OnboardingAction.GetStartedTapped)
+        runCurrent()
+        assertEquals(OnboardingStep.SignIn, vm.state.step)
+    }
+
+    @Test
+    fun sixteenOrSeventeen_getsTheGentlePath_andCelebrationsWithoutCounts() = runUnitTest {
+        val vm = newVm(setupSteps = true)
+        vm.takeAction(OnboardingAction.GetStartedTapped)
+        vm.takeAction(OnboardingAction.AgeAnswered(SIXTEEN))
+        vm.takeAction(OnboardingAction.ContinueTapped)
+        runCurrent()
+
+        assertEquals(OnboardingStep.SignIn, vm.state.step)
+        assertTrue(vm.state.olderTeen)
+        assertTrue(vm.state.planContext(OnboardingFixtures.policy(PresetId.Full)).hard, "no weights, goals or deficits")
+        val saved = com.opson.libraries.diary.Settings().withAgeAnswer(SIXTEEN, FixedCalendar.today())
+        assertEquals(SIXTEEN, saved.knownBirthDate)
+        assertEquals(false, saved.celebrationCounts)
+        val adult = com.opson.libraries.diary.Settings().withAgeAnswer(ADULT, FixedCalendar.today())
+        assertNull(adult.celebrationCounts)
     }
 
     @Test
@@ -283,7 +371,7 @@ class OnboardingViewModelTest : CoroutineTest() {
     }
 
     @Test
-    fun backDuringAGoogleRoundTrip_returnsToWelcome_andForgetsIt() = runUnitTest {
+    fun backDuringAGoogleRoundTrip_returnsToTheBirthday_andForgetsIt() = runUnitTest {
         val vm = atSignIn(auth = FakeAuthRepository(googleGate = CompletableDeferred()))
         vm.takeAction(OnboardingAction.SignInWithGoogleTapped)
         runCurrent()
@@ -291,7 +379,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         vm.takeAction(OnboardingAction.Back)
         runCurrent()
 
-        assertEquals(OnboardingStep.Welcome, vm.state.step)
+        assertEquals(OnboardingStep.Age, vm.state.step)
         assertNull(vm.state.accountInFlight)
     }
 
@@ -836,6 +924,8 @@ class OnboardingViewModelTest : CoroutineTest() {
     ): OnboardingViewModel {
         val vm = newVm(cache = cache, auth = auth, classifier = classifier, appleCoordinator = appleCoordinator, settings = settings)
         vm.takeAction(OnboardingAction.GetStartedTapped)
+        vm.takeAction(OnboardingAction.AgeAnswered(ADULT))
+        vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
         check(vm.state.step == OnboardingStep.SignIn) { "expected the sign-in step, was ${vm.state.step}" }
         return vm
