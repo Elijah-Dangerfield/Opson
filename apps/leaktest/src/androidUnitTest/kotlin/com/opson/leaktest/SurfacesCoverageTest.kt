@@ -108,7 +108,7 @@ class SurfacesCoverageTest {
                 "today-day-menu", "today-day-menu-armed", "calendar", "meal-note",
                 "water-sheet", "item-sheet", "day-note", "day-close", "day-close-big-day",
                 "today-timer-ended", "today-timer-waiting",
-                "today-expended", "today-exercise", "today-activity", "today-activity-health",
+                "today-expended", "today-exercise", "today-activity", "today-activity-health", "today-activity-steps",
                 "today-summary", "today-macros", "today-sticky", "today-weight", "today-select",
                 "today-select-remove", "today-swipe-delete", "today-delete-confirm", "day-close-check-in",
                 "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
