@@ -101,6 +101,14 @@ interface Colors {
     /** The on-track calendar's day fills ([PlanColors]). Nothing else means on or off plan. */
     val plan: PlanColors
 
+    /**
+     * Opson Builders: the program's own color, on what only a Builder sees (Verify this food, the
+     * Builders tiles) and on the Verified badge they earn a food. [onBuilder] is text on a
+     * [ToneColors.content] fill. Nothing else uses it.
+     */
+    val builder: ToneColors
+    val onBuilder: ColorResource
+
     fun nutrient(tone: NutrientTone): ToneColors = when (tone) {
         NutrientTone.Protein -> nutrients.protein
         NutrientTone.Carbs -> nutrients.carbs
@@ -199,6 +207,8 @@ private class AppColors(
 
     override val nutrients = scheme.nutrients
     override val plan = scheme.plan
+    override val builder = scheme.builder
+    override val onBuilder = named(scheme.onBuilder, "on-builder")
 
     override val accentPrimary = accent
     override val onAccentPrimary = onAccent

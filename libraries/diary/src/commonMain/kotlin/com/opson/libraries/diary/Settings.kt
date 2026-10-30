@@ -7,6 +7,7 @@ import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.EverydayActivity
 import com.opson.libraries.nutrition.ExerciseAdjustment
 import com.opson.libraries.nutrition.FastingPlan
+import com.opson.libraries.nutrition.Goal
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.MicroReferences
 import com.opson.libraries.nutrition.Micronutrient
@@ -241,13 +242,21 @@ data class Settings(
     val everydayActivity: EverydayActivity = EverydayActivity.Default,
 
     /**
-     * The weight goal, set in onboarding or the goal flow Today offers: which way, the target and
-     * pace, where it started, and the aim it last wrote to [targets] ([WeightGoal.drives]). One
-     * top-level object, so the server's one-level merge replaces it whole, and never null, so
-     * clearing it reaches the server.
+     * The weight goal as builds before goals v2 read it: which way, the target and pace, where it
+     * started, and the aim it last wrote to [targets] ([WeightGoal.drives]). [goals] is the source
+     * now; [GoalBook] keeps this in step with it on every write. One top-level object, so the
+     * server's one-level merge replaces it whole, and never null, so clearing it reaches the server.
      */
     @Serializable(with = WeightGoalSerializer::class)
     val weightGoal: WeightGoal = WeightGoal.None,
+    /**
+     * Every goal (docs/plans/goals-v2.md): weight, a set energy balance, burn, steps, tracking
+     * every day, meals. Null until a build that knows goals saves them; read them through
+     * [GoalBook.goals] ([allGoals]), which migrates [weightGoal] until then and folds back a
+     * [weightGoal] an older build changed. A top-level key; written whole.
+     */
+    @Serializable(with = GoalsSerializer::class)
+    val goals: List<Goal>? = null,
     /**
      * The last step of setting a goal: "I'm committed", or "Not now", and when. Nothing changes
      * with the answer; Close the day and celebrations may mention it. Null until that step is reached.
@@ -403,6 +412,9 @@ data class Settings(
     /** Stars [foodKey], or takes the star off. */
     fun toggleFavorite(foodKey: String): Settings =
         copy(favoriteFoods = if (isFavorite(foodKey)) favoriteFoods - foodKey else listOf(foodKey) + favoriteFoods)
+
+    /** Stars [foodKey] when [on], or takes the star off; doing what is already done changes nothing (an Undo after a second tap). */
+    fun setFavorite(foodKey: String, on: Boolean): Settings = if (isFavorite(foodKey) == on) this else toggleFavorite(foodKey)
 
     /** Takes [foodKey] off Recent as of [atEpochMs]; logging it after that brings it back. */
     fun hideFromRecent(foodKey: String, atEpochMs: Long): Settings =

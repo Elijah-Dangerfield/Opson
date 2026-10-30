@@ -143,4 +143,77 @@
     <string name="today_birthday_title">Happy birthday</string>
     <string name="today_birthday_body">Hope it's a good one. Log only if you feel like it.</string>
     <string name="today_birthday_dismiss">Thanks</string>
+
+    <!--
+      Goals v2 (docs/plans/goals-v2.md). Pace notes: shown under a pace on the goal flow and on
+      Targets. TODO(clinician): the tiers and the fat-loss limit behind them.
+    -->
+    <string name="pace_gentle">Gentle pace</string>
+    <string name="pace_steady">Steady pace</string>
+    <string name="pace_faster">Faster than most guidance. Consider talking to a doctor before going this fast.</string>
+    <string name="pace_above_limit">Above your estimated fat-loss limit. More of this would likely come from muscle.</string>
+    <string name="pace_info_cd">How fast is right</string>
+    <string name="pace_info_title">How fast is right</string>
+    <string name="pace_info_body">Most guidance suggests losing about 0.5 to 1% of your body weight a week. Faster is harder to keep up, and more of what you lose can be muscle.</string>
+    <string name="pace_info_limit_body">Your body can only draw so much energy from fat in a day: about 31 calories for each pound of fat, or 69 for each kilogram (Alpert, 2005). A bigger daily deficit is likely met partly from muscle.</string>
+    <string name="pace_info_limit">Your estimated limit: about %1$s a day</string>
+    <string name="pace_info_limit_estimated">This uses an estimate of your body fat from your height, weight and age. Add your body fat on Profile for a closer number.</string>
+    <string name="pace_info_limit_none">Add your height and birthday on Profile, or your body fat, to see your own limit.</string>
+    <string name="pace_info_close">Got it</string>
+
+    <!-- Targets, while a goal sets the target: read-only, with Change. -->
+    <string name="targets_goal_driving_balance">Set from your energy goal</string>
+    <string name="targets_goal_balance_under">%1$s a day under what you burn</string>
+    <string name="targets_goal_balance_over">%1$s a day over what you burn</string>
+    <string name="targets_goal_target">%1$s a day</string>
+    <string name="targets_goal_band">On track from %1$s to %2$s</string>
+    <string name="targets_goal_under">About %1$s under a typical day's total burned (TDEE)</string>
+    <string name="targets_goal_over">About %1$s over a typical day's total burned (TDEE)</string>
+    <string name="targets_goal_weekly">Averaged over the week</string>
+    <string name="targets_goal_change_target">Change</string>
+    <string name="targets_goal_paused">Your weight goal is paused</string>
+    <string name="targets_goal_paused_body">It isn't setting this target. Use my goal to pick it up again.</string>
+
+    <!-- Change on a goal's target. -->
+    <string name="targets_change_title">Change your target?</string>
+    <string name="targets_change_body">Your goal sets this target. Edit the goal and the target follows it. Or set your own target: the goal stays, but stops setting it.</string>
+    <string name="targets_change_edit_goal">Edit my goal</string>
+    <string name="targets_change_own">Set my own target</string>
+    <string name="targets_change_cancel">Cancel</string>
+
+    <!-- An edit to an own target that points against the goal. -->
+    <string name="targets_against_lose_title">This target is above what you burn</string>
+    <string name="targets_against_lose_body">Your goal is to lose weight, and eating at this target would do the opposite. Continue and your goal is paused until you pick it up again.</string>
+    <string name="targets_against_gain_title">This target is under what you burn</string>
+    <string name="targets_against_gain_body">Your goal is to gain weight, and eating at this target would do the opposite. Continue and your goal is paused until you pick it up again.</string>
+    <string name="targets_against_keep_title">This target is far from what you burn</string>
+    <string name="targets_against_keep_body">Your goal is to keep your weight steady, and this target would move it. Continue and your goal is paused until you pick it up again.</string>
+    <string name="targets_against_continue">Pause goal and continue</string>
+    <string name="targets_against_cancel">Keep my goal</string>
+
+    <!-- Something a goal's target is worked out from changed. -->
+    <string name="goal_recalc_title">Your goal's target can be updated</string>
+    <string name="goal_recalc_body">Something your goal's target is worked out from has changed.</string>
+    <string name="goal_recalc_numbers">%1$s a day now, %2$s a day with the update</string>
+    <string name="goal_recalc_new">%1$s a day with the update</string>
+    <string name="goal_recalc_accept">Use the new target</string>
+    <string name="goal_recalc_keep">Keep my current target</string>
+    <string name="goal_recalc_resting_source">Resting energy comes from somewhere new</string>
+    <string name="goal_recalc_own_resting">You entered a new resting energy</string>
+    <string name="goal_recalc_resting">Your health app's resting energy changed</string>
+    <string name="goal_recalc_activity_source">Your activity comes from somewhere new</string>
+    <string name="goal_recalc_activity_level">You picked a different everyday activity</string>
+    <string name="goal_recalc_activity">Your health app's activity changed over the last week</string>
+    <string name="goal_recalc_digesting">Count digesting food was switched</string>
+    <string name="goal_recalc_weight">Your weight changed</string>
+    <string name="goal_recalc_height">Your height changed</string>
+    <string name="goal_recalc_age">Your age changed</string>
+    <string name="goal_recalc_sex">Sex for the estimate changed</string>
+    <string name="goal_recalc_stage">Pregnancy or breastfeeding changed</string>
+    <string name="goal_recalc_body_fat">Your body fat changed</string>
+    <string name="goal_recalc_unknown">Your details changed since the goal was set</string>
+    <string name="goal_recalc_details">Your details are in, so your goal can set a target</string>
+    <string name="prompt_goal_recalc_title">Your goal's target can be updated</string>
+    <string name="prompt_goal_recalc_body">Something it's worked out from has changed. See the new number and choose.</string>
+    <string name="prompt_goal_recalc_accept">Take a look</string>
 </resources>

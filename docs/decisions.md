@@ -6,6 +6,45 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-30: What "verified" means, and Builders' verifications go to a reviewer with their photos
+
+**Decision:** a food is *checked* (the app's Verified mark) when a person
+checked it against its pack or a reviewer stood behind it: a Builder's
+verification confirmed by the label's text or accepted by a reviewer, a live
+reviewer's correction, or a food someone added that a reviewer approved. The
+server works it out as it serves a food (`FoodCheck`, beside the corrections
+overlay) and sends `checked: true`, leaving the field out otherwise. The older
+`verified` flag (an accountable source, tiers 1 to 3) keeps its meaning for
+ranking. USDA's and NEVO's reference rows are never checked: there is no pack.
+A Builder's verification that says "Something was wrong" (which fields were
+wrong or missing, the right values, a note), or whose label text did not show
+the numbers while they sent photos, is kept with its front and label photos
+and the food as they saw it, and waits in the console's Review area beside
+reports. Accepting it can lay a correction over the existing food (the V29
+overlay, never a new food) and counts toward Builder Pro; photos go 30 days
+after the decision, like report photos. Reports take several reasons at once,
+including "missing information", and a front photo beside the label.
+
+In the app, Builders get a color of their own (`AppTheme.colors.builder`, an
+indigo nothing else uses) and a mark (`AppIcons.Builder`), on what only they
+see (Verify this food on a detail, Verify a food on the + sheet and the Foods
+tab) and on the Verified badge. Verify is never in a menu and never offered
+for a verified food or generic data. The label is read on the phone, the same
+`PhoneLabelReader` as Add a packaged food; nothing on the server reads it.
+
+**Alternatives:** storing a `checked` column on `foods`; rejected because
+`off_foods` is swapped monthly and a column cannot follow a rollback or a
+reverted correction without a job. Counting USDA's generic rows as verified;
+rejected because the owner's ask is "checked by a person against the package",
+and a Builder can't check an apple. Keeping V31's rule that a check keeps no
+photo and a mismatch is filed as a report; rejected because a reviewer then
+has to find the food again from a report with one photo, where the
+verification already names the food and the fields.
+
+**Why:** the owner could not see whether a food had been checked, and asked
+for review to be about cleaning up the existing entry rather than judging a
+new one.
+
 ## 2026-10-30: No server AI in v1; labels are read on the phone and a person reviews weekly
 
 **Decision:** the server calls no model unless `AI_CALLS_ENABLED=true` is set
@@ -30,6 +69,46 @@ train a custom vision model now (no labelled data yet; see the research doc).
 
 **Why:** the owner's call: no AI bill that grows with users. The phone's read
 is free and offline, and human review was already the fallback.
+
+---
+
+## 2026-10-30: Goals own their inputs, lock the target, and pace by a personal fat-loss limit
+
+**Decision:** goals are a list of typed goals in a new top-level settings key,
+`goals` (weight, a set energy balance, burn, steps, tracking every day, meals),
+read and written through `GoalBook`, which migrates `weightGoal` and keeps it
+written for older builds. A goal that sets the calorie target stores a
+baseline: the typical day's burn and every input behind it. Its target is a
+pure function of the goal and that baseline, written as one number with its
+own band (±100 kcal by default), so "Use my goal" lands on the same target
+every time. When an input changes enough to move the target (10 kcal after
+something the person did, 100 after drift such as weigh-ins), a dialog offers
+the new target on Targets and over Today (`goal_recalculated`); keeping the
+current one is remembered. While a goal sets the target, Targets shows it
+read-only and Change asks: edit the goal, or set my own target (the goal stays
+and stops setting it). An own target that points against the goal asks again
+and pauses the goal only if confirmed. Paces go to 2% of body weight a week,
+each with a tier note (gentle, steady, faster than most guidance, above your
+estimated fat-loss limit) and an (i); the limit is Alpert's 69.2 kcal per kg of
+fat a day, from Profile's body fat or Deurenberg's estimate, labelled as one.
+A goal's target is never worked out under 1,200 for anyone, with the low-goal
+note under a person's own line. A weekly average is an opt-in per goal, capped
+both ways and never carried across weeks. Everything is behind
+`release.onboardingSetup`. The design and the math: `docs/plans/goals-v2.md`.
+
+**Alternatives:** aiming the goal at each day's live Burned (moves through the
+day, and was the non-determinism the owner hit); keeping the range width the
+person had (the other half of it); applying small input changes silently (a
+target that moves by itself); blocking past 1% a week or at the fat-loss
+limit (the owner asked for notes, never blocks); weekly averaging on by
+default (its tightening side is the restrict-after-binge loop).
+
+**Why:** owner feedback, 2026-10-30: paces too restrictive for big bodies and
+too loose for lean ones, "Use my goal" landing somewhere new each tap, a goal a
+stray stepper could override, and no word when connecting Apple Health
+changed the math.
+
+---
 
 ## 2026-10-29: A weight goal sets Targets as a fixed range, and says when it no longer does
 

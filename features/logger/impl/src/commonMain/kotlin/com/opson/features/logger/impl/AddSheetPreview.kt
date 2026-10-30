@@ -52,7 +52,13 @@ private fun MealPlusPreview() = Sheet(LoggerFixtures.sheetState(full, slot = Mea
 @Composable
 private fun FlagsOffPreview() = Sheet(LoggerFixtures.sheetState(full, flags = false, settings = Settings()))
 
+/** An active Builder: Verify a food at the end of the grid, in the Builders color. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun BuilderPreview() = Sheet(LoggerFixtures.sheetState(full, height = SheetHeight.Full, builder = true), dark = false)
+
 /** Blind: Recent shows no energy. */
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun BlindExpandedPreview() = Sheet(LoggerFixtures.sheetState(blind, height = SheetHeight.Full))

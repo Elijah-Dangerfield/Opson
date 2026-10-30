@@ -300,4 +300,35 @@ class FoodReportRoutesTest {
             assertEquals("image/jpeg", photo.headers[HttpHeaders.ContentType])
         }
     }
+
+    @Test
+    fun severalReasonsWinOverTheOneAndBothSidesOfThePackAreKept() = runTest {
+        withApp { client ->
+            val jpeg = Base64.getEncoder().encodeToString(TestImages.jpeg)
+            // What the app sends since V34: the reasons, with the first in a code an older server knows.
+            val body = request(reason = "wrong_nutrients", photo = jpeg)
+                .copy(reasons = listOf("missing_info", "wrong_numbers", "missing_info"), frontPhoto = jpeg)
+            assertEquals(HttpStatusCode.Created, client.report(body).status)
+
+            val stored = reports.reports.single()
+            assertEquals(listOf(ReportReason.MissingInfo, ReportReason.WrongNumbers), stored.reasons)
+            assertEquals(ReportReason.MissingInfo, stored.reason)
+            assertTrue(stored.hasPhoto)
+            assertTrue(stored.hasFrontPhoto)
+
+            val queue = client.get("/v1/admin/food-reports") { admin() }.body<FoodReportQueueResponse>()
+            val shown = queue.foods.single().reports.single()
+            assertEquals(listOf("missing_info", "wrong_numbers"), shown.reasons)
+            assertTrue(shown.hasFrontPhoto)
+            assertEquals(mapOf("missing_info" to 1, "wrong_numbers" to 1), queue.foods.single().reasons)
+            assertEquals(HttpStatusCode.OK, client.get("/v1/admin/food-reports/${stored.id}/photo?kind=front") { admin() }.status)
+            assertEquals(HttpStatusCode.BadRequest, client.get("/v1/admin/food-reports/${stored.id}/photo?kind=side") { admin() }.status)
+
+            val unknown = client.report(request().copy(reasons = listOf("wrong_numbers", "tasty")))
+            assertEquals(HttpStatusCode.BadRequest, unknown.status)
+            assertEquals("invalid_reason", unknown.code())
+            val serverOnly = client.report(request().copy(reasons = listOf("energy_check")))
+            assertEquals("invalid_reason", serverOnly.code())
+        }
+    }
 }

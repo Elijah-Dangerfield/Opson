@@ -51,6 +51,7 @@ import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import com.opson.features.builder.VerifyFoodAvailable
 
 /**
  * The add sheet (design sync 4, 13.4a and 13.4b): the grid of ways to add, Recent with a
@@ -90,6 +91,7 @@ class LoggerViewModel(
     exerciseRelease: ExerciseRelease,
     private val submittedFoods: SubmittedFoods,
     checkInEnabled: CheckInEnabled,
+    verifyFood: VerifyFoodAvailable = VerifyFoodAvailable { false },
 ) : SEAViewModel<LoggerState, LoggerEvent, LoggerAction>(
     initialStateArg = LoggerState(pane = route.openingPane, height = route.openingHeight),
 ) {
@@ -113,6 +115,7 @@ class LoggerViewModel(
             fastingReleased = fastingRelease.isOn(),
             exerciseReleased = exerciseRelease.isOn(),
             checkInAvailable = checkInEnabled(),
+            verifyAvailable = verifyFood(),
         ),
         policy = policySource.policy.value,
     )
@@ -171,6 +174,7 @@ class LoggerViewModel(
             LoggerAction.BarcodeTapped -> if (model.choices.scanAvailable) sendEvent(LoggerEvent.OpenScanner(day, slot()))
             LoggerAction.PhotoTapped -> if (model.choices.photoAvailable) sendEvent(LoggerEvent.OpenPhoto(day, slot()))
             LoggerAction.PackagedFoodTapped -> if (model.choices.packAvailable) sendEvent(LoggerEvent.OpenPackagedFood(day, slot()))
+            LoggerAction.VerifyFoodTapped -> if (model.choices.verifyAvailable) sendEvent(LoggerEvent.OpenVerify(day))
             LoggerAction.DescribeItTapped -> {
                 action.choose { copy(pane = LoggerPane.Describe, height = SheetHeight.Full) }
                 // With voice on the tile is "Say or type it" under a mic, so the tap already asked to listen.

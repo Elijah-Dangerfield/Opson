@@ -227,8 +227,9 @@ fun TargetsScreen(
             DelayedLoadingIndicator(contentDescription = stringResource(Res.string.settings_loading_cd))
             return@SettingsPage
         }
-        // The weight goal comes first: it is what sets everything under it, when it does.
-        state.weightGoal?.let { WeightGoalCard(it, onAction) }
+        state.dialog?.let { TargetsDialogView(it, onAction) }
+        // The goal comes first: it is what sets everything under it, when it does.
+        state.goal?.let { GoalCardView(it, onAction) }
         if (!state.visible) {
             BackgroundCard(onAction)
             if (state.macros.isNotEmpty()) MacroCard(state, onAction)
@@ -236,9 +237,12 @@ fun TargetsScreen(
             Disclosure()
             return@SettingsPage
         }
-        SectionLabel(stringResource(Res.string.settings_targets_goal_style))
-        StyleList(state, onAction)
-        if (state.style == StyleKind.ByDay) ByDayCards(state, onAction)
+        // While a goal sets the target, its card is the target: no style to pick, nothing to step.
+        if (!state.locked) {
+            SectionLabel(stringResource(Res.string.settings_targets_goal_style))
+            StyleList(state, onAction)
+            if (state.style == StyleKind.ByDay) ByDayCards(state, onAction)
+        }
         state.safety?.let { SafetyNoteCard(it, state.supportLink, onAction) }
         state.burned?.let { BurnedSourceCard(it, onAction) }
         if (state.macros.isNotEmpty()) MacroCard(state, onAction)

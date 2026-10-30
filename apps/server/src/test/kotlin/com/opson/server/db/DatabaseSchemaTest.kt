@@ -381,6 +381,54 @@ class DatabaseSchemaTest : DatabaseTest() {
         }
     }
 
+    /**
+     * V34 is additive and safe to run twice. A verification's photos go with it, and with the
+     * account; a report takes several reasons from the known list and a front and a label photo;
+     * accepting a verification records its provenance.
+     */
+    @Test
+    fun checksAndReviewMigrationIsIdempotentAndCascadesFromTheUser() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V34__food_checks_and_review.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val user = seedAuthUser().value
+        val food = java.util.UUID.randomUUID()
+        val verification = java.util.UUID.randomUUID()
+        val report = java.util.UUID.randomUUID()
+        val snapshot = "'{\"name\": \"x\", \"source\": \"usda_branded\"}'::jsonb"
+        val jpeg = "'image/jpeg', decode('ffd8', 'hex')"
+        database.blockingTransaction {
+            exec(
+                "INSERT INTO food_verifications (id, food_id, user_id, outcome, grounded, groundable, status, problem, snapshot) " +
+                    "VALUES ('$verification', '$food', '$user', 'unconfirmed', 2, 4, 'open', '{\"wrong\": [\"calories\"]}', $snapshot)",
+            )
+            listOf("front", "label").forEach { kind ->
+                exec("INSERT INTO food_verification_photos (verification_id, kind, media_type, bytes) VALUES ('$verification', '$kind', $jpeg)")
+            }
+            exec(
+                "INSERT INTO food_reports (id, food_id, user_id, reason, reasons, snapshot) " +
+                    "VALUES ('$report', '$food', '$user', 'wrong_numbers', ARRAY['wrong_numbers', 'missing_info'], $snapshot)",
+            )
+            listOf("front", "label").forEach { kind ->
+                exec("INSERT INTO food_report_photos (report_id, kind, media_type, bytes) VALUES ('$report', '$kind', $jpeg)")
+            }
+        }
+        listOf(
+            "INSERT INTO food_verification_photos (verification_id, kind, media_type, bytes) VALUES ('$verification', 'side', $jpeg)",
+            "UPDATE food_verifications SET status = 'maybe' WHERE id = '$verification'",
+            "INSERT INTO food_reports (id, food_id, user_id, reason, reasons, snapshot) VALUES (gen_random_uuid(), '$food', '$user', 'other', ARRAY['tasty'], $snapshot)",
+            "INSERT INTO food_report_photos (report_id, kind, media_type, bytes) VALUES ('$report', 'label', $jpeg)",
+        ).forEach { sql -> assertFailsWith<Exception>(sql) { database.blockingTransaction { exec(sql) } } }
+
+        database.blockingTransaction { exec("UPDATE food_verifications SET status = 'accepted', resolved_by = 'r', resolved_at = now() WHERE id = '$verification'") }
+        assertEquals(listOf("verification"), strings("SELECT kind FROM food_provenance WHERE ref_id = '$verification'"))
+
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM food_verification_photos WHERE verification_id = '$verification'"))
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM food_report_photos WHERE report_id = '$report'"))
+        database.blockingTransaction { exec("DELETE FROM food_provenance WHERE food_id = '$food'") }
+    }
+
     /** The limits DiaryRules checks hold in the table too. */
     @Test
     fun exercisesRefuseALengthOrANumberOutOfRange() {
@@ -640,6 +688,8 @@ class DatabaseSchemaTest : DatabaseTest() {
             "builder_applications_daily",
             // V33, energy against the macros.
             "food_energy_by_source", "food_energy_worst",
+            // V34, the Database cleanup row.
+            "food_verification_queue", "food_verifications_daily", "food_review_decisions_daily",
             // V35, recipes and sharing them.
             "recipes_daily", "recipe_sharing",
         )

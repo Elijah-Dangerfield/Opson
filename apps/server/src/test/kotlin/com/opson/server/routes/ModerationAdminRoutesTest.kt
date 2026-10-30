@@ -155,7 +155,7 @@ class ModerationAdminRoutesTest : DatabaseTest() {
         assertTrue("invalid_reason" in client.post("/v1/admin/users/$user/contributions/rollback") { admin(); body("{}") }.bodyAsText())
         val rolledBack = client.post("/v1/admin/users/$user/contributions/rollback") { admin(); body("""{"reason":"fake data"}""") }
         assertEquals(HttpStatusCode.OK, rolledBack.status)
-        assertEquals(setOf("recipe", "report", "submission"), json.decodeFromString<RollbackResponse>(rolledBack.bodyAsText()).rolledBack.map { it.kind }.toSet())
+        assertEquals(setOf("recipe", "report", "submission", "verification"), json.decodeFromString<RollbackResponse>(rolledBack.bodyAsText()).rolledBack.map { it.kind }.toSet())
     }
 
     private fun app(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {

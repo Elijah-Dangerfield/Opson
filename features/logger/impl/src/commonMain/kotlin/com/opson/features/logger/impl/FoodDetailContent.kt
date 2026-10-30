@@ -78,7 +78,6 @@ import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
-import opson.libraries.resources.generated.resources.builder_check_menu
 import opson.libraries.resources.generated.resources.adding_detail_adds
 import opson.libraries.resources.generated.resources.adding_detail_all
 import opson.libraries.resources.generated.resources.adding_detail_all_cd
@@ -173,10 +172,19 @@ import opson.libraries.resources.generated.resources.logger_source_nevo
 import opson.libraries.resources.generated.resources.modes_hunger_question
 import opson.libraries.resources.generated.resources.repeat_edit
 import opson.libraries.resources.generated.resources.repeat_this
-import opson.libraries.resources.generated.resources.search_badge_verified_cd
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import com.opson.libraries.ui.components.BuilderCard
+import com.opson.libraries.ui.components.VerifiedMark
+import androidx.compose.ui.semantics.stateDescription
+import opson.libraries.resources.generated.resources.builder_verify_card_title
+import opson.libraries.resources.generated.resources.builder_verify_card_body
+import opson.libraries.resources.generated.resources.food_check_verified
+import opson.libraries.resources.generated.resources.food_check_verified_about
+import opson.libraries.resources.generated.resources.food_check_unverified_about
+import opson.libraries.resources.generated.resources.food_check_unverified_about_plain
+import opson.libraries.resources.generated.resources.adding_unverified
 
 private val Precision.label: StringResource
     get() = when (this) {
@@ -220,6 +228,13 @@ fun FoodDetailContent(
                     state.loading -> DelayedLoadingIndicator(contentDescription = stringResource(Res.string.logger_amount_loading_cd))
                     else -> {
                         DetailsCard(state, onAction)
+                        if (state.showVerify) {
+                            BuilderCard(
+                                title = stringResource(Res.string.builder_verify_card_title),
+                                body = stringResource(Res.string.builder_verify_card_body),
+                                onClick = { onAction(FoodDetailAction.VerifyTapped) },
+                            )
+                        }
                         state.hunger?.let { HungerCard(it, onAction) }
                         state.breakdown?.let { BreakdownCard(it) }
                         state.targets?.let { TargetsCard(it) }
@@ -245,7 +260,7 @@ fun FoodDetailContent(
     state.customSize?.let { CustomSizeDialog(it, onAction) }
 }
 
-/** Back, the food and its tag, and ⋮. */
+/** Back, the food and its tag, the star and ⋮. */
 @Composable
 private fun Header(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
     Row(
@@ -267,13 +282,32 @@ private fun Header(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit)
             Text(text = state.name, typography = AppTheme.type.sheetTitle, color = AppTheme.colors.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
             state.tag?.let { Text(text = it, typography = AppTheme.type.secondary, color = AppTheme.colors.muted, maxLines = 1) }
         }
-        if (!state.loading && !state.missing) MoreMenu(state, onAction)
+        if (!state.loading && !state.missing) {
+            // An entry that is only a name or a number has no food to star.
+            if (state.hasFood) FavoriteStar(state.favorite, onAction)
+            MoreMenu(state, onAction)
+        }
     }
 }
 
+/** The star: filled once the food is a favorite. A snackbar says what a tap did, with Undo. */
+@Composable
+private fun FavoriteStar(favorite: Boolean, onAction: (FoodDetailAction) -> Unit) {
+    val description = stringResource(if (favorite) Res.string.logger_amount_unfavorite_cd else Res.string.logger_amount_favorite_cd)
+    RoundIconButton(
+        icon = (if (favorite) AppIcons.Star else AppIcons.StarOutline).described(description),
+        onClick = { onAction(FoodDetailAction.FavoriteTapped) },
+        size = AppTheme.spacing.touchTarget,
+        iconSize = IconSize.Medium.dp,
+        containerColor = AppTheme.colors.bg,
+        contentColor = if (favorite) AppTheme.colors.accent else AppTheme.colors.ink,
+        modifier = Modifier.semantics { stateDescription = description },
+    )
+}
+
 /**
- * ⋮: the favorite, Remove from recents while it is on Recent, Repeat this on an entry, Report a
- * problem and Edit a copy. An entry that is only a name or a number has no food to star or report.
+ * ⋮: Remove from recents while it is on Recent, Repeat this on an entry, Report a problem and
+ * Edit a copy. An entry that is only a name or a number has no food to report.
  */
 @Composable
 private fun MoreMenu(state: FoodDetailState, onAction: (FoodDetailAction) -> Unit) {
@@ -299,13 +333,6 @@ private fun MoreMenuItems(state: FoodDetailState, onAction: (FoodDetailAction) -
         close()
         onAction(action)
     }
-    if (state.hasFood) {
-        MenuItem(
-            label = stringResource(if (state.favorite) Res.string.logger_amount_unfavorite_cd else Res.string.logger_amount_favorite_cd),
-            onClick = tap(FoodDetailAction.FavoriteTapped),
-            icon = if (state.favorite) AppIcons.Star else AppIcons.StarOutline,
-        )
-    }
     if (state.inRecents) {
         MenuItem(label = stringResource(Res.string.adding_detail_remove_recent), onClick = tap(FoodDetailAction.RemoveFromRecentsTapped), icon = AppIcons.History)
     }
@@ -315,9 +342,6 @@ private fun MoreMenuItems(state: FoodDetailState, onAction: (FoodDetailAction) -
             onClick = tap(FoodDetailAction.RepeatTapped),
             icon = AppIcons.Repeat,
         )
-    }
-    if (state.canCheck && state.catalog) {
-        MenuItem(label = stringResource(Res.string.builder_check_menu), onClick = tap(FoodDetailAction.CheckTapped), icon = AppIcons.CheckCircleOutline)
     }
     if (state.hasFood) {
         MenuItem(label = stringResource(Res.string.adding_detail_report), onClick = tap(FoodDetailAction.ReportTapped), icon = AppIcons.Support)
@@ -726,7 +750,8 @@ private fun TargetTotal(row: TargetRow) {
 @Composable
 private fun SourceRow(source: SourceLine, nutrients: AllNutrients?, onAction: (FoodDetailAction) -> Unit) {
     val origin = source.source?.let { stringResource(it.label) }
-    val review = source.review?.takeIf { it != SourceReview.Verified }
+    val review = source.review?.takeIf { it != SourceReview.Verified && it != SourceReview.NotChecked }
+    val check = source.review?.takeIf { it == SourceReview.Verified || it == SourceReview.NotChecked }
     if (origin == null && nutrients == null && review == null) return
     val aboutDescription = origin?.let { stringResource(Res.string.adding_detail_source_cd, it) }
     Row(
@@ -747,15 +772,12 @@ private fun SourceRow(source: SourceLine, nutrients: AllNutrients?, onAction: (F
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
-                    // Someone accountable stands behind these numbers: a check, no more words.
-                    if (source.review == SourceReview.Verified) {
-                        Icon(icon = AppIcons.CheckCircle.described(stringResource(Res.string.search_badge_verified_cd)), size = 12.dp, color = AppTheme.colors.muted)
-                    }
                     Text(text = it, typography = AppTheme.type.caption, color = AppTheme.colors.muted, modifier = Modifier.weight(1f, fill = false))
                     Icon(icon = if (source.explained) AppIcons.ExpandMore else AppIcons.Info, size = 14.dp, color = AppTheme.colors.muted)
                 }
             }
             source.source?.takeIf { source.explained }?.let { SourceAbout(it, onAction) }
+            check?.let { CheckBadge(it, origin, source.checkExplained, onAction) }
             review?.let {
                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     Icon(icon = if (it == SourceReview.YoursChecked) AppIcons.CheckCircle else AppIcons.Schedule, size = 12.dp, color = AppTheme.colors.muted)
@@ -768,6 +790,39 @@ private fun SourceRow(source: SourceLine, nutrients: AllNutrients?, onAction: (F
         }
         nutrients?.let { AllNutrientsLink(it, onAction) }
     }
+}
+
+/**
+ * Verified or Unverified, beside the source: whether a person has checked this food against its
+ * package. A tap says what that means. Verified is in the Builders color, since Builders verify.
+ */
+@Composable
+private fun CheckBadge(check: SourceReview, origin: String?, explained: Boolean, onAction: (FoodDetailAction) -> Unit) {
+    val verified = check == SourceReview.Verified
+    val about = if (verified) {
+        stringResource(Res.string.food_check_verified_about)
+    } else {
+        origin?.let { stringResource(Res.string.food_check_unverified_about, it) } ?: stringResource(Res.string.food_check_unverified_about_plain)
+    }
+    Row(
+        modifier = Modifier
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                stateDescription = about
+            }
+            .bounceClick(scaleDown = 0.98f) { onAction(FoodDetailAction.CheckBadgeTapped) }
+            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        if (verified) {
+            VerifiedMark(text = stringResource(Res.string.food_check_verified))
+        } else {
+            Text(text = stringResource(Res.string.adding_unverified), typography = AppTheme.type.captionStrong, color = AppTheme.colors.muted)
+        }
+        Icon(icon = if (explained) AppIcons.ExpandMore else AppIcons.Info, size = 14.dp, color = AppTheme.colors.muted)
+    }
+    if (explained) Text(text = about, typography = AppTheme.type.caption, color = AppTheme.colors.ink)
 }
 
 /** What the source is, in a line, and Credits. */
@@ -926,8 +981,10 @@ private val FoodOrigin.about: StringResource
 
 private val SourceReview.label: StringResource
     get() = when (this) {
-        SourceReview.Verified -> Res.string.search_badge_verified_cd
+        SourceReview.Verified -> Res.string.food_check_verified
+        SourceReview.NotChecked -> Res.string.adding_unverified
         SourceReview.Unverified -> Res.string.adding_detail_unverified
+
         SourceReview.YoursInReview -> Res.string.adding_detail_yours_in_review
         SourceReview.YoursChecked -> Res.string.adding_detail_yours_checked
     }

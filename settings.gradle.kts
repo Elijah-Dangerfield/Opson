@@ -115,6 +115,8 @@ if (!serverOnly) {
     include(":libraries:flowroutines:testing")
     include(":libraries:foods")
     include(":libraries:foods:impl")
+    include(":libraries:goals")
+    include(":libraries:goals:impl")
     include(":libraries:health")
     include(":libraries:health:impl")
     include(":libraries:medication")

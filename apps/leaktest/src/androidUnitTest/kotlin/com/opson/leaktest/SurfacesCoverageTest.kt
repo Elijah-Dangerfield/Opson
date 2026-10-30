@@ -149,7 +149,7 @@ class SurfacesCoverageTest {
             "SettingsLeakSurfaces" to listOf(
                 "more", "modes", "modes-end-after", "modes-each-number", "pause-sheet", "targets", "targets-goal-style", "targets-deficit",
                 "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
-                "targets-deficit-estimated", "targets-macros", "targets-safety-notes",
+                "targets-deficit-estimated", "targets-macros", "targets-safety-notes", "targets-goal",
                 "resting-energy", "energy-today", "today-screen-settings", "today-screen-settings-stats", "micro-targets", "micro-target-sheet",
                 "energy-explainer-resting", "energy-explainer-burned", "energy-explainer-balance",
                 "water-settings", "support", "support-delete", "support-export-numbers", "support-provider-first", "support-find",
@@ -170,7 +170,7 @@ class SurfacesCoverageTest {
             "foods", "foods-create-meal", "foods-add-food",
             "trends", "trends-blind", "trends-coast", "trends-deficit", "trends-day", "nutrients", "nutrients-week", "patterns", "patterns-blind",
             "targets", "targets-deficit", "targets-by-day", "targets-exact", "targets-surplus", "targets-by-day-shapes",
-            "targets-goal-style", "energy-today", "targets-deficit-estimated", "targets-macros", "targets-safety-notes",
+            "targets-goal-style", "energy-today", "targets-deficit-estimated", "targets-macros", "targets-safety-notes", "targets-goal",
             "energy-explainer-resting", "energy-explainer-burned", "energy-explainer-balance",
             "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
             "today-timer-ended", "today-timer-waiting", "today-expended", "today-exercise", "integrations",

@@ -68,6 +68,7 @@ class BarcodeMatchesTest {
         assertEquals(listOf(SourceBadge.UsdaBranded), branded.sources)
         assertTrue(branded.corrected)
         assertFalse(branded.suggested)
+        assertTrue(branded.notChecked && !branded.verified, "a label nobody has checked against the pack says Unverified")
 
         assertTrue(doubted.numbersLookOff)
         assertFalse(doubted.verified)

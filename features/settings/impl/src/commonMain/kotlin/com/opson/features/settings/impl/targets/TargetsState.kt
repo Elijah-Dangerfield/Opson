@@ -6,8 +6,20 @@ import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.diary.GoalBook
+import com.opson.libraries.goals.GoalStatuses
+import com.opson.libraries.nutrition.BaselineChange
+import com.opson.libraries.nutrition.BodyFatFrom
+import com.opson.libraries.nutrition.Goal
+import com.opson.libraries.nutrition.GoalAveraging
+import com.opson.libraries.nutrition.GoalCatalog
 import com.opson.libraries.nutrition.GoalDirection
-import com.opson.libraries.nutrition.WeightGoal
+import com.opson.libraries.nutrition.GoalKind
+import com.opson.libraries.nutrition.GoalStatus
+import com.opson.libraries.nutrition.GoalTargets
+import com.opson.libraries.nutrition.GoalType
+import com.opson.libraries.nutrition.PaceAssessment
+import com.opson.libraries.nutrition.Recalculation
 import com.opson.libraries.nutrition.WeightGoals
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.EverydayActivity
@@ -122,29 +134,85 @@ data class TargetsState(
     val burned: BurnedCard? = null,
     /** The Vitamins and minerals row: wherever the mode shows them, calories or not. */
     val micros: Boolean = false,
-    /** The weight goal's row at the top: whether it sets the target, or an offer to set one. Null where none is offered. */
-    val weightGoal: WeightGoalRow? = null,
+    /** The goal's card at the top: what it sets, or that the target is the person's own, or an offer. Null where no goal is offered. */
+    val goal: GoalCard? = null,
+    /**
+     * A goal sets the target: the card shows it read-only and the style list and steppers are
+     * gone, so nothing changes it without the person choosing to (docs/plans/goals-v2.md, "Locking").
+     */
+    val locked: Boolean = false,
+    /** The dialog open over the page, if any. */
+    val dialog: TargetsDialog? = null,
 ) {
     val editingMacros: Boolean get() = macroEditor != null
 }
 
 /**
- * Whether the weight goal sets the day's target (owner feedback, 2026-10-29: no silent conflicts).
- * A goal stamps the aim it wrote ([WeightGoal.drives]); once the person moves the target by hand
- * it is theirs, and the row says so instead of the goal quietly taking it back.
+ * The goal's card (owner feedback, 2026-10-30: a goal's target is locked, and changing it is a
+ * choice the person makes knowingly). Amounts went through the policy: where calories don't show,
+ * they are [Display.Hidden] and the card says it in words.
  */
-sealed interface WeightGoalRow {
-    /** The goal sets it. [pace] is "0.5 lb" a week, where weight shows; null while keeping weight steady. */
-    data class Driving(val direction: GoalDirection, val pace: String?) : WeightGoalRow
+sealed interface GoalCard {
+    /**
+     * The goal sets the target. [target] is the day's target and [low] to [high] the band that
+     * counts as on track; [difference] is how far that is under ([differenceSign] -1) or over a
+     * typical day's burn, only where energy out shows. [paceText] is "0.5 kg" a week where weight
+     * shows; [balance] an energy goal's own amount. [pace] is the tier note, where one applies.
+     */
+    data class Setting(
+        val kind: GoalKind,
+        val direction: GoalDirection?,
+        val paceText: String?,
+        val balance: Display = Display.Hidden,
+        val balanceSign: Int = 0,
+        val target: Display = Display.Hidden,
+        val low: Display = Display.Hidden,
+        val high: Display = Display.Hidden,
+        val difference: Display = Display.Hidden,
+        val differenceSign: Int = 0,
+        val weekly: Boolean = false,
+        val pace: PaceAssessment? = null,
+        /** The target is under the low-goal line for their sex: the low-goal note shows, with Find support. */
+        val lowAim: Boolean = false,
+    ) : GoalCard
+
+    /** A goal is kept, and the person sets the target ("Set my own target", or a target moved by hand). */
+    data class Own(val kind: GoalKind, val direction: GoalDirection?) : GoalCard
+
+    /** The goal is paused: it sets nothing until picked up again. */
+    data class Paused(val kind: GoalKind) : GoalCard
+
+    /** A goal set before what a typical day burns could be worked out: it sets the target once it can. */
+    data class Waiting(val kind: GoalKind) : GoalCard
+
+    /** No goal yet: an offer to set one. */
+    data object None : GoalCard
+}
+
+/** A dialog over Targets. */
+sealed interface TargetsDialog {
+    /** Change on a goal's target: edit the goal, or set my own target. */
+    data object ChangeTarget : TargetsDialog
+
+    /** An edit to the person's own target that points against the goal: pause the goal, or keep it. */
+    data class AgainstGoal(val direction: GoalDirection) : TargetsDialog
 
     /**
-     * A goal is set, and it is not setting the target: changed by hand since ([byHand]), or never
-     * set because what a day burns wasn't known. [canUseGoal] once a typical day's burn is known.
+     * Something the goal's target is worked out from changed. [old] and [new] are the daily
+     * targets ([Display.Hidden] where calories don't show); [reasons] what changed, in order.
      */
-    data class NotDriving(val canUseGoal: Boolean, val byHand: Boolean = true) : WeightGoalRow
+    data class Recalculated(val reasons: List<BaselineChange>, val old: Display, val new: Display) : TargetsDialog
 
-    /** No weight goal yet: an offer to set one. */
-    data object None : WeightGoalRow
+    /** The pace note's (i). [limit] is the fat-loss limit where calories show; [estimated] that body fat was estimated. */
+    data class PaceInfo(val limit: Display, val estimated: Boolean, val canWorkOut: Boolean) : TargetsDialog
+}
+
+/** Which dialog the view model has open; [TargetsStateBuilder] turns it into a [TargetsDialog]. */
+sealed interface TargetsDialogKind {
+    data object ChangeTarget : TargetsDialogKind
+    data class AgainstGoal(val direction: GoalDirection) : TargetsDialogKind
+    data class Recalculate(val recalculation: Recalculation) : TargetsDialogKind
+    data object PaceInfo : TargetsDialogKind
 }
 
 /**
@@ -404,19 +472,26 @@ object TargetsStateBuilder {
         choosingActivity: Boolean = false,
         drafts: TargetsDrafts = TargetsDrafts(),
         findSupport: Boolean = true,
-        /** `release.onboardingSetup`: the weight goal and its flow. Off, there is no goal row. */
+        /** `release.onboardingSetup`: goals and their flow. Off, there is no goal card and nothing is locked. */
         weightGoals: Boolean = false,
+        /** The latest weigh-in, for the pace note's fat-loss limit. */
+        weightKg: Double? = null,
+        /** The dialog the view model has open, or a recalculation to offer. */
+        dialog: TargetsDialogKind? = null,
     ): TargetsState {
         val targets = settings.targets
         val preset = settings.numbers.preset
         val burnKcal = burned?.totalKcal
-        val goalRow = if (weightGoals) weightGoalRow(settings, policy, burned) else null
+        val goalRow = if (weightGoals) goalCard(settings, policy, weightKg, today) else null
+        val locked = goalRow is GoalCard.Setting
+        val shownDialog = dialog?.let { dialogFor(it, settings, policy, weightKg, today) }
         if (!percentsShown(policy)) {
             // No calorie goal, but macros on show (Macros with grams) keep their gram targets.
             return TargetsState(
                 loaded = true,
                 visible = false,
-                weightGoal = goalRow,
+                goal = goalRow,
+                dialog = shownDialog,
                 micros = microsShown(policy),
                 macroMode = settings.macroMode,
                 macros = macros(targets, policy),
@@ -431,7 +506,9 @@ object TargetsStateBuilder {
         return TargetsState(
             loaded = true,
             visible = true,
-            weightGoal = goalRow,
+            goal = goalRow,
+            locked = locked,
+            dialog = shownDialog,
             micros = microsShown(policy),
             style = style,
             styles = offered.map { kind ->
@@ -452,7 +529,8 @@ object TargetsStateBuilder {
             groups = byDay?.let { groupCards(targets, it, groups) }.orEmpty(),
             week = byDay?.let { weekBands(targets, it, groups) }.orEmpty(),
             canAddGroup = byDay != null && byDay.groups.size < TargetStyle.MAX_GROUPS,
-            safety = safetyNote(targets, preset, burnKcal, settings.bodySex),
+            // While a goal sets the target, its own pace note says what matters.
+            safety = if (locked) null else safetyNote(targets, preset, burnKcal, settings.bodySex),
             supportLink = findSupport,
             macroMode = settings.macroMode,
             macros = macros(targets, policy),
@@ -479,34 +557,81 @@ object TargetsStateBuilder {
     private fun microsShown(policy: VisibilityPolicy): Boolean = policy.level(Metric.Micros) != Visibility.Hide
 
     /**
-     * The weight goal's row, where a weight goal is offered at all: weight on show, numbers not
-     * hard, and not while pregnant or breastfeeding. "Just track" is an answer, so it gets the
-     * offer again rather than a goal it never set.
+     * The goal's card, where a goal is offered at all: the goal's type offered in the mode
+     * ([GoalCatalog.offered]: weight on show for a weight goal), numbers not hard, and not while
+     * pregnant or breastfeeding. "Just track" is an answer, so it gets the offer again rather than
+     * a goal it never set.
      */
-    fun weightGoalRow(settings: Settings, policy: VisibilityPolicy, burned: Burned?): WeightGoalRow? {
-        if (policy.effectiveLevel(Metric.Weight, Surface.Settings) != Visibility.Show) return null
+    fun goalCard(settings: Settings, policy: VisibilityPolicy, weightKg: Double?, today: LocalDate?): GoalCard? {
         if (settings.onboarding.hard || settings.bodyStage != BodyStage.None) return null
-        val goal = settings.weightGoal
+        val offered = GoalCatalog.offered(policy, hard = false, stage = settings.bodyStage)
+        val goal = GoalBook.calorieGoal(settings) ?: return GoalCard.None.takeIf { GoalKind.Weight in offered }
+        if (goal.type.kind !in offered) return null
+        val direction = (goal.type as? GoalType.Weight)?.direction
         return when {
-            goal.direction == GoalDirection.Lose || goal.direction == GoalDirection.Gain || goal.direction == GoalDirection.Maintain ->
-                if (goal.drives(settings.targets)) {
-                    WeightGoalRow.Driving(
-                        goal.direction,
-                        pace = goal.kgPerWeek.takeIf { goal.direction.changesWeight && it > 0 }?.let { WeightGoals.weightText(it, settings.weightUnit) },
-                    )
-                } else {
-                    WeightGoalRow.NotDriving(canUseGoal = typicalBurnKcal(burned, settings) != null, byHand = goal.targetsKcal != null)
-                }
-            else -> WeightGoalRow.None
+            goal.status != GoalStatus.Active -> GoalCard.Paused(goal.type.kind)
+            !goal.setsTarget -> GoalCard.Own(goal.type.kind, direction)
+            goal.baseline == null -> GoalCard.Waiting(goal.type.kind)
+            else -> settingCard(goal, settings, policy, weightKg, today)
         }
     }
 
-    /**
-     * A typical day's burn: resting energy plus everyday activity, as the goal flow works it out,
-     * so "Use my goal" lands where the goal first did rather than on whatever today has synced.
-     */
-    fun typicalBurnKcal(burned: Burned?, settings: Settings): Int? =
-        burned?.resting?.kcal?.let { it + settings.everydayActivity.kcalFor(it) }
+    private fun settingCard(goal: Goal, settings: Settings, policy: VisibilityPolicy, weightKg: Double?, today: LocalDate?): GoalCard.Setting {
+        val target = requireNotNull(GoalTargets.of(goal))
+        val weight = goal.type as? GoalType.Weight
+        val calories = percentsShown(policy)
+        val energyOut = calories && policy.effectiveLevel(Metric.EnergyOut, Surface.Settings) == Visibility.Show
+        fun kcal(value: Int): Display = if (calories) policy.resolve(Metric.Calories, value.toDouble(), Surface.Settings) else Display.Hidden
+        val difference = target.deltaKcal
+        val balance = (goal.type as? GoalType.EnergyBalance)?.kcalPerDay
+        val limit = today?.let { GoalStatuses.limit(settings, weightKg, it) }
+        return GoalCard.Setting(
+            kind = goal.type.kind,
+            direction = weight?.direction,
+            paceText = weight?.kgPerWeek?.takeIf { it > 0 }?.let { WeightGoals.weightText(it, settings.weightUnit) },
+            balance = balance?.takeIf { energyOut }?.let { kcal(abs(it)) } ?: Display.Hidden,
+            balanceSign = (balance ?: 0).coerceIn(-1, 1),
+            target = kcal(target.aimKcal),
+            low = kcal(target.minKcal),
+            high = kcal(target.maxKcal),
+            difference = if (energyOut && abs(difference) >= Targets.STEP_KCAL) kcal(abs(difference)) else Display.Hidden,
+            differenceSign = difference.coerceIn(-1, 1),
+            weekly = goal.averaging == GoalAveraging.Weekly,
+            // A pace is a weight a week or an amount of energy: only where calories show, or for a weight goal.
+            pace = GoalStatuses.pace(goal, weightKg, limit).takeIf { calories || weight != null },
+            lowAim = GoalTargets.belowLowGoal(target.aimKcal, settings.bodySex),
+        )
+    }
+
+    /** [recalculation] as its dialog draws it: what changed, in order, and both targets where calories show. */
+    fun recalculated(recalculation: Recalculation, policy: VisibilityPolicy): TargetsDialog.Recalculated {
+        val calories = percentsShown(policy)
+        fun kcal(value: Int?): Display = if (calories && value != null) policy.resolve(Metric.Calories, value.toDouble(), Surface.Settings) else Display.Hidden
+        return TargetsDialog.Recalculated(
+            reasons = recalculation.changes.sortedBy { it.ordinal },
+            old = kcal(recalculation.oldAimKcal),
+            new = kcal(recalculation.newAimKcal),
+        )
+    }
+
+    /** The dialog [kind] draws, its amounts through the policy. */
+    private fun dialogFor(kind: TargetsDialogKind, settings: Settings, policy: VisibilityPolicy, weightKg: Double?, today: LocalDate?): TargetsDialog {
+        val calories = percentsShown(policy)
+        fun kcal(value: Int?): Display = if (calories && value != null) policy.resolve(Metric.Calories, value.toDouble(), Surface.Settings) else Display.Hidden
+        return when (kind) {
+            TargetsDialogKind.ChangeTarget -> TargetsDialog.ChangeTarget
+            is TargetsDialogKind.AgainstGoal -> TargetsDialog.AgainstGoal(kind.direction)
+            is TargetsDialogKind.Recalculate -> recalculated(kind.recalculation, policy)
+            TargetsDialogKind.PaceInfo -> {
+                val limit = today?.let { GoalStatuses.limit(settings, weightKg, it) }
+                TargetsDialog.PaceInfo(
+                    limit = kcal(limit?.kcalPerDay),
+                    estimated = limit?.bodyFat?.from == BodyFatFrom.Estimated,
+                    canWorkOut = limit != null,
+                )
+            }
+        }
+    }
 
     /** Calories show on this page, and with them every amount and percent of the calorie goal. */
     fun percentsShown(policy: VisibilityPolicy): Boolean = policy.level(Metric.Calories) == Visibility.Show

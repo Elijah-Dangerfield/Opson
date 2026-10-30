@@ -47,10 +47,14 @@ internal data class SuggestedDto(
 @Serializable
 internal data class FoodReportRequest(
     val id: String,
+    /** The first reason in a code every server knows; [reasons] wins on a server that reads it. */
     val reason: String,
+    val reasons: List<String>? = null,
     val suggested: SuggestedDto? = null,
     val note: String? = null,
+    /** The back of the pack, its label. */
     val photo: String? = null,
+    val frontPhoto: String? = null,
 )
 
 @Serializable
@@ -72,10 +76,12 @@ class HttpFoodReports(
     override suspend fun send(report: FoodReport): FoodReportResult {
         val request = FoodReportRequest(
             id = report.id,
-            reason = report.reason.wire,
+            reason = report.reasons.first().legacyWire,
+            reasons = report.reasons.map { it.wire },
             suggested = report.suggested?.takeUnless { it.isEmpty }?.let(SuggestedDto::of),
             note = report.note?.trim()?.ifEmpty { null },
             photo = report.photo?.let { Base64.encode(it) },
+            frontPhoto = report.frontPhoto?.let { Base64.encode(it) },
         )
         val device = attestation.headers(report.id)
         return networkClient.authedCall("foods.report") { client ->
@@ -103,7 +109,7 @@ class HttpFoodReports(
         fun path(foodId: String) = "/v1/foods/${foodId.encodeURLPathPart()}/reports"
         private const val ACCEPTED = "accepted"
 
-        /** A photo up a slow connection. */
-        const val TIMEOUT_MS = 60_000L
+        /** Two photos up a slow connection. */
+        const val TIMEOUT_MS = 90_000L
     }
 }
