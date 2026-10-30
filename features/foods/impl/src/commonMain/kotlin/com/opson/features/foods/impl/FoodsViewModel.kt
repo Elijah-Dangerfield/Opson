@@ -17,11 +17,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
+import com.opson.features.builder.VerifyFoodAvailable
+import com.opson.libraries.diary.SettingsRepository
+import com.opson.libraries.foods.FoodCatalog
+import com.opson.libraries.diary.LocalCalendar
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
- * The Foods tab: saved meals, repeats (`release.repeats`), the user's own foods and recent ones,
- * each a way into the logger with that food already picked or into its editor. Everything it
- * reads is on the device.
+ * The Foods tab: favorites, saved meals, repeats (`release.repeats`), the user's own foods and
+ * recent ones, each a way into the logger with that food already picked or into its editor, and
+ * for an active Builder, Verify a food. Everything it reads is on the device.
  */
 @Inject
 class FoodsViewModel(
@@ -32,6 +38,10 @@ class FoodsViewModel(
     submittedFoods: SubmittedFoods,
     repeats: RepeatRepository,
     repeatsRelease: RepeatsRelease,
+    settingsRepository: SettingsRepository,
+    foodCatalog: FoodCatalog,
+    private val calendar: LocalCalendar,
+    verifyFood: VerifyFoodAvailable = VerifyFoodAvailable { false },
 ) : SEAViewModel<FoodsState, FoodsEvent, FoodsAction>(initialStateArg = FoodsState()) {
 
     private var inputs: FoodsInputs? = null
@@ -40,8 +50,15 @@ class FoodsViewModel(
     init {
         viewModelScope.launch {
             val rules: Flow<List<RepeatRule>?> = if (repeatsRelease.isOn()) repeats.observeAll() else flowOf(null)
-            combine(customFoods.observeAll(), savedMeals.observeAll(), diary.recentFoods(limit = RECENT_LIMIT), submittedFoods.reviews, rules, ::FoodsInputs)
-                .collect { takeAction(FoodsAction.InputsArrived(it)) }
+            val verifyOn = verifyFood()
+            val base = combine(customFoods.observeAll(), savedMeals.observeAll(), diary.recentFoods(limit = RECENT_LIMIT), submittedFoods.reviews, rules, ::FoodsInputs)
+            val starred = settingsRepository.settings.map { it.favoriteFoods }.distinctUntilChanged()
+            val known = combine(foodCatalog.observeFavorites(), foodCatalog.observeRecent(limit = KNOWN_LIMIT)) { favorites, recent ->
+                (recent + favorites).associateBy { it.id }
+            }
+            combine(base, starred, known, diary.recentFoods(limit = HISTORY_LIMIT)) { inputs, keys, catalog, history ->
+                inputs.copy(favoriteKeys = keys, catalog = catalog, history = history, verifyOn = verifyOn)
+            }.collect { takeAction(FoodsAction.InputsArrived(it)) }
         }
         viewModelScope.launch {
             policySource.policy.collect { takeAction(FoodsAction.PolicyArrived(it)) }
@@ -61,6 +78,9 @@ class FoodsViewModel(
             FoodsAction.SearchTapped -> sendEvent(FoodsEvent.OpenLogger(FoodSearchRoute()))
             FoodsAction.CreateMealTapped -> sendEvent(FoodsEvent.OpenCreateMeal)
             FoodsAction.AddFoodTapped -> sendEvent(FoodsEvent.OpenAddFood)
+            FoodsAction.VerifyTapped -> if (inputs?.verifyOn == true) {
+                sendEvent(FoodsEvent.OpenVerify(calendar.today().toString()))
+            }
             is FoodsAction.RowTapped -> sendEvent(FoodsEvent.OpenLogger(action.target.toLoggerRoute()))
             FoodsAction.NewRepeatTapped -> sendEvent(FoodsEvent.OpenRepeat(ruleId = null))
             is FoodsAction.RepeatTapped -> sendEvent(FoodsEvent.OpenRepeat(action.id))
@@ -75,5 +95,9 @@ class FoodsViewModel(
 
     companion object {
         const val RECENT_LIMIT = 6
+
+        /** How far back a favorite's last amount and the catalog foods the device knows reach. */
+        const val HISTORY_LIMIT = 100
+        const val KNOWN_LIMIT = 100
     }
 }

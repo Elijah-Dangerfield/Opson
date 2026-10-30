@@ -19,7 +19,6 @@ import com.opson.libraries.nutrition.GoalSafety
 import com.opson.libraries.nutrition.GoalTarget
 import com.opson.libraries.nutrition.GoalTargets
 import com.opson.libraries.nutrition.GoalType
-import com.opson.libraries.nutrition.GoalVerdict
 import com.opson.libraries.nutrition.PaceAssessment
 import com.opson.libraries.nutrition.WeeklyBudget
 import com.opson.libraries.nutrition.WeeklyBudgets
@@ -129,21 +128,13 @@ object GoalStatuses {
     fun stepsGoal(settings: Settings): Goal? = GoalBook.goals(settings).firstOrNull { it.isActive && it.type is GoalType.Steps }
 
     /**
-     * Days in a row [days] met their goal, counting back from the last one. Today still going,
-     * and a day that doesn't count (skipped, or no reading), are passed over: they neither add to
-     * the run nor end it. Near or off ends it. Zero when the most recent counted day wasn't met.
+     * Every active goal on [date] as it is wrapped up (Wrap up the day, the recap): judged as if
+     * the day were closed, with its week after the day counts and, where `goalStreakEnabled` is on
+     * and the goal may have one, its streak. [days] reaches back to the start of [date]'s week, and
+     * to [GoalStreaks.from] for a streak.
      */
-    fun streak(days: List<GoalDay>): Int {
-        var run = 0
-        for (day in days.sortedByDescending { it.date }) {
-            when (day.verdict) {
-                GoalVerdict.Met -> run++
-                GoalVerdict.InProgress, GoalVerdict.NotCounted, GoalVerdict.Future -> Unit
-                GoalVerdict.Near, GoalVerdict.Off -> return run
-            }
-        }
-        return run
-    }
+    fun wrapUp(settings: Settings, days: Map<LocalDate, GoalDayFacts>, date: LocalDate, today: LocalDate, weightKg: Double?): List<GoalWrapUp> =
+        GoalWrapUpBuilder.build(settings, days, date, today, weightKg)
 
     /** The weight goal's projection from [weightKg] on [today], else from where it started. */
     fun projection(settings: Settings, weightKg: Double?, today: LocalDate): WeightProjection? {

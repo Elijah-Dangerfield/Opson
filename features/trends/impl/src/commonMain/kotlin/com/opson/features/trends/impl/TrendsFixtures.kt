@@ -5,6 +5,8 @@ import com.opson.libraries.medication.DoseUnit
 import com.opson.libraries.nutrition.RevealOn
 import com.opson.features.trends.NutrientsRange
 import com.opson.libraries.diary.CheckIn
+import com.opson.libraries.goals.GoalFixtures
+import com.opson.libraries.goals.GoalStatuses
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.Energy
 import com.opson.libraries.diary.HungerLevel
@@ -104,6 +106,7 @@ object TrendsFixtures {
         notesLinked: Boolean = false,
         burnedByDay: Map<LocalDate, Burned>? = null,
         checkInOn: Boolean = false,
+        recapsOn: Boolean = false,
         steps: TrendsStepsInputs? = null,
     ): TrendsInputs = TrendsInputs(
         today = today,
@@ -116,6 +119,7 @@ object TrendsFixtures {
         notesLinked = notesLinked,
         burnedByDay = burnedByDay,
         checkInOn = checkInOn,
+        recapsOn = recapsOn,
         steps = steps,
     )
 
@@ -129,6 +133,19 @@ object TrendsFixtures {
         burnedByDay = burned(),
         checkInOn = checkInOn,
     )
+
+    /**
+     * Losing weight averaged over the week since 5 October, the goal setting the target: the
+     * calendar reads each day through the real engine, judged by what its week asked of it.
+     */
+    fun goalInputs(): TrendsInputs {
+        val goal = GoalFixtures.loseWeekly.copy(startDate = LocalDate(2026, 10, 5))
+        val settings = GoalFixtures.settings(goal)
+        val base = trendsInputs(settings = settings, burnedByDay = burned())
+        val facts = base.days.associate { it.date to GoalStatuses.facts(it, base.burnedByDay?.get(it.date)) }
+        val days = GoalStatuses.days(settings, facts, goal.startDate, today, today, GoalFixtures.WEIGHT_KG).getValue(goal.id)
+        return base.copy(goalStart = goal.startDate, goal = GoalCalendar.of(goal, days))
+    }
 
     /** Burned on each of the last hundred days: the watch's resting and activity from [expended], today's so far. */
     fun burned(): Map<LocalDate, Burned> = (0..HISTORY_DAYS).associate { back ->
@@ -157,8 +174,8 @@ object TrendsFixtures {
         date to count.toInt()
     }.toMap()
 
-    /** A steps goal of 8,000 a day, set two months ago. */
-    fun stepsGoalSettings(settings: Settings = Settings()): Settings =
+    /** A steps goal of 8,000 a day, set two months ago, with the goal streak on. */
+    fun stepsGoalSettings(settings: Settings = Settings(goalStreakEnabled = true)): Settings =
         GoalBook.withGoals(settings, listOf(Goal("steps", GoalType.Steps(STEPS_GOAL), today.minus(STEPS_GOAL_DAYS, DateTimeUnit.DAY))))
 
     const val STEPS_GOAL = 8_000

@@ -22,6 +22,7 @@ import com.opson.features.trends.ProgressPhotoCaptureRoute
 import com.opson.features.trends.ProgressPhotoRoute
 import com.opson.features.trends.ProgressPhotosCompareRoute
 import com.opson.features.trends.ProgressPhotosRoute
+import com.opson.features.trends.RecapRoute
 import com.opson.features.today.TodayRoute
 import com.opson.features.trends.TrendsDayRoute
 import com.opson.features.trends.TrendsRoute
@@ -43,6 +44,9 @@ import com.opson.features.trends.impl.photos.ProgressPhotosAction
 import com.opson.features.trends.impl.photos.ProgressPhotosEvent
 import com.opson.features.trends.impl.photos.ProgressPhotosScreen
 import com.opson.features.trends.impl.photos.ProgressPhotosViewModel
+import com.opson.features.trends.impl.recap.RecapEvent
+import com.opson.features.trends.impl.recap.RecapScreen
+import com.opson.features.trends.impl.recap.RecapViewModel
 import com.opson.libraries.flowroutines.ObserveEvents
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.OnTabReselected
@@ -77,6 +81,7 @@ class TrendsFeatureEntryPoint(
     private val compareViewModelFactory: (leftId: String?, rightId: String?) -> CompareViewModel,
     private val photoViewModelFactory: (id: String) -> PhotoViewModel,
     private val captureViewModelFactory: () -> CaptureViewModel,
+    private val recapViewModelFactory: (kind: String, startIso: String) -> RecapViewModel,
     private val stillCamera: StillCamera,
     private val cameraPrompt: BarcodeCamera,
     /** The Notes list's route, which Today binds (see [NotesListLink]). */
@@ -97,6 +102,7 @@ class TrendsFeatureEntryPoint(
                     TrendsEvent.OpenNotes -> notesListLink?.let { router.navigate(it.route()) }
                     is TrendsEvent.OpenDay -> router.navigate(TrendsDayRoute(event.dayIso))
                     is TrendsEvent.OpenEnergyExplainer -> router.navigate(EnergyExplainerRoute(event.topic))
+                    is TrendsEvent.OpenRecap -> router.navigate(RecapRoute(event.kind, event.startIso))
                     TrendsEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                 }
             }
@@ -215,6 +221,20 @@ class TrendsFeatureEntryPoint(
                 }
             }
             PatternsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        // A weekly or monthly recap (release.recaps): from Trends, Today's card and Wrap up the day.
+        screen<RecapRoute> { entry ->
+            val route = entry.toRoute<RecapRoute>()
+            val viewModel: RecapViewModel = viewModel { recapViewModelFactory(route.kind, route.startIso) }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    RecapEvent.Close -> router.goBack()
+                    is RecapEvent.OpenEnergyExplainer -> router.navigate(EnergyExplainerRoute(event.topic))
+                }
+            }
+            RecapScreen(state = state, onAction = viewModel::takeAction)
         }
 
         progressPhotos(router)

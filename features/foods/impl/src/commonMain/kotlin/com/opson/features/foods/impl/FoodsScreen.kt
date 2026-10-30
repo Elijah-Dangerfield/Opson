@@ -65,12 +65,17 @@ import opson.libraries.resources.generated.resources.repeat_section
 import opson.libraries.resources.generated.resources.repeat_until
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import com.opson.libraries.ui.components.BuilderCard
+import opson.libraries.resources.generated.resources.builder_verify_foods_title
+import opson.libraries.resources.generated.resources.builder_verify_foods_body
+import opson.libraries.resources.generated.resources.foods_favorites
+import opson.libraries.resources.generated.resources.foods_favorites_empty
 
 /**
  * The Foods tab (design v3, 11.1): the title, a search bar that stays put while the list
- * scrolls, Create a meal and Add a food side by side, then Saved meals, Repeating
- * (`release.repeats`), Your foods and Recent, and the food data credit at the end. Stateless;
- * the entry point routes its events.
+ * scrolls, Create a meal and Add a food side by side, a Builder's Verify a food, then Favorites,
+ * Saved meals, Repeating (`release.repeats`), Your foods and Recent, and the food data credit at
+ * the end. Stateless; the entry point routes its events.
  */
 @Composable
 fun FoodsScreen(
@@ -108,7 +113,18 @@ private fun LazyListScope.foodsContent(state: FoodsState, onAction: (FoodsAction
     // Each item carries the gap below it rather than the list spacing them, so the gap under the
     // sticky search belongs to the search and stays page-coloured while rows scroll under it.
     item(key = "tiles") { Tiles(onAction, Modifier.padding(bottom = FoodsDefaults.CardGap)) }
+    if (state.verifyOn) {
+        item(key = "verify") {
+            BuilderCard(
+                title = stringResource(Res.string.builder_verify_foods_title),
+                body = stringResource(Res.string.builder_verify_foods_body),
+                onClick = { onAction(FoodsAction.VerifyTapped) },
+                modifier = Modifier.padding(bottom = FoodsDefaults.CardGap),
+            )
+        }
+    }
     if (state.loading) return
+    rowsCard("favorites", Res.string.foods_favorites, state.favorites, onAction, empty = Res.string.foods_favorites_empty)
     if (state.savedMeals.isNotEmpty()) rowsCard("saved", Res.string.foods_saved, state.savedMeals, onAction)
     if (state.repeatsOn) repeatsCard(state.repeats, onAction)
     rowsCard("yours", Res.string.foods_yours, state.yourFoods, onAction, empty = Res.string.foods_yours_empty)
@@ -224,6 +240,7 @@ private fun LazyListScope.rowsCard(
                 onClick = { onAction(FoodsAction.RowTapped(row.target)) },
                 showDivider = index < rows.lastIndex,
                 unverified = row.unverified,
+                verified = row.verified,
             )
         }
     }

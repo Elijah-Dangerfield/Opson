@@ -126,6 +126,8 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.color.MealTone
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.material.icons.rounded.Handyman
+import androidx.compose.material.icons.rounded.Verified
 
 /**
  * Every icon the screens use, named after the Material Symbols ligature in the handoff and drawn
@@ -283,7 +285,14 @@ object AppIcons {
     /** The amount sheet's star before the food is saved. */
     val StarOutline get() = icon("star_outline", MaterialIcons.Rounded.StarOutline)
 
+    /** Opson Builders: the program's mark, on everything only a Builder sees. */
+    val Builder get() = icon("handyman", MaterialIcons.Rounded.Handyman)
+
+    /** The Verified badge: a person checked this food against its package. */
+    val Verified get() = icon("verified", MaterialIcons.Rounded.Verified)
+
     /** An outlined "i", for a note that explains rather than warns. */
+
     val Info get() = icon("info", MaterialIcons.Outlined.OutlinedInfo)
     val Favorite get() = icon("favorite", MaterialIcons.Rounded.Favorite)
 
@@ -371,7 +380,8 @@ object AppIcons {
             ExpandLess, DragIndicator, AutoAwesome, Settings, CalendarToday,
             Insights, VisibilityOff, VisibilityOutline, VisibilityOffOutline, BlurOn, Mail, LockOutlined,
             OpenInNew, Palette, Notifications, WaterDropOutline, Support, WorkspacePremium, Download,
-            EventRepeat, EventAvailable, Star, Favorite, Science,
+            EventRepeat, EventAvailable, Star, Favorite, Science, Builder, Verified,
+
             FormatListBulleted, BeachAccess, Watch, Widgets, Call, Sms, Public, SupportAgent,
             DeleteOutline, TrackChanges, Compare, Cameraswitch, ArrowDropDown, DriveFileMove, FitnessCenter, DirectionsWalk,
             FlashlightOn, FlashlightOff, BugReport, Feedback, Article, Repeat, Medication,

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Weekly and monthly recaps (release.recaps): the recap screen, "Your week is ready" on Today and
+  the way in from Trends. A recap says what happened and never grades it: no week is good or bad,
+  nothing praises eating less. After numbers have been hard it says only how someone showed up
+  and how they felt. Same rules as strings.xml: no backslash escapes, positional arguments.
+-->
+<resources>
+    <string name="recap_title_week">Your week</string>
+    <!-- %1$s is the month's name: "Your October" -->
+    <string name="recap_title_month">Your %1$s</string>
+    <!-- Under the title while the week or month is still going: "Oct 26 to Nov 1, so far" -->
+    <string name="recap_so_far">%1$s, so far</string>
+    <string name="recap_kind_week">Week</string>
+    <string name="recap_kind_month">Month</string>
+    <string name="recap_previous_cd">Earlier</string>
+    <string name="recap_next_cd">Later</string>
+    <string name="recap_loading_cd">Loading your recap</string>
+    <string name="recap_empty">Nothing logged in these days yet.</string>
+
+    <!-- Days -->
+    <string name="recap_days_title">Days</string>
+    <string name="recap_days_logged">Logged</string>
+    <string name="recap_days_logged_value">%1$d of %2$d</string>
+    <string name="recap_days_skipped">Skipped</string>
+    <string name="recap_days_not_logged">Nothing logged</string>
+    <string name="recap_days_ahead">Still to come</string>
+    <string name="recap_day_logged_cd">%1$s, logged</string>
+    <string name="recap_day_skipped_cd">%1$s, skipped</string>
+    <string name="recap_day_not_logged_cd">%1$s, nothing logged</string>
+    <string name="recap_day_ahead_cd">%1$s, still to come</string>
+    <plurals name="recap_counting_note">
+        <item quantity="one">Totals add up the %1$d day you logged, and averages are per logged day. Skipped days and days with nothing logged are left out.</item>
+        <item quantity="other">Totals add up the %1$d days you logged, and averages are per logged day. Skipped days and days with nothing logged are left out.</item>
+    </plurals>
+
+    <!-- Eaten -->
+    <string name="recap_eaten_title">Eaten</string>
+    <string name="recap_total">Total</string>
+    <string name="recap_daily_average">Daily average</string>
+    <string name="recap_your_range">Your range</string>
+    <string name="recap_your_goal">Your goal</string>
+    <string name="recap_eaten_caption">A bar for each logged day. The band is your range.</string>
+    <string name="recap_eaten_caption_goal">A bar for each logged day. The line is your goal.</string>
+
+    <!-- Burned -->
+    <string name="recap_burned_title">Total burned (TDEE)</string>
+    <plurals name="recap_burned_sub">
+        <item quantity="one">Over the %1$d day you logged</item>
+        <item quantity="other">Over the %1$d days you logged</item>
+    </plurals>
+    <string name="recap_burned_resting">Resting energy (BMR)</string>
+    <string name="recap_burned_activity">Activity</string>
+    <string name="recap_burned_exercise">Exercise</string>
+    <string name="recap_burned_digesting">Digesting food</string>
+
+    <!-- Eaten against burned: the running total's words, over the recap's days -->
+    <string name="recap_balance_title">Eaten against burned</string>
+
+    <!-- Weight -->
+    <string name="recap_weight_title">Your weight trend</string>
+
+    <!-- The person's own targets. Never a count of days off. -->
+    <string name="recap_plan_title">Your targets</string>
+    <string name="recap_plan_on">On plan</string>
+    <string name="recap_plan_close">Close to plan</string>
+    <plurals name="recap_plan_of">
+        <item quantity="one">Out of %1$d logged day with every amount known.</item>
+        <item quantity="other">Out of %1$d logged days with every amount known.</item>
+    </plurals>
+
+    <!-- Each goal over the period, in Wrap up the day's words: days on plan and a bit off, never big days or days well under -->
+    <string name="recap_goals_title">Your goals</string>
+    <string name="recap_goal_on_plan">On plan</string>
+    <string name="recap_goal_days">%1$d of %2$d days</string>
+    <string name="recap_goal_a_bit">A bit over or under</string>
+    <string name="recap_goal_streak">Goal streak</string>
+    <string name="recap_goal_lose">Lose weight</string>
+    <string name="recap_goal_keep">Keep your weight</string>
+    <string name="recap_goal_gain">Gain weight</string>
+    <string name="recap_goal_deficit">A daily deficit</string>
+    <string name="recap_goal_surplus">A daily surplus</string>
+    <string name="recap_goal_even">Eat about what you burn</string>
+    <string name="recap_goal_burn">Burn goal</string>
+    <string name="recap_goal_steps">Steps</string>
+    <string name="recap_goal_every_day">Show up every day</string>
+    <plurals name="recap_goal_meals">
+        <item quantity="one">%1$d meal a day</item>
+        <item quantity="other">%1$d meals a day</item>
+    </plurals>
+
+    <!-- Check-ins -->
+    <string name="recap_checkins_title">How you felt</string>
+    <plurals name="recap_checkins_sub">
+        <item quantity="one">From %1$d check-in</item>
+        <item quantity="other">From %1$d check-ins</item>
+    </plurals>
+
+    <!-- Foods -->
+    <string name="recap_top_foods">Foods you had most</string>
+    <plurals name="recap_top_food_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="recap_new_foods">New foods</string>
+
+    <!-- Showing up, while celebrations are on -->
+    <string name="recap_showing_up">Showing up</string>
+    <string name="recap_reached">Reached</string>
+
+    <!-- "Your week is ready" on Today -->
+    <string name="recap_banner_week_title">Your week is ready</string>
+    <!-- %1$s is the month's name: "Your October is ready" -->
+    <string name="recap_banner_month_title">Your %1$s is ready</string>
+    <!-- %1$s is the dates: "Oct 19 to 25", or the month and year -->
+    <string name="recap_banner_body">A look back at %1$s.</string>
+    <string name="recap_banner_open">See it</string>
+    <string name="recap_banner_off">The recap card is off. Turn it back on in More › Today screen.</string>
+
+    <!-- The way in from Trends -->
+    <string name="trends_recaps_title">Recaps</string>
+    <string name="trends_recaps_last_week">Last week, %1$s</string>
+    <string name="trends_recaps_last_month">Last month, %1$s</string>
+</resources>

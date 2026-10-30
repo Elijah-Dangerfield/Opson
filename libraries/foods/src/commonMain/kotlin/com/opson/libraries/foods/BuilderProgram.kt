@@ -179,6 +179,9 @@ sealed interface FoodCheckResult {
     /** Some weren't found in the photo's text: [missing] are their field keys (`energy_kcal`). */
     data class Unconfirmed(val missing: List<String>) : FoodCheckResult
 
+    /** It waits for a reviewer with its photos and what the Builder said was wrong. */
+    data object InReview : FoodCheckResult
+
     /** Not a Builder on the server (left, or removed). */
     data object NotBuilder : FoodCheckResult
     data object TooMany : FoodCheckResult
@@ -188,11 +191,69 @@ sealed interface FoodCheckResult {
     data class Failed(val offline: Boolean) : FoodCheckResult
 }
 
+/** A part of a food a Builder can say was wrong or missing. Wire values match the server's. */
+enum class VerifyField(val wire: String) {
+    Calories("calories"),
+    Macros("macros"),
+    Serving("serving"),
+    NameBrand("name_brand"),
+    Ingredients("ingredients"),
+    Barcode("barcode"),
+}
+
+/**
+ * The right values as the pack prints them, for [basisLabel] weighing [basisGrams] (a serving, or
+ * 100 g). Every field is optional; the server turns the numbers into per 100 g.
+ */
+data class VerifyValues(
+    val name: String? = null,
+    val brand: String? = null,
+    val barcode: String? = null,
+    val basisLabel: String? = null,
+    val basisGrams: Double? = null,
+    val kcal: Double? = null,
+    val protein: Double? = null,
+    val carbs: Double? = null,
+    val fat: Double? = null,
+    val servingLabel: String? = null,
+    val servingGrams: Double? = null,
+) {
+    val isEmpty: Boolean
+        get() = listOf(kcal, protein, carbs, fat, servingGrams).all { it == null } &&
+            listOf(name, brand, barcode, servingLabel).all { it.isNullOrBlank() }
+}
+
+/** "Something was wrong": which parts were [wrong], which [missing], the right [values] and a [note]. */
+data class VerifyProblem(
+    val wrong: Set<VerifyField> = emptySet(),
+    val missing: Set<VerifyField> = emptySet(),
+    val values: VerifyValues? = null,
+    val note: String? = null,
+) {
+    val isEmpty: Boolean get() = wrong.isEmpty() && missing.isEmpty() && (values?.isEmpty ?: true) && note.isNullOrBlank()
+}
+
+/**
+ * One verification. [id] is made once, so a retry is the same check. [lines] are the label's text
+ * as the phone read it. [front] and [label] are the two photos, JPEGs the device already shrank;
+ * the server keeps them only when the check waits for a reviewer.
+ */
+class FoodVerification(
+    val id: String,
+    val foodId: String,
+    val engine: String,
+    val lines: List<LabelTextLine>,
+    val problem: VerifyProblem? = null,
+    val front: ByteArray? = null,
+    val label: ByteArray? = null,
+)
+
 /**
  * `POST /v1/foods/{id}/verifications`: the label's text, read on the phone, goes to the server,
- * which looks for the food's numbers in it. No photo is sent. [id] is made once, so a retry is
- * the same check.
+ * which looks for the food's numbers in it. With "Something was wrong", or numbers it could not
+ * find, the photos and the Builder's answers wait for a reviewer ([FoodCheckResult.InReview]). A
+ * server from before reviews never answers that; the caller files the problem as a report then.
  */
 interface FoodChecks {
-    suspend fun check(id: String, foodId: String, engine: String, lines: List<LabelTextLine>): FoodCheckResult
+    suspend fun verify(verification: FoodVerification): FoodCheckResult
 }

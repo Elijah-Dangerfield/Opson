@@ -28,3 +28,11 @@ data class DayNoteRoute(val dayIso: String) : Route()
 /** Day close's "Why not cut back?" on the big-day card: a short reason, nothing to do. */
 @Serializable
 class WhyNotCutBackRoute : Route()
+
+/**
+ * The kind note ([com.opson.features.today.impl.kindnote.KindNotePrompt]), which the prompt host
+ * opens over Today when the log suggests a hard stretch. Named for what it is to the person, not
+ * for what set it off.
+ */
+@Serializable
+class KindNoteRoute : Route()

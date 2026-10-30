@@ -195,6 +195,7 @@ internal fun FoodResponse.toDomain(): Food = Food(
     tier = FoodTier.fromWire(tier),
     verified = verified,
     reviewStatus = ReviewStatus.fromWire(reviewStatus),
+    checked = checked == true,
 )
 
 internal fun BarcodeMatchDto.toDomain(): BarcodeMatch = BarcodeMatch(

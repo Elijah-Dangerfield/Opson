@@ -311,6 +311,29 @@ data class Settings(
      * [celebrationStyle].
      */
     val celebrationCounts: Boolean? = null,
+    /**
+     * A second streak for a goal whose "met" is never eating less: tracking every day, meals, burn
+     * or steps (`GoalStreaks.eligible`). Off until the person turns it on; onboarding asks when a
+     * goal is set. The showing-up streak doesn't read it. A top-level key, synced with the rest.
+     */
+    val goalStreakEnabled: Boolean = false,
+    /**
+     * The kind note on Today when the log suggests a hard stretch ([HardStretch]), with ways to
+     * get support. On by default; the note and More › Support and sharing turn it off. What the
+     * note is based on is worked out on the phone and never synced; only this choice is.
+     */
+    val hardStretchNotes: Boolean = true,
+
+    // Things on Today someone can turn off where they show ("I'd rather not see these", offered on
+    // the first few showings, `OptOuts`) and in More › Today screen. Top-level keys, as above.
+    /** The streak in Today's header, while celebrations are on. Your progress, which it opens, goes with it. */
+    val todayStreak: Boolean = true,
+    /** "Your week is ready" on Today after a week or a month ends (`release.recaps`). The recaps stay in Trends. */
+    val recapBanner: Boolean = true,
+    /** First-run tips: the small bubbles pointing at something new. */
+    val tips: Boolean = true,
+    /** Suggestions on Today that can be skipped: connect Health, try a check-in, meal reminders and the like. */
+    val suggestions: Boolean = true,
 ) {
     /** [birthDate] while it agrees with [birthYear]: an older build that changed only the year leaves the day unknown. */
     val knownBirthDate: LocalDate? get() = birthDate?.takeIf { it.year == birthYear }
@@ -414,6 +437,9 @@ data class Settings(
     /** Stars [foodKey], or takes the star off. */
     fun toggleFavorite(foodKey: String): Settings =
         copy(favoriteFoods = if (isFavorite(foodKey)) favoriteFoods - foodKey else listOf(foodKey) + favoriteFoods)
+
+    /** Stars [foodKey] when [on], or takes the star off; doing what is already done changes nothing (an Undo after a second tap). */
+    fun setFavorite(foodKey: String, on: Boolean): Settings = if (isFavorite(foodKey) == on) this else toggleFavorite(foodKey)
 
     /** Takes [foodKey] off Recent as of [atEpochMs]; logging it after that brings it back. */
     fun hideFromRecent(foodKey: String, atEpochMs: Long): Settings =

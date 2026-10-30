@@ -95,6 +95,12 @@ object GoalFixtures {
     fun days(goal: Goal = lose): List<GoalDay> =
         GoalStatuses.days(settings(goal), week, monday, monday.plus(DatePeriod(days = 6)), today, WEIGHT_KG).getValue(goal.id)
 
+    /** Today wrapped up for [goal] and [also], with goal streaks on when [streaks]. [eatenKcal] replaces today's 900 when given. */
+    fun wrapUp(goal: Goal = lose, vararg also: Goal, streaks: Boolean = false, eatenKcal: Double? = null): List<GoalWrapUp> {
+        val days = if (eatenKcal == null) week else week + (today to week.getValue(today).copy(eatenKcal = eatenKcal))
+        return GoalStatuses.wrapUp(settings(goal, *also).copy(goalStreakEnabled = streaks), days, today, today, WEIGHT_KG)
+    }
+
     fun projection(goal: Goal = lose): WeightProjection? = GoalStatuses.projection(settings(goal), WEIGHT_KG, today)
 
     /** Connecting Apple Health: resting from the watch and a week of its activity. 1,930 becomes 2,150. */

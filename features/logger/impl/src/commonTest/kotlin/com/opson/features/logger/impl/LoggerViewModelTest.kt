@@ -34,6 +34,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
+import com.opson.features.builder.VerifyFoodAvailable
 
 /**
  * [LoggerViewModel], the + sheet (design sync 4, 13.4a and 13.4b), one test per action: what
@@ -69,6 +70,7 @@ class LoggerViewModelTest : CoroutineTest() {
         exerciseOn: Boolean = false,
         checkInOn: Boolean = false,
         diaryRepo: FakeDiaryRepository = diary,
+        builder: Boolean = false,
     ) = LoggerViewModel(
         route = route,
         quickAddName = "Quick add",
@@ -93,6 +95,7 @@ class LoggerViewModelTest : CoroutineTest() {
         exerciseRelease = ExerciseRelease { exerciseOn },
         submittedFoods = submittedFoods,
         checkInEnabled = checkInFlag(checkInOn),
+        verifyFood = VerifyFoodAvailable { builder },
     )
 
     private fun TestScope.events(vm: LoggerViewModel): List<LoggerEvent> {
@@ -142,7 +145,21 @@ class LoggerViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun verifyAFood_isABuildersLastTile_andOpensTheScannerForThisDay() = runUnitTest {
+        assertTrue(AddAction.VerifyFood !in vm().state.actions)
+        val vm = vm(builder = true)
+        val events = events(vm)
+        settle()
+
+        assertEquals(AddAction.VerifyFood, vm.state.actions.last())
+        vm.takeAction(LoggerAction.VerifyFoodTapped)
+        settle()
+        assertEquals(listOf<LoggerEvent>(LoggerEvent.OpenVerify(LoggerFixtures.today)), events)
+    }
+
+    @Test
     fun checkIn_isOfferedWithItsFlag_afterTheNote_andOpensTheSheetForThisDay() = runUnitTest {
+
         assertTrue(AddAction.CheckIn !in vm(checkInOn = false).state.actions)
         val vm = vm(checkInOn = true)
         val events = events(vm)

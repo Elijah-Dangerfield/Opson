@@ -23,6 +23,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import com.opson.features.builder.VerifyFoodAvailable
+import kotlinx.coroutines.test.advanceUntilIdle
 
 /** The Foods tab: [FoodsStateBuilder]'s sections and visibility, and [FoodsViewModel]'s actions. */
 class FoodsTabTest : CoroutineTest() {
@@ -33,9 +35,12 @@ class FoodsTabTest : CoroutineTest() {
     private val submittedFoods = FakeSubmittedFoods()
 
     private val repeats = FakeRepeatRepository(FoodsFixtures.repeats)
+    private val settings = FakeSettingsRepository()
+    private val catalog = FakeFoodCatalog(listOf(FoodsFixtures.starredYogurt))
+    private var builder = false
 
     private fun vm(repeatsOn: Boolean = false) =
-        FoodsViewModel(customFoods, savedMeals, diary, policySource, submittedFoods, repeats, RepeatsRelease { repeatsOn })
+        FoodsViewModel(customFoods, savedMeals, diary, policySource, submittedFoods, repeats, RepeatsRelease { repeatsOn }, settings, catalog, FakeCalendar(), VerifyFoodAvailable { builder })
 
     private fun TestScope.events(vm: FoodsViewModel): List<FoodsEvent> {
         val events = mutableListOf<FoodsEvent>()
@@ -199,5 +204,46 @@ class FoodsTabTest : CoroutineTest() {
         vm.takeAction(FoodsAction.NewRepeatTapped)
 
         assertEquals(listOf<FoodsEvent>(FoodsEvent.OpenRepeat("repeat-coffee"), FoodsEvent.OpenRepeat(null)), events)
+    }
+
+    @Test
+    fun favoritesAreTheStarredFoodsNewestFirst_andAVerifiedOneSaysSo() = runUnitTest {
+        settings.state.value = settings.state.value
+            .toggleFavorite("c:${FoodsFixtures.pandesal.id}")
+            .toggleFavorite("f:${FoodsFixtures.starredYogurt.id}")
+            // A star whose food the phone doesn't have yet waits.
+            .toggleFavorite("f:not-on-this-phone")
+        val vm = vm()
+        advanceUntilIdle()
+
+        val favorites = vm.stateFlow.value.favorites
+        assertEquals(listOf("f:skyr", "c:${FoodsFixtures.pandesal.id}"), favorites.map { it.key })
+        assertTrue(favorites.first().verified)
+        assertFalse(favorites.last().verified)
+        // The skyr was never logged: its first serving, 150 g of 63 kcal per 100.
+        assertEquals("95", (favorites.first().calories as? Display.Shown)?.text)
+        assertEquals(FoodsTarget.Food(FoodRef.Catalog("skyr")), favorites.first().target)
+    }
+
+    @Test
+    fun aFoodLoggedBeforeShowsTheAmountItWasLastLoggedAt() {
+        val state = FoodsFixtures.foodsState(policy(PresetId.Full), favorites = true)
+        val rice = state.favorites.single { it.key == "f:rice" }
+        assertEquals(FoodsFixtures.recent.first { it.foodId == "rice" }.amountLabel, rice.sub)
+        assertTrue(rice.verified)
+    }
+
+    @Test
+    fun verifyAFoodIsOnlyForABuilder_andOpensTheScannerForToday() = runUnitTest {
+        assertFalse(vm().state.verifyOn)
+
+        builder = true
+        val vm = vm()
+        val events = events(vm)
+        advanceUntilIdle()
+        assertTrue(vm.stateFlow.value.verifyOn)
+        vm.takeAction(FoodsAction.VerifyTapped)
+        advanceUntilIdle()
+        assertEquals(listOf<FoodsEvent>(FoodsEvent.OpenVerify(FoodsFixtures.today.toString())), events)
     }
 }

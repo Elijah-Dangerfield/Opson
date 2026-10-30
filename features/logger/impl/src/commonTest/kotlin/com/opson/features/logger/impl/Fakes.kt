@@ -365,7 +365,12 @@ class FakeFoodCatalog(
         marked += food
     }
 
-    override suspend fun setFavorite(food: Food, favorite: Boolean) = Unit
+    /** Every star kept on the phone, as food id and whether it is on. */
+    val favorited = mutableListOf<Pair<String, Boolean>>()
+
+    override suspend fun setFavorite(food: Food, favorite: Boolean) {
+        favorited += food.id to favorite
+    }
 }
 
 class FakeSettingsRepository(initial: Settings = Settings()) : SettingsRepository {

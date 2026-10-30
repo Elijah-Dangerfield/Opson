@@ -3,6 +3,7 @@ package com.opson.features.trends.impl
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.NewFoods
+import com.opson.libraries.diary.RecapPeriod
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.diary.WeighIn
@@ -11,6 +12,9 @@ import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.DayGoal
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.Goal
+import com.opson.libraries.nutrition.GoalAveraging
+import com.opson.libraries.nutrition.GoalDay
 import com.opson.libraries.nutrition.GoalStyle
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
@@ -64,9 +68,39 @@ data class TrendsInputs(
     val checkInOn: Boolean = false,
     /** When the current goal began, for the running total's "Since you started". `null` until a goal has a start date. */
     val goalStart: LocalDate? = null,
+    /** `release.recaps`: the way into last week's and last month's recaps. */
+    val recapsOn: Boolean = false,
+    /** The goal setting the target, as the calendar reads it day by day; `null` without one. */
+    val goal: GoalCalendar? = null,
     /** `release.health`: steps from the health app, for the Steps card. `null` with it off, or until the store has answered. */
     val steps: TrendsStepsInputs? = null,
 )
+
+/**
+ * The calorie goal setting the target, for the on-track calendar (docs/plans/goals-v2.md): from
+ * [start] on, a day is colored by the goal's own verdict ([days], `GoalRepository.days`), which
+ * under a weekly average ([weekly]) judges the day by what its week asked of it. [direction] is
+ * which way the goal points.
+ */
+data class GoalCalendar(
+    val start: LocalDate,
+    val weekly: Boolean,
+    val direction: GoalDirection,
+    val days: Map<LocalDate, GoalDay>,
+) {
+    companion object {
+        /** [goal]'s [days] as the calendar reads them. */
+        fun of(goal: Goal, days: List<GoalDay>): GoalCalendar {
+            val delta = goal.type.deltaKcal ?: 0
+            val direction = when {
+                delta < 0 -> GoalDirection.Lose
+                delta > 0 -> GoalDirection.Gain
+                else -> GoalDirection.Hold
+            }
+            return GoalCalendar(goal.startDate, goal.averaging == GoalAveraging.Weekly, direction, days.associateBy { it.date })
+        }
+    }
+}
 
 /** What the person has picked on the page itself, kept by the view model across new inputs. */
 data class TrendsUi(
@@ -105,7 +139,12 @@ data class TrendsState(
     val calendar: OnTrackCalendar? = null,
     /** Eaten against burned, added up, beside the weight trend. */
     val runningTotal: RunningTotalCard? = null,
+    /** `release.recaps`: last week's and last month's recaps, which are over and ready to read. */
+    val recaps: RecapLinks? = null,
 )
+
+/** The last week and the last month that are over: each opens its recap. */
+data class RecapLinks(val week: RecapPeriod, val month: RecapPeriod)
 
 sealed interface RangeLabel {
     /** `Oct 19 to 25`. */
@@ -245,6 +284,7 @@ object TrendsStateBuilder {
             journal = journal?.let { TrendsJournal.journal(it, inputs.notesLinked) },
             calendar = OnTrack.calendar(inputs, policy, dayAt, { metric, day -> opens(metric, day, inputs, policy) }, ui),
             runningTotal = if (checkPending) null else RunningTotals.card(inputs, policy, dayAt, { metric, day -> opens(metric, day, inputs, policy) }, ui),
+            recaps = if (inputs.recapsOn) RecapLinks(RecapPeriod.lastWeek(inputs.today, settings.weekStart), RecapPeriod.lastMonth(inputs.today)) else null,
         )
     }
 

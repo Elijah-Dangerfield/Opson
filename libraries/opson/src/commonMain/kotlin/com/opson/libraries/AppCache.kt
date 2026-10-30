@@ -84,6 +84,20 @@ data class AppData(
 
     /** The day ("2026-10-29") the person put away Today's happy birthday line, so it stays away that day. Account-scoped. */
     val birthdayThankedOn: String? = null,
+
+    /**
+     * The day ("2030-04-18") someone who was too young at onboarding's age question turns old
+     * enough, so the gate stays closed on this phone until then rather than taking another
+     * answer. Only the date the gate opens, never the birthday. Device-scoped: it outlives
+     * sign-outs, and goes with the app.
+     */
+    val ageGateOpensOn: String? = null,
+
+    /**
+     * When "Why not cut back?" was opened (epoch ms, newest last, capped), for the hard-stretch
+     * check on this phone. Never synced or sent. Account-scoped.
+     */
+    val cutBackLooks: List<Long> = emptyList(),
 )
 
 /** One reading of a day's energy, in kcal, and when it was read (epoch ms). [day] is ISO, `2026-10-29`. */
@@ -146,4 +160,5 @@ fun AppData.resetAccountScoped(): AppData = copy(
     healthEnergy = null,
     healthSteps = null,
     birthdayThankedOn = null,
+    cutBackLooks = emptyList(),
 )

@@ -3,6 +3,7 @@ package com.opson.features.trends.impl
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.goals.GoalStatuses
+import com.opson.libraries.goals.GoalStreaks
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.Goal
@@ -22,7 +23,6 @@ import com.opson.libraries.ui.components.IntakeBar
 import com.opson.libraries.ui.time.DateCopy
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.trends_steps_reading
@@ -84,9 +84,10 @@ data class StepsBest(val day: String, val steps: Int)
 
 /**
  * A steps goal of [steps] a day: [met] of [counted] days in the span reached it (today once it
- * has), and [streak] days in a row up to now, which is shown only from two on.
+ * has), and with the goal streak on ([com.opson.libraries.diary.Settings.goalStreakEnabled]) its
+ * run of days up to now ([GoalStreaks.run]), shown only from two on. Null with the streak off.
  */
-data class StepsGoalLine(val steps: Int, val met: Int, val counted: Int, val streak: Int)
+data class StepsGoalLine(val steps: Int, val met: Int, val counted: Int, val streak: Int? = null)
 
 /** Under a month or three of bars: the first day, and the last (`Today`). */
 data class StepsAxis(val start: String, val end: String)
@@ -94,8 +95,8 @@ data class StepsAxis(val start: String, val end: String)
 /** Builds [StepsCard]. Pure, so the arithmetic is tested in `TrendsStepsTest` and previews show the real thing. */
 object TrendsStepsBuilder {
 
-    /** How far back steps are read: the longest range and some, so a streak can reach past it. */
-    const val HISTORY_DAYS = 120
+    /** How far back steps are read: the longest range and some, as far as a goal streak reads. */
+    const val HISTORY_DAYS = GoalStreaks.WINDOW_DAYS
 
     /**
      * The card, or null: switched off, `release.health` off ([TrendsInputs.steps] null), a device
@@ -171,8 +172,9 @@ object TrendsStepsBuilder {
 
     /**
      * How the span went against the goal, through the goal engine so the card and the goal screens
-     * agree: a day is met at or past the count, today as soon as it gets there. The streak reads
-     * every day read ([HISTORY_DAYS]), not only the span's, so a week view still shows the run.
+     * agree: a day is met at or past the count, today as soon as it gets there. The streak, when
+     * the person turned goal streaks on, reads as far back as [GoalStreaks] does, not only the
+     * span, so a week view still shows the run, and it forgives as Wrap up the day's does.
      */
     private fun goalLine(
         goal: Goal,
@@ -183,7 +185,7 @@ object TrendsStepsBuilder {
         inputs: TrendsInputs,
     ): StepsGoalLine {
         val today = inputs.today
-        val history = generateSequence(today.minus(HISTORY_DAYS - 1, DateTimeUnit.DAY)) { it.plus(1, DateTimeUnit.DAY) }.takeWhile { it <= today }.toList()
+        val history = generateSequence(GoalStreaks.from(today, goal)) { it.plus(1, DateTimeUnit.DAY) }.takeWhile { it <= today }.toList()
         val facts = (history + shown).distinct().associateWith { date -> GoalDayFacts(date, untracked = dayAt(date).untracked, steps = days[date]) }
         val context = GoalContext(today = today, weekStart = inputs.settings.weekStart)
         val inSpan = GoalDays.verdicts(goal, shown.filter { it <= today }, facts, context)
@@ -191,7 +193,7 @@ object TrendsStepsBuilder {
             steps = goalSteps,
             met = inSpan.count { it.verdict == GoalVerdict.Met },
             counted = inSpan.count { it.verdict == GoalVerdict.Met || it.verdict == GoalVerdict.Near || it.verdict == GoalVerdict.Off },
-            streak = GoalStatuses.streak(GoalDays.verdicts(goal, history, facts, context)),
+            streak = if (inputs.settings.goalStreakEnabled) GoalStreaks.run(GoalDays.verdicts(goal, history, facts, context)) else null,
         )
     }
 

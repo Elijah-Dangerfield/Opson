@@ -1,7 +1,37 @@
 # Trends plan
 
 Trends and its settings sheet, Nutrients detail (This day and Week average),
-Weight, and Patterns. Read `shared.md` first.
+Weight, Patterns, and the weekly and monthly recaps. Read `shared.md` first.
+
+> **Recaps (2026-10-30, `release.recaps`):** `RecapRoute(kind, startIso)` opens a
+> week (by the person's week start) or a calendar month (`RecapPeriod` in
+> `:libraries:diary`), with Week and Month and a step back and forth. Reached
+> from a Recaps card at the top of Trends (last week, last month), from Today's
+> "Your week is ready" (`RecapTodayCardContribution`), and from Wrap up the
+> day on a week's last day. Top to bottom: the days (a dot each: logged,
+> skipped, nothing logged, still to come), showing up (the run and milestones
+> reached, while celebrations are on), how the check-ins felt, eaten (total,
+> daily average, the range, a bar a logged day), each active goal the mode
+> offers with its days on plan and a bit over or under out of the days it could
+> judge, each day wrapped up as Wrap up the day wraps it (`GoalStatuses.wrapUp`,
+> `GoalOutcomes`; never a count of big days or days well under), "Your week is
+> on track." when a weekly average's week ended so, and the goal streak where
+> it is on and celebrations say numbers, or with no goal
+> setting the target the days on plan or close (`OnTrack`'s rules), total burned
+> (TDEE) with resting, activity, exercise and digesting, eaten against burned
+> (the running total's rules and words, with the shared (i) sheets), the weight
+> trend, the foods had most and new foods. **Skipped days:** totals add up only
+> the logged days and averages are per logged day; an untracked day or one with
+> nothing logged is left out and the page says so. Every amount resolves on
+> `Surface.Week` with the period's last day as context, a day Later hasn't
+> opened stays out, and after numbers have been hard only the days, showing up,
+> check-ins and foods (by name) are built. **The card on Today** shows from the
+> first open after a week or month ends, for three days, once per period, only
+> with two logged days in it; a month goes before its week. It offers "I'd
+> rather not see these" on its first five showings (`OptOut.RecapBanner`) and
+> More › Today screen switches it (`Settings.recapBanner`). Opening a recap
+> from anywhere counts as seeing it (`RecapBannerStore`, on the phone). After
+> numbers have been hard only the gentle goals (showing up, meals) are recapped.
 
 ## Source
 - **Design sync 2 is the spec now** (`docs/plans/design-sync-2.md`): the
@@ -281,8 +311,9 @@ day and `Today` under them and narrower gaps), today striped, a missing day a
 gap. The average beside the title (`8,214 avg`) leaves today out. Under the
 chart: Today so far, Most in a day, and with an active steps goal
 (`GoalStatuses.stepsGoal`) its line across the bars, Days at your goal (the
-goal engine's verdicts) and `N days in a row at your goal` from two on
-(`GoalStatuses.streak`, today and skipped days passed over). The (i) says where
+goal engine's verdicts) and, with goal streaks on (`Settings.goalStreakEnabled`),
+`N days in a row at your goal` from two on (`GoalStreaks.run`, the same
+forgiving run Wrap up the day shows). The (i) says where
 steps come from, that they never add to Burned, and that they stay on the
 phone. Not connected: what it would show and Connect (`HealthRepository.connect`
 from the tap; a refusal or Health Connect to install opens Watch and health

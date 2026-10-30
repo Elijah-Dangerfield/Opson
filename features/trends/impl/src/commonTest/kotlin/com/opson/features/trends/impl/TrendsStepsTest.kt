@@ -136,10 +136,21 @@ class TrendsStepsTest : CoroutineTest() {
     }
 
     @Test
-    fun theStreak_endsAtTheLastDayUnderTheGoal() {
-        val days = (0..10).associate { back -> today.minus(back, DateTimeUnit.DAY) to (if (back == 4) 1_000 else 9_000) }
-        val chart = assertIs<StepsCard.Chart>(card(TrendsFixtures.stepsInputs(days = days), settings = TrendsFixtures.stepsGoalSettings()))
-        assertEquals(4, chart.goal?.streak, "today met counts, and so do the three days before it")
+    fun theStreak_forgivesOneDayUnder_andTwoInARowEndIt() {
+        val one = (0..10).associate { back -> today.minus(back, DateTimeUnit.DAY) to (if (back == 4) 1_000 else 9_000) }
+        val forgiven = assertIs<StepsCard.Chart>(card(TrendsFixtures.stepsInputs(days = one), settings = TrendsFixtures.stepsGoalSettings()))
+        assertEquals(10, forgiven.goal?.streak, "one day under between met ones is forgiven")
+        val two = (0..10).associate { back -> today.minus(back, DateTimeUnit.DAY) to (if (back == 4 || back == 5) 1_000 else 9_000) }
+        val ended = assertIs<StepsCard.Chart>(card(TrendsFixtures.stepsInputs(days = two), settings = TrendsFixtures.stepsGoalSettings()))
+        assertEquals(4, ended.goal?.streak, "today met counts, and so do the three days before it")
+    }
+
+    @Test
+    fun theStreak_isOnlyThereWithGoalStreaksOn() {
+        val off = TrendsFixtures.stepsGoalSettings(Settings(goalStreakEnabled = false))
+        val chart = assertIs<StepsCard.Chart>(card(settings = off))
+        assertNull(chart.goal?.streak)
+        assertTrue(chart.goal != null, "the line and the days at it stay")
     }
 
     @Test

@@ -21,6 +21,7 @@ import com.opson.features.settings.impl.SettingsHeader
 import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
 import com.opson.libraries.ui.bounceClick
+import com.opson.libraries.ui.components.AppSwitch
 import com.opson.libraries.ui.components.EdgeCard
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonTone
@@ -44,6 +45,8 @@ import opson.libraries.resources.generated.resources.settings_about_title
 import opson.libraries.resources.generated.resources.settings_back_more
 import opson.libraries.resources.generated.resources.settings_delete_failed
 import opson.libraries.resources.generated.resources.settings_delete_offline
+import opson.libraries.resources.generated.resources.settings_kind_notes_body
+import opson.libraries.resources.generated.resources.settings_kind_notes_title
 import opson.libraries.resources.generated.resources.settings_export_offline
 import opson.libraries.resources.generated.resources.settings_find_could_not_open
 import opson.libraries.resources.generated.resources.settings_send_feedback
@@ -125,6 +128,7 @@ fun SupportScreen(
                 )
             }
         }
+        state.kindNotes?.let { on -> KindNotesCard(on, onAction) }
         // A trusted person returns when it works; 0.1 shows no "Coming later" rows, which App
         // Review can read as placeholder content.
         DataCard(state, onAction)
@@ -134,6 +138,20 @@ fun SupportScreen(
         DeleteDialog(working = state.delete == DeleteStep.Deleting, onAction = onAction)
     }
     if (state.export == ExportStatus.ConfirmingNumbers) ExportNumbersDialog(onAction)
+}
+
+/** The switch for Today's kind note when the log suggests a hard stretch. */
+@Composable
+private fun KindNotesCard(on: Boolean, onAction: (SupportAction) -> Unit) {
+    EdgeCard(edgeToEdge = false, contentPadding = SettingsDefaults.CardInset) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.section)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = stringResource(Res.string.settings_kind_notes_title), typography = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
+                Text(text = stringResource(Res.string.settings_kind_notes_body), typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted)
+            }
+            AppSwitch(checked = on, onCheckedChange = { onAction(SupportAction.KindNotesToggled) })
+        }
+    }
 }
 
 /**

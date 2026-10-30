@@ -13,10 +13,20 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-/** What someone says is wrong with a food. Wire values match the `food_reports.reason` CHECK (V29). */
+/**
+ * What someone says is wrong with a food. Wire values match the `food_reports.reason` CHECK (V29,
+ * V34). Apps since V34 send [WrongNumbers] and [MissingInfo] in place of the first two, and may
+ * pick several; the older codes stay valid for the apps that send them.
+ */
 enum class ReportReason(val wire: String) {
     WrongCalories("wrong_calories"),
     WrongNutrients("wrong_nutrients"),
+
+    /** Calories or nutrients are wrong (V34). */
+    WrongNumbers("wrong_numbers"),
+
+    /** Something the pack gives is missing: a nutrient, the serving, ingredients (V34). */
+    MissingInfo("missing_info"),
     WrongServing("wrong_serving"),
     WrongName("wrong_name"),
     Duplicate("duplicate"),
@@ -188,14 +198,42 @@ data class FoodCorrection(
  * calories (a person checked them; the guard does not second-guess that).
  */
 object ServedFood {
-    fun of(stored: Food, correction: FoodCorrection?): Food {
+    /** [verified]: a Builder's verification of it was confirmed or accepted ([FoodCheck]). */
+    fun of(stored: Food, correction: FoodCorrection?, verified: Boolean = false): Food {
         val corrected = correction?.applyTo(stored) ?: stored
         val portioned = Portions.served(corrected)
-        return if (correction?.values?.kcal != null) portioned else FoodEnergy.served(portioned)
+        val guarded = if (correction?.values?.kcal != null) portioned else FoodEnergy.served(portioned)
+        val checked = FoodCheck.checked(stored, correction, verified)
+        // The same object when nothing changes: the guard hands back its input untouched.
+        return if (guarded.checked == checked) guarded else guarded.copy(checked = checked)
     }
 }
 
+/**
+ * What "verified" means (docs/decisions.md, 2026-10-30): a person checked the food against its
+ * pack, or a reviewer stood behind it. A Builder's verification confirmed by the label's text or
+ * accepted by a reviewer, a reviewer's live correction, or a food someone added from its pack
+ * that a reviewer approved. USDA's and NEVO's reference data is not "checked": there is no pack.
+ */
+object FoodCheck {
+    fun checked(stored: Food, correction: FoodCorrection?, verified: Boolean): Boolean =
+        verified ||
+            (correction?.live == true) ||
+            (stored.source == CatalogSource.UserSubmitted && stored.reviewStatus == SubmissionStatus.Approved)
+}
+
 class ReportPhoto(val bytes: ByteArray, val type: ImageType)
+
+/** Which side of the pack a report's or a verification's photo shows (V34). */
+enum class PackSide(val wire: String) {
+    Front("front"),
+    Label("label"),
+    ;
+
+    companion object {
+        fun fromWire(value: String?): PackSide? = entries.firstOrNull { it.wire == value }
+    }
+}
 
 /** A report as the route validated it. [userId] is null only for the server's own energy check. */
 data class NewFoodReport(
@@ -206,7 +244,11 @@ data class NewFoodReport(
     val suggested: SuggestedValues?,
     val note: String?,
     val snapshot: FoodSnapshot,
+    /** The label (the back of the pack). */
     val photo: ReportPhoto?,
+    /** Every reason picked, [reason] first. */
+    val reasons: List<ReportReason> = listOf(reason),
+    val frontPhoto: ReportPhoto? = null,
 )
 
 @OptIn(ExperimentalTime::class)
@@ -225,7 +267,11 @@ data class FoodReport(
     val resolution: String? = null,
     val correctionId: UUID? = null,
     val duplicateOf: UUID? = null,
+    /** A photo of the label. */
     val hasPhoto: Boolean = false,
+    /** Every reason the person picked, [reason] first. */
+    val reasons: List<ReportReason> = listOf(reason),
+    val hasFrontPhoto: Boolean = false,
 )
 
 sealed interface ReportOutcome {
@@ -275,7 +321,7 @@ interface FoodReportRepository {
     /** Every report on [foodId], newest first. */
     suspend fun forFood(foodId: UUID): List<FoodReport>
 
-    suspend fun photo(reportId: UUID): StoredPhoto?
+    suspend fun photo(reportId: UUID, side: PackSide = PackSide.Label): StoredPhoto?
 
     /** The live correction per food, for laying over what the catalog serves. */
     suspend fun liveCorrections(foodIds: Collection<UUID>): Map<UUID, FoodCorrection>
@@ -304,8 +350,8 @@ interface FoodReportRepository {
 
 /** Limits on `POST /v1/foods/{id}/reports`. */
 object FoodReportLimits {
-    /** One photo of up to [MAX_IMAGE_BYTES], base64 (4/3), and the rest: checked before the body is read. */
-    const val MAX_BODY_BYTES = 6L * 1024 * 1024
+    /** Two photos of up to [MAX_IMAGE_BYTES], base64 (4/3), and the rest: checked before the body is read. */
+    const val MAX_BODY_BYTES = 12L * 1024 * 1024
     const val MAX_IMAGE_BYTES = PhotoLimits.MAX_IMAGE_BYTES
     const val MAX_NOTE = 1_000
     const val MAX_LABEL = 80

@@ -58,6 +58,9 @@ enum class PromptBlock {
     ShownRecently,
     NotThisMoment,
     NumbersHard,
+
+    /** An optional suggestion, and they turned suggestions off ([PromptCandidate.optional]). */
+    TurnedOff,
     ShownThisSession,
     SettlingIn,
     PromptedRecently,

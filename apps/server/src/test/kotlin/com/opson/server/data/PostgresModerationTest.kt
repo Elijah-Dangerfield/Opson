@@ -12,6 +12,10 @@ import com.opson.server.domain.DeviceIntegrity
 import com.opson.server.domain.DeviceIntegrityVerifier
 import com.opson.server.domain.DeviceVerdict
 import com.opson.server.domain.FoodSnapshot
+import com.opson.server.domain.VerificationStatus
+import com.opson.server.domain.VerificationOutcome
+import com.opson.server.domain.VerificationDecision
+import com.opson.server.domain.FoodVerification
 import com.opson.server.domain.GrantEffect
 import com.opson.server.domain.GrantKind
 import com.opson.server.domain.ImageType
@@ -66,7 +70,7 @@ class PostgresModerationTest : DatabaseTest() {
         database.blockingTransaction {
             listOf(
                 "contribution_checks", "device_markers", "device_sightings", "moderation_events", "moderation_actions",
-                "food_provenance", "food_reports", "food_corrections", "food_submissions", "user_installs",
+                "food_provenance", "food_reports", "food_corrections", "food_submissions", "food_verifications", "user_installs",
                 "entitlement_grants", "user_roles", "access_audit",
             ).forEach { TransactionManager.current().exec("DELETE FROM $it") }
         }
@@ -88,7 +92,7 @@ class PostgresModerationTest : DatabaseTest() {
     private val service by lazy {
         ModerationService(
             actions, roles, grants,
-            setOf(SubmissionReverter(database, clock), ReportReverter(database, reports, clock)),
+            setOf(SubmissionReverter(database, clock), ReportReverter(database, reports, clock), VerificationReverter(database, reports, clock)),
             clock,
         )
     }
@@ -241,6 +245,33 @@ class PostgresModerationTest : DatabaseTest() {
         assertEquals(1, result.closed)
         assertTrue(reports.liveCorrections(listOf(food)).isEmpty())
         assertEquals(ReportStatus.Rejected, reports.forFood(food).first { it.id == open }.status)
+    }
+
+    @Test
+    fun rollingBackVerificationsTakesTheVerifiedMarkAndTheCorrectionsBack() = runTest {
+        val verifications = PostgresFoodVerificationRepository(database, clock)
+        val catalog = PostgresFoodCatalogRepository(database, clock)
+        val checked = seedFood()
+        val corrected = seedFood()
+        val user = seedAuthUser()
+        suspend fun verification(food: UUID, outcome: VerificationOutcome, status: VerificationStatus?) =
+            FoodVerification(UUID.randomUUID(), food, user, now, outcome, 4, 4, "vision", status = status, snapshot = FoodSnapshot.of(checkNotNull(catalog.findById(food))))
+        verifications.record(verification(checked, VerificationOutcome.Confirmed, null))
+        val queued = verification(corrected, VerificationOutcome.Unconfirmed, VerificationStatus.Open)
+        verifications.record(queued)
+        assertIs<VerificationDecision.Accepted>(verifications.accept(queued.id, CorrectionValues(kcal = 99.0), null, "elijah", null))
+        val open = verification(checked, VerificationOutcome.Unconfirmed, VerificationStatus.Open)
+        verifications.record(open)
+        assertTrue(checkNotNull(catalog.findById(checked)).checked)
+        assertTrue(checkNotNull(catalog.findById(corrected)).checked)
+
+        val result = service.rollback(user, "elijah", "fake_data", null).first { it.kind == "verification" }
+        assertEquals(2, result.undone)
+        assertEquals(1, result.closed)
+        assertTrue(reports.liveCorrections(listOf(corrected)).isEmpty())
+        assertFalse(checkNotNull(catalog.findById(checked)).checked)
+        assertFalse(checkNotNull(catalog.findById(corrected)).checked)
+        assertEquals(VerificationStatus.Rejected, verifications.get(open.id)?.status)
     }
 
     @Test

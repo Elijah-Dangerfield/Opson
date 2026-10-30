@@ -17,7 +17,10 @@ import com.opson.features.settings.impl.SettingsPage
 import com.opson.features.settings.impl.SettingsPreview
 import com.opson.features.settings.impl.SettingsRow
 import com.opson.libraries.diary.EventLevel
+import com.opson.libraries.diary.LoggingHabits
 import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.MealTimes
+import kotlinx.datetime.LocalTime
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
@@ -53,6 +56,7 @@ import opson.libraries.resources.generated.resources.reminders_time_off
 import opson.libraries.resources.generated.resources.reminders_time_ok
 import opson.libraries.resources.generated.resources.reminders_time_title
 import opson.libraries.resources.generated.resources.reminders_times_label
+import opson.libraries.resources.generated.resources.reminders_times_learned
 import opson.libraries.resources.generated.resources.reminders_title
 import opson.libraries.resources.generated.resources.settings_back_more
 import org.jetbrains.compose.resources.StringResource
@@ -132,6 +136,14 @@ private fun Reminders(state: RemindersState, onAction: (RemindersAction) -> Unit
                 AppSwitch(checked = row.on, onCheckedChange = { onAction(RemindersAction.MealToggled(row.slot)) })
             }
         }
+    }
+    if (state.timesLearned) {
+        Text(
+            text = stringResource(Res.string.reminders_times_learned),
+            typography = AppTheme.type.secondarySmall,
+            color = AppTheme.colors.muted,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
     }
     Text(
         text = stringResource(Res.string.reminders_no_evening),
@@ -258,6 +270,18 @@ private fun RemindersBlindPreview() {
 @Composable
 private fun RemindersDarkPreview() {
     SettingsPreview(dark = true) { RemindersScreen(RemindersStateBuilder.build(SettingsFixtures.remindersSet), onAction = {}) }
+}
+
+/** Turned on for the first time, with the times learned from when this person usually logs. */
+@Preview
+@Composable
+private fun RemindersLearnedTimesPreview() {
+    val habits = LoggingHabits(
+        usual = MealTimes(breakfast = LocalTime(7, 15), lunch = LocalTime(12, 45), dinner = LocalTime(18, 40)),
+        learned = setOf(MealSlot.Breakfast, MealSlot.Lunch, MealSlot.Dinner),
+    )
+    val settings = SettingsFixtures.remindersSet.copy(mealTimes = habits.usual)
+    SettingsPreview { RemindersScreen(RemindersStateBuilder.build(settings, habits = habits), onAction = {}) }
 }
 
 /** With `release.celebrations` on: Celebrations and their day counts above the reminders. */

@@ -5,6 +5,7 @@ package com.opson.libraries.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
@@ -39,6 +40,9 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.background
 import kotlinx.coroutines.delay
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.tip_no_more
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
@@ -56,6 +60,12 @@ interface CoachMarks {
      * The one picked counts as seen from here on: a tip shows once.
      */
     fun pick(candidates: Collection<String>): String?
+
+    /** Whether the tip [pick] last chose offers "No more tips": the first few tips do. */
+    fun offersOptOut(): Boolean = false
+
+    /** "No more tips": tips stop on every screen, until they are turned back on in More. */
+    fun optOut() = Unit
 
     companion object {
         val None: CoachMarks = object : CoachMarks {
@@ -75,6 +85,9 @@ class CoachMarkVisit internal constructor() {
     /** Each tip id offered, and the first anchor that offered it: a tip on every food row shows on one. */
     internal val owners = mutableStateMapOf<String, Any>()
     internal var showing by mutableStateOf<String?>(null)
+
+    /** The tip showing offers "No more tips". */
+    internal var offersOptOut by mutableStateOf(false)
 
     /** Picked already, or put away: no other tip takes its place until the next visit. */
     internal var decided: Boolean = false
@@ -103,6 +116,7 @@ fun CoachMarkScreen(content: @Composable () -> Unit) {
             if (!visit.decided) {
                 visit.decided = true
                 visit.showing = marks.pick(visit.owners.keys.toList())
+                visit.offersOptOut = visit.showing != null && marks.offersOptOut()
             }
         }
     }
@@ -112,8 +126,9 @@ fun CoachMarkScreen(content: @Composable () -> Unit) {
 /**
  * [content] with a tip, [id], that can point at it: offered to the screen's visit while it is on
  * screen, and drawn as a small bubble under it (or over it, near the bottom) if the visit picks
- * it. "Got it" puts it away; so does leaving, and it goes on its own after a few seconds.
- * Outside a [CoachMarkScreen] it is just [content].
+ * it. "Got it" puts it away; so does leaving, and it goes on its own after a few seconds. The
+ * first few tips also offer "No more tips" ([CoachMarks.offersOptOut]). Outside a
+ * [CoachMarkScreen] it is just [content].
  */
 @Composable
 fun CoachMarkAnchor(id: String, text: String, modifier: Modifier = Modifier, gotIt: String, content: @Composable () -> Unit) {
@@ -122,6 +137,7 @@ fun CoachMarkAnchor(id: String, text: String, modifier: Modifier = Modifier, got
         Box(modifier) { content() }
         return
     }
+    val marks = LocalCoachMarks.current
     val token = remember { Any() }
     DisposableEffect(visit, id) {
         if (id !in visit.owners) visit.owners[id] = token
@@ -139,15 +155,30 @@ fun CoachMarkAnchor(id: String, text: String, modifier: Modifier = Modifier, got
                 onDismissRequest = { visit.finish() },
                 properties = PopupProperties(focusable = false),
             ) {
-                CoachMarkBubble(text = text, gotIt = gotIt, onDismiss = { visit.finish() })
+                CoachMarkBubble(
+                    text = text,
+                    gotIt = gotIt,
+                    onDismiss = { visit.finish() },
+                    onOptOut = if (visit.offersOptOut) {
+                        {
+                            visit.finish()
+                            marks.optOut()
+                        }
+                    } else {
+                        null
+                    },
+                )
             }
         }
     }
 }
 
-/** The tip itself: a short line and "Got it", on the ink colour so it reads as the app speaking. */
+/**
+ * The tip itself: a short line and "Got it", on the ink colour so it reads as the app speaking.
+ * With [onOptOut], "No more tips" sits beside "Got it".
+ */
 @Composable
-fun CoachMarkBubble(text: String, gotIt: String, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+fun CoachMarkBubble(text: String, gotIt: String, onDismiss: () -> Unit, modifier: Modifier = Modifier, onOptOut: (() -> Unit)? = null) {
     Column(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 6.dp)
@@ -158,7 +189,12 @@ fun CoachMarkBubble(text: String, gotIt: String, onDismiss: () -> Unit, modifier
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(text = text, typography = AppTheme.type.body, color = AppTheme.colors.bg, modifier = Modifier.padding(end = 8.dp))
-        FlatButton(text = gotIt, onClick = onDismiss, tone = FlatButtonTone.AccentText, modifier = Modifier.padding(start = 0.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            FlatButton(text = gotIt, onClick = onDismiss, tone = FlatButtonTone.AccentText, modifier = Modifier.padding(start = 0.dp))
+            if (onOptOut != null) {
+                FlatButton(text = stringResource(Res.string.tip_no_more), onClick = onOptOut, tone = FlatButtonTone.AccentText)
+            }
+        }
     }
 }
 
@@ -184,5 +220,15 @@ private val SHOWN_FOR = 8.seconds
 private fun CoachMarkBubblePreview() {
     PreviewLightDark {
         CoachMarkBubble(text = "Tap a number with the arrows to see it another way.", gotIt = "Got it", onDismiss = {})
+    }
+}
+
+/** One of the first few tips, with the way to turn them off. */
+@Suppress("VerifyStrings")
+@Preview(widthDp = 360)
+@Composable
+private fun CoachMarkBubbleOptOutPreview() {
+    PreviewLightDark {
+        CoachMarkBubble(text = "Tap a number with the arrows to see it another way.", gotIt = "Got it", onDismiss = {}, onOptOut = {})
     }
 }

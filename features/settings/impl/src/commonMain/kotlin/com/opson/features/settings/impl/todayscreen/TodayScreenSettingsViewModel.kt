@@ -1,7 +1,9 @@
 package com.opson.features.settings.impl.todayscreen
 
 import androidx.lifecycle.viewModelScope
+import com.opson.libraries.diary.CelebrationsRelease
 import com.opson.libraries.diary.FastingRelease
+import com.opson.libraries.diary.RecapsRelease
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.MainNumberChoice
 import com.opson.libraries.diary.Settings
@@ -43,6 +45,8 @@ class TodayScreenSettingsViewModel(
     healthFlag: HealthReleaseFlag,
     exerciseRelease: ExerciseRelease,
     private val medicationCard: MedicationTodaySwitch = MedicationTodaySwitch.None,
+    celebrations: CelebrationsRelease = CelebrationsRelease.Off,
+    recaps: RecapsRelease = RecapsRelease.Off,
 ) : SEAViewModel<TodayScreenSettingsState, TodayScreenSettingsEvent, TodayScreenSettingsAction>(
     initialStateArg = TodayScreenSettingsState(),
 ) {
@@ -50,6 +54,8 @@ class TodayScreenSettingsViewModel(
         goalsAndEnergy = goalsAndEnergy(),
         todaySummary = todaySummary(),
         fasting = fastingRelease.isOn(),
+        celebrations = celebrations.isOn(),
+        recaps = recaps.isOn(),
         steps = healthFlag() && exerciseRelease.isOn(),
     )
 
@@ -136,6 +142,10 @@ enum class TodaySwitch(val set: (Settings, Boolean) -> Settings) {
     Steps({ s, on -> s.copy(todaySteps = on) }),
     Weight({ s, on -> s.copy(todayWeight = on) }),
     CloseDay({ s, on -> s.copy(todayCloseDay = on) }),
+    Streak({ s, on -> s.copy(todayStreak = on) }),
+    RecapBanner({ s, on -> s.copy(recapBanner = on) }),
+    Tips({ s, on -> s.copy(tips = on) }),
+    Suggestions({ s, on -> s.copy(suggestions = on) }),
 }
 
 /** The two choices that open a sheet: the main number (13.6b) and the card's pages. */

@@ -26,6 +26,8 @@ data class AccountLedger(
     /** The last time any prompt showed: the gap between prompts counts from it. */
     val lastPromptAtMs: Long = 0L,
     val prompts: Map<String, PromptRecord> = emptyMap(),
+    /** How often each `OptOut` has shown, by its wire name: the offer to turn it off goes after a few. */
+    val optOutShows: Map<String, Int> = emptyMap(),
 ) {
     fun record(id: String): PromptRecord = prompts[id] ?: PromptRecord()
 

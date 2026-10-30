@@ -40,7 +40,7 @@ data class BarcodeScanState(
     val suggestLight: Boolean = false,
     /**
      * A Builder's "Also read the label" (`release.builders`): null when not offered. On, a code
-     * that finds a food opens Check against the pack instead of the detail, so the next tap
+     * that finds a food opens Verify this food instead of the detail, so the next tap
      * photographs the label. Nothing is read from the scanner's frames.
      */
     val readLabel: Boolean? = null,
@@ -146,10 +146,14 @@ sealed interface BarcodeScanEvent {
     /** The camera's read was taken and is being looked up: say so with a haptic, once per scan. */
     data object Scanned : BarcodeScanEvent
 
-    /** A hit, or a match picked: this screen gives way to the food detail for [foodId]. */
-    data class OpenFoodDetail(val foodId: String, val day: LocalDate, val slot: MealSlot) : BarcodeScanEvent
+    /**
+     * A hit, or a match picked: this screen gives way to the food detail for [foodId].
+     * [alreadyVerified] names it when a Builder reading labels scanned a food someone already
+     * checked: there is nothing to verify, and a snackbar says so.
+     */
+    data class OpenFoodDetail(val foodId: String, val day: LocalDate, val slot: MealSlot, val alreadyVerified: String? = null) : BarcodeScanEvent
 
-    /** A hit with Also read the label on: Check against the pack for the food, in this screen's place. */
+    /** A hit with Also read the label on: Verify this food, in this screen's place. */
     data class OpenCheck(val foodId: String, val name: String) : BarcodeScanEvent
 
     /** Search, in this screen's place: "Search instead" when the + sheet opened the scanner. */
