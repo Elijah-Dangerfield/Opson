@@ -5,18 +5,23 @@ import com.opson.features.trends.NotesListLink
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.GoalBook
+import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
+import com.opson.libraries.goals.GoalRepository
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.Goal
+import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,6 +58,7 @@ class TrendsViewModel(
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     /** Today binds it (the Notes list); with nothing bound, the Notes card leaves its link off. */
     notesListLink: NotesListLink? = null,
+    private val goalRepository: GoalRepository = GoalRepository.None,
 ) : SEAViewModel<TrendsState, TrendsEvent, TrendsAction>(initialStateArg = TrendsState()) {
 
     private val today: LocalDate get() = clock.now().toLocalDateTime(timeZone).date
@@ -68,9 +74,24 @@ class TrendsViewModel(
         // each emission and the range moves with the day.
         val span = combine(settingsRepository.settings, policySource.policy) { settings, _ ->
             val today = today
-            val running = runningFrom(today, settings.weightGoal.startDate)
+            val running = runningFrom(today, goalStart(settings, today))
             Span(minOf(TrendsCalendar.firstNeeded(today, settings), OnTrack.firstDay(today), running), today, running)
         }.distinctUntilChanged()
+
+        // The goal setting the target, day by day over the calendar's months. Null until it answers,
+        // so the page never waits on it.
+        val goalDays: Flow<GoalCalendar?> = combine(settingsRepository.settings.map { GoalBook.driving(it) }.distinctUntilChanged(), span) { goal, span ->
+            goal to span.today
+        }.distinctUntilChanged().flatMapLatest { (goal, today) ->
+            if (goal == null || goal.startDate > today) {
+                flowOf(null)
+            } else {
+                val from = maxOf(OnTrack.firstDay(today), goal.startDate)
+                goalRepository.days(from, today).map { byGoal ->
+                    byGoal[goal.id]?.let { days -> GoalCalendar(goal.startDate, goal.averaging == GoalAveraging.Weekly, goal.calendarDirection, days.associateBy { it.date }) }
+                }
+            }
+        }.onStart { emit(null) }.distinctUntilChanged()
 
         val records = span.flatMapLatest { span ->
             val weighInsSince = span.today.minus(WEIGH_IN_DAYS, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
@@ -99,7 +120,7 @@ class TrendsViewModel(
 
         val notesLinked = notesListLink != null
 
-        val energy = combine(expended, burned, burnedByDay) { expended, burned, byDay -> Energy(expended, burned?.totalKcal, byDay) }
+        val energy = combine(expended, burned, burnedByDay, goalDays) { expended, burned, byDay, goal -> Energy(expended, burned?.totalKcal, byDay, goal) }
 
         combine(settingsRepository.settings, policySource.policy, records, energy) { settings, policy, records, energy ->
             TrendsAction.InputsArrived(
@@ -114,8 +135,9 @@ class TrendsViewModel(
                     notesLinked = notesLinked,
                     burnedByDay = energy.byDay,
                     checkInOn = checkInOn,
-                    // The weight goal's start: "Since you started this goal", the default once there is one.
-                    goalStart = settings.weightGoal.startDate?.takeIf { it <= records.today },
+                    // The goal's start: "Since you started this goal", the default once there is one.
+                    goalStart = goalStart(settings, records.today),
+                    goal = energy.goal,
                 ),
                 policy,
             )
@@ -178,7 +200,27 @@ class TrendsViewModel(
 
     private data class Span(val from: LocalDate, val today: LocalDate, val runningFrom: LocalDate)
 
-    private class Energy(val expended: Map<LocalDate, EnergyExpended>?, val todayKcal: Int?, val byDay: Map<LocalDate, Burned>?)
+    private class Energy(val expended: Map<LocalDate, EnergyExpended>?, val todayKcal: Int?, val byDay: Map<LocalDate, Burned>?, val goal: GoalCalendar?)
+
+    /**
+     * When the goal began, for "Since you started this goal": the goal setting the target, else
+     * the calorie goal kept beside a target of the person's own, else a weight goal saved before
+     * goals were a list. Null until one has started.
+     */
+    private fun goalStart(settings: Settings, today: LocalDate): LocalDate? =
+        (GoalBook.driving(settings) ?: GoalBook.calorieGoal(settings))?.startDate?.takeIf { it <= today }
+            ?: settings.weightGoal.startDate?.takeIf { it <= today }
+
+    /** Which way the goal points, in the calendar's words. */
+    private val Goal.calendarDirection: GoalDirection
+        get() {
+            val delta = type.deltaKcal ?: 0
+            return when {
+                delta < 0 -> GoalDirection.Lose
+                delta > 0 -> GoalDirection.Gain
+                else -> GoalDirection.Hold
+            }
+        }
 
     private class Records(val today: LocalDate, val days: List<Day>, val weighIns: List<WeighIn>)
 
