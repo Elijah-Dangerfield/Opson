@@ -89,7 +89,6 @@ import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import kotlin.reflect.typeOf
-import com.opson.libraries.diary.SettingsRepository
 import opson.libraries.resources.generated.resources.adding_detail_favorited
 import opson.libraries.resources.generated.resources.adding_detail_unfavorited
 import opson.libraries.resources.generated.resources.builder_verify_already
@@ -115,7 +114,7 @@ class LoggerFeatureEntryPoint(
     private val recentLogEvents: () -> RecentLogEvents,
     private val diary: () -> DiaryRepository,
     private val editor: () -> DiaryItemEditor,
-    private val settings: () -> SettingsRepository,
+    private val star: () -> FoodStar,
     // "Report a problem" on a catalog food; off, the ⋮ item opens the bug report.
     private val foodReports: FoodReportEnabled,
     // Verify this food on a catalog food, for an active Builder.
@@ -443,7 +442,7 @@ class LoggerFeatureEntryPoint(
                         ?: BugReportRoute(contextMessage = getString(Res.string.adding_detail_report_context, event.refKey)),
                 )
                 is FoodDetailEvent.OpenVerify -> router.navigate(CheckFoodRoute(event.foodId, event.name))
-                is FoodDetailEvent.FavoriteChanged -> showFavorite(event.key, event.starred)
+                is FoodDetailEvent.FavoriteChanged -> showFavorite(event)
                 is FoodDetailEvent.OpenEditCopy -> router.navigate(
                     EditCopyRoute(
                         dayIso = event.day.toString(),
@@ -598,12 +597,15 @@ class LoggerFeatureEntryPoint(
         )
     }
 
-    /** The star's snackbar. Undo puts the star back as it was, even once the detail has closed. */
-    private suspend fun showFavorite(key: String, starred: Boolean) {
+    /**
+     * The star's snackbar. Undo puts the star back as it was, in settings and on the phone's copy
+     * of a catalog food alike, even once the detail has closed.
+     */
+    private suspend fun showFavorite(event: FoodDetailEvent.FavoriteChanged) {
         showSnackBar(
-            message = getString(if (starred) Res.string.adding_detail_favorited else Res.string.adding_detail_unfavorited),
+            message = getString(if (event.starred) Res.string.adding_detail_favorited else Res.string.adding_detail_unfavorited),
             actionLabel = getString(Res.string.adding_undo),
-            onAction = { appScope().launch { settings().update { it.setFavorite(key, !starred) } } },
+            onAction = { appScope().launch { star().set(event.key, event.food, on = !event.starred) } },
         )
     }
 
