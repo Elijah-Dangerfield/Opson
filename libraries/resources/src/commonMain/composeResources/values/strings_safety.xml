@@ -8,8 +8,6 @@
     <!-- Onboarding's age question, before sign-in. It never says where the line is. -->
     <string name="age_title">When's your birthday?</string>
     <string name="age_body">Your age changes the energy estimates.</string>
-    <string name="age_pick">Pick your birthday</string>
-    <string name="age_dialog">Your birthday</string>
 
     <!-- Under 16: no account. -->
     <string name="age_too_young_title">Opson isn't for under-16s yet</string>

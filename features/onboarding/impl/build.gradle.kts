@@ -31,6 +31,8 @@ kotlin {
             implementation(projects.libraries.health)
             // "Set up your goal in a minute", the card Today offers an account that never set one.
             implementation(projects.libraries.prompts)
+            // BetaRelease, for the beta card on Welcome.
+            implementation(projects.libraries.entitlements)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)
@@ -51,6 +53,10 @@ kotlin {
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.config)
             implementation(projects.libraries.health)
+            implementation(projects.libraries.entitlements)
+            // DateParts, a typed birthday.
+            implementation(projects.libraries.ui)
+            implementation(projects.libraries.diary.ui)
             implementation(projects.features.settings)
             implementation(libs.turbine)
         }

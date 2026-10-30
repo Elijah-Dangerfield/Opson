@@ -44,6 +44,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.label
+import com.opson.libraries.nutrition.HeightInput
+import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.WeightUnit
@@ -86,6 +88,8 @@ import opson.libraries.resources.generated.resources.onboarding_account_google_m
 import opson.libraries.resources.generated.resources.onboarding_account_private
 import opson.libraries.resources.generated.resources.onboarding_account_waiting_for_apple
 import opson.libraries.resources.generated.resources.onboarding_all_modes
+import opson.libraries.resources.generated.resources.onboarding_beta_body
+import opson.libraries.resources.generated.resources.onboarding_beta_title
 import opson.libraries.resources.generated.resources.onboarding_continue
 import opson.libraries.resources.generated.resources.onboarding_feel_footnote
 import opson.libraries.resources.generated.resources.onboarding_finishing
@@ -220,6 +224,10 @@ private fun WelcomeStep(
             )
             Spacer(Modifier.height(Dimension.D900))
             PlanCard()
+            if (state.betaNotice) {
+                Spacer(Modifier.height(Dimension.D600))
+                BetaCard()
+            }
             Spacer(Modifier.height(Dimension.D700))
             Text(
                 text = stringResource(Res.string.onboarding_welcome_not_medical),
@@ -292,6 +300,26 @@ private fun PlanRow(name: String, includes: String) {
 }
 
 private const val PLAN_NAME_WEIGHT = 0.36f
+
+/**
+ * "You're early" (`release.betaNotice`, owner 2026-10-30): Opson is in beta, Pro isn't here yet,
+ * and everyone who joins now gets a lifetime discount on it. No price and no way to buy, as the
+ * plan card above: a price with nothing to buy is an App Review rejection. Calling it a beta
+ * also sets expectations; whether App Review accepts the word in a store build is a risk the
+ * flag lets the owner turn off (docs/plans/onboarding-v4.md).
+ */
+@Composable
+private fun BetaCard() {
+    EdgeCard(
+        edgeToEdge = false,
+        contentPadding = PaddingValues(horizontal = Dimension.D850, vertical = Dimension.D700),
+        verticalArrangement = Arrangement.spacedBy(Dimension.D300),
+        modifier = Modifier.semantics(mergeDescendants = true) {},
+    ) {
+        Text(text = stringResource(Res.string.onboarding_beta_title), typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink)
+        Text(text = stringResource(Res.string.onboarding_beta_body), typography = AppTheme.type.body, color = AppTheme.colors.inkSoft)
+    }
+}
 
 // ---------- Questions and the statement ----------
 
@@ -1089,11 +1117,106 @@ private fun OnboardingSignInGuestInUsePreview() = OnboardingPreview(
     OnboardingFixtures.signIn(appleEnabled = true, guest = true, conflict = AccountMethod.Apple),
 )
 
-// The goal flow (PlanFlow.kt), behind release.onboardingSetup. No design yet: ids onboarding-profile,
-// onboarding-activity, onboarding-weight-goal, onboarding-goal-rate, onboarding-goal-overview and
-// onboarding-commitment, in the questions' visual language.
+// The goal flow (PlanFlow.kt), behind release.onboardingSetup. No design yet: ids onboarding-goal-ask,
+// onboarding-goal-kind, onboarding-profile, onboarding-activity, onboarding-weight-goal,
+// onboarding-goal-rate, onboarding-energy-balance, onboarding-burn-goal, onboarding-meals-goal,
+// onboarding-goal-overview, onboarding-streak and onboarding-commitment, in the questions' visual
+// language.
 
 private val Fixtures = OnboardingFixtures
+
+/** Welcome with `release.betaNotice` on: Opson is in beta, and Pro isn't here yet. */
+@Preview(widthDp = 390, heightDp = 1000)
+@Composable
+private fun OnboardingWelcomeBetaPreview() = OnboardingPreview(Fixtures.welcome(beta = true))
+
+@Preview(widthDp = 390, heightDp = 1000)
+@Composable
+private fun OnboardingWelcomeBetaDarkPreview() = OnboardingPreview(Fixtures.welcome(beta = true), darkTheme = true)
+
+/** "Want to set a goal?", asked before anything about the body. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalAskPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Ask))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalAskDarkPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Ask), darkTheme = true)
+
+/** After "numbers have been hard": a goal can be as simple as showing up. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalAskHardPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Ask, answers = Fixtures.HardAnswers))
+
+/** Every kind All numbers offers, none picked yet. */
+@Preview(widthDp = 390, heightDp = 1100)
+@Composable
+private fun OnboardingGoalKindPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Kind, PlanAnswers(wants = true)))
+
+@Preview(widthDp = 390, heightDp = 1100)
+@Composable
+private fun OnboardingGoalKindPickedDarkPreview() =
+    OnboardingPreview(Fixtures.plan(PlanStep.Kind, PlanAnswers(wants = true, pick = GoalPick.WeeklyBalance)), darkTheme = true)
+
+/** Macros with grams: no energy balance, as a deficit gives away what is eaten. */
+@Preview(widthDp = 390, heightDp = 1000)
+@Composable
+private fun OnboardingGoalKindMacrosPreview() =
+    OnboardingPreview(Fixtures.plan(PlanStep.Kind, PlanAnswers(wants = true), picked = PresetId.MacrosWithGrams))
+
+/** After "numbers have been hard", or 16 and 17: showing up and regular meals only. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingGoalKindHardPreview() =
+    OnboardingPreview(Fixtures.plan(PlanStep.Kind, PlanAnswers(wants = true, pick = GoalPick.ShowUp), answers = Fixtures.HardAnswers))
+
+@Preview(widthDp = 390, heightDp = 1000)
+@Composable
+private fun OnboardingEnergyBalancePreview() = OnboardingPreview(Fixtures.plan(PlanStep.Balance, Fixtures.balance()))
+
+@Preview(widthDp = 390, heightDp = 1000)
+@Composable
+private fun OnboardingEnergyBalanceWeeklyDarkPreview() =
+    OnboardingPreview(Fixtures.plan(PlanStep.Balance, Fixtures.balance(weekly = true)), darkTheme = true)
+
+/** A surplus, for gaining. */
+@Preview(widthDp = 390, heightDp = 1000)
+@Composable
+private fun OnboardingEnergyBalanceOverPreview() = OnboardingPreview(
+    Fixtures.plan(PlanStep.Balance, Fixtures.balance().copy(balance = BalanceAnswer(under = false, kcal = 300))),
+)
+
+@Preview(widthDp = 390, heightDp = 1000)
+@Composable
+private fun OnboardingGoalOverviewBalancePreview() = OnboardingPreview(Fixtures.plan(PlanStep.Overview, Fixtures.balance(weekly = true)))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingBurnGoalPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Burn, PlanAnswers(pick = GoalPick.Burn)))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingMealsGoalPreview() = OnboardingPreview(Fixtures.plan(PlanStep.MealCount, PlanAnswers(pick = GoalPick.Meals)))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingMealsGoalDarkPreview() =
+    OnboardingPreview(Fixtures.plan(PlanStep.MealCount, PlanAnswers(pick = GoalPick.Meals, meals = 4)), darkTheme = true)
+
+/** "Keep a streak?", after any goal: it counts showing up, never an amount. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingStreakPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalPick.ShowUp)))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingStreakDarkPreview() =
+    OnboardingPreview(Fixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalPick.Meals)), darkTheme = true)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingStreakLargeTextPreview() =
+    OnboardingPreview(Fixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalPick.ShowUp)), largeText = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -1113,13 +1236,6 @@ private fun OnboardingProfileDarkPreview() =
 @Composable
 private fun OnboardingProfilePregnantPreview() =
     OnboardingPreview(Fixtures.plan(PlanStep.Profile, PlanAnswers(Fixtures.Body.copy(sex = SexChoice.Pregnant))))
-
-/** After "numbers have been hard": no weight field, and the gentler line. */
-@Preview(widthDp = 390, heightDp = 1400)
-@Composable
-private fun OnboardingProfileHardPreview() = OnboardingPreview(
-    Fixtures.plan(PlanStep.Profile, PlanAnswers(Fixtures.Body), answers = Fixtures.HardAnswers),
-)
 
 @Preview(widthDp = 390, heightDp = 1400)
 @Composable
@@ -1212,13 +1328,6 @@ private fun OnboardingGoalOverviewMaintainPreview() = OnboardingPreview(
     Fixtures.plan(PlanStep.Overview, PlanAnswers(Fixtures.ImperialBody, GoalAnswer(com.opson.libraries.nutrition.GoalDirection.Maintain))),
 )
 
-/** "Just track": a starting range from a usual day, and no weight goal. */
-@Preview(widthDp = 390, heightDp = 1000)
-@Composable
-private fun OnboardingGoalOverviewJustTrackPreview() = OnboardingPreview(
-    Fixtures.plan(PlanStep.Overview, PlanAnswers(Fixtures.ImperialBody, GoalAnswer(com.opson.libraries.nutrition.GoalDirection.JustTrack))),
-)
-
 @Preview(widthDp = 390, heightDp = 1000)
 @Composable
 private fun OnboardingGoalOverviewPregnantPreview() = OnboardingPreview(
@@ -1231,18 +1340,11 @@ private fun OnboardingGoalOverviewPregnantPreview() = OnboardingPreview(
 private fun OnboardingGoalOverviewMacrosPreview() =
     OnboardingPreview(Fixtures.plan(PlanStep.Overview, Fixtures.LoseTen, picked = PresetId.MacrosWithGrams))
 
-/** Details missing: no target can be worked out yet, and the step says where to add them. */
+/** Details missing (the profile skipped): no target can be worked out yet, and the step says where to add them. */
 @Preview(widthDp = 390, heightDp = 1000)
 @Composable
 private fun OnboardingGoalOverviewNeedsDetailsPreview() = OnboardingPreview(
-    Fixtures.plan(PlanStep.Overview, Fixtures.LoseTen.copy(body = Fixtures.ImperialBody.copy(birthDate = null))),
-)
-
-/** After "numbers have been hard": no weights, no deficits, only what Opson will help with. */
-@Preview(widthDp = 390, heightDp = 844)
-@Composable
-private fun OnboardingGoalOverviewHardPreview() = OnboardingPreview(
-    Fixtures.plan(PlanStep.Overview, PlanAnswers(Fixtures.Body), answers = Fixtures.HardAnswers),
+    Fixtures.plan(PlanStep.Overview, Fixtures.LoseTen.copy(body = Fixtures.ImperialBody.copy(height = HeightInput(HeightUnit.FtIn)))),
 )
 
 @Preview(widthDp = 390, heightDp = 844)
@@ -1256,5 +1358,5 @@ private fun OnboardingCommitmentDarkPreview() = OnboardingPreview(Fixtures.plan(
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingCommitmentHardPreview() = OnboardingPreview(
-    Fixtures.plan(PlanStep.Commit, PlanAnswers(Fixtures.Body), answers = Fixtures.HardAnswers),
+    Fixtures.plan(PlanStep.Commit, PlanAnswers(pick = GoalPick.ShowUp), answers = Fixtures.HardAnswers),
 )

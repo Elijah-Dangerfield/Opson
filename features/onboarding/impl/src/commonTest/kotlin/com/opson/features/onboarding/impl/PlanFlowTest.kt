@@ -24,6 +24,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightGoal
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.ui.components.text.DateParts
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlin.time.Clock
@@ -162,13 +163,16 @@ class PlanFlowTest {
     }
 
     @Test
-    fun aBirthday_hasToMakeSomeoneThirteenToOneHundredAndTwenty() {
-        val young = PlanFlow.reduce(PlanAnswers(), PlanAction.BirthDatePicked(LocalDate(2020, 1, 1)), full)
+    fun aTypedBirthday_hasToMakeSomeoneThirteenToOneHundredAndTwenty() {
+        val young = PlanFlow.reduce(PlanAnswers(), PlanAction.BirthdayTyped(DateParts.of(LocalDate(2020, 1, 1))), full)
         assertNull(young.body.birthDate)
-        val fine = PlanFlow.reduce(PlanAnswers(), PlanAction.BirthDatePicked(LocalDate(2013, 10, 25)), full)
+        assertEquals("2020", young.body.birthday.year, "what is typed stays in the boxes")
+        val fine = PlanFlow.reduce(PlanAnswers(), PlanAction.BirthdayTyped(DateParts.of(LocalDate(2013, 10, 25))), full)
         assertEquals(LocalDate(2013, 10, 25), fine.body.birthDate, "thirteen today")
-        assertEquals(13, fine.body.ageOn(today))
-        assertEquals(12, fine.body.ageOn(LocalDate(2026, 10, 24)))
+        val tomorrow = PlanFlow.reduce(PlanAnswers(), PlanAction.BirthdayTyped(DateParts.of(LocalDate(2013, 10, 26))), full)
+        assertNull(tomorrow.body.birthDate, "thirteen tomorrow")
+        val half = PlanFlow.reduce(fine, PlanAction.BirthdayTyped(DateParts(day = "25", month = "10", year = "201")), full)
+        assertNull(half.body.birthDate, "a year not yet whole is no birthday")
     }
 
     @Test

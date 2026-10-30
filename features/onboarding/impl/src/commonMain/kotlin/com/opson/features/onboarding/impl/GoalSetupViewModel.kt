@@ -23,6 +23,7 @@ import com.opson.libraries.health.goalReadings
 import com.opson.libraries.nutrition.HealthReadings
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.ui.components.text.DateOrder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Assisted
@@ -177,6 +178,7 @@ class GoalSetupViewModel(
             health = health,
             environment = settings.baselineEnvironment(readings),
             bodyFatPercent = settings.bodyFat,
+            dateOrder = DateOrder.forRegion(region.countryCode()),
         )
         return copy(context = context, view = PlanViews.all(answers, context, settings))
     }

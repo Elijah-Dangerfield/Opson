@@ -43,6 +43,11 @@ import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.nutrition.TodayLayout
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.opson.AppCache
+import com.opson.libraries.diary.CelebrationsRelease
+import com.opson.libraries.diary.ui.Birthdays
+import com.opson.libraries.entitlements.BetaRelease
+import com.opson.libraries.ui.components.text.DateOrder
+import com.opson.libraries.ui.components.text.DateParts
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.time.TimeSource
@@ -59,8 +64,10 @@ import me.tatarka.inject.annotations.Inject
  * accounts became required): Welcome, sign in, two skippable questions, an
  * optional statement, a starting mode and the setup steps that mode needs.
  *
- *   1. **Welcome**: "Get started" opens the sign-in step.
- *   2. **Age** ([OnboardingStep.Age]): a birthday, before any account exists ([AgeGate]).
+ *   1. **Welcome**: "Get started" opens the birthday. With `release.betaNotice` on, a card
+ *      says Opson is in beta and Pro isn't here yet ([OnboardingState.betaNotice]).
+ *   2. **Age** ([OnboardingStep.Age]): a birthday, typed (the phone can fill it in), before any
+ *      account exists ([AgeGate]). The only time onboarding asks it.
  *      Under 16 goes to [OnboardingStep.TooYoung], which makes no account and has no way
  *      back, and this phone keeps the gate closed until their sixteenth birthday
  *      (`AppData.ageGateOpensOn`). 16 and 17 go on with the goal flow's gentle path: no
@@ -78,18 +85,20 @@ import me.tatarka.inject.annotations.Inject
  *      modes. All numbers is never offered to someone who agreed numbers have
  *      been hard.
  *   6. **Setup** (`release.onboardingSetup`, [OnboardingState.setupSteps]): meal
- *      times where Today is built around them, then the goal flow ([PlanFlow]):
- *      the profile, a usual day's activity, a weight goal and its pace where the
- *      mode shows weight and numbers have not been hard, an overview of what
- *      each day aims for, and the commitment. Someone who said numbers have been
- *      hard gets the profile without weight, the activity, a gentle overview and
- *      the commitment: no weights and no deficits. Every step but the overview
- *      and the commitment can be skipped.
+ *      times where Today is built around them, then the goal flow ([PlanFlow],
+ *      docs/plans/onboarding-v4.md): "Want to set a goal?" first. "Not now, just let me
+ *      log" saves and goes to Today with nothing about a body asked. A goal picks its
+ *      kind; a weight goal or an energy balance asks the profile and a usual day's
+ *      activity (both skippable) and shows an overview, the others ask only their own
+ *      number. Then "Keep a streak?" (with `release.celebrations` on) and the
+ *      commitment. Someone who said numbers have been hard, or is 16 or 17, is offered
+ *      only showing up and regular meals.
  *
- * Saving (the commitment's "I'm committed" or "Not now", or Start when the mode
- * needs no setup) writes the preset, the answers and the setup to settings
- * without stamping `changedAt` (so Modes says "Set by you during setup"), logs
- * the weight as the first weigh-in, marks `hasUserOnboarded` and goes to Today.
+ * Saving ("Not now" on the goal question, the commitment's "I'm committed" or "Not
+ * now", or Start when the mode needs no setup) writes the preset, the answers and
+ * the setup to settings without stamping `changedAt` (so Modes says "Set by you
+ * during setup"), logs the weight as the first weigh-in where the profile asked it,
+ * marks `hasUserOnboarded` and goes to Today.
  *
  * **Guests from older builds.** Anyone who still has an anonymous session gets
  * the sign-in step with [OnboardingState.guest] set: Apple or Google is linked
@@ -126,12 +135,19 @@ class OnboardingViewModel(
     private val clock: Clock = Clock.System,
     /** Checked before Google or Apple opens, which would otherwise wait on a browser or sheet that can't load. */
     private val connection: AppState = AssumeOnline,
+    /** `release.celebrations`: a goal is followed by "Keep a streak?". */
+    celebrations: CelebrationsRelease = CelebrationsRelease.Off,
+    /** `release.betaNotice`: Welcome says Opson is in beta and Pro isn't here yet. */
+    beta: BetaRelease = BetaRelease.Off,
 ) : SEAViewModel<OnboardingState, OnboardingEvent, OnboardingAction>(
     initialStateArg = OnboardingState(
         appleEnabled = appleSignIn,
         setupSteps = setupEnabled(),
         today = calendar.today(),
         plan = PlanAnswers(body = BodyAnswer.inRegion(region.countryCode())),
+        dateOrder = DateOrder.forRegion(region.countryCode()),
+        streakOffered = celebrations.isOn(),
+        betaNotice = beta.isOn(),
     ),
 ) {
 
@@ -173,8 +189,11 @@ class OnboardingViewModel(
         when (action) {
             OnboardingAction.ResolveEntry -> action.handleResolveEntry()
             OnboardingAction.GetStartedTapped -> action.handleGetStarted()
-            is OnboardingAction.AgeAnswered -> action.updateState {
-                if (it.step == OnboardingStep.Age && AgeGate.ageOn(action.birthDate, it.today) != null) it.copy(ageAnswer = action.birthDate) else it
+            // Any day someone alive could be born on; the gate's rule is applied on Continue, so
+            // nothing here says where the line is.
+            is OnboardingAction.AgeTyped -> action.updateState {
+                if (it.step != OnboardingStep.Age) return@updateState it
+                it.copy(ageParts = action.parts, ageAnswer = Birthdays.dateOrNull(action.parts, it.today))
             }
             OnboardingAction.TalkToSomeoneTapped -> sendEvent(OnboardingEvent.NavigateToSupport)
             is OnboardingAction.OptionTapped -> action.handleOptionTapped(action.option)
@@ -265,10 +284,10 @@ class OnboardingViewModel(
                 .logOnFailure { "Onboarding could not close the age gate" }
             googleAttempt?.cancel()
             // No step event: the app sends nothing more about someone this young.
-            updateState { it.copy(step = OnboardingStep.TooYoung, ageAnswer = null) }
+            updateState { it.copy(step = OnboardingStep.TooYoung, ageAnswer = null, ageParts = DateParts()) }
             return
         }
-        updateState { it.copy(plan = it.plan.copy(body = it.plan.body.copy(birthDate = born))) }
+        updateState { it.copy(ageAsked = true, plan = it.plan.copy(body = it.plan.body.copy(birthDate = born, birthday = DateParts.of(born)))) }
         goTo(OnboardingStep.SignIn)
     }
 
@@ -449,13 +468,22 @@ class OnboardingViewModel(
         goTo(next)
     }
 
-    /** A change on one of the goal flow's steps. Connecting the health app is asked for here, from the tap. */
+    /**
+     * A change on one of the goal flow's steps. Connecting the health app is asked for here, from
+     * the tap. The yes-or-no steps ("Want to set a goal?", "Keep a streak?") move on with their
+     * answer: "Not now, just let me log" saves and goes to Today.
+     */
     private suspend fun OnboardingAction.handlePlan(change: PlanAction) {
         val step = (state.step as? OnboardingStep.Plan)?.step ?: return
         if (state.isFinishing) return
         when (change) {
             PlanAction.FindSupportTapped -> sendEvent(OnboardingEvent.NavigateToSupport)
             PlanAction.ConnectHealthTapped -> if (step == PlanStep.Activity) connectHealth()
+            is PlanAction.WantsGoal, is PlanAction.StreakPicked -> {
+                if (step != (if (change is PlanAction.WantsGoal) PlanStep.Ask else PlanStep.Streak)) return
+                updateState { it.copy(plan = PlanFlow.reduce(it.plan, change, it.planContext(policyFor(it.chosen)))).withViews(policyFor(it.chosen)) }
+                advance()
+            }
             else -> updateState { it.copy(plan = PlanFlow.reduce(it.plan, change, it.planContext(policyFor(it.chosen)))).withViews(policyFor(it.chosen)) }
         }
     }
@@ -543,6 +571,9 @@ class OnboardingViewModel(
         }.logOnFailure { "Onboarding could not save the starting mode" }
         if (planned) logWeighIn(context)
 
+        // Booleans only: whether a goal was wanted and a streak kept, never which goal or its numbers.
+        if (planned) plan.wants?.let { logger.logEvent("onboarding.goal_wanted", "wanted" to it) }
+        plan.streak?.takeIf { planned }?.let { logger.logEvent("onboarding.streak", "kept" to it) }
         committed?.let { logger.logEvent("onboarding.commitment", "committed" to it) }
         logger.logEvent(
             "onboarding.completed",
@@ -557,10 +588,12 @@ class OnboardingViewModel(
     }
 
     /**
-     * The profile's weight as a weigh-in, where the field was shown. Weight is never a setting:
-     * Burned reads the latest weigh-in.
+     * The profile's weight as a weigh-in, where the field was shown: only on a path through the
+     * profile, so a weight typed before changing to a goal that doesn't need one is dropped.
+     * Weight is never a setting: Burned reads the latest weigh-in.
      */
     private suspend fun logWeighIn(context: PlanContext) {
+        if (PlanStep.Profile !in PlanFlow.steps(state.plan, context)) return
         if (!PlanViews.profile(state.plan, context).weightShown) return
         val kg = state.plan.body.weightKgOrNull() ?: return
         if (kg == weighedKg) return
@@ -667,8 +700,14 @@ data class OnboardingState(
     /** The phone's day: for the birthday picker and when a goal starts. */
     val today: LocalDate = DEFAULT_TODAY,
     val mealTimes: MealTimes = MealTimes(),
-    /** The birthday picked on [OnboardingStep.Age], before Continue. Carried on as [PlanAnswers.body]'s. */
+    /** The birthday's boxes on [OnboardingStep.Age], as typed. */
+    val ageParts: DateParts = DateParts(),
+    /** The birthday they make, before Continue. Carried on as [PlanAnswers.body]'s. */
     val ageAnswer: LocalDate? = null,
+    /** The age question was answered, so the profile step doesn't ask the birthday again. */
+    val ageAsked: Boolean = false,
+    /** The order the birthday's boxes come in, from the phone's region. */
+    val dateOrder: DateOrder = DateOrder.DayMonthYear,
     /** The goal flow's answers ([PlanFlow]). */
     val plan: PlanAnswers = PlanAnswers(),
     /** The phone's health app, as the activity step offers it. */
@@ -677,6 +716,10 @@ data class OnboardingState(
     val healthReadings: HealthReadings = HealthReadings.None,
     /** The goal flow's steps as drawn, through the policy of the mode being started. Null until set up. */
     val planView: PlanView? = null,
+    /** `release.celebrations`: a goal is followed by "Keep a streak?". */
+    val streakOffered: Boolean = false,
+    /** `release.betaNotice`: Welcome says Opson is in beta, Pro isn't here yet, and beta members get a discount. */
+    val betaNotice: Boolean = false,
 ) {
     /** The mode "Start with" will save. */
     val chosen: PresetId get() = picked ?: recommended
@@ -706,9 +749,9 @@ data class OnboardingState(
     val olderTeen: Boolean get() = AgeGate.bandOf(plan.body.birthDate, today) == AgeBand.OlderTeen
 
     /**
-     * The goal flow's context for [policy], the mode being started's. Onboarding is a new account.
-     * Someone 16 or 17 gets the gentle path, as after "numbers have been hard": no weights, weight
-     * goals or deficits.
+     * The goal flow's context for [policy], the mode being started's. Onboarding is a new account,
+     * and asks whether to set a goal before anything else. Someone 16 or 17 gets the gentle path,
+     * as after "numbers have been hard": no weights, weight goals or deficits.
      */
     fun planContext(policy: VisibilityPolicy): PlanContext =
         PlanContext(
@@ -718,6 +761,10 @@ data class OnboardingState(
             fresh = true,
             health = health,
             environment = Settings().baselineEnvironment(healthReadings),
+            asks = true,
+            streakOffered = streakOffered,
+            birthdayAsked = ageAsked,
+            dateOrder = dateOrder,
         )
 
     /**
@@ -869,8 +916,8 @@ sealed interface OnboardingAction {
     /** "Get started" on Welcome: the birthday. */
     data object GetStartedTapped : OnboardingAction
 
-    /** A birthday picked on [OnboardingStep.Age]. Continue then decides. */
-    data class AgeAnswered(val birthDate: LocalDate) : OnboardingAction
+    /** The birthday's boxes typed on [OnboardingStep.Age]. Continue then decides. */
+    data class AgeTyped(val parts: DateParts) : OnboardingAction
     data class OptionTapped(val option: SetupOption) : OnboardingAction
 
     /** "Talk to someone" on the statement, shown whichever answer is picked. */

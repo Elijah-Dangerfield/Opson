@@ -81,7 +81,7 @@ class ProfileViewModel(
             is ProfileAction.BirthdayTyped -> {
                 drafts = drafts.copy(birthday = action.parts)
                 rebuild(action)
-                Birthdays.dateOrNull(action.parts, calendar.today())?.let { born -> settingsRepository.update { it.withBirthDate(born) } }
+                Birthdays.dateOrNull(action.parts, calendar.today(), Birthdays.EQUATION_AGES)?.let { born -> settingsRepository.update { it.withBirthDate(born) } }
             }
             is ProfileAction.SexPicked -> settingsRepository.update { it.copy(bodySex = action.sex.sex, bodyStage = action.sex.stage) }
             is ProfileAction.HeightUnitPicked -> {
@@ -148,7 +148,7 @@ class ProfileViewModel(
     }
 
     /** Someone at least 13, since the equation is for adults and teenagers, and no older than 120. */
-    private fun birthYears(): IntRange = calendar.today().year.let { (it - Birthdays.AGES.last)..(it - Birthdays.AGES.first) }
+    private fun birthYears(): IntRange = calendar.today().year.let { (it - Birthdays.EQUATION_AGES.last)..(it - Birthdays.EQUATION_AGES.first) }
 
     private suspend fun rebuild(action: ProfileAction) {
         val (settings, latest, policy) = inputs ?: return

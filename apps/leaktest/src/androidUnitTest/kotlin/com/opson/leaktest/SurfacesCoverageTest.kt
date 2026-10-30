@@ -101,7 +101,8 @@ class SurfacesCoverageTest {
             "OnboardingLeakSurfaces" to listOf(
                 "onboarding-welcome", "onboarding-statement", "onboarding-recommendation", "onboarding-account",
                 "onboarding-profile", "onboarding-weight-goal", "onboarding-goal-rate", "onboarding-goal-overview",
-                "onboarding-commitment", "onboarding-meal-times",
+                "onboarding-commitment", "onboarding-meal-times", "onboarding-goal-ask", "onboarding-goal-kind",
+                "onboarding-energy-balance", "onboarding-burn-goal", "onboarding-meals-goal", "onboarding-streak",
             ),
             "TodayLeakSurfaces" to listOf(
                 "today", "today-big-day", "today-added", "today-untracked", "today-low-logging", "today-groups-off", "today-past", "today-future",
@@ -162,7 +163,7 @@ class SurfacesCoverageTest {
         )
 
         val SHOWS_CALORIES_IN_FULL: List<String> = listOf(
-            "onboarding-goal-rate", "onboarding-goal-overview",
+            "onboarding-goal-rate", "onboarding-goal-overview", "onboarding-energy-balance", "onboarding-burn-goal",
             "today", "today-big-day", "today-added", "today-untracked", "today-low-logging", "today-groups-off", "today-past", "today-future",
             "today-day-menu", "today-day-menu-armed", "item-sheet", "day-close", "day-close-big-day",
             "add-sheet-expanded", "search-full", "search-personal", "search-browse", "search-saved-meals", "search-pick-for-meal",

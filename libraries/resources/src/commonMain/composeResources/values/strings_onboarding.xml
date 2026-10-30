@@ -21,6 +21,13 @@
     <string name="onboarding_plan_free">Free</string>
     <string name="onboarding_plan_free_includes">Logging, saved meals and every mode</string>
 
+    <!--
+      Under the plan while release.betaNotice is on (owner, 2026-10-30): honest about the beta and
+      that Pro isn't here. What the discount is, is the owner's call (docs/plans/onboarding-v4.md).
+    -->
+    <string name="onboarding_beta_title">You're early</string>
+    <string name="onboarding_beta_body">Opson is in beta. Pro isn't here yet, and we're working on it. Everyone who joins during the beta gets a lifetime discount when it arrives.</string>
+
     <!-- Questions. Two and the statement since onboarding v2 (docs/plans/onboarding-v2.md). -->
     <string name="onboarding_progress">%1$d of %2$d</string>
     <string name="onboarding_progress_optional">%1$d of %2$d · Optional</string>

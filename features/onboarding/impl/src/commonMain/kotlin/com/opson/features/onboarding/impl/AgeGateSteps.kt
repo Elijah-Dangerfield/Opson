@@ -4,37 +4,24 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.opson.libraries.diary.AgeGate
+import com.opson.libraries.diary.ui.BirthdayField
 import com.opson.libraries.ui.PreviewContent
-import com.opson.libraries.ui.components.TapField
-import com.opson.libraries.ui.components.dialog.DatePickerDialog
 import com.opson.libraries.ui.components.text.Text
-import com.opson.libraries.ui.time.DateCopy
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
-import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.age_body
-import opson.libraries.resources.generated.resources.age_dialog
-import opson.libraries.resources.generated.resources.age_pick
 import opson.libraries.resources.generated.resources.age_title
 import opson.libraries.resources.generated.resources.age_too_young_body
 import opson.libraries.resources.generated.resources.age_too_young_later
 import opson.libraries.resources.generated.resources.age_too_young_support
 import opson.libraries.resources.generated.resources.age_too_young_title
 import opson.libraries.resources.generated.resources.onboarding_continue
-import opson.libraries.resources.generated.resources.plan_date_cancel
-import opson.libraries.resources.generated.resources.plan_date_ok
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -47,19 +34,23 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * "When's your birthday?" A neutral question: nothing on it says where the line is, so nobody is
- * told which answer gets them in. Continue waits for a date.
+ * told which answer gets them in. Continue waits for a date. The one place onboarding asks it:
+ * the goal flow's profile reuses it.
  */
 @Composable
 internal fun ColumnScope.AgeStep(state: OnboardingState, onAction: (OnboardingAction) -> Unit) {
-    var picking by remember { mutableStateOf(false) }
     OnboardingTopBar(canGoBack = state.canGoBack, onBack = { onAction(OnboardingAction.Back) })
     ScrollingBody {
         StepTitle(title = stringResource(Res.string.age_title), body = stringResource(Res.string.age_body))
-        TapField(
-            text = state.ageAnswer?.let(DateCopy::monthDayYear) ?: stringResource(Res.string.age_pick),
-            muted = state.ageAnswer == null,
-            onClick = { picking = true },
-            modifier = Modifier.fillMaxWidth(),
+        // Typed, and the phone can fill it from the person's own contact card: quicker than a
+        // picker. Any real past date is taken here; the gate's rule is applied on Continue.
+        BirthdayField(
+            parts = state.ageParts,
+            onChange = { onAction(OnboardingAction.AgeTyped(it)) },
+            today = state.today,
+            order = state.dateOrder,
+            label = null,
+            enabled = !state.isFinishing,
         )
     }
     PinnedPrimary(
@@ -67,21 +58,6 @@ internal fun ColumnScope.AgeStep(state: OnboardingState, onAction: (OnboardingAc
         enabled = state.ageAnswer != null,
         onClick = { onAction(OnboardingAction.ContinueTapped) },
     )
-    if (picking) {
-        DatePickerDialog(
-            title = stringResource(Res.string.age_dialog),
-            initial = state.ageAnswer,
-            opensOn = state.today.minus(DatePeriod(years = OPENS_AT_AGE)),
-            range = state.today.minus(DatePeriod(years = OLDEST))..state.today,
-            okLabel = stringResource(Res.string.plan_date_ok),
-            cancelLabel = stringResource(Res.string.plan_date_cancel),
-            onPicked = {
-                onAction(OnboardingAction.AgeAnswered(it))
-                picking = false
-            },
-            onDismiss = { picking = false },
-        )
-    }
 }
 
 /**
@@ -105,11 +81,6 @@ internal fun ColumnScope.TooYoungStep(onAction: (OnboardingAction) -> Unit) {
         onClick = { onAction(OnboardingAction.TalkToSomeoneTapped) },
     )
 }
-
-/** Where the picker opens with nothing picked: thirty years back, as the profile step's does. */
-private const val OPENS_AT_AGE = 30
-
-private const val OLDEST = 120
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

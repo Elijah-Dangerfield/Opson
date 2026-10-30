@@ -13,6 +13,8 @@ import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.Units
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.ui.components.text.DateOrder
+import com.opson.libraries.ui.components.text.DateParts
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -71,6 +73,13 @@ object OnboardingFixtures {
         activity = EverydayActivity.SomeWalking,
     )
 
+    /** 400 a day under a typical day, in [ImperialBody]. [weekly] averages it across the week. */
+    fun balance(weekly: Boolean = false): PlanAnswers = PlanAnswers(
+        body = ImperialBody,
+        pick = if (weekly) GoalPick.WeeklyBalance else GoalPick.Balance,
+        balance = BalanceAnswer(under = true, kcal = 400),
+    )
+
     /** [ImperialBody] aiming for 170 lb at half a pound a week. */
     val LoseTen = PlanAnswers(
         body = ImperialBody,
@@ -83,12 +92,12 @@ object OnboardingFixtures {
     fun policy(preset: PresetId): VisibilityPolicy =
         VisibilityPolicy(NumbersSettings(preset = preset), Clock.fixed(NOW), TimeZone.UTC)
 
-    /** On iOS, as the design draws it. Welcome looks the same on Android. */
-    fun welcome(): OnboardingState = OnboardingState(appleEnabled = true).withRecommendation()
+    /** On iOS, as the design draws it. Welcome looks the same on Android. [beta] is `release.betaNotice`. */
+    fun welcome(beta: Boolean = false): OnboardingState = OnboardingState(appleEnabled = true, betaNotice = beta).withRecommendation()
 
-    /** The birthday question after Welcome, with [answer] picked so far. */
-    fun age(answer: LocalDate? = null): OnboardingState =
-        OnboardingState(step = OnboardingStep.Age, ageAnswer = answer).withRecommendation()
+    /** The birthday question after Welcome, with [answer] typed so far, in [order]. */
+    fun age(answer: LocalDate? = null, order: DateOrder = DateOrder.MonthDayYear): OnboardingState =
+        OnboardingState(step = OnboardingStep.Age, ageParts = DateParts.of(answer), ageAnswer = answer, dateOrder = order).withRecommendation()
 
     /** Someone under 16: no account. */
     fun tooYoung(): OnboardingState = OnboardingState(step = OnboardingStep.TooYoung).withRecommendation()
@@ -110,7 +119,9 @@ object OnboardingFixtures {
 
     /**
      * One of the goal flow's steps after [answers] (by default [NumbersAnswers], in All numbers),
-     * with [plan] answered so far. [policy] is the leak test's, or the starting mode's.
+     * with [plan] answered so far: a goal wanted and, unless [plan] says otherwise, a weight goal.
+     * The birthday came from the age question, and celebrations are on. [policy] is the leak
+     * test's, or the starting mode's.
      */
     fun plan(
         step: PlanStep,
@@ -120,13 +131,16 @@ object OnboardingFixtures {
         health: HealthOffer = HealthOffer.Unavailable,
         policy: VisibilityPolicy? = null,
     ): OnboardingState {
+        val wanted = if (step == PlanStep.Ask || plan.wants != null) plan else plan.copy(wants = true, pick = plan.pick ?: GoalPick.Weight)
         val state = OnboardingState(
             step = OnboardingStep.Plan(step),
             answers = answers,
             picked = picked,
             setupSteps = true,
-            plan = plan,
+            plan = wanted,
             health = health,
+            ageAsked = true,
+            streakOffered = true,
         ).withRecommendation()
         return state.withViews(policy ?: policy(state.chosen))
     }

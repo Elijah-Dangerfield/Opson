@@ -10,6 +10,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.opson.libraries.diary.AgeGate
 import com.opson.libraries.ui.PreviewLightDark
 import com.opson.libraries.ui.components.text.DateField
 import com.opson.libraries.ui.components.text.DateOrder
@@ -19,56 +20,45 @@ import com.opson.system.AppTheme
 import kotlinx.datetime.LocalDate
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.plan_birthday_hint_date
-import opson.libraries.resources.generated.resources.plan_birthday_hint_old
-import opson.libraries.resources.generated.resources.plan_birthday_hint_young
+import opson.libraries.resources.generated.resources.plan_birthday_hint_year
 import opson.libraries.resources.generated.resources.plan_birthday_label
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/** Why a typed birthday can't be used. */
+/** Why a typed birthday can't be used. Neither says where an age line is: the age gate's question is neutral. */
 enum class BirthdayProblem {
     /** No such day: the 31st of April, a 13th month. */
     NotADate,
 
-    /** Under [Birthdays.AGES]: Opson is for people 13 and over. */
-    TooYoung,
-
-    /** Over [Birthdays.AGES]: most likely a typo in the year. */
-    TooOld,
+    /** A day still to come, or outside the ages the caller takes: most likely a typo in the year. */
+    OutOfRange,
 }
 
 /** Birthdays as onboarding and Profile take them. */
 object Birthdays {
-    /** Who a birthday can belong to: Opson is for people 13 and over, and the resting energy equation stops at 120. */
-    val AGES: IntRange = 13..120
+    /** Anyone alive: what the age gate's question takes before [com.opson.libraries.diary.AgeGate] decides. */
+    val ANY_AGE: IntRange = 0..120
 
-    /** Age in whole years on [today]: the birthday has to have come this year. */
-    fun ageOn(born: LocalDate, today: LocalDate): Int {
-        val had = today.month > born.month || (today.month == born.month && today.day >= born.day)
-        return today.year - born.year - if (had) 0 else 1
-    }
+    /** Who the resting energy equation is for, and so the ages Profile and the goal flow save: 13 to 120. */
+    val EQUATION_AGES: IntRange = 13..120
 
-    /** What is wrong with [parts], once every box is typed; null while unfinished or when it's fine. */
-    fun problem(parts: DateParts, today: LocalDate): BirthdayProblem? {
+    /** What is wrong with [parts] for someone in [ages], once every box is typed; null while unfinished or when it's fine. */
+    fun problem(parts: DateParts, today: LocalDate, ages: IntRange = ANY_AGE): BirthdayProblem? {
         if (!parts.isComplete) return null
         val born = parts.dateOrNull() ?: return BirthdayProblem.NotADate
-        val age = ageOn(born, today)
-        return when {
-            age < AGES.first -> BirthdayProblem.TooYoung
-            age > AGES.last -> BirthdayProblem.TooOld
-            else -> null
-        }
+        val age = AgeGate.ageOn(born, today) ?: return BirthdayProblem.OutOfRange
+        return if (age in ages) null else BirthdayProblem.OutOfRange
     }
 
-    /** The birthday [parts] make, when it is one Opson takes. */
-    fun dateOrNull(parts: DateParts, today: LocalDate): LocalDate? =
-        parts.dateOrNull()?.takeIf { problem(parts, today) == null }
+    /** The birthday [parts] make, when it is one for someone in [ages]. */
+    fun dateOrNull(parts: DateParts, today: LocalDate, ages: IntRange = ANY_AGE): LocalDate? =
+        parts.dateOrNull()?.takeIf { problem(parts, today, ages) == null }
 }
 
 /**
  * The birthday, typed in three boxes ([DateField]) the phone can fill from the person's own
- * contact card, with what is wrong said under it once every box is typed. [note] is the line on
- * why it is asked.
+ * contact card, with what is wrong said under it once every box is typed: no such date, or an
+ * age outside [ages]. [note] is the line on why it is asked.
  */
 @Composable
 fun BirthdayField(
@@ -76,13 +66,14 @@ fun BirthdayField(
     onChange: (DateParts) -> Unit,
     today: LocalDate,
     modifier: Modifier = Modifier,
+    ages: IntRange = Birthdays.ANY_AGE,
     order: DateOrder? = null,
     label: String? = stringResource(Res.string.plan_birthday_label),
     note: String? = null,
     enabled: Boolean = true,
     imeAction: ImeAction = ImeAction.Done,
 ) {
-    val problem = Birthdays.problem(parts, today)
+    val problem = Birthdays.problem(parts, today, ages)
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (label != null) Text(text = label, typography = AppTheme.type.secondarySmallStrong, color = AppTheme.colors.muted)
         if (order != null) {
@@ -105,8 +96,7 @@ fun BirthdayField(
 private val BirthdayProblem.text
     get() = when (this) {
         BirthdayProblem.NotADate -> Res.string.plan_birthday_hint_date
-        BirthdayProblem.TooYoung -> Res.string.plan_birthday_hint_young
-        BirthdayProblem.TooOld -> Res.string.plan_birthday_hint_old
+        BirthdayProblem.OutOfRange -> Res.string.plan_birthday_hint_year
     }
 
 @Preview(widthDp = 390)
@@ -118,7 +108,7 @@ private fun BirthdayFieldPreview() {
             BirthdayField(parts = DateParts(), onChange = {}, today = today, order = DateOrder.MonthDayYear)
             BirthdayField(parts = DateParts.of(LocalDate(1992, 4, 18)), onChange = {}, today = today, order = DateOrder.DayMonthYear)
             BirthdayField(parts = DateParts(day = "31", month = "04", year = "1990"), onChange = {}, today = today, order = DateOrder.DayMonthYear)
-            BirthdayField(parts = DateParts.of(LocalDate(2016, 1, 2)), onChange = {}, today = today, order = DateOrder.DayMonthYear)
+            BirthdayField(parts = DateParts.of(LocalDate(2016, 1, 2)), onChange = {}, today = today, ages = Birthdays.EQUATION_AGES, order = DateOrder.DayMonthYear)
         }
     }
 }

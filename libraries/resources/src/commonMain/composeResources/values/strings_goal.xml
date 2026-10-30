@@ -27,17 +27,12 @@
     <string name="plan_sex_note_unsaid">Uses a point halfway between the two formulas. This only changes the estimate a little.</string>
     <string name="plan_sex_inclusive">Trans or non-binary? Pick whichever is closer to your body's hormones right now, or what your care team suggests. It only nudges the estimate. You can change it any time on Profile.</string>
     <string name="plan_birthday_label">Birthday</string>
-    <string name="plan_birthday_pick">Pick your birthday</string>
-    <string name="plan_birthday_dialog">Your birthday</string>
     <!-- Under a typed birthday once every box is filled in: what is wrong with it -->
     <string name="plan_birthday_hint_date">There's no such date. Check the day and month.</string>
-    <string name="plan_birthday_hint_young">Opson is for people 13 and over.</string>
-    <string name="plan_birthday_hint_old">Check the year.</string>
+    <string name="plan_birthday_hint_year">Check the year.</string>
     <string name="plan_birthday_note">Age changes the estimate. Opson might wish you a happy birthday, too.</string>
     <string name="plan_weight_note">Saved as your first weigh-in.</string>
     <string name="plan_weight_label">Weight now</string>
-    <string name="plan_date_ok">Done</string>
-    <string name="plan_date_cancel">Cancel</string>
 
     <!-- 2. Activity -->
     <string name="plan_activity_title">How active is a usual day?</string>
@@ -107,6 +102,61 @@
     <string name="plan_overview_gentle_title">You're all set</string>
     <string name="plan_overview_gentle_body">Opson will help you eat regularly and notice how meals feel. You can change what you see any time in Display.</string>
     <string name="plan_overview_continue">Looks good</string>
+    <string name="plan_overview_weekly">Judged across your week. A big day is just a day.</string>
+
+    <!-- Onboarding: whether to set a goal at all, asked before anything about the body -->
+    <string name="plan_ask_title">Want to set a goal?</string>
+    <string name="plan_ask_body">A goal can be a weight, an amount of energy, or showing up each day. Or you can just log.</string>
+    <string name="plan_ask_body_gentle">A goal can be as simple as showing up each day, or regular meals. Or you can just log.</string>
+    <string name="plan_ask_yes">Yes, help me set one</string>
+    <string name="plan_ask_no">Not now, just let me log</string>
+    <string name="plan_ask_footnote">You can set one later.</string>
+
+    <!-- Onboarding: which kind of goal. Each with one line on what it means. -->
+    <string name="plan_kind_title">What kind of goal?</string>
+    <string name="plan_kind_body">Pick one to start. You can change it later.</string>
+    <string name="plan_kind_weight">A weight goal</string>
+    <string name="plan_kind_weight_detail">Lose, keep or gain weight at a pace you pick.</string>
+    <string name="plan_kind_balance">A daily deficit or surplus</string>
+    <string name="plan_kind_balance_detail">Eat a set amount under or over what you burn each day.</string>
+    <string name="plan_kind_weekly">A weekly average</string>
+    <string name="plan_kind_weekly_detail">The same amount, averaged across your week.</string>
+    <string name="plan_kind_burn">Move more</string>
+    <string name="plan_kind_burn_detail">Burn a set amount of active energy each day.</string>
+    <string name="plan_kind_show_up">Track every day</string>
+    <string name="plan_kind_show_up_detail">Open Opson and log something each day.</string>
+    <string name="plan_kind_meals">Regular meals</string>
+    <string name="plan_kind_meals_detail">A set number of meals a day, three to start.</string>
+
+    <!-- An energy balance: how far under or over a typical day -->
+    <string name="plan_balance_title">How much under or over?</string>
+    <string name="plan_balance_body">A set amount each day, against what a typical day burns.</string>
+    <string name="plan_balance_under">Eat less</string>
+    <string name="plan_balance_over">Eat more</string>
+    <string name="plan_balance_label_under">Under your total burned (TDEE), each day</string>
+    <string name="plan_balance_label_over">Over your total burned (TDEE), each day</string>
+    <string name="plan_balance_target">That makes your target about %1$s a day.</string>
+
+    <!-- A burn goal: active energy a day -->
+    <string name="plan_burn_title">How much activity?</string>
+    <string name="plan_burn_body">Active energy each day, from your health app and the exercise you log.</string>
+    <string name="plan_burn_label">Active energy, each day</string>
+
+    <!-- A meals goal: meals a day -->
+    <string name="plan_meals_title">How many meals a day?</string>
+    <string name="plan_meals_body">A meal counts once it has food in it.</string>
+    <plurals name="plan_meals_count">
+        <item quantity="one">%1$d meal</item>
+        <item quantity="other">%1$d meals</item>
+    </plurals>
+
+    <!-- Onboarding, after a goal: the streak. It counts showing up, never an amount. -->
+    <string name="plan_streak_title">Keep a streak?</string>
+    <string name="plan_streak_body">Opson counts the days you show up: log anything, check in or wrap up the day. One quiet day won't end it.</string>
+    <string name="plan_streak_note">It never counts what or how much you eat.</string>
+    <string name="plan_streak_yes">Yes, keep a streak</string>
+    <string name="plan_streak_no">No streak</string>
+    <string name="plan_streak_footnote">You can turn it off any time in More.</string>
 
     <!-- 6. Commitment -->
     <string name="plan_commit_title">Ready to start?</string>

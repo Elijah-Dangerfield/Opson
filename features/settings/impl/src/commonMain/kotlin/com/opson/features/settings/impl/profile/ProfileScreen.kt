@@ -20,6 +20,7 @@ import com.opson.libraries.diary.OnboardingAnswers
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.ui.BirthdayField
+import com.opson.libraries.diary.ui.Birthdays
 import com.opson.libraries.diary.ui.HeightField
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.diary.ui.note
@@ -119,6 +120,7 @@ private fun AboutYou(state: ProfileState, onAction: (ProfileAction) -> Unit) {
             parts = state.birthday,
             onChange = { onAction(ProfileAction.BirthdayTyped(it)) },
             today = state.today,
+            ages = Birthdays.EQUATION_AGES,
             label = stringResource(Res.string.profile_birthday),
             imeAction = ImeAction.Next,
         )

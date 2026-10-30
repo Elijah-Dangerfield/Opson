@@ -24,6 +24,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.ui.BirthdayField
+import com.opson.libraries.diary.ui.Birthdays
 import com.opson.libraries.diary.ui.HeightField
 import com.opson.libraries.diary.ui.detail
 import com.opson.libraries.diary.ui.label
@@ -32,6 +34,7 @@ import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.SexChoice
@@ -46,21 +49,57 @@ import com.opson.libraries.ui.components.EdgeCardDefaults
 import com.opson.libraries.ui.components.HorizontalDivider
 import com.opson.libraries.ui.components.SegmentedControl
 import com.opson.libraries.ui.components.Stepper
-import com.opson.libraries.ui.components.TapField
 import com.opson.libraries.ui.components.button.ButtonGhost
 import com.opson.libraries.ui.components.button.ButtonPrimary
 import com.opson.libraries.ui.components.button.ButtonSecondary
 import com.opson.libraries.ui.components.button.ButtonSize
-import com.opson.libraries.ui.components.dialog.DatePickerDialog
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
 import com.opson.system.Dimension
-import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.plan_ask_title
+import opson.libraries.resources.generated.resources.plan_ask_body
+import opson.libraries.resources.generated.resources.plan_ask_body_gentle
+import opson.libraries.resources.generated.resources.plan_ask_yes
+import opson.libraries.resources.generated.resources.plan_ask_no
+import opson.libraries.resources.generated.resources.plan_ask_footnote
+import opson.libraries.resources.generated.resources.plan_kind_title
+import opson.libraries.resources.generated.resources.plan_kind_body
+import opson.libraries.resources.generated.resources.plan_kind_weight
+import opson.libraries.resources.generated.resources.plan_kind_weight_detail
+import opson.libraries.resources.generated.resources.plan_kind_balance
+import opson.libraries.resources.generated.resources.plan_kind_balance_detail
+import opson.libraries.resources.generated.resources.plan_kind_weekly
+import opson.libraries.resources.generated.resources.plan_kind_weekly_detail
+import opson.libraries.resources.generated.resources.plan_kind_burn
+import opson.libraries.resources.generated.resources.plan_kind_burn_detail
+import opson.libraries.resources.generated.resources.plan_kind_show_up
+import opson.libraries.resources.generated.resources.plan_kind_show_up_detail
+import opson.libraries.resources.generated.resources.plan_kind_meals
+import opson.libraries.resources.generated.resources.plan_kind_meals_detail
+import opson.libraries.resources.generated.resources.plan_balance_title
+import opson.libraries.resources.generated.resources.plan_balance_body
+import opson.libraries.resources.generated.resources.plan_balance_under
+import opson.libraries.resources.generated.resources.plan_balance_over
+import opson.libraries.resources.generated.resources.plan_balance_label_under
+import opson.libraries.resources.generated.resources.plan_balance_label_over
+import opson.libraries.resources.generated.resources.plan_balance_target
+import opson.libraries.resources.generated.resources.plan_burn_title
+import opson.libraries.resources.generated.resources.plan_burn_body
+import opson.libraries.resources.generated.resources.plan_burn_label
+import opson.libraries.resources.generated.resources.plan_meals_title
+import opson.libraries.resources.generated.resources.plan_meals_body
+import opson.libraries.resources.generated.resources.plan_meals_count
+import opson.libraries.resources.generated.resources.plan_streak_title
+import opson.libraries.resources.generated.resources.plan_streak_body
+import opson.libraries.resources.generated.resources.plan_streak_note
+import opson.libraries.resources.generated.resources.plan_streak_yes
+import opson.libraries.resources.generated.resources.plan_streak_no
+import opson.libraries.resources.generated.resources.plan_streak_footnote
+import opson.libraries.resources.generated.resources.plan_overview_weekly
 import opson.libraries.resources.generated.resources.everyday_activity_title
 import opson.libraries.resources.generated.resources.integrations_apple_health
 import opson.libraries.resources.generated.resources.plan_overview_breastfeeding_extra
@@ -81,18 +120,13 @@ import opson.libraries.resources.generated.resources.plan_activity_connect_note
 import opson.libraries.resources.generated.resources.plan_activity_connected
 import opson.libraries.resources.generated.resources.plan_activity_connecting
 import opson.libraries.resources.generated.resources.plan_activity_title
-import opson.libraries.resources.generated.resources.plan_birthday_dialog
-import opson.libraries.resources.generated.resources.plan_birthday_label
 import opson.libraries.resources.generated.resources.plan_birthday_note
-import opson.libraries.resources.generated.resources.plan_birthday_pick
 import opson.libraries.resources.generated.resources.plan_commit_body
 import opson.libraries.resources.generated.resources.plan_commit_body_gentle
 import opson.libraries.resources.generated.resources.plan_commit_footnote
 import opson.libraries.resources.generated.resources.plan_commit_not_now
 import opson.libraries.resources.generated.resources.plan_commit_title
 import opson.libraries.resources.generated.resources.plan_commit_yes
-import opson.libraries.resources.generated.resources.plan_date_cancel
-import opson.libraries.resources.generated.resources.plan_date_ok
 import opson.libraries.resources.generated.resources.plan_goal_body
 import opson.libraries.resources.generated.resources.plan_goal_current
 import opson.libraries.resources.generated.resources.plan_goal_find_support
@@ -156,6 +190,7 @@ import opson.libraries.resources.generated.resources.plan_weight_note
 import opson.libraries.resources.generated.resources.settings_look_weight_kg
 import opson.libraries.resources.generated.resources.settings_look_weight_lb
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -169,10 +204,16 @@ data class PlanView(
     val goal: GoalView,
     val rate: RateView,
     val overview: OverviewView,
-    /** The steps whose Continue waits for an answer: the goal without a usable target. */
+    /** The steps whose Continue waits for an answer: no kind picked, the goal without a usable target. */
     val blocked: Set<PlanStep>,
     val hard: Boolean,
     val today: LocalDate,
+    val kind: KindView = KindView(emptyList(), null),
+    val balance: BalanceView? = null,
+    val burn: BurnView? = null,
+    val mealCount: MealCountView = MealCountView(GoalType.DEFAULT_MEALS, canLess = true, canMore = true),
+    /** Onboarding, where a goal is optional: no Skip on a goal's own steps, as Back changes the kind. */
+    val asks: Boolean = false,
 )
 
 fun PlanViews.all(answers: PlanAnswers, context: PlanContext, current: Settings): PlanView {
@@ -187,13 +228,30 @@ fun PlanViews.all(answers: PlanAnswers, context: PlanContext, current: Settings)
         blocked = steps.filterNot { PlanFlow.canContinue(it, answers, context) }.toSet(),
         hard = context.hard,
         today = context.today,
+        kind = kind(answers, context),
+        balance = balance(answers, context).takeIf { PlanStep.Balance in steps },
+        burn = burn(answers, context).takeIf { PlanStep.Burn in steps },
+        mealCount = mealCount(answers),
+        asks = context.asks,
     )
 }
 
 /**
+ * The steps Skip shows on: the body questions, always, since a goal can wait for them; in Today's
+ * flow the weight goal and its pace too, where Skip means no goal. "Want to set a goal?" and
+ * "Keep a streak?" are answered by their own buttons, and the commitment's "Not now" is the quiet
+ * way through.
+ */
+private fun PlanView.skippable(step: PlanStep): Boolean = when (step) {
+    PlanStep.Profile, PlanStep.Activity -> true
+    PlanStep.Goal, PlanStep.Rate -> !asks
+    else -> false
+}
+
+/**
  * One of the goal flow's steps, in onboarding's layout: the top bar (Back, and Skip on the steps
- * that can be skipped), the step itself, and the pinned button. The commitment step has its own
- * two buttons and no Skip: "Not now" is the quiet way through.
+ * that can be skipped), the step itself, and the pinned button, or the two answers on the steps
+ * that ask a yes or no.
  */
 @Composable
 internal fun ColumnScope.PlanStepContent(
@@ -207,33 +265,228 @@ internal fun ColumnScope.PlanStepContent(
     onCommit: (Boolean) -> Unit,
     onPlan: (PlanAction) -> Unit,
 ) {
-    val skippable = step != PlanStep.Overview && step != PlanStep.Commit
-    OnboardingTopBar(canGoBack = canGoBack, onBack = onBack, canSkip = !busy, showSkip = skippable, onSkip = onSkip)
+    OnboardingTopBar(canGoBack = canGoBack, onBack = onBack, canSkip = !busy, showSkip = view.skippable(step), onSkip = onSkip)
     ScrollingBody {
         when (step) {
+            PlanStep.Ask -> AskStep(view.hard)
+            PlanStep.Kind -> KindStep(view.kind, busy, onPlan)
             PlanStep.Profile -> ProfileStep(view.profile, view.hard, view.today, busy, onPlan)
             PlanStep.Activity -> ActivityStep(view.activity, busy, onPlan)
             PlanStep.Goal -> GoalStep(view.goal, busy, onPlan)
             PlanStep.Rate -> RateStep(view.rate, busy, onPlan)
+            PlanStep.Balance -> view.balance?.let { BalanceStep(it, busy, onPlan) }
+            PlanStep.Burn -> view.burn?.let { BurnStep(it, busy, onPlan) }
+            PlanStep.MealCount -> MealCountStep(view.mealCount, busy, onPlan)
             PlanStep.Overview -> OverviewStep(view.overview)
+            PlanStep.Streak -> StreakStep()
             PlanStep.Commit -> CommitStep(view.hard)
         }
     }
-    if (step == PlanStep.Commit) {
-        CommitButtons(busy = busy, onCommit = onCommit)
-    } else {
-        PinnedPrimary(
-            label = stringResource(
-                when {
-                    busy -> Res.string.onboarding_finishing
-                    step == PlanStep.Overview -> Res.string.plan_overview_continue
-                    else -> Res.string.onboarding_continue
-                },
-            ),
-            enabled = !busy && step !in view.blocked,
-            onClick = onContinue,
+    when (step) {
+        PlanStep.Commit -> CommitButtons(busy = busy, onCommit = onCommit)
+        PlanStep.Ask -> TwoAnswers(
+            yes = stringResource(Res.string.plan_ask_yes),
+            no = stringResource(Res.string.plan_ask_no),
+            footnote = stringResource(Res.string.plan_ask_footnote),
+            busy = busy,
+            onAnswer = { onPlan(PlanAction.WantsGoal(it)) },
         )
+        PlanStep.Streak -> TwoAnswers(
+            yes = stringResource(Res.string.plan_streak_yes),
+            no = stringResource(Res.string.plan_streak_no),
+            footnote = stringResource(Res.string.plan_streak_footnote),
+            busy = busy,
+            onAnswer = { onPlan(PlanAction.StreakPicked(it)) },
+        )
+        else -> PlanContinue(step, view, busy, onContinue)
     }
+}
+
+@Composable
+private fun PlanContinue(step: PlanStep, view: PlanView, busy: Boolean, onContinue: () -> Unit) {
+    PinnedPrimary(
+        label = stringResource(
+            when {
+                busy -> Res.string.onboarding_finishing
+                step == PlanStep.Overview -> Res.string.plan_overview_continue
+                else -> Res.string.onboarding_continue
+            },
+        ),
+        enabled = !busy && step !in view.blocked,
+        onClick = onContinue,
+    )
+}
+
+// ---------- Want to set a goal? ----------
+
+@Composable
+private fun AskStep(hard: Boolean) {
+    Spacer(Modifier.height(Dimension.D900))
+    StepTitle(
+        title = stringResource(Res.string.plan_ask_title),
+        body = stringResource(if (hard) Res.string.plan_ask_body_gentle else Res.string.plan_ask_body),
+    )
+}
+
+/** A yes and a no, both full width: the question is the whole step, and either answer moves on. */
+@Composable
+private fun TwoAnswers(yes: String, no: String, footnote: String, busy: Boolean, onAnswer: (Boolean) -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = PagePadding).padding(top = Dimension.D500, bottom = Dimension.D700),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Dimension.D300),
+    ) {
+        ButtonPrimary(onClick = { onAnswer(true) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+            Text(if (busy) stringResource(Res.string.onboarding_finishing) else yes)
+        }
+        ButtonSecondary(onClick = { onAnswer(false) }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+            Text(no)
+        }
+        Text(text = footnote, typography = AppTheme.type.secondarySmall, color = AppTheme.colors.muted, textAlign = TextAlign.Center)
+    }
+}
+
+// ---------- Which kind ----------
+
+@Composable
+private fun KindStep(view: KindView, busy: Boolean, onPlan: (PlanAction) -> Unit) {
+    StepTitle(title = stringResource(Res.string.plan_kind_title), body = stringResource(Res.string.plan_kind_body))
+    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
+        view.picks.forEach { pick ->
+            ChoiceRow(
+                label = stringResource(pick.label),
+                selected = pick == view.picked,
+                onClick = { onPlan(PlanAction.GoalPicked(pick)) },
+                role = Role.RadioButton,
+                enabled = !busy,
+                detail = stringResource(pick.detail),
+            )
+        }
+    }
+}
+
+private val GoalPick.label: StringResource
+    get() = when (this) {
+        GoalPick.Weight -> Res.string.plan_kind_weight
+        GoalPick.Balance -> Res.string.plan_kind_balance
+        GoalPick.WeeklyBalance -> Res.string.plan_kind_weekly
+        GoalPick.Burn -> Res.string.plan_kind_burn
+        GoalPick.ShowUp -> Res.string.plan_kind_show_up
+        GoalPick.Meals -> Res.string.plan_kind_meals
+    }
+
+private val GoalPick.detail: StringResource
+    get() = when (this) {
+        GoalPick.Weight -> Res.string.plan_kind_weight_detail
+        GoalPick.Balance -> Res.string.plan_kind_balance_detail
+        GoalPick.WeeklyBalance -> Res.string.plan_kind_weekly_detail
+        GoalPick.Burn -> Res.string.plan_kind_burn_detail
+        GoalPick.ShowUp -> Res.string.plan_kind_show_up_detail
+        GoalPick.Meals -> Res.string.plan_kind_meals_detail
+    }
+
+// ---------- An energy balance ----------
+
+@Composable
+private fun BalanceStep(view: BalanceView, busy: Boolean, onPlan: (PlanAction) -> Unit) {
+    StepTitle(title = stringResource(Res.string.plan_balance_title), body = stringResource(Res.string.plan_balance_body))
+    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D500)) {
+        SegmentedControl(
+            options = listOf(true, false),
+            selected = view.under,
+            onSelect = { if (!busy) onPlan(PlanAction.BalanceSidePicked(it)) },
+            label = { stringResource(if (it) Res.string.plan_balance_under else Res.string.plan_balance_over) },
+        )
+        FieldLabel(stringResource(if (view.under) Res.string.plan_balance_label_under else Res.string.plan_balance_label_over))
+        (view.amount as? Display.Shown)?.let { amount ->
+            Stepper(
+                amount = amount.text,
+                onDecrease = { onPlan(PlanAction.BalanceStepped(more = false)) },
+                onIncrease = { onPlan(PlanAction.BalanceStepped(more = true)) },
+                canDecrease = view.canLess && !busy,
+                canIncrease = view.canMore && !busy,
+                amountModifier = Modifier.testTag(Metric.Calories.testTag()),
+            )
+        }
+        (view.target as? Display.Shown)?.let {
+            Text(
+                text = stringResource(Res.string.plan_balance_target, it.text),
+                typography = AppTheme.type.body,
+                color = AppTheme.colors.inkSoft,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().testTag(Metric.Calories.testTag()),
+            )
+        }
+        view.pace?.let { pace ->
+            var explained by remember { mutableStateOf(false) }
+            PaceNote(
+                assessment = pace,
+                onInfo = { explained = true },
+                onFindSupport = { onPlan(PlanAction.FindSupportTapped) }.takeIf { pace.needsCare },
+            )
+            if (explained) {
+                PaceInfoDialog(
+                    limitText = (view.limit as? Display.Shown)?.text,
+                    estimated = view.limitEstimated,
+                    canWorkOut = view.limitKnown,
+                    onDismiss = { explained = false },
+                )
+            }
+        }
+        if (view.lowAim) LowGoalNote(onPlan)
+        if (view.weekly) Note(stringResource(Res.string.plan_overview_weekly))
+    }
+}
+
+@Composable
+private fun LowGoalNote(onPlan: (PlanAction) -> Unit) {
+    EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.InsetPadding, verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
+        Text(text = stringResource(Res.string.settings_targets_low_note), typography = AppTheme.type.body, color = AppTheme.colors.ink)
+        ChevronLink(text = stringResource(Res.string.plan_goal_find_support), onClick = { onPlan(PlanAction.FindSupportTapped) })
+    }
+}
+
+// ---------- Moving more ----------
+
+@Composable
+private fun BurnStep(view: BurnView, busy: Boolean, onPlan: (PlanAction) -> Unit) {
+    StepTitle(title = stringResource(Res.string.plan_burn_title), body = stringResource(Res.string.plan_burn_body))
+    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D500)) {
+        FieldLabel(stringResource(Res.string.plan_burn_label))
+        (view.amount as? Display.Shown)?.let { amount ->
+            Stepper(
+                amount = amount.text,
+                onDecrease = { onPlan(PlanAction.BurnStepped(more = false)) },
+                onIncrease = { onPlan(PlanAction.BurnStepped(more = true)) },
+                canDecrease = view.canLess && !busy,
+                canIncrease = view.canMore && !busy,
+                amountModifier = Modifier.testTag(Metric.EnergyOut.testTag()),
+            )
+        }
+    }
+}
+
+// ---------- Regular meals ----------
+
+@Composable
+private fun MealCountStep(view: MealCountView, busy: Boolean, onPlan: (PlanAction) -> Unit) {
+    StepTitle(title = stringResource(Res.string.plan_meals_title), body = stringResource(Res.string.plan_meals_body))
+    Stepper(
+        amount = pluralStringResource(Res.plurals.plan_meals_count, view.count, view.count),
+        onDecrease = { onPlan(PlanAction.MealsStepped(more = false)) },
+        onIncrease = { onPlan(PlanAction.MealsStepped(more = true)) },
+        canDecrease = view.canLess && !busy,
+        canIncrease = view.canMore && !busy,
+    )
+}
+
+// ---------- Keep a streak? ----------
+
+@Composable
+private fun StreakStep() {
+    Spacer(Modifier.height(Dimension.D900))
+    StepTitle(title = stringResource(Res.string.plan_streak_title), body = stringResource(Res.string.plan_streak_body))
+    Note(stringResource(Res.string.plan_streak_note))
 }
 
 // ---------- 1. Profile ----------
@@ -241,7 +494,6 @@ internal fun ColumnScope.PlanStepContent(
 @Composable
 private fun ProfileStep(view: ProfileView, hard: Boolean, today: LocalDate, busy: Boolean, onPlan: (PlanAction) -> Unit) {
     val answer = view.answer
-    var pickingDate by remember { mutableStateOf(false) }
     StepTitle(
         title = stringResource(Res.string.plan_profile_title),
         body = stringResource(if (hard) Res.string.plan_profile_body_gentle else Res.string.plan_profile_body),
@@ -261,15 +513,17 @@ private fun ProfileStep(view: ProfileView, hard: Boolean, today: LocalDate, busy
             answer.sex?.let { Note(stringResource(it.note), live = true) }
             Note(stringResource(Res.string.plan_sex_inclusive))
         }
-        Column(verticalArrangement = Arrangement.spacedBy(Dimension.D200)) {
-            FieldLabel(stringResource(Res.string.plan_birthday_label))
-            TapField(
-                text = view.birthDateText ?: stringResource(Res.string.plan_birthday_pick),
-                muted = view.birthDateText == null,
-                onClick = { if (!busy) pickingDate = true },
-                modifier = Modifier.fillMaxWidth(),
+        if (view.birthdayShown) {
+            BirthdayField(
+                parts = answer.birthday,
+                onChange = { onPlan(PlanAction.BirthdayTyped(it)) },
+                today = today,
+                ages = Birthdays.EQUATION_AGES,
+                order = view.dateOrder,
+                note = stringResource(Res.string.plan_birthday_note),
+                enabled = !busy,
+                imeAction = ImeAction.Next,
             )
-            Note(stringResource(Res.string.plan_birthday_note))
         }
         HintedField(
             hint = (if (answer.height.unit == HeightUnit.FtIn) Res.string.onboarding_body_height_hint_ft_in else Res.string.onboarding_body_height_hint_cm)
@@ -297,25 +551,7 @@ private fun ProfileStep(view: ProfileView, hard: Boolean, today: LocalDate, busy
             Note(stringResource(Res.string.plan_weight_note))
         }
     }
-    if (pickingDate) {
-        DatePickerDialog(
-            title = stringResource(Res.string.plan_birthday_dialog),
-            initial = answer.birthDate,
-            opensOn = today.minus(DatePeriod(years = OPENS_AT_AGE)),
-            range = today.minus(DatePeriod(years = PlanFlow.AGES.last))..today.minus(DatePeriod(years = PlanFlow.AGES.first)),
-            okLabel = stringResource(Res.string.plan_date_ok),
-            cancelLabel = stringResource(Res.string.plan_date_cancel),
-            onPicked = {
-                onPlan(PlanAction.BirthDatePicked(it))
-                pickingDate = false
-            },
-            onDismiss = { pickingDate = false },
-        )
-    }
 }
-
-/** Where the birthday picker opens with nothing picked: thirty years back, a short scroll from most. */
-private const val OPENS_AT_AGE = 30
 
 /** Weight, in kilograms or pounds, with the switch between them, and a hint when it is [invalid]. */
 @Composable
@@ -522,12 +758,7 @@ private fun RateStep(view: RateView, busy: Boolean, onPlan: (PlanAction) -> Unit
                 )
             }
         }
-        if (view.lowAim) {
-            EdgeCard(edgeToEdge = false, contentPadding = EdgeCardDefaults.InsetPadding, verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
-                Text(text = stringResource(Res.string.settings_targets_low_note), typography = AppTheme.type.body, color = AppTheme.colors.ink)
-                ChevronLink(text = stringResource(Res.string.plan_goal_find_support), onClick = { onPlan(PlanAction.FindSupportTapped) })
-            }
-        }
+        if (view.lowAim) LowGoalNote(onPlan)
         if (view.atFastest) Note(stringResource(Res.string.plan_rate_fastest))
         // The rule's own numbers are calorie amounts: only where calories show.
         Note(stringResource(if (view.dailyKcal is Display.Shown) Res.string.plan_rate_estimate else Res.string.plan_rate_estimate_plain))
@@ -585,6 +816,7 @@ private fun OverviewStep(view: OverviewView) {
             view.kind == OverviewKind.NoGoal -> Note(stringResource(Res.string.plan_overview_unchanged))
             energy == null -> Note(stringResource(Res.string.plan_overview_background))
         }
+        if (view.weekly) Note(stringResource(Res.string.plan_overview_weekly))
         if (view.forecast != null) Note(stringResource(Res.string.plan_overview_forecast_note))
         if (energy != null) Note(stringResource(Res.string.plan_overview_estimate))
     }

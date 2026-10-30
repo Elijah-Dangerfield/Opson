@@ -16,6 +16,7 @@ import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.Presets
 import com.opson.libraries.opson.AppData
+import com.opson.libraries.ui.components.text.DateParts
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -156,7 +157,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         runCurrent()
         assertEquals(OnboardingStep.Age, vm.state.step, "Continue waits for a birthday")
 
-        vm.takeAction(OnboardingAction.AgeAnswered(ADULT))
+        vm.takeAction(OnboardingAction.AgeTyped(DateParts.of(ADULT)))
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
         assertEquals(OnboardingStep.SignIn, vm.state.step)
@@ -181,7 +182,7 @@ class OnboardingViewModelTest : CoroutineTest() {
         val auth = FakeAuthRepository()
         val vm = newVm(cache = cache, auth = auth)
         vm.takeAction(OnboardingAction.GetStartedTapped)
-        vm.takeAction(OnboardingAction.AgeAnswered(FOURTEEN))
+        vm.takeAction(OnboardingAction.AgeTyped(DateParts.of(FOURTEEN)))
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
 
@@ -226,7 +227,7 @@ class OnboardingViewModelTest : CoroutineTest() {
     fun sixteenOrSeventeen_getsTheGentlePath_andCelebrationsWithoutCounts() = runUnitTest {
         val vm = newVm(setupSteps = true)
         vm.takeAction(OnboardingAction.GetStartedTapped)
-        vm.takeAction(OnboardingAction.AgeAnswered(SIXTEEN))
+        vm.takeAction(OnboardingAction.AgeTyped(DateParts.of(SIXTEEN)))
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
 
@@ -924,7 +925,7 @@ class OnboardingViewModelTest : CoroutineTest() {
     ): OnboardingViewModel {
         val vm = newVm(cache = cache, auth = auth, classifier = classifier, appleCoordinator = appleCoordinator, settings = settings)
         vm.takeAction(OnboardingAction.GetStartedTapped)
-        vm.takeAction(OnboardingAction.AgeAnswered(ADULT))
+        vm.takeAction(OnboardingAction.AgeTyped(DateParts.of(ADULT)))
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
         check(vm.state.step == OnboardingStep.SignIn) { "expected the sign-in step, was ${vm.state.step}" }
