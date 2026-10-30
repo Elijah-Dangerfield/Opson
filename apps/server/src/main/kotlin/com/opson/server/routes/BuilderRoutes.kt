@@ -380,6 +380,14 @@ fun Route.builderRoutes(
                     val food = catalog.findById(foodId)
                         ?.takeIf { it.source != CatalogSource.UserSubmitted || submissions.isVisible(foodId, userId) }
                         ?: return@post call.respond(HttpStatusCode.NotFound, problem("not_found", "No such food"))
+                    // A retry of a check already recorded answers as before and spends none of the quota.
+                    verifications.get(id)?.let { existing ->
+                        return@post if (existing.userId == userId) {
+                            call.respond(existing.toResponse(emptyList()))
+                        } else {
+                            call.respond(HttpStatusCode.Conflict, problem("id_conflict", "That id is taken"))
+                        }
+                    }
                     if (!limiter.tryVerify(userId)) {
                         return@post call.respond(HttpStatusCode.TooManyRequests, problem("rate_limited", "That's a lot of checks for now. Try again later."))
                     }

@@ -28,6 +28,7 @@ import com.opson.server.domain.DecideOutcome
 import com.opson.server.domain.LabelRegion
 import com.opson.server.domain.ShoppingFrequency
 import com.opson.server.domain.CarbBasis
+import com.opson.server.domain.FoodLabelLimiter
 import com.opson.server.domain.FoodVerificationLimits
 import com.opson.server.domain.ImageType
 import com.opson.server.domain.LabelChecks
@@ -735,6 +736,27 @@ class FullStackBuilderTest : DatabaseTest() {
             val oversized = "{\"id\": \"${UUID.randomUUID()}\", \"lines\": [], \"photos\": {\"front\": \"" +
                 "A".repeat(FoodVerificationLimits.MAX_BODY_BYTES.toInt()) + "\"}}"
             assertEquals(HttpStatusCode.PayloadTooLarge, raw(builder, oversized).status)
+        }
+    }
+
+    @Test
+    fun aRetriedCheckAnswersAsBefore_withoutSpendingTheHoursQuota() = runTest {
+        val builder = seedUser(ageDays = 10)
+        val component = component()
+        val food = seedBrandedGranola()
+        becomeBuilder(component, builder)
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier)) }
+            val client = jsonClient()
+            val request = VerificationRequest(UUID.randomUUID().toString(), "vision", panel.map { CaptureLineJson(it, 0.9) })
+            assertEquals(HttpStatusCode.Created, client.verify(builder, food, request).status)
+            repeat(FoodLabelLimiter.VERIFY_BURST + 1) {
+                val again = client.verify(builder, food, request)
+                assertEquals(HttpStatusCode.OK, again.status, "retry ${it + 1}")
+                assertEquals(request.id, again.body<VerificationResponse>().id)
+            }
+            val next = client.verify(builder, seedBrandedGranola(), request.copy(id = UUID.randomUUID().toString()))
+            assertEquals(HttpStatusCode.Created, next.status, "the retries took none of the quota")
         }
     }
 
