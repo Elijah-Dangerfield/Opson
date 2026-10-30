@@ -2,6 +2,7 @@ package com.opson.libraries.health
 
 import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.HealthReadings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
@@ -46,6 +47,18 @@ interface BurnedRepository {
 
     /** What each resting energy source would give right now, for the Resting energy page. */
     fun restingChoices(): Flow<RestingChoices>
+
+    /**
+     * What a goal's typical day reads from the health app (docs/plans/goals-v2.md): its most recent
+     * whole day's resting energy, and each of the last [HEALTH_DAYS] whole days' activity it read.
+     * [HealthReadings.None] without a connected store, which is also the default for fakes.
+     */
+    fun healthReadings(): Flow<HealthReadings> = flowOf(HealthReadings.None)
+
+    companion object {
+        /** The whole days a goal's health activity averages: the last week, never today so far. */
+        const val HEALTH_DAYS = 7
+    }
 }
 
 /**

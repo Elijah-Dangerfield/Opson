@@ -17,6 +17,7 @@ import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.HealthActivity
+import com.opson.libraries.nutrition.HealthReadings
 import com.opson.libraries.nutrition.RestingEnergies
 import com.opson.libraries.nutrition.burnedFor
 import com.opson.libraries.nutrition.thermicEffectKcal
@@ -133,6 +134,28 @@ class RealBurnedRepository(
                 weightKg = kg,
             )
         }.distinctUntilChanged()
+
+    /**
+     * One read of the last [BurnedRepository.HEALTH_DAYS] whole days: the most recent resting
+     * energy, as [healthResting] picks it, and each day's movement plus workouts the store read.
+     */
+    override fun healthReadings(): Flow<HealthReadings> = connected().flatMapLatest { connected ->
+        if (!connected) {
+            flowOf(HealthReadings.None)
+        } else {
+            flow {
+                val today = calendar.today()
+                val days = health.energyBetween(
+                    today.minus(DatePeriod(days = BurnedRepository.HEALTH_DAYS)),
+                    today.minus(DatePeriod(days = 1)),
+                    calendar.timeZone(),
+                ).orEmpty()
+                val resting = days.entries.sortedByDescending { it.key }.firstNotNullOfOrNull { it.value.restingKcal?.takeIf { kcal -> kcal > 0 } }
+                val activity = days.values.mapNotNull { it.toHealthActivity() }.map { (it.movementKcal ?: 0) + (it.workoutKcal ?: 0) }
+                emit(HealthReadings(resting?.wholeKcal(), activity))
+            }
+        }
+    }.distinctUntilChanged()
 
     private fun resting(settings: Settings, kg: Double?, healthKcal: Int?) = RestingEnergies.resolve(
         source = settings.restingSource,

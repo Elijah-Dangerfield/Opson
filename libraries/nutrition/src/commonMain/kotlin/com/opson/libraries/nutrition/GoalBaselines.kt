@@ -38,6 +38,30 @@ data class BaselineInputs(
 )
 
 /**
+ * What the health app has read, for a baseline: its most recent whole day's resting energy, and
+ * each of the last whole days' activity (movement and workouts). Empty without one.
+ */
+data class HealthReadings(val restingKcal: Int? = null, val activityKcal: List<Int> = emptyList()) {
+    companion object {
+        val None = HealthReadings()
+    }
+}
+
+/**
+ * Everything a baseline needs besides the profile: where resting energy comes from (and the
+ * person's own number), what the health app read, whether activity and digesting food count.
+ * Onboarding's goal flow and the goal repository both build one, so a goal set in the flow is
+ * the goal the repository later compares against, number for number.
+ */
+data class BaselineEnvironment(
+    val restingSource: RestingSource = RestingSource.Calculate,
+    val ownRestingKcal: Int? = null,
+    val health: HealthReadings = HealthReadings.None,
+    val activityCounted: Boolean = true,
+    val digesting: Boolean = false,
+)
+
+/**
  * The typical day a goal's target is worked out from: [burnKcal] is resting plus activity, before
  * digesting food; [extraKcal] what pregnancy or breastfeeding adds; [digesting] whether digesting
  * food counts; [sex] picks the low-goal line. [inputs] is null for a goal migrated from before
@@ -155,6 +179,26 @@ object GoalBaselines {
             stage = stage,
             bodyFatPercent = bodyFatPercent?.let(BodyFat::inRange),
         )
+    }
+
+    /**
+     * The inputs for [profile] in [environment], or null while resting energy can't be worked out
+     * (details missing and no other source answers).
+     */
+    fun inputs(
+        environment: BaselineEnvironment,
+        profile: BodyProfile,
+        everyday: EverydayActivity,
+        stage: BodyStage,
+        bodyFatPercent: Double?,
+    ): BaselineInputs? {
+        val resting = RestingEnergies.resolve(
+            source = environment.restingSource,
+            calculatedKcal = RestingEnergies.calculate(profile),
+            healthKcal = environment.health.restingKcal,
+            ownKcal = environment.ownRestingKcal,
+        ) ?: return null
+        return inputs(resting, everyday, environment.health.activityKcal, environment.activityCounted, environment.digesting, profile, stage, bodyFatPercent)
     }
 
     /** The baseline [inputs] give. */

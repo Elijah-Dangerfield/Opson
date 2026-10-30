@@ -1,12 +1,17 @@
 package com.opson.libraries.diary
 
+import com.opson.libraries.nutrition.BaselineEnvironment
+import com.opson.libraries.nutrition.BaselineInputs
 import com.opson.libraries.nutrition.Goal
 import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.GoalBaseline
+import com.opson.libraries.nutrition.GoalBaselines
 import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.GoalStatus
 import com.opson.libraries.nutrition.GoalTargets
 import com.opson.libraries.nutrition.GoalType
+import com.opson.libraries.nutrition.HealthReadings
+import com.opson.libraries.nutrition.Recalculation
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.WeightGoal
@@ -78,6 +83,48 @@ object GoalBook {
         return withGoal(settings.copy(targets = targets), stamped)
     }
 
+    /**
+     * [recalculation] accepted: the goal's baseline is the new one, nothing declined is kept, and
+     * the new target is written. [settings] unchanged when the goal is gone.
+     */
+    fun accept(settings: Settings, recalculation: Recalculation): Settings {
+        val goal = goals(settings).firstOrNull { it.id == recalculation.goalId } ?: return settings
+        return applyTarget(settings, goal.copy(baseline = recalculation.newBaseline, declined = null))
+    }
+
+    /** [recalculation] declined: the target stays, and these inputs are never offered again. */
+    fun keep(settings: Settings, recalculation: Recalculation): Settings {
+        val goal = goals(settings).firstOrNull { it.id == recalculation.goalId } ?: return settings
+        val inputs = recalculation.newBaseline.inputs ?: return settings
+        return withGoal(settings, goal.copy(declined = inputs))
+    }
+
+    /**
+     * "Set my own target": the goal setting the target stops setting it and is kept; Targets is
+     * the person's. [settings] unchanged when no goal sets it.
+     */
+    fun override(settings: Settings): Settings {
+        val goal = driving(settings) ?: return settings
+        return withGoal(settings, goal.copy(setsTarget = false))
+    }
+
+    /**
+     * "Use my goal": the calorie goal sets the target again, from the baseline it already has, so
+     * the target is the one it had before. A paused goal is made active. Without a baseline yet,
+     * it is marked to set the target and waits for one.
+     */
+    fun resume(settings: Settings): Settings {
+        val goal = calorieGoal(settings) ?: return settings
+        val active = goal.copy(status = GoalStatus.Active, setsTarget = true)
+        return if (active.baseline == null) withGoal(settings, active) else applyTarget(settings, active)
+    }
+
+    /** Pauses the goal with [id]: kept with everything it had, counting for nothing until resumed. */
+    fun pause(settings: Settings, id: String): Settings {
+        val goal = goals(settings).firstOrNull { it.id == id } ?: return settings
+        return withGoal(settings, goal.copy(status = GoalStatus.Paused))
+    }
+
     /** What [Settings.weightGoal] says for [goals], given what it said before ([previous]). */
     fun mirror(goals: List<Goal>, previous: WeightGoal): WeightGoal {
         val goal = goals.firstOrNull { it.type is GoalType.Weight && it.status != GoalStatus.Done }
@@ -138,3 +185,19 @@ object GoalBook {
 
 /** [GoalBook.goals]. */
 val Settings.allGoals: List<Goal> get() = GoalBook.goals(this)
+
+/** What a goal baseline reads from these settings, with what the health app has read. */
+fun Settings.baselineEnvironment(health: HealthReadings): BaselineEnvironment = BaselineEnvironment(
+    restingSource = restingSource,
+    ownRestingKcal = restingOwnKcal,
+    health = health,
+    activityCounted = activityInBurned,
+    digesting = thermicEffectInBurned,
+)
+
+/**
+ * A goal baseline's inputs for these settings, the latest weigh-in ([weightKg]) and the health
+ * app's [health] readings on [today]. Null while resting energy can't be worked out.
+ */
+fun Settings.baselineInputs(weightKg: Double?, today: LocalDate, health: HealthReadings): BaselineInputs? =
+    GoalBaselines.inputs(baselineEnvironment(health), bodyProfile(weightKg, today), everydayActivity, bodyStage, bodyFat)
