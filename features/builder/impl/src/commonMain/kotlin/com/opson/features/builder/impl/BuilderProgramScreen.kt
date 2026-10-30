@@ -134,7 +134,11 @@ fun BuilderProgramScreen(
                 onBack = { onAction(BuilderProgramAction.BackTapped) },
             )
             when (val page = state.page) {
-                null -> DelayedLoadingIndicator(contentDescription = stringResource(Res.string.builder_loading_cd))
+                // Nothing to draw yet. Once a problem is known the card below says what happened,
+                // so the spinner stops rather than turning forever beside "You're offline".
+                null -> if (state.problem == null) {
+                    DelayedLoadingIndicator(contentDescription = stringResource(Res.string.builder_loading_cd))
+                }
                 is BuilderPage.Intro -> IntroPage(page, onAction)
                 is BuilderPage.Applied -> AppliedPage(page, state, onAction)
                 is BuilderPage.Declined -> DeclinedPage(page, onAction)

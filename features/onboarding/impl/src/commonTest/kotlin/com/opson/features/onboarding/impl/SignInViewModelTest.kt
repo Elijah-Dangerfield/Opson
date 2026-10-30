@@ -1,5 +1,8 @@
 package com.opson.features.onboarding.impl
 
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import com.opson.libraries.core.AppState
 import app.cash.turbine.test
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.identity.auth.OAuthProvider
@@ -198,6 +201,38 @@ class SignInViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun signInWithOAuth_offline_saysSo_withoutOpeningTheBrowser() = runUnitTest {
+        val identity = FakeAuthRepository(oauthSignInOutcome = SignInOutcome.Success)
+        val vm = buildVm(identity = identity, offline = true)
+        vm.takeAction(SignInAction.SignInWithOAuth(OAuthProvider.Google))
+
+        vm.stateFlow.test {
+            var last = awaitItem()
+            while (last.error == null) last = awaitItem()
+            assertEquals(SignInError.NetworkError, last.error)
+            assertEquals(false, last.isSubmitting)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(0, identity.oauthSignInCalls)
+    }
+
+    @Test
+    fun signInWithApple_offline_saysSo_withoutOpeningTheSheet() = runUnitTest {
+        val apple = FakeAppleSignInCoordinator()
+        val identity = FakeAuthRepository()
+        val vm = buildVm(identity = identity, appleCoordinator = apple, offline = true)
+        vm.takeAction(SignInAction.SignInWithApple)
+
+        vm.stateFlow.test {
+            var last = awaitItem()
+            while (last.error == null) last = awaitItem()
+            assertEquals(SignInError.NetworkError, last.error)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(0, identity.appleSignInCalls)
+    }
+
+    @Test
     fun signInWithOAuth_providerNotEnabled_surfacesError() = runUnitTest {
         val identity = FakeAuthRepository(
             oauthSignInOutcome = SignInOutcome.ProviderNotEnabled,
@@ -350,10 +385,14 @@ class SignInViewModelTest : CoroutineTest() {
         appCache: FakeAppCache = FakeAppCache(),
         appleCoordinator: FakeAppleSignInCoordinator = FakeAppleSignInCoordinator(),
         profile: FakeProfileRepository = FakeProfileRepository(),
+        offline: Boolean = false,
     ): SignInViewModel = SignInViewModel(
         authRepository = identity,
         appCache = appCache,
         appleSignInCoordinator = appleCoordinator,
         authOutcomeClassifier = FakeAuthOutcomeClassifier(profile),
+        connection = object : AppState {
+            override val isOffline: StateFlow<Boolean> = MutableStateFlow(offline)
+        },
     )
 }
