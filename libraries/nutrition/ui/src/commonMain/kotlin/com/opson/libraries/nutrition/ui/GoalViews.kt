@@ -23,6 +23,8 @@ import com.opson.libraries.ui.components.ChevronLink
 import com.opson.libraries.ui.components.button.FlatButton
 import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.components.dialog.Dialog
+import com.opson.libraries.ui.components.dialog.DialogState
+import com.opson.libraries.ui.components.dialog.rememberDialogState
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.icon.Icon
 import com.opson.libraries.ui.components.text.Text
@@ -139,8 +141,14 @@ data class GoalDialogButton(val text: String, val onClick: () -> Unit)
  * Like More's log out: nothing pre-picked, and a tap outside is the same as the last choice.
  */
 @Composable
-fun GoalDialog(title: String, lines: List<String>, buttons: List<GoalDialogButton>, onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
+fun GoalDialog(
+    title: String,
+    lines: List<String>,
+    buttons: List<GoalDialogButton>,
+    onDismiss: () -> Unit,
+    state: DialogState = rememberDialogState(),
+) {
+    Dialog(state = state, onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

@@ -603,6 +603,17 @@ object TargetsStateBuilder {
         )
     }
 
+    /** [recalculation] as its dialog draws it: what changed, in order, and both targets where calories show. */
+    fun recalculated(recalculation: Recalculation, policy: VisibilityPolicy): TargetsDialog.Recalculated {
+        val calories = percentsShown(policy)
+        fun kcal(value: Int?): Display = if (calories && value != null) policy.resolve(Metric.Calories, value.toDouble(), Surface.Settings) else Display.Hidden
+        return TargetsDialog.Recalculated(
+            reasons = recalculation.changes.sortedBy { it.ordinal },
+            old = kcal(recalculation.oldAimKcal),
+            new = kcal(recalculation.newAimKcal),
+        )
+    }
+
     /** The dialog [kind] draws, its amounts through the policy. */
     private fun dialogFor(kind: TargetsDialogKind, settings: Settings, policy: VisibilityPolicy, weightKg: Double?, today: LocalDate?): TargetsDialog {
         val calories = percentsShown(policy)
@@ -610,11 +621,7 @@ object TargetsStateBuilder {
         return when (kind) {
             TargetsDialogKind.ChangeTarget -> TargetsDialog.ChangeTarget
             is TargetsDialogKind.AgainstGoal -> TargetsDialog.AgainstGoal(kind.direction)
-            is TargetsDialogKind.Recalculate -> TargetsDialog.Recalculated(
-                reasons = kind.recalculation.changes.sortedBy { it.ordinal },
-                old = kcal(kind.recalculation.oldAimKcal),
-                new = kcal(kind.recalculation.newAimKcal),
-            )
+            is TargetsDialogKind.Recalculate -> recalculated(kind.recalculation, policy)
             TargetsDialogKind.PaceInfo -> {
                 val limit = today?.let { GoalStatuses.limit(settings, weightKg, it) }
                 TargetsDialog.PaceInfo(

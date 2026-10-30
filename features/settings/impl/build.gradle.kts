@@ -68,6 +68,8 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.health)
             implementation(projects.libraries.goals)
+            // PromptCandidate, for the goal recalculation prompt.
+            implementation(projects.libraries.prompts)
             implementation(projects.libraries.widgets)
             implementation(projects.libraries.progressphotos)
             // PdfWriter, for the provider summary.

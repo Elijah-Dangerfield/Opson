@@ -33,6 +33,8 @@ import com.opson.libraries.ui.components.CoachMarkAnchor
 import com.opson.libraries.ui.components.ChevronLink
 import com.opson.libraries.ui.components.CoachMarkScreen
 import com.opson.libraries.ui.components.button.FlatButton
+import com.opson.libraries.ui.components.dialog.DialogState
+import com.opson.libraries.ui.components.dialog.rememberDialogState
 import com.opson.libraries.ui.components.icon.AppIcons
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
@@ -255,27 +257,12 @@ internal fun TargetsDialogView(dialog: TargetsDialog, onAction: (TargetsAction) 
                 onDismiss = dismiss,
             )
         }
-        is TargetsDialog.Recalculated -> {
-            val old = dialog.old as? Display.Shown
-            val new = dialog.new as? Display.Shown
-            GoalDialog(
-                title = stringResource(Res.string.goal_recalc_title),
-                lines = buildList {
-                    add(stringResource(Res.string.goal_recalc_body))
-                    dialog.reasons.filter { it != BaselineChange.BodyFat || dialog.reasons.size == 1 }.forEach { add(stringResource(it.reason)) }
-                    if (dialog.reasons.isEmpty()) add(stringResource(Res.string.goal_recalc_details))
-                    when {
-                        old != null && new != null -> add(stringResource(Res.string.goal_recalc_numbers, old.text, new.text))
-                        new != null -> add(stringResource(Res.string.goal_recalc_new, new.text))
-                    }
-                },
-                buttons = listOf(
-                    GoalDialogButton(stringResource(Res.string.goal_recalc_accept)) { onAction(TargetsAction.RecalculationAccepted) },
-                    GoalDialogButton(stringResource(Res.string.goal_recalc_keep)) { onAction(TargetsAction.RecalculationKept) },
-                ),
-                onDismiss = dismiss,
-            )
-        }
+        is TargetsDialog.Recalculated -> RecalculatedDialog(
+            dialog = dialog,
+            onAccept = { onAction(TargetsAction.RecalculationAccepted) },
+            onKeep = { onAction(TargetsAction.RecalculationKept) },
+            onDismiss = dismiss,
+        )
         is TargetsDialog.PaceInfo -> PaceInfoDialog(
             limitText = (dialog.limit as? Display.Shown)?.text,
             estimated = dialog.estimated,
@@ -283,6 +270,41 @@ internal fun TargetsDialogView(dialog: TargetsDialog, onAction: (TargetsAction) 
             onDismiss = dismiss,
         )
     }
+}
+
+/**
+ * Something the goal's target is worked out from changed: what, the target now and with the
+ * update, and the choice. On Targets, and from Today as its own dialog ([GoalRecalculationRoute]).
+ */
+@Composable
+internal fun RecalculatedDialog(
+    dialog: TargetsDialog.Recalculated,
+    onAccept: () -> Unit,
+    onKeep: () -> Unit,
+    onDismiss: () -> Unit,
+    state: DialogState = rememberDialogState(),
+) {
+    val old = dialog.old as? Display.Shown
+    val new = dialog.new as? Display.Shown
+    GoalDialog(
+        title = stringResource(Res.string.goal_recalc_title),
+        lines = buildList {
+            add(stringResource(Res.string.goal_recalc_body))
+            // Body fat alone never asks; beside something else it is only noise.
+            dialog.reasons.filter { it != BaselineChange.BodyFat || dialog.reasons.size == 1 }.forEach { add(stringResource(it.reason)) }
+            if (dialog.reasons.isEmpty()) add(stringResource(Res.string.goal_recalc_details))
+            when {
+                old != null && new != null -> add(stringResource(Res.string.goal_recalc_numbers, old.text, new.text))
+                new != null -> add(stringResource(Res.string.goal_recalc_new, new.text))
+            }
+        },
+        buttons = listOf(
+            GoalDialogButton(stringResource(Res.string.goal_recalc_accept), onAccept),
+            GoalDialogButton(stringResource(Res.string.goal_recalc_keep), onKeep),
+        ),
+        onDismiss = onDismiss,
+        state = state,
+    )
 }
 
 private val BaselineChange.reason: StringResource
