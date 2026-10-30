@@ -10,6 +10,8 @@ import com.opson.server.domain.LogEntry
 import com.opson.server.domain.MealFeeling
 import com.opson.server.domain.MealSlot
 import com.opson.server.domain.Nutrients
+import com.opson.server.domain.PublicRecipes
+import com.opson.server.domain.Recipe
 import com.opson.server.domain.SavedMeal
 import com.opson.server.domain.UserSettings
 import com.opson.server.domain.WeighIn
@@ -68,6 +70,13 @@ internal enum class ExportFile(val fileName: String, val header: List<String>) {
         "saved_meals.csv",
         listOf("meal", "usual_meal", "food", "amount", "grams", "kcal", "protein_g", "carbs_g", "fat_g", "fiber_g"),
     ),
+    Recipes(
+        "recipes.csv",
+        listOf(
+            "recipe", "servings", "notes", "shared_code", "ingredient", "amount", "grams", "kcal", "protein_g", "carbs_g",
+            "fat_g", "fiber_g",
+        ),
+    ),
     CheckIns("check_ins.csv", listOf("day", "hunger", "energy", "sleep", "moods")),
     Water("water.csv", listOf("day", "water_ml")),
     DailySummary(
@@ -125,6 +134,7 @@ internal class ExportArchiveWriter(
             is Fast -> row(ExportFile.Fasts, fastCells(row))
             is CustomFood -> row(ExportFile.CustomFoods, customFoodCells(row))
             is SavedMeal -> savedMealRows(row).forEach { row(ExportFile.SavedMeals, it) }
+            is Recipe -> recipeRows(row).forEach { row(ExportFile.Recipes, it) }
             is UserSettings -> settings(row.settingsJson)
         }
     }
@@ -330,6 +340,16 @@ private fun savedMealRows(meal: SavedMeal): List<List<String?>> {
             listOf("kcal", "protein", "carbs", "fat", "fiber").map { number(it).cell() }
     }
     return rows.ifEmpty { listOf(listOf(meal.name, meal.usualSlot?.wire)) }
+}
+
+/** One row per ingredient, the recipe's own cells on each; a recipe with none still gets its row. */
+private fun recipeRows(recipe: Recipe): List<List<String?>> {
+    val head = listOf(recipe.name, recipe.servings.cell(), recipe.notes, recipe.sharing?.code)
+    val rows = PublicRecipes.items(recipe.itemsJson).map { item ->
+        head + listOf(item.name, item.amountText, item.grams.cell()) +
+            listOf(item.kcal, item.protein, item.carbs, item.fat, item.fiber).map { it.cell() }
+    }
+    return rows.ifEmpty { listOf(head) }
 }
 
 /** The check-in is the client's JSON (`CheckInWire`); one that does not parse leaves the day with blank cells, not a guess. */

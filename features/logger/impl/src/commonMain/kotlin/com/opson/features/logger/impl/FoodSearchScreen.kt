@@ -39,6 +39,11 @@ import com.opson.libraries.diary.ui.FoodRowsCard
 import com.opson.libraries.diary.ui.SectionLabel
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.diary.ui.sentenceName
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.ui.NutrientText
+import opson.libraries.resources.generated.resources.recipes_search_public
+import opson.libraries.resources.generated.resources.recipes_search_section
+import opson.libraries.resources.generated.resources.recipes_search_yours
 import com.opson.libraries.ui.bounceClick
 import com.opson.libraries.ui.components.DelayedLoadingIndicator
 import com.opson.libraries.ui.components.HorizontalDivider
@@ -265,11 +270,13 @@ private fun LazyListScope.body(state: FoodSearchState, away: (SearchAction) -> U
         }
         is SearchBody.NoResults -> {
             if (body.offline) block(key = "offline") { Caption(stringResource(Res.string.logger_offline_results)) }
+            recipes(state.recipes, away)
             block(key = "no-results") { NoResults(state, body.query, away, onAction) }
         }
         is SearchBody.Results -> {
             if (body.offline) block(key = "offline") { Caption(stringResource(Res.string.logger_offline_results)) }
             foodRows("results", body.rows, away, onAction)
+            recipes(state.recipes, away)
             block(key = "not-finding") { NotFinding(state, away, onAction) }
             // Open Food Facts' licence asks for this wherever its foods appear; each of its rows names it too.
             if (body.openFoodFacts) block(key = "off-credit") { Caption(stringResource(Res.string.search_off_credit)) }
@@ -310,6 +317,54 @@ private fun LazyListScope.body(state: FoodSearchState, away: (SearchAction) -> U
                 foodRows("recent", body.recent, away, onAction)
             }
         }
+    }
+}
+
+/**
+ * Recipes (`release.recipes`) in a card of their own under the foods, so food ranking never moves
+ * them: the person's own first, each saying whose it is, a shared one marked "Public recipe".
+ */
+private fun LazyListScope.recipes(rows: List<RecipeSearchRow>, away: (SearchAction) -> Unit) {
+    if (rows.isEmpty()) return
+    block(key = "recipes-label") { SectionLabel(stringResource(Res.string.recipes_search_section)) }
+    block(key = "recipes") {
+        FoodRowsCard {
+            rows.forEachIndexed { index, row ->
+                if (index > 0) HorizontalDivider(color = AppTheme.colors.line)
+                RecipeRow(row, onOpen = { away(SearchAction.RecipeTapped(row)) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecipeRow(row: RecipeSearchRow, onOpen: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { role = Role.Button }
+            .bounceClick(scaleDown = 0.98f, onClick = onOpen)
+            .defaultMinSize(minHeight = AppTheme.spacing.touchTarget)
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(text = row.name, typography = AppTheme.type.bodyBold, color = AppTheme.colors.ink, maxLines = 2)
+            Text(
+                text = stringResource(if (row.mine) Res.string.recipes_search_yours else Res.string.recipes_search_public),
+                typography = AppTheme.type.secondarySmall,
+                color = AppTheme.colors.muted,
+            )
+        }
+        NutrientText(
+            metric = Metric.Calories,
+            display = row.calories,
+            typography = AppTheme.type.secondary.Tabular,
+            color = AppTheme.colors.muted,
+            maxLines = 1,
+        )
+        Icon(icon = AppIcons.ChevronRight, size = IconSize.Medium, color = AppTheme.colors.muted)
     }
 }
 

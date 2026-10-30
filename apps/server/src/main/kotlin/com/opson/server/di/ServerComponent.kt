@@ -121,6 +121,10 @@ abstract class ServerComponent(
     abstract val foodReportLimiter: FoodReportLimiter
     abstract val correctionAuthority: CorrectionAuthority
 
+    // Recipes people share (V35).
+    abstract val publicRecipeRepository: com.opson.server.domain.PublicRecipeRepository
+    abstract val recipeLimiter: com.opson.server.domain.RecipeLimiter
+
     /** The Builder program: membership, trust, routing and checks against the pack. See builder-program.md. */
     abstract val builderRepository: com.opson.server.domain.BuilderRepository
     abstract val builderService: com.opson.server.domain.BuilderService

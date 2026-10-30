@@ -8,6 +8,7 @@ import com.opson.server.db.FastsTable
 import com.opson.server.db.FoodsTable
 import com.opson.server.db.LogEntriesTable
 import com.opson.server.db.MealFeelingsTable
+import com.opson.server.db.RecipesTable
 import com.opson.server.db.SavedMealsTable
 import com.opson.server.db.SyncedTable
 import com.opson.server.db.UserSettingsTable
@@ -24,6 +25,7 @@ import com.opson.server.domain.Exercise
 import com.opson.server.domain.Fast
 import com.opson.server.domain.LogEntry
 import com.opson.server.domain.MealFeeling
+import com.opson.server.domain.Recipe
 import com.opson.server.domain.SavedMeal
 import com.opson.server.domain.SyncMutation
 import com.opson.server.domain.SyncRepository
@@ -96,6 +98,7 @@ class PostgresSyncRepository(
         pullFasts: Boolean,
         pullExercises: Boolean,
         clientKnowsCheckIn: Boolean,
+        pullRecipes: Boolean,
     ): SyncResult =
         database.readCommittedTransaction {
             lockUser(userId)
@@ -122,17 +125,8 @@ class PostgresSyncRepository(
             }
             bumpPopularity(picks)
 
-            pull(userId, cursor, mutations.map { it.outboxId }, pullFasts, pullExercises)
+            pull(userId, cursor, mutations.map { it.outboxId }, pullFasts, pullExercises, pullRecipes)
         }
-
-    private fun lockUser(userId: UserId) {
-        val key = userId.value.mostSignificantBits xor userId.value.leastSignificantBits
-        TransactionManager.current().exec(
-            stmt = "SELECT pg_advisory_xact_lock(?)",
-            args = listOf(LongColumnType() to key),
-            explicitStatementType = StatementType.SELECT,
-        ) { }
-    }
 
     private fun knownFoodIds(ids: Set<UUID>): Set<UUID> =
         if (ids.isEmpty()) {
@@ -308,6 +302,8 @@ class PostgresSyncRepository(
                 it[deleted] = row.deleted
             }
 
+            is Recipe -> upsertRecipe(userId, row)
+
             is Exercise -> ExercisesTable.upsert(
                 ExercisesTable.id,
                 where = { ExercisesTable.newerThanStored(userId, row) },
@@ -368,10 +364,17 @@ class PostgresSyncRepository(
      * entities already returned beyond that point come back on the next call,
      * which is harmless: the client replaces a row with itself.
      *
-     * Fasts are paged only when [pullFasts], exercises only when [pullExercises]. A 0.1 client
-     * never asks, so it neither sees them nor has its cursor held back by them.
+     * Fasts are paged only when [pullFasts], exercises only when [pullExercises], recipes only when
+     * [pullRecipes]. A client that does not ask neither sees them nor has its cursor held back by them.
      */
-    private fun pull(userId: UserId, cursor: Long, applied: List<String>, pullFasts: Boolean, pullExercises: Boolean): SyncResult {
+    private fun pull(
+        userId: UserId,
+        cursor: Long,
+        applied: List<String>,
+        pullFasts: Boolean,
+        pullExercises: Boolean,
+        pullRecipes: Boolean,
+    ): SyncResult {
         val limit = DiaryRules.PAGE_SIZE
         val entries = page(LogEntriesTable, userId, cursor, limit) { it.toLogEntry() }
         val days = page(DayRecordsTable, userId, cursor, limit) { it.toDayRecord() }
@@ -382,8 +385,9 @@ class PostgresSyncRepository(
         val settings = page(UserSettingsTable, userId, cursor, 1) { it.toUserSettings() }
         val fasts = if (pullFasts) page(FastsTable, userId, cursor, limit) { it.toFast() } else null
         val exercises = if (pullExercises) page(ExercisesTable, userId, cursor, limit) { it.toExercise() } else null
+        val recipes = if (pullRecipes) page(RecipesTable, userId, cursor, limit) { it.toRecipe() } else null
 
-        val pages = listOfNotNull(entries, days, feelings, weighIns, customFoods, savedMeals, settings, fasts, exercises)
+        val pages = listOfNotNull(entries, days, feelings, weighIns, customFoods, savedMeals, settings, fasts, exercises, recipes)
         val truncated = pages.filter { it.truncated }
         val nextCursor = if (truncated.isNotEmpty()) {
             truncated.minOf { it.lastSeq ?: cursor }
@@ -402,6 +406,7 @@ class PostgresSyncRepository(
                 settings = settings.rows.firstOrNull(),
                 fasts = fasts?.rows,
                 exercises = exercises?.rows,
+                recipes = recipes?.rows,
             ),
             cursor = nextCursor,
             hasMore = truncated.isNotEmpty(),
@@ -413,6 +418,44 @@ class PostgresSyncRepository(
         val MICROS_SERIALIZER = MapSerializer(String.serializer(), Double.serializer())
         val SIZES_SERIALIZER = ListSerializer(SizeJson.serializer())
         val SLOT_FLAGS_SERIALIZER = MapSerializer(String.serializer(), Boolean.serializer())
+    }
+}
+
+/**
+ * The per-user lock every diary write holds, so a pull by cursor can never skip a row another
+ * request committed late. The publish route takes it too, since it writes a recipe row.
+ */
+internal fun lockUser(userId: UserId) {
+    val key = userId.value.mostSignificantBits xor userId.value.leastSignificantBits
+    TransactionManager.current().exec(
+        stmt = "SELECT pg_advisory_xact_lock(?)",
+        args = listOf(LongColumnType() to key),
+        explicitStatementType = StatementType.SELECT,
+    ) { }
+}
+
+/**
+ * A recipe row, last write wins, scoped to its owner: the same guard as every synced row. Only the
+ * columns a client owns are written; the sharing columns are left as they are.
+ */
+internal fun upsertRecipe(userId: UserId, row: Recipe) {
+    RecipesTable.upsert(
+        RecipesTable.id,
+        where = {
+            with(SqlExpressionBuilder) {
+                (RecipesTable.userId eq userId.value) and (RecipesTable.clientUpdatedAt less row.clientUpdatedAt.toJavaInstant())
+            }
+        },
+    ) {
+        it[id] = row.id
+        it[this.userId] = userId.value
+        it[name] = row.name
+        it[servings] = row.servings.toFloat()
+        it[items] = row.itemsJson
+        it[notes] = row.notes
+        it[savedFrom] = row.savedFrom
+        it[clientUpdatedAt] = row.clientUpdatedAt.toJavaInstant()
+        it[deleted] = row.deleted
     }
 }
 

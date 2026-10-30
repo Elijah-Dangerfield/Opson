@@ -259,6 +259,11 @@ exercises (id uuid pk, user_id, day date,     -- V24, release.exercise; docs/res
   kcal int check (0 to 5000), kcal_typed bool, not_on_watch bool)
   -- kcal is what the entry counts in Burned, worked out or typed on the device and stored as saved.
 
+recipes (id uuid pk, user_id, name, servings real, items jsonb, notes null,   -- V35, release.recipes; docs/plans/recipes.md
+  saved_from null, public_code unique null, public_state, public_show_name, published_at null, save_count)
+  -- items are LogDraft snapshots for the whole batch. The public_* columns are the server's: sync never writes them.
+recipe_reports (id uuid pk, recipe_id, user_id, reason, note null, status)    -- V35, reports on a shared recipe
+
 food_search_events (id bigserial, at timestamptz, query_norm text, result_count int, picked boolean)
   -- no user_id on purpose: it answers "which foods are we missing", not "what did this person search"
 
@@ -267,7 +272,7 @@ barcode_misses (id uuid pk, created_at, barcode, gtin null, country null, platfo
 ```
 
 The migrations are `V7__food_catalog.sql`, `V8__diary.sql`,
-`V9__analytics.sql` and `V10__food_tiers.sql`; 0.2 adds `V13__barcode_misses.sql` and `V14__fasts.sql`, then `V24__exercises.sql`. Columns a row cannot exist without (ids, `day`, `slot`,
+`V9__analytics.sql` and `V10__food_tiers.sql`; 0.2 adds `V13__barcode_misses.sql` and `V14__fasts.sql`, then `V24__exercises.sql` and `V35__recipes.sql`. Columns a row cannot exist without (ids, `day`, `slot`,
 `name`, `precision`, `method`, `logged_at`, `measured_at`, `kg`, serving
 amount and unit) are `not null`; everything else is nullable as written.
 `food_id` is `on delete set null` so removing a catalog food never deletes a
@@ -315,7 +320,7 @@ inventory pattern.
 POST /v1/sync
 { "cursor": 1234,
   "mutations": [ { "id": "<outbox uuid>", "entity": "log_entry", "row": { ...full row... } }, ... ],
-  "accepts": ["fast", "exercise"] }               -- 0.2 clients; 0.1 clients leave it out
+  "accepts": ["fast", "exercise", "recipe"] }     -- 0.2 clients; 0.1 clients leave it out
 
 200
 { "applied":  ["<outbox uuid>", ...],
@@ -323,7 +328,8 @@ POST /v1/sync
   "changes":  { "logEntries": [...], "dayRecords": [...], "mealFeelings": [...],
                 "weighIns": [...], "customFoods": [...], "savedMeals": [...], "settings": {...} | null,
                 "fasts": [...],                   -- only when the request accepts "fast"
-                "exercises": [...] },             -- only when the request accepts "exercise"
+                "exercises": [...],               -- only when the request accepts "exercise"
+                "recipes": [...] },               -- only when the request accepts "recipe"
   "cursor": 1301, "hasMore": false }
 ```
 
@@ -331,7 +337,7 @@ JSON is camelCase like the rest of the API, times are epoch milliseconds
 (`clientUpdatedAtEpochMs`, `loggedAtEpochMs`, `measuredAtEpochMs`,
 `closedAtEpochMs`, `changedAtEpochMs`) and days are ISO dates. `entity` is one
 of `log_entry`, `day_record`, `meal_feeling`, `weigh_in`, `custom_food`,
-`saved_meal`, `settings`, and from 0.2 `fast` (keyed by `day`) and `exercise`.
+`saved_meal`, `settings`, and from 0.2 `fast` (keyed by `day`), `exercise` and `recipe`.
 `accepts` lists the entities past the 0.1 set that a client reads from
 `changes`; the server leaves the others out, so a 0.1 client gets the 0.1
 response byte for byte. Row shapes are the `*RowDto` classes in

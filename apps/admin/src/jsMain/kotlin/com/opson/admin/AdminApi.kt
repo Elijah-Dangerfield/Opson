@@ -724,6 +724,27 @@ class AdminApi(
     suspend fun revertFoodCorrection(id: String): FoodCorrectionDto =
         client.post("$base/v1/admin/food-corrections/${encode(id)}/revert") { auth() }.require()
 
+    // ---- shared recipes (V35) ----
+
+    suspend fun listRecipes(filter: String, limit: Int = 50): AdminRecipeListDto =
+        client.get("$base/v1/admin/recipes?filter=${encode(filter)}&limit=$limit") { auth() }.require()
+
+    suspend fun recipe(id: String): AdminRecipeDetailDto =
+        client.get("$base/v1/admin/recipes/${encode(id)}") { auth() }.require()
+
+    suspend fun removeRecipe(id: String, reason: String): RecipeModerationDto =
+        client.post("$base/v1/admin/recipes/${encode(id)}/remove") {
+            auth()
+            contentType(ContentType.Application.Json)
+            setBody(RemoveRecipeDto(reason))
+        }.require()
+
+    suspend fun restoreRecipe(id: String): RecipeModerationDto =
+        client.post("$base/v1/admin/recipes/${encode(id)}/restore") { auth() }.require()
+
+    suspend fun dismissRecipeReports(id: String): RecipeModerationDto =
+        client.post("$base/v1/admin/recipes/${encode(id)}/dismiss-reports") { auth() }.require()
+
     private fun io.ktor.client.request.HttpRequestBuilder.auth() {
         header("X-Admin-Token", token)
         header("X-Admin-Actor", actor)

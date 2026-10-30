@@ -3,6 +3,7 @@ package com.opson.libraries.diary.impl
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.diary.DiarySync
+import com.opson.libraries.diary.RecipeShareState
 import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.SyncRejection
 import com.opson.libraries.diary.db.OutboxEntity
@@ -13,6 +14,7 @@ import com.opson.libraries.diary.impl.wire.ExerciseRowDto
 import com.opson.libraries.diary.impl.wire.FastRowDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
 import com.opson.libraries.diary.impl.wire.MealFeelingRowDto
+import com.opson.libraries.diary.impl.wire.RecipeRowDto
 import com.opson.libraries.diary.impl.wire.SYNC_ACCEPTS
 import com.opson.libraries.diary.impl.wire.SavedMealRowDto
 import com.opson.libraries.diary.impl.wire.SyncChangesDto
@@ -433,6 +435,21 @@ class DiarySyncer(
             exercises.filter { it.id !in waiting }.map { it.toEntity() }
                 .takeIf { it.isNotEmpty() }?.let { tables.exercises.upsert(it) }
         }
+        val recipes = changes.recipes.orEmpty()
+        if (recipes.isNotEmpty()) {
+            // A recipe with an edit waiting keeps the edit, but still takes the server's sharing:
+            // that is the server's to say, and the edit going up never changes it.
+            val waiting = pending(SyncEntity.Recipe)
+            val (kept, pulled) = recipes.partition { it.id in waiting }
+            pulled.map { it.toEntity() }.takeIf { it.isNotEmpty() }?.let { tables.recipes.upsert(it) }
+            kept.mapNotNull { row ->
+                tables.recipes.get(row.id)?.copy(
+                    publicCode = row.publicCode,
+                    publicState = row.publicState ?: RecipeShareState.Private.wire,
+                    publicShowName = row.publicShowName ?: false,
+                )
+            }.takeIf { it.isNotEmpty() }?.let { tables.recipes.upsert(it) }
+        }
     }
 
     /** Puts a refused row back as it was before the change, or removes it if it was new. */
@@ -473,6 +490,10 @@ class DiarySyncer(
                 SyncEntity.Exercise ->
                     if (base == null) tables.exercises.delete(row.entityId)
                     else tables.exercises.upsert(listOf(decode(ExerciseRowDto.serializer(), base).toEntity()))
+
+                SyncEntity.Recipe ->
+                    if (base == null) tables.recipes.delete(row.entityId)
+                    else tables.recipes.upsert(listOf(decode(RecipeRowDto.serializer(), base).toEntity()))
 
                 SyncEntity.Settings -> Unit
             }

@@ -1,0 +1,4 @@
+# Cloudflare Pages rewrites (https://developers.cloudflare.com/pages/configuration/redirects/).
+# A shared recipe's link, /r/<code>, is served by the one recipe page, which reads the code
+# from the address. 200 keeps the address as it was.
+/r/*  /recipe/  200

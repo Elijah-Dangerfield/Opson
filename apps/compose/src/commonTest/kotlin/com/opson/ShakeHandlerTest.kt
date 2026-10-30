@@ -141,4 +141,5 @@ private class RecordingRouter : Router {
     override fun batch(block: RouterBatch.() -> Unit) = Unit
     override fun openWebLink(url: String) = Unit
     override fun shareFile(name: String, mimeType: String, bytes: ByteArray) = Unit
+    override fun shareText(text: String) = Unit
 }

@@ -213,6 +213,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `foods-unverified` | foods | 2026-10-28; a food of theirs waiting for review, "Unverified" under it | yes |
 | new | | `foods-repeating` | foods | 2026-10-29, `release.repeats`; the Repeating card, each repeat with its foods' calories | yes |
 | new | | `foods-repeat`, `foods-repeat-edit` | foods | 2026-10-29, `release.repeats`; a new repeat and a saved, paused one, each food with its calories | yes |
+| new | | `foods-recipes`, `recipe-edit`, `recipe`, `recipe-public`, `recipe-log` | foods | 2026-10-30, `release.recipes`; the Recipes card, a recipe made and edited, someone's shared recipe and Log a serving, each with one serving's calories | yes |
 | new | | `food-report-values` | logger | 2026-10-29, `release.foodReports`; Report a problem with the right numbers typed in. Calories and macros are asked only where the mode shows them; elsewhere just the serving | yes |
 | new | | `submit-food-review` | logger | 0.2, `release.submitFood`; the label as read, editable, with the energy check. Numbers and checks only where the mode shows calories; elsewhere a sentence says whether they add up | yes |
 | new | | `exercise-sheet` | logger | `release.exercise`; the estimate is energy out | yes |

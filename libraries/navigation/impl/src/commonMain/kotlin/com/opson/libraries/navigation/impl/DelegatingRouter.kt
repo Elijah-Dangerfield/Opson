@@ -26,6 +26,7 @@ import com.opson.libraries.navigation.reselectTab
 import com.opson.libraries.navigation.switchTab
 import com.opson.libraries.navigation.WebLinkLauncher
 import com.opson.libraries.navigation.FileShareLauncher
+import com.opson.libraries.navigation.TextShareLauncher
 import com.opson.libraries.navigation.NavigableWhileBlocked
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -52,6 +53,7 @@ class DelegatingRouter(
     private val appScope: AppCoroutineScope,
     private val webLinkLauncher: WebLinkLauncher,
     private val fileShareLauncher: FileShareLauncher,
+    private val textShareLauncher: TextShareLauncher = TextShareLauncher.None,
 ) : Router, NavigationRecovery {
 
     private val logger = KLog.withTag("DelegatingRouter")
@@ -237,6 +239,11 @@ class DelegatingRouter(
             .share(name, mimeType, bytes)
             .logOnFailure("Failed to share file: $name ($mimeType)")
             .throwIfDebug()
+    }
+
+    override fun shareText(text: String) {
+        // Never the text: it can be a link to something the person made.
+        textShareLauncher.share(text).logOnFailure("Failed to share text").throwIfDebug()
     }
 
     @Composable

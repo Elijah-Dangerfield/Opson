@@ -203,6 +203,30 @@ interface FastDao : ClearableDao {
 }
 
 @Dao
+interface RecipeDao : ClearableDao {
+    @Upsert
+    suspend fun upsert(rows: List<RecipeEntity>)
+
+    @Query("SELECT * FROM recipes WHERE id = :id")
+    suspend fun get(id: String): RecipeEntity?
+
+    @Query("SELECT * FROM recipes WHERE id = :id AND deleted = 0")
+    fun observe(id: String): Flow<RecipeEntity?>
+
+    @Query("SELECT * FROM recipes WHERE publicCode = :code AND deleted = 0 LIMIT 1")
+    suspend fun byPublicCode(code: String): RecipeEntity?
+
+    @Query("SELECT * FROM recipes WHERE deleted = 0 ORDER BY name COLLATE NOCASE, id")
+    fun observeAll(): Flow<List<RecipeEntity>>
+
+    @Query("DELETE FROM recipes WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("DELETE FROM recipes")
+    override suspend fun deleteAll()
+}
+
+@Dao
 interface ExerciseDao : ClearableDao {
     @Upsert
     suspend fun upsert(rows: List<ExerciseEntity>)

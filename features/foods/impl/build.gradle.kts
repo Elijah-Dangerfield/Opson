@@ -22,6 +22,9 @@ kotlin {
             implementation(projects.libraries.foods)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
+            // Recipes: the share sheet's display name, and the scanner that reads a recipe's QR code.
+            implementation(projects.libraries.identity)
+            implementation(projects.libraries.scanner)
 
             implementation(libs.kotlinx.datetime)
 
@@ -35,6 +38,8 @@ kotlin {
 
         commonTest.dependencies {
             implementation(projects.libraries.flowroutines.testing)
+            implementation(projects.libraries.identity)
+            implementation(projects.libraries.scanner)
             // FoodsEvent.OpenLogger carries a Route.
             implementation(projects.libraries.navigation)
             implementation(projects.features.foods)

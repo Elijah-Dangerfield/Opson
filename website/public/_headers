@@ -1,0 +1,8 @@
+# Cloudflare Pages: headers by path (https://developers.cloudflare.com/pages/configuration/headers/).
+
+# Apple fetches this with no extension to go by; it has to say it is JSON.
+/.well-known/apple-app-site-association
+  Content-Type: application/json
+
+/.well-known/assetlinks.json
+  Content-Type: application/json

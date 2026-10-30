@@ -38,6 +38,7 @@ class DatabaseSchemaTest : DatabaseTest() {
                 AppConfigManifestTable, UserRolesTable, EntitlementGrantsTable, AccessAuditTable,
                 FoodReportsTable, FoodReportPhotosTable, FoodCorrectionsTable,
                 BuilderMembersTable, FoodVerificationsTable, FoodProvenanceTable,
+                RecipesTable, RecipeReportsTable,
             ).forEach { table -> table.selectAll().limit(1).toList() }
         }
     }
@@ -56,7 +57,7 @@ class DatabaseSchemaTest : DatabaseTest() {
     @Test
     fun everySyncedTableHasTheCursorTrigger() {
         val triggers = strings("SELECT tgname FROM pg_trigger WHERE NOT tgisinternal")
-        listOf("log_entries", "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts", "exercises")
+        listOf("log_entries", "day_records", "meal_feelings", "weigh_ins", "custom_foods", "saved_meals", "user_settings", "fasts", "exercises", "recipes")
             .forEach { assertTrue("${it}_bump_server_seq" in triggers, "no cursor trigger on $it") }
     }
 
@@ -182,6 +183,36 @@ class DatabaseSchemaTest : DatabaseTest() {
         assertEquals(listOf("1"), strings("SELECT count(*)::text FROM exercises WHERE user_id = '$user'"))
         database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$user'") }
         assertEquals(listOf("0"), strings("SELECT count(*)::text FROM exercises WHERE user_id = '$user'"))
+    }
+
+    /**
+     * V35 is additive and safe to run twice. Deleting an account deletes its recipes and the reports
+     * it made; a recipe's reports go with the recipe. Codes are eight of the readable characters.
+     */
+    @Test
+    fun recipesMigrationIsIdempotentAndCascadesFromTheUser() {
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V35__recipes.sql")).readText()
+        database.blockingTransaction { exec(migration) }
+
+        val owner = seedAuthUser().value
+        val reporter = seedAuthUser().value
+        val recipe = java.util.UUID.randomUUID()
+        database.blockingTransaction {
+            exec(
+                "INSERT INTO recipes (id, user_id, name, servings, client_updated_at, public_code, public_state) " +
+                    "VALUES ('$recipe', '$owner', 'Chili', 6, now(), 'abcd2345', 'live')",
+            )
+            exec("INSERT INTO recipe_reports (id, recipe_id, user_id, reason) VALUES (gen_random_uuid(), '$recipe', '$reporter', 'spam')")
+        }
+        assertFailsWith<Exception> {
+            database.blockingTransaction {
+                exec("INSERT INTO recipes (id, user_id, name, servings, client_updated_at, public_code) VALUES (gen_random_uuid(), '$owner', 'x', 1, now(), 'ABCD2345')")
+            }
+        }
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$reporter'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM recipe_reports WHERE recipe_id = '$recipe'"))
+        database.blockingTransaction { exec("DELETE FROM auth.users WHERE id = '$owner'") }
+        assertEquals(listOf("0"), strings("SELECT count(*)::text FROM recipes WHERE user_id = '$owner'"))
     }
 
     /**
@@ -659,6 +690,8 @@ class DatabaseSchemaTest : DatabaseTest() {
             "food_energy_by_source", "food_energy_worst",
             // V34, the Database cleanup row.
             "food_verification_queue", "food_verifications_daily", "food_review_decisions_daily",
+            // V35, recipes and sharing them.
+            "recipes_daily", "recipe_sharing",
         )
         val SUPPORT_VIEWS = listOf(
             "users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings",

@@ -3,8 +3,9 @@
 //  iosApp
 //
 //  Presents the system share sheet for a file Kotlin has already written
-//  (Router.shareFile). Kotlin keeps the bytes and hands over a path, so
-//  nothing here touches KotlinByteArray.
+//  (Router.shareFile), or for a line of text such as a link (Router.shareText).
+//  Kotlin keeps the bytes and hands over a path, so nothing here touches
+//  KotlinByteArray.
 //
 import ComposeApp
 import UIKit
@@ -12,10 +13,22 @@ import UIKit
 class IOSFileSharePresenter: FileSharePresenter {
 
     func present(filePath: String) {
-        let url = URL(fileURLWithPath: filePath)
+        show(items: [URL(fileURLWithPath: filePath)])
+    }
+
+    /// A link goes as a URL, so Messages and Mail show it as one; other text as it is.
+    func presentText(text: String) {
+        if let url = URL(string: text), url.scheme == "https" || url.scheme == "http" {
+            show(items: [url])
+        } else {
+            show(items: [text])
+        }
+    }
+
+    private func show(items: [Any]) {
         DispatchQueue.main.async {
             guard let presenter = Self.topViewController() else { return }
-            let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+            let sheet = UIActivityViewController(activityItems: items, applicationActivities: nil)
             // iPad shows the sheet as a popover, which needs an anchor or UIKit raises.
             if let popover = sheet.popoverPresentationController {
                 popover.sourceView = presenter.view

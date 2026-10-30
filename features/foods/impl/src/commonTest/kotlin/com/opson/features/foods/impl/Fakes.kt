@@ -77,8 +77,17 @@ class FakeDiaryRepository(days: List<Day> = emptyList()) : DiaryRepository {
 
     override fun observeLoggedDates(year: Int, month: Int): Flow<Set<LocalDate>> = flowOf(emptySet())
 
-    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>> =
-        error("Foods never logs")
+    /** What a recipe's Log a serving wrote: the day, the meal, the items and how. */
+    val added = mutableListOf<Triple<LocalDate, MealSlot, List<LogDraft>>>()
+    val addedMethods = mutableListOf<LogMethod>()
+    var closedDays: Set<LocalDate> = emptySet()
+
+    override suspend fun addItems(day: LocalDate, slot: MealSlot, items: List<LogDraft>, method: LogMethod): DayWrite<List<LogItem>> {
+        if (day in closedDays) return DayWrite.DayClosed(day)
+        added += Triple(day, slot, items)
+        addedMethods += method
+        return DayWrite.Written(emptyList())
+    }
 
     override suspend fun updateItem(item: LogItem): DayWrite<Unit> {
         updated += item

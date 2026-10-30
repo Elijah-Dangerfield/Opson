@@ -6,6 +6,32 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-30: A recipe is its own synced row; sharing is the server's state on it, asked for and online
+
+**Decision:** recipes (`release.recipes`) are a new diary entity, `recipe`
+(Room 14, server V35), not an extension of saved meals: ingredients for the
+whole batch, how many servings it makes and notes, logged one serving at a
+time as a single entry. Sharing lives on the same server row in columns sync
+never writes (`public_code`, `public_state`, `public_show_name`), set by an
+online publish route after a consent sheet that lists exactly what becomes
+public; the public copy is the live row, so later edits show there. Its
+numbers are worked out by the server from the catalog for every catalog
+ingredient with a weight, and it is always labelled as made by a person and not
+checked by Opson. The QR code is drawn by a small encoder in `:libraries:ui`.
+Universal links ship in the debug entitlements only.
+
+**Alternatives:** extending saved meals with servings (builds that don't know
+about servings would log the whole pot from a recipe someone made on a newer
+phone; a meal and a recipe log differently); a separate public snapshot table
+updated on demand (two copies to keep in step, and a stale public copy after an
+edit); publishing through the outbox (something goes public later without the
+person watching); trusting the creator's totals (anyone could publish 10 kcal
+butter); a QR library dependency (none was in the build, and the encoder is a
+few hundred lines checked against a real reader); the Associated Domains
+entitlement in release now (the App Store export signs with a profile that must
+include the capability, so a release would fail until the owner enables it on
+the App ID). Details: `docs/plans/recipes.md`.
+
 ## 2026-10-30: Recaps count only logged days, and optional things offer a way out five times
 
 **Decision:** a weekly or monthly recap (`release.recaps`) adds up only the days

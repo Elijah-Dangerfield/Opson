@@ -121,6 +121,26 @@ data class SavedMealEntity(
 )
 
 /**
+ * A recipe. Schema 14. [itemsJson] is the ingredients as `LogDraft` JSON, sent to the server
+ * as-is, like a saved meal's. The `public*` columns are the server's sharing state: pulled, never
+ * pushed (the server ignores them).
+ */
+@Entity(tableName = "recipes")
+data class RecipeEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val servings: Double,
+    val itemsJson: String,
+    val notes: String?,
+    val savedFrom: String?,
+    val publicCode: String?,
+    val publicState: String,
+    val publicShowName: Boolean,
+    val clientUpdatedAtEpochMs: Long,
+    val deleted: Boolean,
+)
+
+/**
  * One fast, keyed by the local day it began (one per evening). Schema 8.
  * [goalHours] is at most 16; the end a fast reaches on its own is derived from
  * it, never stored.

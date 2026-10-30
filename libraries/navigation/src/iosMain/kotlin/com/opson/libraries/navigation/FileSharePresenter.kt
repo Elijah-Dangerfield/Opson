@@ -18,4 +18,7 @@ import kotlin.native.ObjCName
 interface FileSharePresenter {
     /** [filePath] is an absolute path in the app's temporary directory. */
     fun present(filePath: String)
+
+    /** The share sheet for [text], a link or a line to send. */
+    fun presentText(text: String)
 }

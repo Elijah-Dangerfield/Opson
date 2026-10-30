@@ -149,10 +149,12 @@ object FoodsFixtures {
         withRepeats: Boolean = true,
         favorites: Boolean = false,
         builder: Boolean = false,
+        recipesOn: Boolean = false,
     ): FoodsInputs {
         val rules = if (!repeatsOn) null else if (withRepeats && !empty) repeats else emptyList()
+        val recipes = if (!recipesOn) null else if (empty) emptyList() else RecipeFixtures.recipes()
         return if (empty) {
-            FoodsInputs(customFoods = emptyList(), savedMeals = emptyList(), recent = emptyList(), repeats = rules, verifyOn = builder)
+            FoodsInputs(customFoods = emptyList(), savedMeals = emptyList(), recent = emptyList(), repeats = rules, verifyOn = builder, recipes = recipes)
         } else {
             FoodsInputs(
                 customFoods = listOf(pandesal),
@@ -164,6 +166,7 @@ object FoodsFixtures {
                 catalog = mapOf(starredYogurt.id to starredYogurt, riceFood.id to riceFood),
                 history = recent,
                 verifyOn = builder,
+                recipes = recipes,
             )
         }
     }
@@ -179,7 +182,8 @@ object FoodsFixtures {
         withRepeats: Boolean = true,
         favorites: Boolean = false,
         builder: Boolean = false,
-    ): FoodsState = FoodsStateBuilder.build(foodsInputs(withRecent, empty, inReview, repeatsOn, withRepeats, favorites, builder), policy)
+        recipesOn: Boolean = false,
+    ): FoodsState = FoodsStateBuilder.build(foodsInputs(withRecent, empty, inReview, repeatsOn, withRepeats, favorites, builder, recipesOn), policy)
 
     /** A new repeat of the usual breakfast on weekdays, from today; [empty] is the form as it opens. */
     fun repeatDraft(empty: Boolean = false): RepeatDraft = if (empty) {

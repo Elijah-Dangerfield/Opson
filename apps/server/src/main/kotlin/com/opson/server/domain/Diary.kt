@@ -207,6 +207,25 @@ data class Exercise(
     override val deleted: Boolean,
 ) : DiaryRow
 
+/**
+ * A recipe (`release.recipes`, V35): ingredients for the whole batch as the client's snapshots
+ * ([itemsJson], opaque here apart from [itemCount]), how many [servings] it makes, and optional
+ * [notes]. [sharing] is the server's own state: filled on the way out, never read from a client.
+ */
+data class Recipe(
+    val id: UUID,
+    val name: String,
+    val servings: Double,
+    val itemsJson: String,
+    val itemCount: Int,
+    val notes: String?,
+    override val clientUpdatedAt: Instant,
+    override val deleted: Boolean,
+    /** The share code of someone else's recipe this one was saved from. */
+    val savedFrom: String? = null,
+    val sharing: RecipeSharing? = null,
+) : DiaryRow
+
 /** One outbox row from the client: its outbox id (echoed back) and the full row. */
 data class SyncMutation(val outboxId: String, val row: DiaryRow)
 
@@ -223,6 +242,8 @@ data class DiaryChanges(
     val fasts: List<Fast>? = null,
     /** Null when the request did not accept exercise. */
     val exercises: List<Exercise>? = null,
+    /** Null when the request did not accept recipes. */
+    val recipes: List<Recipe>? = null,
 )
 
 /**
@@ -243,8 +264,8 @@ data class SyncResult(
  * its client key when [DiaryRow.clientUpdatedAt] is strictly newer than the
  * stored copy (last write wins, so a replay is a no-op), scope every read and
  * write to [userId], then return rows past [cursor] capped at
- * [DiaryRules.PAGE_SIZE] per entity. Fasts come back only when [pullFasts], and exercises only
- * when [pullExercises]: entities added after 0.1 are left out for a client that did not ask for
+ * [DiaryRules.PAGE_SIZE] per entity. Fasts come back only when [pullFasts], exercises only
+ * when [pullExercises] and recipes only when [pullRecipes]: entities added after 0.1 are left out for a client that did not ask for
  * them. Without [clientKnowsCheckIn] (a 0.1 client, whose day records have no check-in field) an
  * update leaves the stored check-in alone instead of reading the missing key as cleared.
  *
@@ -258,5 +279,6 @@ interface SyncRepository {
         pullFasts: Boolean = false,
         pullExercises: Boolean = false,
         clientKnowsCheckIn: Boolean = false,
+        pullRecipes: Boolean = false,
     ): SyncResult
 }
