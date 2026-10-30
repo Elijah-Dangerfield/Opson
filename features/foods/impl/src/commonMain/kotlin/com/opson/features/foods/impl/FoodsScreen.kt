@@ -83,8 +83,8 @@ import opson.libraries.resources.generated.resources.foods_favorites_empty
 /**
  * The Foods tab (design v3, 11.1): the title, a search bar that stays put while the list
  * scrolls, Create a meal and Add a food side by side, a Builder's Verify a food, then Favorites,
- * Saved meals, Repeating (`release.repeats`), Your foods and Recent, and the food data credit at
- * the end. Stateless; the entry point routes its events.
+ * Saved meals, Recipes (`release.recipes`), Repeating (`release.repeats`), Your foods and Recent,
+ * and the food data credit at the end. Stateless; the entry point routes its events.
  */
 @Composable
 fun FoodsScreen(
