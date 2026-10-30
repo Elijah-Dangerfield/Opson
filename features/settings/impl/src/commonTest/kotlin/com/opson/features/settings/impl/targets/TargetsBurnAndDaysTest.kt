@@ -107,7 +107,7 @@ class TargetsBurnAndDaysTest : CoroutineTest() {
 
         assertEquals(ShapeKind.Deficit, group.shape)
         assertEquals(listOf(ShapeKind.Range, ShapeKind.Exact, ShapeKind.Deficit, ShapeKind.Surplus), group.shapes)
-        assertEquals(EndStepper(Display.Shown("200"), down = StepState.Open, up = StepState.Open), group.deficit)
+        assertEquals(EndStepper(Display.Shown("200"), down = StepState.Open, up = StepState.Open, TypedField(TypedField.Kind.Deficit, 2), "200"), group.deficit)
         assertEquals(Display.Shown("1,980 kcal"), group.summary, "2,180 burned less 200")
         assertFalse(group.waitingOnBurn)
         assertEquals(listOf(ShapeKind.Range, ShapeKind.Exact, ShapeKind.Deficit, ShapeKind.Surplus), state.groups.map { it.shape })

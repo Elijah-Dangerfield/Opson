@@ -185,6 +185,7 @@ internal fun TrendsContent(
         state.lastCheck?.let { LastCheckCard(it) }
         state.nutrients?.let { NutrientsCardView(it, onClick = { onAction(TrendsAction.NutrientsCardTapped) }) }
         state.expended?.let { ExpendedCardView(it) }
+        state.steps?.let { StepsCardView(it, onAction) }
         // The running total sits on top of the weight card, so the estimate and the scale read together.
         state.runningTotal?.let { RunningTotalCardView(it, onAction) }
         state.weight?.let { WeightCardView(it, onClick = { onAction(TrendsAction.WeightCardTapped) }) }

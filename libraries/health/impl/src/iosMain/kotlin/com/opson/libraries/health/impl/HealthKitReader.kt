@@ -46,6 +46,7 @@ import platform.HealthKit.HKQuantityTypeIdentifierActiveEnergyBurned
 import platform.HealthKit.HKQuantityTypeIdentifierBasalEnergyBurned
 import platform.HealthKit.HKQuantityTypeIdentifierBodyMass
 import platform.HealthKit.HKQuantityTypeIdentifierHeight
+import platform.HealthKit.HKQuantityTypeIdentifierStepCount
 import platform.HealthKit.HKQuery
 import platform.HealthKit.HKQueryOptionStrictStartDate
 import platform.HealthKit.HKSample
@@ -119,6 +120,7 @@ import platform.HealthKit.HKWorkoutActivityTypeWheelchairWalkPace
 import platform.HealthKit.HKWorkoutActivityTypeWrestling
 import platform.HealthKit.HKWorkoutActivityTypeYoga
 import platform.HealthKit.gramUnitWithMetricPrefix
+import platform.HealthKit.countUnit
 import platform.HealthKit.kilocalorieUnit
 import platform.HealthKit.meterUnit
 import platform.HealthKit.predicateForSamplesWithStartDate
@@ -130,12 +132,13 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.math.roundToInt
 import kotlin.time.Instant
 
 /**
  * HealthKit, in Kotlin through `platform.HealthKit`, so there is no Swift half to keep in step.
- * Reads active and resting energy, workouts, weight, height, date of birth and biological sex;
- * never writes.
+ * Reads active and resting energy, steps, workouts, weight, height, date of birth and biological
+ * sex; never writes.
  *
  * HealthKit never tells an app whether it may read: a refused type simply returns no samples.
  * So [access] answers from `getRequestStatusForAuthorization`, which only says whether the
@@ -173,6 +176,9 @@ class HealthKitReader @Inject constructor() : HealthReader {
     private val height: HKQuantityType
         get() = requireNotNull(HKQuantityType.quantityTypeForIdentifier(HKQuantityTypeIdentifierHeight))
 
+    private val stepCount: HKQuantityType
+        get() = requireNotNull(HKQuantityType.quantityTypeForIdentifier(HKQuantityTypeIdentifierStepCount))
+
     /** What Opson read before 0.2's workouts, weight and profile: what Expended and Burned need. */
     private val energyTypes: Set<HKObjectType>
         get() = setOf(activeEnergy, restingEnergy, HKObjectType.workoutType())
@@ -180,6 +186,7 @@ class HealthKitReader @Inject constructor() : HealthReader {
     /** Everything Opson reads. Info.plist's NSHealthShareUsageDescription names each of them. */
     private val readTypes: Set<HKObjectType>
         get() = energyTypes + setOfNotNull(
+            stepCount,
             bodyMass,
             height,
             HKCharacteristicType.characteristicTypeForIdentifier(HKCharacteristicTypeIdentifierDateOfBirth),
@@ -231,12 +238,20 @@ class HealthKitReader @Inject constructor() : HealthReader {
     }
 
     override suspend fun readDaily(from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, EnergyExpended> {
-        val resting = dailySums(restingEnergy, from, to, timeZone)
-        val active = dailySums(activeEnergy, from, to, timeZone)
+        val resting = dailySums(restingEnergy, HKUnit.kilocalorieUnit(), from, to, timeZone)
+        val active = dailySums(activeEnergy, HKUnit.kilocalorieUnit(), from, to, timeZone)
         return (resting.keys + active.keys).associateWith { day ->
             EnergyExpended(restingKcal = resting[day], activeKcal = active[day], workoutKcal = null)
         }
     }
+
+    /**
+     * A statistics collection's cumulative sum is how the Health app itself totals steps: where an
+     * iPhone and an Apple Watch both counted the same walk, it keeps the source higher in the
+     * person's Data Sources order for that stretch rather than adding the two.
+     */
+    override suspend fun dailySteps(from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, Int> =
+        dailySums(stepCount, HKUnit.countUnit(), from, to, timeZone).mapValues { (_, steps) -> steps.roundToInt() }
 
     override suspend fun workouts(from: Instant, to: Instant): List<HealthWorkout> =
         workoutSamples(from.toNSDate(), to.toNSDate()).map { workout ->
@@ -285,16 +300,16 @@ class HealthKitReader @Inject constructor() : HealthReader {
     override suspend fun sources(from: Instant, to: Instant): Set<String> {
         val start = from.toNSDate()
         val end = to.toNSDate()
-        return listOf(activeEnergy, HKObjectType.workoutType(), bodyMass).flatMap { sourcesOf(it, start, end) }.toSet()
+        return listOf(activeEnergy, stepCount, HKObjectType.workoutType(), bodyMass).flatMap { sourcesOf(it, start, end) }.toSet()
     }
 
     /**
-     * An observer query on workouts and active energy while collected: the repository collects it
+     * An observer query on workouts, active energy and steps while collected: the repository collects it
      * only while the app is in front, so there is no background delivery and no entitlement for it.
      */
     override fun changes(): Flow<Unit> = callbackFlow {
         val store = store()
-        val queries = listOf<HKSampleType>(HKObjectType.workoutType(), activeEnergy).map { type ->
+        val queries = listOf<HKSampleType>(HKObjectType.workoutType(), activeEnergy, stepCount).map { type ->
             HKObserverQuery(sampleType = type, predicate = null) { _, completion, error ->
                 if (error == null) trySend(Unit)
                 completion?.invoke()
@@ -345,7 +360,7 @@ class HealthKitReader @Inject constructor() : HealthReader {
      */
     // enumerateStatistics hands its block a `stop` pointer.
     @OptIn(ExperimentalForeignApi::class)
-    private suspend fun dailySums(type: HKQuantityType, from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, Double> {
+    private suspend fun dailySums(type: HKQuantityType, unit: HKUnit, from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, Double> {
         val store = store()
         return suspendCancellableCoroutine { cont ->
             val start = from.toNSDate()
@@ -364,8 +379,8 @@ class HealthKitReader @Inject constructor() : HealthReader {
                     } else {
                         val sums = mutableMapOf<LocalDate, Double>()
                         collection?.enumerateStatisticsFromDate(start, toDate = end) { statistics, _ ->
-                            val kcal = statistics?.sumQuantity()?.doubleValueForUnit(HKUnit.kilocalorieUnit())
-                            if (statistics != null && kcal != null) sums[statistics.startDate.toInstant().toLocalDateTime(timeZone).date] = kcal
+                            val sum = statistics?.sumQuantity()?.doubleValueForUnit(unit)
+                            if (statistics != null && sum != null) sums[statistics.startDate.toInstant().toLocalDateTime(timeZone).date] = sum
                         }
                         cont.resume(sums)
                     }

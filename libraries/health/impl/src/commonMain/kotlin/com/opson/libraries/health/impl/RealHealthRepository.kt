@@ -1,5 +1,6 @@
 package com.opson.libraries.health.impl
 
+import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.core.logging.logEvent
 import com.opson.libraries.flowroutines.AppCoroutineScope
@@ -13,8 +14,10 @@ import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.health.HealthWeighIn
 import com.opson.libraries.health.HealthWorkout
+import com.opson.libraries.health.StepsRepository
 import com.opson.libraries.opson.AppCache
 import com.opson.libraries.opson.HealthEnergySnapshot
+import com.opson.libraries.opson.HealthStepsSnapshot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.InternalCoroutinesApi
@@ -28,6 +31,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
@@ -46,7 +50,9 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
@@ -59,7 +65,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 /**
- * [HealthRepository] and [HealthRecords] over the platform's [HealthReader].
+ * [HealthRepository], [HealthRecords] and [StepsRepository] over the platform's [HealthReader].
  *
  * **Connected** is what the store says, not what Opson remembers: the store has let Opson read
  * (all of it or part), and the person has not turned it off here with Disconnect. HealthKit hides
@@ -77,6 +83,10 @@ import kotlin.time.Instant
  * into the everyday estimate. The last reading is kept on the phone
  * ([com.opson.libraries.opson.AppData.healthEnergy]) so a cold start shows it straight away.
  *
+ * **Steps** ride the same reading: today's count is re-read on the same ticks as energy, and a
+ * span's past days are read once per collection. The last counts are kept on the phone too
+ * ([com.opson.libraries.opson.AppData.healthSteps]).
+ *
  * Also kept in AppData: that the person connected, and whether they turned it off. Nothing here
  * goes to the server, logs or telemetry; telemetry carries the source and nothing more.
  */
@@ -84,6 +94,7 @@ import kotlin.time.Instant
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, boundType = HealthRepository::class)
 @ContributesBinding(AppScope::class, boundType = HealthRecords::class)
+@ContributesBinding(AppScope::class, boundType = StepsRepository::class)
 @Inject
 class RealHealthRepository(
     private val reader: HealthReader,
@@ -91,7 +102,7 @@ class RealHealthRepository(
     private val clock: Clock,
     private val appScope: AppCoroutineScope,
     private val foreground: HealthAppForeground,
-) : HealthRepository, HealthRecords {
+) : HealthRepository, HealthRecords, StepsRepository {
 
     /** How often a collected [energy] or [workouts] re-reads while the app is in front. Exposed for tests. */
     internal var refreshEvery: Duration = REFRESH_EVERY
@@ -129,6 +140,9 @@ class RealHealthRepository(
 
     private val energyByDay = SharedByKey<Pair<LocalDate, TimeZone>, EnergyExpended?>()
     private val workoutsByDay = SharedByKey<Pair<LocalDate, TimeZone>, List<HealthWorkout>?>()
+
+    /** Today's steps by day, null for a read that failed with nothing before it; empty when none are recorded. */
+    private val stepsByDay = SharedByKey<Pair<LocalDate, TimeZone>, Map<LocalDate, Int>?>()
 
     /** The latest good reading of each day, what [refreshNow] compares against. */
     private val lastEnergy = mutableMapOf<LocalDate, EnergyExpended>()
@@ -177,7 +191,7 @@ class RealHealthRepository(
     }
 
     override suspend fun disconnect() {
-        appCache.update { it.copy(healthConnected = false, healthPaused = true, healthEnergy = null) }
+        appCache.update { it.copy(healthConnected = false, healthPaused = true, healthEnergy = null, healthSteps = null) }
         lastEnergy.clear()
         guarded("revoke access", Severity.Warn) { reader.revokeAccess() }
         mutableStatus.value = check()
@@ -219,6 +233,80 @@ class RealHealthRepository(
             }.distinctUntilChanged()
         }
     }
+
+    override fun stepsBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Flow<Map<LocalDate, Int>?> {
+        if (to < from) return flowOf(emptyMap())
+        return flow {
+            refresh()
+            emitAll(whileConnected { stepsSpan(from, to, timeZone) })
+        }.distinctUntilChanged()
+    }
+
+    /**
+     * The span's past days (what was kept first, then one read), and today's count when the span
+     * reaches it. A past read that fails with nothing kept makes the whole span unknown rather
+     * than a run of days with no steps.
+     */
+    private fun stepsSpan(from: LocalDate, to: LocalDate, timeZone: TimeZone): Flow<Map<LocalDate, Int>?> {
+        val today = clock.now().toLocalDateTime(timeZone).date
+        val pastEnd = minOf(to, today.minus(DatePeriod(days = 1)))
+        val past: Flow<Map<LocalDate, Int>?> = if (from > pastEnd) {
+            flowOf(emptyMap())
+        } else {
+            flow {
+                val saved = savedSteps(from, pastEnd)
+                if (saved.isNotEmpty()) emit(saved)
+                val read = guarded("read steps by day", Severity.Error) {
+                    reader.dailySteps(from.atStartOfDayIn(timeZone), pastEnd.plus(DatePeriod(days = 1)).atStartOfDayIn(timeZone), timeZone)
+                }?.filterKeys { it in from..pastEnd }
+                if (read != null) {
+                    keepSteps(read)
+                    emit(read)
+                } else if (saved.isEmpty()) {
+                    emit(null)
+                }
+            }
+        }
+        val live: Flow<Map<LocalDate, Int>?> = if (today in from..to) todaySteps(today, timeZone) else flowOf(emptyMap())
+        return combine(past, live) { days, now -> if (days == null || now == null) null else days + now }
+    }
+
+    /** Today's count on every tick, shared by every screen asking. What was kept comes first; a failed read keeps the last count. */
+    private fun todaySteps(day: LocalDate, timeZone: TimeZone): Flow<Map<LocalDate, Int>?> = stepsByDay.get(day to timeZone) {
+        channelFlow {
+            var last: Map<LocalDate, Int>? = savedSteps(day, day).takeIf { it.isNotEmpty() }
+            last?.let { send(it) }
+            readOnTicks {
+                val range = dayRange(day, timeZone)
+                val value = if (range == null) {
+                    emptyMap()
+                } else {
+                    guarded("read steps", Severity.Error) { reader.dailySteps(range.first, range.second, timeZone) }?.filterKeys { it == day }
+                }
+                if (value != null) {
+                    last = value
+                    keepSteps(value)
+                }
+                send(value ?: last)
+            }
+        }.distinctUntilChanged()
+    }
+
+    private suspend fun keepSteps(days: Map<LocalDate, Int>) {
+        if (days.isEmpty()) return
+        val readAt = clock.now().toEpochMilliseconds()
+        appCache.update { data ->
+            val merged = data.healthSteps?.days.orEmpty() + days.mapKeys { it.key.toString() }
+            // ISO dates sort as days do, so the newest are kept.
+            val kept = merged.entries.sortedByDescending { it.key }.take(HealthStepsSnapshot.MAX_DAYS).associate { it.key to it.value }
+            data.copy(healthSteps = HealthStepsSnapshot(readAt, kept))
+        }
+    }
+
+    private suspend fun savedSteps(from: LocalDate, to: LocalDate): Map<LocalDate, Int> =
+        appCache.get().healthSteps?.days.orEmpty().mapNotNull { (day, steps) ->
+            Catching { LocalDate.parse(day) }.getOrNull()?.takeIf { it in from..to }?.let { it to steps }
+        }.toMap()
 
     override suspend fun refreshNow(day: LocalDate, timeZone: TimeZone): HealthRefresh {
         refresh()

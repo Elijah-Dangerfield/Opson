@@ -25,18 +25,21 @@ starts. A Connect that errors (a build without the entitlement) is
 `ConnectOutcome.Failed`, logged at error once per process, and the page says
 so instead of showing the refusal copy.
 
-**What is read now**: energy, workouts (each with the app that recorded it),
-weight, height, and on iOS date of birth and biological sex. The hubs are where
+**What is read now**: energy, steps (`StepsRepository`, a daily sum the store
+merges across phone and watch itself; added 2026-10-30, so a phone connected
+before reads as Partly and gets the Allow row), workouts (each with the app
+that recorded it), weight, height, and on iOS date of birth and biological sex. The hubs are where
 Garmin, Oura, Whoop, Strava, Withings and the rest write; direct APIs are in
 `docs/research/health-integrations.md`. Weight and height are read only for
 what the person asks: the opt-in **Add weigh-ins from** switch (into the
 weight log, deduped within ten minutes of a logged weigh-in, ids remembered so
 a deleted one never returns) and **Fill in from** on Profile. Those two leave
-the phone with the log; energy and workouts never do.
+the phone with the log; energy, steps and workouts never do.
 
 **One reading, shared** (`docs/practices/today-data-flow.md`): one flow per
 day for every reader, reads only in the foreground, an HKObserverQuery while
-open, the last reading saved in `AppData.healthEnergy` for a cold start, a
+open, the last reading saved in `AppData.healthEnergy` (and the last step
+counts in `AppData.healthSteps`) for a cold start, a
 failed read keeping the last good value, and pull to refresh on Today.
 
 **The page, connected**: the source row with Connected; an Allow row when

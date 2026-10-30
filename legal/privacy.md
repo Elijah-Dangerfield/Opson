@@ -100,11 +100,11 @@ them.
 Some features are switched on over time. When they are, this is how they work.
 
 - **Apple Health and Health Connect.** If you connect them, Opson reads
-  active energy, resting energy and workouts, including the name of the app
-  that recorded each workout (Apple Health), or calories burned, active
-  calories, basal metabolic rate and exercise (Health Connect). It reads them
-  on your phone when it needs to show them, keeps the latest day's reading on
-  your phone so the app opens quickly, and never sends them to our server or
+  active energy, resting energy, steps and workouts, including the name of the
+  app that recorded each workout (Apple Health), or calories burned, active
+  calories, basal metabolic rate, steps and exercise (Health Connect). It reads
+  them on your phone when it needs to show them, keeps recent readings on your
+  phone so the app opens quickly, and never sends them to our server or
   anyone else or writes anything back. Two things are copied into your log only
   if you ask: weigh-ins, when you turn on importing them, and your height,
   birth year and sex (height only on Health Connect), when you tap Fill in on

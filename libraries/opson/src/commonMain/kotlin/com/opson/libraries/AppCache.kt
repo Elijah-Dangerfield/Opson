@@ -75,6 +75,13 @@ data class AppData(
      */
     val healthEnergy: HealthEnergySnapshot? = null,
 
+    /**
+     * The last step counts read from the health store, by day, so Trends' Steps card and Today's
+     * steps show at once on a cold start. On this phone only, never synced; dropped on Disconnect
+     * and on a user change. Account-scoped.
+     */
+    val healthSteps: HealthStepsSnapshot? = null,
+
     /** The day ("2026-10-29") the person put away Today's happy birthday line, so it stays away that day. Account-scoped. */
     val birthdayThankedOn: String? = null,
 
@@ -102,6 +109,21 @@ data class HealthEnergySnapshot(
     val activeKcal: Double? = null,
     val workoutKcal: Double? = null,
 )
+
+/**
+ * Step counts by ISO day (`2026-10-29` to 8214), the latest [HealthStepsSnapshot.MAX_DAYS] days
+ * read, and when the last read landed (epoch ms).
+ */
+@Serializable
+data class HealthStepsSnapshot(
+    val readAtMs: Long = 0L,
+    val days: Map<String, Int> = emptyMap(),
+) {
+    companion object {
+        /** Three months and a little: Trends' longest span. */
+        const val MAX_DAYS = 100
+    }
+}
 
 interface AppCache : Cache<AppData>
 
@@ -136,6 +158,7 @@ fun AppData.resetAccountScoped(): AppData = copy(
     healthWeighIns = false,
     healthImportedWeighIns = emptyList(),
     healthEnergy = null,
+    healthSteps = null,
     birthdayThankedOn = null,
     cutBackLooks = emptyList(),
 )

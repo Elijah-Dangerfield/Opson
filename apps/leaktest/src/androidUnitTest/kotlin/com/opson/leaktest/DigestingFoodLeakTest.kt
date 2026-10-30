@@ -41,7 +41,7 @@ class DigestingFoodLeakTest(private val surface: LeakSurface, private val mode: 
 
     companion object {
         /** Every surface with a "Digesting food" line. [LeakTestControlTest] fails on one missing from here. */
-        val DIGESTING_SURFACES = setOf("today-activity", "today-activity-health", "energy-today", "energy-explainer-burned")
+        val DIGESTING_SURFACES = setOf("today-activity", "today-activity-health", "energy-today", "energy-explainer-burned", "energy-explainer-digesting")
 
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0} in {1}")
@@ -72,5 +72,10 @@ class DigestingFoodControlTest(private val surface: LeakSurface) {
     }
 }
 
+/**
+ * The digesting food line's label, whole: "Digesting food" (Today's Activity card) or "Digesting
+ * food (TEF)" (Energy today and the (i) sheets). A sentence or a title that only names the term,
+ * like the TEF sheet's "Digesting food (thermic effect of food, TEF)", is words, not the line.
+ */
 internal fun ComposeContentTestRule.digestingLines(): Int =
-    onAllNodes(hasText("Digesting food", substring = true), useUnmergedTree = true).fetchSemanticsNodes().size
+    onAllNodes(hasText("Digesting food") or hasText("Digesting food (TEF)"), useUnmergedTree = true).fetchSemanticsNodes().size

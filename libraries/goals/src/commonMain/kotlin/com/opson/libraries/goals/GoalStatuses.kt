@@ -49,8 +49,11 @@ data class GoalToday(
  */
 object GoalStatuses {
 
-    /** What [day] says to a goal, with that day's [burned] when known. Steps have no source yet. */
-    fun facts(day: Day, burned: Burned?): GoalDayFacts {
+    /**
+     * What [day] says to a goal, with that day's [burned] and [steps] when known. [steps] is the
+     * health app's count ([com.opson.libraries.health.StepsRepository]); null when it has none.
+     */
+    fun facts(day: Day, burned: Burned?, steps: Int? = null): GoalDayFacts {
         val kcal = day.totals().kcal
         return GoalDayFacts(
             date = day.date,
@@ -60,7 +63,7 @@ object GoalStatuses {
             eatenKcal = kcal.value?.takeUnless { kcal.isPartial },
             burnedKcal = burned?.totalKcal,
             activeKcal = burned?.aboveRestingKcal,
-            steps = null,
+            steps = steps,
             mealsWithFood = day.doneMealCount,
             showedUp = !day.untracked && (day.hasLogged || day.closedByUser || day.checkIn != null),
         )
@@ -120,6 +123,9 @@ object GoalStatuses {
             goal.id to GoalDays.verdicts(goal, dates, days, context(goal, settings, today, limit))
         }
     }
+
+    /** The first active steps goal, the one Trends' Steps card draws its line and streak from. */
+    fun stepsGoal(settings: Settings): Goal? = GoalBook.goals(settings).firstOrNull { it.isActive && it.type is GoalType.Steps }
 
     /**
      * Every active goal on [date] as it is wrapped up (Wrap up the day, the recap): judged as if

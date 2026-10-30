@@ -235,6 +235,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `energy-explainer-resting` | settings | the (i) on Resting energy: BMR in words, the Mifflin-St Jeor working where energy out and weight show | yes |
 | new | | `energy-explainer-burned` | settings | the (i) on Burned: TDEE and its parts, today's working, digesting food only where calories show | yes |
 | new | | `energy-explainer-balance` | settings | the (i) on a set deficit or surplus: the rough 3,500 rule only where calories show, today's goal from Burned | yes |
+| new | | `energy-explainer-digesting` | settings | the (i) on digesting food (TEF): the 2,000-eaten example and today's amount only where calories show | yes |
+| new | | `goal-edit`, `goal-edit-balance` | settings | goals v2: setting a weight goal (target, band, pace, projection) and an energy balance averaged over the week; a type the mode doesn't offer isn't drawn | yes |
+| new | | `goals` | settings | goals v2: the goals page, a goal's target, week, projection and recalculation history, and a burn goal | yes |
 | new | | `today-summary-in-out` | today | design sync 4; the card's default preset with a set deficit's target line | yes |
 | new | | `today-summary-range-bar` | today | design sync 4; one bar, Burned as a tick, meals count on | yes |
 | new | | `today-summary-rings` | today | design sync 4; one number as rings | yes |

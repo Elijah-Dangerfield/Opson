@@ -21,6 +21,7 @@ import com.opson.libraries.health.WorkoutKind
 import com.opson.libraries.opson.AppCache
 import com.opson.libraries.opson.AppData
 import com.opson.libraries.opson.HealthEnergySnapshot
+import com.opson.libraries.opson.HealthStepsSnapshot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +34,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -494,6 +496,96 @@ class RealHealthRepositoryTest {
         assertEquals(listOf("Apple Watch", "garmin Connect", "Oura"), repository.sources())
     }
 
+    // Steps
+
+    @Test
+    fun steps_isNullWhileNotConnected_andNeverReads() = run {
+        val reader = FakeReader(access = HealthAccess.NotAsked).apply { steps = mapOf(today to 4200) }
+        repoTest(reader) { repository, _ ->
+            repository.stepsBetween(LocalDate(2026, 10, 19), today, TimeZone.UTC).test {
+                assertNull(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertTrue(reader.stepReads.isEmpty())
+        }
+    }
+
+    @Test
+    fun stepsBetween_readsPastDaysOnce_andTodayMidnightToNow() = run {
+        val week = (19..24).associate { LocalDate(2026, 10, it) to 6000 + it }
+        val reader = FakeReader().apply { steps = week + (today to 4200) + (LocalDate(2026, 10, 18) to 9999) }
+        repoTest(reader) { repository, _ ->
+            repository.stepsBetween(LocalDate(2026, 10, 19), today, TimeZone.UTC).test {
+                assertEquals(week + (today to 4200), awaitItem(), "a day outside the span is dropped")
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertEquals(Instant.parse("2026-10-19T00:00:00Z") to Instant.parse("2026-10-25T00:00:00Z"), reader.stepReads.first())
+            assertTrue(Instant.parse("2026-10-25T00:00:00Z") to noon in reader.stepReads, "today is read up to now")
+        }
+    }
+
+    @Test
+    fun steps_today_rereadsWhileCollected() = run {
+        val reader = FakeReader().apply { steps = mapOf(today to 4200) }
+        repoTest(reader) { repository, _ ->
+            repository.refreshEvery = 1.minutes
+            repository.steps(today, TimeZone.UTC).test {
+                assertEquals(4200, awaitItem())
+                reader.steps = mapOf(today to 5100)
+                assertEquals(5100, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+    }
+
+    @Test
+    fun steps_aDayWithNoneRecorded_isNull() = repoTest(FakeReader()) { repository, _ ->
+        repository.steps(today, TimeZone.UTC).test {
+            assertNull(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun stepsBetween_aFailedPastRead_isNullNotAnEmptyWeek() = run {
+        val reader = FakeReader().apply { failSteps = true }
+        repoTest(reader) { repository, _ ->
+            repository.stepsBetween(LocalDate(2026, 10, 19), LocalDate(2026, 10, 24), TimeZone.UTC).test {
+                assertNull(awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+    }
+
+    @Test
+    fun steps_areKeptOnThePhone_andShownFirstNextTime() = run {
+        val cache = FakeAppCache(connected)
+        val reader = FakeReader().apply { steps = mapOf(LocalDate(2026, 10, 24) to 8100) }
+        repoTest(reader, cache) { repository, _ ->
+            repository.steps(LocalDate(2026, 10, 24), TimeZone.UTC).test {
+                assertEquals(8100, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertEquals(mapOf("2026-10-24" to 8100), cache.get().healthSteps?.days)
+        }
+        // A later start whose read fails still has what was kept.
+        repoTest(FakeReader().apply { failSteps = true }, cache) { repository, _ ->
+            repository.steps(LocalDate(2026, 10, 24), TimeZone.UTC).test {
+                assertEquals(8100, awaitItem())
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+    }
+
+    @Test
+    fun disconnect_forgetsTheKeptSteps() = run {
+        val cache = FakeAppCache(connected.copy(healthSteps = HealthStepsSnapshot(0L, mapOf("2026-10-24" to 8100))))
+        repoTest(FakeReader(), cache) { repository, _ ->
+            repository.disconnect()
+            assertNull(cache.get().healthSteps)
+        }
+    }
+
     @Test
     fun noEvent_carriesAValue() = repoTest(FakeReader(grant = true, energy = energy)) { repository, _ ->
         repository.connect()
@@ -565,6 +657,18 @@ private class FakeReader(
         dailyReads += from to to
         if (failRead) error("store unavailable")
         return daily
+    }
+
+    val stepReads = mutableListOf<Pair<Instant, Instant>>()
+
+    /** What [dailySteps] answers, filtered to the range asked for by start of day. */
+    var steps: Map<LocalDate, Int> = emptyMap()
+    var failSteps: Boolean = false
+
+    override suspend fun dailySteps(from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, Int> {
+        stepReads += from to to
+        if (failSteps) error("store unavailable")
+        return steps.filterKeys { day -> day.atStartOfDayIn(timeZone) >= from && day.atStartOfDayIn(timeZone) < to }
     }
 
     override suspend fun workouts(from: Instant, to: Instant): List<HealthWorkout> = workouts

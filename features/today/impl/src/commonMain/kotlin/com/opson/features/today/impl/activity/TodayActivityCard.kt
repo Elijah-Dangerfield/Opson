@@ -26,6 +26,7 @@ import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.ExerciseActivities
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.RestingFrom
+import com.opson.libraries.nutrition.countText
 import com.opson.libraries.nutrition.ui.NutrientPhrase
 import com.opson.libraries.nutrition.ui.NutrientText
 import com.opson.libraries.nutrition.ui.NutrientVisible
@@ -57,6 +58,9 @@ import opson.libraries.resources.generated.resources.settings_energy_logged
 import opson.libraries.resources.generated.resources.settings_energy_resting_calculated
 import opson.libraries.resources.generated.resources.settings_energy_resting_health
 import opson.libraries.resources.generated.resources.settings_energy_resting_own
+import opson.libraries.resources.generated.resources.steps_not_in_burned
+import opson.libraries.resources.generated.resources.today_activity_steps
+import opson.libraries.resources.generated.resources.today_activity_steps_info_cd
 import opson.libraries.resources.generated.resources.today_activity_active
 import opson.libraries.resources.generated.resources.today_activity_active_line
 import opson.libraries.resources.generated.resources.today_activity_add_missed
@@ -93,6 +97,7 @@ import opson.libraries.resources.generated.resources.today_workout_snow
 import opson.libraries.resources.generated.resources.today_workout_water
 import opson.libraries.resources.generated.resources.today_workout_other
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -108,6 +113,9 @@ fun TodayActivitySection(card: TodayActivityCard, onAction: (TodayActivityAction
     val health = card.healthSource
     TodayCard(modifier = modifier) {
         Header(card, onAction)
+        if (card.stepsExplained && card.steps != null) {
+            Text(text = stringResource(Res.string.steps_not_in_burned), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+        }
         if (!card.known) {
             // What Burned is waiting on, and the one place to fix it: never a sum with a line missing.
             val gap = card.gap ?: BurnedGap()
@@ -144,6 +152,7 @@ private fun Header(card: TodayActivityCard, onAction: (TodayActivityAction) -> U
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(text = stringResource(Res.string.today_activity_title), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
             if (health != null) StatusPill(label = stringResource(Res.string.today_activity_from, stringResource(health.title)), icon = AppIcons.Check)
+            card.steps?.let { steps -> StepsChip(steps, onInfo = { onAction(TodayActivityAction.StepsInfoTapped) }) }
         }
         // With a health app the watch logs workouts itself; adding one by hand is the quiet button below.
         if (!card.closed && health == null) {
@@ -153,6 +162,20 @@ private fun Header(card: TodayActivityCard, onAction: (TodayActivityAction) -> U
                 size = MinTouchTarget,
             )
         }
+    }
+}
+
+/** The day's steps as a chip, and the (i) that says they don't add to Burned. */
+@Composable
+private fun StepsChip(steps: Int, onInfo: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        StatusPill(label = pluralStringResource(Res.plurals.today_activity_steps, steps, countText(steps)), icon = AppIcons.DirectionsWalk)
+        IconButton(
+            icon = AppIcons.Info.described(stringResource(Res.string.today_activity_steps_info_cd)),
+            onClick = onInfo,
+            iconColor = AppTheme.colors.muted,
+            size = IconButton.Size.Small,
+        )
     }
 }
 
