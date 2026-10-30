@@ -24,11 +24,11 @@ class IOSReviewLauncher: ReviewLauncher {
             AppStore.requestReview(in: scene)
             return windows
         }
-        guard let before else { return .noforegroundui }
+        guard let before else { return .noForegroundUi }
 
         try? await Task.sleep(nanoseconds: Self.settleNanoseconds)
         let after = await MainActor.run { Self.foregroundScene()?.windows.count ?? before }
-        return after > before ? .likelyshown : .likelynotshown
+        return after > before ? .likelyShown : .likelyNotShown
     }
 
     @MainActor
