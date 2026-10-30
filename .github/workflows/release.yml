@@ -728,7 +728,7 @@ jobs:
         # re-linking (the longest step on a cold run). The K/N compiler runs
         # inside the Gradle daemon, so the daemon heap IS the compiler heap —
         # see beta.yml's identical step for the OOM history that sized this.
-        run: ./gradlew :apps:compose:linkReleaseFrameworkIosArm64 -Dorg.gradle.jvmargs=-Xmx10g
+        run: ./gradlew :apps:compose:linkReleaseFrameworkIosArm64 -Dorg.gradle.jvmargs=-Xmx14g
 
       - name: Build + release iOS
         working-directory: apps/ios

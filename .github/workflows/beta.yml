@@ -336,7 +336,7 @@ jobs:
         # The K/N compiler runs inside the Gradle daemon, so the daemon heap IS
         # the compiler heap. The release LTO pass (DevirtualizationAnalysis)
         # OOMs at 4g and 6g on a mature app — 10g leaves headroom.
-        run: ./gradlew :apps:compose:linkReleaseFrameworkIosArm64 -Dorg.gradle.jvmargs=-Xmx10g
+        run: ./gradlew :apps:compose:linkReleaseFrameworkIosArm64 -Dorg.gradle.jvmargs=-Xmx14g
 
       - name: Build + upload to TestFlight internal
         working-directory: apps/ios
