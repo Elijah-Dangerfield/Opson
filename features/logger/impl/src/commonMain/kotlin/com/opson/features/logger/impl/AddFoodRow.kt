@@ -35,6 +35,9 @@ import com.opson.system.AppTheme
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.adding_add_cd
 import opson.libraries.resources.generated.resources.adding_added_cd
+import opson.libraries.resources.generated.resources.adding_reason_favorite
+import opson.libraries.resources.generated.resources.adding_reason_logged
+import opson.libraries.resources.generated.resources.adding_reason_yours
 import opson.libraries.resources.generated.resources.adding_unverified
 import opson.libraries.resources.generated.resources.adding_your_usual
 import opson.libraries.resources.generated.resources.search_badge_branded
@@ -45,11 +48,13 @@ import opson.libraries.resources.generated.resources.search_badge_usda
 import opson.libraries.resources.generated.resources.search_badge_verified_cd
 import opson.libraries.resources.generated.resources.search_badge_yours
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * A food with a + (design sync 4, 13.4b and 13.4c): its name, "Your usual · 1 cup · 4P 45C 0F",
- * its energy, and a round + that logs it at once, or a ✓ once it is in. The name opens the food.
+ * A food with a + (design sync 4, 13.4b and 13.4c): its name, "Your usual · 1 cup · 4P 45C 0F"
+ * (in search results, why it is there in place of "Your usual": "Logged 3 times · 1 cup"), its
+ * energy, and a round + that logs it at once, or a ✓ once it is in. The name opens the food.
  */
 @Composable
 internal fun AddFoodRow(row: FoodRowUi, onOpen: () -> Unit, onAdd: () -> Unit, divider: Boolean, modifier: Modifier = Modifier) {
@@ -60,7 +65,7 @@ internal fun AddFoodRow(row: FoodRowUi, onOpen: () -> Unit, onAdd: () -> Unit, d
         AddRow(
             name = row.name,
             details = listOfNotNull(
-                stringResource(Res.string.adding_your_usual).takeIf { row.usual },
+                row.reason?.let { reasonText(it) } ?: stringResource(Res.string.adding_your_usual).takeIf { row.usual },
                 row.subtitle?.takeIf { it.isNotBlank() },
                 row.amount.takeIf { it.isNotEmpty() },
             ),
@@ -82,6 +87,14 @@ internal fun AddFoodRow(row: FoodRowUi, onOpen: () -> Unit, onAdd: () -> Unit, d
             },
         )
     }
+}
+
+/** Why a result is where it is: "Favorite", "Logged 3 times", "Your food". */
+@Composable
+private fun reasonText(reason: RowReason): String = when (reason) {
+    RowReason.Favorite -> stringResource(Res.string.adding_reason_favorite)
+    is RowReason.Logged -> pluralStringResource(Res.plurals.adding_reason_logged, reason.times, reason.times)
+    RowReason.YourFood -> stringResource(Res.string.adding_reason_yours)
 }
 
 /** A saved meal with its +: the whole meal goes in at once. */

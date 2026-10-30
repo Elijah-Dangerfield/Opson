@@ -1,0 +1,75 @@
+# Graded search evaluation: what a person typing the query means, scored over the top 10.
+# Read by SearchEvaluationTest, which prints MRR, NDCG@10 and the share of queries whose first
+# row is a good answer. One query per line: query<TAB>labels.
+#
+# Labels are separated by " ; ", each grade:regex, matched case-insensitively with find()
+# against the name, the brand (brand=) or either (any=). The first label that matches a row
+# gives its grade, so put the narrow ones first. A row no label matches is 0.
+#   3  what the person means: the food itself, plain ("Strawberries, raw")
+#   2  the same food in another plain form or variety ("Strawberries, frozen", "Milk, 2%")
+#   1  close enough to log without a second search (a juice of it, a dish named for it)
+#   0  the query used as a modifier ("Strawberry milk"), or something else
+# Label for intent, never for what search returns today.
+
+# Single-word whole foods
+strawberry	3:^Strawberries, raw ; 2:^Strawberr(y|ies)(,|$) ; 1:^Strawberr(y|ies) (juice|dried)
+strawberries	3:^Strawberries, raw ; 2:^Strawberr(y|ies)(,|$)
+banana	3:^Bananas?, (raw|ripe) ; 2:^Bananas?(,|$)
+apple	3:^Apples?, (.*\b)?raw ; 2:^Apples?, (?!candied|baked) ; 1:^Apples?(,|$)
+egg	3:^Eggs?, (whole|Grade A, Large, egg whole) ; 2:^Eggs?, ; 1:^Egg, (white|yolk)
+eggs	3:^Eggs?, (whole|Grade A, Large, egg whole) ; 2:^Eggs?, ; 1:^Egg, (white|yolk)
+milk	3:^Milk, (whole|NFS|reduced fat|low ?fat|lowfat|nonfat|fat free)\b ; 2:^Milk(,|$)
+rice	3:^Rice, (white|brown)\b|^Rice, cooked, NFS ; 2:^Rice, (?!fried|cooked with|cooked, with) ; 1:^Rice(,|$)
+chicken breast	3:^Chicken,? breast ; 2:^Chicken, (broiler|broilers) .*breast
+chicken	3:^Chicken, (breast|thigh|drumstick|wing|ground|broiler|broilers|roasting|NFS)\b ; 2:^Chicken(,|$)
+blueberry	3:^Blueberries, raw ; 2:^Blueberr(y|ies)(,|$)
+raspberry	3:^Raspberries, raw ; 2:^Raspberr(y|ies)(,|$)
+cherry	3:^Cherries, (raw|sweet) ; 2:^Cherr(y|ies)(,|$)
+peach	3:^Peach(es)?, (yellow, )?raw ; 2:^Peach(es)?(,|$)
+orange	3:^Oranges?, raw ; 2:^Oranges?(,|$) ; 1:^Orange juice
+tomato	3:^Tomato(es)?, (.*\b)?(raw|roma|grape|red, ripe, raw) ; 2:^Tomato(es)?(,|$)
+potato	3:^Potato(es)?, (.*\b)?(raw|baked|boiled)|^Potato(es)?, NFS ; 2:^Potato(es)?(,|$)
+avocado	3:^Avocados?, (.*\b)?raw ; 2:^Avocados?(,|$)
+spinach	3:^Spinach, (raw|baby|mature) ; 2:^Spinach(,|$)
+carrot	3:^Carrots?, (.*\b)?raw ; 2:^Carrots?(,|$)
+broccoli	3:^Broccoli, raw ; 2:^Broccoli(,|$)
+mango	3:^Mangos?(es)?, (.*\b)?raw ; 2:^Mangos?(es)?(,|$)
+grapes	3:^Grapes, (.*\b)?raw ; 2:^Grapes(,|$)
+almonds	3:^(Nuts, )?almonds, (whole, raw|raw|NFS|dry roasted) ; 2:^(Nuts, )?almonds(,|$)
+oats	3:^Oats, ; 2:^(Oatmeal|Cereals, oats)
+yogurt	3:^Yogurt, (Greek, )?(NS as to type of milk, )?plain|^Yogurt, NFS ; 2:^Yogurt, (Greek, )?(nonfat|low ?fat|whole milk)
+cheese	3:^Cheese, (cheddar|American|mozzarella|swiss|NFS)\b ; 2:^Cheese, (?!cottage cheese, with)
+bread	3:^Bread, (white|whole[ -]wheat|wheat|NFS)(,|$) ; 2:^Bread(,|$)
+butter	3:^Butter, (stick|salted|NFS)\b ; 2:^Butter(,|$)
+salmon	3:^(Fish, )?salmon, (NFS|raw|Atlantic|sockeye|baked|cooked) ; 2:^(Fish, )?salmon(,|$)
+coffee	3:^(Beverages, )?coffee, brewed ; 2:^Coffee, (?!cafe)
+bacon	3:^Bacon, NS as to type of meat, cooked$|^(Pork, cured, )?bacon, (cooked|raw|NFS|restaurant)|^Bacon or side pork ; 2:^(Pork, cured, )?bacon(,|$)
+turkey	3:^Turkey, (ground|breast|light meat|dark meat|NFS)\b ; 2:^Turkey,
+tofu	3:^Tofu, (firm|extra firm|soft|raw|NFS)\b ; 2:^Tofu(,|$)
+peanut butter	3:^Peanut butter(, (creamy|smooth|chunky))?($|,) ; 2:^Peanut butter, (?!and)
+cottage cheese	3:^(Cottage cheese|Cheese, cottage), ; 2:cottage cheese
+pasta	3:^Pasta, (cooked|whole grain, cooked|NFS) ; 2:^Pasta(,|$)
+# Two words, the second the food
+brown rice	3:^Rice, brown ; 2:brown rice
+whole milk	3:^Milk, whole ; 2:^Milk, .*whole
+greek yogurt	3:^Yogurt, Greek, (NS as to type of milk, )?plain ; 2:^Yogurt, Greek
+white bread	3:^Bread, white(,|$) ; 2:^Bread, white
+sweet potato	3:^Sweet potato(es)?, (.*\b)?(raw|baked|boiled)|^Sweet potato(es)?, NFS ; 2:^Sweet potato(es)?(,|$)
+ground beef	3:^Beef, ground ; 2:ground beef
+# Brands and branded products: the brand's own product is what the person means
+cheerios	3:^Cheerios$|^Cereals ready-to-eat, GENERAL MILLS, CHEERIOS$|^Cheerios(,| cereal) ; 2:cheerios
+oreo	3:^Oreo( chocolate sandwich)? cookies?$|^Cookies, .*OREO|^Oreo,? ; 2:oreo
+nutella	3:nutella ; 1:hazelnut spread
+coke zero	3:any=coke zero ; 2:any=coca[- ]cola
+chobani greek yogurt	3:brand=chobani ; 2:chobani
+fairlife	3:any=fairlife
+clif bar	3:clif ; 1:any=clif
+red bull	3:red bull ; 2:brand=red bull
+doritos	3:doritos
+kind bar	3:any=\bkind\b
+ben and jerrys	3:brand=ben & jerry ; 2:any=ben & jerry
+# Typos and prefixes, as typed
+strawbery	3:^Strawberries, raw ; 2:^Strawberr(y|ies)(,|$)
+bananna	3:^Bananas?, (raw|ripe) ; 2:^Bananas?(,|$)
+straw	3:^Strawberries, raw ; 2:^Strawberr(y|ies)(,|$) ; 1:^Straw
+ban	3:^Bananas?, (raw|ripe) ; 2:^Bananas?(,|$)

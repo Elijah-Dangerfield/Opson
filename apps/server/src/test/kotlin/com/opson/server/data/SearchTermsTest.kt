@@ -19,8 +19,20 @@ class SearchTermsTest {
     fun singularizesCommonPlurals() {
         assertEquals(listOf("berries", "berry"), SearchTerms.variantsOf("berries"))
         assertEquals(listOf("tomatoes", "tomato"), SearchTerms.variantsOf("tomatoes"))
-        assertEquals(listOf("glass"), SearchTerms.variantsOf("glass"))
+        assertEquals(listOf("glass", "glasses"), SearchTerms.variantsOf("glass"))
         assertEquals(listOf("2"), SearchTerms.variantsOf("2"))
+    }
+
+    @Test
+    fun pluralizesTheWayFoodsAreNamed() {
+        assertEquals(listOf("strawberry", "strawberries"), SearchTerms.variantsOf("strawberry"), "Strawberries, raw")
+        assertEquals(listOf("turkey", "turkeys"), SearchTerms.variantsOf("turkey"))
+        assertEquals(listOf("peach", "peaches"), SearchTerms.variantsOf("peach"))
+        assertEquals(listOf("peaches", "peach", "peache"), SearchTerms.variantsOf("peaches"))
+        assertEquals(listOf("tomato", "tomatoes", "tomatos"), SearchTerms.variantsOf("tomato"))
+        assertEquals(listOf("avocado", "avocadoes", "avocados"), SearchTerms.variantsOf("avocado"))
+        assertEquals(listOf("box", "boxes"), SearchTerms.variantsOf("box"))
+        assertEquals(listOf("egg", "eggs"), SearchTerms.variantsOf("egg"))
     }
 
     @Test
@@ -35,7 +47,7 @@ class SearchTermsTest {
     fun brandTermsComeFromTheWordsOnly() {
         val terms = SearchTerms.of("ben & jerry's")!!
         assertEquals("ben jerry s", terms.phrase)
-        assertEquals("%ben%|%bens%|%jerry%|%jerrys%", terms.likeWords, "filler like the s of Jerry's tells nothing about a brand")
+        assertEquals("%ben%|%bens%|%jerry%|%jerries%", terms.likeWords, "filler like the s of Jerry's tells nothing about a brand")
         assertEquals("%lays%|%lay%", SearchTerms.of("lays")!!.likeWords, "the singular is what finds Lay's")
         assertEquals(true, terms.canNameBrand)
         assertEquals(false, SearchTerms.of("avo")!!.canNameBrand, "three letters are a word being typed")

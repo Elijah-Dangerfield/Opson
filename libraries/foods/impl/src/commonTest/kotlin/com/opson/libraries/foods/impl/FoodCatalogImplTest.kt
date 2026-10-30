@@ -1,5 +1,11 @@
 package com.opson.libraries.foods.impl
 
+import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.LoggedFood
+import com.opson.libraries.diary.LoggedFoods
+import com.opson.libraries.diary.MealSlot
+import com.opson.libraries.diary.Precision
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.BarcodeMatch
 import com.opson.libraries.foods.EnergyCheck
@@ -14,10 +20,12 @@ import com.opson.libraries.foods.SearchOrder
 import com.opson.libraries.foods.SearchSource
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.foods.db.FoodCacheEntity
+import com.opson.libraries.foods.db.FoodCacheSearchRow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -25,6 +33,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 /**
@@ -119,6 +128,31 @@ class FoodCatalogImplTest : CoroutineTest() {
 
         assertTrue(result.fromCache)
         assertEquals(listOf("rice"), result.foods.map { it.id })
+    }
+
+    @Test
+    fun offlineSearchMatchesWordsAsTheServerDoes() = runUnitTest {
+        catalog.markUsed(rice.toDomain())
+        catalog.markUsed(rice.copy(id = "berries", name = "Strawberries, raw").toDomain())
+        api.searchResult = Result.failure(IllegalStateException("offline"))
+
+        assertEquals(listOf("rice"), catalog.search("cooked jasmine").getOrThrow().foods.map { it.id })
+        assertEquals(listOf("berries"), catalog.search("strawberry").getOrThrow().foods.map { it.id })
+    }
+
+    @Test
+    fun theCacheKeepsTheLongTailAndEveryFavorite() = runUnitTest {
+        catalog.setFavorite(yogurt.toDomain(), favorite = true)
+        repeat(FoodCatalogImpl.CACHE_LIMIT + 5) {
+            clock.now += 1.seconds
+            catalog.markUsed(rice.copy(id = "food-$it").toDomain())
+        }
+
+        val kept = cache.rows.value.keys
+        assertEquals(FoodCatalogImpl.CACHE_LIMIT + 1, kept.size)
+        assertTrue("yogurt" in kept, "a favorite is never trimmed")
+        assertFalse("food-0" in kept, "the oldest goes first")
+        assertTrue("food-${FoodCatalogImpl.CACHE_LIMIT + 4}" in kept)
     }
 
     @Test
@@ -332,7 +366,13 @@ private class FakeFoodApi : FoodApi {
 
     override suspend fun searchOptions() = optionsResult
 
-    override suspend fun detail(id: String) = detailResult ?: Result.failure(IllegalStateException("not found"))
+    val detailsById = mutableMapOf<String, FoodResponse>()
+    val detailsAsked = mutableListOf<String>()
+
+    override suspend fun detail(id: String): Result<FoodResponse> {
+        detailsAsked += id
+        return detailsById[id]?.let { Result.success(it) } ?: detailResult ?: Result.failure(IllegalStateException("not found"))
+    }
 
     override suspend fun barcode(code: String) = barcodeResult
 
@@ -359,9 +399,19 @@ private class FakeFoodCacheDao : FoodCacheDao {
 
     override suspend fun getByBarcode(barcode: String) = rows.value.values.firstOrNull { it.barcode == barcode }
 
-    override suspend fun search(pattern: String, limit: Int): List<FoodCacheEntity> {
-        val needle = pattern.trim('%')
-        return rows.value.values.filter { needle in it.searchText }.take(limit)
+    override suspend fun searchable(): List<FoodCacheSearchRow> =
+        rows.value.values
+            .sortedWith(compareByDescending<FoodCacheEntity> { it.favorite }.thenByDescending { it.lastUsedAtEpochMs ?: Long.MIN_VALUE })
+            .map { FoodCacheSearchRow(it.id, it.searchText, it.favorite, it.lastUsedAtEpochMs) }
+
+    override suspend fun getAll(ids: List<String>): List<FoodCacheEntity> = ids.mapNotNull { rows.value[it] }
+
+    override suspend fun trim(keep: Int) {
+        val kept = rows.value.values.filterNot { it.favorite }
+            .sortedByDescending { it.lastUsedAtEpochMs ?: Long.MIN_VALUE }
+            .take(keep)
+            .mapTo(HashSet()) { it.id }
+        rows.value = rows.value.filterValues { it.favorite || it.id in kept }
     }
 
     override fun observeFavorites(): Flow<List<FoodCacheEntity>> =
@@ -377,4 +427,73 @@ private class FakeFoodCacheDao : FoodCacheDao {
     override suspend fun deleteAllButFavorites() {
         rows.value = rows.value.filterValues { it.favorite }
     }
+}
+
+class LongTailFoodCacheTest : CoroutineTest() {
+    private val api = FakeFoodApi()
+    private val cache = FakeFoodCacheDao()
+    private val logged = MutableStateFlow<List<LoggedFood>>(emptyList())
+    private val loggedFoods = object : LoggedFoods {
+        override fun observe(limit: Int): Flow<List<LoggedFood>> = logged.map { it.take(limit) }
+    }
+    private val longTail = LongTailFoodCache(loggedFoods, api, cache)
+
+    @Test
+    fun fetchesTheCatalogFoodsThePhoneLacksAndNoOthers() = runUnitTest {
+        api.detailsById += "oats" to food("oats", "Oats, raw")
+        cache.upsert(food("eggs", "Egg, whole, raw").toDomain().toCacheRow(lastUsedAt = 1L, favorite = false))
+        logged.value = listOf(logged("oats", at = 30L), logged("eggs", at = 20L), logged(null, at = 10L, custom = "brownie"))
+
+        assertTrue(longTail.sync().isSuccess)
+
+        assertEquals(listOf("oats"), api.detailsAsked)
+        assertEquals(30L, cache.rows.value.getValue("oats").lastUsedAtEpochMs, "it sits in Recent where the diary has it")
+        assertTrue(longTail.sync().isSuccess)
+        assertEquals(listOf("oats"), api.detailsAsked, "nothing more to ask for")
+    }
+
+    @Test
+    fun offlineItStopsAndTriesAgainNextTime() = runUnitTest {
+        logged.value = List(5) { logged("food-$it", at = 100L - it) }
+
+        assertTrue(longTail.sync().isFailure)
+        assertEquals(3, api.detailsAsked.size, "three failures in a row and it stops")
+
+        repeat(5) { api.detailsById += "food-$it" to food("food-$it", "Rice") }
+        assertTrue(longTail.sync().isSuccess)
+        assertEquals(5, cache.rows.value.size)
+    }
+
+    @Test
+    fun aFoodTheServerNoLongerHasIsNotAskedForAgain() = runUnitTest {
+        api.detailsById += "kept" to food("kept", "Oats, raw")
+        logged.value = listOf(logged("gone", at = 20L), logged("kept", at = 10L))
+
+        longTail.sync()
+        longTail.sync()
+
+        assertEquals(listOf("gone", "kept"), api.detailsAsked)
+    }
+
+    private fun food(id: String, name: String) = FoodResponse(
+        id = id,
+        source = "usda_sr",
+        name = name,
+        per100g = NutrientsDto(kcal = 100.0),
+    )
+
+    private fun logged(foodId: String?, at: Long, custom: String? = null) = LoggedFood(
+        latest = LogItem(
+            id = "entry-$foodId-$custom",
+            day = LocalDate(2026, 10, 25),
+            slot = MealSlot.Lunch,
+            loggedAt = Instant.fromEpochMilliseconds(at),
+            name = foodId ?: custom.orEmpty(),
+            precision = Precision.Estimate,
+            method = LogMethod.Search,
+            foodId = foodId,
+            customFoodId = custom,
+        ),
+        times = 1,
+    )
 }

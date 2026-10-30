@@ -47,6 +47,8 @@ class FoodSearchViewModelTest : CoroutineTest() {
     private val mealPicks = FakeMealPicks()
     private val optionsTelemetry = RecordingSearchOptionsTelemetry()
     private val submittedFoods = FakeSubmittedFoods()
+    private val loggedFoods = FakeLoggedFoods()
+    private val searchPicks = FakeSearchPicks()
 
     private fun vm(
         route: FoodSearchRoute = FoodSearchRoute(slot = MealSlot.Dinner),
@@ -71,6 +73,8 @@ class FoodSearchViewModelTest : CoroutineTest() {
         searchOptionsEnabled = searchOptionsFlag(optionsOn),
         optionsTelemetry = optionsTelemetry,
         submittedFoods = submittedFoods,
+        loggedFoods = loggedFoods,
+        searchPicks = searchPicks,
     )
 
     private fun TestScope.events(vm: FoodSearchViewModel): List<SearchEvent> {
@@ -237,6 +241,32 @@ class FoodSearchViewModelTest : CoroutineTest() {
 
         assertEquals(listOf<SearchEvent>(SearchEvent.OpenFoodDetail(FoodRef.Catalog("rice"), PickSource.Search, LoggerFixtures.today, MealSlot.Dinner)), events)
         assertTrue(diary.added.isEmpty())
+    }
+
+    @Test
+    fun whatIsChosenFromResultsIsLearnedForTheWordsTyped() = runUnitTest {
+        val vm = vm()
+        val rows = searched(vm, query = "Rice ")
+
+        vm.takeAction(SearchAction.FoodNameTapped(rows.first { it.key == "f:brown-rice" }))
+        vm.takeAction(SearchAction.AddTapped(rows.first { it.key == "f:brown-rice" }))
+        settle()
+
+        assertEquals(listOf(Triple("Rice", "f:brown-rice", 0.5), Triple("Rice", "f:brown-rice", 1.0)), searchPicks.chosen)
+        assertEquals("f:brown-rice", assertIs<SearchBody.Results>(vm.state.body).rows.first().key, "chosen enough to come first")
+    }
+
+    @Test
+    fun nothingIsLearnedWithoutWordsTyped() = runUnitTest {
+        val vm = vm()
+        settle()
+        val banana = assertIs<SearchBody.Browse>(vm.state.body).recent.first()
+
+        vm.takeAction(SearchAction.AddTapped(banana))
+        settle()
+
+        assertEquals(1, diary.added.size)
+        assertTrue(searchPicks.chosen.isEmpty())
     }
 
     @Test
@@ -514,6 +544,8 @@ class FoodSearchViewModelTest : CoroutineTest() {
             searchOptionsEnabled = searchOptionsFlag(false),
             optionsTelemetry = optionsTelemetry,
             submittedFoods = submittedFoods,
+            loggedFoods = loggedFoods,
+            searchPicks = searchPicks,
         )
         val rice = searched(vm).first()
 

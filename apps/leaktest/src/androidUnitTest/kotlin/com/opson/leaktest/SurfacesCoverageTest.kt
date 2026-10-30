@@ -122,7 +122,7 @@ class SurfacesCoverageTest {
             ),
             "LoggerLeakSurfaces" to listOf(
                 "add-sheet", "add-sheet-expanded", "add-sheet-uncategorized",
-                "search-full", "search-browse", "search-saved-meals", "search-pick-for-meal", "search-tabs", "search-options",
+                "search-full", "search-personal", "search-browse", "search-saved-meals", "search-pick-for-meal", "search-tabs", "search-options",
                 "search-empty",
                 "logger-describe", "logger-describe-voice", "logger-describe-edited", "logger-describe-quick-add", "logger-describe-find",
                 "logger-saved",
@@ -164,7 +164,7 @@ class SurfacesCoverageTest {
             "onboarding-goal-rate", "onboarding-goal-overview",
             "today", "today-big-day", "today-added", "today-untracked", "today-low-logging", "today-groups-off", "today-past", "today-future",
             "today-day-menu", "today-day-menu-armed", "item-sheet", "day-close", "day-close-big-day",
-            "add-sheet-expanded", "search-full", "search-browse", "search-saved-meals", "search-pick-for-meal",
+            "add-sheet-expanded", "search-full", "search-personal", "search-browse", "search-saved-meals", "search-pick-for-meal",
             "logger-describe", "logger-saved", "food-detail", "logger-photo", "logger-photo-swap", "submit-food-review",
             "food-report-values", "submit-food-builder-review", "check-food-differs",
             "foods", "foods-create-meal", "foods-add-food",
