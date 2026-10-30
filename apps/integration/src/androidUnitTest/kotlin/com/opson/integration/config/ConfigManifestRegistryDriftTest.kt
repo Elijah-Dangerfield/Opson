@@ -3,6 +3,7 @@ package com.opson.integration.config
 import com.opson.features.logger.impl.BarcodeScanEnabled
 import com.opson.features.builder.BuildersEnabled
 import com.opson.features.logger.impl.FoodReportEnabled
+import com.opson.features.logger.impl.LabelModelEnabled
 import com.opson.features.upgrade.LatestVersionCode
 import com.opson.features.upgrade.MaintenanceMessage
 import com.opson.features.upgrade.MaintenanceMode
@@ -344,6 +345,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     CelebrationsReleaseFlag(appConfigMap),
     DeviceCheckEnabled(appConfigMap),
     PlayIntegrityCloudProject(appConfigMap),
+    LabelModelEnabled(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"

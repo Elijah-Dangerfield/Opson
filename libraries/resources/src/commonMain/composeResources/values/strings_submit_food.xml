@@ -35,16 +35,17 @@
     <string name="submit_choose">Choose from library</string>
     <string name="submit_read">Read the label</string>
     <string name="submit_photo_failed">That photo couldn't be opened. Try another one.</string>
-    <string name="submit_privacy">The photos go to our AI provider to read the label, and to Opson so a reviewer can check the food before anyone else sees it. Only you and the reviewer see the photos.</string>
+    <string name="submit_privacy">Your phone reads the label. The photos and the text it read go to Opson so a person can check the food before anyone else sees it. Only you and that person see the photos.</string>
 
     <!-- Reading -->
     <string name="submit_reading">Reading the label</string>
-    <string name="submit_reading_body">This can take up to a minute.</string>
 
     <!-- Review -->
     <string name="submit_review_title">Check what we read</string>
     <string name="submit_review_body">Fix anything that doesn't match the pack.</string>
-    <string name="submit_notice_unavailable">We can't read labels right now. Fill it in from your photos.</string>
+    <string name="submit_notice_unavailable">Your phone couldn't read the label. Fill it in from your photos.</string>
+    <string name="submit_notice_read">Your phone read the label. Check the marked fields against the pack.</string>
+    <string name="submit_notice_partly">Your phone read part of the label. Fill in the rest from your photos.</string>
     <string name="submit_notice_by_hand">Fill it in from your photos.</string>
     <string name="submit_field_name">Name</string>
     <string name="submit_field_brand">Brand</string>
@@ -129,15 +130,10 @@
     <string name="submit_saving_save">Saving it</string>
 
     <!-- Calm ends -->
-    <string name="submit_no_label_title">No nutrition label in that photo</string>
+    <string name="submit_no_label_title">Couldn't find the nutrition label</string>
     <string name="submit_no_label_body">Take the second photo of the nutrition facts panel, straight on.</string>
     <string name="submit_retake_label">Retake the label</string>
     <string name="submit_type_it_in">Type it in</string>
-    <string name="submit_too_many_title">That's a lot of labels for now</string>
-    <string name="submit_too_many_body">Try again in a little while, or type this one in.</string>
-    <string name="submit_failed_title">Couldn't read the label</string>
-    <string name="submit_failed_body">Try again in a moment, or type it in.</string>
-    <string name="submit_failed_offline">You're offline. Connect and try again, or type it in.</string>
     <string name="submit_try_again">Try again</string>
     <string name="submit_camera_title">The camera is off</string>
     <string name="submit_camera_body_ask">Allow the camera to photograph the pack, or choose photos from your library.</string>

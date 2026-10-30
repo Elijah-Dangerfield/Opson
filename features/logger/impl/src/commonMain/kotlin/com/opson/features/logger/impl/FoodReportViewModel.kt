@@ -11,6 +11,7 @@ import com.opson.libraries.prompts.PromptEvent
 import com.opson.libraries.prompts.PromptEvents
 import com.opson.libraries.scanner.CameraPermission
 import com.opson.libraries.scanner.CameraPermissions
+import com.opson.libraries.scanner.MealPhoto
 import com.opson.libraries.scanner.MealPhotoPicker
 import com.opson.libraries.scanner.PhotoPickResult
 import kotlinx.coroutines.launch
@@ -33,6 +34,7 @@ class FoodReportViewModel(
     private val reports: FoodReports,
     private val permissions: CameraPermissions,
     private val promptEvents: PromptEvents,
+    private val phoneReader: PhoneLabelReader,
     picker: MealPhotoPicker,
     policySource: VisibilityPolicySource,
 ) : SEAViewModel<FoodReportState, FoodReportEvent, FoodReportAction>(
@@ -61,7 +63,9 @@ class FoodReportViewModel(
             }
             is FoodReportAction.ReasonPicked -> action.change { copy(reason = action.reason, problem = problem.keepGone()) }
             is FoodReportAction.FieldTyped -> if (action.key in FoodReportStateBuilder.FIELDS) {
-                action.change { copy(fields = fields + (action.key to FoodReportStateBuilder.typed(action.key, action.text))) }
+                action.change {
+                    copy(fields = fields + (action.key to FoodReportStateBuilder.typed(action.key, action.text)), fromPhoto = fromPhoto - action.key)
+                }
             }
             is FoodReportAction.NoteTyped -> action.change { copy(note = FoodReportStateBuilder.note(action.text)) }
             FoodReportAction.TakePhotoTapped -> when (val permission = permissions.current()) {
@@ -79,12 +83,31 @@ class FoodReportViewModel(
             }
             FoodReportAction.OpenSettingsTapped -> permissions.openSettings()
             is FoodReportAction.PhotoAnswered -> when (val result = action.result) {
-                is PhotoPickResult.Picked -> action.change { copy(photo = result.photo, photoFailed = false) }
+                is PhotoPickResult.Picked -> {
+                    action.change { copy(photo = result.photo, photoFailed = false) }
+                    readLabel(result.photo)
+                }
                 PhotoPickResult.Cancelled -> Unit
                 PhotoPickResult.Failed -> action.change { copy(photoFailed = true) }
             }
-            FoodReportAction.RemovePhotoTapped -> action.change { copy(photo = null, photoFailed = false) }
+            is FoodReportAction.LabelReadArrived -> if (model.photo == action.photo && action.facts != null) {
+                action.change { FoodReportStateBuilder.fromLabel(this, action.facts) }
+            }
+            FoodReportAction.RemovePhotoTapped -> action.change { copy(photo = null, photoFailed = false, fromPhoto = emptySet()) }
             FoodReportAction.SendTapped -> send(action)
+        }
+    }
+
+    /**
+     * Reads the label photo on the phone, as Add a packaged food does, to fill in the numbers the
+     * person has not typed. Nothing is sent until they send the report, and the photo goes with it
+     * for whoever reviews the report.
+     */
+    private fun readLabel(photo: MealPhoto) {
+        viewModelScope.launch {
+            val draft = (phoneReader.read(photo.jpeg) as? PhoneRead.Read)?.reading?.draft
+            val facts = draft?.takeIf { SubmitFoodForm.partly(it) && it.layout.panelFound }?.facts
+            takeAction(FoodReportAction.LabelReadArrived(photo, facts))
         }
     }
 

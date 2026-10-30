@@ -1,6 +1,7 @@
 package com.opson
 
 import com.opson.libraries.foods.IosDeviceSignals
+import com.opson.libraries.foods.LabelModelBridge
 import com.opson.libraries.identity.auth.AppleSignInCoordinator
 import com.opson.libraries.identity.auth.SecureSessionStorage
 import com.opson.libraries.navigation.FileSharePresenter
@@ -40,6 +41,9 @@ abstract class IosAppComponent(
     // The Swift `IOSDeviceSignals` (a Keychain install key and DeviceCheck tokens), passed in from
     // `iOSApp.swift`, sent only with contribution requests. Android uses Play Integrity via anvil.
     private val deviceSignals: IosDeviceSignals,
+    // The Swift `IOSLabelModelBridge` (Foundation Models on iOS 26, a second opinion on a label's
+    // OCR text behind labels.onDeviceModel), passed in from `iOSApp.swift`. Android has no model yet.
+    private val labelModelBridge: LabelModelBridge,
 ) : AppComponent {
 
     @Provides
@@ -62,6 +66,9 @@ abstract class IosAppComponent(
 
     @Provides
     fun provideDeviceSignals(): IosDeviceSignals = deviceSignals
+
+    @Provides
+    fun provideLabelModelBridge(): LabelModelBridge = labelModelBridge
 }
 
 
@@ -75,4 +82,5 @@ expect fun create(
     widgetBridge: WidgetBridge,
     textRecognitionBridge: TextRecognitionBridge,
     deviceSignals: IosDeviceSignals,
+    labelModelBridge: LabelModelBridge,
 ): IosAppComponent

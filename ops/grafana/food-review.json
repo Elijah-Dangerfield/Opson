@@ -774,7 +774,7 @@
             "type": "loki",
             "uid": "grafanacloud-logs"
           },
-          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"food_add.read\" | outcome=\"read\" [$__interval]))",
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"food_add.read\" | outcome=~\"read|on_phone|partly\" [$__interval]))",
           "legendFormat": "label read",
           "editorMode": "code",
           "queryType": "range"
@@ -896,7 +896,7 @@
     {
       "type": "table",
       "title": "How reads end",
-      "description": "Read: the form filled in. no_label: the second photo had no panel. unavailable: no model key on the server, so the form opened empty. Loki keeps 31 days, so this panel cannot look further back.",
+      "description": "on_phone: the phone read the panel and filled the form. partly: some of it. no_label: the phone found no panel. unavailable: the phone could not read text, so the form opened empty. read, too_many, offline and error come from builds before v1, which asked the server. Loki keeps 31 days, so this panel cannot look further back.",
       "datasource": {
         "type": "loki",
         "uid": "grafanacloud-logs"
