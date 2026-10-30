@@ -2,6 +2,7 @@ package com.opson.libraries.diary
 
 import com.opson.libraries.nutrition.BaselineEnvironment
 import com.opson.libraries.nutrition.BaselineInputs
+import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.Goal
 import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.GoalBaseline
@@ -40,7 +41,12 @@ object GoalBook {
             mirror(stored, settings.weightGoal) != settings.weightGoal -> reconcile(stored, settings)
             else -> stored
         }
-        return goals.map { goal -> if (goal.drivesTarget && !stampMatches(goal, settings.targets)) goal.copy(setsTarget = false) else goal }
+        // While pregnant or breastfeeding Opson plans no weight change, so a calorie goal set before
+        // stops setting the target and reads as the person's own; Use my goal brings it back after.
+        val stage = settings.bodyStage != BodyStage.None
+        return goals.map { goal ->
+            if (goal.drivesTarget && (stage || !stampMatches(goal, settings.targets))) goal.copy(setsTarget = false) else goal
+        }
     }
 
     /** The active goal that sets the calorie target, if any. */

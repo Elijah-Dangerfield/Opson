@@ -175,6 +175,16 @@ class GoalBookTest {
     }
 
     @Test
+    fun whilePregnant_aCalorieGoalStopsSettingTheTarget() {
+        val (stamped, targets) = GoalTargets.apply(weight, Targets.Default, scaleMacros = false)!!
+        val saved = GoalBook.withGoals(Settings(targets = targets), listOf(stamped))
+        val pregnant = saved.copy(bodyStage = com.opson.libraries.nutrition.BodyStage.Pregnant)
+        assertNull(GoalBook.driving(pregnant))
+        assertFalse(GoalBook.goals(pregnant).single().setsTarget)
+        assertTrue(GoalBook.driving(saved) != null, "and sets it again once that's over")
+    }
+
+    @Test
     fun onlyOneGoalSetsTheTarget() {
         val balance = Goal("balance", GoalType.EnergyBalance(-300), start)
         val both = GoalBook.withGoal(GoalBook.withGoals(Settings(), listOf(weight)), balance)

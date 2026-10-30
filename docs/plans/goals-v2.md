@@ -37,7 +37,7 @@ agent reworking onboarding's "Do you want to set a goal?". Both build on the API
 
 ### A goal owns its inputs: the baseline
 
-A goal that sets a calorie target stores a **baseline**: the typical day's burn (TDEE) it was set
+A goal that sets a calorie target stores a baseline, the typical day's burn (TDEE) it was set
 against and the inputs that produced it. The day's target is a pure function of the goal and its
 baseline, so the same goal always gives the same target, on any phone, any day:
 
@@ -82,8 +82,15 @@ breastfeeding, body fat.
 The offer says what changed, the old and new daily target, and gives **Use the new target** or
 **Keep my current target**. Keep stores the inputs declined, and the same inputs are never offered
 again; a further change is. Nothing about the target changes until the person answers. It shows on
-Targets as a dialog when Targets opens, and on Today as a prompt (`goal_recalculated`) that opens
-Targets.
+Targets as a dialog when Targets opens, and over Today as its own dialog (`GoalRecalculationRoute`),
+opened by a screen prompt (`goal_recalculated`) so the prompt rules pace it: a dialog prompt would
+end for good after its first answer, and each recalculation is a new question. Closing either
+without a choice asks again later.
+
+To keep the flow and the repository from disagreeing (which would offer a recalculation the moment
+a goal is saved), both build the inputs through `GoalBaselines.inputs` from the same
+`BaselineEnvironment`: the account's resting source, own number, "Add activity" and "Count digesting
+food", and the health app's readings (`HealthRepository.goalReadings`).
 
 Considered: applying small changes silently. Rejected: the owner asked that people know everything
 is taken into account, and a target that moves by itself is the bug in item 2.
@@ -124,9 +131,12 @@ adults (18+):   BF% = 1.20 x BMI + 0.23 x age - 10.8 x sex - 5.4      (sex: 1 ma
 
 No height or age and no body fat: no limit, and the note says what would give one.
 
-The aim still never goes under the low-goal line (1,200 / 1,500 / 1,350). A pace that would need it
-is not offered, and the step says so, as before. That is the one place the engine stops, and it is
-about how little someone eats, not how fast they lose. All lines are `TODO(clinician)`.
+A goal's target is never worked out under 1,200 kcal, for anyone (`GoalTargets.WORKED_OUT_FLOOR_KCAL`,
+the same line a set deficit already stops at). Under the person's own low-goal line (1,500 for a
+man, 1,350 when sex isn't said) the target is set and the low-goal note shows with Find support. A
+pace that would need less than 1,200 is not offered, and the step says so. That is the one place the
+engine stops, and it is about how little someone eats, not how fast they lose: holding a 150 kg man
+to 1,500 would have capped him under 1% a week. All lines are `TODO(clinician)`.
 
 Considered: blocking past 1%. Rejected by the owner. Considered: a hard block at the fat limit.
 Rejected: it is an estimate with wide error, and the person's own judgment wins.
@@ -226,8 +236,8 @@ deep, so the list is replaced whole, which is what we want.
 
 Pure, in `:libraries:nutrition`:
 
-- `FatLoss.limitKcal(...)`, `FatLoss.bodyFat(...)`: the limit and where body fat came from.
-- `GoalPace.assess(...)`, `GoalPace.rates(...)`: tier per pace, the stepper's paces.
+- `FatLoss.limitFor(...)`, `FatLoss.bodyFat(...)`: the limit and where body fat came from.
+- `GoalPace.assess(...)`, `GoalPace.fastestKgPerWeek(...)`: tier per pace, and how far the stepper goes.
 - `GoalBaselines`: the typical day's burn, the comparison, the threshold rule.
 - `GoalTargets.of(goal, ...)`: the aim and band, and `apply` to Targets.
 - `WeeklyBudgets.of(...)`: the week, its counted days, today's adjusted target.
@@ -246,21 +256,24 @@ previews.
 - **No burn known** (no details): a target goal has no baseline; Targets says what is missing, as
   before. The goal is kept and starts setting the target once a baseline can be worked out (that is
   a recalculation offer with "your details are complete" as the reason).
-- **Pregnant or breastfeeding:** no weight or energy balance goal is offered; an existing one is
-  paused with the reason shown.
+- Pregnant or breastfeeding: no weight or energy balance goal is offered, and one set before stops
+  setting the target (it reads as the person's own, so nothing is locked); Use my goal brings it
+  back afterwards.
 - **Goal reached** (within 0.5 kg): status stays active; the UI may offer keep. Never failure words.
-- **Date passed:** the forecast is a projection; nothing expires.
+- Date passed: the forecast is a projection; nothing expires.
 - **A day group style on Targets** when a goal is applied: the goal replaces the style with its band,
   and says so in the confirm when it would.
 - **Partial days** (a food with no calories) are not counted in a week; they are not skipped
   either: they just don't count.
-- **Week start changed mid-week:** the week recomputes from the new start; nothing is stored.
-- **Modes:** nothing in the engine formats a number. Every surface resolves through the policy.
+- Week start changed mid-week: the week recomputes from the new start; nothing is stored.
+- Modes: nothing in the engine formats a number. Every surface resolves through the policy.
 - **Celebrations** stay about showing up and never read a goal (2026-10-29). The engine gives
   goal-met days for Track every day and Meals only; nothing about calories reaches a streak.
 
 ## Not in this package
 
-The goal UI (charts, animations, Today's burn line, typed inputs, macro split ranges), onboarding's
-"Do you want to set a goal?", the steps data source, and wiring Trends' calendar and the recap to
-`GoalRepository` beyond what Targets needs. The API is built for them.
+The goal UI (charts, animations, Today's burn line, typed inputs, macro split ranges, the Daily or
+Weekly average choice and the band picker), onboarding's "Do you want to set a goal?", the steps data
+source, and wiring Trends' calendar, the recap and Today's target to `GoalRepository` (today they
+read Targets, which a goal writes, so a daily goal already reads right; a weekly goal's adjusted
+day needs `GoalRepository.week()`). The API is built for them, and `GoalFixtures` has every state.

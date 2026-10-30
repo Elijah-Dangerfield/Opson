@@ -67,10 +67,12 @@ tap outside and Back count as Not now). Counts live on the phone, per account, i
 | `builder_declined` | dialog, once ever | Opson declined their application in the last 14 days and this phone hasn't shown it on the Builders page | More › Builders | `release.builders` |
 | `celebration` | screen, once per milestone | a milestone for showing up was reached in the last 7 days and not celebrated on this phone; right after wrapping up the day (`DayClosed`) or as Today opens; offered after numbers have been hard, gently | A milestone's celebration (`CelebrationRoute`) | `release.celebrations` |
 | `set_up_goal` | card, up to 3 times, 3 days apart | the account never answered the weight goal, the mode shows weight, not pregnant or breastfeeding; not after numbers have been hard | the goal flow (`GoalSetupRoute`) | `release.onboardingSetup` |
+| `goal_recalculated` | screen, any number of times, a day apart | the goal setting the target has a recalculation to offer (`GoalRepository.recalculation`): something its typical day is worked out from changed enough to move the target, and the person hasn't kept their target through these inputs | its own dialog over Today (`GoalRecalculationRoute`): what changed, the target now and with the update, Use the new target or Keep my current target | `release.onboardingSetup` |
 
 A **screen** prompt (`PromptPresentation.Screen`) draws itself: the host opens the route its
 `screen()` names, and that screen owns its buttons, so nothing is counted as accepted or
-dismissed. `celebration` is the one: its own counts are no limit (each milestone celebrates once,
+dismissed. `goal_recalculated` is one too, because each recalculation is its own question and a
+dialog prompt ends for good once accepted. `celebration` is the other: its own counts are no limit (each milestone celebrates once,
 in `CelebrationStore`), but it answers to every global rule, so it never lands on another prompt
 and takes the session's one showing. Its priority, `PromptPriority.CELEBRATION`, puts it above a
 moment's offer.

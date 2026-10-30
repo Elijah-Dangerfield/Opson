@@ -43,7 +43,8 @@ class WeightGoalTest {
         assertEquals(300.0 * 7 / KCAL_PER_KG, fastest, 1e-9)
         val rates = WeightGoals.rates(GoalDirection.Lose, WeightUnit.Kg, 80.0, 1500, BodySex.Female)
         rates.forEach { rate ->
-            val aim = WeightGoals.aimKcal(WeightGoal(GoalDirection.Lose, kgPerWeek = rate), 1500, BodySex.Female)
+            val type = GoalType.Weight(GoalDirection.Lose, kgPerWeek = rate)
+            val aim = GoalTargets.aimKcal(type, GoalBaseline(burnKcal = 1500, sex = BodySex.Female))!!
             assertTrue(aim >= 1200, "a pace of $rate kg a week aims at $aim")
         }
         // Already at the line: no pace at all, never a pace under it.
@@ -94,25 +95,12 @@ class WeightGoalTest {
     }
 
     @Test
-    fun theAim_isTheBurnPlusTheGoal_plusWhatPregnancyNeeds() {
-        val lose = WeightGoal(GoalDirection.Lose, kgPerWeek = 0.5)
-        assertEquals(1950, WeightGoals.aimKcal(lose, 2500, BodySex.Male))
-        assertEquals(2500, WeightGoals.aimKcal(WeightGoal(GoalDirection.Maintain), 2500, BodySex.Male))
-        assertEquals(2340, WeightGoals.aimKcal(WeightGoal(GoalDirection.JustTrack), 2000, BodySex.Female, BodyStage.Pregnant))
-    }
-
-    @Test
-    fun applying_setsARangeOnTheAim_andTheGoalDrivesItUntilItIsMovedByHand() {
+    fun aGoalDrivesTheTargetsItWrote_untilTheyAreMovedByHand() {
         val goal = WeightGoal(GoalDirection.Lose, targetKg = 75.0, kgPerWeek = 0.5, startKg = 80.0, startDate = start)
-        val deficit = Targets.Default.useDeficit(2500)
-        val (stamped, targets) = WeightGoals.apply(goal, deficit, aimKcal = 1950, scaleMacros = true)
+        val targets = Targets.Default.withBand(1950, 1850, 2050)
+        val stamped = goal.copy(targetsKcal = targets.energyKcal)
 
-        assertEquals(TargetStyle.Range, targets.style)
-        assertEquals(1950, targets.energyKcal)
-        assertEquals(Targets.Default.maxKcal - Targets.Default.minKcal, targets.maxKcal - targets.minKcal, "the width is kept")
-        assertEquals(1950, stamped.targetsKcal)
         assertTrue(stamped.drives(targets))
-
         assertFalse(stamped.drives(targets.raise()), "moved by hand")
         assertFalse(stamped.drives(targets.useExact()), "another style")
         assertFalse(goal.drives(targets), "a goal that never wrote one")

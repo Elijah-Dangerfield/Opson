@@ -1,6 +1,10 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.features.settings.impl
 
 import com.opson.features.onboarding.OnboardingSetupEnabled
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.ProviderSummaryEnabled
 import com.opson.libraries.config.AppConfigMap
@@ -313,6 +317,7 @@ fun <E : Any> TestScope.eventsOf(vm: SEAViewModel<*, E, *>): List<E> {
 }
 
 /** The goal repository as Targets reads it: a recalculation to offer and the latest weigh-in, both settable. */
+@HiddenFromObjC
 class FakeGoalRepository(recalculation: Recalculation? = null, weightKg: Double? = null) : GoalRepository {
     val recalculationFlow = MutableStateFlow(recalculation)
     val inputsFlow = MutableStateFlow<BaselineInputs?>(weightKg?.let { GoalFixtures.inputs.copy(weightKg = it) })

@@ -6,7 +6,6 @@ import kotlinx.datetime.plus
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
-import kotlin.math.max
 import kotlin.math.roundToInt
 
 /** Which way a weight goal points. [None] is never asked; [JustTrack] is a real answer: no goal. */
@@ -167,29 +166,6 @@ object WeightGoals {
         GoalDirection.Lose -> targetKg <= currentKg - AT_GOAL_KG
         GoalDirection.Gain -> targetKg >= currentKg + AT_GOAL_KG
         else -> true
-    }
-
-    /**
-     * The day's energy aim: a typical day's burn ([burnKcal]), plus what pregnancy or
-     * breastfeeding needs, plus the goal's [WeightGoal.dailyKcal]. A loss never takes it under the
-     * low-goal line for [sex], whatever the pace says.
-     */
-    fun aimKcal(goal: WeightGoal, burnKcal: Int, sex: BodySex?, stage: BodyStage = BodyStage.None): Int {
-        val aim = burnKcal + stage.extraKcal + goal.dailyKcal
-        val floored = if (goal.direction == GoalDirection.Lose) max(aim, GoalSafety.lowGoalKcal(sex)) else aim
-        return (floored / 10.0).roundToInt() * 10
-    }
-
-    /**
-     * [targets] set from [goal]: a range of the same width on the aim ([aimKcal]), macros scaled
-     * with it when [scaleMacros], and the goal stamped with the aim it wrote so [WeightGoal.drives]
-     * can tell when someone changes it by hand. A fixed range rather than a set deficit, so the
-     * day's target is the same morning and evening and in every mode; the deficit it means is said
-     * where calories show.
-     */
-    fun apply(goal: WeightGoal, targets: Targets, aimKcal: Int, scaleMacros: Boolean): Pair<WeightGoal, Targets> {
-        val set = targets.useRange().withEnergy(aimKcal, scaleMacros)
-        return goal.copy(targetsKcal = set.energyKcal) to set
     }
 
     /** "0.25 lb" or "0.2 kg": a pace or a distance. Weight is a number: the caller checks it is on show. */

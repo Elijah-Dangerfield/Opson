@@ -376,6 +376,8 @@ class TargetsViewModel(
     /** The dialog an edit from [current] to [next] needs first, or null when it can go ahead. */
     private fun gate(current: Settings, next: Settings): TargetsDialogKind? {
         if (energyOf(current.targets) == energyOf(next.targets)) return null
+        // No goal card there, so nothing to ask about (TargetsStateBuilder.goalCard).
+        if (current.onboarding.hard) return null
         val goal = GoalBook.calorieGoal(current)?.takeIf { it.isActive } ?: return null
         if (goal.drivesTarget) return TargetsDialogKind.ChangeTarget
         val preset = current.numbers.preset
