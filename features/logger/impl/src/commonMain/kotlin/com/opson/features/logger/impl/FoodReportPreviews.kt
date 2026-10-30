@@ -53,7 +53,7 @@ private fun FoodReportCaloriesPreview() = Report(
 @Composable
 private fun FoodReportFromPhotoPreview() = Report(
     monster.copy(
-        reason = FoodReportReason.WrongNutrients,
+        picked = setOf(FoodReportReason.WrongNumbers),
         fields = mapOf(FoodReportStateBuilder.KCAL to "10", FoodReportStateBuilder.CARBS to "3"),
         fromPhoto = setOf(FoodReportStateBuilder.KCAL, FoodReportStateBuilder.CARBS),
     ),

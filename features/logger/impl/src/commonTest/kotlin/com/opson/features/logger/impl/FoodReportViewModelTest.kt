@@ -88,7 +88,7 @@ class FoodReportViewModelTest : CoroutineTest() {
     fun aLabelPhotoFillsTheNumbersLeftEmptyForTheAmountOnScreen() = runUnitTest {
         recognizer.lines = GRANOLA_PANEL
         val vm = vm(route = FoodReportRoute(foodId = "f2", name = "Granola", amountText = "1 bar", amountGrams = 40))
-        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.WrongNutrients))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.WrongNumbers))
         vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.KCAL, "150"))
 
         vm.takeAction(FoodReportAction.PhotoAnswered(PhotoPickResult.Picked(MealPhoto(byteArrayOf(8)))))
@@ -110,7 +110,7 @@ class FoodReportViewModelTest : CoroutineTest() {
     fun aPhotoWithNoPanelFillsNothing() = runUnitTest {
         recognizer.lines = listOf("Granola", "Baked in small batches")
         val vm = vm()
-        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.WrongCalories))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.WrongNumbers))
         vm.takeAction(FoodReportAction.PhotoAnswered(PhotoPickResult.Picked(MealPhoto(byteArrayOf(8)))))
 
         val values = vm.stateFlow.value.values!!
