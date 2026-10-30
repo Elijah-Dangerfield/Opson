@@ -121,6 +121,15 @@ object GoalStatuses {
         }
     }
 
+    /**
+     * Every active goal on [date] as it is wrapped up (Wrap up the day, the recap): judged as if
+     * the day were closed, with its week after the day counts and, where `goalStreakEnabled` is on
+     * and the goal may have one, its streak. [days] reaches back to the start of [date]'s week, and
+     * to [GoalStreaks.from] for a streak.
+     */
+    fun wrapUp(settings: Settings, days: Map<LocalDate, GoalDayFacts>, date: LocalDate, today: LocalDate, weightKg: Double?): List<GoalWrapUp> =
+        GoalWrapUpBuilder.build(settings, days, date, today, weightKg)
+
     /** The weight goal's projection from [weightKg] on [today], else from where it started. */
     fun projection(settings: Settings, weightKg: Double?, today: LocalDate): WeightProjection? {
         val goal = GoalBook.weight(settings) ?: return null

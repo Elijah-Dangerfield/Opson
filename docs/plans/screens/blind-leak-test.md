@@ -249,6 +249,7 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `onboarding-meal-times` | onboarding | `onboarding-v2.md`; when meals usually happen, no amounts | no |
 | new | | `day-close-streak`, `today-streak` | today | 2026-10-29, `release.celebrations`; the run once today is wrapped up, and the streak in Today's header. Days showed up, never an amount | yes |
 | new | | `celebration`, `celebration-gentle`, `progress` | today | 2026-10-29, `release.celebrations`; a milestone's celebration with counts and gently, and Your progress | no |
+| new | | `today-goal-weekly`, `day-close-goal` | today | 2026-10-30, a goal set: the week's line, the goal chip, the burned bar's usual-day and burn-goal marks, and Wrap up the day's goal card with its week and streak. Every amount through the policy; Later opens Day close's as it does the rest of the page | yes |
 | new | | `reminders-celebrations` | settings | 2026-10-29, `release.celebrations`; Celebrations and Day counts on Reminders and celebrations | no |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships

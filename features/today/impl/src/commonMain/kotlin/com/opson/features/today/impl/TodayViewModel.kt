@@ -23,6 +23,8 @@ import com.opson.libraries.diary.valueOrNull
 import com.opson.libraries.diary.rememberMainNumber
 import com.opson.libraries.diary.withReading
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.goals.GoalRepository
+import com.opson.libraries.goals.GoalToday
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.GoalsAndEnergyEnabled
@@ -43,6 +45,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -97,6 +100,7 @@ class TodayViewModel(
     private val burnedRepository: BurnedRepository,
     private val cardView: TodayCardViewStore,
     private val nudges: TodayNudgeStore,
+    private val goalRepository: GoalRepository = GoalRepository.None,
 ) : SEAViewModel<TodayState, TodayEvent, TodayAction>(
     initialStateArg = TodayState(day = selectedDay.date.value, dayLabel = RelativeDay.of(selectedDay.date.value, calendar.today())),
 ) {
@@ -246,6 +250,9 @@ class TodayViewModel(
             TodayAction.WeightTapped -> sendEvent(TodayEvent.OpenWeight)
             TodayAction.BurnedFixTapped -> ((state.summary as? TodaySummary.Energy)?.card?.burnedUnavailable)?.let {
                 sendEvent(TodayEvent.OpenBurnedFix(it.fix))
+            }
+            TodayAction.GoalChipTapped -> ((state.summary as? TodaySummary.Energy)?.card?.goalChip)?.let {
+                sendEvent(TodayEvent.OpenGoal(it.goalId))
             }
             else -> selectAction(action)
         }
@@ -547,8 +554,9 @@ class TodayViewModel(
         }
         // Unchanged energy on a date change mustn't rebuild Today with the old day still in place.
         val energy = combine(expended(), burned()) { expended, burned -> expended to burned }.distinctUntilChanged()
-        val extras = combine(cardView(), habits(), now(), nudges.lowLoggingDismissedOn) { view, habits, now, dismissed ->
-            Extras(view, habits, now, dismissed)
+        val goalsIn = combine(goalsToday(), usualBurn()) { goals, usual -> goals to usual }
+        val extras = combine(cardView(), habits(), now(), nudges.lowLoggingDismissedOn, goalsIn) { view, habits, now, dismissed, (goals, usual) ->
+            Extras(view, habits, now, dismissed, goals, usual)
         }
         return combine(days, settingsRepository.settings, energy, weighIns(), extras) { (d, before), settings, (expended, out), weighIns, extra ->
             TodayInputs(
@@ -569,6 +577,8 @@ class TodayViewModel(
                 habits = extra.habits,
                 now = extra.now,
                 nudgeDismissedOn = extra.nudgeDismissedOn,
+                goals = extra.goals,
+                usualBurnKcal = extra.usualBurnKcal,
             )
         }
     }
@@ -578,7 +588,37 @@ class TodayViewModel(
         val habits: LoggingHabits,
         val now: LocalTime,
         val nudgeDismissedOn: LocalDate?,
+        val goals: List<GoalToday>,
+        val usualBurnKcal: Int?,
     )
+
+    /**
+     * Every active goal today, read again when the date turns. Empty until the first answer, so
+     * Today draws without waiting on the week's health readings; a weekly goal's band joins it.
+     */
+    private fun goalsToday(): Flow<List<GoalToday>> =
+        ticker.ticks().map { calendar.today() }.distinctUntilChanged()
+            .flatMapLatest { goalRepository.today() }
+            .onStart { emit(emptyList()) }
+            .distinctUntilChanged()
+
+    /**
+     * What a usual whole day burns ([UsualBurn]) for the burned bar's mark: the median of the last
+     * two weeks' Burned, ending yesterday. Only with `release.goalsAndEnergy`, which draws the bar.
+     */
+    private fun usualBurn(): Flow<Int?> =
+        combine(ticker.ticks().map { calendar.today() }.distinctUntilChanged(), flags()) { today, flags -> today to flags.goalsAndEnergy }
+            .distinctUntilChanged()
+            .flatMapLatest { (today, on) ->
+                if (!on) {
+                    flowOf(null)
+                } else {
+                    burnedRepository.burnedBetween(today.minus(DatePeriod(days = UsualBurn.DAYS)), today.minus(DatePeriod(days = 1)))
+                        .map { UsualBurn.of(it, today) }
+                }
+            }
+            .onStart { emit(null) }
+            .distinctUntilChanged()
 
     /**
      * How the person usually logs, from the four weeks up to today, learned again as meals are

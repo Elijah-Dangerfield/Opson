@@ -4,6 +4,7 @@ import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.DayGoal
 import com.opson.libraries.nutrition.FormatContext
+import com.opson.libraries.nutrition.GoalVerdict
 import com.opson.libraries.nutrition.GroupShape
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ONE_NUMBER_LEEWAY_KCAL
@@ -82,6 +83,10 @@ data class OnTrackCalendar(
     val months: List<CalendarMonth>,
     val page: Int,
     val explained: Boolean = false,
+    /** Days from here on are colored by the goal setting the target; null without one, or in the logged-only calendar. */
+    val goalSince: LocalDate? = null,
+    /** That goal averages over the week, so each day is judged by what its week asked of it. */
+    val goalWeekly: Boolean = false,
 ) {
     val shown: CalendarMonth get() = months[page.coerceIn(0, months.lastIndex)]
 }
@@ -241,6 +246,7 @@ object OnTrack {
         val settings = inputs.settings
         if (!settings.trendsCards.calendar) return null
         val mode = mode(settings, policy, FormatContext(day = inputs.today))
+        val goal = inputs.goal?.takeIf { mode == CalendarMode.Plan }
         val months = monthStarts(inputs.today).map { first ->
             val next = first.plus(DatePeriod(months = 1))
             val days = generateSequence(first) { it.plus(DatePeriod(days = 1)) }.takeWhile { it < next }.map { date ->
@@ -248,8 +254,13 @@ object OnTrack {
                 val burn = inputs.burnedByDay?.get(date)?.totalKcal
                 val opened = opens(Metric.Calories, day) && (!usesBurn(settings.targets) || opens(Metric.EnergyOut, day))
                 val standing = standingOf(day, inputs.today, settings, mode, opened, burn)
-                val direction = direction(settings.targets, date, settings.numbers.preset, burn)
-                CalendarDay(date, standing, tone(standing, direction), isToday = date == inputs.today)
+                val byGoal = goal?.takeIf { date >= it.start && opened }?.let { goalStanding(day, it) }
+                if (byGoal != null) {
+                    CalendarDay(date, byGoal.first, byGoal.second, isToday = date == inputs.today)
+                } else {
+                    val direction = direction(settings.targets, date, settings.numbers.preset, burn)
+                    CalendarDay(date, standing, tone(standing, direction), isToday = date == inputs.today)
+                }
             }.toList()
             val blanks = (first.dayOfWeek.isoDayNumber - settings.weekStart.isoDayNumber + DAYS_IN_WEEK) % DAYS_IN_WEEK
             CalendarMonth(
@@ -263,11 +274,33 @@ object OnTrack {
         }
         return OnTrackCalendar(
             mode = mode,
-            direction = planDirection(settings, inputs.today, inputs.burnedByDay?.get(inputs.today)?.totalKcal ?: inputs.burnedKcal),
+            direction = goal?.direction ?: planDirection(settings, inputs.today, inputs.burnedByDay?.get(inputs.today)?.totalKcal ?: inputs.burnedKcal),
             weekStart = settings.weekStart,
             months = months,
             page = (ui.calendarPage ?: months.lastIndex).coerceIn(0, months.lastIndex),
             explained = ui.calendarExplained,
+            goalSince = goal?.start,
+            goalWeekly = goal?.weekly == true,
         )
+    }
+
+    /**
+     * A day judged by the goal setting the target: its words from where eaten sits against the
+     * band the engine judged it by (the week's, under a weekly average), its fill from the
+     * engine's verdict. Null for a day the goal doesn't judge (still going, skipped, nothing
+     * logged, amounts unknown), which the plan's own rules then read.
+     */
+    fun goalStanding(day: Day, goal: GoalCalendar): Pair<PlanStanding, PlanTone>? {
+        val verdict = goal.days[day.date] ?: return null
+        val tone = when (verdict.verdict) {
+            GoalVerdict.Met -> PlanTone.On
+            GoalVerdict.Near -> PlanTone.Near
+            GoalVerdict.Off -> PlanTone.Off
+            else -> return null
+        }
+        val min = verdict.minKcal ?: return null
+        val max = verdict.maxKcal ?: return null
+        val eaten = day.totals().kcal.value ?: return null
+        return standing(eaten, DayGoal.Range(min, max, verdict.targetKcal ?: (min + max) / 2)) to tone
     }
 }

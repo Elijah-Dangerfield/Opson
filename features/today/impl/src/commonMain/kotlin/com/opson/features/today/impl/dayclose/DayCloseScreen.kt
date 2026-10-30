@@ -38,6 +38,7 @@ import com.opson.libraries.diary.ui.SummaryMacro
 import com.opson.libraries.diary.ui.TodayCard
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.goals.GoalRepository
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.GoalsAndEnergyEnabled
@@ -67,6 +68,7 @@ import com.opson.system.AppTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Assisted
@@ -198,6 +200,7 @@ class DayCloseViewModel(
     private val burnedRepository: BurnedRepository,
     private val promptEvents: PromptEvents = PromptEvents.None,
     private val celebrations: CelebrationsSource = CelebrationsSource.None,
+    private val goals: GoalRepository = GoalRepository.None,
     /** Each "Why not cut back?" is noted on the phone for the hard-stretch check. */
     private val cutBackLooks: CutBackLooks = CutBackLooks.None,
 ) : SEAViewModel<DayCloseState, DayCloseEvent, DayCloseAction>(initialStateArg = DayCloseState()) {
@@ -219,8 +222,10 @@ class DayCloseViewModel(
         // Read once when the page opens, like every release flag.
         val checkInOn = checkInEnabled()
         viewModelScope.launch {
-            combine(diary.observeDay(day), settingsRepository.settings, policySource.policy, expended(), burned()) { d, settings, policy, expended, burned ->
-                DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInOn, burned = burned), policy)
+            // The goal card joins once the goals answer, so the page never waits on a week of readings.
+            val energy = combine(expended(), burned(), goals.wrapUp(day).onStart { emit(emptyList()) }) { expended, burned, wraps -> Triple(expended, burned, wraps) }
+            combine(diary.observeDay(day), settingsRepository.settings, policySource.policy, energy) { d, settings, policy, (expended, burned, wraps) ->
+                DayCloseAction.InputsArrived(DayCloseInputs(calendar.today(), d, settings, expended, checkInOn = checkInOn, burned = burned, goals = wraps), policy)
             }.collect(::takeAction)
         }
         viewModelScope.launch { celebrations.observe().collect { takeAction(DayCloseAction.CelebratingArrived(it)) } }
@@ -390,6 +395,7 @@ fun DayCloseScreen(
                         value = stringResource(Res.string.today_count_value, line.done, line.total),
                     )
                 }
+                state.goal?.let { GoalWrapCardView(it) }
                 state.balance?.let { BalanceCard(it) }
                 state.macros?.let { MacrosCard(it) }
                 state.micros?.let { micros -> MicrosCard(micros, onSeeAll = { onAction(DayCloseAction.NutrientsTapped) }) }

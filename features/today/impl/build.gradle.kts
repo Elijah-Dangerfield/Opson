@@ -30,6 +30,8 @@ kotlin {
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.nutrition.ui)
             implementation(projects.libraries.reminders)
+            // Goals: today's target under a weekly average, the card's chip, Wrap up the day's goal line.
+            implementation(projects.libraries.goals)
             // Expended so far, behind release.health.
             implementation(projects.libraries.health)
             // The design sync 2 release flags (release.todaySummary, todaySelect, checkIn).
@@ -61,6 +63,7 @@ kotlin {
             implementation(projects.libraries.foods)
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.health)
+            implementation(projects.libraries.goals)
             implementation(projects.libraries.resources)
             implementation(projects.libraries.ui)
             implementation(projects.libraries.reminders)
