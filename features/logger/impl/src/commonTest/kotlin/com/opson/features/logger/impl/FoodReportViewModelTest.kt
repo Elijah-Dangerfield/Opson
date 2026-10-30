@@ -34,11 +34,14 @@ class FoodReportViewModelTest : CoroutineTest() {
     private val moments = mutableListOf<PromptEvent>()
     private val route = FoodReportRoute(foodId = "f1", name = "Monster Energy Zero Ultra", amountText = "8.0 fl oz (240 ml)", amountGrams = 240)
 
+    private val recognizer = FakeTextRecognizer()
+
     private fun vm(preset: PresetId = PresetId.Full, route: FoodReportRoute = this.route) = FoodReportViewModel(
         route = route,
         reports = reports,
         permissions = permissions,
         promptEvents = PromptEvents { moments += it },
+        phoneReader = phoneReader(recognizer),
         picker = FakeMealPhotoPicker(),
         policySource = FakePolicySource(preset),
     )
@@ -79,6 +82,40 @@ class FoodReportViewModelTest : CoroutineTest() {
         assertEquals("The can says 10", report.note)
         assertContentEquals(byteArrayOf(7), report.photo)
         assertEquals(listOf(PromptEvent.ReportSent, PromptEvent.FoodReportSent), moments, "a sent report is the moment the Builder prompt follows")
+    }
+
+    @Test
+    fun aLabelPhotoFillsTheNumbersLeftEmptyForTheAmountOnScreen() = runUnitTest {
+        recognizer.lines = GRANOLA_PANEL
+        val vm = vm(route = FoodReportRoute(foodId = "f2", name = "Granola", amountText = "1 bar", amountGrams = 40))
+        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.WrongNutrients))
+        vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.KCAL, "150"))
+
+        vm.takeAction(FoodReportAction.PhotoAnswered(PhotoPickResult.Picked(MealPhoto(byteArrayOf(8)))))
+
+        val values = vm.stateFlow.value.values!!
+        assertEquals("150", values.kcal, "what the person typed stays")
+        assertEquals("2.2", values.protein, "3 g in 55 g, for a 40 g bar")
+        assertEquals("26.9", values.carbs)
+        assertEquals("5.8", values.fat)
+        assertTrue(values.fromPhoto)
+
+        vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.PROTEIN, "3"))
+        vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.CARBS, "27"))
+        vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.FAT, "6"))
+        assertFalse(vm.stateFlow.value.values!!.fromPhoto, "every number is the person's own now")
+    }
+
+    @Test
+    fun aPhotoWithNoPanelFillsNothing() = runUnitTest {
+        recognizer.lines = listOf("Granola", "Baked in small batches")
+        val vm = vm()
+        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.WrongCalories))
+        vm.takeAction(FoodReportAction.PhotoAnswered(PhotoPickResult.Picked(MealPhoto(byteArrayOf(8)))))
+
+        val values = vm.stateFlow.value.values!!
+        assertEquals("", values.kcal)
+        assertFalse(values.fromPhoto)
     }
 
     @Test

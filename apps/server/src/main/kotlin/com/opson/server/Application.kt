@@ -105,7 +105,13 @@ fun Application.module(config: ServerConfig) {
         logger.info("Nutritionix caching ${if (it.cacheResults) "on" else "off"}")
     }
     config.foodSources.anthropic?.let {
-        logger.info("Photo estimates use ${it.photoModel}; label reading uses ${it.labelModel}")
+        logger.warn(
+            "AI calls are ON (AI_CALLS_ENABLED=true): photo estimates use {}, label reading {}, the Builder second read {}",
+            it.photoModel, it.labelModel, it.checkModel,
+        )
+    }
+    if (config.foodSources.anthropicKeyIgnored) {
+        logger.info("ANTHROPIC_API_KEY is set but AI_CALLS_ENABLED is not true, so no model is called")
     }
     val component = database?.let { ServerComponent::class.create(it, config.supabase, config.foodSources, Clock.System, config.deviceIntegrity) }
     // Ban gate needs the DB (moderation reads live in auth.users), so limited

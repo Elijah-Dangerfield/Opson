@@ -49,6 +49,7 @@ import opson.libraries.resources.generated.resources.food_report_serving_hint
 import opson.libraries.resources.generated.resources.food_report_title
 import opson.libraries.resources.generated.resources.food_report_unit_g
 import opson.libraries.resources.generated.resources.food_report_too_many
+import opson.libraries.resources.generated.resources.food_report_from_photo
 import opson.libraries.resources.generated.resources.food_report_values_for
 import opson.libraries.resources.generated.resources.food_report_values_for_100
 import opson.libraries.resources.generated.resources.food_report_values_title
@@ -125,6 +126,7 @@ fun FoodReportSheetContent(
 private fun Values(values: ReportValues, onAction: (FoodReportAction) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
         SectionLabel(stringResource(Res.string.food_report_values_title))
+        if (values.fromPhoto) NoteBanner(stringResource(Res.string.food_report_from_photo))
         if (values.numbers) {
             val grams = stringResource(Res.string.food_report_unit_g)
             Text(

@@ -45,6 +45,31 @@ verification already names the food and the fields.
 for review to be about cleaning up the existing entry rather than judging a
 new one.
 
+## 2026-10-30: No server AI in v1; labels are read on the phone and a person reviews weekly
+
+**Decision:** the server calls no model unless `AI_CALLS_ENABLED=true` is set
+beside `ANTHROPIC_API_KEY`; a key alone does nothing, and v1 sets neither.
+Photo estimates stay off (`release.photo`). Add a packaged food reads the
+label on the phone for everyone (Vision or ML Kit, then `LabelTextParser`),
+fills the form with per-field confidence and marks the unsure fields, guesses
+the name from the front, and never asks the server to read; Report a problem
+fills its numbers from a label photo the same way. Every submission carries
+the OCR text and the phone's draft, the Builder second read is skipped, and
+everything waits for a person. The owner reviews weekly in the admin console,
+can export the queue as a file for an AI tool on their own subscription to
+pre-check, and imports the decisions back after confirming them
+([food-review-runbook.md](practices/food-review-runbook.md)). An on-device
+model (Apple Foundation Models on iOS 26) may give the parser a second opinion
+behind `labels.onDeviceModel`, off by default
+([on-device-label-model.md](research/on-device-label-model.md)).
+
+**Alternatives:** keep the cloud read for everyone with a spend cap (the
+owner can't fund it for v1, and a cap that trips turns into an outage);
+train a custom vision model now (no labelled data yet; see the research doc).
+
+**Why:** the owner's call: no AI bill that grows with users. The phone's read
+is free and offline, and human review was already the fallback.
+
 ## 2026-10-29: A weight goal sets Targets as a fixed range, and says when it no longer does
 
 **Decision:** onboarding's setup (behind `release.onboardingSetup`) and a new

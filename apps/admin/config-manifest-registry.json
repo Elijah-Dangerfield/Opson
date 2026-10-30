@@ -12,7 +12,7 @@
   { "path": "release.barcode", "type": "boolean", "default": false, "description": "The barcode button in the logger search bar, and the scanner it opens" },
   { "path": "release.fasting", "type": "boolean", "default": false, "description": "0.2: the Fasting page, its More row, the Today card and the timer" },
   { "path": "release.voice", "type": "boolean", "default": false, "description": "0.2: the mic in the Logger's Describe pane, speech to text on the device" },
-  { "path": "release.photo", "type": "boolean", "default": false, "description": "Not in 0.2, keep off on prod: the Photo chip in the logger, and the photo estimate sheet it opens" },
+  { "path": "release.photo", "type": "boolean", "default": false, "description": "Not in v1, keep off on prod: the Photo chip in the logger and the photo estimate sheet it opens. Needs server AI (AI_CALLS_ENABLED), which v1 does not run" },
   { "path": "release.submitFood", "type": "boolean", "default": false, "description": "Add a packaged food from photos of the pack (barcode miss, search, + sheet, Foods), read, checked and sent for review" },
   { "path": "release.foodReports", "type": "boolean", "default": false, "description": "Report a problem on a food's detail: what is wrong, the right numbers, a label photo, sent for review" },
   { "path": "release.builders", "type": "boolean", "default": false, "description": "Opson Builders: join for Pro, Builder mode with on-device label reading, check foods against the pack" },
@@ -38,5 +38,6 @@
   { "path": "review.weightShowingUp", "type": "int", "default": 1, "description": "Share of installs asked for a rating at the first log of the day, once they come back most days" },
   { "path": "review.weightFoodApproved", "type": "int", "default": 0, "description": "Share of installs asked for a rating when a food they sent is approved" },
   { "path": "integrity.deviceCheck", "type": "boolean", "default": false, "description": "iOS: send a DeviceCheck token with contribution requests. Turn on once the server has APPLE_DEVICECHECK_*" },
-  { "path": "integrity.playCloudProjectNumber", "type": "long", "default": 0, "description": "Android: the Cloud project number for Play Integrity tokens on contribution requests; 0 sends none" }
+  { "path": "integrity.playCloudProjectNumber", "type": "long", "default": 0, "description": "Android: the Cloud project number for Play Integrity tokens on contribution requests; 0 sends none" },
+  { "path": "labels.onDeviceModel", "type": "boolean", "default": false, "description": "Prototype: also ask the phone's own language model (Foundation Models on iOS 26) to read the label's OCR text beside the parser. Phones without one read as before" }
 ]

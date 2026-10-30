@@ -1,6 +1,8 @@
 package com.opson.features.logger.impl
 
 import com.opson.libraries.foods.LabelCheckCode
+import com.opson.libraries.foods.LabelDraft
+import com.opson.libraries.foods.LabelLayout
 import com.opson.libraries.foods.LabelFacts
 import com.opson.libraries.foods.LabelNutrient
 import com.opson.libraries.foods.LabelParse
@@ -200,5 +202,35 @@ class SubmitFoodStateBuilderTest {
         assertEquals(SubmitStage.Photos(canRead = false), SubmitFoodFixtures.photosState(full, photos = 1).stage)
         assertEquals(SubmitStage.Photos(canRead = true), SubmitFoodFixtures.photosState(full, photos = 2).stage)
         assertNotNull(SubmitFoodFixtures.photosState(full, photos = 2).label)
+    }
+
+    @Test
+    fun aNameGuessedFromTheFrontIsFilledInAndMarked() {
+        val draft = LabelDraft(
+            facts = LabelFacts(servingSize = 30.0, servingUnit = ServingUnit.Gram),
+            layout = LabelLayout.NONE,
+            fieldConfidence = mapOf(SubmitFoodForm.SERVING_SIZE to 0.9),
+        )
+        val model = SubmitFoodForm.fromDraft(SubmitFoodFixtures.model(SubmitStep.Review, photos = 2), draft, barcode = null, name = "Rye Crispbread")
+
+        val form = form(model)
+        assertEquals("Rye Crispbread", form.name.text)
+        assertTrue(form.name.needsLook)
+        assertFalse(form.servingSize.needsLook)
+
+        val typed = SubmitFoodForm.typed(model, SubmitFoodForm.NAME, "Rye crispbread")
+        assertFalse(form(typed).name.needsLook, "typed over, it is the person's word")
+    }
+
+    @Test
+    fun howMuchOfThePanelThePhoneReadDecidesTheNotice() {
+        fun draft(facts: LabelFacts, panel: Boolean) = LabelDraft(facts, LabelLayout.NONE.copy(panelFound = panel), emptyMap())
+        val all = SubmitFoodFixtures.facts.copy(name = null, brand = null)
+        val some = LabelFacts(perServing = mapOf(LabelNutrient.Energy to 280.0))
+
+        assertTrue(SubmitFoodForm.usable(draft(all, panel = true)))
+        assertFalse(SubmitFoodForm.usable(draft(all, panel = false)), "numbers with no panel around them are not trusted to fill the form")
+        assertTrue(SubmitFoodForm.partly(draft(some, panel = true)))
+        assertFalse(SubmitFoodForm.partly(draft(LabelFacts(), panel = false)))
     }
 }

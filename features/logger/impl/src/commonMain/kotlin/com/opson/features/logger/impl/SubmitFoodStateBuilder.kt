@@ -41,7 +41,7 @@ object SubmitFoodForm {
     val ALWAYS_REQUIRED: Set<String> = setOf(NAME, SERVING_SIZE)
 
     /**
-     * The model's reading as fields. A label with only a per 100 g column and
+     * A reading as fields. A label with only a per 100 g column and
      * no serving is taken as a 100 g serving, marked for a look. Per-serving
      * figures the label did not print are worked out from per 100 and
      * remembered as [SubmitModel.derived], so they follow a corrected serving size.
@@ -63,7 +63,6 @@ object SubmitFoodForm {
             if (facts.servingSize == null && size != null) c + (SERVING_SIZE to 0.0) else c
         }
         return model.copy(
-            parseId = read?.parseId,
             confidence = confidence,
             texts = texts,
             read = texts,
@@ -78,23 +77,42 @@ object SubmitFoodForm {
     }
 
     /**
-     * The phone's own reading of the label (Builder mode) as fields, the same way as the
-     * server's: each field carries the OCR confidence of the line behind it, so a hazy digit
-     * asks for a look. There is no parse id; the server never saw this reading.
+     * The phone's reading of the label as fields: each carries the OCR confidence of the line
+     * behind it, so a hazy digit asks for a look. [name] is the guess from the front of the pack,
+     * always marked for a look.
      */
-    fun fromDraft(model: SubmitModel, draft: LabelDraft, barcode: String?): SubmitModel {
-        val read = LabelParse.Read(
-            parseId = "",
-            facts = draft.facts,
-            confidence = draft.fieldConfidence,
-            checks = LabelChecks.check(draft.facts),
-            readable = true,
-        )
-        return fromReading(model, read, barcode).copy(parseId = null)
+    fun fromDraft(model: SubmitModel, draft: LabelDraft?, barcode: String?, name: String? = null): SubmitModel {
+        val read = draft?.let {
+            LabelParse.Read(
+                parseId = "",
+                facts = it.facts,
+                confidence = it.fieldConfidence,
+                checks = LabelChecks.check(it.facts),
+                readable = true,
+            )
+        }
+        return withName(fromReading(model, read, barcode), name)
     }
 
-    /** Enough of the panel read on the phone to fill the form without the server: four of the five headline fields. */
+    /** The name guessed from the front, filled in only where nothing else named the food. */
+    private fun withName(model: SubmitModel, name: String?): SubmitModel {
+        if (name.isNullOrBlank() || !model.texts[NAME].isNullOrBlank()) return model
+        val text = name.take(MAX_NAME)
+        return model.copy(
+            texts = model.texts + (NAME to text),
+            read = model.read + (NAME to text),
+            confidence = model.confidence + (NAME to NAME_GUESS),
+        )
+    }
+
+    /** A name read off the front is a guess: low enough that the form marks it. */
+    private const val NAME_GUESS = 0.3
+
+    /** Enough of the panel read to fill the form: the panel found and four of the five headline fields. */
     fun usable(draft: LabelDraft): Boolean = draft.layout.panelFound && draft.headlineFound >= MIN_HEADLINE_ON_PHONE
+
+    /** Some of the panel read: worth filling in what there is and asking for the rest. */
+    fun partly(draft: LabelDraft): Boolean = draft.headlineFound > 0
 
     private const val MIN_HEADLINE_ON_PHONE = 4
 
@@ -183,7 +201,7 @@ object SubmitFoodForm {
     /** The checks on the form as it stands. */
     fun checks(model: SubmitModel): List<LabelCheck> = LabelChecks.check(facts(model))
 
-    /** Whether the person changed anything the model read. */
+    /** Whether the person changed anything the phone read. */
     fun edited(model: SubmitModel): Boolean = model.read.isNotEmpty() && model.texts.filterValues { it.isNotEmpty() } != model.read
 
     private fun rescale(model: SubmitModel): SubmitModel {
@@ -236,13 +254,13 @@ object SubmitFoodForm {
  * too, the label's other nutrients follow. In any mode that keeps calories
  * out of sight the person can still add the food: the form keeps its name,
  * brand, barcode and serving (amounts of food, which every mode shows) and
- * says in words whether the label adds up, never by how much. What the model
+ * says in words whether the label adds up, never by how much. What the phone
  * read is submitted as it is, the checks travel with it, and a reviewer sees
  * the photos. Required numbers are only required where they can be seen.
  */
 object SubmitFoodStateBuilder {
 
-    /** Below this the model was unsure enough that the field asks for a look. */
+    /** Below this the reading was unsure enough that the field asks for a look. */
     const val LOW_CONFIDENCE = 0.7
 
     fun numbersShown(policy: VisibilityPolicy): Boolean =
@@ -261,7 +279,6 @@ object SubmitFoodStateBuilder {
         photoFailed = model.photoFailed.takeIf { model.step == SubmitStep.Photos },
         builderMode = model.builderMode,
         ingredients = model.ingredients,
-        readingOnPhone = model.readingOnPhone && model.step == SubmitStep.Reading,
     )
 
     private fun stage(model: SubmitModel, policy: VisibilityPolicy): SubmitStage = when (val step = model.step) {
@@ -270,8 +287,6 @@ object SubmitFoodStateBuilder {
         SubmitStep.Review -> SubmitStage.Review(form(model, policy))
         SubmitStep.Saving -> SubmitStage.Saving
         SubmitStep.NoLabel -> SubmitStage.NoLabel
-        SubmitStep.TooMany -> SubmitStage.TooMany
-        is SubmitStep.ReadFailed -> SubmitStage.ReadFailed(step.offline)
         is SubmitStep.CameraOff -> SubmitStage.CameraOff(step.canAskAgain)
         is SubmitStep.SendFailed -> SubmitStage.SendFailed(step.offline, step.tooMany, step.restricted)
     }

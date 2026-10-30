@@ -2,6 +2,9 @@ package com.opson.features.logger.impl
 
 import com.opson.libraries.foods.FoodReportReason
 import com.opson.libraries.foods.FoodReportResult
+import com.opson.libraries.foods.LabelFacts
+import com.opson.libraries.foods.LabelNutrient
+import com.opson.libraries.foods.ServingUnit
 import com.opson.libraries.foods.SuggestedFoodValues
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.nutrition.Metric
@@ -68,6 +71,8 @@ data class ReportValues(
     val carbs: String = "",
     val fat: String = "",
     val serving: String = "",
+    /** Some of the numbers were filled in from the label photo, read on the phone: worth a look against the pack. */
+    val fromPhoto: Boolean = false,
 )
 
 /**
@@ -95,6 +100,9 @@ sealed interface FoodReportAction {
     data object OpenSettingsTapped : FoodReportAction
     data class PhotoAnswered(val result: PhotoPickResult) : FoodReportAction
     data class RemovePhotoTapped(val side: PackSide) : FoodReportAction
+
+    /** The phone read [photo]'s label: [facts] is what it found, or null when it found no panel. */
+    data class LabelReadArrived(val photo: MealPhoto, val facts: LabelFacts?) : FoodReportAction
     data object SendTapped : FoodReportAction
 }
 
@@ -122,6 +130,8 @@ data class FoodReportModel(
     val cameraOff: Boolean = false,
     val sending: Boolean = false,
     val problem: ReportProblem? = null,
+    /** The number fields filled in from the label photo and not typed over since. */
+    val fromPhoto: Set<String> = emptySet(),
 )
 
 /** The report sheet's state and what it sends, as pure functions. */
@@ -155,6 +165,7 @@ object FoodReportStateBuilder {
                 carbs = model.fields[CARBS].orEmpty().takeIf { shown }.orEmpty(),
                 fat = model.fields[FAT].orEmpty().takeIf { shown }.orEmpty(),
                 serving = model.fields[SERVING].orEmpty(),
+                fromPhoto = shown && model.fromPhoto.isNotEmpty(),
             )
         },
         front = model.front,
@@ -200,6 +211,37 @@ object FoodReportStateBuilder {
 
     /** The picked reasons in the sheet's order, which is what the server reads first. */
     fun reasons(model: FoodReportModel): List<FoodReportReason> = FoodReportReason.entries.filter { it in model.picked }
+
+    /**
+     * The numbers the phone read off the label photo, scaled to the amount the sheet asks about
+     * (100 g when it has none), written only into fields the person has left empty. A label in
+     * millilitres is left alone: without the drink's density its numbers can't be put in grams.
+     */
+    fun fromLabel(model: FoodReportModel, facts: LabelFacts): FoodReportModel {
+        if (facts.servingUnit == ServingUnit.Milliliter) return model
+        val grams = basis(model)?.let { model.amountGrams } ?: PER_100
+        val read = LABEL_NUMBERS.mapNotNull { (key, nutrient) ->
+            facts.per100(nutrient)?.takeIf { it.isFinite() && it >= 0 }?.let { key to figure(it * grams / PER_100, nutrient) }
+        }.toMap()
+        val filled = read.filterKeys { model.fields[it].isNullOrBlank() }
+        if (filled.isEmpty()) return model
+        return model.copy(fields = model.fields + filled, fromPhoto = model.fromPhoto + filled.keys)
+    }
+
+    /** Whole kcal; grams to one decimal, without a trailing ".0". */
+    private fun figure(value: Double, nutrient: LabelNutrient): String {
+        if (nutrient == LabelNutrient.Energy) return round(value).toLong().toString()
+        val tenths = round(value * 10).toLong()
+        return if (tenths % 10 == 0L) (tenths / 10).toString() else "${tenths / 10}.${tenths % 10}"
+    }
+
+    private const val PER_100 = 100.0
+    private val LABEL_NUMBERS = listOf(
+        KCAL to LabelNutrient.Energy,
+        PROTEIN to LabelNutrient.Protein,
+        CARBS to LabelNutrient.Carbs,
+        FAT to LabelNutrient.Fat,
+    )
 
     /** A field as it is typed: a number keeps digits and one decimal point, the serving is free text. */
     fun typed(key: String, text: String): String = if (key in NUMBERS) {

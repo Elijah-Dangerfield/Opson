@@ -474,6 +474,10 @@ class AdminApi(
     private val actor: String,
 ) {
     private val base = baseUrl.trimEnd('/')
+
+    /** The server this connection talks to, without a trailing slash: the review export names photo URLs on it. */
+    val baseUrl: String get() = base
+
     private val client = HttpClient(Js) {
         install(ContentNegotiation) { json(adminJson) }
     }

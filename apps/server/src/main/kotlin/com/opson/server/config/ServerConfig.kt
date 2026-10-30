@@ -44,7 +44,7 @@ data class ServerConfig(
         "otlp" to (observability.otlpEndpoint != null),
         "admin" to !admin.apiToken.isNullOrBlank(),
         "configWebhook" to (configChange.webhookUrl != null),
-        "photo" to (foodSources.anthropic != null),
+        "ai" to (foodSources.anthropic != null),
         "nutritionix" to (foodSources.nutritionix != null),
         "offSearch" to foodSources.searchOpenFoodFacts,
         "deviceCheck" to (deviceIntegrity.deviceCheck != null),
@@ -200,8 +200,13 @@ data class WaitlistConfig(
 data class FoodSourcesConfig(
     val nutritionix: NutritionixConfig? = null,
     val searchOpenFoodFacts: Boolean = false,
-    /** The model that reads meal photos. Null (photo estimates off) until `ANTHROPIC_API_KEY` is set. */
+    /**
+     * The models behind photo estimates, label reads and the Builder second read. Null, and every
+     * one of them off, unless `AI_CALLS_ENABLED=true` and `ANTHROPIC_API_KEY` are both set.
+     */
     val anthropic: AnthropicConfig? = null,
+    /** `ANTHROPIC_API_KEY` is set and `AI_CALLS_ENABLED` is not: the boot log says the key goes unused. */
+    val anthropicKeyIgnored: Boolean = false,
     /**
      * Where Open Food Facts lives. Never set from the environment; the end-to-end
      * tests point it at a stand-in so a barcode miss does not leave the machine.
@@ -222,6 +227,7 @@ data class FoodSourcesConfig(
             nutritionix = NutritionixConfig.fromEnv(env),
             searchOpenFoodFacts = env["FOOD_SEARCH_OFF_ENABLED"]?.trim()?.lowercase() == "true",
             anthropic = AnthropicConfig.fromEnv(env),
+            anthropicKeyIgnored = AnthropicConfig.keyIgnored(env),
             searchCacheEntries = env.int("FOOD_SEARCH_CACHE_ENTRIES", default = DEFAULT_SEARCH_CACHE_ENTRIES),
             searchCacheSeconds = env.long("FOOD_SEARCH_CACHE_SECONDS", default = DEFAULT_SEARCH_CACHE_SECONDS),
         )
@@ -235,14 +241,19 @@ data class FoodSourcesConfig(
 }
 
 /**
- * The Anthropic API, for photo estimates (`POST /v1/describe/photo`) and
- * reading pack labels (`POST /v1/foods/labels/parse`). Null until
- * `ANTHROPIC_API_KEY` is set, and both routes then answer 503, which the app
- * shows as a calm "not available right now". [photoModel] is
- * `ANTHROPIC_PHOTO_MODEL` and [labelModel] `ANTHROPIC_LABEL_MODEL`, so either
- * model can change without a release (see `AnthropicEstimateProvider` and
- * `AnthropicLabelParser` for the defaults and why). Treat the key like a
- * password: never log it.
+ * The Anthropic API, for photo estimates (`POST /v1/describe/photo`), reading
+ * pack labels (`POST /v1/foods/labels/parse`) and the Builder second read.
+ *
+ * Off unless **both** `AI_CALLS_ENABLED=true` and `ANTHROPIC_API_KEY` are set.
+ * The switch is separate from the key on purpose: v1 runs with no server AI
+ * (docs/decisions.md, 2026-10-30), and a key set by mistake, or left behind
+ * for an offline experiment, must not start spending. With either one missing
+ * this is null, every route that would call a model answers 503, which the
+ * app shows as a calm "not available right now", and Builder submissions go
+ * to a person. [photoModel] is `ANTHROPIC_PHOTO_MODEL` and [labelModel]
+ * `ANTHROPIC_LABEL_MODEL`, so either model can change without a release (see
+ * `AnthropicEstimateProvider` and `AnthropicLabelParser` for the defaults and
+ * why). Treat the key like a password: never log it.
  */
 data class AnthropicConfig(
     val apiKey: String,
@@ -266,8 +277,17 @@ data class AnthropicConfig(
         /** About 0.15 cents a read (ai-options.md): cheap enough to read every Builder's label a second time. */
         const val DEFAULT_CHECK_MODEL = "claude-haiku-5-5"
 
+        /** The switch. Anything but `true` (case-insensitive) leaves every model call off. */
+        const val SWITCH = "AI_CALLS_ENABLED"
+
+        fun switchedOn(env: Env): Boolean = env[SWITCH]?.trim()?.lowercase() == "true"
+
+        /** A key is set but the switch is off: worth a line in the boot log, since nothing will use it. */
+        fun keyIgnored(env: Env): Boolean = !env["ANTHROPIC_API_KEY"].isNullOrBlank() && !switchedOn(env)
+
         fun fromEnv(env: Env): AnthropicConfig? {
-            val key = env["ANTHROPIC_API_KEY"] ?: return null
+            if (!switchedOn(env)) return null
+            val key = env["ANTHROPIC_API_KEY"]?.takeIf { it.isNotBlank() } ?: return null
             return AnthropicConfig(
                 apiKey = key,
                 photoModel = env["ANTHROPIC_PHOTO_MODEL"]?.trim() ?: DEFAULT_PHOTO_MODEL,

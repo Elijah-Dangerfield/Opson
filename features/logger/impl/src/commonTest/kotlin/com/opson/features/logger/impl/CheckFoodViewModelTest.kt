@@ -46,7 +46,7 @@ class CheckFoodViewModelTest : CoroutineTest() {
     private fun vm() = CheckFoodViewModel(
         route = CheckFoodRoute(granola.id, granola.name),
         catalog = catalog,
-        phoneReader = PhoneLabelReader(recognizer),
+        phoneReader = phoneReader(recognizer),
         checks = checks,
         reports = reports,
         permissions = FakeCameraPermissions(),

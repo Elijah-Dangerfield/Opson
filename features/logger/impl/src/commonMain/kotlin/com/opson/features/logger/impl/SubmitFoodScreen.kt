@@ -19,7 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
 import com.opson.libraries.diary.ui.FoodRowsCard
 import com.opson.libraries.diary.ui.SectionLabel
 import com.opson.libraries.diary.ui.sentenceName
@@ -42,12 +44,11 @@ import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.SingleLineField
 import com.opson.libraries.ui.components.text.Text
 import com.opson.system.AppTheme
+import com.opson.system.background
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.builder_ingredients_hint
 import opson.libraries.resources.generated.resources.builder_ingredients_title
 import opson.libraries.resources.generated.resources.builder_mode_badge
-import opson.libraries.resources.generated.resources.builder_read_notice
-import opson.libraries.resources.generated.resources.builder_reading_on_phone
 import opson.libraries.resources.generated.resources.submit_add
 import opson.libraries.resources.generated.resources.submit_after
 import opson.libraries.resources.generated.resources.submit_after_save
@@ -64,9 +65,6 @@ import opson.libraries.resources.generated.resources.submit_check_sodium
 import opson.libraries.resources.generated.resources.submit_check_this
 import opson.libraries.resources.generated.resources.submit_choose
 import opson.libraries.resources.generated.resources.submit_done
-import opson.libraries.resources.generated.resources.submit_failed_body
-import opson.libraries.resources.generated.resources.submit_failed_offline
-import opson.libraries.resources.generated.resources.submit_failed_title
 import opson.libraries.resources.generated.resources.submit_field_barcode
 import opson.libraries.resources.generated.resources.submit_field_barcode_optional
 import opson.libraries.resources.generated.resources.submit_field_brand
@@ -95,6 +93,8 @@ import opson.libraries.resources.generated.resources.submit_needed
 import opson.libraries.resources.generated.resources.submit_no_label_body
 import opson.libraries.resources.generated.resources.submit_no_label_title
 import opson.libraries.resources.generated.resources.submit_notice_by_hand
+import opson.libraries.resources.generated.resources.submit_notice_partly
+import opson.libraries.resources.generated.resources.submit_notice_read
 import opson.libraries.resources.generated.resources.submit_notice_unavailable
 import opson.libraries.resources.generated.resources.submit_open_settings
 import opson.libraries.resources.generated.resources.submit_overline
@@ -104,7 +104,6 @@ import opson.libraries.resources.generated.resources.submit_photo_failed
 import opson.libraries.resources.generated.resources.submit_privacy
 import opson.libraries.resources.generated.resources.submit_read
 import opson.libraries.resources.generated.resources.submit_reading
-import opson.libraries.resources.generated.resources.submit_reading_body
 import opson.libraries.resources.generated.resources.submit_retake
 import opson.libraries.resources.generated.resources.submit_retake_label
 import opson.libraries.resources.generated.resources.submit_review_body
@@ -123,8 +122,6 @@ import opson.libraries.resources.generated.resources.submit_send_failed_too_many
 import opson.libraries.resources.generated.resources.submit_send_failed_too_many_save
 import opson.libraries.resources.generated.resources.submit_take
 import opson.libraries.resources.generated.resources.submit_title
-import opson.libraries.resources.generated.resources.submit_too_many_body
-import opson.libraries.resources.generated.resources.submit_too_many_title
 import opson.libraries.resources.generated.resources.submit_try_again
 import opson.libraries.resources.generated.resources.submit_type_it_in
 import opson.libraries.resources.generated.resources.submit_use
@@ -170,29 +167,12 @@ fun SubmitFoodScreen(
             )
             when (val stage = state.stage) {
                 is SubmitStage.Photos -> PhotosBody(state, stage, onAction)
-                SubmitStage.Reading -> if (state.readingOnPhone) {
-                    Waiting(state, Res.string.builder_reading_on_phone, null)
-                } else {
-                    Waiting(state, Res.string.submit_reading, Res.string.submit_reading_body)
-                }
+                SubmitStage.Reading -> Waiting(state, Res.string.submit_reading, null)
                 is SubmitStage.Review -> ReviewBody(state, stage.form, onAction)
                 SubmitStage.Saving -> Waiting(state, if (state.slot == null) Res.string.submit_saving_save else Res.string.submit_saving, null)
                 SubmitStage.NoLabel -> Calm(
                     state, Res.string.submit_no_label_title, Res.string.submit_no_label_body,
                     primary = Res.string.submit_retake_label to SubmitFoodAction.RetakeLabelTapped,
-                    secondary = Res.string.submit_type_it_in to SubmitFoodAction.TypeItInTapped,
-                    onAction = onAction,
-                )
-                SubmitStage.TooMany -> Calm(
-                    state, Res.string.submit_too_many_title, Res.string.submit_too_many_body,
-                    primary = Res.string.submit_type_it_in to SubmitFoodAction.TypeItInTapped,
-                    secondary = Res.string.submit_try_again to SubmitFoodAction.TryAgainTapped,
-                    onAction = onAction,
-                )
-                is SubmitStage.ReadFailed -> Calm(
-                    state, Res.string.submit_failed_title,
-                    if (stage.offline) Res.string.submit_failed_offline else Res.string.submit_failed_body,
-                    primary = Res.string.submit_try_again to SubmitFoodAction.TryAgainTapped,
                     secondary = Res.string.submit_type_it_in to SubmitFoodAction.TypeItInTapped,
                     onAction = onAction,
                 )
@@ -370,7 +350,8 @@ private fun ReviewBody(state: SubmitFoodState, form: SubmitForm, onAction: (Subm
                 when (notice) {
                     ReviewNotice.Unavailable -> Res.string.submit_notice_unavailable
                     ReviewNotice.ByHand -> Res.string.submit_notice_by_hand
-                    ReviewNotice.ReadOnPhone -> Res.string.builder_read_notice
+                    ReviewNotice.ReadOnPhone -> Res.string.submit_notice_read
+                    ReviewNotice.ReadPartly -> Res.string.submit_notice_partly
                 },
             ),
         )
@@ -548,10 +529,26 @@ private fun NutrientEntry(entry: NutrientField, onAction: (SubmitFoodAction) -> 
     }
 }
 
-/** A field's label, with "Check this" when the model was unsure and "Needed" when it is required and empty. */
+/**
+ * A field's label, with "Needed" when it is required and empty, and "Check this" on a tinted
+ * ground when the phone was unsure of what it read or a check names it, so the fields to compare
+ * against the pack stand out as the person scrolls.
+ */
 @Composable
 private fun Labelled(field: FormField, label: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+    val look = !field.missing && (field.needsLook || field.flagged)
+    Column(
+        modifier = if (look) {
+            Modifier
+                .fillMaxWidth()
+                .clip(AppTheme.shapes.groupedList)
+                .background(AppTheme.colors.accentTint)
+                .padding(horizontal = LookPadding, vertical = AppTheme.spacing.chip)
+        } else {
+            Modifier
+        },
+        verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip),
+    ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
             Text(
                 label,
@@ -568,6 +565,8 @@ private fun Labelled(field: FormField, label: String, content: @Composable () ->
         content()
     }
 }
+
+private val LookPadding = 10.dp
 
 @Composable
 private fun fieldName(key: String): String = when (key) {
