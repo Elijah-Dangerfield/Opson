@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.features.settings.impl.targets
 
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import com.opson.libraries.diary.weightPlansOff
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.Settings
@@ -260,6 +264,7 @@ enum class SafetyNote { LowGoal, FastDeficit }
 data class EndStepper(val value: Display, val down: StepState, val up: StepState, val field: TypedField? = null, val text: String? = null)
 
 /** A typed amount on Targets besides the one number and the macros: a range end, a set amount, or a day group's number. */
+@HiddenFromObjC
 data class TypedField(val kind: Kind, val group: Int? = null) {
     enum class Kind { Low, High, Deficit, Surplus, Number }
 }

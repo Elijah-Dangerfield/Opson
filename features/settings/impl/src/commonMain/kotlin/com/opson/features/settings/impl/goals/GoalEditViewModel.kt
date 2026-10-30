@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.features.settings.impl.goals
 
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import androidx.lifecycle.viewModelScope
 import com.opson.features.onboarding.OnboardingSetupEnabled
 import com.opson.features.settings.FindSupportEnabled
@@ -37,7 +41,12 @@ import me.tatarka.inject.annotations.Inject
  * Done closes it.
  *
  * Only with `release.onboardingSetup`, as every goal is; off, it closes at once.
+ *
+ * The goal screens' types are hidden from the iOS header (`@HiddenFromObjC`), as Credits' are:
+ * Swift never uses them, and exported they broke the framework link on an unrelated line
+ * (`RealHealthWeighInImport.importNew`, AGENTS.md "Known landmines").
  */
+@HiddenFromObjC
 @Inject
 class GoalEditViewModel(
     @Assisted private val route: GoalEditRoute,
@@ -154,6 +163,7 @@ class GoalEditViewModel(
  * The editor's page. [view] is the form (or the type list); [saved] replaces it once the goal is
  * saved, with the reveal. [paceInfo] is the pace note's (i) while open.
  */
+@HiddenFromObjC
 data class GoalEditState(
     val loaded: Boolean = false,
     val view: GoalEditView? = null,
@@ -169,11 +179,14 @@ data class GoalEditState(
  * set ([target], where calories show). [waiting] says it sets the target once a typical day can be
  * worked out.
  */
+@HiddenFromObjC
 data class GoalSaved(val kind: GoalKind, val chart: ProjectionChartUi?, val target: Display, val waiting: Boolean = false)
 
 /** How fast is right: the fat-loss limit where calories show, whether body fat was estimated, and whether one could be worked out. */
+@HiddenFromObjC
 data class PaceInfoView(val limit: Display, val estimated: Boolean, val canWorkOut: Boolean)
 
+@HiddenFromObjC
 sealed interface GoalEditEvent {
     data object Close : GoalEditEvent
 
@@ -182,6 +195,7 @@ sealed interface GoalEditEvent {
     data object OpenFindSupport : GoalEditEvent
 }
 
+@HiddenFromObjC
 sealed interface GoalEditAction {
     data class Arrived(val settings: Settings, val policy: VisibilityPolicy, val inputs: BaselineInputs?) : GoalEditAction
     data class Edit(val edit: GoalEdit) : GoalEditAction

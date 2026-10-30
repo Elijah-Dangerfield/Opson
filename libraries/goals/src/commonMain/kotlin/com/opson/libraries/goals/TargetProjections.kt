@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.libraries.goals
 
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import com.opson.libraries.nutrition.GoalBaseline
 import com.opson.libraries.nutrition.GoalTargets
 import com.opson.libraries.nutrition.Goal
@@ -21,6 +25,7 @@ import kotlinx.datetime.plus
  * band: eating at the low end, the aim and the high end. Nothing is ever "reached", so each
  * series simply runs on; the chart calls it a rough projection, never a promise.
  */
+@HiddenFromObjC
 object TargetProjections {
 
     /** Three months: far enough to see a direction, near enough not to promise a body. */

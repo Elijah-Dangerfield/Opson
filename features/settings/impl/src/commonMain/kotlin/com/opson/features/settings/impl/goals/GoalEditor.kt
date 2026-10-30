@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.features.settings.impl.goals
 
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.goals.GoalStatuses
@@ -40,6 +44,7 @@ import kotlin.math.roundToInt
  * and each type's own answers. Typed amounts stay as typed ([targetText], [balanceText] and the
  * rest), so a half-typed number stays on screen; [GoalEditor.goal] reads them.
  */
+@HiddenFromObjC
 data class GoalDraft(
     val kind: GoalKind? = null,
     val direction: GoalDirection = GoalDirection.Lose,
@@ -68,6 +73,7 @@ data class GoalDraft(
  * resting energy can't be worked out); [weightKg] the latest weigh-in; [existing] the goal being
  * changed, null for a new one.
  */
+@HiddenFromObjC
 data class GoalEditContext(
     val today: LocalDate,
     val settings: Settings,
@@ -83,6 +89,7 @@ data class GoalEditContext(
 }
 
 /** A change to the draft. */
+@HiddenFromObjC
 sealed interface GoalEdit {
     data class KindPicked(val kind: GoalKind) : GoalEdit
     data class DirectionPicked(val direction: GoalDirection) : GoalEdit
@@ -97,6 +104,7 @@ sealed interface GoalEdit {
 }
 
 /** One goal amount's typed field and its steps. */
+@HiddenFromObjC
 data class AmountField(val text: String, val canLower: Boolean, val canRaise: Boolean, val outOfRange: Boolean = false)
 
 /**
@@ -104,6 +112,7 @@ data class AmountField(val text: String, val canLower: Boolean, val canRaise: Bo
  * ([current], through the policy), the pace ([paceText] a week, with its [pace] tier) and its
  * steps, and what is wrong with the goal weight, if anything.
  */
+@HiddenFromObjC
 data class WeightPart(
     val direction: GoalDirection,
     val targetText: String,
@@ -122,8 +131,10 @@ data class WeightPart(
 )
 
 /** An energy balance goal's part: under or over, and how much. [pace] is its tier for a loss. */
+@HiddenFromObjC
 data class BalancePart(val under: Boolean, val amount: AmountField, val pace: PaceAssessment?)
 
+@HiddenFromObjC
 data class BurnPart(val measure: BurnMeasure, val amount: AmountField)
 
 /**
@@ -133,6 +144,7 @@ data class BurnPart(val measure: BurnMeasure, val amount: AmountField)
  * shows. [needsDetails] says a calorie goal can't work out a target yet; [needsWeight] that a
  * weight goal needs a weigh-in first. [replaces] names a calorie goal this one pauses.
  */
+@HiddenFromObjC
 data class GoalEditView(
     val kinds: List<GoalKind>,
     val kind: GoalKind?,
@@ -162,6 +174,7 @@ data class GoalEditView(
  * page draws. Every goal is built through the engine ([GoalBaselines], [GoalTargets],
  * [GoalProjections]), so the editor shows exactly what the goal will do.
  */
+@HiddenFromObjC
 object GoalEditor {
 
     const val BALANCE_STEP = 50

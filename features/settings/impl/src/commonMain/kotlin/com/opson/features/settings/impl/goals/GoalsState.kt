@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.features.settings.impl.goals
 
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.goals.GoalStatuses
@@ -40,6 +44,7 @@ import kotlin.math.abs
  * calorie target first, each with how this week is going, where it leads and what changed its
  * target. [canAdd] when a type on offer has no goal yet.
  */
+@HiddenFromObjC
 data class GoalsState(
     val loaded: Boolean = false,
     val goals: List<GoalCard> = emptyList(),
@@ -50,6 +55,7 @@ data class GoalsState(
 )
 
 /** What a goal asks for, in words the card builds: each type's own amount through the policy. */
+@HiddenFromObjC
 sealed interface GoalAim {
     /** [paceText] a week toward [goalWeight] (Hidden where weight doesn't show). */
     data class Weight(val direction: GoalDirection, val paceText: String?, val goalWeight: Display) : GoalAim
@@ -62,9 +68,11 @@ sealed interface GoalAim {
 }
 
 /** One day of the week on a goal's strip. */
+@HiddenFromObjC
 data class WeekDot(val day: DayOfWeek, val verdict: GoalVerdict, val today: Boolean)
 
 /** A recalculation answered, for the history: when, what changed, and the targets either side where calories show. */
+@HiddenFromObjC
 data class HistoryRow(val date: String, val reasons: List<BaselineChange>, val old: Display, val new: Display, val accepted: Boolean)
 
 /**
@@ -73,6 +81,7 @@ data class HistoryRow(val date: String, val reasons: List<BaselineChange>, val o
  * [today] a weekly average's target for today when it differs. [burn] is the typical day it was
  * worked out from (energy out). [chart] is where it leads, where weight shows.
  */
+@HiddenFromObjC
 data class GoalCard(
     val id: String,
     val kind: GoalKind,
@@ -97,6 +106,7 @@ data class GoalCard(
 }
 
 /** What the goals page reads. [days] is this week's verdicts by goal id; [statuses] today's, for the weekly budget and pace. */
+@HiddenFromObjC
 data class GoalsInputs(
     val settings: Settings,
     val policy: VisibilityPolicy,
@@ -106,6 +116,7 @@ data class GoalsInputs(
     val today: LocalDate,
 )
 
+@HiddenFromObjC
 object GoalsStateBuilder {
 
     fun build(inputs: GoalsInputs, focus: String?, supportLink: Boolean, paceInfo: PaceInfoView? = null): GoalsState {

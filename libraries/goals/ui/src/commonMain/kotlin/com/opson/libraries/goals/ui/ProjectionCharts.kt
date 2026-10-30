@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.libraries.goals.ui
 
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.FormatContext
 import com.opson.libraries.nutrition.GoalDirection
@@ -18,6 +22,7 @@ import com.opson.libraries.ui.time.DateCopy
  * the goal weight's height, when there is one; [reachedAt] how far across (0 to 1) the middle
  * series gets there.
  */
+@HiddenFromObjC
 data class ProjectionShape(
     val low: List<Float>,
     val middle: List<Float>,
@@ -34,6 +39,7 @@ data class ProjectionShape(
  * [best] and [worst] at the two ends of the band. Each is null when that series doesn't get there
  * within the projection.
  */
+@HiddenFromObjC
 data class ProjectionForecast(val middle: String?, val best: String?, val worst: String?)
 
 /**
@@ -42,6 +48,7 @@ data class ProjectionForecast(val middle: String?, val best: String?, val worst:
  * without one, where the middle line ends; [startDate] and [endDate] its span. Every weight went
  * through the policy: a chart is only built where weight is on show.
  */
+@HiddenFromObjC
 data class ProjectionChartUi(
     val shape: ProjectionShape,
     val startWeight: String,
@@ -53,7 +60,11 @@ data class ProjectionChartUi(
     val forecast: ProjectionForecast? = null,
 )
 
-/** Pure: a [WeightProjection] into a [ProjectionChartUi], so the math is tested without drawing. */
+/**
+ * Pure: a [WeightProjection] into a [ProjectionChartUi], so the math is tested without drawing.
+ * These types stay out of the iOS header: screen states carry them, and Swift never reads one.
+ */
+@HiddenFromObjC
 object ProjectionCharts {
 
     /** Room above and below the lines, as a share of the span, so nothing touches the edge. */

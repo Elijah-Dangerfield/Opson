@@ -1,5 +1,9 @@
+@file:OptIn(ExperimentalObjCRefinement::class)
+
 package com.opson.features.settings.impl.goals
 
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
 import androidx.lifecycle.viewModelScope
 import com.opson.features.onboarding.OnboardingSetupEnabled
 import com.opson.features.settings.FindSupportEnabled
@@ -29,6 +33,7 @@ import me.tatarka.inject.annotations.Inject
  * where it leads. Pause and pick up again are written here; changing a goal opens the editor.
  * Only with `release.onboardingSetup`; off, it closes at once.
  */
+@HiddenFromObjC
 @OptIn(ExperimentalCoroutinesApi::class)
 @Inject
 class GoalsViewModel(
@@ -107,6 +112,7 @@ class GoalsViewModel(
     }
 }
 
+@HiddenFromObjC
 sealed interface GoalsEvent {
     /** The editor: the goal with this id, or a new goal for null. */
     data class OpenEdit(val id: String?) : GoalsEvent
@@ -117,6 +123,7 @@ sealed interface GoalsEvent {
     data object Close : GoalsEvent
 }
 
+@HiddenFromObjC
 sealed interface GoalsAction {
     data class Arrived(val inputs: GoalsInputs) : GoalsAction
     data class EditTapped(val id: String) : GoalsAction
