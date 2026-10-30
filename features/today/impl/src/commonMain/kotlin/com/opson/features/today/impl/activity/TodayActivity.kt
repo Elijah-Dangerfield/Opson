@@ -19,6 +19,7 @@ import com.opson.libraries.health.HealthRecords
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.StepsRepository
 import com.opson.libraries.health.HealthWorkout
 import com.opson.libraries.health.WorkoutKind
 import com.opson.libraries.nutrition.Burned
@@ -78,6 +79,13 @@ data class TodayActivityCard(
     val workouts: List<WorkoutRow> = emptyList(),
     /** While not [known]: what resting energy is waiting on, said in place of the sum, with its Fix. */
     val gap: BurnedGap? = null,
+    /**
+     * The day's steps from the health app, with "Steps on Today" on and `release.health`; null
+     * without, or with none recorded. Never part of the sum: walking is already in active energy.
+     */
+    val steps: Int? = null,
+    /** The steps chip's (i) is open: why steps don't add to Burned. */
+    val stepsExplained: Boolean = false,
 )
 
 /**
@@ -148,6 +156,9 @@ sealed interface TodayActivityAction {
 
     /** The (i) beside Total burned (TDEE): what it is and how today's adds up. */
     data object BurnedInfoTapped : TodayActivityAction
+
+    /** The (i) beside the steps chip: steps don't add to Burned. Opens and closes a line on the card. */
+    data object StepsInfoTapped : TodayActivityAction
 }
 
 sealed interface TodayActivityEvent {
@@ -173,10 +184,12 @@ data class TodayActivityInputs(
     val workouts: List<HealthWorkout> = emptyList(),
     /** With [burned] null, what resting energy is waiting on. */
     val gap: BurnedGap? = null,
+    /** The day's steps, read only with `release.health` on and "Steps on Today" on. */
+    val steps: Int? = null,
 )
 
 object TodayActivityStateBuilder {
-    fun build(inputs: TodayActivityInputs): TodayActivityState {
+    fun build(inputs: TodayActivityInputs, stepsExplained: Boolean = false): TodayActivityState {
         val policy = inputs.policy
         if (!inputs.settings.exerciseOffered(inputs.released, policy.level(Metric.EnergyOut))) return TodayActivityState()
         val context = FormatContext(day = inputs.day)
@@ -220,6 +233,8 @@ object TodayActivityStateBuilder {
                 },
                 closed = inputs.closed,
                 healthSource = healthSource,
+                steps = inputs.steps?.takeIf { inputs.settings.todaySteps && it > 0 },
+                stepsExplained = stepsExplained,
                 gap = if (burned == null) inputs.gap ?: BurnedGap() else null,
                 workouts = inputs.workouts.map { workout ->
                     WorkoutRow(
@@ -258,9 +273,14 @@ class TodayActivityViewModel(
     records: HealthRecords,
     healthFlag: HealthReleaseFlag,
     ticker: MinuteTicker,
+    steps: StepsRepository = StepsRepository.None,
 ) : SEAViewModel<TodayActivityState, TodayActivityEvent, TodayActivityAction>(initialStateArg = TodayActivityState()) {
 
     private var day: LocalDate = selectedDay.date.value
+
+    /** The last inputs and whether the steps (i) is open, so a tap on it rebuilds without new data. */
+    private var latest: TodayActivityInputs? = null
+    private var stepsExplained = false
 
     init {
         val flags = ticker.ticks().map { release.isOn() to healthFlag() }.distinctUntilChanged()
@@ -269,17 +289,25 @@ class TodayActivityViewModel(
                 val (released, healthOn) = flags
                 if (!released) return@flatMapLatest flowOf(null)
                 val workouts = if (healthOn) records.workouts(date, calendar.timeZone()).map { it.orEmpty() } else flowOf(emptyList())
+                // "Steps on Today" off leaves the store unasked for steps.
+                val daySteps = if (healthOn) {
+                    settingsRepository.settings.map { it.todaySteps }.distinctUntilChanged().flatMapLatest { on ->
+                        if (on) steps.steps(date, calendar.timeZone()) else flowOf(null)
+                    }
+                } else {
+                    flowOf(null)
+                }
                 // When Burned is null, the Resting energy page's answer for what it is waiting on comes with it.
                 val burned = burnedRepository.burned(date).flatMapLatest { known ->
                     if (known != null) flowOf(known to null) else burnedRepository.restingChoices().map { null to BurnedGap(it.unusable) }
                 }
                 combine(
-                    combine(burned, workouts, ::Pair),
+                    combine(burned, workouts, daySteps, ::Triple),
                     exercise.observeDay(date),
                     settingsRepository.settings,
                     policySource.policy,
                     diary.observeDay(date).map { it.closedByUser }.distinctUntilChanged(),
-                ) { (out, fromHealth), entries, settings, policy, closed ->
+                ) { (out, fromHealth, stepCount), entries, settings, policy, closed ->
                     TodayActivityInputs(
                         day = date,
                         settings = settings,
@@ -293,6 +321,7 @@ class TodayActivityViewModel(
                         // Only ever named when Burned says the store's activity is what counts.
                         healthSource = health.source,
                         workouts = fromHealth,
+                        steps = stepCount,
                     )
                 }
             }.collect { inputs ->
@@ -305,14 +334,22 @@ class TodayActivityViewModel(
         when (action) {
             is TodayActivityAction.InputsArrived -> {
                 day = action.inputs.day
-                action.updateState { TodayActivityStateBuilder.build(action.inputs) }
+                latest = action.inputs
+                action.updateState { TodayActivityStateBuilder.build(action.inputs, stepsExplained) }
+            }
+            TodayActivityAction.StepsInfoTapped -> {
+                stepsExplained = !stepsExplained
+                latest?.let { inputs -> action.updateState { TodayActivityStateBuilder.build(inputs, stepsExplained) } }
             }
             TodayActivityAction.AddTapped -> sendEvent(TodayActivityEvent.OpenExercise(day))
             TodayActivityAction.AddMissedTapped -> sendEvent(TodayActivityEvent.OpenExercise(day, notOnWatch = true))
             is TodayActivityAction.EntryTapped -> sendEvent(TodayActivityEvent.OpenExercise(day, action.id))
             TodayActivityAction.RestingEnergyTapped -> sendEvent(TodayActivityEvent.OpenRestingEnergy)
             TodayActivityAction.BurnedFixTapped -> state.card?.gap?.let { sendEvent(TodayActivityEvent.OpenBurnedFix(it.fix)) }
-            TodayActivityAction.Unreleased -> action.updateState { TodayActivityState() }
+            TodayActivityAction.Unreleased -> {
+                latest = null
+                action.updateState { TodayActivityState() }
+            }
             TodayActivityAction.BurnedInfoTapped -> sendEvent(TodayActivityEvent.OpenBurnedExplainer)
         }
     }

@@ -284,6 +284,8 @@ data class Settings(
     /** Rows in Today's list that can be turned off on Today alone. */
     val todayWater: Boolean = true,
     val todayWeight: Boolean = true,
+    /** The day's steps from the health app on Today's Activity card (`release.health`). */
+    val todaySteps: Boolean = true,
     /** Close the day's button in Today's header, once a card at the end of the list. The ⋮ menu offers it either way. */
     val todayCloseDay: Boolean = true,
 
@@ -553,6 +555,8 @@ data class TrendsCards(
     val calendar: Boolean = true,
     /** The running total: eaten against burned, added up over a few weeks, with what that might mean on the scale. */
     val runningTotal: Boolean = true,
+    /** Steps from the health app, each day over the range, with a steps goal's line when there is one. */
+    val steps: Boolean = true,
 )
 
 /** How the Logger orders search results. */

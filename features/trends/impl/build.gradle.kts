@@ -25,17 +25,16 @@ kotlin {
             implementation(projects.libraries.scanner)
             // AppLifecycle: the photos lock again when the app goes to the background.
             implementation(projects.libraries.opson)
-            // Goals: the calendar colored by the goal setting the target, and when it began.
+            // Goals: the calendar colored by the goal setting the target, when it began, a recap's
+            // week against each goal, and a steps goal's line and streak on the Steps card.
             implementation(projects.libraries.goals)
-            // The Expended card: energy from the watch, behind release.health.
+            // The Expended card and the Steps card: energy and steps from the health app, behind release.health.
             implementation(projects.libraries.health)
             // The weight chart's dose ticks, behind release.medication.
             implementation(projects.libraries.medication)
             // Recaps: "I'd rather not see these" on the recap card (OptOuts), and the card's memory.
             implementation(projects.libraries.prompts)
             implementation(projects.libraries.storage)
-            // A recap's week against each goal (the goal engine's days).
-            implementation(projects.libraries.goals)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)

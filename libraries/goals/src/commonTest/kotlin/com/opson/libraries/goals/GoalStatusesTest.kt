@@ -66,6 +66,17 @@ class GoalStatusesTest {
     }
 
     @Test
+    fun aDayFromTheLog_carriesItsSteps() {
+        assertEquals(8200, GoalStatuses.facts(Day(GoalFixtures.today), burned = null, steps = 8200).steps)
+    }
+
+    @Test
+    fun theStepsGoal_isTheFirstActiveOne() {
+        assertEquals("steps", GoalStatuses.stepsGoal(GoalFixtures.settings(GoalFixtures.lose, GoalFixtures.steps))?.id)
+        assertNull(GoalStatuses.stepsGoal(GoalFixtures.settings(GoalFixtures.lose)))
+    }
+
+    @Test
     fun gentleGoals_haveNoTargetAndNoPace() {
         val statuses = GoalStatuses.today(GoalFixtures.gentleSettings(), GoalFixtures.week, GoalFixtures.today, GoalFixtures.WEIGHT_KG)
         assertEquals(listOf("track", "meals"), statuses.map { it.goal.id })

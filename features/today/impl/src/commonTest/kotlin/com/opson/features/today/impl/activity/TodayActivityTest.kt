@@ -22,6 +22,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.health.ExerciseRelease
 import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.StepsRepository
 import com.opson.libraries.health.HealthWorkout
 import com.opson.libraries.health.WorkoutKind
 import com.opson.features.today.impl.BurnedFix
@@ -192,9 +193,11 @@ class TodayActivityTest : CoroutineTest() {
         burned: FakeBurnedRepository = FakeBurnedRepository(burnedFor(resting, null, EverydayActivity.MostlySitting, ExerciseTotals(340, 0), true)),
         release: ExerciseRelease = ExerciseRelease { released },
         ticker: MinuteTicker = MinuteTicker { flowOf(noon) },
+        steps: StepsRepository = StepsRepository.None,
+        settings: Settings = Settings(),
     ) = TodayActivityViewModel(
         selectedDay = selected,
-        settingsRepository = FakeSettingsRepository(),
+        settingsRepository = FakeSettingsRepository(settings),
         policySource = FakePolicySource(),
         burnedRepository = burned,
         exercise = FakeExercise(listOf(run, run.copy(id = "tomorrow", day = day.plusDays(1)))),
@@ -205,7 +208,59 @@ class TodayActivityTest : CoroutineTest() {
         records = health,
         healthFlag = healthFlag(healthOn),
         ticker = ticker,
+        steps = steps,
     )
+
+    // --- steps ---
+
+    private class FakeSteps(private val count: Int?) : StepsRepository {
+        val asked = mutableListOf<LocalDate>()
+        override val canAskForMore = MutableStateFlow(false)
+        override fun stepsBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Flow<Map<LocalDate, Int>?> {
+            asked += from
+            return flowOf(count?.let { mapOf(from to it) })
+        }
+    }
+
+    @Test
+    fun theDaysSteps_areAChip_withStepsOnToday() {
+        val inputs = TodayActivityInputs(day, Settings(), null, emptyList(), policy(NumbersSettings()), true, TimeZone.UTC, steps = 8214)
+        assertEquals(8214, TodayActivityStateBuilder.build(inputs).card?.steps)
+        assertNull(TodayActivityStateBuilder.build(inputs.copy(settings = Settings(todaySteps = false))).card?.steps, "Steps on Today off")
+        assertNull(TodayActivityStateBuilder.build(inputs.copy(steps = 0)).card?.steps, "nothing recorded yet")
+    }
+
+    @Test
+    fun steps_areReadForTheSelectedDay_withTheHealthReleaseOn() = runUnitTest {
+        val steps = FakeSteps(6400)
+        val vm = vm(healthOn = true, steps = steps)
+        settle()
+        assertEquals(6400, vm.state.card?.steps)
+        assertEquals(listOf(day), steps.asked.distinct())
+    }
+
+    @Test
+    fun steps_areNeverRead_withTheHealthReleaseOff_orStepsOnTodayOff() = runUnitTest {
+        val off = FakeSteps(6400)
+        vm(healthOn = false, steps = off)
+        val hidden = FakeSteps(6400)
+        vm(healthOn = true, steps = hidden, settings = Settings(todaySteps = false))
+        settle()
+        assertTrue(off.asked.isEmpty())
+        assertTrue(hidden.asked.isEmpty())
+    }
+
+    @Test
+    fun theStepsInfo_opensAndCloses() = runUnitTest {
+        val vm = vm(healthOn = true, steps = FakeSteps(6400))
+        settle()
+        vm.takeAction(TodayActivityAction.StepsInfoTapped)
+        settle()
+        assertEquals(true, vm.state.card?.stepsExplained)
+        vm.takeAction(TodayActivityAction.StepsInfoTapped)
+        settle()
+        assertEquals(false, vm.state.card?.stepsExplained)
+    }
 
     @Test
     fun burnedUnknown_saysWhatItNeeds_andFixOpensThatPlace() = runUnitTest {

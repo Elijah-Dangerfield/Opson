@@ -144,6 +144,10 @@ object TodayLeakSurfaces {
         LeakSurface(id = "today-activity-health", label = "Today, Activity from a health app", showsCaloriesInFull = true) { policy ->
             TodayActivityFixtures.withHealth(policy, withFood = true)?.let { TodayActivitySection(it, onAction = {}) }
         },
+        // The day's steps as a chip with its (i) open: a count, never energy, gone with energy out.
+        LeakSurface(id = "today-activity-steps", label = "Today, Activity with steps", showsCaloriesInFull = false) { policy ->
+            TodayActivityFixtures.withSteps(policy, explained = true)?.let { TodayActivitySection(it, onAction = {}) }
+        },
         // Burned that can't be worked out: the card and the Activity card say what it needs, with no amount in it.
         LeakSurface(id = "today-burned-unavailable", label = "Today, Burned unavailable", showsCaloriesInFull = true) { policy ->
             TodayScreen(

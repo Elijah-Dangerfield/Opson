@@ -53,9 +53,9 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
         fun cards(preset: PresetId, overrides: Map<Metric, Visibility> = emptyMap()) =
             TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(preset, overrides)).toggles.map { it.card }
         assertEquals(
-            TrendsCard.entries - TrendsCard.Expended - TrendsCard.Running,
+            TrendsCard.entries - TrendsCard.Expended - TrendsCard.Steps - TrendsCard.Running,
             cards(PresetId.Full),
-            "Expended waits for a connected watch, the running total for Burned",
+            "Expended waits for a connected watch, steps for release.health, the running total for Burned",
         )
         assertEquals(listOf(TrendsCard.Calendar, TrendsCard.Recap, TrendsCard.Journal), cards(PresetId.NoNumbers), "weight is hidden, so its card never shows")
         assertEquals(listOf(TrendsCard.Calendar, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal), cards(PresetId.MacrosOnly))
@@ -68,6 +68,17 @@ class TrendsSettingsViewModelTest : CoroutineTest() {
             listOf(TrendsCard.Intake, TrendsCard.Calendar, TrendsCard.Recap, TrendsCard.Nutrients, TrendsCard.Weight, TrendsCard.Journal),
             cards(PresetId.Full, Presets.laterLevels),
         )
+    }
+
+    @Test
+    fun steps_offeredWithTheHealthRelease_connectedOrNot_andItsSwitchWritesItsCard() = runUnitTest {
+        assertTrue(vm(healthOn = false).state.toggles.none { it.card == TrendsCard.Steps })
+        assertTrue(vm(healthOn = true, health = FakeHealthRepository(initial = HealthStatus.NotConnected)).state.toggles.any { it.card == TrendsCard.Steps })
+        val vm = vm(healthOn = true)
+        vm.takeAction(TrendsSettingsAction.CardToggled(TrendsCard.Steps))
+        assertEquals(TrendsCards(steps = false), settings.settings.value.trendsCards)
+        val blind = TrendsSettingsStateBuilder.build(Settings(), TrendsFixtures.policy(PresetId.NoNumbers), healthOn = true)
+        assertTrue(blind.toggles.none { it.card == TrendsCard.Steps }, "hidden with energy out")
     }
 
     @Test

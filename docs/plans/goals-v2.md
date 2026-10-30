@@ -204,7 +204,7 @@ All three numbers (20%, 10%, 200) are `TODO(clinician)`.
 | Weight | direction (lose, keep, gain), target weight, pace, start weight | yes | no | weigh-ins |
 | Energy balance | kcal a day under (negative) or over what you burn | yes | no | eaten, baseline |
 | Burn | kcal a day, total burned (TDEE) or active only | no | no | Burned |
-| Steps | steps a day | no | no | `StepsSource` (not built yet) |
+| Steps | steps a day | no | no | the health app's daily steps (`StepsRepository`), read only while a steps goal is active |
 | Track every day | none | no | yes | the day was shown up for |
 | Meals | meals a day, 3 by default | no | yes | meals with food |
 
@@ -247,12 +247,14 @@ Pure, in `:libraries:nutrition`:
 In `:libraries:diary`: `Settings.goals` and `GoalBook` (migration, the `weightGoal` mirror, writes).
 
 In `:libraries:goals`: `GoalRepository`, the flows every screen reads (today's status for each
-goal, a span of day verdicts for the Trends calendar, the recap and celebrations, the week's
-budget, the projection, the pending recalculation, accept and keep, and `wrapUp(date)`: each goal
-on a day judged as if wrapped up, with its week after the day and its streak) and `GoalFixtures`
-for previews. `GoalOutcomes` turns a verdict into the words Wrap up the day and the recap pick by
-(on plan, a bit over or under, a big day, well under, not this time), and `GoalStreaks` is the
-opt-in goal streak (only Track every day, Meals, Burn and Steps).
+goal, a span of day verdicts for the Trends calendar, the recap and celebrations, this week's day
+verdicts for any goal type (`weekDays`), the week's budget, the projection, the pending
+recalculation, accept and keep, and `wrapUp(date)`: each goal on a day judged as if wrapped up,
+with its week after the day and its streak) and `GoalFixtures` for previews. `GoalOutcomes` turns
+a verdict into the words Wrap up the day and the recap pick by (on plan, a bit over or under, a big
+day, well under, not this time), and `GoalStreaks` is the opt-in goal streak (only Track every day,
+Meals, Burn and Steps). A steps goal reads the health app's steps (`StepsRepository`) only while
+one is active.
 
 ## Edge cases
 
@@ -324,3 +326,7 @@ Built on 2026-10-30 from the owner's feedback on the goal and target screens. Ev
 
 Onboarding's "Do you want to set a goal?" and its goal streak question (built from the pieces
 above), the steps data source, and the recap.
+
+The goal UI (charts, animations, typed inputs, macro split ranges, the Daily or Weekly average
+choice and the band picker), onboarding's "Do you want to set a goal?" and its goal streak question,
+and the recap. The API is built for them, and `GoalFixtures` has every state.

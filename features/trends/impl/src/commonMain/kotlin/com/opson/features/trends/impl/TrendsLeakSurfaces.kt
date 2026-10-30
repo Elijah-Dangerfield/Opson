@@ -24,7 +24,14 @@ object TrendsLeakSurfaces {
     val all: List<LeakSurface> = listOf(
         // With release.recaps: the links to last week's and last month's recaps name dates, never an amount.
         LeakSurface(id = "trends", label = "Trends (week history)", showsCaloriesInFull = true) { policy ->
-            TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(expended = TrendsFixtures.expended(), recapsOn = true), policy), onAction = {})
+            // Steps against a steps goal too: a count, never energy, and gone wherever energy out is hidden.
+            val inputs = TrendsFixtures.trendsInputs(
+                settings = TrendsFixtures.stepsGoalSettings(),
+                expended = TrendsFixtures.expended(),
+                recapsOn = true,
+                steps = TrendsFixtures.stepsInputs(),
+            )
+            TrendsContent(TrendsStateBuilder.build(inputs, policy), onAction = {})
         },
         // The design's Blind and Coast screens. The test passes the policy, so these differ from
         // `trends` in what they are built from: Month (every card follows the range) and the

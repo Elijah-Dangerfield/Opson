@@ -36,9 +36,7 @@ import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.Heights
 import com.opson.libraries.nutrition.RestingSource
-import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.WeightGoal
-import com.opson.libraries.nutrition.WeightGoals
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.opson.AppData
 import kotlinx.coroutines.cancel
@@ -88,11 +86,9 @@ class OwnerBurnedTest {
     private val today = LocalDate(2026, 10, 30)
     private val noon = Instant.parse("2026-10-30T16:00:00Z")
 
-    /** Lose to 160 lb at half a pound a week, from a 2,300 a day burn, then "Use my goal" again. */
+    /** Lose to 160 lb at half a pound a week. */
     private val owner: Settings = run {
         val goal = WeightGoal(GoalDirection.Lose, targetKg = 72.6, kgPerWeek = 0.23, startKg = 77.1, startDate = today)
-        val aim = WeightGoals.aimKcal(goal, burnKcal = 2300, sex = BodySex.Male)
-        val (stamped, targets) = WeightGoals.apply(goal, Targets.Default, aim, scaleMacros = true)
         Settings(
             bodySex = BodySex.Male,
             bodyStage = BodyStage.None,
@@ -101,8 +97,8 @@ class OwnerBurnedTest {
             weightUnit = WeightUnit.Lb,
             weightUnitChosen = true,
             everydayActivity = EverydayActivity.SomeWalking,
-            weightGoal = stamped,
-            targets = targets,
+            // Burned never reads the target, so the goal's own band is left out here.
+            weightGoal = goal,
         ).withBirthDate(LocalDate(1998, 5, 11))
     }
 
@@ -234,6 +230,7 @@ class OwnerBurnedTest {
             if (failReads) error("Protected health data is inaccessible")
             return emptyMap()
         }
+        override suspend fun dailySteps(from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, Int> = emptyMap()
         override suspend fun workouts(from: Instant, to: Instant): List<HealthWorkout> = emptyList()
         override suspend fun weighIns(from: Instant, to: Instant): List<HealthWeighIn> = emptyList()
         override suspend fun profile() = HealthProfile(null, null, null)

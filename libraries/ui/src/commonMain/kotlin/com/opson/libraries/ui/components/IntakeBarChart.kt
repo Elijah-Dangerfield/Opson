@@ -57,6 +57,9 @@ data class IntakeBar(val label: String, val fraction: Float?, val isCurrent: Boo
  * [readouts], one per bar and `null` for a gap, make it inspectable ([InspectableChart]): the picked
  * bar stays solid and the rest fade. Their words come resolved from the builder too, so inspecting
  * a bar can only say what the mode already allows.
+ *
+ * [barGap] narrows for a chart of many bars (a month of days). When every label is blank there is
+ * no label row, and the screen draws its own axis under the chart.
  */
 @Composable
 fun IntakeBarChart(
@@ -68,12 +71,13 @@ fun IntakeBarChart(
     chartHeight: Dp = 130.dp,
     barColor: ColorResource = AppTheme.colors.accent,
     bandColor: ColorResource = AppTheme.colors.soft,
+    barGap: Dp = BAR_GAP,
 ) {
     if (bars.isEmpty()) return
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         InspectableChart(
             readouts = readouts,
-            axis = ChartAxis.Slots(BAR_GAP),
+            axis = ChartAxis.Slots(barGap),
             selection = selection,
             modifier = Modifier.fillMaxWidth().height(chartHeight),
         ) {
@@ -94,7 +98,7 @@ fun IntakeBarChart(
                             cornerRadius = CornerRadius(BAND_RADIUS.toPx()),
                         )
                     },
-                horizontalArrangement = Arrangement.spacedBy(BAR_GAP),
+                horizontalArrangement = Arrangement.spacedBy(barGap),
                 verticalAlignment = Alignment.Bottom,
             ) {
                 bars.forEachIndexed { index, bar ->
@@ -120,16 +124,18 @@ fun IntakeBarChart(
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(BAR_GAP)) {
-            bars.forEach { bar ->
-                Text(
-                    text = bar.label,
-                    typography = if (bar.isCurrent) AppTheme.type.secondaryStrong.Bold else AppTheme.type.secondary,
-                    color = if (bar.isCurrent) AppTheme.colors.ink else AppTheme.colors.muted,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f),
-                )
+        if (bars.any { it.label.isNotBlank() }) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(barGap)) {
+                bars.forEach { bar ->
+                    Text(
+                        text = bar.label,
+                        typography = if (bar.isCurrent) AppTheme.type.secondaryStrong.Bold else AppTheme.type.secondary,
+                        color = if (bar.isCurrent) AppTheme.colors.ink else AppTheme.colors.muted,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }

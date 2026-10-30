@@ -10,6 +10,9 @@ import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Surface
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.flow.combine
@@ -19,7 +22,7 @@ import kotlinx.datetime.DayOfWeek
 import me.tatarka.inject.annotations.Inject
 
 /** The cards a user can switch on or off, in page order. */
-enum class TrendsCard { Intake, Calendar, Recap, Nutrients, Expended, Running, Weight, Journal }
+enum class TrendsCard { Intake, Calendar, Recap, Nutrients, Expended, Steps, Running, Weight, Journal }
 
 data class CardToggle(val card: TrendsCard, val on: Boolean)
 
@@ -39,11 +42,18 @@ object TrendsSettingsStateBuilder {
      * shown on the week view), Nutrients only when a macro could, Expended only
      * with a health app connected and energy out shown, Weight only when weight
      * is not hidden; offering a switch for a card the mode will never draw is a
-     * switch that does nothing. Recap, the calendar, and Hunger and notes, always: where amounts
+     * switch that does nothing. Steps with `release.health` on ([healthOn]), connected or not,
+     * since the card offers Connect, and wherever energy out isn't hidden. Recap, the calendar, and Hunger and notes, always: where amounts
      * are hidden the calendar only says which days have something logged. The running total only
      * with Burned on ([goalsAndEnergy]) and where it could show ([RunningTotals.card]).
      */
-    fun build(settings: Settings, policy: VisibilityPolicy, healthConnected: Boolean = false, goalsAndEnergy: Boolean = false): TrendsSettingsState {
+    fun build(
+        settings: Settings,
+        policy: VisibilityPolicy,
+        healthConnected: Boolean = false,
+        goalsAndEnergy: Boolean = false,
+        healthOn: Boolean = false,
+    ): TrendsSettingsState {
         val cards = settings.trendsCards
         return TrendsSettingsState(
             weekStart = settings.weekStart,
@@ -53,6 +63,7 @@ object TrendsSettingsStateBuilder {
                 add(CardToggle(TrendsCard.Recap, cards.recap))
                 if (TrendsStateBuilder.showsNutrients(policy)) add(CardToggle(TrendsCard.Nutrients, cards.nutrients))
                 if (healthConnected && TrendsStateBuilder.showsExpended(policy)) add(CardToggle(TrendsCard.Expended, cards.expended))
+                if (healthOn && policy.effectiveLevel(Metric.EnergyOut, Surface.Week) != Visibility.Hide) add(CardToggle(TrendsCard.Steps, cards.steps))
                 if (goalsAndEnergy && !settings.onboarding.hard && TrendsStateBuilder.showsIntake(policy) && TrendsStateBuilder.showsExpended(policy)) {
                     add(CardToggle(TrendsCard.Running, cards.runningTotal))
                 }
@@ -78,8 +89,9 @@ class TrendsSettingsViewModel(
         // The status Trends' own read last left; looking at it never touches the store.
         val connected = if (healthFlag()) health.status.map { it == HealthStatus.Connected } else flowOf(false)
         val burnedOn = goalsAndEnergy()
+        val healthOn = healthFlag()
         combine(settingsRepository.settings, policySource.policy, connected) { settings, policy, connected ->
-            TrendsSettingsAction.InputsArrived(settings, policy, connected, burnedOn)
+            TrendsSettingsAction.InputsArrived(settings, policy, connected, burnedOn, healthOn)
         }.collectIn(viewModelScope) { takeAction(it) }
     }
 
@@ -87,7 +99,7 @@ class TrendsSettingsViewModel(
     override suspend fun handleAction(action: TrendsSettingsAction) {
         when (action) {
             is TrendsSettingsAction.InputsArrived ->
-                action.updateState { TrendsSettingsStateBuilder.build(action.settings, action.policy, action.healthConnected, action.goalsAndEnergy) }
+                action.updateState { TrendsSettingsStateBuilder.build(action.settings, action.policy, action.healthConnected, action.goalsAndEnergy, action.healthOn) }
             is TrendsSettingsAction.WeekStartPicked -> {
                 if (action.day in TrendsSettingsStateBuilder.WEEK_STARTS) {
                     settingsRepository.update { it.copy(weekStart = action.day) }
@@ -107,6 +119,7 @@ private fun TrendsCards.flipped(card: TrendsCard): TrendsCards = when (card) {
     TrendsCard.Recap -> copy(recap = !recap)
     TrendsCard.Nutrients -> copy(nutrients = !nutrients)
     TrendsCard.Expended -> copy(expended = !expended)
+    TrendsCard.Steps -> copy(steps = !steps)
     TrendsCard.Weight -> copy(weight = !weight)
     TrendsCard.Journal -> copy(journal = !journal)
 }
@@ -117,6 +130,7 @@ sealed interface TrendsSettingsAction {
         val policy: VisibilityPolicy,
         val healthConnected: Boolean = false,
         val goalsAndEnergy: Boolean = false,
+        val healthOn: Boolean = false,
     ) : TrendsSettingsAction
     data class WeekStartPicked(val day: DayOfWeek) : TrendsSettingsAction
     data class CardToggled(val card: TrendsCard) : TrendsSettingsAction
