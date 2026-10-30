@@ -80,6 +80,8 @@ kotlin {
             // MedicationEnabled (release.medication), for ConfigManifestRegistryDriftTest, and the
             // medication tables RoomMigrationTest opens.
             implementation(projects.libraries.medication)
+            // release.reviewAsk and the review.* values, for ConfigManifestRegistryDriftTest.
+            implementation(projects.libraries.review.impl)
             // The upgrade.* values, and the guard the remote-config journeys drive.
             implementation(projects.features.upgrade)
             implementation(projects.features.upgrade.impl)

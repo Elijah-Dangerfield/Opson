@@ -315,6 +315,54 @@ class PromptProcessorTest : CoroutineTest() {
     }
 
     @Test
+    fun `one prompt may follow an answer to the prompt just shown`() = runUnitTest {
+        val cheered = setOf(PromptEvent.CelebrationCheered)
+        val review = FakeCandidate("review", priority = 200, onTodayOpen = false, events = cheered)
+        val second = FakeCandidate("second", priority = 100, onTodayOpen = false, events = cheered)
+        val other = FakeCandidate("other", priority = 400, onTodayOpen = false, events = setOf(PromptEvent.ReportSent))
+        val celebration = FakeCandidate("celebration", priority = 500, presentation = PromptPresentation.Screen)
+        val processor = processor(celebration, review, second, other)
+        assertEquals("celebration", processor.next()?.id)
+
+        processor.emit(PromptEvent.ReportSent)
+        assertNull(processor.next(), "an ordinary moment still waits for the next session")
+
+        processor.emit(PromptEvent.CelebrationCheered)
+        assertEquals("review", processor.next()?.id)
+        assertEquals("shown:review:dialog:celebration_cheered", telemetry.events.last())
+
+        processor.emit(PromptEvent.CelebrationCheered)
+        assertNull(processor.next(), "one follow-up a session")
+        assertEquals(0, second.eligibilityChecks)
+    }
+
+    @Test
+    fun `an answer is no way past the other rules`() = runUnitTest {
+        val review = FakeCandidate("review", onTodayOpen = false, events = setOf(PromptEvent.CelebrationCheered))
+        val processor = processor(review)
+        audience.audience = audience.audience.copy(numbersHard = true)
+
+        processor.emit(PromptEvent.CelebrationCheered)
+        assertNull(processor.next())
+    }
+
+    @Test
+    fun `a system prompt is launched and never answered`() = runUnitTest {
+        val review = FakeCandidate("review", presentation = PromptPresentation.System, acceptsWith = PromptAccept.Done)
+        val processor = processor(review)
+
+        val showing = processor.next()
+        assertEquals(PromptPresentation.System, showing?.presentation)
+        processor.launch("review")
+
+        assertEquals(1, review.accepts)
+        assertEquals(listOf("shown:review:system:today"), telemetry.events, "no accepted and no dismissed")
+        val record = ledger.account(USER).record("review")
+        assertEquals(1, record.shows)
+        assertEquals(false, record.accepted)
+    }
+
+    @Test
     fun `inspect names the rule holding each prompt back and reset clears it`() = runUnitTest {
         val processor = processor(FakeCandidate("a", priority = 300), FakeCandidate("b", eligible = false))
         processor.next()

@@ -130,6 +130,9 @@ first two days, per-prompt caps, fewer and gentler after "numbers have been hard
 priority, and the host in `App.kt` shows it only while Today is the top of the stack. Moments like
 a sent report go through `PromptEvents.emit`. The rules and the one-file recipe for a new prompt are
 in [`docs/practices/prompts.md`](docs/practices/prompts.md); QA menu › Prompts lists and resets them.
+Asking for a store rating is one of them (`review`, drawn by the store's own sheet): which moment
+each install asks at, the pacing and how to read the results are in
+[`docs/practices/review-asks.md`](docs/practices/review-asks.md).
 First-run tips (a small bubble pointing at something new) are not prompts: register one in `Tips.kt`
 and wrap its target in `CoachMarkAnchor` inside the screen's `CoachMarkScreen`; never open your own.
 

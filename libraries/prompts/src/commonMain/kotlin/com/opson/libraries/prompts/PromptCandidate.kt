@@ -69,7 +69,11 @@ interface PromptCandidate {
      */
     suspend fun isEligible(moment: PromptEvent?): Boolean = isEligible()
 
-    /** The main button was tapped. Do the work, if any, then say where the person goes. */
+    /**
+     * The main button was tapped. Do the work, if any, then say where the person goes. For
+     * [PromptPresentation.System] this is the whole showing: ask the system, and return
+     * [PromptAccept.Done].
+     */
     suspend fun accept(): PromptAccept
 
     /**
@@ -83,12 +87,16 @@ interface PromptCandidate {
 /**
  * How a prompt is drawn. Dialog and sheet go over Today; a card sits in Today's list; a screen is
  * the candidate's own full-screen destination ([PromptCandidate.screen]), such as a celebration.
+ * [System] is drawn by the operating system, the store's rating sheet: the host calls
+ * [PromptCandidate.accept] and draws nothing, and nothing counts as accepted or dismissed, since
+ * the system never says.
  */
 enum class PromptPresentation(val wire: String) {
     Dialog("dialog"),
     Sheet("sheet"),
     Card("card"),
     Screen("screen"),
+    System("system"),
 }
 
 /**
