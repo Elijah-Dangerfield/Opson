@@ -15,6 +15,7 @@ import com.opson.server.domain.FoodReport
 import com.opson.server.domain.FoodReportLimits
 import com.opson.server.domain.FoodReportRepository
 import com.opson.server.domain.FoodSnapshot
+import com.opson.server.domain.PackSide
 import com.opson.server.domain.RevertOutcome
 import com.opson.server.plugins.problem
 import io.ktor.http.CacheControl
@@ -53,12 +54,17 @@ data class FoodReportAdminResponse(
     /** The food as the reporter saw it. */
     val snapshot: SnapshotJson,
     val status: String,
+    /** A photo of the label. */
     val hasPhoto: Boolean,
     val resolvedAtEpochMs: Long? = null,
     val resolvedBy: String? = null,
     val resolution: String? = null,
     val correctionId: String? = null,
     val duplicateOf: String? = null,
+    /** Every reason picked, [reason] first (V33). */
+    val reasons: List<String> = listOf(reason),
+    /** A photo of the front of the pack (V33). */
+    val hasFrontPhoto: Boolean = false,
 )
 
 @Serializable
@@ -131,7 +137,7 @@ data class ClosedReportsResponse(val closed: Int)
  *
  *  - `GET  /v1/admin/food-reports?limit=50`                   open reports grouped per food, most reported first, then oldest
  *  - `GET  /v1/admin/food-reports/foods/{foodId}`             every report and correction on one food
- *  - `GET  /v1/admin/food-reports/{id}/photo`                 the label photo, `no-store`
+ *  - `GET  /v1/admin/food-reports/{id}/photo?kind=front|label` a photo, the label by default, `no-store`
  *  - `POST /v1/admin/food-reports/foods/{foodId}/accept {reportIds, values}`  a correction over the food; 409 `not_open`
  *  - `POST /v1/admin/food-reports/reject {reportIds, reason?}`
  *  - `POST /v1/admin/food-reports/duplicate {reportIds, duplicateOf?}`
@@ -172,8 +178,8 @@ fun Route.foodReportAdminRoutes(
                         source = first.snapshot.source,
                         reportCount = group.size,
                         oldestAtEpochMs = group.minOf { it.createdAt }.toEpochMilliseconds(),
-                        reasons = group.groupingBy { it.reason.wire }.eachCount(),
-                        hasPhoto = group.any { it.hasPhoto },
+                        reasons = group.flatMap { it.reasons }.groupingBy { it.wire }.eachCount(),
+                        hasPhoto = group.any { it.hasPhoto || it.hasFrontPhoto },
                         now = catalog.findById(first.foodId)?.toNow(),
                         correction = corrections[first.foodId]?.toResponse(),
                         reports = group.map { it.toAdmin() },
@@ -199,7 +205,9 @@ fun Route.foodReportAdminRoutes(
     get("/v1/admin/food-reports/{id}/photo") {
         if (!call.requireAdmin(config)) return@get
         val id = call.uuidParam("id") ?: return@get
-        val photo = reports.photo(id) ?: return@get call.respond(HttpStatusCode.NotFound, problem("not_found", "No such photo."))
+        val side = call.request.queryParameters["kind"]?.let { PackSide.fromWire(it) ?: return@get call.respond(HttpStatusCode.BadRequest, problem("invalid_kind", "front or label")) }
+            ?: PackSide.Label
+        val photo = reports.photo(id, side) ?: return@get call.respond(HttpStatusCode.NotFound, problem("not_found", "No such photo."))
         call.response.cacheControl(CacheControl.NoStore(CacheControl.Visibility.Private))
         call.response.header(HttpHeaders.ContentDisposition, "inline")
         call.respondBytes(photo.bytes, ContentType.parse(photo.mediaType))
@@ -294,7 +302,7 @@ internal fun validateCorrection(v: CorrectionValues): Checked<CorrectionValues> 
     return if (cleaned.isEmpty) Checked.Rejected("Nothing to change.") else Checked.Ok(cleaned)
 }
 
-private suspend fun ApplicationCall.uuidParam(name: String): UUID? {
+internal suspend fun ApplicationCall.uuidParam(name: String): UUID? {
     val id = parameters[name]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
     if (id == null) respond(HttpStatusCode.BadRequest, problem("invalid_id", "Not an id."))
     return id
@@ -309,9 +317,9 @@ private suspend fun ApplicationCall.reportIds(raw: List<String>): List<UUID>? {
     return ids
 }
 
-private fun ApplicationCall.reviewer(): String = request.header("X-Admin-Actor")?.trim()?.take(MAX_ACTOR)?.ifEmpty { null } ?: "admin"
+internal fun ApplicationCall.reviewer(): String = request.header("X-Admin-Actor")?.trim()?.take(MAX_ACTOR)?.ifEmpty { null } ?: "admin"
 
-private fun Food.toNow() = FoodNowResponse(
+internal fun Food.toNow() = FoodNowResponse(
     name = name,
     brand = brand,
     source = source.wire,
@@ -333,6 +341,8 @@ private fun FoodReport.toAdmin() = FoodReportAdminResponse(
     snapshot = SnapshotJson.of(snapshot),
     status = status.wire,
     hasPhoto = hasPhoto,
+    reasons = reasons.map { it.wire },
+    hasFrontPhoto = hasFrontPhoto,
     resolvedAtEpochMs = resolvedAt?.toEpochMilliseconds(),
     resolvedBy = resolvedBy,
     resolution = resolution,

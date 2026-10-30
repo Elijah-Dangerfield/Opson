@@ -215,6 +215,18 @@ A trigger fills `tier` and `verified` from `source`, so loaders never write
 them; `food_source_tier()` is the one mapping, and `DatabaseSchemaTest`
 checks it against `CatalogSource`.
 
+**Checked (the app's Verified mark, V33).** `verified` says the source is
+accountable and search ranks by it. `checked` says a person checked this food
+against its pack, or a reviewer stood behind it: a Builder's verification
+confirmed by the label's text or accepted by a reviewer, a live reviewer's
+correction, or an approved `user_submitted` food (`FoodCheck`). Nothing stores
+it: the catalog works it out as it serves a food (`served()`, one query on
+`food_verifications` beside the corrections overlay), so a reverted correction
+or a rolled-back Builder takes the mark away by itself. Every food answer
+(search, detail, barcode and its matches, describe) carries `checked: true`
+when it holds and leaves the field out otherwise. USDA's and NEVO's reference
+rows are never checked: there is no pack.
+
 **Search.** Match tiers, best first: exact name, head (the name's first comma
 segment, "Egg, whole, raw" for `eggs`; also after a category word, "Fish,
 salmon" for `salmon`; or the first two segments in any order, "Rice, brown"
@@ -482,16 +494,21 @@ review once (`energy_check`, below), so a person can fix it for good.
 
 **Reports and corrections (`V29__food_reports.sql`, behind `release.foodReports`
 in the app).** Anyone signed in can report a catalog food from its detail:
-what is wrong (`wrong_calories`, `wrong_nutrients`, `wrong_serving`,
-`wrong_name`, `duplicate`, `not_food`, `other`), optionally the numbers they
-read on the pack for the amount they had on screen (`suggested`: `basisLabel`,
-`basisGrams`, `kcal`, `protein`, `carbs`, `fat`, `servingLabel`,
-`servingGrams`), a photo of the label and a note. The report keeps the food as
-it was served to them. 400 `invalid_id`, `invalid_reason`, `invalid_values`,
-`invalid_note`, `invalid_image`, `invalid_body`; 404 `not_found`; 409
-`id_conflict`; 413 `image_too_large`; 429 `rate_limited` (10 per 10 minutes and
-30 a day per user, `FoodReportLimiter`, and 30 a minute per IP). Body 6 MB,
-photo 4 MB. Reports never change a food by themselves.
+what is wrong, as `reasons` (several at once since V33: `wrong_numbers`,
+`missing_info`, `wrong_serving`, `wrong_name`, `duplicate`, `not_food`,
+`other`; the V29 codes `wrong_calories` and `wrong_nutrients` stay valid) and
+`reason` (one code, which older servers read: the app sends its first reason
+there, `wrong_numbers` as `wrong_nutrients` and `missing_info` as `other`; when
+`reasons` is there it wins), optionally the numbers they read on the pack for
+the amount they had on screen (`suggested`: `basisLabel`, `basisGrams`,
+`kcal`, `protein`, `carbs`, `fat`, `servingLabel`, `servingGrams`), a photo of
+the label (`photo`), one of the front (`frontPhoto`, V33) and a note. The
+report keeps the food as it was served to them. 400 `invalid_id`,
+`invalid_reason`, `invalid_values`, `invalid_note`, `invalid_image`,
+`invalid_body`; 404 `not_found`; 409 `id_conflict`; 413 `image_too_large`;
+429 `rate_limited` (10 per 10 minutes and 30 a day per user,
+`FoodReportLimiter`, and 30 a minute per IP). Body 12 MB, each photo 4 MB.
+Reports never change a food by themselves.
 
 A reviewer accepts (a correction), rejects or marks the food a duplicate in
 the admin console's Review area. A correction lives in `food_corrections`
@@ -516,14 +533,16 @@ report closes as accepted; the answer says `status: "accepted"`.
 |---|---|---|
 | GET | `/v1/admin/food-reports?limit=50` | Admin token. Open reports grouped per food, most reported first, then oldest; each group has the food as served now and its live correction. Each call deletes report photos 30 days after the decision. |
 | GET | `/v1/admin/food-reports/foods/{foodId}` | Every report (decided too) and every correction on one food. |
-| GET | `/v1/admin/food-reports/{id}/photo` | The label photo, `Cache-Control: no-store`. |
+| GET | `/v1/admin/food-reports/{id}/photo?kind=front\|label` | A photo, the label by default, `Cache-Control: no-store`. Reports carry `reasons` (all of them, `reason` first) and `hasFrontPhoto` beside `hasPhoto`. |
 | POST | `/v1/admin/food-reports/foods/{foodId}/accept` `{reportIds, values}` | A correction over the food (per 100), closing the reports. 409 `not_open`. |
 | POST | `/v1/admin/food-reports/reject` `{reportIds, reason?}` | |
 | POST | `/v1/admin/food-reports/duplicate` `{reportIds, duplicateOf?}` | Records the food as a copy, of `duplicateOf` when given. Search still shows it. |
 | POST | `/v1/admin/food-corrections/{id}/revert` | Undoes the live correction. 409 `not_live`. |
 
 `analytics.food_report_queue` (open reports, foods, energy checks, oldest)
-feeds the review board: counts and ages only.
+feeds the review board: counts and ages only. Builders' verifications that
+need a person sit beside reports in the same Review area (The Builder
+program, below), so cleaning up the database is one queue of two kinds.
 
 **NCCDB (a slot, not code).** The Nutrition Coordinating Center Food and
 Nutrient Database from the University of Minnesota is licensed and delivered
@@ -705,13 +724,16 @@ grants) asks `ContributionGate.mayReceiveFreePro(userId)` first.
 **Rollback** (`ModerationService.rollback`, one `ContributionReverter` per kind
 by multibinding) unpublishes the person's approved submissions (back to
 `rejected`, barcode released, `verified` off; anyone who logged one keeps their
-entry), reverts the correction each accepted report led to through
-`FoodReportRepository.revert`, and rejects what is still waiting. A correction
+entry), reverts the correction each accepted report or verification led to
+through `FoodReportRepository.revert`, takes back their confirmed and accepted
+verifications (the foods lose the Verified mark they gave), and rejects what is
+still waiting. A correction
 that a later one has replaced can't be reverted alone and is counted as
 skipped, for a reviewer to look at.
 
 **Provenance survives the account.** `food_provenance` gets a row whenever a
-submission is approved or a report accepted (triggers, so no route can forget).
+submission is approved, a report accepted or a verification accepted by a
+reviewer (V33) (triggers, so no route can forget).
 `moderation_actions`, `moderation_events`, `food_provenance` and
 `device_markers` keep `user_id` only while the account exists (`ON DELETE SET
 NULL`) and carry `subject_key`, a SHA-256 of the id under a random secret the
@@ -818,6 +840,12 @@ reused photos), `contribution_checks_daily`, `moderation_daily` and
 volume, approval, disagreement rate, velocity, flags, standing),
 `support.photo_reuse` (by the SHA-256 the server keeps of each photo, which
 outlives the photos) and `support.moderation_actions` (no notes).
+Its Database cleanup row (V33) puts reports and verifications side by side:
+`analytics.food_report_queue` and `analytics.food_verification_queue` (open,
+foods, oldest), `analytics.food_verifications_daily` (in, confirmed on
+arrival, sent for review, decided) and `analytics.food_review_decisions_daily`
+(accepted, rejected and duplicate per day, kind and reviewer: the console's
+`X-Admin-Actor`, never an account).
 `BuildersBoardQueriesTest` runs every panel and alert query as `grafana_ro`.
 
 ### The Builder program (`V31__builders.sql`, behind `release.builders` in the app)
@@ -850,7 +878,7 @@ held only while the person is active: `BuilderService.roleWindow` gives the
 role's bundles an end, `BuilderRules.proUntil`, in closed form. A first month
 from joining, then 30 days after the last time ten accepted contributions fell
 inside 30 days (approved submissions not failed by an audit, accepted reports,
-confirmed checks). Worked out on every entitlement read, so no job runs and a
+confirmed checks, counted from the reviewer's decision when one decided). Worked out on every entitlement read, so no job runs and a
 reviewer's decision counts at once; the role source carries the date, so
 `/v1/me/entitlements` tells the app. A `builder` role set by hand in the console,
 with no membership row, keeps V28's unconditional Pro.
@@ -897,7 +925,12 @@ submission limit is 60, up from 20. Photos of an active Builder who chose
 | POST | `/v1/builders/join` `{acceptTerms, termsVersion, photoRetention}` | Older apps' Join: applies. 400 `terms_required`; 403 `guest`, `too_new`, `removed`; 409 `full` (also a declined application still waiting). |
 | POST | `/v1/builders/leave` | The role goes; the row stays (`left`). Coming back is a new application; acceptance keeps the first join date. |
 | PUT | `/v1/builders/me` `{photoRetention}` | |
-| POST | `/v1/foods/{id}/verifications` `{id, engine, lines}` | A Builder's check against the pack: the label's text, no photo. `confirmed` when the food's four headline numbers, per 100 or per serving, are on their rows; once per person and food. 403 `not_a_builder`, `contributions_restricted`; 404; 409; 429. |
+| POST | `/v1/foods/{id}/verifications` `{id, engine, lines, problem?, photos?}` | A Builder's check against the pack: the label's text, read on the phone. `confirmed` when the food's four headline numbers, per 100 or per serving, are on their rows; once per person and food. V33: `problem` ("Something was wrong": `wrong` and `missing` field codes from `calories`, `macros`, `serving`, `name_brand`, `ingredients`, `barcode`, never both for one field; `values` the right ones for a basis like a report's `suggested`, plus `name`, `brand`, `barcode`; `note`) and `photos` (`front`, `label`, base64, 4 MB each). With a problem, or with photos and numbers the text did not show, it waits for a reviewer with the photos and the food as served, and the answer says `review: "open"`; an app before V33 sends neither and gets the old behaviour, and a server before V33 never says `review`. 400 `invalid_problem`, `invalid_image`; 403 `not_a_builder`, `contributions_restricted`; 404; 409; 413; 429. |
+| GET | `/v1/admin/food-verifications?status=open\|decided&limit=50` | `{open, verifications}`: waiting oldest first, or the latest decisions. Each has `wrong`, `missing`, `values`, `valuesPer100` (as accepting would store them), `note`, `snapshot` (as the Builder saw it), `now` (as served), `hasFrontPhoto`, `hasLabelPhoto`, the outcome and the decision. Each call deletes photos of verifications decided over 30 days ago. |
+| GET | `/v1/admin/food-verifications/{id}/photos/{front\|label}` | `Cache-Control: no-store`. |
+| POST | `/v1/admin/food-verifications/{id}/accept` `{values?, note?}` | Stands behind it: the outcome becomes `confirmed` (it counts toward Builder Pro, once per person and food) and the food is checked. `values` (per 100, name, brand, serving) lay a correction over the existing food through the V29 overlay. 409 `not_open`. |
+| POST | `/v1/admin/food-verifications/{id}/reject` `{reason?}` | 409 `not_open`. |
+| GET | `/v1/admin/food-review/reviewers?days=30` | Decisions per reviewer, reports and verifications apart. |
 | POST | `/v1/foods/submissions` | Also takes `capture` and an `ingredients` photo; answers `lane`. Older apps send neither and get the old behaviour. |
 | GET | `/v1/admin/food-submissions?audit=pending` | Auto-approvals waiting for audit. Summaries carry `lane`, `wouldAutoApprove`, `reasons`, `confidence`, `audit`; the detail `routing` and `capture`. |
 | POST | `/v1/admin/food-submissions/{id}/audit` `{passed, note}` | A note is required to fail one. |

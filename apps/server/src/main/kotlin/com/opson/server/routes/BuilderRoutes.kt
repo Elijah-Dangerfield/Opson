@@ -2,6 +2,8 @@ package com.opson.server.routes
 
 import com.opson.server.config.AdminConfig
 import com.opson.server.data.CaptureLineJson
+import com.opson.server.data.VerificationPhotosJson
+import com.opson.server.data.VerificationProblemJson
 import com.opson.server.domain.ApplicantSummary
 import com.opson.server.domain.ApplicationForm
 import com.opson.server.domain.ApplicationStatus
@@ -27,6 +29,8 @@ import com.opson.server.domain.FoodLabelLimits
 import com.opson.server.domain.FoodSubmissionRepository
 import com.opson.server.domain.FoodVerification
 import com.opson.server.domain.FoodVerificationRepository
+import com.opson.server.domain.FoodSnapshot
+import com.opson.server.domain.VerificationStatus
 import com.opson.server.domain.JoinBlock
 import com.opson.server.domain.Permission
 import com.opson.server.domain.Permissions
@@ -129,11 +133,30 @@ data class BuilderJoinRequest(val acceptTerms: Boolean = false, val termsVersion
 data class BuilderSettingsRequest(val photoRetention: Boolean? = null)
 
 @Serializable
-data class VerificationRequest(val id: String? = null, val engine: String? = null, val lines: List<CaptureLineJson> = emptyList())
+data class VerificationRequest(
+    val id: String? = null,
+    val engine: String? = null,
+    val lines: List<CaptureLineJson> = emptyList(),
+    /** "Something was wrong" (V33): sends the check to a reviewer. */
+    val problem: VerificationProblemJson? = null,
+    /** The front and label photos (V33), kept only with a check that goes to a reviewer. */
+    val photos: VerificationPhotosJson? = null,
+)
 
-/** [missing] are the headline fields (`energy_kcal`, `fat_g`) the label's text did not show. */
+/**
+ * [missing] are the headline fields (`energy_kcal`, `fat_g`) the label's text did not show.
+ * [review] is `open` when the check went to a reviewer (V33); absent otherwise, and always from a
+ * server before V33, which is how the app knows to send a problem as a report instead.
+ */
 @Serializable
-data class VerificationResponse(val id: String, val outcome: String, val grounded: Int, val groundable: Int, val missing: List<String> = emptyList())
+data class VerificationResponse(
+    val id: String,
+    val outcome: String,
+    val grounded: Int,
+    val groundable: Int,
+    val missing: List<String> = emptyList(),
+    val review: String? = null,
+)
 
 @Serializable
 data class AdminBuilderResponse(
@@ -222,9 +245,12 @@ data class AdminApplicationDecisionResponse(val pending: Long, val application: 
  *    answers in the codes that app knows: a pending or declined application reads as `full`.
  *  - `POST /v1/builders/leave`         leaves; the role goes, the record stays
  *  - `PUT  /v1/builders/me {photoRetention}` changes the optional photo consent
- *  - `POST /v1/foods/{foodId}/verifications {id, engine, lines}` a Builder checked a food
- *    against its pack: the label's text, read on the phone. Confirmed when every headline
- *    number of the food is in it. No photo. 403 `not_a_builder`, 404, 409 `id_conflict`, 429.
+ *  - `POST /v1/foods/{foodId}/verifications {id, engine, lines, problem?, photos?}` a Builder
+ *    checked a food against its pack: the label's text, read on the phone. Confirmed when every
+ *    headline number of the food is in it. With a `problem` ("Something was wrong"), or with
+ *    `photos` and numbers the text did not show, it waits for a reviewer (`review: "open"`) with
+ *    the photos and the food as served. 400 `invalid_problem`, `invalid_image`; 403
+ *    `not_a_builder`, 404, 409 `id_conflict`, 413 `image_too_large`, 429.
  *
  * Nobody becomes a Builder through these: only the owner's Accept does (docs/decisions.md,
  * "Builders apply"). Nothing logged names a food, a number or what someone wrote.
@@ -334,6 +360,15 @@ fun Route.builderRoutes(
                 if (request.lines.size > FoodLabelLimits.MAX_CAPTURE_LINES || request.lines.any { it.text.length > FoodLabelLimits.MAX_CAPTURE_LINE }) {
                     return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_capture", "Too much text"))
                 }
+                val reported = when (val checked = request.problem?.let(::validateProblem)) {
+                    is Checked.Rejected -> return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_problem", checked.message))
+                    is Checked.Ok -> checked.value
+                    null -> null
+                }
+                val photos = when (val decoded = decodeVerificationPhotos(request.photos)) {
+                    is PhotosDecoded.Rejected -> return@post call.respond(decoded.status, problem(decoded.code, decoded.message))
+                    is PhotosDecoded.Ok -> decoded.photos
+                }
                 if (!permissions.can(userId, Permission.FoodContribute)) {
                     return@post call.respond(HttpStatusCode.Forbidden, problem("not_a_builder", "Checking foods is for Builders."))
                 }
@@ -346,17 +381,33 @@ fun Route.builderRoutes(
                 }
                 val lines = request.lines.map { CaptureLine(it.text, it.confidence) }
                 val grounding = VerificationCheck.ground(food.per100g, food.portions.firstOrNull()?.grams, lines)
-                val outcome = if (grounding.complete && grounding.groundable == VerificationCheck.HEADLINE) {
-                    VerificationOutcome.Confirmed
-                } else {
-                    VerificationOutcome.Unconfirmed
-                }
+                val grounded = grounding.complete && grounding.groundable == VerificationCheck.HEADLINE
+                // A person looks at it when the Builder said something was wrong, or when the text
+                // did not show the numbers and they sent the photos a person needs to judge it.
+                val queued = reported != null || (!grounded && photos.isNotEmpty())
+                val outcome = if (grounded && !queued) VerificationOutcome.Confirmed else VerificationOutcome.Unconfirmed
                 val recorded = verifications.record(
-                    FoodVerification(id, foodId, userId, clock.now(), outcome, grounding.grounded, grounding.groundable, request.engine),
+                    FoodVerification(
+                        id = id,
+                        foodId = foodId,
+                        userId = userId,
+                        createdAt = clock.now(),
+                        outcome = outcome,
+                        grounded = grounding.grounded,
+                        groundable = grounding.groundable,
+                        engine = request.engine,
+                        status = VerificationStatus.Open.takeIf { queued },
+                        problem = reported,
+                        snapshot = FoodSnapshot.of(food).takeIf { queued },
+                    ),
+                    photos,
                 )
                 when (recorded) {
                     is VerifyOutcome.Recorded -> {
-                        logger.info("food verification outcome={} grounded={}/{}", recorded.verification.outcome.wire, grounding.grounded, grounding.groundable)
+                        logger.info(
+                            "food verification outcome={} grounded={}/{} review={} problem={} photos={}",
+                            recorded.verification.outcome.wire, grounding.grounded, grounding.groundable, queued, reported != null, photos.size,
+                        )
                         call.respond(HttpStatusCode.Created, recorded.verification.toResponse(grounding.missing))
                     }
                     is VerifyOutcome.Existing -> call.respond(recorded.verification.toResponse(emptyList()))
@@ -578,7 +629,7 @@ private fun BuilderStanding.toAdmin() = AdminBuilderResponse(
 )
 
 private fun FoodVerification.toResponse(missing: List<String>) =
-    VerificationResponse(id.toString(), outcome.wire, grounded, groundable, missing)
+    VerificationResponse(id.toString(), outcome.wire, grounded, groundable, missing, review = status?.takeIf { it == VerificationStatus.Open }?.wire)
 
 private const val MAX_ACTOR = 100
 private const val MAX_REASON = 500

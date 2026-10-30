@@ -37,6 +37,7 @@ import com.opson.server.routes.foodLabelRoutes
 import com.opson.server.routes.foodReportAdminRoutes
 import com.opson.server.routes.foodReportRoutes
 import com.opson.server.routes.foodReviewAdminRoutes
+import com.opson.server.routes.foodVerificationAdminRoutes
 import com.opson.server.routes.foodRoutes
 import com.opson.server.routes.healthRoutes
 import com.opson.server.routes.meRoutes
@@ -178,6 +179,7 @@ fun Application.installApp(
                 userAdminRoutes(adminConfig, component.userLookupRepository)
                 foodReviewAdminRoutes(adminConfig, component.foodSubmissionRepository, component.barcodeLinkRepository, component.clock)
                 foodReportAdminRoutes(adminConfig, component.foodReportRepository, component.foodCatalogRepository, component.clock)
+                foodVerificationAdminRoutes(adminConfig, component.foodVerificationRepository, component.foodCatalogRepository, component.clock)
                 accessAdminRoutes(
                     adminConfig,
                     component.entitlementService,

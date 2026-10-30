@@ -47,12 +47,23 @@ import java.util.UUID
 data class FoodReportRequest(
     /** Made once by the app, so a retry is the same report. */
     val id: String? = null,
-    /** `wrong_calories`, `wrong_nutrients`, `wrong_serving`, `wrong_name`, `duplicate`, `not_food` or `other`. */
+    /**
+     * `wrong_calories`, `wrong_nutrients`, `wrong_serving`, `wrong_name`, `duplicate`, `not_food` or
+     * `other`. Apps since V33 send [reasons] too, with this one the first of them in a code an
+     * older server knows.
+     */
     val reason: String? = null,
     val suggested: SuggestedJson? = null,
     val note: String? = null,
-    /** A photo of the label, base64 JPEG, PNG or WebP. */
+    /** A photo of the label (the back of the pack), base64 JPEG, PNG or WebP. */
     val photo: String? = null,
+    /**
+     * Every reason picked (V33): [reason]'s codes and `wrong_numbers`, `missing_info`. When there
+     * are any they win over [reason].
+     */
+    val reasons: List<String>? = null,
+    /** A photo of the front of the pack (V33). */
+    val frontPhoto: String? = null,
 )
 
 /** [status] is `open`, or `accepted` when the caller may correct foods directly ([CorrectionAuthority]). */
@@ -62,7 +73,7 @@ data class FoodReportResponse(val reportId: String, val status: String)
 /**
  * "Report a problem" on a food's detail, open to everyone signed in:
  *
- *  - `POST /v1/foods/{id}/reports {id, reason, suggested?, note?, photo?}`
+ *  - `POST /v1/foods/{id}/reports {id, reason, reasons?, suggested?, note?, photo?, frontPhoto?}`
  *    stores what the person says is wrong with a catalog food, with the food
  *    as it was served to them. 201, or 200 for a repeat of the same id.
  *    400 `invalid_id`, `invalid_reason`, `invalid_values`, `invalid_note`,
@@ -106,8 +117,9 @@ fun Route.foodReportRoutes(
                 val id = request.id?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_id", "id must be a UUID"))
                 if (call.refuseIfRestricted(contributionGate, userId, id.toString(), logger, "food report")) return@post
-                val reason = ReportReason.fromPerson(request.reason)
+                val reasons = reasonsOf(request)
                     ?: return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_reason", "Unknown reason"))
+                val reason = reasons.first()
                 val suggested = when (val checked = request.suggested?.let { validateSuggested(it.toDomain()) }) {
                     is Checked.Rejected -> return@post call.respond(HttpStatusCode.BadRequest, problem("invalid_values", checked.message))
                     is Checked.Ok -> checked.value.takeUnless(SuggestedValues::isEmpty)
@@ -121,6 +133,10 @@ fun Route.foodReportRoutes(
                     is PhotoDecoded.Rejected -> return@post call.respond(decoded.status, problem(decoded.code, decoded.message))
                     is PhotoDecoded.Ok -> decoded.photo
                 }
+                val frontPhoto = when (val decoded = decodePhoto(request.frontPhoto)) {
+                    is PhotoDecoded.Rejected -> return@post call.respond(decoded.status, problem(decoded.code, decoded.message))
+                    is PhotoDecoded.Ok -> decoded.photo
+                }
                 val food = catalog.findById(foodId)
                     ?.takeIf { it.source != CatalogSource.UserSubmitted || submissions.isVisible(foodId, userId) }
                     ?: return@post call.respond(HttpStatusCode.NotFound, problem("not_found", "No such food"))
@@ -130,12 +146,15 @@ fun Route.foodReportRoutes(
                 }
                 val snapshot = FoodSnapshot.of(food)
                 val outcome = reports.report(
-                    NewFoodReport(id, userId, foodId, reason, suggested, note, snapshot, photo),
+                    NewFoodReport(id, userId, foodId, reason, suggested, note, snapshot, photo, reasons = reasons, frontPhoto = frontPhoto),
                 )
                 when (outcome) {
                     is ReportOutcome.Created -> {
                         val applied = suggested != null && applyDirectly(authority, reports, catalog, userId, outcome.report.id, foodId, suggested, snapshot)
-                        logger.info("food report outcome=created reason={} suggested={} photo={} applied={}", reason.wire, suggested != null, photo != null, applied)
+                        logger.info(
+                            "food report outcome=created reasons={} suggested={} photo={} front={} applied={}",
+                            reasons.joinToString(",") { it.wire }, suggested != null, photo != null, frontPhoto != null, applied,
+                        )
                         call.respond(
                             HttpStatusCode.Created,
                             FoodReportResponse(id.toString(), if (applied) ReportStatus.Accepted.wire else outcome.report.status.wire),
@@ -173,6 +192,21 @@ private suspend fun applyDirectly(
     if (outcome is CorrectionOutcome.Applied) catalog.forgetCachedSearches()
     return outcome is CorrectionOutcome.Applied
 }
+
+/**
+ * The reasons a person picked, in their order and once each: [FoodReportRequest.reasons] when the
+ * app sent any (V33), [FoodReportRequest.reason] alone otherwise. Null when one is unknown, or
+ * when there are none.
+ */
+internal fun reasonsOf(request: FoodReportRequest): List<ReportReason>? {
+    val codes = request.reasons?.takeIf { it.isNotEmpty() } ?: listOfNotNull(request.reason)
+    if (codes.isEmpty() || codes.size > MAX_REASONS) return null
+    val reasons = codes.map { ReportReason.fromPerson(it) ?: return null }
+    return reasons.distinct()
+}
+
+/** Every reason a person can pick, with room for the old codes beside the new. */
+private const val MAX_REASONS = 8
 
 internal sealed interface Checked<out T> {
     class Ok<T>(val value: T) : Checked<T>
@@ -223,12 +257,12 @@ private suspend fun ApplicationCall.readReport(json: Json): ReportRead {
     }
 }
 
-private sealed interface PhotoDecoded {
+internal sealed interface PhotoDecoded {
     class Ok(val photo: ReportPhoto?) : PhotoDecoded
     class Rejected(val status: HttpStatusCode, val code: String, val message: String) : PhotoDecoded
 }
 
-private fun decodePhoto(encoded: String?): PhotoDecoded {
+internal fun decodePhoto(encoded: String?): PhotoDecoded {
     val text = encoded?.takeIf { it.isNotBlank() } ?: return PhotoDecoded.Ok(null)
     val invalid = PhotoDecoded.Rejected(HttpStatusCode.BadRequest, "invalid_image", "photo must be base64 JPEG, PNG or WebP")
     val bytes = try {

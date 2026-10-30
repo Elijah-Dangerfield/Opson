@@ -6,6 +6,38 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-30: What "verified" means, and Builders' verifications go to a reviewer with their photos
+
+**Decision:** a food is *checked* (the app's Verified mark) when a person
+checked it against its pack or a reviewer stood behind it: a Builder's
+verification confirmed by the label's text or accepted by a reviewer, a live
+reviewer's correction, or a food someone added that a reviewer approved. The
+server works it out as it serves a food (`FoodCheck`, beside the corrections
+overlay) and sends `checked: true`, leaving the field out otherwise. The older
+`verified` flag (an accountable source, tiers 1 to 3) keeps its meaning for
+ranking. USDA's and NEVO's reference rows are never checked: there is no pack.
+A Builder's verification that says "Something was wrong" (which fields were
+wrong or missing, the right values, a note), or whose label text did not show
+the numbers while they sent photos, is kept with its front and label photos
+and the food as they saw it, and waits in the console's Review area beside
+reports. Accepting it can lay a correction over the existing food (the V29
+overlay, never a new food) and counts toward Builder Pro; photos go 30 days
+after the decision, like report photos. Reports take several reasons at once,
+including "missing information", and a front photo beside the label.
+
+**Alternatives:** storing a `checked` column on `foods`; rejected because
+`off_foods` is swapped monthly and a column cannot follow a rollback or a
+reverted correction without a job. Counting USDA's generic rows as verified;
+rejected because the owner's ask is "checked by a person against the package",
+and a Builder can't check an apple. Keeping V31's rule that a check keeps no
+photo and a mismatch is filed as a report; rejected because a reviewer then
+has to find the food again from a report with one photo, where the
+verification already names the food and the fields.
+
+**Why:** the owner could not see whether a food had been checked, and asked
+for review to be about cleaning up the existing entry rather than judging a
+new one.
+
 ## 2026-10-29: A weight goal sets Targets as a fixed range, and says when it no longer does
 
 **Decision:** onboarding's setup (behind `release.onboardingSetup`) and a new
