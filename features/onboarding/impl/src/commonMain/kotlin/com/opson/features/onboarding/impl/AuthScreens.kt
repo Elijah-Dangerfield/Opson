@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.opson.libraries.ui.components.text.FieldContent
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.opson.libraries.identity.auth.OAuthProvider
@@ -312,6 +313,7 @@ fun ForgotPasswordScreen(
                 onChange = { onAction(ForgotPasswordAction.EmailChanged(it)) },
                 imeAction = ImeAction.Go,
                 onSubmitImeAction = { submit() },
+                content = FieldContent.Email,
             )
         }
 
@@ -397,6 +399,7 @@ fun SignUpScreen(
                 Res.string.auth_password_min_length_helper,
                 SignUpState.MIN_PASSWORD_LENGTH,
             ),
+            content = FieldContent.NewPassword,
         )
         Spacer(modifier = Modifier.height(Dimension.D500))
         PasswordField(
@@ -412,6 +415,7 @@ fun SignUpScreen(
                 null
             },
             isError = state.passwordMismatch,
+            content = FieldContent.NewPassword,
         )
 
         state.error?.let {
@@ -526,8 +530,11 @@ private fun EmailField(
     onChange: (String) -> Unit,
     imeAction: ImeAction = ImeAction.Next,
     onSubmitImeAction: (() -> Unit)? = null,
+    // The account's name to a password manager, so it offers the saved email with its password.
+    content: FieldContent = FieldContent.Username,
 ) {
     OutlinedTextField(
+        content = content,
         value = value,
         onValueChange = onChange,
         enabled = enabled,
@@ -552,8 +559,11 @@ private fun PasswordField(
     onImeAction: (() -> Unit)? = null,
     helper: String? = null,
     isError: Boolean = false,
+    // NewPassword on sign-up, so the phone offers a strong one and saves it.
+    content: FieldContent = FieldContent.Password,
 ) {
     OutlinedTextField(
+        content = content,
         value = value,
         onValueChange = onValueChange,
         enabled = enabled,

@@ -31,6 +31,7 @@ import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.WeightUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import com.opson.libraries.ui.components.text.DateParts
 import kotlinx.datetime.LocalDate
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.integrations_profile_empty
@@ -172,12 +173,17 @@ class ProfileTest : CoroutineTest() {
         val repository = FakeSettingsRepository(Settings())
         val vm = viewModel(repository)
 
-        vm.takeAction(ProfileAction.BirthDatePicked(LocalDate(1990, 3, 4)))
+        vm.takeAction(ProfileAction.BirthdayTyped(DateParts(day = "4", month = "3", year = "199")))
+        assertNull(repository.state.value.birthYear, "nothing saved before the year is whole")
+        assertEquals("199", vm.state.birthday.year, "what is typed stays on screen")
+        vm.takeAction(ProfileAction.BirthdayTyped(DateParts(day = "4", month = "3", year = "1990")))
         assertEquals(LocalDate(1990, 3, 4), repository.state.value.birthDate)
         assertEquals(1990, repository.state.value.birthYear, "the year every estimate reads follows the date")
         assertEquals(LocalDate(1990, 3, 4), vm.state.birthDate)
-        vm.takeAction(ProfileAction.BirthDatePicked(LocalDate(2024, 1, 1)))
+        vm.takeAction(ProfileAction.BirthdayTyped(DateParts(day = "1", month = "1", year = "2024")))
         assertEquals(1990, repository.state.value.birthYear, "too young for the equation")
+        vm.takeAction(ProfileAction.BirthdayTyped(DateParts(day = "31", month = "4", year = "1991")))
+        assertEquals(1990, repository.state.value.birthYear, "no such day")
 
         vm.takeAction(ProfileAction.HeightCmTyped("17"))
         assertNull(repository.state.value.heightCm)

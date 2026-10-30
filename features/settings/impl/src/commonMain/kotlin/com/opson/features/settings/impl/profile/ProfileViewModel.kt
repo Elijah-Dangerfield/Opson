@@ -22,12 +22,13 @@ import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.RegionUnits
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
+import com.opson.libraries.diary.ui.Birthdays
+import com.opson.libraries.ui.components.text.DateParts
 import com.opson.libraries.ui.components.text.NumberInput
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
@@ -76,9 +77,11 @@ class ProfileViewModel(
                 inputs = action
                 rebuild(action)
             }
-            // The picker only offers someone 13 to 120; a date from anywhere else is ignored the same way.
-            is ProfileAction.BirthDatePicked -> if (action.date.year in birthYears()) {
-                settingsRepository.update { it.withBirthDate(action.date) }
+            // Kept as typed; saved once it is a whole date for someone 13 to 120.
+            is ProfileAction.BirthdayTyped -> {
+                drafts = drafts.copy(birthday = action.parts)
+                rebuild(action)
+                Birthdays.dateOrNull(action.parts, calendar.today())?.let { born -> settingsRepository.update { it.withBirthDate(born) } }
             }
             is ProfileAction.SexPicked -> settingsRepository.update { it.copy(bodySex = action.sex.sex, bodyStage = action.sex.stage) }
             is ProfileAction.HeightUnitPicked -> {
@@ -145,16 +148,11 @@ class ProfileViewModel(
     }
 
     /** Someone at least 13, since the equation is for adults and teenagers, and no older than 120. */
-    private fun birthYears(): IntRange = calendar.today().year.let { (it - MAX_AGE)..(it - MIN_AGE) }
+    private fun birthYears(): IntRange = calendar.today().year.let { (it - Birthdays.AGES.last)..(it - Birthdays.AGES.first) }
 
     private suspend fun rebuild(action: ProfileAction) {
         val (settings, latest, policy) = inputs ?: return
         action.updateState { ProfileStateBuilder.build(settings, latest, policy, calendar.timeZone(), drafts, region.height(), back, fillFrom, filling, calendar.today()) }
-    }
-
-    private companion object {
-        const val MIN_AGE = 13
-        const val MAX_AGE = 120
     }
 }
 
@@ -173,8 +171,8 @@ sealed interface ProfileAction {
     /** Sex for the estimate, or pregnant or breastfeeding. */
     data class SexPicked(val sex: SexChoice) : ProfileAction
 
-    /** The birthday picker's date; the year every estimate reads follows it. */
-    data class BirthDatePicked(val date: LocalDate) : ProfileAction
+    /** The birthday's boxes as typed; the year every estimate reads follows a whole date. */
+    data class BirthdayTyped(val parts: DateParts) : ProfileAction
 
     /** Centimetres, or feet and inches. Saved, so the page opens in it next time. */
     data class HeightUnitPicked(val unit: HeightUnit) : ProfileAction

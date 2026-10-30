@@ -29,6 +29,10 @@
     <string name="plan_birthday_label">Birthday</string>
     <string name="plan_birthday_pick">Pick your birthday</string>
     <string name="plan_birthday_dialog">Your birthday</string>
+    <!-- Under a typed birthday once every box is filled in: what is wrong with it -->
+    <string name="plan_birthday_hint_date">There's no such date. Check the day and month.</string>
+    <string name="plan_birthday_hint_young">Opson is for people 13 and over.</string>
+    <string name="plan_birthday_hint_old">Check the year.</string>
     <string name="plan_birthday_note">Age changes the estimate. Opson might wish you a happy birthday, too.</string>
     <string name="plan_weight_note">Saved as your first weigh-in.</string>
     <string name="plan_weight_label">Weight now</string>
@@ -136,8 +140,6 @@
 
     <!-- Profile -->
     <string name="profile_birthday">Birthday</string>
-    <string name="profile_birthday_add">Add your birthday</string>
-    <string name="profile_birthday_year_only">Born in %1$s. Add the day?</string>
 
     <!-- Today, on their birthday. -->
     <string name="today_birthday_title">Happy birthday</string>

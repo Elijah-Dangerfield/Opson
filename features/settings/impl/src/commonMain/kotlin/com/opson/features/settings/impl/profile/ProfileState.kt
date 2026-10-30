@@ -17,6 +17,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.VisibilityPolicy
+import com.opson.libraries.ui.components.text.DateParts
 import com.opson.libraries.ui.time.DateCopy
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -54,6 +55,8 @@ data class ProfileState(
     val birthDate: LocalDate? = null,
     /** The year every estimate reads; set alone by older builds, so it can be known without the day. */
     val birthYear: Int? = null,
+    /** The birthday's boxes: as typed, or else the stored date (or the year alone). */
+    val birthday: DateParts = DateParts(),
     /** Sex for the estimate, with pregnant and breastfeeding, as onboarding lists it. */
     val sex: SexChoice? = null,
     /** In the unit picked, or else [Settings.heightUnitOr]'s. */
@@ -82,7 +85,7 @@ sealed interface ProfileWeight {
  * What a typed field is still in the middle of, kept by the view model between settings updates:
  * a field writes its setting only once it holds a sensible value.
  */
-data class ProfileDrafts(val height: HeightInput? = null, val bodyFat: String? = null)
+data class ProfileDrafts(val height: HeightInput? = null, val bodyFat: String? = null, val birthday: DateParts? = null)
 
 object ProfileStateBuilder {
 
@@ -96,7 +99,7 @@ object ProfileStateBuilder {
         back: ProfileBack = ProfileBack.More,
         fillFrom: HealthSource? = null,
         filling: Boolean = false,
-        /** The phone's day, which bounds the birthday picker. */
+        /** The phone's day, which a birthday is checked against. */
         today: LocalDate = PREVIEW_TODAY,
     ): ProfileState {
         val weightShown = policy.effectiveLevel(Metric.Weight, Surface.Settings) == Visibility.Show
@@ -107,6 +110,7 @@ object ProfileStateBuilder {
             back = back,
             birthDate = settings.knownBirthDate,
             birthYear = settings.birthYear,
+            birthday = drafts.birthday ?: settings.knownBirthDate?.let(DateParts::of) ?: DateParts(year = settings.birthYear?.toString().orEmpty()),
             sex = SexChoice.of(settings.bodySex, settings.bodyStage),
             height = height(settings, drafts, regionHeight),
             weight = latest?.let {
