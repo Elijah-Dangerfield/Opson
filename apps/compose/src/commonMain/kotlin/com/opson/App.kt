@@ -43,6 +43,7 @@ import com.opson.libraries.navigation.AnimationType
 import com.opson.libraries.navigation.FeatureEntryPoint
 import com.opson.libraries.navigation.NavigationOptions
 import com.opson.libraries.navigation.Route
+import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.SessionExpiredRoute
 import com.opson.libraries.navigation.floatingwindow.FloatingWindowHost
 import com.opson.libraries.prompts.PromptHost
@@ -130,13 +131,11 @@ fun App(appComponent: AppComponent) {
                     .logOnFailure { "Failed to complete OAuth redirect" }
             } else if (appComponent.widgetOpens.opened(url)) {
                 // A home screen widget's +: WidgetOpens answers through its requests, below.
-            } else if (appComponent.recipeLinkRoutes.routeFor(url) != null) {
-                // A recipe's link or QR code (release.recipes): its page, through the router so a
-                // link that cold-starts the app still lands, and only while the app is someone's.
-                // Before sign-in it opens nothing; the web page the link also is shows the recipe.
-                val recipe = appComponent.recipeLinkRoutes.routeFor(url)
-                val onboarded = Catching { appComponent.appCache.get().hasUserOnboarded }.getOrNull() == true
-                if (recipe != null && authRepository.current().isSomeones(onboarded)) router.navigate(recipe)
+            } else if (openedAsRecipe(appComponent, router, url)) {
+                // A recipe's link or QR code: its page in the app, through the router so a link
+                // that cold-starts the app still lands. Where the app can't show it yet (signed
+                // out, in setup, release.recipes off) the website's page opens instead, and the
+                // inbox keeps the link for when they are in (below). Never dropped.
             } else {
                 Catching {
                     val request = NavDeepLinkRequest.Builder.fromUri(NavUri(url)).build()
@@ -257,6 +256,7 @@ fun App(appComponent: AppComponent) {
                                 jankMonitor = appComponent.jankMonitor,
                                 tabBar = appComponent.tabBar,
                                 promptHost = appComponent.promptHost,
+                                resumeRecipeLink = { resumeRecipeLink(appComponent, router) },
                             )
                         } else {
                             BootLoadingScreen()
@@ -341,6 +341,28 @@ private fun ProvideVisibilityPolicy(
  * can carry a session (`opson://auth/confirmed#access_token=…`), and an error
  * log is forwarded to Sentry and Grafana.
  */
+/** A recipe link through [RecipeLinkInbox]: false for any other link. */
+private suspend fun openedAsRecipe(appComponent: AppComponent, router: Router, url: String): Boolean {
+    val step = appComponent.recipeLinkInbox.receive(url, ready = recipeLinkReady(appComponent)) ?: return false
+    when (step) {
+        is RecipeLinkInbox.Step.Open -> router.navigate(step.route)
+        is RecipeLinkInbox.Step.Web -> router.openWebLink(step.url)
+    }
+    return true
+}
+
+/** A recipe link [RecipeLinkInbox] kept from before the app was ready, now that it may be. */
+private suspend fun resumeRecipeLink(appComponent: AppComponent, router: Router) {
+    if (!recipeLinkReady(appComponent)) return
+    appComponent.recipeLinkInbox.resume()?.let { router.navigate(it) }
+}
+
+/** The app opens a recipe on someone's data only once it is theirs and they finished setup. */
+private suspend fun recipeLinkReady(appComponent: AppComponent): Boolean {
+    val onboarded = Catching { appComponent.appCache.get().hasUserOnboarded }.getOrNull() == true
+    return onboarded && appComponent.authRepository.current().isSomeones(onboarded)
+}
+
 internal fun String.withoutQueryOrFragment(): String = substringBefore('#').substringBefore('?')
 
 /**
@@ -370,6 +392,7 @@ private fun AppNavigation(
     jankMonitor: JankMonitor,
     tabBar: TabBar,
     promptHost: PromptHost,
+    resumeRecipeLink: suspend () -> Unit,
 ) {
     // Tag every crash/error with the route the user is currently on. Sheets
     // and dialogs are real destinations on this same back stack (see
@@ -474,7 +497,12 @@ private fun AppNavigation(
 
             // Today's prompts. A sheet or dialog is the top entry while it is open, so Today on top
             // means nothing is over it; sign-in and onboarding are their own routes.
-            promptHost.Host(onToday = currentBackStackEntry?.destination?.hasRoute<TodayRoute>() == true, router = router)
+            val onToday = currentBackStackEntry?.destination?.hasRoute<TodayRoute>() == true
+            promptHost.Host(onToday = onToday, router = router)
+
+            // A recipe link that came in before sign-in or setup opens once they land on Today,
+            // which both end on: opened earlier, the stack they clear on the way would close it.
+            LaunchedEffect(onToday) { if (onToday) resumeRecipeLink() }
 
             router.Bind(navController)
         },

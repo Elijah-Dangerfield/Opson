@@ -15,8 +15,11 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 class RecipeLinkRoutesImpl(private val release: RecipesRelease) : RecipeLinkRoutes {
 
     override fun routeFor(url: String): Route? {
-        if (!url.contains("://")) return null
-        val code = RecipeLinks.codeFrom(url) ?: return null
+        val code = codeFrom(url) ?: return null
         return if (release.isOn()) PublicRecipeRoute(code) else null
     }
+
+    override fun pageFor(url: String): String? = codeFrom(url)?.let(RecipeLinks::page)
+
+    private fun codeFrom(url: String): String? = if (url.contains("://")) RecipeLinks.codeFrom(url) else null
 }

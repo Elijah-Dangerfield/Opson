@@ -2,7 +2,6 @@
 
 package com.opson
 
-import com.opson.features.foods.RecipeLinkRoutes
 import com.opson.features.upgrade.AppGuard
 import com.opson.features.upgrade.ConnectionBanner
 import com.opson.libraries.config.ConfigOverrideRepository
@@ -78,8 +77,9 @@ interface AppComponent {
     /** A home screen widget's +: the URL goes in here (App.kt on iOS, MainActivity on Android), the Logger comes out. */
     val widgetOpens: WidgetOpens
 
-    /** A recipe's link or QR code as the page it opens (`release.recipes`), which App.kt routes. */
-    val recipeLinkRoutes: RecipeLinkRoutes
+    /** Where a recipe's link or QR code goes (`release.recipes`), which App.kt routes. Swift never uses it. */
+    @HiddenFromObjC
+    val recipeLinkInbox: RecipeLinkInbox
 
     /** Maintenance, the version floor and the update offer, drawn by App.kt over everything. */
     val appGuard: AppGuard
