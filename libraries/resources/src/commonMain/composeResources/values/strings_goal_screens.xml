@@ -30,7 +30,7 @@
     <string name="goal_averaging_daily">Daily</string>
     <string name="goal_averaging_weekly">Weekly average</string>
     <string name="goal_averaging_daily_body">Each day stands on its own.</string>
-    <string name="goal_averaging_weekly_body">Your week counts as a whole. Days under your target leave a little more room later in the week.</string>
+    <string name="goal_averaging_weekly_body">Your week counts as a whole. A lighter day leaves a little more room for the rest of the week.</string>
     <string name="goal_averaging_weekly_caps">A big day only trims the days after it a little, never more than 10% or 200 calories. Anything left over is dropped. Each week starts fresh.</string>
     <string name="goal_band_title">On track within</string>
     <!-- One of the band's options: "±100". -->
@@ -59,8 +59,8 @@
     <string name="goal_edit_balance_under">Under</string>
     <string name="goal_edit_balance_over">Over</string>
     <string name="goal_edit_balance_label">Energy balance</string>
-    <string name="goal_edit_balance_under_line">A day's target this much under what a typical day burns.</string>
-    <string name="goal_edit_balance_over_line">A day's target this much over what a typical day burns.</string>
+    <string name="goal_edit_balance_under_line">Each day's target sits this much under what a typical day burns.</string>
+    <string name="goal_edit_balance_over_line">Each day's target sits this much over what a typical day burns.</string>
     <string name="goal_edit_burn_active">Active only</string>
     <string name="goal_edit_burn_total">Whole day (TDEE)</string>
     <string name="goal_edit_burn_label">Burn goal</string>
@@ -75,7 +75,6 @@
     <string name="goal_edit_meals_note">A meal counts once it has food in it.</string>
     <string name="goal_edit_track_body">A day counts when you log something, check in or wrap up the day. There's nothing else to set.</string>
     <string name="goal_edit_target_title">Your daily target</string>
-    <string name="goal_edit_out_of_range">Between %1$s and %2$s</string>
     <string name="goal_edit_replaces_weight">Your weight goal will pause. One goal sets your calorie target at a time.</string>
     <string name="goal_edit_replaces_balance">Your energy balance goal will pause. One goal sets your calorie target at a time.</string>
     <string name="goal_edit_save">Save goal</string>
@@ -105,7 +104,7 @@
     <string name="goals_sets_target">Sets your calorie target</string>
     <string name="goals_own">Not setting your target right now. You set it yourself on Targets.</string>
     <string name="goals_waiting">Sets your target once Opson has your details.</string>
-    <string name="goals_paused">Paused. It counts for nothing until you pick it up again.</string>
+    <string name="goals_paused">Paused until you pick it up again.</string>
     <string name="goals_weekly_today">About %1$s today keeps your week on track</string>
     <string name="goals_typical_burn">Worked out from a typical day of %1$s burned (TDEE)</string>
     <string name="goals_week">This week</string>
@@ -125,12 +124,12 @@
     <string name="goals_resume">Pick up again</string>
 
     <!-- Targets: typed amounts, macro ranges, the goal card, and where the person's own target leads. -->
-    <string name="settings_targets_type_amount">%1$s, typed</string>
+    <string name="settings_targets_type_amount">%1$s, type an amount</string>
     <!-- A macro's grams at each end of the calorie range: "109 to 131 g". -->
     <string name="settings_targets_macro_range">%1$s to %2$s</string>
-    <string name="settings_targets_macro_range_note">Under each, the grams at each end of your calorie range.</string>
+    <string name="settings_targets_macro_range_note">Below each: grams at the low and high end of your calorie range.</string>
     <string name="targets_projection_title">Where this target leads</string>
-    <string name="targets_projection_body">If most days land in your target, against what a typical day burns.</string>
+    <string name="targets_projection_body">If most days land in this target, compared with what a typical day burns.</string>
     <string name="targets_goal_see">See goal</string>
     <string name="targets_goal_none_any">Set a goal</string>
     <string name="targets_goal_none_any_body">A weight or energy balance goal can set this target for you.</string>
