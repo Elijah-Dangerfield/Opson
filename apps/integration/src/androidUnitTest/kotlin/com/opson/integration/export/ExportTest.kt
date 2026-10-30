@@ -14,6 +14,7 @@ import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.RecipeDraft
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import kotlinx.datetime.LocalDateTime
@@ -49,6 +50,7 @@ class ExportTest : IntegrationTest() {
         phone.exercise.add(ExerciseDraft(day, LocalDateTime(day, LocalTime(7, 30)).toInstant(zone), "yoga", minutes = 45, kcal = 120))
         phone.customFoods.create(CustomFoodDraft("Gran's flapjack", servingAmount = 1.0, servingUnit = "square", kcal = 210.0))
         phone.savedMeals.create("Packed lunch", MealSlot.Lunch, listOf(LogDraft(name = "Cheese sandwich", precision = Precision.Estimate, kcal = 380.0)))
+        phone.recipes.create(RecipeDraft("Lentil soup", servings = 4.0, ingredients = listOf(LogDraft(name = "Red lentils", precision = Precision.Estimate, amountText = "1 cup", kcal = 680.0))))
         phone.settings.update { it.copy(numbers = NumbersSettings(preset = PresetId.NoNumbers)) }
         // The check-in is its own write; 4 on the hunger scale exports as the old word nearest it.
         phone.checkIns.setCheckIn(day, CheckIn(hunger = HungerLevel.of(4), moods = setOf(CheckInMood.Calm)))
@@ -69,6 +71,7 @@ class ExportTest : IntegrationTest() {
         assertTrue(files.getValue("exercise.csv").rows().single().startsWith("$day,07:30,${zone.id},"))
         assertEquals("Gran's flapjack,,1,square,210,,,,", files.getValue("custom_foods.csv").rows().single())
         assertEquals("Packed lunch,lunch,Cheese sandwich,,,380,,,,", files.getValue("saved_meals.csv").rows().single())
+        assertEquals("Lentil soup,4,,,Red lentils,1 cup,,680,,,,", files.getValue("recipes.csv").rows().single())
         assertTrue(files.getValue("daily_summary.csv").rows().any { it.startsWith("$day,1,320,") })
         assertTrue(files.getValue("settings.json").contains("\"no_numbers\""), "the settings as synced")
         assertEquals(listOf("fasts.csv"), files.filterValues { it.rows().isEmpty() }.keys.filter { it.endsWith(".csv") })
