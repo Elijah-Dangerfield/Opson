@@ -6,6 +6,49 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-30: With a goal, the app is organized around it; a goal streak only where met isn't eating less
+
+**Decision:** an active goal reaches every surface that judges a day, all
+through `GoalRepository` so they agree. Today's card names the goal in a chip
+that opens it (Targets for now, until the goal screen lands). A goal averaged
+over the week moves today's band by the engine's capped adjustment and says
+"To stay on track this week: about 1,800 kcal today", or "On track for the
+week"; an energy balance deficit says the deficit instead. After "numbers have
+been hard" a week asking for less says nothing. The burned bar marks a usual
+day's burn (the median of the last 14 whole days' Burned, at least 4) and a
+burn goal's line, both only where energy out shows. Wrap up the day has a
+"Your goal" card per goal: "On plan for your goal", "A bit over. Your week is
+still on track", "A big day. Your week can absorb it", or for a daily goal
+"Your goal is the same tomorrow". A week with room says "About N a day for the
+rest of the week"; a tighter week is never spelled out there. The Trends
+calendar colors a day from the goal's start by the goal's own verdict (under a
+weekly average, the band its week asked of it), its day sheet agrees, and the
+running total's "Since you started" counts from the goal's start.
+
+The showing-up streak stays exactly as it was. A second, opt-in goal streak
+(`goalStreakEnabled`, a synced top-level settings key, off by default; the
+onboarding goal question may turn it on) counts days met for Track every day,
+Meals, Burn and Steps only (`GoalStreaks.eligible`). It forgives like showing
+up: skipped days rest, one day not met is bridged, two end it. It shows in
+Wrap up the day's goal card, and only where celebrations say numbers.
+
+**Why:** the owner asked for a goal to feel "almost like a mode you enter". A
+streak of days under a calorie target or a deficit rewards eating less and
+turns a big day into a broken chain, the restrict-after-binge loop Opson exists
+to avoid, so weight and energy balance goals never get one; nothing in
+celebrations reads them (2026-10-29). Meals and tracking count something to do,
+not something to withhold. Burn and steps are allowed because the owner listed
+them, with the same forgiveness; compulsive exercise is a real pattern, so
+they never count calories eaten and the streak stays off unless chosen.
+
+**Alternatives:** goal streaks for every type (rejected above); replacing the
+showing-up streak with the goal's (loses the one streak that can't be broken
+by eating); tightening lines in Wrap up the day after a big day ("about 1,750
+a day for the rest of the week" is a day made to pay for another); a usual
+burn from the mean (one long run moves it for two weeks).
+
+---
+
 ## 2026-10-30: No server AI in v1; labels are read on the phone and a person reviews weekly
 
 **Decision:** the server calls no model unless `AI_CALLS_ENABLED=true` is set
