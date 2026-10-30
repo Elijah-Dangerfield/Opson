@@ -448,4 +448,14 @@ class SettingsTest {
         assertEquals(30, Settings(birthYear = 1996, birthDate = LocalDate(1998, 5, 11)).bodyProfile(77.0, today).ageYears, "the year wins")
         assertNull(Settings().bodyProfile(77.0, today).ageYears)
     }
+
+    /** With the whole date known, age moves on the birthday, not for everyone on 1 January. */
+    @Test
+    fun bodyProfile_withTheWholeBirthDate_countsWholeYearsToTheBirthday() {
+        val december = Settings().withBirthDate(LocalDate(1998, 12, 1))
+        assertEquals(27, december.bodyProfile(77.0, LocalDate(2026, 10, 30)).ageYears)
+        assertEquals(27, december.bodyProfile(77.0, LocalDate(2026, 1, 1)).ageYears, "New Year's Day isn't their birthday")
+        assertEquals(28, december.bodyProfile(77.0, LocalDate(2026, 12, 1)).ageYears)
+        assertEquals(28, Settings(birthYear = 1998).bodyProfile(77.0, LocalDate(2026, 10, 30)).ageYears, "only a year: the year's")
+    }
 }

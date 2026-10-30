@@ -72,10 +72,11 @@ health), activity kcal, digesting food on or off, weight, height, age, sex, preg
 breastfeeding, body fat.
 
 - A **discrete** change (source switched, health connected or disconnected, digesting food toggled,
-  activity level, height, age, sex, stage) offers a recalculation as soon as the new target differs
+  activity level, height, sex, stage) offers a recalculation as soon as the new target differs
   from the current one by 10 kcal or more.
-- A **drift** (weight, a health average) offers one only once the target would move by 100 kcal or
-  more. A weekly weigh-in during a loss crosses that every month or so, which is about right.
+- A **drift** (weight, a health average, a birthday) offers one only once the target would move by
+  100 kcal or more. Age counts whole years from the birthday when the date is known, so it moves
+  on the birthday and never for everyone on 1 January. A weekly weigh-in during a loss crosses that every month or so, which is about right.
 - Body fat changes the personal fat-loss limit, not the target. It never prompts on its own; the
   new limit shows wherever pace is shown.
 

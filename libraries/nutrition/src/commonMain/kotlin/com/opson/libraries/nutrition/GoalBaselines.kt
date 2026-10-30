@@ -113,7 +113,9 @@ enum class BaselineChange(val discrete: Boolean) {
     DigestingFood(discrete = true),
     Weight(discrete = false),
     Height(discrete = true),
-    Age(discrete = true),
+
+    /** A birthday passed: a few kcal of resting energy, so drift, judged by how far the target moves. */
+    Age(discrete = false),
     Sex(discrete = true),
 
     /** Pregnant, breastfeeding, or neither. */
