@@ -48,8 +48,9 @@ class SearchOptionsStateBuilderTest {
         val rows = results(LoggerFixtures.optionsState(full)).associateBy { it.key }
         assertEquals(SourceBadge.YourFood, rows.getValue("c:rice-bowl").badge)
         assertFalse(rows.getValue("c:rice-bowl").verified, "your own food is yours, not verified")
-        assertEquals(SourceBadge.Usda to true, rows.getValue("f:rice").badge to rows.getValue("f:rice").verified)
-        assertEquals(SourceBadge.UsdaBranded to true, rows.getValue("f:rice-branded").let { it.badge to it.verified })
+        // Verified is a person's check against the pack, which none of these has had.
+        assertEquals(SourceBadge.Usda to false, rows.getValue("f:rice").badge to rows.getValue("f:rice").verified)
+        assertEquals(SourceBadge.UsdaBranded to false, rows.getValue("f:rice-branded").let { it.badge to it.verified })
         assertEquals(SourceBadge.OpenFoodFacts to false, rows.getValue("f:rice-off").let { it.badge to it.verified })
     }
 
@@ -183,7 +184,7 @@ class SearchOptionsStateBuilderTest {
 
         val typed = results(LoggerFixtures.optionsState(full, settings = settings))
         assertEquals("f:sinangag", typed.first().key, "garlic fried rice was logged an hour ago")
-        assertEquals(PickSource.Recent, typed.first().source)
+        assertEquals(PickSource.Search, typed.first().source, "found by typing, so it logs as a search")
     }
 
     @Test

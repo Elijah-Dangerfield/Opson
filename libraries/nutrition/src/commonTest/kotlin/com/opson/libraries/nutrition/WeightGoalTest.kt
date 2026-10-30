@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 /**
  * A weight goal's arithmetic: pace to energy by the 7,700 kcal a kilogram rule, the paces the
- * stepper offers (capped at GoalSafety's gentle lines and never under the low-goal line), the
+ * stepper offers (up to GoalPace's fastest, never under the low-goal line), the
  * forecast, the healthy-range note, the aim it writes to Targets, and how the app tells the goal
  * still sets that aim.
  */
@@ -29,12 +29,11 @@ class WeightGoalTest {
     }
 
     @Test
-    fun losing_isCappedAtTheGentlerOfAThousandADayAndOnePercentAWeek() {
-        // 100 kg: 1% is 1 kg, 1,000 a day is about 0.91 kg; the 1,000 wins.
-        assertEquals(1000.0 * 7 / KCAL_PER_KG, WeightGoals.fastestKgPerWeek(GoalDirection.Lose, 100.0, burnKcal = null, sex = null), 1e-9)
-        // 60 kg: 1% is 0.6 kg a week, gentler than 1,000 a day.
-        assertEquals(0.6, WeightGoals.fastestKgPerWeek(GoalDirection.Lose, 60.0, burnKcal = null, sex = null), 1e-9)
-        assertEquals(listOf(0.1, 0.2, 0.3, 0.4, 0.5, 0.6), WeightGoals.rates(GoalDirection.Lose, WeightUnit.Kg, 60.0, null, null).map(::tenths))
+    fun losing_goesUpToTwoPercentAWeek_whateverTheEnergy() {
+        // 100 kg: 2% is 2 kg a week. The old 1,000 a day line no longer holds back a big body.
+        assertEquals(2.0, WeightGoals.fastestKgPerWeek(GoalDirection.Lose, 100.0, burnKcal = null, sex = null), 1e-9)
+        assertEquals(1.2, WeightGoals.fastestKgPerWeek(GoalDirection.Lose, 60.0, burnKcal = null, sex = null), 1e-9)
+        assertEquals((1..12).map { it / 10.0 }, WeightGoals.rates(GoalDirection.Lose, WeightUnit.Kg, 60.0, null, null).map(::tenths))
     }
 
     @Test
@@ -44,7 +43,8 @@ class WeightGoalTest {
         assertEquals(300.0 * 7 / KCAL_PER_KG, fastest, 1e-9)
         val rates = WeightGoals.rates(GoalDirection.Lose, WeightUnit.Kg, 80.0, 1500, BodySex.Female)
         rates.forEach { rate ->
-            val aim = WeightGoals.aimKcal(WeightGoal(GoalDirection.Lose, kgPerWeek = rate), 1500, BodySex.Female)
+            val type = GoalType.Weight(GoalDirection.Lose, kgPerWeek = rate)
+            val aim = GoalTargets.aimKcal(type, GoalBaseline(burnKcal = 1500, sex = BodySex.Female))!!
             assertTrue(aim >= 1200, "a pace of $rate kg a week aims at $aim")
         }
         // Already at the line: no pace at all, never a pace under it.
@@ -53,8 +53,8 @@ class WeightGoalTest {
     }
 
     @Test
-    fun gaining_isCappedAtHalfAPercentAWeek() {
-        assertEquals(0.4, WeightGoals.fastestKgPerWeek(GoalDirection.Gain, 80.0, burnKcal = 2400, sex = BodySex.Male), 1e-9)
+    fun gaining_isCappedAtOnePercentAWeek() {
+        assertEquals(0.8, WeightGoals.fastestKgPerWeek(GoalDirection.Gain, 80.0, burnKcal = 2400, sex = BodySex.Male), 1e-9)
         assertEquals(0.0, WeightGoals.fastestKgPerWeek(GoalDirection.Maintain, 80.0, burnKcal = 2400, sex = null))
     }
 
@@ -95,25 +95,12 @@ class WeightGoalTest {
     }
 
     @Test
-    fun theAim_isTheBurnPlusTheGoal_plusWhatPregnancyNeeds() {
-        val lose = WeightGoal(GoalDirection.Lose, kgPerWeek = 0.5)
-        assertEquals(1950, WeightGoals.aimKcal(lose, 2500, BodySex.Male))
-        assertEquals(2500, WeightGoals.aimKcal(WeightGoal(GoalDirection.Maintain), 2500, BodySex.Male))
-        assertEquals(2340, WeightGoals.aimKcal(WeightGoal(GoalDirection.JustTrack), 2000, BodySex.Female, BodyStage.Pregnant))
-    }
-
-    @Test
-    fun applying_setsARangeOnTheAim_andTheGoalDrivesItUntilItIsMovedByHand() {
+    fun aGoalDrivesTheTargetsItWrote_untilTheyAreMovedByHand() {
         val goal = WeightGoal(GoalDirection.Lose, targetKg = 75.0, kgPerWeek = 0.5, startKg = 80.0, startDate = start)
-        val deficit = Targets.Default.useDeficit(2500)
-        val (stamped, targets) = WeightGoals.apply(goal, deficit, aimKcal = 1950, scaleMacros = true)
+        val targets = Targets.Default.withBand(1950, 1850, 2050)
+        val stamped = goal.copy(targetsKcal = targets.energyKcal)
 
-        assertEquals(TargetStyle.Range, targets.style)
-        assertEquals(1950, targets.energyKcal)
-        assertEquals(Targets.Default.maxKcal - Targets.Default.minKcal, targets.maxKcal - targets.minKcal, "the width is kept")
-        assertEquals(1950, stamped.targetsKcal)
         assertTrue(stamped.drives(targets))
-
         assertFalse(stamped.drives(targets.raise()), "moved by hand")
         assertFalse(stamped.drives(targets.useExact()), "another style")
         assertFalse(goal.drives(targets), "a goal that never wrote one")

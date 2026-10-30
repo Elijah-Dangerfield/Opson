@@ -128,13 +128,16 @@ private fun FoodReportPanel(ctx: AdminCtx, group: FoodReportGroupDto, onDecided:
         }
 
         Div(attrs = { classes("photos") }) {
-            group.reports.filter { it.hasPhoto }.forEach { ReportPhoto(ctx, it.id) }
+            group.reports.forEach { report ->
+                if (report.hasFrontPhoto) PackPhoto(ctx, "Front of the pack") { ctx.api.foodReportPhoto(report.id, "front") }
+                if (report.hasPhoto) PackPhoto(ctx, "Label") { ctx.api.foodReportPhoto(report.id, "label") }
+            }
         }
 
         Ul {
             group.reports.forEach { report ->
                 Li {
-                    Span(attrs = { classes("chip") }) { Text(ReportDiff.reasonLabel(report.reason)) }
+                    report.allReasons.forEach { reason -> Span(attrs = { classes("chip") }) { Text(ReportDiff.reasonLabel(reason)) } }
                     Text(" ${relativeTime(report.createdAtEpochMs)}")
                     report.suggested?.basisLabel?.let { basis ->
                         Span(attrs = { classes("muted") }) {
@@ -265,14 +268,17 @@ private fun FoodReportPanel(ctx: AdminCtx, group: FoodReportGroupDto, onDecided:
     }
 }
 
-/** One report's label photo, fetched with the token into a blob URL that is revoked when the panel goes. */
+/**
+ * One photo of a pack, fetched with the token into a blob URL that is revoked when the panel goes.
+ * Reports and verifications both have a front and a label.
+ */
 @Composable
-private fun ReportPhoto(ctx: AdminCtx, id: String) {
-    var url by remember(id) { mutableStateOf<String?>(null) }
-    var failed by remember(id) { mutableStateOf(false) }
+internal fun PackPhoto(ctx: AdminCtx, alt: String, fetch: suspend () -> ByteArray) {
+    var url by remember(alt, fetch) { mutableStateOf<String?>(null) }
+    var failed by remember(alt, fetch) { mutableStateOf(false) }
 
-    LaunchedEffect(id) {
-        Catching { ctx.api.foodReportPhoto(id) }
+    LaunchedEffect(alt, fetch) {
+        Catching { fetch() }
             .onSuccess { bytes ->
                 val blob = Blob(arrayOf(bytes.unsafeCast<Int8Array>()), BlobPropertyBag(type = "image/jpeg"))
                 url = URL.createObjectURL(blob)
@@ -286,7 +292,7 @@ private fun ReportPhoto(ctx: AdminCtx, id: String) {
 
     val src = url
     when {
-        src != null -> Img(src = src, alt = "Label photo", attrs = { attr("title", "Label photo") })
+        src != null -> Img(src = src, alt = alt, attrs = { attr("title", alt) })
         failed -> P(attrs = { classes("err") }) { Text("Couldn't load the photo (deleted 30 days after the decision).") }
         else -> P(attrs = { classes("muted") }) { Text("Loading the photo…") }
     }

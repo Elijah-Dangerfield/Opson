@@ -48,6 +48,29 @@ class FoodSearchAndBarcodeTest : IntegrationTest() {
         assertTrue(ids.indexOf(pie) in 0 until ids.indexOf(juice), "a generic food outranks a branded one: $ids")
     }
 
+    /**
+     * `strawberry` means the fruit, not strawberry milk: the singular finds "Strawberries" as the
+     * food. Once logged, the food is on the phone, and offline the same words in any order find it.
+     */
+    @Test
+    fun search_findsTheFoodBeforeItsNameUsedAsAModifier_andOfflineFindsItByItsWords() = integration {
+        val berries = server.seedFood("$word strawberries, raw", kcalPer100g = 32.0)
+        val milk = server.seedFood("$word strawberry milk, NFS", kcalPer100g = 80.0)
+        val proxy = faultProxy()
+        val phone = client(through = proxy)
+
+        val ids = phone.foods.search("$word strawberry").getOrThrow().foods.map { it.id }
+        assertEquals(berries, ids.first(), "the fruit, not the milk: $ids")
+        assertTrue(milk in ids)
+
+        phone.foods.markUsed(phone.foods.detail(berries).getOrThrow())
+        proxy.failAll("/v1/foods/search", Fault.Status(HttpStatusCode.ServiceUnavailable))
+        val offline = phone.foods.search("strawberry $word").getOrThrow()
+
+        assertTrue(offline.fromCache)
+        assertEquals(listOf(berries), offline.foods.map { it.id }, "what was logged, found by its words")
+    }
+
     @Test
     fun detail_returnsTheFoodWithItsPortions() = integration {
         val id = server.seedFood("$word yogurt", kcalPer100g = 61.0, portionsJson = """[{"label":"1 cup","grams":245}]""")

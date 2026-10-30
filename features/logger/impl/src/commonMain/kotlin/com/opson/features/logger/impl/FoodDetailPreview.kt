@@ -139,7 +139,27 @@ private fun EntryQuickNumberPreview() = Detail(LoggerFixtures.quickNumberDetailS
 @Composable
 private fun EntryNoNumbersPreview() = Detail(LoggerFixtures.entryNoNumbersState(noNumbers), dark = false)
 
+/** An active Builder on a food nobody has checked: Verify this food under the amount, and a filled star. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun BuilderVerifyPreview() = Detail(LoggerFixtures.builderVerifyState(full), dark = false)
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun BuilderVerifyDarkPreview() = Detail(LoggerFixtures.builderVerifyState(full))
+
+/** Verified, tapped open: a person checked it against the package. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun VerifiedExplainedPreview() = Detail(LoggerFixtures.verifiedExplainedState(full), dark = false, atBottom = true)
+
+/** Unverified, tapped open: where the numbers come from, and that nobody has checked them. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun UnverifiedExplainedPreview() = Detail(LoggerFixtures.unverifiedExplainedState(full), dark = false, atBottom = true)
+
 /** The source tapped open on an Open Food Facts food: what it is, its licence's credit, and Credits. */
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun SourceExplainedPreview() = Detail(LoggerFixtures.sourceExplainedState(full), dark = false, atBottom = true)

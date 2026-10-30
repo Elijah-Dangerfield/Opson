@@ -20,6 +20,7 @@ import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.FindSupportRoute
+import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.SupportRoute
 import com.opson.features.settings.TodayScreenSettingsRoute
 import com.opson.features.settings.RestingEnergyRoute
@@ -72,6 +73,9 @@ import com.opson.features.today.impl.dayclose.WhyNotCutBackSheetContent
 import com.opson.features.today.impl.daynote.DayNoteEvent
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.daynote.DayNoteViewModel
+import com.opson.features.today.impl.kindnote.KindNoteEvent
+import com.opson.features.today.impl.kindnote.KindNoteSheetContent
+import com.opson.features.today.impl.kindnote.KindNoteViewModel
 import com.opson.features.today.impl.item.ItemSheetContent
 import com.opson.features.today.impl.item.ItemSheetEvent
 import com.opson.features.today.impl.item.ItemSheetViewModel
@@ -139,6 +143,7 @@ class TodayFeatureEntryPoint(
     private val celebrationViewModelFactory: (String, Boolean) -> CelebrationViewModel,
     private val progressViewModelFactory: () -> ProgressViewModel,
     private val streakViewModelFactory: () -> StreakIndicatorViewModel,
+    private val kindNoteViewModelFactory: () -> KindNoteViewModel,
     private val tabBar: TabBar,
     private val findSupportEnabled: FindSupportEnabled,
     /** Cards other modules add to the list, such as Medication's. */
@@ -350,6 +355,26 @@ class TodayFeatureEntryPoint(
                 }
             }
             TodaySheet(router, sheetState) { ItemSheetContent(state = state, onAction = viewModel::takeAction) }
+        }
+
+        bottomSheet<KindNoteRoute> { _, sheetState ->
+            val viewModel: KindNoteViewModel = viewModel { kindNoteViewModelFactory() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    KindNoteEvent.OpenFindSupport -> router.batch {
+                        goBack()
+                        navigate(FindSupportRoute())
+                    }
+                    KindNoteEvent.OpenModes -> router.batch {
+                        goBack()
+                        navigate(ModesRoute())
+                    }
+                    is KindNoteEvent.ShowToast -> showToast(event.toast)
+                    KindNoteEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            TodaySheet(router, sheetState) { KindNoteSheetContent(state = state, onAction = viewModel::takeAction) }
         }
 
         bottomSheet<WhyNotCutBackRoute> { _, sheetState ->

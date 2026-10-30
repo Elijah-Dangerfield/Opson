@@ -140,3 +140,67 @@ class ReportReverter(
         const val MAX_ACTOR = 100
     }
 }
+
+/**
+ * A Builder's verifications (V34). One a reviewer accepted with values led to a correction, which
+ * is reverted like a report's. Every confirmed or accepted one stops counting and stops making its
+ * food Verified: the outcome goes back to `unconfirmed` and the status to `rejected`. Open ones are
+ * rejected. The record stays.
+ */
+@SingleIn(ServerScope::class)
+@ContributesBinding(ServerScope::class, multibinding = true)
+@Inject
+@OptIn(ExperimentalTime::class)
+class VerificationReverter(
+    private val database: Database,
+    private val reports: FoodReportRepository,
+    private val clock: Clock,
+) : ContributionReverter {
+
+    override val kind: String = "verification"
+
+    override suspend fun revert(userId: UserId, actor: String, reason: String, actionId: UUID?): RevertedContributions {
+        val by = actor.take(MAX_ACTOR)
+        val corrections = database.transaction {
+            queryRows(
+                "SELECT correction_id FROM food_provenance " +
+                    "WHERE subject_key = public.subject_key(?) AND kind = 'verification' AND rolled_back_at IS NULL AND correction_id IS NOT NULL",
+                listOf(uuidArg(userId.value)),
+            ) { it.getObject("correction_id", UUID::class.java) }
+        }
+        var skipped = 0
+        corrections.distinct().forEach { correctionId ->
+            when (reports.revert(correctionId, by)) {
+                is RevertOutcome.Reverted -> Unit
+                RevertOutcome.NotLive, RevertOutcome.NotFound -> skipped++
+            }
+        }
+        val now = clock.now()
+        val resolution = "Removed in moderation: $reason".take(MAX_REASON)
+        val (undone, closed) = database.transaction {
+            queryRows(
+                "UPDATE food_provenance SET rolled_back_at = ?, rolled_back_by = ?, rollback_action_id = ? " +
+                    "WHERE subject_key = public.subject_key(?) AND kind = 'verification' AND rolled_back_at IS NULL RETURNING id",
+                listOf(instantArg(now), textArg(by), uuidArg(actionId), uuidArg(userId.value)),
+            ) { true }
+            val undone = queryRows(
+                "UPDATE food_verifications SET outcome = 'unconfirmed', status = 'rejected', " +
+                    "resolved_at = coalesce(resolved_at, ?), resolved_by = coalesce(resolved_by, ?), resolution = ? " +
+                    "WHERE user_id = ? AND (outcome = 'confirmed' OR status = 'accepted') RETURNING id",
+                listOf(instantArg(now), textArg(by), textArg(resolution), uuidArg(userId.value)),
+            ) { true }.size
+            val closed = queryRows(
+                "UPDATE food_verifications SET status = 'rejected', resolved_at = ?, resolved_by = ?, resolution = ? " +
+                    "WHERE user_id = ? AND status = 'open' RETURNING id",
+                listOf(instantArg(now), textArg(by), textArg(resolution), uuidArg(userId.value)),
+            ) { true }.size
+            undone to closed
+        }
+        return RevertedContributions(kind, undone = undone, closed = closed, skipped = skipped)
+    }
+
+    private companion object {
+        const val MAX_REASON = 500
+        const val MAX_ACTOR = 100
+    }
+}

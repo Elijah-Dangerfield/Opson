@@ -160,7 +160,7 @@ class PromptProcessor(
         val candidate = candidate(id) ?: return null
         val first = answer(id) { it.copy(accepted = true) }
         if (!first) return null
-        telemetry.accepted(id)
+        if (!candidate.sensitive) telemetry.accepted(id)
         return Catching { candidate.accept() }
             .logOnFailure { "Prompt $id failed to accept" }
             .getOrNull() ?: PromptAccept.Done
@@ -185,8 +185,8 @@ class PromptProcessor(
 
     /** Not now, a swipe, a tap outside, Back. A second answer to the same showing is ignored. */
     suspend fun dismissed(id: String) {
-        if (candidate(id) == null) return
-        if (answer(id) { it.copy(dismissals = it.dismissals + 1) }) telemetry.dismissed(id)
+        val candidate = candidate(id) ?: return
+        if (answer(id) { it.copy(dismissals = it.dismissals + 1) } && !candidate.sensitive) telemetry.dismissed(id)
     }
 
     /** Whether [id]'s showing offers "I'd rather not see these": an optional prompt, one of the first few. */
@@ -223,8 +223,10 @@ class PromptProcessor(
         if (offers) offering += candidate.id else offering -= candidate.id
         val showing = PromptShowing(candidate.id, candidate.presentation, trigger, offers)
         if (candidate.presentation == PromptPresentation.Card) _card.value = showing
-        telemetry.shown(candidate.id, candidate.presentation, trigger)
-        logger.i { "Prompt ${candidate.id} shown (${trigger.wire})" }
+        if (!candidate.sensitive) {
+            telemetry.shown(candidate.id, candidate.presentation, trigger)
+            logger.i { "Prompt ${candidate.id} shown (${trigger.wire})" }
+        }
         return showing
     }
 

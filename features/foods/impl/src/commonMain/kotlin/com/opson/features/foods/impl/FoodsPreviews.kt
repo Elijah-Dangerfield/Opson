@@ -45,6 +45,21 @@ private fun FoodsRecentPreview() = Foods(FoodsFixtures.foodsState(full))
 @Composable
 private fun FoodsEmptyPreview() = Foods(FoodsFixtures.foodsState(full, empty = true))
 
+/** Three foods starred on their detail, newest first; the verified ones say so. */
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
+private fun FoodsFavoritesPreview() = Foods(FoodsFixtures.foodsState(full, favorites = true))
+
+@Preview(widthDp = 390, heightDp = 1200)
+@Composable
+private fun FoodsFavoritesDarkPreview() = Foods(FoodsFixtures.foodsState(full, favorites = true), dark = true)
+
+/** An active Builder: Verify a food under the tiles, in the Builders color. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun FoodsBuilderPreview() = Foods(FoodsFixtures.foodsState(full, withRecent = false, favorites = true, builder = true))
+
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun FoodsCreateMealPreview() = CreateMeal(FoodsFixtures.createMealState(full))

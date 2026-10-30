@@ -35,6 +35,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import kotlin.reflect.typeOf
+import com.opson.features.logger.CheckPackRoute
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, multibinding = true)
@@ -57,6 +58,7 @@ class FoodsFeatureEntryPoint(
                         is FoodsEvent.OpenLogger -> event.route
                         FoodsEvent.OpenCreateMeal -> CreateMealRoute()
                         FoodsEvent.OpenAddFood -> AddFoodRoute()
+                        is FoodsEvent.OpenVerify -> CheckPackRoute(event.dayIso)
                         is FoodsEvent.OpenRepeat -> RepeatRoute(ruleId = event.ruleId)
                     },
                 )

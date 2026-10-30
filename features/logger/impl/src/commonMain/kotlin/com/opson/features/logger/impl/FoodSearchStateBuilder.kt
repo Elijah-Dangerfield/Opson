@@ -8,12 +8,14 @@ import com.opson.libraries.diary.MealSlotPicker
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.SearchDatabase
 import com.opson.libraries.diary.SearchSort
+import com.opson.libraries.foods.FoodQuery
 import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.VisibilityPolicy
+import kotlinx.datetime.toInstant
 
 /**
  * Search's state as a pure function of what it reads and what the person has done, so previews
@@ -97,6 +99,10 @@ object FoodSearchStateBuilder {
         }
         val known = if (choices.searchOptions) inputs.known else null
         fun rows(picks: List<FoodPick>) = picks.map { it.toRow(policy, bare, it.key in added, known, inputs.reviews) }
+        val ranking = ranking(inputs, choices.query.trim())
+        fun resultRows(picks: List<FoodPick>) = picks.map { pick ->
+            pick.toRow(policy, bare, pick.key in added, known, inputs.reviews, reason = ranking.reason(pick, badged = known != null))
+        }
 
         return when (val listing = listing(inputs, slot, choices)) {
             Listing.Searching -> SearchBody.Searching
@@ -116,7 +122,7 @@ object FoodSearchStateBuilder {
                 SearchBody.NoResults(listing.query, listing.offline)
             } else {
                 SearchBody.Results(
-                    rows = rows(listing.picks),
+                    rows = resultRows(listing.picks),
                     offline = listing.offline,
                     openFoodFacts = choices.searchOptions && listing.picks.any { it.food?.isOpenFoodFacts == true },
                     nevo = listing.picks.any { it.food?.source == FoodSource.Nevo },
@@ -164,22 +170,32 @@ object FoodSearchStateBuilder {
 
     private fun listing(inputs: SearchInputs, slot: MealSlot, given: SearchChoices): Listing {
         val query = given.query.trim()
-        val before = LoggedBefore.of(inputs.history, inputs.frequent)
+        // The long tail reaches further back than the history, so more rows offer the last amount.
+        val before = LoggedBefore.of(inputs.history + inputs.logged.map { it.latest }, inputs.frequent)
+        val rank = ranking(inputs, query)::order
         return when (given.scope) {
             SearchScope.SavedMeals -> Listing.Meals(savedMeals(inputs, query))
             SearchScope.YourFoods -> own(SearchTab.All, query, yourFoods(inputs, before))
             SearchScope.All -> if (given.searchOptions) {
-                withOptions(inputs, slot, given, query, before)
+                withOptions(inputs, slot, given, query, before, rank)
             } else if (query.isEmpty()) {
                 browse(inputs, slot, before)
             } else {
-                catalogMatches(query, given.search, FoodSearchFilter.None, mine = customPicks(inputs, query, before), before = before)
+                catalogMatches(query, given.search, FoodSearchFilter.None, mine = personalPicks(inputs, query, before), before = before, rank = rank)
             }
         }
     }
 
     /** All with `release.searchOptions` on: the sort, the database and the category tabs apply. */
-    private fun withOptions(inputs: SearchInputs, slot: MealSlot, given: SearchChoices, query: String, before: LoggedBefore): Listing {
+    @Suppress("LongParameterList")
+    private fun withOptions(
+        inputs: SearchInputs,
+        slot: MealSlot,
+        given: SearchChoices,
+        query: String,
+        before: LoggedBefore,
+        rank: (List<FoodPick>) -> List<FoodPick>,
+    ): Listing {
         val choices = effective(inputs, given)
         val sort = inputs.settings.searchSort
         val recency = inputs.history.mapNotNull { it.foodRef()?.key }.withIndex().associate { (i, key) -> key to i }
@@ -189,7 +205,7 @@ object FoodSearchStateBuilder {
             SearchTab.Favorites -> own(SearchTab.Favorites, query, ordered(favoritePicks(inputs, before)))
             SearchTab.Custom -> own(SearchTab.Custom, query, ordered(inputs.customFoods.map { it.toPick(before) }))
             SearchTab.Common, SearchTab.Restaurant, SearchTab.Beverages ->
-                if (query.isEmpty()) Listing.Hint(choices.tab) else catalogMatches(query, choices.search, filter, emptyList(), before, ordered)
+                if (query.isEmpty()) Listing.Hint(choices.tab) else catalogMatches(query, choices.search, filter, emptyList(), before, rank, ordered)
             SearchTab.All -> when {
                 // My foods: the person's own and what they have logged, no server call.
                 filter == null -> own(SearchTab.All, query, ordered(yourFoods(inputs, before)))
@@ -197,10 +213,8 @@ object FoodSearchStateBuilder {
                 query.isEmpty() -> browse(inputs, slot, before)
                 else -> {
                     // The person's own foods belong among All's results; USDA or Open Food Facts means just that.
-                    val everything = filter.source == null
-                    val logged = if (everything && sort == SearchSort.MostRecent) history(inputs, before).filter { it.matches(query) } else emptyList()
-                    val mine = if (everything) logged + customPicks(inputs, query, before) else emptyList()
-                    catalogMatches(query, choices.search, filter, mine, before, ordered)
+                    val mine = if (filter.source == null) personalPicks(inputs, query, before) else emptyList()
+                    catalogMatches(query, choices.search, filter, mine, before, rank, ordered)
                 }
             }
         }
@@ -210,8 +224,10 @@ object FoodSearchStateBuilder {
         if (query.isEmpty()) Listing.Listed(tab, picks) else Listing.Matches(query, picks.filter { it.matches(query) }, offline = false)
 
     /**
-     * [mine] first, then the catalog's answer, deduplicated by key and put in order by [order].
-     * Searching while the catalog has not answered this query with this filter yet.
+     * The catalog's answer and [mine], one row per food (for a food of theirs the catalog's row,
+     * which knows its source, at their last amount), the catalog's in its order and theirs after,
+     * then in the person's order ([rank], [PersonalRanking]) and the sort's ([order]). Searching
+     * while the catalog has not answered this query with this filter yet.
      */
     @Suppress("LongParameterList")
     private fun catalogMatches(
@@ -220,12 +236,23 @@ object FoodSearchStateBuilder {
         filter: FoodSearchFilter?,
         mine: List<FoodPick>,
         before: LoggedBefore,
+        rank: (List<FoodPick>) -> List<FoodPick>,
         order: (List<FoodPick>) -> List<FoodPick> = { it },
     ): Listing {
         if (search == null || search.query != query || search.filter != filter) return Listing.Searching
-        val picks = (mine + search.foods.map { it.toPick(before) }).distinctBy { it.key }
-        return Listing.Matches(query, order(picks), search.offline)
+        val catalog = search.foods.map { it.toPick(before) }
+        val picks = (catalog + mine).distinctBy { it.key }
+        return Listing.Matches(query, order(rank(picks)), search.offline)
     }
+
+    /** Ranks results for [query] by what this person logs, stars and chooses. */
+    private fun ranking(inputs: SearchInputs, query: String) = PersonalRanking(
+        query = query,
+        learned = inputs.learned,
+        logged = inputs.logged.mapNotNull { food -> food.latest.foodRef()?.let { it.key to food } }.toMap(),
+        favorites = inputs.settings.favoriteFoods.toSet(),
+        now = inputs.now.toInstant(inputs.timeZone),
+    )
 
     /** Best match keeps the order things came in; Most recent puts what was logged first, newest first. */
     private fun sorted(picks: List<FoodPick>, sort: SearchSort, recency: Map<String, Int>): List<FoodPick> = when (sort) {
@@ -272,6 +299,20 @@ object FoodSearchStateBuilder {
     private fun customPicks(inputs: SearchInputs, query: String, before: LoggedBefore): List<FoodPick> =
         inputs.customFoods.map { it.toPick(before) }.filter { it.matches(query) }
 
+    /**
+     * The foods they logged that match, newest first, at most [LOGGED_MATCHES], and their custom
+     * foods: on the phone, so search finds them offline and a + logs them again at the last amount.
+     */
+    private fun personalPicks(inputs: SearchInputs, query: String, before: LoggedBefore): List<FoodPick> {
+        val logged = (inputs.history + inputs.logged.map { it.latest }).asSequence()
+            .filter { FoodQuery.matches(query, it.name) }
+            .mapNotNull { it.toPick(PickSource.Search, before) }
+            .distinctBy { it.key }
+            .take(LOGGED_MATCHES)
+            .toList()
+        return (logged + customPicks(inputs, query, before)).distinctBy { it.key }
+    }
+
     private fun optionsBar(inputs: SearchInputs, choices: SearchChoices): SearchOptionsBar {
         val settings = inputs.settings
         return SearchOptionsBar(
@@ -283,4 +324,5 @@ object FoodSearchStateBuilder {
     }
 
     private const val USUAL_AROUND_LIMIT = 3
+    private const val LOGGED_MATCHES = 20
 }

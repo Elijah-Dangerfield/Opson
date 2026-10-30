@@ -40,6 +40,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import com.opson.libraries.foods.FoodTier
 
 /**
  * The food detail: [FoodDetailStateBuilder] in each mode, and [FoodDetailViewModel] one action at
@@ -340,7 +341,7 @@ class FoodDetailTest : CoroutineTest() {
     }
 
     @Test
-    fun aVerifiedSourceSaysSoAndAnUnverifiedOneSaysItIsWaiting() {
+    fun aCheckedFoodIsVerified_aPackNobodyCheckedIsUnverified_andReferenceDataIsNeither() {
         fun sourceOf(food: Food): SourceLine? {
             val amountFood = AmountFood.Catalog(food)
             return FoodDetailStateBuilder.build(
@@ -351,14 +352,32 @@ class FoodDetailTest : CoroutineTest() {
                 PickSource.Search,
             ).source
         }
-        val usda = LoggerFixtures.peanutButter.copy(verified = true)
-        assertEquals(SourceReview.Verified, sourceOf(usda)?.review)
-        assertNull(sourceOf(LoggerFixtures.peanutButter)?.review, "nobody stands behind it: no mark either way")
+        assertNull(sourceOf(LoggerFixtures.peanutButter)?.review, "USDA's generic data has no pack to check: no mark either way")
+        assertEquals(SourceReview.Verified, sourceOf(LoggerFixtures.peanutButter.copy(checked = true))?.review, "a reviewer fixed it")
 
-        val added = LoggerFixtures.peanutButter.copy(source = FoodSource.UserSubmitted, reviewStatus = ReviewStatus.Pending)
+        val branded = LoggerFixtures.scannedYogurt
+        assertEquals(SourceReview.NotChecked, sourceOf(branded)?.review, "a label's numbers nobody has checked")
+        assertEquals(SourceReview.Verified, sourceOf(branded.copy(checked = true))?.review)
+
+        val added = LoggerFixtures.peanutButter.copy(source = FoodSource.UserSubmitted, tier = FoodTier.Community, reviewStatus = ReviewStatus.Pending)
         assertEquals(FoodOrigin.Opson, sourceOf(added)?.source)
         assertEquals(SourceReview.Unverified, sourceOf(added)?.review)
-        assertEquals(SourceReview.Verified, sourceOf(added.copy(reviewStatus = ReviewStatus.Approved, verified = true))?.review)
+        assertEquals(SourceReview.Verified, sourceOf(added.copy(reviewStatus = ReviewStatus.Approved, verified = true, checked = true))?.review)
+    }
+
+    @Test
+    fun aBuilderIsOfferedVerifyOnlyOnAPackNobodyChecked() {
+        assertTrue(LoggerFixtures.builderVerifyState(policy(PresetId.Full)).showVerify)
+        assertFalse(LoggerFixtures.verifiedExplainedState(policy(PresetId.Full)).copy(canCheck = true).showVerify)
+        assertFalse(LoggerFixtures.detailState(policy(PresetId.Full)).copy(canCheck = true).showVerify, "generic data has no pack")
+        assertFalse(LoggerFixtures.builderVerifyState(policy(PresetId.Full)).copy(canCheck = false).showVerify, "Builders only")
+    }
+
+    @Test
+    fun theBadgeOpensToSayWhatItMeans() {
+        val closed = LoggerFixtures.unverifiedExplainedState(policy(PresetId.Full)).source
+        assertEquals(SourceReview.NotChecked, closed?.review)
+        assertTrue(closed?.checkExplained == true)
     }
 
     @Test
@@ -658,6 +677,7 @@ class FoodDetailTest : CoroutineTest() {
     @Test
     fun theFavoriteSavesTheFoodAndTakesItOff() = runUnitTest {
         val vm = vm()
+        val events = events(vm)
 
         vm.takeAction(FoodDetailAction.FavoriteTapped)
         assertEquals(listOf("f:peanut-butter"), settings.state.value.favoriteFoods)
@@ -666,7 +686,40 @@ class FoodDetailTest : CoroutineTest() {
         vm.takeAction(FoodDetailAction.FavoriteTapped)
         assertTrue(settings.state.value.favoriteFoods.isEmpty())
         assertFalse(vm.state.favorite)
+
+        // Each tap says so on a snackbar, whose Undo sets the star back.
+        assertEquals(
+            listOf<FoodDetailEvent>(
+                FoodDetailEvent.FavoriteChanged("f:peanut-butter", starred = true),
+                FoodDetailEvent.FavoriteChanged("f:peanut-butter", starred = false),
+            ),
+            events,
+        )
+        // A catalog food is kept on the phone as a favorite, so the Foods tab can show it.
+        assertEquals(listOf("peanut-butter" to true, "peanut-butter" to false), catalog.favorited)
     }
+
+    @Test
+    fun undoingTheStarIsSafeToRepeat() {
+        val starred = Settings().setFavorite("f:rice", on = true)
+        assertEquals(listOf("f:rice"), starred.favoriteFoods)
+        assertEquals(starred, starred.setFavorite("f:rice", on = true), "already starred: nothing changes")
+        assertTrue(starred.setFavorite("f:rice", on = false).favoriteFoods.isEmpty())
+    }
+
+    @Test
+    fun verifyOpensOnlyForAFoodNobodyChecked() = runUnitTest {
+        val yogurt = LoggerFixtures.scannedYogurt
+        catalog.foods = catalog.foods + listOf(yogurt, LoggerFixtures.offRice.copy(checked = true))
+        val events = events(vm(foodId = yogurt.id).also { it.takeAction(FoodDetailAction.VerifyTapped) })
+        val checkedEvents = events(vm(foodId = LoggerFixtures.offRice.id).also { it.takeAction(FoodDetailAction.VerifyTapped) })
+        val referenceEvents = events(vm().also { it.takeAction(FoodDetailAction.VerifyTapped) })
+
+        assertEquals(listOf<FoodDetailEvent>(FoodDetailEvent.OpenVerify(yogurt.id, yogurt.name)), events.filterIsInstance<FoodDetailEvent.OpenVerify>())
+        assertTrue(checkedEvents.none { it is FoodDetailEvent.OpenVerify })
+        assertTrue(referenceEvents.none { it is FoodDetailEvent.OpenVerify })
+    }
+
 
     @Test
     fun theMealPickedIsWhereItLogs() = runUnitTest {

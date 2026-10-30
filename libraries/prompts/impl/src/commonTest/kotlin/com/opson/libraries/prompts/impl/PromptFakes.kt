@@ -42,6 +42,7 @@ internal class FakeCandidate(
     override val onTodayOpen: Boolean = true,
     override val events: Set<PromptEvent> = emptySet(),
     override val offerWhenNumbersHard: Boolean = false,
+    override val sensitive: Boolean = false,
     var eligible: Boolean = true,
     var throws: Boolean = false,
     val acceptsWith: PromptAccept = PromptAccept.Open(FakeRoute()),

@@ -26,6 +26,13 @@ class EachNumberRoute : Route()
 class TargetsRoute : Route()
 
 /**
+ * A `dialog<>` over Today: the goal's target can be updated because something it is worked out
+ * from changed (docs/plans/goals-v2.md). Opened by the `goal_recalculated` prompt.
+ */
+@Serializable
+class GoalRecalculationRoute : Route()
+
+/**
  * Where Burned's resting energy comes from (design sync 4, 13.2d): calculated, the health app or
  * a number of the person's own, and whether activity counts. `release.goalsAndEnergy`.
  * [fromEnergyToday] picks the back label: Energy today opens it with `true`, Targets with `false`.

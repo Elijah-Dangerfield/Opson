@@ -22,7 +22,7 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 /**
- * Check against the pack as a sheet, behind `release.builders`: the food detail's ⋮ for an active
+ * Verify this food as a sheet, behind `release.builders`: the food detail's card for an active
  * Builder, and the scanner after a code when Also read the label is on. Registered whatever the
  * flag says; only those two link here, and both check it.
  */

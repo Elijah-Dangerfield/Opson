@@ -6,7 +6,6 @@ import kotlinx.datetime.plus
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
-import kotlin.math.max
 import kotlin.math.roundToInt
 
 /** Which way a weight goal points. [None] is never asked; [JustTrack] is a real answer: no goal. */
@@ -94,8 +93,8 @@ data class WeightGoal(
 /**
  * The arithmetic behind a weight goal. Every number here is an estimate and the screens say so:
  * the 7,700 kcal a kilogram (3,500 a pound) rule overstates how fast weight changes over months,
- * because the body burns less as it gets lighter (Hall et al., Lancet 2011). Paces are capped at
- * [GoalSafety]'s gentle lines, so nothing here plans a pace it would warn about.
+ * because the body burns less as it gets lighter (Hall et al., Lancet 2011). Paces go past the
+ * usual guidance, each with its note ([GoalPace]); only the low-goal line stops the stepper.
  */
 object WeightGoals {
     private const val DAYS_A_WEEK = 7
@@ -119,22 +118,9 @@ object WeightGoals {
     /** [kgPerWeek] as energy a day, to the nearest 10: 0.5 kg a week is about 550. */
     fun kcalPerDay(kgPerWeek: Double): Int = (abs(kgPerWeek) * KCAL_PER_KG / DAYS_A_WEEK / 10).roundToInt() * 10
 
-    /**
-     * The fastest pace the plan offers for [direction] from [weightKg]. Losing: the gentler of
-     * [FAST_DEFICIT_KCAL] a day and [FAST_LOSS_SHARE_A_WEEK] of body weight a week, and never so
-     * much that the day's aim against [burnKcal] would drop under the low-goal line for [sex].
-     * Gaining: [FAST_GAIN_SHARE_A_WEEK] of body weight. 0 when there is no room at all.
-     */
-    fun fastestKgPerWeek(direction: GoalDirection, weightKg: Double, burnKcal: Int?, sex: BodySex?): Double = when (direction) {
-        GoalDirection.Lose -> {
-            val byKcal = FAST_DEFICIT_KCAL.toDouble() * DAYS_A_WEEK / KCAL_PER_KG
-            val byShare = weightKg * FAST_LOSS_SHARE_A_WEEK
-            val byFloor = burnKcal?.let { max(0, it - GoalSafety.lowGoalKcal(sex)).toDouble() * DAYS_A_WEEK / KCAL_PER_KG }
-            listOfNotNull(byKcal, byShare, byFloor).min()
-        }
-        GoalDirection.Gain -> weightKg * FAST_GAIN_SHARE_A_WEEK
-        else -> 0.0
-    }
+    /** The fastest pace the plan offers for [direction] from [weightKg]: [GoalPace.fastestKgPerWeek]. 0 when there is no room at all. */
+    fun fastestKgPerWeek(direction: GoalDirection, weightKg: Double, burnKcal: Int?, sex: BodySex?): Double =
+        GoalPace.fastestKgPerWeek(direction, weightKg, burnKcal, sex)
 
     /**
      * The paces the stepper can land on, slowest first: whole steps of [rateStep] up to
@@ -180,29 +166,6 @@ object WeightGoals {
         GoalDirection.Lose -> targetKg <= currentKg - AT_GOAL_KG
         GoalDirection.Gain -> targetKg >= currentKg + AT_GOAL_KG
         else -> true
-    }
-
-    /**
-     * The day's energy aim: a typical day's burn ([burnKcal]), plus what pregnancy or
-     * breastfeeding needs, plus the goal's [WeightGoal.dailyKcal]. A loss never takes it under the
-     * low-goal line for [sex], whatever the pace says.
-     */
-    fun aimKcal(goal: WeightGoal, burnKcal: Int, sex: BodySex?, stage: BodyStage = BodyStage.None): Int {
-        val aim = burnKcal + stage.extraKcal + goal.dailyKcal
-        val floored = if (goal.direction == GoalDirection.Lose) max(aim, GoalSafety.lowGoalKcal(sex)) else aim
-        return (floored / 10.0).roundToInt() * 10
-    }
-
-    /**
-     * [targets] set from [goal]: a range of the same width on the aim ([aimKcal]), macros scaled
-     * with it when [scaleMacros], and the goal stamped with the aim it wrote so [WeightGoal.drives]
-     * can tell when someone changes it by hand. A fixed range rather than a set deficit, so the
-     * day's target is the same morning and evening and in every mode; the deficit it means is said
-     * where calories show.
-     */
-    fun apply(goal: WeightGoal, targets: Targets, aimKcal: Int, scaleMacros: Boolean): Pair<WeightGoal, Targets> {
-        val set = targets.useRange().withEnergy(aimKcal, scaleMacros)
-        return goal.copy(targetsKcal = set.energyKcal) to set
     }
 
     /** "0.25 lb" or "0.2 kg": a pace or a distance. Weight is a number: the caller checks it is on show. */

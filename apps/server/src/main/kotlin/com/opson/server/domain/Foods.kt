@@ -88,6 +88,11 @@ data class Food(
     val energyFlags: Set<EnergyFlag> = emptySet(),
     /** The reviewer's correction laid over the source's numbers, when there is one ([FoodCorrection.applyTo]). */
     val correction: CorrectionMark? = null,
+    /**
+     * A person checked it against its pack, or a reviewer stood behind it ([FoodCheck]): the
+     * app's Verified mark. Worked out as it is served, never stored.
+     */
+    val checked: Boolean = false,
 )
 
 /**

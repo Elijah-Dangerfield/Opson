@@ -796,8 +796,11 @@ b.sql_stat("Approval rate, 30 days",
            "FROM analytics.contributions_daily WHERE kind = 'submission' AND day > current_date - 30",
            "Of submissions decided in the last 30 days, the share approved. A collapse means junk is arriving.",
            unit="percentunit", decimals=1, thresholds=steps(("red", None), ("orange", 0.6), ("green", 0.8)), w=4)
-b.sql_stat("Waiting for review", "SELECT coalesce(sum(waiting), 0) FROM analytics.contribution_queue",
-           "Submissions pending and reports open.", thresholds=steps(("green", None), ("orange", 20), ("red", 100)), w=4)
+b.sql_stat("Waiting for review",
+           "SELECT coalesce(sum(waiting), 0) + (SELECT coalesce(max(open_verifications), 0) FROM analytics.food_verification_queue) "
+           "FROM analytics.contribution_queue",
+           "Submissions pending, reports open and Builders' verifications waiting for a person.",
+           thresholds=steps(("green", None), ("orange", 20), ("red", 100)), w=4)
 b.sql_stat("Bans and restrictions in force", "SELECT count(*) FROM support.moderation_actions WHERE active",
            "Bans, suspensions and contribution restrictions not lifted or ended.", w=4)
 
@@ -814,17 +817,56 @@ b.series("Corrections per day", by_state("correction"),
 b.sql_table("Queues", "SELECT kind, waiting, round(oldest_hours::numeric, 1) AS oldest_hours, "
                       "round(median_hours::numeric, 1) AS median_hours FROM analytics.contribution_queue",
             "What waits for a reviewer, how many, and how old in hours.", w=8, h=6)
-b.sql_stat("Open reports", "SELECT coalesce(max(open_reports), 0) FROM analytics.food_report_queue",
-           "Reports nobody has decided, the server's energy checks included.", w=4, h=6,
-           thresholds=steps(("green", None), ("orange", 20), ("red", 100)))
-b.sql_stat("Foods with an open report", "SELECT coalesce(max(foods), 0) FROM analytics.food_report_queue",
-           "Distinct foods those reports are about.", w=4, h=6)
-b.sql_stat("Energy checks waiting", "SELECT coalesce(max(energy_checks), 0) FROM analytics.food_report_queue",
-           "Foods the server flagged itself: 0 kcal beside macros.", w=4, h=6)
-b.sql_stat("Oldest open report",
-           "SELECT coalesce(extract(epoch FROM now() - max(oldest_at)) / 3600, 0) FROM analytics.food_report_queue",
-           "Hours since the oldest open report was sent.", unit="h", decimals=1, w=4, h=6,
+# Database cleanup: reports and Builders' verifications both fix foods already in the catalog, and are
+# reviewed in the same place (the admin console's Review), so they sit side by side, the same panels each.
+b.row("Database cleanup: verifications and reports")
+b.sql_stat("Verifications waiting", "SELECT coalesce(max(open_verifications), 0) FROM analytics.food_verification_queue",
+           "Builders' checks against the pack that need a person: something was wrong, or the label's text did not "
+           "show the food's numbers.", w=3, h=5, thresholds=steps(("green", None), ("orange", 20), ("red", 100)))
+b.sql_stat("Foods with a waiting verification", "SELECT coalesce(max(foods), 0) FROM analytics.food_verification_queue",
+           "Distinct foods those verifications are about.", w=3, h=5)
+b.sql_stat("Said something was wrong", "SELECT coalesce(max(with_problem), 0) FROM analytics.food_verification_queue",
+           "Of the waiting verifications, those where the Builder flagged fields as wrong or missing.", w=3, h=5)
+b.sql_stat("Oldest waiting verification",
+           "SELECT coalesce(extract(epoch FROM now() - max(oldest_at)) / 3600, 0) FROM analytics.food_verification_queue",
+           "Hours since the oldest waiting verification was sent.", unit="h", decimals=1, w=3, h=5,
            thresholds=steps(("green", None), ("orange", 48), ("red", 168)))
+b.sql_stat("Reports waiting", "SELECT coalesce(max(open_reports), 0) FROM analytics.food_report_queue",
+           "Reports nobody has decided, the server's energy checks included.", w=3, h=5,
+           thresholds=steps(("green", None), ("orange", 20), ("red", 100)))
+b.sql_stat("Foods with a waiting report", "SELECT coalesce(max(foods), 0) FROM analytics.food_report_queue",
+           "Distinct foods those reports are about.", w=3, h=5)
+b.sql_stat("Energy checks waiting", "SELECT coalesce(max(energy_checks), 0) FROM analytics.food_report_queue",
+           "Foods the server flagged itself: 0 kcal beside macros.", w=3, h=5)
+b.sql_stat("Oldest waiting report",
+           "SELECT coalesce(extract(epoch FROM now() - max(oldest_at)) / 3600, 0) FROM analytics.food_report_queue",
+           "Hours since the oldest open report was sent.", unit="h", decimals=1, w=3, h=5,
+           thresholds=steps(("green", None), ("orange", 48), ("red", 168)))
+b.series("Verifications per day", [sql("A",
+         "SELECT day::timestamp AS time, metric, value FROM analytics.food_verifications_daily, LATERAL (VALUES "
+         "('confirmed on arrival', confirmed_on_arrival), ('sent for review', sent_for_review), "
+         "('accepted', accepted), ('rejected', rejected)) AS v(metric, value) "
+         "WHERE $__timeFilter(day::timestamp) ORDER BY 1")],
+         "By the day sent. Confirmed on arrival: the label's text showed the food's four numbers and the Builder said "
+         "nothing was wrong, so the food reads Verified at once. Sent for review: waits for a person (accepted and "
+         "rejected show how those ended).", bars=True, stacked=True, w=12)
+b.series("Decisions per day, verifications and reports", [sql("A",
+         "SELECT day::timestamp AS time, kind || ' ' || outcome AS metric, sum(n) AS value FROM analytics.food_review_decisions_daily, "
+         "LATERAL (VALUES ('accepted', accepted), ('rejected', rejected), ('duplicate', duplicate)) AS v(outcome, n) "
+         "WHERE $__timeFilter(day::timestamp) AND n > 0 GROUP BY 1, 2 ORDER BY 1")],
+         "Every decision by the day it was made, on both queues.", bars=True, stacked=True, w=12)
+b.sql_table("Decided per reviewer, 30 days",
+            "SELECT reviewer, "
+            "sum(accepted) FILTER (WHERE kind = 'verification') AS verifications_accepted, "
+            "sum(rejected) FILTER (WHERE kind = 'verification') AS verifications_rejected, "
+            "sum(accepted) FILTER (WHERE kind = 'report') AS reports_accepted, "
+            "sum(rejected) FILTER (WHERE kind = 'report') AS reports_rejected, "
+            "sum(duplicate) FILTER (WHERE kind = 'report') AS reports_duplicate, "
+            "sum(accepted + rejected + duplicate) AS total "
+            "FROM analytics.food_review_decisions_daily WHERE day > current_date - 30 "
+            "GROUP BY reviewer ORDER BY total DESC",
+            "Who is cleaning up the database: each reviewer's decisions, as the console's actor names them. The "
+            "admin console's Review area has the same table.", w=24, h=6, no_value="Nothing decided in 30 days")
 
 b.row("Contributors")
 b.sql_table("Contributors to look at",

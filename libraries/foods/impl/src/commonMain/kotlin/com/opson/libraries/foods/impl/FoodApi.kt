@@ -50,6 +50,8 @@ data class FoodResponse(
     val reviewStatus: String? = null,
     /** Only from the barcode route asked with `matches=all`: every food for the code, this one first. */
     val matches: List<BarcodeMatchDto>? = null,
+    /** A person checked it against its package (the Verified badge). Only sent when true, by V34 servers. */
+    val checked: Boolean? = null,
 )
 
 /** One food a code matched. `energyCheck` is the server's energy guard; `corrected` a reviewer's fix. */

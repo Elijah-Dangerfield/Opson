@@ -54,6 +54,7 @@ import kotlinx.datetime.LocalTime
 import kotlinx.serialization.Serializable
 import kotlin.math.round
 import kotlin.time.Instant
+import com.opson.libraries.foods.FoodCheck
 
 /**
  * A food's detail, a full screen. Opened from a row's name in search, a barcode hit, and a food
@@ -99,7 +100,7 @@ data class FoodDetailState(
     val name: String = "",
     /** The brand or cuisine under the name, if any. */
     val tag: String? = null,
-    /** Saved to favorites, from the ⋮ menu. */
+    /** Saved to favorites: the star in the top bar is filled. */
     val favorite: Boolean = false,
     /** On the Recent row now, so the ⋮ menu offers to take it off. */
     val inRecents: Boolean = false,
@@ -144,12 +145,17 @@ data class FoodDetailState(
     val hasFood: Boolean = true,
     /** A food from Opson's catalog, which a Builder can check against its pack. */
     val catalog: Boolean = false,
-    /** The ⋮ menu offers Check against the pack: set by the screen for an active Builder (`release.builders`). */
+    /** A packaged catalog food nobody has checked against its pack yet ([com.opson.libraries.foods.Food.canBeVerified]). */
+    val verifiable: Boolean = false,
+    /** An active Builder (`release.builders`), set by the screen: a [verifiable] food shows Verify this food. */
     val canCheck: Boolean = false,
     /** Opened on an entry already on the log: Save changes and Remove from log take Add's place. */
     val entry: EntryUi? = null,
 ) {
     val unit: UnitUi? get() = units.getOrNull(unitIndex)
+
+    /** Verify this food: a Builder's own card, never a menu item, and only for a food nobody has checked. */
+    val showVerify: Boolean get() = canCheck && verifiable
 }
 
 /**
@@ -222,6 +228,8 @@ data class SourceLine(
     val review: SourceReview? = null,
     /** The source was tapped: a line on what it is shows under its name. */
     val explained: Boolean = false,
+    /** The Verified or Unverified badge was tapped: what it means shows under it. */
+    val checkExplained: Boolean = false,
 )
 
 /**
@@ -233,8 +241,11 @@ enum class FoodOrigin { Usda, OpenFoodFacts, Nevo, Opson, Nutritionix, Yours, Es
 
 /** What review says about a food's numbers. */
 enum class SourceReview {
-    /** A catalog food someone accountable stands behind: USDA's, a label's, or one a reviewer approved. */
+    /** Verified: a person checked this catalog food against its package, or a reviewer stood behind it. */
     Verified,
+
+    /** Unverified: a packaged catalog food as its source has it, nobody has checked it yet. */
+    NotChecked,
 
     /** In Opson's food database and waiting for a reviewer: only the person who added it sees it. */
     Unverified,
@@ -392,6 +403,8 @@ data class DetailChoice(
     val hunger: Hunger? = null,
     /** The source line tapped open, to say what the source is. */
     val sourceOpen: Boolean = false,
+    /** The Verified or Unverified badge tapped open, to say what it means. */
+    val checkOpen: Boolean = false,
 ) {
     /** The unit in force among [units]: the chosen one if it is still there, else the first. */
     fun unitIn(units: List<AmountUnit>): AmountUnit = unit?.takeIf { it in units } ?: units.first()
@@ -541,6 +554,7 @@ object FoodDetailStateBuilder {
             canAdd = choice.quantity > 0.0 && (entry == null || entry.changed),
             hasFood = ref != null,
             catalog = food is AmountFood.Catalog,
+            verifiable = catalogFood(food)?.canBeVerified == true,
             entry = entry,
         )
         val origin = origin(food)
@@ -552,7 +566,7 @@ object FoodDetailStateBuilder {
                 noNumbers = true,
                 hunger = HungerCheck(choice.hunger),
                 // The source still names itself (NEVO asks to be cited wherever its foods show).
-                source = SourceLine(origin, review = review, explained = choice.sourceOpen),
+                source = SourceLine(origin, review = review, explained = choice.sourceOpen, checkExplained = choice.checkOpen),
             )
         }
         val nutrients = nutrients(draft, inputs, choice.nutrientsOpen)
@@ -563,7 +577,13 @@ object FoodDetailStateBuilder {
             breakdown = breakdown(draft, inputs.policy),
             targets = targets(draft, inputs),
             nutrients = nutrients,
-            source = SourceLine(origin, nutrientCount = nutrients?.let { draft.nutrientCount() }, review = review, explained = choice.sourceOpen),
+            source = SourceLine(
+                origin,
+                nutrientCount = nutrients?.let { draft.nutrientCount() },
+                review = review,
+                explained = choice.sourceOpen,
+                checkExplained = choice.checkOpen,
+            ),
             customSize = choice.customSize,
         )
     }
@@ -727,12 +747,22 @@ object FoodDetailStateBuilder {
             ReviewStatus.Approved -> SourceReview.YoursChecked
             ReviewStatus.Rejected, null -> null
         }
-        is AmountFood.Catalog -> when {
-            food.food.unverified -> SourceReview.Unverified
-            food.food.verified -> SourceReview.Verified
-            else -> null
+        is AmountFood.Catalog -> when (food.food.check) {
+            FoodCheck.InReview -> SourceReview.Unverified
+            FoodCheck.Verified -> SourceReview.Verified
+            FoodCheck.Unverified -> SourceReview.NotChecked
+            // Generic lab data has no package to check: no badge either way.
+            FoodCheck.Reference -> null
         }
     }
+
+    /** The catalog food behind the page: the one picked, or the one an entry was logged from while it is still here. */
+    fun catalogFood(food: AmountFood): Food? = when (food) {
+        is AmountFood.Catalog -> food.food
+        is AmountFood.Logged -> food.food?.let(::catalogFood)
+        is AmountFood.Custom -> null
+    }
+
 
     /** Energy, the four macros and everything else the source gives a number for. */
     private fun LogDraft.nutrientCount(): Int =

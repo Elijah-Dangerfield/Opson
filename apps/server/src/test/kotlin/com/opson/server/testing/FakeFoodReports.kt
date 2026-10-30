@@ -9,6 +9,7 @@ import com.opson.server.domain.FoodReport
 import com.opson.server.domain.FoodReportRepository
 import com.opson.server.domain.FoodSnapshot
 import com.opson.server.domain.NewFoodReport
+import com.opson.server.domain.PackSide
 import com.opson.server.domain.ReportOutcome
 import com.opson.server.domain.ReportReason
 import com.opson.server.domain.ReportStatus
@@ -24,7 +25,7 @@ import kotlin.time.Instant
 @OptIn(ExperimentalTime::class)
 class FakeFoodReportRepository(private val clock: Clock = Clock.System) : FoodReportRepository {
     val reports = mutableListOf<FoodReport>()
-    val photos = mutableMapOf<UUID, StoredPhoto>()
+    val photos = mutableMapOf<Pair<UUID, PackSide>, StoredPhoto>()
     val corrections = mutableListOf<FoodCorrection>()
     val energyFlagged = mutableListOf<UUID>()
 
@@ -43,9 +44,12 @@ class FakeFoodReportRepository(private val clock: Clock = Clock.System) : FoodRe
             snapshot = report.snapshot,
             status = ReportStatus.Open,
             hasPhoto = report.photo != null,
+            reasons = report.reasons,
+            hasFrontPhoto = report.frontPhoto != null,
         )
         reports += stored
-        report.photo?.let { photos[report.id] = StoredPhoto(it.type.mediaType, it.bytes) }
+        report.photo?.let { photos[report.id to PackSide.Label] = StoredPhoto(it.type.mediaType, it.bytes) }
+        report.frontPhoto?.let { photos[report.id to PackSide.Front] = StoredPhoto(it.type.mediaType, it.bytes) }
         return ReportOutcome.Created(stored)
     }
 
@@ -67,7 +71,7 @@ class FakeFoodReportRepository(private val clock: Clock = Clock.System) : FoodRe
 
     override suspend fun forFood(foodId: UUID) = reports.filter { it.foodId == foodId }.sortedByDescending { it.createdAt }
 
-    override suspend fun photo(reportId: UUID) = photos[reportId]
+    override suspend fun photo(reportId: UUID, side: PackSide) = photos[reportId to side]
 
     override suspend fun liveCorrections(foodIds: Collection<UUID>) = corrections.filter { it.live && it.foodId in foodIds }.associateBy { it.foodId }
 

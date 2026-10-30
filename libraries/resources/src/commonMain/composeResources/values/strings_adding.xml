@@ -31,6 +31,13 @@
 
     <!-- A row with a + -->
     <string name="adding_your_usual">Your usual</string>
+    <!-- Why a search result is near the top, on its row: one of these. -->
+    <string name="adding_reason_favorite">Favorite</string>
+    <plurals name="adding_reason_logged">
+        <item quantity="one">Logged once</item>
+        <item quantity="other">Logged %1$d times</item>
+    </plurals>
+    <string name="adding_reason_yours">Your food</string>
     <!-- On a row: added to Opson's food database by this person and not checked yet. -->
     <string name="adding_unverified">Unverified</string>
     <string name="adding_add_cd">Add %1$s</string>
@@ -112,5 +119,15 @@
     <string name="adding_detail_remove">Remove from log</string>
     <string name="adding_detail_saved">Changes saved</string>
     <string name="adding_detail_removed">%1$s removed</string>
+    <string name="adding_detail_favorited">Added to favorites</string>
+    <string name="adding_detail_unfavorited">Removed from favorites</string>
+
+    <!-- The Verified badge: on search rows, a food's detail, the Foods tab and Pick a match -->
+    <string name="food_check_verified">Verified</string>
+    <string name="food_check_verified_cd">Verified. A person checked it against the package.</string>
+    <string name="food_check_verified_about">A person checked these numbers against the package.</string>
+    <string name="food_check_unverified_about">%1$s. Nobody has checked it against the package yet.</string>
+    <string name="food_check_unverified_about_plain">Nobody has checked it against the package yet.</string>
+
 
 </resources>

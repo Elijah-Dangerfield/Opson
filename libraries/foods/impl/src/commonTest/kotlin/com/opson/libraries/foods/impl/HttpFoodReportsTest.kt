@@ -27,6 +27,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlinx.serialization.json.jsonArray
 
 @OptIn(InternalNetworkingApi::class, ExperimentalEncodingApi::class)
 class HttpFoodReportsTest : CoroutineTest() {
@@ -46,10 +47,11 @@ class HttpFoodReportsTest : CoroutineTest() {
     private val report = FoodReport(
         id = "4f1c0c4e-0000-0000-0000-000000000001",
         foodId = "0f0f0f0f-0000-0000-0000-000000000001",
-        reason = FoodReportReason.WrongCalories,
+        reasons = listOf(FoodReportReason.WrongNumbers, FoodReportReason.MissingInfo),
         suggested = SuggestedFoodValues(basisLabel = "1 can", basisGrams = 473.0, kcal = 10.0, servingLabel = "  "),
         note = "  The can says 10  ",
         photo = byteArrayOf(1, 2, 3),
+        frontPhoto = byteArrayOf(4, 5),
     )
 
     private fun reports(status: HttpStatusCode, body: String = "{}", seen: MutableList<String>? = null) = HttpFoodReports(
@@ -68,9 +70,12 @@ class HttpFoodReportsTest : CoroutineTest() {
         assertEquals(FoodReportResult.Sent(applied = false), result)
         assertEquals("/v1/foods/${report.foodId}/reports", seen[0])
         val body = Json.parseToJsonElement(seen[1]).jsonObject
-        assertEquals("wrong_calories", body.getValue("reason").jsonPrimitive.content)
+        // The first reason in a code a server from before several reasons accepts, then all of them.
+        assertEquals("wrong_nutrients", body.getValue("reason").jsonPrimitive.content)
+        assertEquals(listOf("wrong_numbers", "missing_info"), body.getValue("reasons").jsonArray.map { it.jsonPrimitive.content })
         assertEquals("The can says 10", body.getValue("note").jsonPrimitive.content)
         assertEquals(Base64.encode(byteArrayOf(1, 2, 3)), body.getValue("photo").jsonPrimitive.content)
+        assertEquals(Base64.encode(byteArrayOf(4, 5)), body.getValue("frontPhoto").jsonPrimitive.content)
         val suggested = body.getValue("suggested").jsonObject
         assertEquals(473.0, suggested.getValue("basisGrams").jsonPrimitive.content.toDouble())
         assertFalse("servingLabel" in suggested, "a blank serving is left out")
