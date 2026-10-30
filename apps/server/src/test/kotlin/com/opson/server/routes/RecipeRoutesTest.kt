@@ -362,6 +362,24 @@ class RecipeRoutesTest : DatabaseTest() {
     }
 
     @Test
+    fun aSaveCountsOncePerPerson_andNeverForTheOwner() = runTest {
+        val owner = seedAuthUser()
+        val savers = List(2) { seedAuthUser() }
+        val recipe = DiaryFixtures.recipe()
+        withApp { client ->
+            val code = client.publish(owner, recipe).body<PublishRecipeResponse>().code
+            suspend fun save(user: UserId) = client.post("/v1/recipes/public/$code/saves") { header(HttpHeaders.Authorization, TestJwt.bearer(user)) }
+            repeat(3) { assertEquals(HttpStatusCode.NoContent, save(savers[0]).status) }
+            assertEquals(HttpStatusCode.NoContent, save(savers[1]).status)
+            assertEquals(HttpStatusCode.NoContent, save(owner).status)
+            assertEquals(HttpStatusCode.NotFound, client.post("/v1/recipes/public/zzzz2222/saves") { header(HttpHeaders.Authorization, TestJwt.bearer(owner)) }.status)
+
+            val live = client.get("/v1/admin/recipes?filter=live") { header("X-Admin-Token", adminToken) }.body<AdminRecipeListResponse>()
+            assertEquals(2, live.recipes.single().saveCount)
+        }
+    }
+
+    @Test
     fun aRollbackTakesEverySharedRecipeDown() = runTest {
         val owner = seedAuthUser()
         val first = DiaryFixtures.recipe()

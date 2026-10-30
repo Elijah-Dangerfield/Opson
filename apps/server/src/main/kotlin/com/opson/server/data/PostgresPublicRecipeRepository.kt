@@ -133,11 +133,19 @@ class PostgresPublicRecipeRepository(
         ) { it.toStored() }
     }
 
-    override suspend fun countSave(code: String): Boolean = database.transaction {
-        queryRows(
-            "UPDATE recipes SET save_count = save_count + 1 WHERE public_code = ? AND public_state = 'live' AND NOT deleted RETURNING id",
+    override suspend fun countSave(code: String, userId: UserId): Boolean = database.transaction {
+        val (recipeId, ownerId) = queryRows(
+            "SELECT id, user_id FROM recipes WHERE public_code = ? AND public_state = 'live' AND NOT deleted",
             listOf(textArg(code)),
+        ) { rs -> rs.getObject("id", UUID::class.java) to rs.getObject("user_id", UUID::class.java) }.singleOrNull()
+            ?: return@transaction false
+        if (ownerId == userId.value) return@transaction true
+        val first = queryRows(
+            "INSERT INTO recipe_saves (recipe_id, user_id, saved_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING RETURNING recipe_id",
+            listOf(uuidArg(recipeId), uuidArg(userId.value), instantArg(clock.now())),
         ) { true }.isNotEmpty()
+        if (first) execute("UPDATE recipes SET save_count = save_count + 1 WHERE id = ?", listOf(uuidArg(recipeId)))
+        true
     }
 
     override suspend fun report(report: NewRecipeReport): RecipeReportOutcome = database.transaction {

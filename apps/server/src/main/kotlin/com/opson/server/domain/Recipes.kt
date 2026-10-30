@@ -338,8 +338,11 @@ interface PublicRecipeRepository {
     /** Live recipes whose name holds [query], best first. */
     suspend fun search(query: String, limit: Int): List<StoredRecipe>
 
-    /** Someone saved it to their recipes. Counted for ranking and the board. */
-    suspend fun countSave(code: String): Boolean
+    /**
+     * [userId] saved it to their recipes. Counted for ranking and the board, once per person
+     * (`recipe_saves`, V36), and never for its owner. False when no live recipe has [code].
+     */
+    suspend fun countSave(code: String, userId: UserId): Boolean
 
     suspend fun report(report: NewRecipeReport): RecipeReportOutcome
 

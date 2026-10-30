@@ -92,7 +92,8 @@ fun Route.publicRecipeRoutes(
  *  - `POST /v1/recipes/public/{code}/reports {id, reason, note?}`: 201, or 200 for a repeat. A
  *    contribution, like a food report. 400 `invalid_id`, `invalid_reason`, `invalid_note`,
  *    `own_recipe`; 404; 429.
- *  - `POST /v1/recipes/public/{code}/saves`: someone saved it to their recipes. 204, or 404.
+ *  - `POST /v1/recipes/public/{code}/saves`: someone saved it to their recipes, counted once per
+ *    person and never for its owner. 204, or 404.
  *
  * Logs carry outcomes and codes only, never a recipe's name or contents.
  */
@@ -207,10 +208,10 @@ fun Route.recipeRoutes(
             }
 
             post("/v1/recipes/public/{code}/saves") {
-                call.userId() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                val userId = call.userId() ?: return@post call.respond(HttpStatusCode.Unauthorized)
                 val code = call.parameters["code"]?.lowercase()?.takeIf(RecipeRules::isCode)
                     ?: return@post call.respond(HttpStatusCode.NotFound, problem("not_found", "No recipe has that code."))
-                if (recipes.countSave(code)) {
+                if (recipes.countSave(code, userId)) {
                     call.respond(HttpStatusCode.NoContent)
                 } else {
                     call.respond(HttpStatusCode.NotFound, problem("not_found", "No recipe has that code."))

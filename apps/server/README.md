@@ -616,7 +616,7 @@ Micros keys carry their unit: `sugars_g`, `added_sugars_g`, `saturated_fat_g`,
 `thiamin_mg`, `riboflavin_mg`, `niacin_mg`, `vitamin_b6_mg`,
 `folate_dfe_ug`, `vitamin_b12_ug`, `choline_mg`.
 
-### Recipes and sharing them (`V35__recipes.sql`, behind `release.recipes` in the app)
+### Recipes and sharing them (`V35__recipes.sql`, `V36__recipe_saves.sql`, behind `release.recipes` in the app)
 
 A recipe is ingredients for the whole batch (the client's `LogDraft` snapshots,
 like a saved meal's items), how many servings it makes and optional notes. It
@@ -641,7 +641,7 @@ server made up (`user-1a2b3c4d`) never does. Docs: `docs/plans/recipes.md`.
 | POST | `/v1/recipes/{id}/unpublish` | 204, or 404. Never gated. The code is kept, so sharing again gives the same link. Reports stay open through a stop, so sharing again while three of them stand comes back `hidden`. |
 | GET | `/v1/recipes/search?q=&limit=10` | Live recipes whose name holds `q` (2 to 100 characters), exact and prefix first, then saves. Every hit's ingredients load in one transaction. |
 | POST | `/v1/recipes/public/{code}/reports` `{id, reason, note?}` | `wrong_nutrition`, `unsafe`, `offensive`, `spam`, `other`. A contribution; 10 in 10 minutes and 30 a day. Body at most 16 KB. 201, 200 for a repeat, 400 `own_recipe`. Three open reports from different people hide the recipe. |
-| POST | `/v1/recipes/public/{code}/saves` | Someone saved it. 204. |
+| POST | `/v1/recipes/public/{code}/saves` | Someone saved it. 204, or 404. Counted once per person and never for the owner: the first save is a `recipe_saves` row (V36) and adds one to `save_count`, a repeat adds nothing. |
 | GET | `/v1/admin/recipes?filter=reported\|hidden\|live\|removed` | Admin token. The console's Review area. |
 | GET | `/v1/admin/recipes/{id}` | As the public sees it, with every report. |
 | POST | `/v1/admin/recipes/{id}/remove` `{reason}` | Takes it down and upholds its reports; the owner can't share it again. |
@@ -649,8 +649,8 @@ server made up (`user-1a2b3c4d`) never does. Docs: `docs/plans/recipes.md`.
 | POST | `/v1/admin/recipes/{id}/dismiss-reports` | Closes the open reports; hidden goes back up. |
 
 A moderation rollback (`RecipeReverter`, kind `recipe`) removes every public
-recipe of the account. Deleting the account deletes its recipes and its
-reports. `analytics.recipes_daily` (made, first shared) and
+recipe of the account. Deleting the account deletes its recipes, its
+reports and its saves. `analytics.recipes_daily` (made, first shared) and
 `analytics.recipe_sharing` (live, hidden, removed, saves, open reports, oldest
 open report) carry counts only.
 
