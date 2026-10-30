@@ -29,7 +29,15 @@ import com.opson.libraries.identity.auth.SendResetOutcome
 import com.opson.libraries.identity.auth.SignInOutcome
 import com.opson.libraries.identity.auth.SignUpOutcome
 import com.opson.libraries.navigation.WebLinkLauncher
+import com.opson.libraries.goals.GoalFixtures
+import com.opson.libraries.goals.GoalRepository
+import com.opson.libraries.goals.GoalToday
+import com.opson.libraries.nutrition.BaselineInputs
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.GoalDay
+import com.opson.libraries.nutrition.Recalculation
+import com.opson.libraries.nutrition.WeeklyBudget
+import com.opson.libraries.nutrition.WeightProjection
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -302,4 +310,19 @@ fun <E : Any> TestScope.eventsOf(vm: SEAViewModel<*, E, *>): List<E> {
     val events = mutableListOf<E>()
     backgroundScope.launch { vm.eventFlow.collect { events += it } }
     return events
+}
+
+/** The goal repository as Targets reads it: a recalculation to offer and the latest weigh-in, both settable. */
+class FakeGoalRepository(recalculation: Recalculation? = null, weightKg: Double? = null) : GoalRepository {
+    val recalculationFlow = MutableStateFlow(recalculation)
+    val inputsFlow = MutableStateFlow<BaselineInputs?>(weightKg?.let { GoalFixtures.inputs.copy(weightKg = it) })
+
+    override fun inputs(): Flow<BaselineInputs?> = inputsFlow
+    override fun recalculation(): Flow<Recalculation?> = recalculationFlow
+    override suspend fun accept(recalculation: Recalculation) = Unit
+    override suspend fun keep(recalculation: Recalculation) = Unit
+    override fun today(): Flow<List<GoalToday>> = MutableStateFlow(emptyList())
+    override fun days(from: LocalDate, to: LocalDate): Flow<Map<String, List<GoalDay>>> = MutableStateFlow(emptyMap())
+    override fun week(): Flow<WeeklyBudget?> = MutableStateFlow(null)
+    override fun projection(): Flow<WeightProjection?> = MutableStateFlow(null)
 }

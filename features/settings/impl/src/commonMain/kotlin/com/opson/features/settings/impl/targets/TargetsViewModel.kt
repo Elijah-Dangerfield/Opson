@@ -31,7 +31,12 @@ import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
-import com.opson.libraries.nutrition.WeightGoals
+import com.opson.libraries.diary.GoalBook
+import com.opson.libraries.goals.GoalRepository
+import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.GoalTargets
+import com.opson.libraries.nutrition.GoalType
+import com.opson.libraries.nutrition.Recalculation
 import com.opson.libraries.nutrition.fitMacrosTo
 import com.opson.libraries.nutrition.stepMacro
 import com.opson.libraries.nutrition.useMacroEnergy
@@ -86,6 +91,7 @@ class TargetsViewModel(
     calendar: LocalCalendar,
     private val findSupport: FindSupportEnabled,
     private val weightGoals: OnboardingSetupEnabled,
+    private val goals: GoalRepository,
 ) : SEAViewModel<TargetsState, TargetsEvent, TargetsAction>(initialStateArg = TargetsState()) {
 
     private var inputs: TargetsAction.InputsArrived? = null
@@ -97,12 +103,23 @@ class TargetsViewModel(
     private var choosingActivity: Boolean = false
     private var drafts = TargetsDrafts()
 
+    // A goal's dialogs: the one open, the edit waiting on its answer, and a recalculation the
+    // person closed without answering, which isn't offered again until they come back.
+    private var dialog: TargetsDialogKind? = null
+    private var pending: ((Settings) -> Settings?)? = null
+    private var recalculationClosed: Recalculation? = null
+
     init {
         // With release.health off the store is never asked, so the exercise row can't show.
         val connected = if (healthFlag()) health.status.map { it == HealthStatus.Connected } else flowOf(false)
         val burned = if (goalsAndEnergy()) burnedRepository.burned(today) else flowOf(null)
+        val goal = if (weightGoals()) {
+            combine(goals.recalculation(), goals.inputs().map { it?.weightKg }, ::GoalSignals)
+        } else {
+            flowOf(GoalSignals())
+        }
         viewModelScope.launch {
-            combine(settingsRepository.observe(), policySource.policy, connected, burned, TargetsAction::InputsArrived)
+            combine(settingsRepository.observe(), policySource.policy, connected, burned, goal, TargetsAction::InputsArrived)
                 .collect(::takeAction)
         }
     }
@@ -117,7 +134,34 @@ class TargetsViewModel(
             is TargetsAction.StylePicked -> pickStyle(action.kind)
             TargetsAction.RestingEnergyTapped -> sendEvent(TargetsEvent.OpenRestingEnergy)
             TargetsAction.ChangeGoalTapped -> sendEvent(TargetsEvent.OpenGoalSetup)
-            TargetsAction.UseGoalTapped -> settingsRepository.update { current -> withGoalTargets(current) ?: current }
+            TargetsAction.UseGoalTapped -> settingsRepository.update { GoalBook.resume(it) }
+            TargetsAction.ChangeTargetTapped -> openDialog(TargetsDialogKind.ChangeTarget, action)
+            TargetsAction.EditGoalChosen -> {
+                closeDialog(action)
+                sendEvent(TargetsEvent.OpenGoalSetup)
+            }
+            TargetsAction.OwnTargetChosen -> {
+                val edit = pending
+                closeDialog(action)
+                settingsRepository.update { GoalBook.override(it) }
+                edit?.let { write(it) }
+            }
+            TargetsAction.PauseGoalChosen -> {
+                val edit = pending
+                closeDialog(action)
+                settingsRepository.update { current ->
+                    val goal = GoalBook.calorieGoal(current) ?: return@update current
+                    val next = edit?.invoke(current) ?: current
+                    GoalBook.pause(next, goal.id)
+                }
+            }
+            TargetsAction.DialogDismissed -> {
+                (shownDialog() as? TargetsDialogKind.Recalculate)?.let { recalculationClosed = it.recalculation }
+                closeDialog(action)
+            }
+            TargetsAction.RecalculationAccepted -> answerRecalculation(action) { current, offer -> GoalBook.accept(current, offer) }
+            TargetsAction.RecalculationKept -> answerRecalculation(action) { current, offer -> GoalBook.keep(current, offer) }
+            TargetsAction.PaceInfoTapped -> openDialog(TargetsDialogKind.PaceInfo, action)
             is TargetsAction.ExplainTapped -> sendEvent(TargetsEvent.OpenExplainer(action.topic))
             TargetsAction.MicrosTapped -> sendEvent(TargetsEvent.OpenMicroTargets)
             TargetsAction.ActivityTapped -> if (inputs?.healthConnected == true) {
@@ -212,9 +256,9 @@ class TargetsViewModel(
      * Today, and a card on Rings goes back to In and out once the goal is a range (13.6c).
      */
     private suspend fun pickStyle(kind: StyleKind) {
-        settingsRepository.update { current ->
+        write { current ->
             val offered = TargetsStateBuilder.offered(StyleKind.of(current.targets.style), current.numbers.preset, goalsAndEnergy())
-            if (kind !in offered || kind == StyleKind.of(current.targets.style)) return@update current
+            if (kind !in offered || kind == StyleKind.of(current.targets.style)) return@write null
             val targets = when (kind) {
                 StyleKind.Range -> current.targets.useRange()
                 StyleKind.Exact -> current.targets.useExact()
@@ -290,18 +334,6 @@ class TargetsViewModel(
 
     private fun burnKcal(): Int? = inputs?.burned?.totalKcal
 
-    /**
-     * "Use my goal": the targets set from the weight goal again, from a typical day's burn as the
-     * goal flow first set them, and the goal stamped so it drives them. Null without a burn.
-     */
-    private fun withGoalTargets(current: Settings): Settings? {
-        val burn = TargetsStateBuilder.typicalBurnKcal(inputs?.burned, current) ?: return null
-        val goal = current.weightGoal.takeIf { it.isSet } ?: return null
-        val aim = WeightGoals.aimKcal(goal, burn, current.bodySex, current.bodyStage)
-        val (stamped, targets) = WeightGoals.apply(goal, current.targets, aim, scaleMacros = current.macroMode == MacroMode.Ratios)
-        return current.copy(weightGoal = stamped, targets = targets)
-    }
-
     private suspend fun step(action: TargetsAction.StepTapped) {
         var block: StepBlock? = null
         change { current ->
@@ -317,13 +349,76 @@ class TargetsViewModel(
         }
     }
 
-    /** Writes [transform]'s targets; null keeps what is there. Returns the targets now saved. */
-    private suspend fun change(transform: (Settings) -> Targets?): Targets =
-        settingsRepository.update { current -> transform(current)?.let { current.copy(targets = it) } ?: current }
-            .targets
+    /** Writes [transform]'s targets; null keeps what is there. Goes through [write]'s check. */
+    private suspend fun change(transform: (Settings) -> Targets?) {
+        write { current -> transform(current)?.let { current.copy(targets = it) } }
+    }
+
+    /**
+     * Every change to the calorie target comes through here (docs/plans/goals-v2.md, "Locking").
+     * With a goal setting the target, nothing moves until the person picks "Set my own target";
+     * with a goal kept beside their own target, an edit that points against it asks first. The
+     * edit waits in [pending] and runs on the answer, against the settings as they are then.
+     */
+    private suspend fun write(transform: (Settings) -> Settings?) {
+        val current = settingsRepository.settings.value
+        val next = transform(current) ?: return
+        val ask = if (weightGoals()) gate(current, next) else null
+        if (ask == null) {
+            settingsRepository.update { transform(it) ?: it }
+            return
+        }
+        pending = transform
+        dialog = ask
+        inputs?.let { rebuild(it) }
+    }
+
+    /** The dialog an edit from [current] to [next] needs first, or null when it can go ahead. */
+    private fun gate(current: Settings, next: Settings): TargetsDialogKind? {
+        if (energyOf(current.targets) == energyOf(next.targets)) return null
+        val goal = GoalBook.calorieGoal(current)?.takeIf { it.isActive } ?: return null
+        if (goal.drivesTarget) return TargetsDialogKind.ChangeTarget
+        val preset = current.numbers.preset
+        if (!GoalTargets.contradicts(goal, next.targets, preset) || GoalTargets.contradicts(goal, current.targets, preset)) return null
+        val delta = goal.type.deltaKcal ?: 0
+        val direction = (goal.type as? GoalType.Weight)?.direction ?: when {
+            delta < 0 -> GoalDirection.Lose
+            delta > 0 -> GoalDirection.Gain
+            else -> GoalDirection.Maintain
+        }
+        return TargetsDialogKind.AgainstGoal(direction)
+    }
+
+    /** What a calorie target is made of; macros alone never need a goal's say. */
+    private fun energyOf(targets: Targets) = listOf(targets.style, targets.energyKcal, targets.minKcal, targets.maxKcal)
+
+    private suspend fun openDialog(kind: TargetsDialogKind, action: TargetsAction) {
+        dialog = kind
+        rebuild(action)
+    }
+
+    private suspend fun closeDialog(action: TargetsAction) {
+        dialog = null
+        pending = null
+        rebuild(action)
+    }
+
+    /** The dialog on show: the one opened here, else a recalculation not yet answered or closed. */
+    private fun shownDialog(): TargetsDialogKind? {
+        dialog?.let { return it }
+        val offer = inputs?.goal?.recalculation?.takeIf { weightGoals() && it != recalculationClosed } ?: return null
+        return TargetsDialogKind.Recalculate(offer)
+    }
+
+    private suspend fun answerRecalculation(action: TargetsAction, answer: (Settings, Recalculation) -> Settings) {
+        val offer = (shownDialog() as? TargetsDialogKind.Recalculate)?.recalculation ?: return
+        recalculationClosed = offer
+        settingsRepository.update { answer(it, offer) }
+        rebuild(action)
+    }
 
     private suspend fun rebuild(action: TargetsAction) {
-        val (settings, policy, healthConnected, burned) = inputs ?: return
+        val (settings, policy, healthConnected, burned, goal) = inputs ?: return
         action.updateState {
             TargetsStateBuilder.build(
                 settings,
@@ -338,6 +433,8 @@ class TargetsViewModel(
                 drafts = drafts,
                 findSupport = findSupport(),
                 weightGoals = weightGoals(),
+                weightKg = goal.weightKg,
+                dialog = shownDialog(),
             )
         }
     }
@@ -350,6 +447,9 @@ class TargetsViewModel(
         const val MAX_GOAL_DIGITS = 4
     }
 }
+
+/** What Targets hears from the goal repository: a recalculation to offer, and the latest weigh-in. */
+data class GoalSignals(val recalculation: Recalculation? = null, val weightKg: Double? = null)
 
 sealed interface TargetsEvent {
     data class ShowToast(val toast: Toast) : TargetsEvent
@@ -381,6 +481,7 @@ sealed interface TargetsAction {
         val policy: VisibilityPolicy,
         val healthConnected: Boolean = false,
         val burned: Burned? = null,
+        val goal: GoalSignals = GoalSignals(),
     ) : TargetsAction
 
     /** A row in the goal style list: written at once. */
@@ -392,8 +493,28 @@ sealed interface TargetsAction {
     /** "Change goal", or "Set a weight goal", on the weight goal's row. */
     data object ChangeGoalTapped : TargetsAction
 
-    /** "Use my goal": the weight goal sets the target again. */
+    /** "Use my goal": the goal sets the target again, from the typical day it already has. */
     data object UseGoalTapped : TargetsAction
+
+    /** "Change" on the goal's locked target: asks first. */
+    data object ChangeTargetTapped : TargetsAction
+
+    /** In the Change dialog: the goal flow, so the target follows the goal. */
+    data object EditGoalChosen : TargetsAction
+
+    /** In the Change dialog: the goal stays and stops setting the target. */
+    data object OwnTargetChosen : TargetsAction
+
+    /** An edit pointing against the goal, confirmed: it is made and the goal is paused. */
+    data object PauseGoalChosen : TargetsAction
+
+    /** A dialog closed without a choice. A recalculation closed this way waits for the next visit. */
+    data object DialogDismissed : TargetsAction
+    data object RecalculationAccepted : TargetsAction
+    data object RecalculationKept : TargetsAction
+
+    /** The (i) on the goal's pace note. */
+    data object PaceInfoTapped : TargetsAction
 
     /** The Activity row: the health app's page when one is connected, else everyday activity's choices. */
     data object ActivityTapped : TargetsAction

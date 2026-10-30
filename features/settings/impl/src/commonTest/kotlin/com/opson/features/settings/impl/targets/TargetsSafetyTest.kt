@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl.targets
 
 import com.opson.features.settings.impl.FakeBurnedRepository
+import com.opson.features.settings.impl.FakeGoalRepository
 import com.opson.features.settings.impl.FakePolicySource
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
@@ -134,6 +135,7 @@ class TargetsSafetyTest : CoroutineTest() {
         FakeCalendar(),
         findSupportFlag(findSupport),
         weightGoalsFlag(),
+        FakeGoalRepository(),
     )
 
     @Test
