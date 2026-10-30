@@ -7,6 +7,7 @@ import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodAmount
+import com.opson.libraries.foods.FoodQuery
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.ReviewStatus
@@ -69,6 +70,8 @@ data class FoodRowUi(
      * review is pending, or the catalog's pending row, which only they can see. Shown in every mode.
      */
     val unverified: Boolean = false,
+    /** Why it is in the results where it is ("Favorite", "Logged 3 times"); in place of "Your usual". */
+    val reason: RowReason? = null,
 )
 
 /** The foods a person has logged before, by food key, and the ones they keep coming back to. */
@@ -133,8 +136,8 @@ internal object FoodPicks {
         return FoodPick(key = ref.key, ref = ref, draft = draft, source = PickSource.Search, subtitle = brand, usual = ref.key in before.habits)
     }
 
-    fun FoodPick.matches(query: String): Boolean =
-        draft.name.contains(query, ignoreCase = true) || subtitle?.contains(query, ignoreCase = true) == true
+    /** The words typed find this food, the way search reads them ([FoodQuery]). */
+    fun FoodPick.matches(query: String): Boolean = FoodQuery.matches(query, draft.name, subtitle)
 
     /**
      * The foods logged to [slot] on [day] since the screen opened: whatever is there now and was
@@ -158,6 +161,7 @@ internal object FoodPicks {
         added: Boolean,
         known: Map<String, Food>? = null,
         reviews: Map<String, ReviewStatus> = emptyMap(),
+        reason: RowReason? = null,
     ): FoodRowUi {
         val catalogFood = if (known != null && ref is FoodRef.Catalog) food ?: known[ref.id] else null
         return FoodRowUi(
@@ -187,6 +191,7 @@ internal object FoodPicks {
                 is FoodRef.Custom -> reviews[ref.id] == ReviewStatus.Pending
                 is FoodRef.Catalog -> (food ?: catalogFood)?.unverified == true
             },
+            reason = reason,
         )
     }
 }

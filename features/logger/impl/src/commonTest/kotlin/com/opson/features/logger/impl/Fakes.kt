@@ -17,6 +17,8 @@ import com.opson.libraries.diary.FastingRelease
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.LoggedFood
+import com.opson.libraries.diary.LoggedFoods
 import com.opson.libraries.diary.LogMethod
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealFeeling
@@ -40,6 +42,8 @@ import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodSearchFilter
 import com.opson.libraries.foods.FoodSearchResult
+import com.opson.libraries.foods.LearnedPicks
+import com.opson.libraries.foods.SearchPicks
 import com.opson.libraries.foods.SearchOptions
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.scanner.CameraPermission
@@ -663,4 +667,21 @@ fun fastingFlag(on: Boolean): FastingRelease = FastingRelease { on }
 @HiddenFromObjC
 class FakeEntitlements(held: Set<Entitlement> = Entitlement.DEFAULTS) : EntitlementRepository {
     override val entitlements = MutableStateFlow(held)
+}
+
+class FakeLoggedFoods(foods: List<LoggedFood> = emptyList()) : LoggedFoods {
+    val foods = MutableStateFlow(foods)
+    override fun observe(limit: Int): Flow<List<LoggedFood>> = this.foods.map { it.take(limit) }
+}
+
+/** [SearchPicks] in memory; [chosen] is every pick in order, as query to food key and weight. */
+class FakeSearchPicks(private val now: Instant = Instant.parse("2026-10-25T12:00:00Z")) : SearchPicks {
+    private val state = MutableStateFlow(LearnedPicks())
+    override val learned: StateFlow<LearnedPicks> = state
+    val chosen = mutableListOf<Triple<String, String, Double>>()
+
+    override suspend fun picked(query: String, foodKey: String, weight: Double) {
+        chosen += Triple(query, foodKey, weight)
+        state.value = state.value.picked(query, foodKey, now, weight)
+    }
 }

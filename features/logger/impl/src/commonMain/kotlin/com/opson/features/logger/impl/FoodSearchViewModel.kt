@@ -8,6 +8,7 @@ import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
+import com.opson.libraries.diary.LoggedFoods
 import com.opson.libraries.diary.MealPicks
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealSlotPicker
@@ -19,6 +20,7 @@ import com.opson.libraries.diary.valueOrNull
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.foods.FoodCatalog
 import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.SearchPicks
 import com.opson.libraries.foods.SubmittedFoods
 import com.opson.libraries.foods.foodRef
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -65,6 +67,8 @@ class FoodSearchViewModel(
     searchOptionsEnabled: SearchOptionsEnabled,
     private val optionsTelemetry: SearchOptionsTelemetry,
     private val submittedFoods: SubmittedFoods,
+    private val loggedFoods: LoggedFoods,
+    private val searchPicks: SearchPicks,
 ) : SEAViewModel<FoodSearchState, SearchEvent, SearchAction>(
     initialStateArg = FoodSearchState(pickingForMeal = route.pickForMeal != null),
 ) {
@@ -143,6 +147,8 @@ class FoodSearchViewModel(
                 pick(action, action.row)
             } else {
                 action.choose { copy(focusSearch = false) }
+                // Opening a result is half a choice: the detail is where many people log from.
+                learn(action.row, weight = OPENED)
                 sendEvent(SearchEvent.OpenFoodDetail(action.row.ref, action.row.source, day, slot()))
             }
             is SearchAction.AddTapped -> if (pickForMeal != null) pick(action, action.row) else add(action.row)
@@ -243,7 +249,18 @@ class FoodSearchViewModel(
         // A closed day refuses it, and the day it reads says so in place of the lists.
         val committed = logger.log(day, slot, listOf(pick.toLogPick()))?.valueOrNull() ?: return
         unshown.logged(row.key, committed.itemIds)
+        learn(row)
         committed.event?.let { sendEvent(SearchEvent.Added(row.shortName, it)) }
+    }
+
+    /**
+     * [row] was chosen for the words in the field: kept on this phone ([SearchPicks]) so it ranks
+     * higher for this person next time. Only for a typed search; never logged or sent.
+     */
+    private suspend fun learn(row: FoodRowUi, weight: Double = 1.0) {
+        val query = model.choices.query.trim()
+        if (query.isEmpty() || state.body !is SearchBody.Results) return
+        searchPicks.picked(query, row.key, weight)
     }
 
     private suspend fun addSavedMeal(id: String) {
@@ -265,6 +282,7 @@ class FoodSearchViewModel(
         val on = picked.none { it.key == row.key }
         val next = if (on) {
             val pick = FoodSearchStateBuilder.picks(inputs, model.choices).firstOrNull { it.key == row.key } ?: return
+            learn(row)
             picked + pick.toLogPick()
         } else {
             picked.filterNot { it.key == row.key }
@@ -321,8 +339,10 @@ class FoodSearchViewModel(
         val recentDays = diary.observeDays(today.minus(MealSlotPicker.HISTORY_DAYS, DateTimeUnit.DAY), today)
         val logged = combine(diary.recentFoods(limit = RECENT_LIMIT), diary.recentFoods(limit = HISTORY_LIMIT), diary.frequentFoods(limit = FREQUENT_LIMIT), ::Triple)
         val mine = combine(customFoods.observeAll(), savedMeals.observeAll(), ::Pair)
-        val read = combine(diary.observeDay(day), settingsRepository.settings, usualBySlot, logged, combine(mine, recentDays, ::Pair)) {
-                d, settings, usual, (recent, history, frequent), (own, days) ->
+        val personal = combine(recentDays, loggedFoods.observe(), searchPicks.learned, ::Triple)
+        val read = combine(diary.observeDay(day), settingsRepository.settings, usualBySlot, logged, combine(mine, personal, ::Pair)) {
+                d, settings, usual, (recent, history, frequent), (own, more) ->
+            val (days, longTail, learned) = more
             val zone = calendar.timeZone()
             SearchInputs(
                 today = calendar.today(),
@@ -337,6 +357,8 @@ class FoodSearchViewModel(
                 recentDays = days,
                 now = clock.now().toLocalDateTime(zone),
                 timeZone = zone,
+                logged = longTail,
+                learned = learned,
             )
         }
         // The person's foods waiting for review read "Unverified".
@@ -362,5 +384,8 @@ class FoodSearchViewModel(
 
         /** Catalog foods kept on the device, read so a row from the diary can name its source. */
         const val KNOWN_LIMIT = 100
+
+        /** What opening a result teaches, against 1 for logging it. */
+        const val OPENED = 0.5
     }
 }

@@ -12,6 +12,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.foods.db.FoodCacheDao
 import com.opson.libraries.foods.db.FoodCacheEntity
+import com.opson.libraries.foods.db.FoodCacheSearchRow
 import com.opson.libraries.identity.IdentityConfig
 import com.opson.libraries.identity.auth.AuthState
 import com.opson.libraries.networking.NetworkConfig
@@ -240,7 +241,9 @@ class QaTest : CoroutineTest() {
         override suspend fun upsert(row: FoodCacheEntity) = unused()
         override suspend fun get(id: String): FoodCacheEntity? = unused()
         override suspend fun getByBarcode(barcode: String): FoodCacheEntity? = unused()
-        override suspend fun search(pattern: String, limit: Int): List<FoodCacheEntity> = unused()
+        override suspend fun searchable(): List<FoodCacheSearchRow> = unused()
+        override suspend fun getAll(ids: List<String>): List<FoodCacheEntity> = unused()
+        override suspend fun trim(keep: Int) = unused()
         override fun observeFavorites(): Flow<List<FoodCacheEntity>> = emptyFlow()
         override fun observeRecent(limit: Int): Flow<List<FoodCacheEntity>> = emptyFlow()
         override suspend fun deleteAll() = unused()
