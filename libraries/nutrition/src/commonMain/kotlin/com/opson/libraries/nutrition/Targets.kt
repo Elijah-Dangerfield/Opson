@@ -451,6 +451,19 @@ data class Targets(
     }
 
     /**
+     * A plain range of exactly [minKcal] to [maxKcal] around [aimKcal], each held between the floor
+     * and [MAX_GOAL_KCAL]: what a goal writes ([GoalTargets.apply]). Nothing of the range before
+     * carries over, so the same goal always lands on the same ends. [scaleMacros] as in [raise].
+     */
+    fun withBand(aimKcal: Int, minKcal: Int, maxKcal: Int, scaleMacros: Boolean = false): Targets {
+        val aim = aimKcal.coerceIn(floorKcal, MAX_GOAL_KCAL)
+        val low = minKcal.coerceIn(floorKcal, aim)
+        val high = maxKcal.coerceIn(aim, MAX_GOAL_KCAL)
+        val moved = copy(style = TargetStyle.Range, energyKcal = aim, minKcal = low, maxKcal = high, ratioBasis = null)
+        return if (scaleMacros) scaledTo(moved, aim) else moved
+    }
+
+    /**
      * A day's range: [goal] plus whatever the user lets watch activity add, at most
      * [EXERCISE_CAP_KCAL]. Never below [goal], whatever the readings.
      *

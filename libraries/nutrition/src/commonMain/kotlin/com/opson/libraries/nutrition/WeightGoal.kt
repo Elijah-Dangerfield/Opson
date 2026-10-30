@@ -94,8 +94,8 @@ data class WeightGoal(
 /**
  * The arithmetic behind a weight goal. Every number here is an estimate and the screens say so:
  * the 7,700 kcal a kilogram (3,500 a pound) rule overstates how fast weight changes over months,
- * because the body burns less as it gets lighter (Hall et al., Lancet 2011). Paces are capped at
- * [GoalSafety]'s gentle lines, so nothing here plans a pace it would warn about.
+ * because the body burns less as it gets lighter (Hall et al., Lancet 2011). Paces go past the
+ * usual guidance, each with its note ([GoalPace]); only the low-goal line stops the stepper.
  */
 object WeightGoals {
     private const val DAYS_A_WEEK = 7
@@ -119,22 +119,9 @@ object WeightGoals {
     /** [kgPerWeek] as energy a day, to the nearest 10: 0.5 kg a week is about 550. */
     fun kcalPerDay(kgPerWeek: Double): Int = (abs(kgPerWeek) * KCAL_PER_KG / DAYS_A_WEEK / 10).roundToInt() * 10
 
-    /**
-     * The fastest pace the plan offers for [direction] from [weightKg]. Losing: the gentler of
-     * [FAST_DEFICIT_KCAL] a day and [FAST_LOSS_SHARE_A_WEEK] of body weight a week, and never so
-     * much that the day's aim against [burnKcal] would drop under the low-goal line for [sex].
-     * Gaining: [FAST_GAIN_SHARE_A_WEEK] of body weight. 0 when there is no room at all.
-     */
-    fun fastestKgPerWeek(direction: GoalDirection, weightKg: Double, burnKcal: Int?, sex: BodySex?): Double = when (direction) {
-        GoalDirection.Lose -> {
-            val byKcal = FAST_DEFICIT_KCAL.toDouble() * DAYS_A_WEEK / KCAL_PER_KG
-            val byShare = weightKg * FAST_LOSS_SHARE_A_WEEK
-            val byFloor = burnKcal?.let { max(0, it - GoalSafety.lowGoalKcal(sex)).toDouble() * DAYS_A_WEEK / KCAL_PER_KG }
-            listOfNotNull(byKcal, byShare, byFloor).min()
-        }
-        GoalDirection.Gain -> weightKg * FAST_GAIN_SHARE_A_WEEK
-        else -> 0.0
-    }
+    /** The fastest pace the plan offers for [direction] from [weightKg]: [GoalPace.fastestKgPerWeek]. 0 when there is no room at all. */
+    fun fastestKgPerWeek(direction: GoalDirection, weightKg: Double, burnKcal: Int?, sex: BodySex?): Double =
+        GoalPace.fastestKgPerWeek(direction, weightKg, burnKcal, sex)
 
     /**
      * The paces the stepper can land on, slowest first: whole steps of [rateStep] up to

@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 /**
  * A weight goal's arithmetic: pace to energy by the 7,700 kcal a kilogram rule, the paces the
- * stepper offers (capped at GoalSafety's gentle lines and never under the low-goal line), the
+ * stepper offers (up to GoalPace's fastest, never under the low-goal line), the
  * forecast, the healthy-range note, the aim it writes to Targets, and how the app tells the goal
  * still sets that aim.
  */
@@ -29,12 +29,11 @@ class WeightGoalTest {
     }
 
     @Test
-    fun losing_isCappedAtTheGentlerOfAThousandADayAndOnePercentAWeek() {
-        // 100 kg: 1% is 1 kg, 1,000 a day is about 0.91 kg; the 1,000 wins.
-        assertEquals(1000.0 * 7 / KCAL_PER_KG, WeightGoals.fastestKgPerWeek(GoalDirection.Lose, 100.0, burnKcal = null, sex = null), 1e-9)
-        // 60 kg: 1% is 0.6 kg a week, gentler than 1,000 a day.
-        assertEquals(0.6, WeightGoals.fastestKgPerWeek(GoalDirection.Lose, 60.0, burnKcal = null, sex = null), 1e-9)
-        assertEquals(listOf(0.1, 0.2, 0.3, 0.4, 0.5, 0.6), WeightGoals.rates(GoalDirection.Lose, WeightUnit.Kg, 60.0, null, null).map(::tenths))
+    fun losing_goesUpToTwoPercentAWeek_whateverTheEnergy() {
+        // 100 kg: 2% is 2 kg a week. The old 1,000 a day line no longer holds back a big body.
+        assertEquals(2.0, WeightGoals.fastestKgPerWeek(GoalDirection.Lose, 100.0, burnKcal = null, sex = null), 1e-9)
+        assertEquals(1.2, WeightGoals.fastestKgPerWeek(GoalDirection.Lose, 60.0, burnKcal = null, sex = null), 1e-9)
+        assertEquals((1..12).map { it / 10.0 }, WeightGoals.rates(GoalDirection.Lose, WeightUnit.Kg, 60.0, null, null).map(::tenths))
     }
 
     @Test
@@ -53,8 +52,8 @@ class WeightGoalTest {
     }
 
     @Test
-    fun gaining_isCappedAtHalfAPercentAWeek() {
-        assertEquals(0.4, WeightGoals.fastestKgPerWeek(GoalDirection.Gain, 80.0, burnKcal = 2400, sex = BodySex.Male), 1e-9)
+    fun gaining_isCappedAtOnePercentAWeek() {
+        assertEquals(0.8, WeightGoals.fastestKgPerWeek(GoalDirection.Gain, 80.0, burnKcal = 2400, sex = BodySex.Male), 1e-9)
         assertEquals(0.0, WeightGoals.fastestKgPerWeek(GoalDirection.Maintain, 80.0, burnKcal = 2400, sex = null))
     }
 
