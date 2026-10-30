@@ -21,6 +21,8 @@ import com.opson.libraries.diary.RecapKind
 import com.opson.libraries.diary.RecapPeriod
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.label
+import com.opson.libraries.diary.GoalBook
+import com.opson.libraries.goals.GoalFixtures
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.GoalKind
@@ -206,6 +208,19 @@ class RecapStateBuilderTest {
         assertEquals(4, meals.onPlan)
         assertEquals(0, meals.aBit, "a count goal is never a bit over or under")
         assertEquals(5, meals.counted)
+    }
+
+    @Test
+    fun aStepsGoal_isJudgedByTheHealthAppsSteps() {
+        val settings = GoalBook.withGoals(Settings(), listOf(GoalFixtures.steps.copy(startDate = LocalDate(2026, 9, 1))))
+        val days = (19..25).associate { LocalDate(2026, 10, it) to if (it % 2 == 0) 9_000 else 7_500 }
+        val inputs = RecapFixtures.inputs(full).copy(settings = settings, stepsByDay = days)
+        val steps = RecapStateBuilder.build(inputs, full).goals.single()
+        assertEquals(GoalKind.Steps, steps.type.kind)
+        assertEquals(3, steps.onPlan, "the 20th, 22nd and 24th reached 8,000")
+        assertEquals(6, steps.counted, "the 21st was marked skipped, which the goal engine leaves out")
+        val unread = RecapStateBuilder.build(inputs.copy(stepsByDay = null), full).goals
+        assertTrue(unread.isEmpty(), "with no steps read, no day counts, rather than every day missed")
     }
 
     @Test

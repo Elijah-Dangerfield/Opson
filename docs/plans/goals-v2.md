@@ -325,8 +325,5 @@ Built on 2026-10-30 from the owner's feedback on the goal and target screens. Ev
 ## Not in this package
 
 Onboarding's "Do you want to set a goal?" and its goal streak question (built from the pieces
-above), the steps data source, and the recap.
-
-The goal UI (charts, animations, typed inputs, macro split ranges, the Daily or Weekly average
-choice and the band picker), onboarding's "Do you want to set a goal?" and its goal streak question,
-and the recap. The API is built for them, and `GoalFixtures` has every state.
+above), and the recap. The steps data source is built: `StepsRepository` feeds a steps goal's days
+through `GoalRepository`.
