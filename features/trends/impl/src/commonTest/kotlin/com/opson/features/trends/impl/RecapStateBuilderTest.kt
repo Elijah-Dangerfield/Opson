@@ -27,6 +27,8 @@ import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.GoalKind
 import com.opson.libraries.nutrition.GoalType
+import com.opson.libraries.nutrition.Metric
+import com.opson.libraries.nutrition.Visibility
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.RestingEnergy
 import com.opson.libraries.nutrition.RestingFrom
@@ -233,6 +235,20 @@ class RecapStateBuilderTest {
         assertEquals(6, steps.counted, "the 21st was marked skipped, which the goal engine leaves out")
         val unread = RecapStateBuilder.build(inputs.copy(stepsByDay = null), full).goals
         assertTrue(unread.isEmpty(), "with no steps read, no day counts, rather than every day missed")
+    }
+
+    @Test
+    fun aCalorieGoal_isRecappedOnlyWhereCaloriesShowInFull() {
+        val softened = TrendsFixtures.policy(PresetId.Full, overrides = mapOf(Metric.Calories to Visibility.Soften))
+        val state = RecapStateBuilder.build(RecapFixtures.inputs(softened, goals = true), softened)
+        assertFalse(state.goals.any { it.type.setsCalories }, "on plan would say what the softened number keeps back")
+        assertTrue(state.goals.any { it.type == GoalType.TrackEveryDay })
+    }
+
+    @Test
+    fun underEighteen_onlyTheGentleGoalsAreRecapped() {
+        val teen = RecapFixtures.inputs(full, goals = true).let { it.copy(settings = it.settings.withBirthDate(LocalDate(2010, 1, 1))) }
+        assertEquals(listOf(GoalKind.TrackEveryDay, GoalKind.Meals), RecapStateBuilder.build(teen, full).goals.map { it.type.kind })
     }
 
     @Test

@@ -27,6 +27,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ShowingUp
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.diary.weightPlansOff
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
@@ -451,8 +452,8 @@ object RecapStateBuilder {
     }
 
     /**
-     * Each active goal the mode offers ([GoalCatalog.offered]: after numbers have been hard only
-     * the gentle ones, about showing up and meals), each day wrapped up by the goal engine as Wrap
+     * Each active goal the mode offers ([GoalCatalog.offered]: after numbers have been hard, or
+     * under 18, only the gentle ones, about showing up and meals), each day wrapped up by the goal engine as Wrap
      * up the day wraps it. Today counts once it is wrapped up; a day a calorie goal can't read yet
      * (Later) stays out.
      */
@@ -466,8 +467,11 @@ object RecapStateBuilder {
         val period = inputs.period
         val end = minOf(period.end, inputs.today)
         if (end < period.start) return emptyList()
-        val offered = GoalCatalog.offered(policy, settings.onboarding.hard, settings.bodyStage, Surface.Week)
-        val active = GoalBook.goals(settings).filter { it.isActive && it.type.kind in offered }
+        val offered = GoalCatalog.offered(policy, settings.weightPlansOff(inputs.today), settings.bodyStage, Surface.Week)
+        // A goal that sets the calorie target is judged by calories: only where they show in full,
+        // or "on plan" would say what a softened or hidden number keeps back.
+        val calories = policy.effectiveLevel(Metric.Calories, Surface.Week) == Visibility.Show
+        val active = GoalBook.goals(settings).filter { it.isActive && it.type.kind in offered && (calories || !it.type.setsCalories) }
         if (active.isEmpty()) return emptyList()
         // Every day the log holds, so a weekly average replays its week and a goal streak its run.
         val facts = inputs.days.filter { it.date <= end }.associate { day ->
