@@ -18,6 +18,9 @@ import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.goals.GoalStatuses
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.minus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -211,6 +214,22 @@ class GoalEditorTest {
         val savedOwn = GoalEditor.save(mine, edited)
         assertEquals(mine.targets, savedOwn.targets, "their own target stays theirs")
         assertNull(GoalBook.driving(savedOwn))
+    }
+
+    @Test
+    fun aNewPace_leavesThePastDaysJudgedByTheTargetTheyHad() {
+        val existing = GoalFixtures.lose
+        val settings = GoalFixtures.settings(existing, base = base)
+        val context = context(settings, existing = existing)
+        val faster = reduce(context, GoalEdit.PaceStepped(faster = true), from = GoalEditor.draft(existing, null, context))
+        val goal = GoalEditor.goal(faster, context)!!
+        assertTrue(GoalTargets.of(goal)!!.aimKcal < GoalTargets.of(existing)!!.aimKcal, "a faster pace eats less")
+
+        fun week(of: com.opson.libraries.diary.Settings) =
+            GoalStatuses.days(of, GoalFixtures.week, GoalFixtures.monday, GoalFixtures.today, GoalFixtures.today, GoalFixtures.WEIGHT_KG).getValue(existing.id)
+        val saved = GoalEditor.save(settings, goal)
+        assertEquals(week(settings).take(3), week(saved).take(3), "Monday to Wednesday keep their verdicts")
+        assertEquals(GoalFixtures.today.minus(DatePeriod(days = 1)), GoalBook.driving(saved)!!.pastTargets.single().until)
     }
 
     @Test

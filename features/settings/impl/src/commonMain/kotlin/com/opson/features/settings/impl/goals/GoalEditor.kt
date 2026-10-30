@@ -301,7 +301,7 @@ object GoalEditor {
             GoalKind.Meals -> GoalType.Meals(amount(draft.mealsText, MEALS) ?: return null)
             GoalKind.Unknown -> return null
         }
-        return Goal(
+        val goal = Goal(
             id = existing?.id ?: kind.key,
             type = type,
             startDate = existing?.startDate ?: context.today,
@@ -315,6 +315,8 @@ object GoalEditor {
             targetsKcal = existing?.targetsKcal,
             history = existing?.history.orEmpty(),
         )
+        // The days before today keep the target they had: a new pace isn't judged backwards.
+        return existing?.let { GoalTargets.keepPast(it, goal, context.today) } ?: goal
     }
 
     private fun weightType(draft: GoalDraft, context: GoalEditContext, existing: Goal?): GoalType.Weight? {

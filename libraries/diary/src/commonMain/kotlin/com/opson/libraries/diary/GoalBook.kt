@@ -97,7 +97,9 @@ object GoalBook {
      */
     fun accept(settings: Settings, recalculation: Recalculation, on: LocalDate? = null): Settings {
         val goal = goals(settings).firstOrNull { it.id == recalculation.goalId } ?: return settings
-        return applyTarget(settings, goal.copy(baseline = recalculation.newBaseline, declined = null).record(recalculation, on, accepted = true))
+        val accepted = goal.copy(baseline = recalculation.newBaseline, declined = null).record(recalculation, on, accepted = true)
+        // The days before keep the target they were judged by.
+        return applyTarget(settings, on?.let { GoalTargets.keepPast(goal, accepted, it) } ?: accepted)
     }
 
     /** [recalculation] declined: the target stays, and these inputs are never offered again. */
@@ -207,6 +209,7 @@ object GoalBook {
             setsTarget = stamp == null || stampMatches(stamp, settings.targets),
             baseline = keepBaseline ?: recovered,
             declined = existing?.declined,
+            pastTargets = existing?.pastTargets.orEmpty(),
             targetsKcal = stamp,
         )
     }

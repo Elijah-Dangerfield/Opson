@@ -155,8 +155,17 @@ data class Goal(
     val declined: BaselineInputs? = null,
     val targetsKcal: Int? = null,
     val history: List<GoalRecalculated> = emptyList(),
+    /**
+     * The targets this goal had before its target last moved (a new pace, an accepted
+     * recalculation), oldest first, at most [MAX_PAST_TARGETS]: each day is judged by the target
+     * it had, so changing the goal today doesn't re-judge last week ([GoalTargets.keepPast]).
+     */
+    val pastTargets: List<PastTarget> = emptyList(),
 ) {
     val isActive: Boolean get() = status == GoalStatus.Active
+
+    /** The target [date] had, when it was before the target last moved; null for the goal's own. */
+    fun pastTargetOn(date: LocalDate): PastTarget? = pastTargets.firstOrNull { date <= it.until }
 
     /** Active, of a type that sets the calorie target, and not overridden by the person. */
     val drivesTarget: Boolean get() = isActive && setsTarget && type.setsCalories
@@ -177,11 +186,17 @@ data class Goal(
 
         /** How many answered recalculations a goal keeps: about a year of monthly weigh-in drift. */
         const val MAX_HISTORY = 12
+
+        /** How many earlier targets a goal keeps; days older than the oldest kept are judged by it. */
+        const val MAX_PAST_TARGETS = 24
     }
 
     /** This goal with [entry] added to its history, the oldest dropped past [MAX_HISTORY]. */
     fun recorded(entry: GoalRecalculated): Goal = copy(history = (history + entry).takeLast(MAX_HISTORY))
 }
+
+/** A calorie target a goal had, its band, and the last day it applied ([until]). */
+data class PastTarget(val until: LocalDate, val aimKcal: Int, val minKcal: Int, val maxKcal: Int)
 
 /**
  * A recalculation the person answered on [date]: what changed, the daily target before

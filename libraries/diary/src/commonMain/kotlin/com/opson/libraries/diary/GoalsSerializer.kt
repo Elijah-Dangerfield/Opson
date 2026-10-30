@@ -15,6 +15,7 @@ import com.opson.libraries.nutrition.GoalKind
 import com.opson.libraries.nutrition.GoalRecalculated
 import com.opson.libraries.nutrition.GoalStatus
 import com.opson.libraries.nutrition.GoalType
+import com.opson.libraries.nutrition.PastTarget
 import com.opson.libraries.nutrition.RestingFrom
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.KSerializer
@@ -104,6 +105,9 @@ private class GoalWire(
     // Answered recalculations, for the goal screen. An older build drops them when it rewrites the
     // goal, which costs only the record.
     val history: List<HistoryWire>? = null,
+    // Targets the goal had before it last moved, so past days keep their verdicts. An older build
+    // drops them when it rewrites the goal, and those days are judged by today's target again.
+    val pastTargets: List<PastTargetWire>? = null,
 ) {
     fun toGoal(): Goal? {
         val type = when (GoalKind.fromKey(kind)) {
@@ -132,6 +136,7 @@ private class GoalWire(
             declined = declined?.let { it.toInputs() ?: return null },
             targetsKcal = targetsKcal,
             history = history.orEmpty().mapNotNull { it.toEntry() }.takeLast(Goal.MAX_HISTORY),
+            pastTargets = pastTargets.orEmpty().map { it.toPast() }.sortedBy { it.until }.takeLast(Goal.MAX_PAST_TARGETS),
         )
     }
 
@@ -162,6 +167,7 @@ private class GoalWire(
                 baseline = goal.baseline?.let(BaselineWire::of),
                 declined = goal.declined?.let(InputsWire::of),
                 history = goal.history.takeIf { it.isNotEmpty() }?.map(HistoryWire::of),
+                pastTargets = goal.pastTargets.takeIf { it.isNotEmpty() }?.map(PastTargetWire::of),
             )
         }
     }
@@ -262,6 +268,15 @@ private class HistoryWire(
             newAimKcal = entry.newAimKcal,
             accepted = entry.accepted,
         )
+    }
+}
+
+@Serializable
+private class PastTargetWire(val until: LocalDate, val aimKcal: Int, val minKcal: Int, val maxKcal: Int) {
+    fun toPast() = PastTarget(until, aimKcal, minKcal, maxKcal)
+
+    companion object {
+        fun of(past: PastTarget) = PastTargetWire(past.until, past.aimKcal, past.minKcal, past.maxKcal)
     }
 }
 

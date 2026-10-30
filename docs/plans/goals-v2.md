@@ -318,6 +318,10 @@ Built on 2026-10-30 from the owner's feedback on the goal and target screens. Ev
   number for today, the typical day behind its target (with the TDEE sheet), its projection, and
   `Goal.history`: every recalculation the person answered (`GoalBook.accept` and `keep` record it
   when given the day). Pause and pick up again. Opened from Targets' goal card and Today's chip.
+  When a goal's target moves (a new pace or band in the editor, an accepted recalculation), the
+  old band is kept on the goal (`Goal.pastTargets`, `GoalTargets.keepPast`) for the days before,
+  so the calendar and recaps don't re-judge last week by today's target. Editing keeps a paused
+  goal paused and a goal off the target off it.
 - **Targets**: range ends, a set deficit or surplus and a day group's number are typed in place
   (`Targets.withEnd`, `withDeficit`, `withSurplus`, `withGroupNumber`, the same limits as a step;
   Done on a number that can't be used says why). The macro split shows grams at each end of a range

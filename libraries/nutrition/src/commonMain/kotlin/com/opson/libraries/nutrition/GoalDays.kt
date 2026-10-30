@@ -91,13 +91,17 @@ object GoalDays {
         if (day.date == context.today && !day.closed) return GoalDay(day.date, GoalVerdict.InProgress)
         val eaten = day.eatenKcal
         if (!day.logged || eaten == null) return GoalDay(day.date, GoalVerdict.NotCounted)
+        // A day from before the target last moved keeps the target it had.
+        val past = goal.pastTargetOn(day.date)
+        val band = past?.let { Triple(it.aimKcal, it.minKcal, it.maxKcal) } ?: Triple(target.aimKcal, target.minKcal, target.maxKcal)
         val (aim, min, max) = if (goal.averaging == GoalAveraging.Weekly) {
             // The goal's own days only: one set midweek doesn't answer for the days before it.
             val since = facts.filterKeys { it >= goal.startDate }
-            val week = WeeklyBudgets.targetOn(day.date, context.weekStart, target.aimKcal, goal.toleranceKcal, goal.averaging, since, context.floor)
+            val tolerance = past?.let { it.maxKcal - it.aimKcal } ?: goal.toleranceKcal
+            val week = WeeklyBudgets.targetOn(day.date, context.weekStart, band.first, tolerance, goal.averaging, since, context.floor)
             Triple(week.todayTargetKcal, week.todayMinKcal, week.todayMaxKcal)
         } else {
-            Triple(target.aimKcal, target.minKcal, target.maxKcal)
+            band
         }
         val margin = max(NEAR_MIN_KCAL, (aim * NEAR_SHARE).roundToInt())
         val delta = goal.type.deltaKcal ?: 0

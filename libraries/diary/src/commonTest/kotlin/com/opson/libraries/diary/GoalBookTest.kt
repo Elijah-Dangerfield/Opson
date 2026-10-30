@@ -267,6 +267,18 @@ class GoalBookTest {
     }
 
     @Test
+    fun anAcceptedRecalculation_keepsThePastTarget_andItSyncsWithTheGoal() {
+        val set = GoalBook.applyTarget(Settings(macroMode = MacroMode.Grams), weight.copy(declined = null))
+        val offer = GoalBaselines.recalculation(GoalBook.driving(set)!!, inputs.copy(activityKcal = 300, activityFrom = ActivityFrom.Everyday))!!
+        val accepted = GoalBook.accept(set, offer, on = LocalDate(2026, 11, 5))
+        val goal = GoalBook.driving(accepted)!!
+        val past = goal.pastTargets.single()
+        assertEquals(LocalDate(2026, 11, 4), past.until)
+        assertEquals(GoalTargets.of(weight)!!.aimKcal, past.aimKcal, "the days before were judged by the old target")
+        assertEquals(goal.pastTargets, GoalBook.goals(roundTrip(accepted)).single().pastTargets)
+    }
+
+    @Test
     fun aLegacyGoalWithNoStartDate_countsEveryDay() {
         val old = WeightGoal(GoalDirection.Maintain, targetKg = 70.0, startKg = 70.0)
         assertEquals(LocalDate.fromEpochDays(0), GoalBook.goals(Settings(weightGoal = old)).single().startDate)
