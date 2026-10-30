@@ -616,15 +616,18 @@ private val RunningSpan.label: StringResource
         RunningSpan.SinceStart -> Res.string.trends_running_since
     }
 
-private val RunningTotalCard.weightPhrase: StringResource
-    get() = when {
-        side == Balance.Over && unit == WeightUnit.Lb -> Res.string.trends_running_gained_lb
-        side == Balance.Over -> Res.string.trends_running_gained_kg
-        unit == WeightUnit.Lb -> Res.string.trends_running_lost_lb
-        else -> Res.string.trends_running_lost_kg
-    }
+private val RunningTotalCard.weightPhrase: StringResource get() = balanceWeightPhrase(side, unit)
 
-private val ScaleDirection.word: StringResource?
+/** "Roughly 0.4 kg of body weight lost, using the rule of thumb…": the running total's and a recap's. */
+internal fun balanceWeightPhrase(side: Balance, unit: WeightUnit): StringResource = when {
+    side == Balance.Over && unit == WeightUnit.Lb -> Res.string.trends_running_gained_lb
+    side == Balance.Over -> Res.string.trends_running_gained_kg
+    unit == WeightUnit.Lb -> Res.string.trends_running_lost_lb
+    else -> Res.string.trends_running_lost_kg
+}
+
+/** "Down %s" or "Up %s"; null for about the same. */
+internal val ScaleDirection.word: StringResource?
     get() = when (this) {
         ScaleDirection.Down -> Res.string.trends_running_scale_down
         ScaleDirection.Up -> Res.string.trends_running_scale_up

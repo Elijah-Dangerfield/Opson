@@ -91,6 +91,9 @@ private val closedDayOpens = Reveal.WholeSurface("Closing the day opens Later's 
 private val weekOpens = Reveal.WholeSurface(
     "Later opens the week view all day (Surface.Week). Today is left out of every average on it.",
 )
+private val monthChecked = Reveal.WholeSurface(
+    "A recap of a month that is over: every week in it has had its weekly check, so Later, weekly has opened them all.",
+)
 private val lastCheckOpens = Reveal.WholeSurface(
     "Before this week's check, Later weekly keeps last week's check readable: its daily average is the number shown.",
 )
@@ -118,6 +121,8 @@ internal val REVEALED_BY_DESIGN: Map<Pair<String, String>, Reveal> = buildMap {
     listOf("trends", "trends-blind", "trends-coast", "trends-deficit", "nutrients-week", "patterns", "patterns-blind")
         .forEach { put("later" to it, weekOpens) }
     put("later" to "trends-day", pastDayOpens)
+    listOf("recap-week", "recap-deficit", "recap-month", "recap-in-progress").forEach { put("later" to it, weekOpens) }
+    put("later-weekly" to "recap-month", monthChecked)
 
     listOf("trends", "trends-blind", "trends-coast", "trends-deficit").forEach { put("later-weekly" to it, lastCheckOpens) }
 

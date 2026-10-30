@@ -556,8 +556,8 @@
     <string name="settings_today_streak">Streak</string>
     <string name="settings_today_streak_body">How many days in a row you've shown up. Tap it for Your progress.</string>
     <string name="settings_today_now_and_then">Now and then</string>
-    <string name="settings_today_recap">Your week is ready</string>
-    <string name="settings_today_recap_body">A card on Today when a week or a month ends. Recaps stay in Trends either way.</string>
+    <string name="settings_today_recap">Recap card</string>
+    <string name="settings_today_recap_body">“Your week is ready” on Today when a week or a month ends. Recaps stay in Trends either way.</string>
     <string name="settings_today_suggestions">Suggestions</string>
     <string name="settings_today_suggestions_body">Things to try, like connecting a health app or a check-in.</string>
     <string name="settings_today_tips">Tips</string>

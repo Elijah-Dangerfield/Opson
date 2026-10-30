@@ -5,6 +5,8 @@ import com.opson.features.trends.NotesListLink
 import com.opson.libraries.diary.CheckInEnabled
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.RecapPeriod
+import com.opson.libraries.diary.RecapsRelease
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.diary.WeighIn
@@ -53,6 +55,7 @@ class TrendsViewModel(
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     /** Today binds it (the Notes list); with nothing bound, the Notes card leaves its link off. */
     notesListLink: NotesListLink? = null,
+    recaps: RecapsRelease = RecapsRelease.Off,
 ) : SEAViewModel<TrendsState, TrendsEvent, TrendsAction>(initialStateArg = TrendsState()) {
 
     private val today: LocalDate get() = clock.now().toLocalDateTime(timeZone).date
@@ -98,6 +101,7 @@ class TrendsViewModel(
         val checkInOn = checkInEnabled()
 
         val notesLinked = notesListLink != null
+        val recapsOn = recaps.isOn()
 
         val energy = combine(expended, burned, burnedByDay) { expended, burned, byDay -> Energy(expended, burned?.totalKcal, byDay) }
 
@@ -116,6 +120,7 @@ class TrendsViewModel(
                     checkInOn = checkInOn,
                     // The weight goal's start: "Since you started this goal", the default once there is one.
                     goalStart = settings.weightGoal.startDate?.takeIf { it <= records.today },
+                    recapsOn = recapsOn,
                 ),
                 policy,
             )
@@ -157,6 +162,7 @@ class TrendsViewModel(
             TrendsAction.NutrientsCardTapped -> sendEvent(TrendsEvent.OpenNutrients(today.toString()))
             TrendsAction.WeightCardTapped -> sendEvent(TrendsEvent.OpenWeight)
             TrendsAction.AllNotesTapped -> sendEvent(TrendsEvent.OpenNotes)
+            is TrendsAction.RecapTapped -> sendEvent(TrendsEvent.OpenRecap(action.period.kind.wire, action.period.start.toString()))
         }
     }
 
@@ -206,6 +212,9 @@ sealed interface TrendsAction {
 
     /** One of the energy words' (i) sheets, [com.opson.features.settings.EnergyExplainerRoute.topic]. */
     data class EnergyExplainerTapped(val topic: String) : TrendsAction
+
+    /** Last week's or last month's recap. */
+    data class RecapTapped(val period: RecapPeriod) : TrendsAction
 }
 
 sealed interface TrendsEvent {
@@ -224,4 +233,7 @@ sealed interface TrendsEvent {
 
     /** The shared energy (i) sheet: what total burned (TDEE) is, or how a deficit or surplus works. */
     data class OpenEnergyExplainer(val topic: String) : TrendsEvent
+
+    /** A recap: `RecapKind.wire` and its first day. */
+    data class OpenRecap(val kind: String, val startIso: String) : TrendsEvent
 }

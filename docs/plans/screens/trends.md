@@ -1,7 +1,33 @@
 # Trends plan
 
 Trends and its settings sheet, Nutrients detail (This day and Week average),
-Weight, and Patterns. Read `shared.md` first.
+Weight, Patterns, and the weekly and monthly recaps. Read `shared.md` first.
+
+> **Recaps (2026-10-30, `release.recaps`):** `RecapRoute(kind, startIso)` opens a
+> week (by the person's week start) or a calendar month (`RecapPeriod` in
+> `:libraries:diary`), with Week and Month and a step back and forth. Reached
+> from a Recaps card at the top of Trends (last week, last month), from Today's
+> "Your week is ready" (`RecapTodayCardContribution`), and from Wrap up the
+> day on a week's last day. Top to bottom: the days (a dot each: logged,
+> skipped, nothing logged, still to come), showing up (the run and milestones
+> reached, while celebrations are on), how the check-ins felt, eaten (total,
+> daily average, the range, a bar a logged day), the days on plan or close
+> (targets-based, `OnTrack`'s rules; never a count of days off), total burned
+> (TDEE) with resting, activity, exercise and digesting, eaten against burned
+> (the running total's rules and words, with the shared (i) sheets), the weight
+> trend, the foods had most and new foods. **Skipped days:** totals add up only
+> the logged days and averages are per logged day; an untracked day or one with
+> nothing logged is left out and the page says so. Every amount resolves on
+> `Surface.Week` with the period's last day as context, a day Later hasn't
+> opened stays out, and after numbers have been hard only the days, showing up,
+> check-ins and foods (by name) are built. **The card on Today** shows from the
+> first open after a week or month ends, for three days, once per period, only
+> with two logged days in it; a month goes before its week. It offers "I'd
+> rather not see these" on its first five showings (`OptOut.RecapBanner`) and
+> More › Today screen switches it (`Settings.recapBanner`). Opening a recap
+> from anywhere counts as seeing it (`RecapBannerStore`, on the phone). The goal
+> status is targets-based until the goal engine names a span's progress
+> (TODO in `PlanSection`).
 
 ## Source
 - **Design sync 2 is the spec now** (`docs/plans/design-sync-2.md`): the

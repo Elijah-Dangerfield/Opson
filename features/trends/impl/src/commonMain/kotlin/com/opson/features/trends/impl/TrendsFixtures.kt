@@ -99,6 +99,7 @@ object TrendsFixtures {
         notesLinked: Boolean = false,
         burnedByDay: Map<LocalDate, Burned>? = null,
         checkInOn: Boolean = false,
+        recapsOn: Boolean = false,
     ): TrendsInputs = TrendsInputs(
         today = today,
         settings = settings,
@@ -110,6 +111,7 @@ object TrendsFixtures {
         notesLinked = notesLinked,
         burnedByDay = burnedByDay,
         checkInOn = checkInOn,
+        recapsOn = recapsOn,
     )
 
     /**

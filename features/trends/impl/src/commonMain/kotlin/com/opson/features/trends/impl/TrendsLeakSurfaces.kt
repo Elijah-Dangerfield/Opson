@@ -4,6 +4,9 @@ import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.impl.photos.CompareContent
 import com.opson.features.trends.impl.photos.ProgressPhotosContent
 import com.opson.features.trends.impl.photos.ProgressPhotosFixtures
+import com.opson.features.trends.impl.recap.RecapBannerCard
+import com.opson.features.trends.impl.recap.RecapContent
+import com.opson.features.trends.impl.recap.RecapFixtures
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.TrendsRange
 import com.opson.libraries.nutrition.Metric
@@ -19,8 +22,9 @@ import com.opson.libraries.nutrition.ui.leak.LeakSurface
 object TrendsLeakSurfaces {
 
     val all: List<LeakSurface> = listOf(
+        // With release.recaps: the links to last week's and last month's recaps name dates, never an amount.
         LeakSurface(id = "trends", label = "Trends (week history)", showsCaloriesInFull = true) { policy ->
-            TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(expended = TrendsFixtures.expended()), policy), onAction = {})
+            TrendsContent(TrendsStateBuilder.build(TrendsFixtures.trendsInputs(expended = TrendsFixtures.expended(), recapsOn = true), policy), onAction = {})
         },
         // The design's Blind and Coast screens. The test passes the policy, so these differ from
         // `trends` in what they are built from: Month (every card follows the range) and the
@@ -89,6 +93,30 @@ object TrendsLeakSurfaces {
         // Hunger tags off: the page Blind users who skip the tags see.
         LeakSurface(id = "patterns-blind", label = "Patterns, no hunger tags", showsCaloriesInFull = true) { policy ->
             PatternsContent(PatternsStateBuilder.build(TrendsFixtures.patternsInputs(Settings(askTags = false)), policy), onAction = {})
+        },
+        // Recaps (release.recaps): the week read on the Monday after, with Burned, check-ins and the
+        // run; a month; the week still going; and after numbers have been hard, which never shows an
+        // amount even in All numbers.
+        LeakSurface(id = "recap-week", label = "A week's recap", showsCaloriesInFull = true) { policy ->
+            RecapContent(RecapFixtures.state(policy), onAction = {})
+        },
+        LeakSurface(id = "recap-deficit", label = "A week's recap, against a set deficit", showsCaloriesInFull = true) { policy ->
+            RecapContent(RecapFixtures.state(policy, deficit = true), onAction = {})
+        },
+        LeakSurface(id = "recap-month", label = "A month's recap", showsCaloriesInFull = true) { policy ->
+            RecapContent(RecapFixtures.state(policy, RecapFixtures.month), onAction = {})
+        },
+        LeakSurface(id = "recap-in-progress", label = "This week's recap, so far", showsCaloriesInFull = true) { policy ->
+            RecapContent(RecapFixtures.inProgress(policy), onAction = {})
+        },
+        LeakSurface(id = "recap-hard", label = "A week's recap, after numbers have been hard", showsCaloriesInFull = false) { policy ->
+            RecapContent(RecapFixtures.state(policy, hard = true), onAction = {})
+        },
+        LeakSurface(id = "recap-empty", label = "A week's recap, nothing logged", showsCaloriesInFull = false) { policy ->
+            RecapContent(RecapFixtures.empty(policy), onAction = {})
+        },
+        LeakSurface(id = "recap-banner", label = "Your week is ready, on Today", showsCaloriesInFull = false) { _ ->
+            RecapBannerCard(RecapFixtures.week, onOpen = {}, onNotNow = {}, onTurnOff = {})
         },
         // Progress photos carry no numbers in any mode; listed so one slipped in later fails.
         LeakSurface(id = "progress-photos", label = "Progress photos", showsCaloriesInFull = false) { _ ->

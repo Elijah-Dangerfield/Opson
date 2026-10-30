@@ -250,6 +250,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `day-close-streak`, `today-streak` | today | 2026-10-29, `release.celebrations`; the run once today is wrapped up, and the streak in Today's header. Days showed up, never an amount | yes |
 | new | | `celebration`, `celebration-gentle`, `progress` | today | 2026-10-29, `release.celebrations`; a milestone's celebration with counts and gently, and Your progress | no |
 | new | | `reminders-celebrations` | settings | 2026-10-29, `release.celebrations`; Celebrations and Day counts on Reminders and celebrations | no |
+| new | | `day-close-early`, `day-close-week-recap` | today | 2026-10-30; Wrap up the day opened early (the time of day and the usual wrap-up, no amount), and the week's last day wrapped up with its recap link (`release.recaps`) | yes |
+| new | | `recap-week`, `recap-deficit`, `recap-month`, `recap-in-progress` | trends | 2026-10-30, `release.recaps`; a week's, a month's and this week's recap: eaten, Burned and its parts, eaten against burned, weight, targets. Later opens them as it opens the week view; Later, weekly opens a month that is over | yes |
+| new | | `recap-hard`, `recap-empty`, `recap-banner` | trends | 2026-10-30, `release.recaps`; a recap after numbers have been hard (never an amount, even in All numbers), one with nothing logged, and "Your week is ready" on Today | no |
 
 `REQUIRED_SURFACES` is every id in this table. When a 0.2 screen ships
 (Reminders, Integrations, Fasting, barcode result), its plan adds a row here and
