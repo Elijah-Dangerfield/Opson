@@ -27,7 +27,7 @@ the whole batch, how many servings it makes, and optional notes or steps, and
 it logs as one entry: "Chili, 1 serving" with a sixth of everything. Extending
 saved meals would have put recipes in front of builds that don't know about
 servings, and those log the whole pot. So `recipes` is a new synced entity
-(Room 14, server V34) on the existing outbox, accepted only by clients that
+(Room 14, server V35) on the existing outbox, accepted only by clients that
 say `accepts: recipe`. Ingredients are the same `LogDraft` snapshots a saved
 meal holds, picked through search in pick-for-this-meal mode.
 

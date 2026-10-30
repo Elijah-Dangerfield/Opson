@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- V34: recipes, and the ones people share (behind the client's release.recipes).
+-- V35: recipes, and the ones people share (behind the client's release.recipes).
 --
 -- A recipe is ingredients with amounts for the whole batch, how many servings
 -- it makes, and optional notes. It syncs like any diary row (keyed by the

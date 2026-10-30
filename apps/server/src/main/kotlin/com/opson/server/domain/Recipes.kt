@@ -17,7 +17,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-/** Where a recipe stands with the public. Wire values match `recipes.public_state` (V34). */
+/** Where a recipe stands with the public. Wire values match `recipes.public_state` (V35). */
 enum class PublicState(val wire: String) {
     Private("private"),
     Live("live"),

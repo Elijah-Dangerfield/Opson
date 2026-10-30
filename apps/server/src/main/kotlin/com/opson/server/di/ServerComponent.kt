@@ -121,7 +121,7 @@ abstract class ServerComponent(
     abstract val foodReportLimiter: FoodReportLimiter
     abstract val correctionAuthority: CorrectionAuthority
 
-    // Recipes people share (V34).
+    // Recipes people share (V35).
     abstract val publicRecipeRepository: com.opson.server.domain.PublicRecipeRepository
     abstract val recipeLimiter: com.opson.server.domain.RecipeLimiter
 

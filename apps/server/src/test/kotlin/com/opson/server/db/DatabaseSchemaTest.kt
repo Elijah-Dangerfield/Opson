@@ -186,12 +186,12 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     /**
-     * V34 is additive and safe to run twice. Deleting an account deletes its recipes and the reports
+     * V35 is additive and safe to run twice. Deleting an account deletes its recipes and the reports
      * it made; a recipe's reports go with the recipe. Codes are eight of the readable characters.
      */
     @Test
     fun recipesMigrationIsIdempotentAndCascadesFromTheUser() {
-        val migration = checkNotNull(javaClass.getResource("/db/migration/V34__recipes.sql")).readText()
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V35__recipes.sql")).readText()
         database.blockingTransaction { exec(migration) }
 
         val owner = seedAuthUser().value
@@ -640,7 +640,7 @@ class DatabaseSchemaTest : DatabaseTest() {
             "builder_applications_daily",
             // V33, energy against the macros.
             "food_energy_by_source", "food_energy_worst",
-            // V34, recipes and sharing them.
+            // V35, recipes and sharing them.
             "recipes_daily", "recipe_sharing",
         )
         val SUPPORT_VIEWS = listOf(

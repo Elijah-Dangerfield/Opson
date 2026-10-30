@@ -37,7 +37,7 @@ import kotlin.time.ExperimentalTime
 
 /**
  * Postgres-backed [PublicRecipeRepository] over the sharing columns of `recipes` and
- * `recipe_reports` (V34). The owner's display name comes from `profiles`, and a name the server
+ * `recipe_reports` (V35). The owner's display name comes from `profiles`, and a name the server
  * made up (`user-1a2b3c4d`) counts as none.
  */
 @OptIn(ExperimentalTime::class)

@@ -208,7 +208,7 @@ data class Exercise(
 ) : DiaryRow
 
 /**
- * A recipe (`release.recipes`, V34): ingredients for the whole batch as the client's snapshots
+ * A recipe (`release.recipes`, V35): ingredients for the whole batch as the client's snapshots
  * ([itemsJson], opaque here apart from [itemCount]), how many [servings] it makes, and optional
  * [notes]. [sharing] is the server's own state: filled on the way out, never read from a client.
  */

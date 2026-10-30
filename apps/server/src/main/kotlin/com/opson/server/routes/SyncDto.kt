@@ -113,7 +113,7 @@ enum class SyncEntity(val wire: String) {
     /** Exercise logged by hand, `release.exercise`. */
     Exercise("exercise"),
 
-    /** A recipe, `release.recipes` (V34). */
+    /** A recipe, `release.recipes` (V35). */
     Recipe("recipe"),
     ;
 

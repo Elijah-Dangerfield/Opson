@@ -335,7 +335,7 @@ object ExercisesTable : SyncedTable("exercises") {
 }
 
 /**
- * A recipe (V34): ingredients for the whole batch and how many servings it makes. Sync writes the
+ * A recipe (V35): ingredients for the whole batch and how many servings it makes. Sync writes the
  * columns up to [deleted]; the public ones are the publish routes' and the admin console's alone.
  */
 object RecipesTable : SyncedTable("recipes") {
@@ -363,7 +363,7 @@ object RecipesTable : SyncedTable("recipes") {
     override val primaryKey = PrimaryKey(id)
 }
 
-/** A report on a shared recipe (V34). */
+/** A report on a shared recipe (V35). */
 object RecipeReportsTable : Table("recipe_reports") {
     val id = uuid("id")
     val recipeId = uuid("recipe_id")
