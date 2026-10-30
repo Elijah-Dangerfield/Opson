@@ -576,6 +576,7 @@ DO $off$
 DECLARE
     c record;
     g record;
+    trg record;
     live_owner name := (SELECT relowner::regrole::name FROM pg_class WHERE oid = 'public.{TABLE}'::regclass);
 BEGIN
     -- Primary key and unique barcode, from off_foods' own constraints.
@@ -592,6 +593,17 @@ BEGIN
         ) THEN
             EXECUTE format('ALTER TABLE public.{STAGING} ADD CONSTRAINT %I %s',
                            '{STAGING}' || substr(c.conname, {len(TABLE) + 1}), c.def);
+        END IF;
+    END LOOP;
+
+    -- LIKE copies no triggers either. off_foods' own (V33's energy check) go
+    -- on the staging table, so every row arrives judged and the swap keeps them.
+    FOR trg IN
+        SELECT tgname, pg_get_triggerdef(oid) AS def FROM pg_trigger
+        WHERE tgrelid = 'public.{TABLE}'::regclass AND NOT tgisinternal
+    LOOP
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.{STAGING}'::regclass AND tgname = trg.tgname) THEN
+            EXECUTE regexp_replace(trg.def, ' ON (public\\.)?{TABLE} ', ' ON public.{STAGING} ');
         END IF;
     END LOOP;
 

@@ -637,6 +637,36 @@ b.loki_series("Scanner", [
     loki("D", f'sum(count_over_time({CLIENT} | event_name="barcode.permission_denied" [$__interval]))', "camera denied"),
     loki("E", f'sum(count_over_time({CLIENT} | event_name="barcode.camera_unavailable" [$__interval]))', "camera unavailable"),
 ], "Client events. Camera denied and unavailable count people who could not use the camera; they can still type the code.")
+# Energy against the macros (V33). Each food is judged as it is served; the rule is in
+# docs/food-data-sources.md. Ids and gaps only, no names or stated values.
+b.row("Energy math: do the calories add up to the macros?")
+b.sql_stat("Foods that don't add up",
+           "SELECT coalesce(sum(inconsistent)::float / nullif(sum(consistent) + sum(inconsistent), 0), 0) "
+           "FROM analytics.food_energy_by_source",
+           "Of the foods that could be judged, the share whose calories are further from their macros' energy than a "
+           "label's rounding allows (15 kcal or 12% a serving).",
+           unit="percentunit", decimals=1, thresholds=steps(("green", None), ("orange", 0.02), ("red", 0.05)))
+b.sql_stat("Not judged yet",
+           "SELECT coalesce(sum(unchecked), 0) FROM analytics.food_energy_by_source",
+           "Rows loaded before V33 that scripts/check_food_energy.py has not reached. 0 once it has run.",
+           thresholds=steps(("green", None), ("orange", 1)))
+b.sql_stat("Can't be judged",
+           "SELECT coalesce(sum(unknown), 0) FROM analytics.food_energy_by_source",
+           "No energy or a macro missing, or energy with no macros and no alcohol figure (spirits).", w=12)
+b.bars("Judged foods by source",
+       "SELECT source || ' (tier ' || tier || ')' AS source, consistent AS \"add up\", inconsistent AS \"don't\", "
+       "unknown AS \"can't tell\", unchecked AS \"not judged\" FROM analytics.food_energy_by_source "
+       "ORDER BY tier, source",
+       "Every approved food per source. off_export is the monthly Open Food Facts table; off is the barcode cache in "
+       "foods. Alcoholic drinks show as don't, since no source here carries an alcohol figure yet.",
+       w=12, h=10)
+b.sql_table("Furthest off",
+            "SELECT food_id, source, tier, gap_kcal_per_100 AS \"stated minus macros, kcal per 100\", checked_at "
+            "FROM analytics.food_energy_worst",
+            "The 200 foods whose calories are furthest from their macros, per 100 g or ml. Positive: more calories than "
+            "the macros give (alcohol, kJ read as kcal). Negative: fewer (a label's 0, sugar alcohols, a dropped digit). "
+            "A reviewer's correction takes a food off this list.",
+            w=12, h=10, no_value="Every food adds up")
 b.write()
 
 # ── Food review ────────────────────────────────────────────────────────────

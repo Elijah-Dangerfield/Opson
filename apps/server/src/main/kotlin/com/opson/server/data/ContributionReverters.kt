@@ -142,7 +142,7 @@ class ReportReverter(
 }
 
 /**
- * A Builder's verifications (V33). One a reviewer accepted with values led to a correction, which
+ * A Builder's verifications (V34). One a reviewer accepted with values led to a correction, which
  * is reverted like a report's. Every confirmed or accepted one stops counting and stops making its
  * food Verified: the outcome goes back to `unconfirmed` and the status to `rejected`. Open ones are
  * rejected. The record stays.

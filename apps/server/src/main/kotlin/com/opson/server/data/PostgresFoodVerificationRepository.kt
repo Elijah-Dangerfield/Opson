@@ -42,7 +42,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /**
- * `food_verifications` (V31) and, since V33, the ones that wait for a reviewer with their photos
+ * `food_verifications` (V31) and, since V34, the ones that wait for a reviewer with their photos
  * (`food_verification_photos`). The id the app made is the idempotency key. Accepting one with
  * values lays a correction over the existing food through [FoodCorrectionsSql.lay], in the same
  * transaction, so a verification never makes a new food.

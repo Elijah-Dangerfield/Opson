@@ -61,9 +61,9 @@ data class FoodReportAdminResponse(
     val resolution: String? = null,
     val correctionId: String? = null,
     val duplicateOf: String? = null,
-    /** Every reason picked, [reason] first (V33). */
+    /** Every reason picked, [reason] first (V34). */
     val reasons: List<String> = listOf(reason),
-    /** A photo of the front of the pack (V33). */
+    /** A photo of the front of the pack (V34). */
     val hasFrontPhoto: Boolean = false,
 )
 

@@ -49,7 +49,7 @@ data class FoodReportRequest(
     val id: String? = null,
     /**
      * `wrong_calories`, `wrong_nutrients`, `wrong_serving`, `wrong_name`, `duplicate`, `not_food` or
-     * `other`. Apps since V33 send [reasons] too, with this one the first of them in a code an
+     * `other`. Apps since V34 send [reasons] too, with this one the first of them in a code an
      * older server knows.
      */
     val reason: String? = null,
@@ -58,11 +58,11 @@ data class FoodReportRequest(
     /** A photo of the label (the back of the pack), base64 JPEG, PNG or WebP. */
     val photo: String? = null,
     /**
-     * Every reason picked (V33): [reason]'s codes and `wrong_numbers`, `missing_info`. When there
+     * Every reason picked (V34): [reason]'s codes and `wrong_numbers`, `missing_info`. When there
      * are any they win over [reason].
      */
     val reasons: List<String>? = null,
-    /** A photo of the front of the pack (V33). */
+    /** A photo of the front of the pack (V34). */
     val frontPhoto: String? = null,
 )
 
@@ -195,7 +195,7 @@ private suspend fun applyDirectly(
 
 /**
  * The reasons a person picked, in their order and once each: [FoodReportRequest.reasons] when the
- * app sent any (V33), [FoodReportRequest.reason] alone otherwise. Null when one is unknown, or
+ * app sent any (V34), [FoodReportRequest.reason] alone otherwise. Null when one is unknown, or
  * when there are none.
  */
 internal fun reasonsOf(request: FoodReportRequest): List<ReportReason>? {

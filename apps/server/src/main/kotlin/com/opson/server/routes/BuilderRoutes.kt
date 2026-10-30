@@ -137,16 +137,16 @@ data class VerificationRequest(
     val id: String? = null,
     val engine: String? = null,
     val lines: List<CaptureLineJson> = emptyList(),
-    /** "Something was wrong" (V33): sends the check to a reviewer. */
+    /** "Something was wrong" (V34): sends the check to a reviewer. */
     val problem: VerificationProblemJson? = null,
-    /** The front and label photos (V33), kept only with a check that goes to a reviewer. */
+    /** The front and label photos (V34), kept only with a check that goes to a reviewer. */
     val photos: VerificationPhotosJson? = null,
 )
 
 /**
  * [missing] are the headline fields (`energy_kcal`, `fat_g`) the label's text did not show.
- * [review] is `open` when the check went to a reviewer (V33); absent otherwise, and always from a
- * server before V33, which is how the app knows to send a problem as a report instead.
+ * [review] is `open` when the check went to a reviewer (V34); absent otherwise, and always from a
+ * server before V34, which is how the app knows to send a problem as a report instead.
  */
 @Serializable
 data class VerificationResponse(

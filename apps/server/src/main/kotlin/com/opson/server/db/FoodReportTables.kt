@@ -11,7 +11,7 @@ object FoodReportsTable : Table("food_reports") {
     val createdAt = timestamp("created_at")
     val reason = text("reason")
 
-    /** Every reason the person picked (V33), [reason] first; null on reports from before. */
+    /** Every reason the person picked (V34), [reason] first; null on reports from before. */
     val reasons = array<String>("reasons").nullable()
     val suggested = jsonb("suggested").nullable()
     val note = text("note").nullable()
@@ -25,7 +25,7 @@ object FoodReportsTable : Table("food_reports") {
     override val primaryKey = PrimaryKey(id)
 }
 
-/** A report's photos, a front and a label (V33), deleted 30 days after the decision. */
+/** A report's photos, a front and a label (V34), deleted 30 days after the decision. */
 object FoodReportPhotosTable : Table("food_report_photos") {
     val reportId = uuid("report_id")
     val kind = text("kind")

@@ -95,6 +95,20 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     /**
+     * The Open Food Facts reload swaps `off_foods` by renaming it and dropping the old table. A
+     * view follows the rename and blocks the drop, so nothing may depend on the table: the V33
+     * analytics read it through functions instead.
+     */
+    @Test
+    fun noViewDependsOnOffFoods() {
+        val views = strings(
+            "SELECT DISTINCT r.ev_class::regclass::text FROM pg_depend d JOIN pg_rewrite r ON r.oid = d.objid " +
+                "WHERE d.refobjid = 'public.off_foods'::regclass AND r.ev_class <> 'public.off_foods'::regclass",
+        )
+        assertEquals(emptyList(), views)
+    }
+
+    /**
      * V17 was applied to opson-dev by hand before Flyway saw it, like V12, so
      * a second run changes nothing. The Kotlin enum and the CHECK must agree,
      * or the backfill could write a value the server can't read back.
@@ -337,13 +351,13 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     /**
-     * V33 is additive and safe to run twice. A verification's photos go with it, and with the
+     * V34 is additive and safe to run twice. A verification's photos go with it, and with the
      * account; a report takes several reasons from the known list and a front and a label photo;
      * accepting a verification records its provenance.
      */
     @Test
     fun checksAndReviewMigrationIsIdempotentAndCascadesFromTheUser() {
-        val migration = checkNotNull(javaClass.getResource("/db/migration/V33__food_checks_and_review.sql")).readText()
+        val migration = checkNotNull(javaClass.getResource("/db/migration/V34__food_checks_and_review.sql")).readText()
         database.blockingTransaction { exec(migration) }
 
         val user = seedAuthUser().value
@@ -641,7 +655,9 @@ class DatabaseSchemaTest : DatabaseTest() {
             "contribution_lanes_daily", "builder_program_daily",
             // V32, applications.
             "builder_applications_daily",
-            // V33, the Database cleanup row.
+            // V33, energy against the macros.
+            "food_energy_by_source", "food_energy_worst",
+            // V34, the Database cleanup row.
             "food_verification_queue", "food_verifications_daily", "food_review_decisions_daily",
         )
         val SUPPORT_VIEWS = listOf(

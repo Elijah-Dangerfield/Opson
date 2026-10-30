@@ -26,7 +26,7 @@ import kotlinx.serialization.Serializable
  * Absent for everything else, so an older app that decodes strictly never
  * meets it on a food it could see before.
  *
- * `checked` (V33) is true when a person checked the food against its pack or
+ * `checked` (V34) is true when a person checked the food against its pack or
  * a reviewer stood behind it: a Builder's confirmed or accepted verification,
  * a live correction, or an approved food someone added. It is the app's
  * Verified mark, and absent rather than false otherwise. `verified` keeps its
@@ -45,7 +45,7 @@ data class FoodResponse(
     val tier: Int,
     val verified: Boolean,
     val reviewStatus: String? = null,
-    /** A person checked it against its pack (V33). Absent unless true. */
+    /** A person checked it against its pack (V34). Absent unless true. */
     val checked: Boolean? = null,
     /**
      * Only on `GET /v1/foods/barcode/{code}?matches=all`: every food for the

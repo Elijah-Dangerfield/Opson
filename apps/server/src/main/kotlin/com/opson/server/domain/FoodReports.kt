@@ -15,17 +15,17 @@ import kotlin.time.Instant
 
 /**
  * What someone says is wrong with a food. Wire values match the `food_reports.reason` CHECK (V29,
- * V33). Apps since V33 send [WrongNumbers] and [MissingInfo] in place of the first two, and may
+ * V34). Apps since V34 send [WrongNumbers] and [MissingInfo] in place of the first two, and may
  * pick several; the older codes stay valid for the apps that send them.
  */
 enum class ReportReason(val wire: String) {
     WrongCalories("wrong_calories"),
     WrongNutrients("wrong_nutrients"),
 
-    /** Calories or nutrients are wrong (V33). */
+    /** Calories or nutrients are wrong (V34). */
     WrongNumbers("wrong_numbers"),
 
-    /** Something the pack gives is missing: a nutrient, the serving, ingredients (V33). */
+    /** Something the pack gives is missing: a nutrient, the serving, ingredients (V34). */
     MissingInfo("missing_info"),
     WrongServing("wrong_serving"),
     WrongName("wrong_name"),
@@ -224,7 +224,7 @@ object FoodCheck {
 
 class ReportPhoto(val bytes: ByteArray, val type: ImageType)
 
-/** Which side of the pack a report's or a verification's photo shows (V33). */
+/** Which side of the pack a report's or a verification's photo shows (V34). */
 enum class PackSide(val wire: String) {
     Front("front"),
     Label("label"),

@@ -13,7 +13,7 @@ https://cards.grafana.net/dashboards/f/opson. Pushed by hand or through the Graf
 | `user.json` | `opson-user` | Everything about one person: account and email, every build they ran, Settings choices, logging per day by method, features, sessions, guard, sync health, warnings, and a Sentry link. |
 | `logging.json` | `opson-logging` | How do people add food: method, precision, meals per day? |
 | `modes.json` | `opson-modes` | Which visibility modes do people choose, and how often does the pause stop someone? |
-| `foods.json` | `opson-foods` | Is the food database good enough? Zero-result searches and barcode misses. |
+| `foods.json` | `opson-foods` | Is the food database good enough? Zero-result searches, barcode misses, and whether each food's calories add up to its macros (by source, and the furthest off). |
 | `retention.json` | `opson-retention` | Do people keep logging? Weekly cohorts and day 1/7/30. |
 | `food-review.json` | `opson-food-review` | Are people's foods getting reviewed? The queue, its age, submissions and decisions per day, the approval rate, every pending item linked into the admin console, and the app's Add this food funnel. |
 | `builders.json` | `opson-builders` | Is anyone entering fake data, and who? Submissions, reports and corrections per day by state, the queues, a Database cleanup row with Builders' verifications and reports side by side (waiting, oldest, decisions per day, decided per reviewer), every contributor's volume, approval rate, disagreement with the label reading and pace, impossible values, duplicate photos, top reported foods, device checks and bans. Each account id opens the admin console to moderate it. Alert rules beside it in `alerts/builders.json`. |

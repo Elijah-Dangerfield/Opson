@@ -305,7 +305,7 @@ class FoodReportRoutesTest {
     fun severalReasonsWinOverTheOneAndBothSidesOfThePackAreKept() = runTest {
         withApp { client ->
             val jpeg = Base64.getEncoder().encodeToString(TestImages.jpeg)
-            // What the app sends since V33: the reasons, with the first in a code an older server knows.
+            // What the app sends since V34: the reasons, with the first in a code an older server knows.
             val body = request(reason = "wrong_nutrients", photo = jpeg)
                 .copy(reasons = listOf("missing_info", "wrong_numbers", "missing_info"), frontPhoto = jpeg)
             assertEquals(HttpStatusCode.Created, client.report(body).status)

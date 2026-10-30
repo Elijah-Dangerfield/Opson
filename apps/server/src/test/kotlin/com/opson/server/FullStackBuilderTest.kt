@@ -696,7 +696,7 @@ class FullStackBuilderTest : DatabaseTest() {
             val noProtein = panel.map { it.replace("Protein 3g", "Protein 9g") }
             val waiting = client.verify(builder, unread, request(noProtein, withPhotos = true)).body<VerificationResponse>()
             assertEquals("open", waiting.review)
-            // An app from before V33 sends no photos: as before, nothing waits.
+            // An app from before V34 sends no photos: as before, nothing waits.
             val legacy = client.verify(builder, old, request(noProtein, withPhotos = false)).body<VerificationResponse>()
             assertNull(legacy.review)
             assertEquals(1, client.verificationQueue().open)

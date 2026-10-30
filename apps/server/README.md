@@ -215,7 +215,7 @@ A trigger fills `tier` and `verified` from `source`, so loaders never write
 them; `food_source_tier()` is the one mapping, and `DatabaseSchemaTest`
 checks it against `CatalogSource`.
 
-**Checked (the app's Verified mark, V33).** `verified` says the source is
+**Checked (the app's Verified mark, V34).** `verified` says the source is
 accountable and search ranks by it. `checked` says a person checked this food
 against its pack, or a reviewer stood behind it: a Builder's verification
 confirmed by the label's text or accepted by a reviewer, a live reviewer's
@@ -492,9 +492,41 @@ unless the guard caught it out and a lower tier (the Open Food Facts copy)
 holds up. `GET /v1/foods/{id}` and a scan file a `zero_with_macros` food for
 review once (`energy_check`, below), so a person can fix it for good.
 
+**Energy math (`V33__food_energy_check.sql`).** Separately from the guard,
+every row in `foods` and `off_foods` records whether its calories add up to
+its macros: `energy_consistent`, `energy_gap_kcal` (per 100) and
+`energy_checked_at`. The rule is `food_energy_check()` in V33, explained in
+docs/food-data-sources.md ("Energy math"). Triggers keep it current on every
+insert, every change to a row's numbers or portions, and every correction;
+the Open Food Facts reload copies the trigger onto its staging table. Nothing
+reads it at serve time. `analytics.food_energy_by_source` and
+`food_energy_worst` feed the Food catalog board; they read `off_foods`
+through functions, because the reload's swap can't drop a table a view
+depends on (`DatabaseSchemaTest` holds that).
+
+Rows loaded before V33 are judged by `scripts/check_food_energy.py`, in
+committed batches of 5,000 in key order through `food_energy_backfill()`, so
+no table is locked for more than a moment. It only writes rows not judged
+yet: a stopped run resumes when re-run (or from the id it logged, with
+`--after`), and a finished run writes nothing. It vacuums every 250,000 rows
+written. Every row written leaves a dead copy until then, so check disk
+headroom before running it over `off_foods` (Supabase goes read-only at 95%);
+the next monthly reload judges `off_foods` anyway. Run it on dev first, then
+prod:
+
+```bash
+stty -echo; printf "Paste CATALOG_DATABASE_URL (prod): "; read -r DB; stty echo; printf "\n"
+[ -n "$DB" ] && CATALOG_DATABASE_URL="$DB" python3 -I scripts/check_food_energy.py --dry-run && CATALOG_DATABASE_URL="$DB" python3 -I scripts/check_food_energy.py --table foods; unset DB
+python3 -I -m unittest discover -s scripts -p 'test_check_food_energy.py'   # script unit tests
+```
+
+The first command counts, then judges `foods` only. Leave out `--table
+foods` to do `off_foods` too. After changing the rule, add
+`--recheck-before <the migration's deploy time>` to re-judge every row.
+
 **Reports and corrections (`V29__food_reports.sql`, behind `release.foodReports`
 in the app).** Anyone signed in can report a catalog food from its detail:
-what is wrong, as `reasons` (several at once since V33: `wrong_numbers`,
+what is wrong, as `reasons` (several at once since V34: `wrong_numbers`,
 `missing_info`, `wrong_serving`, `wrong_name`, `duplicate`, `not_food`,
 `other`; the V29 codes `wrong_calories` and `wrong_nutrients` stay valid) and
 `reason` (one code, which older servers read: the app sends its first reason
@@ -502,7 +534,7 @@ there, `wrong_numbers` as `wrong_nutrients` and `missing_info` as `other`; when
 `reasons` is there it wins), optionally the numbers they read on the pack for
 the amount they had on screen (`suggested`: `basisLabel`, `basisGrams`,
 `kcal`, `protein`, `carbs`, `fat`, `servingLabel`, `servingGrams`), a photo of
-the label (`photo`), one of the front (`frontPhoto`, V33) and a note. The
+the label (`photo`), one of the front (`frontPhoto`, V34) and a note. The
 report keeps the food as it was served to them. 400 `invalid_id`,
 `invalid_reason`, `invalid_values`, `invalid_note`, `invalid_image`,
 `invalid_body`; 404 `not_found`; 409 `id_conflict`; 413 `image_too_large`;
@@ -604,7 +636,9 @@ nutrient amount or a user id (`DatabaseSchemaTest` enforces both). The
 Grafana, create a login role outside migrations and grant it `grafana_ro`.
 `V13__barcode_misses.sql` adds `barcode_hit_rate_daily`, `top_missed_barcodes`
 and `barcode_misses_by_country` for the Food catalog board. `V16__waitlist.sql`
-adds `waitlist_daily` for Pulse.
+adds `waitlist_daily` for Pulse. `V33__food_energy_check.sql` adds
+`food_energy_by_source` and `food_energy_worst` (food ids and gaps, no names
+or stated values) for the Food catalog board.
 
 ### Support: installs and the user lookup (`V22__support_views.sql`)
 
@@ -733,7 +767,7 @@ skipped, for a reviewer to look at.
 
 **Provenance survives the account.** `food_provenance` gets a row whenever a
 submission is approved, a report accepted or a verification accepted by a
-reviewer (V33) (triggers, so no route can forget).
+reviewer (V34) (triggers, so no route can forget).
 `moderation_actions`, `moderation_events`, `food_provenance` and
 `device_markers` keep `user_id` only while the account exists (`ON DELETE SET
 NULL`) and carry `subject_key`, a SHA-256 of the id under a random secret the
@@ -840,7 +874,7 @@ reused photos), `contribution_checks_daily`, `moderation_daily` and
 volume, approval, disagreement rate, velocity, flags, standing),
 `support.photo_reuse` (by the SHA-256 the server keeps of each photo, which
 outlives the photos) and `support.moderation_actions` (no notes).
-Its Database cleanup row (V33) puts reports and verifications side by side:
+Its Database cleanup row (V34) puts reports and verifications side by side:
 `analytics.food_report_queue` and `analytics.food_verification_queue` (open,
 foods, oldest), `analytics.food_verifications_daily` (in, confirmed on
 arrival, sent for review, decided) and `analytics.food_review_decisions_daily`
@@ -925,7 +959,7 @@ submission limit is 60, up from 20. Photos of an active Builder who chose
 | POST | `/v1/builders/join` `{acceptTerms, termsVersion, photoRetention}` | Older apps' Join: applies. 400 `terms_required`; 403 `guest`, `too_new`, `removed`; 409 `full` (also a declined application still waiting). |
 | POST | `/v1/builders/leave` | The role goes; the row stays (`left`). Coming back is a new application; acceptance keeps the first join date. |
 | PUT | `/v1/builders/me` `{photoRetention}` | |
-| POST | `/v1/foods/{id}/verifications` `{id, engine, lines, problem?, photos?}` | A Builder's check against the pack: the label's text, read on the phone. `confirmed` when the food's four headline numbers, per 100 or per serving, are on their rows; once per person and food. V33: `problem` ("Something was wrong": `wrong` and `missing` field codes from `calories`, `macros`, `serving`, `name_brand`, `ingredients`, `barcode`, never both for one field; `values` the right ones for a basis like a report's `suggested`, plus `name`, `brand`, `barcode`; `note`) and `photos` (`front`, `label`, base64, 4 MB each). With a problem, or with photos and numbers the text did not show, it waits for a reviewer with the photos and the food as served, and the answer says `review: "open"`; an app before V33 sends neither and gets the old behaviour, and a server before V33 never says `review`. 400 `invalid_problem`, `invalid_image`; 403 `not_a_builder`, `contributions_restricted`; 404; 409; 413; 429. |
+| POST | `/v1/foods/{id}/verifications` `{id, engine, lines, problem?, photos?}` | A Builder's check against the pack: the label's text, read on the phone. `confirmed` when the food's four headline numbers, per 100 or per serving, are on their rows; once per person and food. V34: `problem` ("Something was wrong": `wrong` and `missing` field codes from `calories`, `macros`, `serving`, `name_brand`, `ingredients`, `barcode`, never both for one field; `values` the right ones for a basis like a report's `suggested`, plus `name`, `brand`, `barcode`; `note`) and `photos` (`front`, `label`, base64, 4 MB each). With a problem, or with photos and numbers the text did not show, it waits for a reviewer with the photos and the food as served, and the answer says `review: "open"`; an app before V34 sends neither and gets the old behaviour, and a server before V34 never says `review`. 400 `invalid_problem`, `invalid_image`; 403 `not_a_builder`, `contributions_restricted`; 404; 409; 413; 429. |
 | GET | `/v1/admin/food-verifications?status=open\|decided&limit=50` | `{open, verifications}`: waiting oldest first, or the latest decisions. Each has `wrong`, `missing`, `values`, `valuesPer100` (as accepting would store them), `note`, `snapshot` (as the Builder saw it), `now` (as served), `hasFrontPhoto`, `hasLabelPhoto`, the outcome and the decision. Each call deletes photos of verifications decided over 30 days ago. |
 | GET | `/v1/admin/food-verifications/{id}/photos/{front\|label}` | `Cache-Control: no-store`. |
 | POST | `/v1/admin/food-verifications/{id}/accept` `{values?, note?}` | Stands behind it: the outcome becomes `confirmed` (it counts toward Builder Pro, once per person and food) and the food is checked. `values` (per 100, name, brand, serving) lay a correction over the existing food through the V29 overlay. 409 `not_open`. |

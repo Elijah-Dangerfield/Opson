@@ -81,7 +81,7 @@ data class FoodReportDto(
     val resolution: String? = null,
     val correctionId: String? = null,
     val duplicateOf: String? = null,
-    /** Every reason picked, [reason] first; empty from a server before V33. */
+    /** Every reason picked, [reason] first; empty from a server before V34. */
     val reasons: List<String> = emptyList(),
     val hasFrontPhoto: Boolean = false,
 ) {

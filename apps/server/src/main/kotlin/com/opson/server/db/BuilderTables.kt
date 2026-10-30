@@ -20,7 +20,7 @@ object BuilderMembersTable : Table("builder_members") {
 }
 
 /**
- * A Builder's check of a catalog food against the pack (V31). One that needs a person (V33) is
+ * A Builder's check of a catalog food against the pack (V31). One that needs a person (V34) is
  * [status] `open`, with what they said was wrong ([problem]), the food as they saw it
  * ([snapshot]) and their photos in [FoodVerificationPhotosTable].
  */
@@ -43,7 +43,7 @@ object FoodVerificationsTable : Table("food_verifications") {
     override val primaryKey = PrimaryKey(id)
 }
 
-/** A verification's front and label photos (V33), deleted 30 days after the decision. */
+/** A verification's front and label photos (V34), deleted 30 days after the decision. */
 object FoodVerificationPhotosTable : Table("food_verification_photos") {
     val verificationId = uuid("verification_id")
     val kind = text("kind")

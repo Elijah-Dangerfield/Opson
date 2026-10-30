@@ -14,7 +14,7 @@ enum class VerificationOutcome(val wire: String) {
     Unconfirmed("unconfirmed"),
 }
 
-/** Where a verification that needs a person stands (V33). Null on one decided on arrival. */
+/** Where a verification that needs a person stands (V34). Null on one decided on arrival. */
 enum class VerificationStatus(val wire: String) {
     Open("open"),
 
@@ -157,7 +157,7 @@ data class ReviewerCount(
     val total: Int get() = reportsAccepted + reportsRejected + reportsDuplicate + verificationsAccepted + verificationsRejected
 }
 
-/** Limits on `POST /v1/foods/{id}/verifications` with a problem and photos (V33). */
+/** Limits on `POST /v1/foods/{id}/verifications` with a problem and photos (V34). */
 object FoodVerificationLimits {
     const val MAX_NOTE = FoodReportLimits.MAX_NOTE
     const val MAX_NAME = FoodReportLimits.MAX_NAME

@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- V33: verified foods, Builders' verifications for review, and reports v2
+-- V34: verified foods, Builders' verifications for review, and reports v2
 -- (docs/decisions.md, 2026-10-30, "What verified means").
 --
 -- A food is *checked* (the app's Verified mark) when a person checked it

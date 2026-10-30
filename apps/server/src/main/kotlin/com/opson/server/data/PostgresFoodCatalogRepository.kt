@@ -168,7 +168,7 @@ class PostgresFoodCatalogRepository(
      * Stored rows as they are served, in the current transaction: a reviewer's
      * live correction laid over each (`food_corrections`, V29), then the
      * energy guard ([ServedFood]), and whether a person checked it
-     * (`food_verifications`, V33). The importers only ever write the stored
+     * (`food_verifications`, V34). The importers only ever write the stored
      * rows, so a correction outlives every reload.
      */
     private fun served(foods: List<Food>): List<Food> {
