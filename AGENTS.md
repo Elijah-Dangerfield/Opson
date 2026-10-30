@@ -263,6 +263,7 @@ Everything Kotlin shows a person is in `libraries/resources/src/commonMain/compo
 - Code like a staff engineer
 - Use `Catching { }` from libraries/core instead of `runCatching`
 - Custom UI components in libraries/ui, avoid Material directly
+- A field holding an email, password, one-time code, name or birthday passes `content = FieldContent.X` (`NumberField`, `OutlinedTextField`): that sets the autofill hint on Android and `textContentType` on iOS, where Compose alone only knows email, password and phone. Dates are typed with `DateField` (a birthday with `BirthdayField` in `:libraries:diary:ui`), not picked from a calendar.
 - Check `ComposeApp.h` for Swift names of Kotlin types before using in Swift
 
 ### Comments and docs earn their upkeep, or they lie

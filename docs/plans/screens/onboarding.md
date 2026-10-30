@@ -15,6 +15,12 @@ Apple account runs setup, and meal times and the goal flow (2026-10-29: profile,
 follow the mode behind `release.onboardingSetup`. Where the two disagree, v2
 wins.
 
+**Setup reworked again in `docs/plans/onboarding-v4.md`** (2026-10-30): the goal
+flow starts with "Want to set a goal?", picks a kind of goal, asks about the body
+only for a goal that needs an energy estimate, and ends with "Keep a streak?" and
+the commitment only after a goal. The birthday is typed, on the age question
+before sign-in. Where they disagree, v4 wins.
+
 ## Source
 - Design v3: `docs/design/v3/CHANGES.md` (global rules, the Onboarding row,
   "Pricing on Welcome"), `manifest.json` notes for `onboarding-welcome`,
