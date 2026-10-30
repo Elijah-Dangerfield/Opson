@@ -126,14 +126,10 @@ in Opson opens the app.
 - **iOS.** `public/.well-known/apple-app-site-association` claims `/r/*` for
   `MSMDV43SUS.com.opson.Opson`, and `_headers` serves it as JSON. The app's side is
   the Associated Domains entitlement (`applinks:www.opsontracker.com`; the bare
-  domain forwards to www, and Apple doesn't follow a redirect to fetch the file). Only `iosAppDebug.entitlements` carries it today,
-  because a release build signs with an App Store profile that has to include the
-  capability, or the export fails. To turn it on for releases: in
-  developer.apple.com, Certificates, Identifiers & Profiles, Identifiers,
-  `com.opson.Opson`, tick Associated Domains and save; then copy the
-  `com.apple.developer.associated-domains` key from `iosAppDebug.entitlements` into
-  `iosApp.entitlements`. The next release's `get_provisioning_profile` makes a new
-  profile with it.
+  domain forwards to www, and Apple doesn't follow a redirect to fetch the file). Both
+  `iosAppDebug.entitlements` and `iosApp.entitlements` carry it, and Associated Domains is
+  registered on `com.opson.Opson` (done 2026-10-30 through the App Store Connect API), so a
+  release build's profile includes it.
 - **Android.** The manifest already asks Android to verify `/r/` links on
   `www.opsontracker.com`. Android checks `/.well-known/assetlinks.json`, which needs the SHA-256 of
   the certificate Google signs the app with: Play Console, the app, Test and release,
