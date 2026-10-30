@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Clock
@@ -260,6 +261,46 @@ class BarcodeScanViewModelTest : CoroutineTest() {
         vm.takeAction(BarcodeScanAction.TorchTapped)
         settle()
         assertEquals(Torch.Off, vm.state.torch)
+    }
+
+    @Test
+    fun lowLightSuggestsTheLightUntilItIsOnOrTheRoomIsLit() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.CameraStarted(hasTorch = true))
+        settle()
+        assertFalse(vm.state.suggestLight)
+
+        vm.takeAction(BarcodeScanAction.LowLightChanged(low = true))
+        settle()
+        assertTrue(vm.state.suggestLight)
+
+        vm.takeAction(BarcodeScanAction.TorchTapped)
+        settle()
+        assertFalse(vm.state.suggestLight, "the light is already on")
+
+        vm.takeAction(BarcodeScanAction.TorchTapped)
+        vm.takeAction(BarcodeScanAction.LowLightChanged(low = false))
+        settle()
+        assertFalse(vm.state.suggestLight, "lit again")
+    }
+
+    @Test
+    fun lowLightSuggestsNothingWithoutATorchOrWhileLookingUp() = runUnitTest {
+        val noTorch = vm()
+        settle()
+        noTorch.takeAction(BarcodeScanAction.CameraStarted(hasTorch = false))
+        noTorch.takeAction(BarcodeScanAction.LowLightChanged(low = true))
+        settle()
+        assertFalse(noTorch.state.suggestLight, "no light to try")
+
+        val vm = vm()
+        settle()
+        vm.takeAction(BarcodeScanAction.CameraStarted(hasTorch = true))
+        vm.takeAction(BarcodeScanAction.LowLightChanged(low = true))
+        vm.takeAction(ean13())
+        settle()
+        assertFalse(vm.state.suggestLight, "the code is already read")
     }
 
     @Test

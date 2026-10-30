@@ -51,7 +51,8 @@ interface BurnedRepository {
 /**
  * The Resting energy page's numbers. [calculatedKcal] is null while [missing] is not empty;
  * [healthKcal] is the store's most recent whole day, null without one (or `release.health` off).
- * [weightKg] is the latest weigh-in the calculation uses.
+ * [weightKg] is the latest weigh-in the calculation uses. [unusable] is [missing] plus any detail
+ * given but outside what the equation takes: what Today names when Burned can't be worked out.
  */
 data class RestingChoices(
     val calculatedKcal: Int?,
@@ -59,4 +60,5 @@ data class RestingChoices(
     val healthKcal: Int?,
     val healthSource: HealthSource?,
     val weightKg: Double?,
+    val unusable: Set<BodyDetail> = missing,
 )

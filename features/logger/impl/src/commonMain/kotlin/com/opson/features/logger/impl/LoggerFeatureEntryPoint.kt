@@ -549,6 +549,7 @@ class LoggerFeatureEntryPoint(
                     scanArea = request.scanArea,
                     torchOn = request.torchOn,
                     onTorchAvailable = { viewModel.takeAction(BarcodeScanAction.CameraStarted(hasTorch = it)) },
+                    onLowLight = { viewModel.takeAction(BarcodeScanAction.LowLightChanged(it)) },
                     focusPoint = request.focusPoint,
                     modifier = modifier,
                 )

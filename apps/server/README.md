@@ -486,6 +486,38 @@ unless the guard caught it out and a lower tier (the Open Food Facts copy)
 holds up. `GET /v1/foods/{id}` and a scan file a `zero_with_macros` food for
 review once (`energy_check`, below), so a person can fix it for good.
 
+**Energy math (`V33__food_energy_check.sql`).** Separately from the guard,
+every row in `foods` and `off_foods` records whether its calories add up to
+its macros: `energy_consistent`, `energy_gap_kcal` (per 100) and
+`energy_checked_at`. The rule is `food_energy_check()` in V33, explained in
+docs/food-data-sources.md ("Energy math"). Triggers keep it current on every
+insert, every change to a row's numbers or portions, and every correction;
+the Open Food Facts reload copies the trigger onto its staging table. Nothing
+reads it at serve time. `analytics.food_energy_by_source` and
+`food_energy_worst` feed the Food catalog board; they read `off_foods`
+through functions, because the reload's swap can't drop a table a view
+depends on (`DatabaseSchemaTest` holds that).
+
+Rows loaded before V33 are judged by `scripts/check_food_energy.py`, in
+committed batches of 5,000 in key order through `food_energy_backfill()`, so
+no table is locked for more than a moment. It only writes rows not judged
+yet: a stopped run resumes when re-run (or from the id it logged, with
+`--after`), and a finished run writes nothing. It vacuums every 250,000 rows
+written. Every row written leaves a dead copy until then, so check disk
+headroom before running it over `off_foods` (Supabase goes read-only at 95%);
+the next monthly reload judges `off_foods` anyway. Run it on dev first, then
+prod:
+
+```bash
+stty -echo; printf "Paste CATALOG_DATABASE_URL (prod): "; read -r DB; stty echo; printf "\n"
+[ -n "$DB" ] && CATALOG_DATABASE_URL="$DB" python3 -I scripts/check_food_energy.py --dry-run && CATALOG_DATABASE_URL="$DB" python3 -I scripts/check_food_energy.py --table foods; unset DB
+python3 -I -m unittest discover -s scripts -p 'test_check_food_energy.py'   # script unit tests
+```
+
+The first command counts, then judges `foods` only. Leave out `--table
+foods` to do `off_foods` too. After changing the rule, add
+`--recheck-before <the migration's deploy time>` to re-judge every row.
+
 **Reports and corrections (`V29__food_reports.sql`, behind `release.foodReports`
 in the app).** Anyone signed in can report a catalog food from its detail:
 what is wrong (`wrong_calories`, `wrong_nutrients`, `wrong_serving`,
@@ -591,7 +623,9 @@ nutrient amount or a user id (`DatabaseSchemaTest` enforces both). The
 Grafana, create a login role outside migrations and grant it `grafana_ro`.
 `V13__barcode_misses.sql` adds `barcode_hit_rate_daily`, `top_missed_barcodes`
 and `barcode_misses_by_country` for the Food catalog board. `V16__waitlist.sql`
-adds `waitlist_daily` for Pulse.
+adds `waitlist_daily` for Pulse. `V33__food_energy_check.sql` adds
+`food_energy_by_source` and `food_energy_worst` (food ids and gaps, no names
+or stated values) for the Food catalog board.
 
 ### Support: installs and the user lookup (`V22__support_views.sql`)
 
