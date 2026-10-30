@@ -55,6 +55,8 @@ data class Recipe(
     val notes: String? = null,
     val savedFrom: String? = null,
     val sharing: RecipeSharing = RecipeSharing.Private,
+    /** When it last changed on a phone, the sync's last-write-wins stamp. Sharing sends it with the recipe. */
+    val updatedAtEpochMs: Long = 0,
 ) {
     /** The whole batch. */
     val totals: Totals get() = ingredients.fold(Totals.Empty) { acc, d ->

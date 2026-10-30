@@ -462,6 +462,7 @@ internal fun RecipeEntity.toDomain(): Recipe = Recipe(
     notes = notes,
     savedFrom = savedFrom,
     sharing = RecipeSharing(code = publicCode, state = RecipeShareState.fromWire(publicState), showName = publicShowName),
+    updatedAtEpochMs = clientUpdatedAtEpochMs,
 )
 
 /** A new or edited recipe, keeping the sharing the server last gave [kept]. */
