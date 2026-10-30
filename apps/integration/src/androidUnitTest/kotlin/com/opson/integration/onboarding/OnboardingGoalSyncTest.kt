@@ -1,6 +1,6 @@
 package com.opson.integration.onboarding
 
-import com.opson.features.onboarding.impl.GoalPick
+import com.opson.libraries.nutrition.GoalKind
 import com.opson.features.onboarding.impl.NumbersFeel
 import com.opson.features.onboarding.impl.PlanAnswers
 import com.opson.features.onboarding.impl.PlanContext
@@ -55,7 +55,7 @@ class OnboardingGoalSyncTest : IntegrationTest() {
             streakOffered = true,
             birthdayAsked = true,
         )
-        val answers = PlanAnswers(wants = true, pick = GoalPick.Meals, meals = 4, streak = true)
+        val answers = PlanAnswers(wants = true, pick = GoalKind.Meals, meals = 4, streak = true)
         phone.settings.update(stampNumbersChange = false) {
             val started = it.startingWith(PresetId.Full, SetupAnswers(feel = NumbersFeel.LoveThem)).copy(celebrationsEnabled = false)
             PlanFlow.save(started.withBirthDate(LocalDate(1990, 7, 2)), answers, context)

@@ -17,7 +17,9 @@ import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.BodyStage
 import com.opson.libraries.nutrition.Display
+import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.GoalKind
 import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.PresetId
@@ -174,7 +176,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         val settings = FakeSettingsRepository()
         val weights = FakeWeightRepository()
         val vm = atKind(listOf(NumbersFeel.LoveThem), settings = settings, weights = weights)
-        plan(vm, PlanAction.GoalPicked(GoalPick.Meals))
+        plan(vm, PlanAction.GoalPicked(GoalKind.Meals))
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
         assertEquals(OnboardingStep.Plan(PlanStep.MealCount), vm.state.step)
@@ -195,7 +197,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
     @Test
     fun withCelebrationsOff_aGoalGoesStraightToTheCommitment() = runUnitTest {
         val vm = atKind(listOf(NumbersFeel.LoveThem), celebrations = false)
-        plan(vm, PlanAction.GoalPicked(GoalPick.ShowUp))
+        plan(vm, PlanAction.GoalPicked(GoalKind.TrackEveryDay))
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
         assertEquals(OnboardingStep.Plan(PlanStep.Commit), vm.state.step)
@@ -207,12 +209,12 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         val weights = FakeWeightRepository()
         val vm = atKind(listOf(NumbersFeel.LoveThem, StatementAnswer.Agree), settings = settings, weights = weights)
         assertEquals(PresetId.MacrosWithGrams, vm.state.chosen)
-        assertEquals(listOf(GoalPick.ShowUp, GoalPick.Meals), vm.state.planView!!.kind.picks)
+        assertEquals(listOf(GoalKind.TrackEveryDay, GoalKind.Meals), vm.state.planView!!.kind.picks)
 
-        plan(vm, PlanAction.GoalPicked(GoalPick.Weight))
+        plan(vm, PlanAction.GoalPicked(GoalKind.Weight))
         runCurrent()
         assertNull(vm.state.plan.pick, "a weight goal isn't offered")
-        plan(vm, PlanAction.GoalPicked(GoalPick.ShowUp))
+        plan(vm, PlanAction.GoalPicked(GoalKind.TrackEveryDay))
         vm.takeAction(OnboardingAction.ContinueTapped)
         plan(vm, PlanAction.StreakPicked(keep = true))
         vm.takeAction(OnboardingAction.CommitTapped(committed = true))
@@ -247,7 +249,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
     fun anEnergyBalance_walksTheProfile_andSetsTheTargetFromIt() = runUnitTest {
         val settings = FakeSettingsRepository()
         val vm = atKind(listOf(NumbersFeel.LoveThem), settings = settings, region = "US")
-        plan(vm, PlanAction.GoalPicked(GoalPick.WeeklyBalance))
+        plan(vm, PlanAction.GoalPicked(GoalKind.EnergyBalance))
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
         assertEquals(OnboardingStep.Plan(PlanStep.Profile), vm.state.step)
@@ -257,8 +259,15 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         assertEquals(OnboardingStep.Plan(PlanStep.Balance), vm.state.step)
         val balance = vm.state.planView!!.balance!!
         assertEquals("250 kcal", (balance.amount as Display.Shown).text)
-        assertTrue(balance.weekly)
-        plan(vm, PlanAction.BalanceStepped(more = true))
+        assertEquals("250", balance.text)
+        assertTrue(balance.weeklyOffered)
+        assertFalse(balance.weekly, "each day, until a weekly average is picked")
+        plan(vm, PlanAction.AveragingPicked(GoalAveraging.Weekly))
+        plan(vm, PlanAction.BalanceTyped("350"))
+        plan(vm, PlanAction.BalanceStepped(more = false))
+        runCurrent()
+        assertTrue(vm.state.planView!!.balance!!.weekly)
+        assertEquals("300", vm.state.planView!!.balance!!.text, "a step after typing shows the amount")
         repeat(2) { vm.takeAction(OnboardingAction.ContinueTapped) }
         plan(vm, PlanAction.StreakPicked(keep = true))
         vm.takeAction(OnboardingAction.CommitTapped(committed = true))
@@ -266,6 +275,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
 
         val goal = GoalBook.driving(settings.settings.value)!!
         assertEquals(GoalType.EnergyBalance(-300), goal.type)
+        assertEquals(GoalAveraging.Weekly, goal.averaging)
         assertEquals(goal.targetsKcal, settings.settings.value.targets.energyKcal)
     }
 
@@ -276,7 +286,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         val vm = atProfile(listOf(NumbersFeel.LoveThem), settings = settings, weights = weights, region = "US")
         typeImperialBody(vm)
         vm.takeAction(OnboardingAction.Back)
-        plan(vm, PlanAction.GoalPicked(GoalPick.Burn))
+        plan(vm, PlanAction.GoalPicked(GoalKind.Burn))
         vm.takeAction(OnboardingAction.ContinueTapped)
         vm.takeAction(OnboardingAction.ContinueTapped)
         plan(vm, PlanAction.StreakPicked(keep = true))
@@ -527,7 +537,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         healthOn: Boolean = false,
     ): OnboardingViewModel {
         val vm = atKind(answers, settings = settings, weights = weights, region = region, health = health, healthOn = healthOn)
-        plan(vm, PlanAction.GoalPicked(GoalPick.Weight))
+        plan(vm, PlanAction.GoalPicked(GoalKind.Weight))
         vm.takeAction(OnboardingAction.ContinueTapped)
         runCurrent()
         check(vm.state.step == OnboardingStep.Plan(PlanStep.Profile)) { "expected the profile step, was ${vm.state.step}" }

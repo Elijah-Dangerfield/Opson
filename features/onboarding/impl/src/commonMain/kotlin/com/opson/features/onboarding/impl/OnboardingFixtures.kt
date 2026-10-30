@@ -4,7 +4,9 @@ import com.opson.libraries.core.fixed
 import com.opson.libraries.diary.MealTimes
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.nutrition.EverydayActivity
+import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.GoalKind
 import com.opson.libraries.nutrition.HeightInput
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.NumbersSettings
@@ -76,7 +78,8 @@ object OnboardingFixtures {
     /** 400 a day under a typical day, in [ImperialBody]. [weekly] averages it across the week. */
     fun balance(weekly: Boolean = false): PlanAnswers = PlanAnswers(
         body = ImperialBody,
-        pick = if (weekly) GoalPick.WeeklyBalance else GoalPick.Balance,
+        pick = GoalKind.EnergyBalance,
+        averaging = if (weekly) GoalAveraging.Weekly else GoalAveraging.Daily,
         balance = BalanceAnswer(under = true, kcal = 400),
     )
 
@@ -131,7 +134,7 @@ object OnboardingFixtures {
         health: HealthOffer = HealthOffer.Unavailable,
         policy: VisibilityPolicy? = null,
     ): OnboardingState {
-        val wanted = if (step == PlanStep.Ask || plan.wants != null) plan else plan.copy(wants = true, pick = plan.pick ?: GoalPick.Weight)
+        val wanted = if (step == PlanStep.Ask || plan.wants != null) plan else plan.copy(wants = true, pick = plan.pick ?: GoalKind.Weight)
         val state = OnboardingState(
             step = OnboardingStep.Plan(step),
             answers = answers,

@@ -4,6 +4,9 @@ import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.Birthdays
 import com.opson.libraries.goals.GoalStreaks
+import com.opson.libraries.goals.ui.ProjectionChartUi
+import com.opson.libraries.goals.ui.ProjectionCharts
+import com.opson.libraries.nutrition.GoalProjections
 import com.opson.libraries.nutrition.BaselineEnvironment
 import com.opson.libraries.nutrition.BaselineInputs
 import com.opson.libraries.nutrition.BodyFatFrom
@@ -88,24 +91,6 @@ enum class PlanStep(val eventName: String) {
     /** "Keep a streak?" Onboarding only, with celebrations on. */
     Streak("streak"),
     Commit("commitment"),
-}
-
-/**
- * The goals onboarding offers, each one of the engine's [GoalKind]s. An energy balance comes two
- * ways, judged each day or averaged across the week, as the owner listed them. Steps are left out
- * until something reads them.
- */
-enum class GoalPick(val kind: GoalKind, val averaging: GoalAveraging = GoalAveraging.Daily) {
-    Weight(GoalKind.Weight),
-    Balance(GoalKind.EnergyBalance),
-    WeeklyBalance(GoalKind.EnergyBalance, GoalAveraging.Weekly),
-    Burn(GoalKind.Burn),
-    ShowUp(GoalKind.TrackEveryDay),
-    Meals(GoalKind.Meals),
-    ;
-
-    /** Whether it sets the day's calorie target, and so needs a typical day's burn: the profile and the activity. */
-    val setsCalories: Boolean get() = kind == GoalKind.Weight || kind == GoalKind.EnergyBalance
 }
 
 /**
@@ -243,13 +228,20 @@ data class PlanAnswers(
     val goal: GoalAnswer = GoalAnswer(),
     /** "Want to set a goal?": yes, "Not now", or not answered yet. */
     val wants: Boolean? = null,
-    /** The kind of goal, once picked. */
-    val pick: GoalPick? = null,
+    /** The kind of goal, once picked ([PlanFlow.picks]). */
+    val pick: GoalKind? = null,
     val balance: BalanceAnswer = BalanceAnswer(),
+    /** An energy balance judged each day, or averaged across the week where that is offered. */
+    val averaging: GoalAveraging = GoalAveraging.Daily,
     /** Active energy a day, for a burn goal. */
     val burnKcal: Int = DEFAULT_BURN_KCAL,
     /** Meals a day, for a meals goal. */
     val meals: Int = GoalType.DEFAULT_MEALS,
+    /**
+     * The amount being typed into the step's number (the balance, the burn or the meals): kept
+     * as typed, and the amount follows it once it is a number in range. Cleared by a step.
+     */
+    val typing: String? = null,
     /** "Keep a streak?": yes, no, or not asked. */
     val streak: Boolean? = null,
 ) {
@@ -323,7 +315,7 @@ data class PlanContext(
 sealed interface PlanAction {
     /** "Yes, help me set one" or "Not now, just let me log". The view model moves on from it. */
     data class WantsGoal(val wants: Boolean) : PlanAction
-    data class GoalPicked(val pick: GoalPick) : PlanAction
+    data class GoalPicked(val kind: GoalKind) : PlanAction
     data class SexPicked(val sex: SexChoice) : PlanAction
 
     /** The profile's birthday boxes, in Today's flow; onboarding asked it before sign-in. */
@@ -349,10 +341,18 @@ sealed interface PlanAction {
     /** Under or over a typical day, for an energy balance. */
     data class BalanceSidePicked(val under: Boolean) : PlanAction
 
+    /** Each day, or a weekly average, for an energy balance. */
+    data class AveragingPicked(val averaging: GoalAveraging) : PlanAction
+
     /** A step less or more: the balance, the active energy, the meals. */
     data class BalanceStepped(val more: Boolean) : PlanAction
     data class BurnStepped(val more: Boolean) : PlanAction
     data class MealsStepped(val more: Boolean) : PlanAction
+
+    /** The same amounts typed. */
+    data class BalanceTyped(val text: String) : PlanAction
+    data class BurnTyped(val text: String) : PlanAction
+    data class MealsTyped(val text: String) : PlanAction
 
     /** "Yes, keep a streak" or "No streak". The view model moves on from it. */
     data class StreakPicked(val keep: Boolean) : PlanAction
@@ -411,30 +411,30 @@ object PlanFlow {
     private fun stage(answers: PlanAnswers): BodyStage = answers.body.sex?.stage ?: BodyStage.None
 
     /**
-     * The kinds of goal onboarding offers through [context]'s mode ([GoalCatalog.offered]): the
-     * gentle ones only after numbers have been hard or under 18, a weekly average only where
-     * [GoalCatalog.weeklyOffered]. Pregnancy isn't known yet when the kind is picked; the steps
-     * after it allow for it.
+     * The kinds of goal onboarding offers through [context]'s mode ([GoalCatalog.offered]), in its
+     * order: the gentle ones only after numbers have been hard or under 18. Pregnancy isn't known
+     * yet when the kind is picked; the steps after it allow for it.
      */
-    fun picks(context: PlanContext): List<GoalPick> {
-        val kinds = GoalCatalog.offered(context.policy, context.hard)
-        return buildList {
-            if (GoalKind.Weight in kinds) add(GoalPick.Weight)
-            if (GoalKind.EnergyBalance in kinds) {
-                add(GoalPick.Balance)
-                if (GoalCatalog.weeklyOffered(context.policy, context.hard)) add(GoalPick.WeeklyBalance)
-            }
+    fun picks(context: PlanContext): List<GoalKind> = GoalCatalog.offered(context.policy, context.hard).filter { kind ->
+        when (kind) {
             // Its number is energy in kcal, so calories have to be on show too, as for the overview's working.
-            if (GoalKind.Burn in kinds && context.energyOutShown) add(GoalPick.Burn)
-            // TODO(steps): offer GoalKind.Steps once a steps source reads them (goals-v2, "Goal types").
-            if (GoalKind.TrackEveryDay in kinds) add(GoalPick.ShowUp)
-            if (GoalKind.Meals in kinds) add(GoalPick.Meals)
+            GoalKind.Burn -> context.energyOutShown
+            // TODO(steps): offer steps once a steps source reads them (goals-v2, "Goal types").
+            GoalKind.Steps, GoalKind.Unknown -> false
+            else -> true
         }
     }
 
+    /** Whether an energy balance may be averaged across the week here ([GoalCatalog.weeklyOffered]). */
+    fun weeklyOffered(context: PlanContext): Boolean = GoalCatalog.weeklyOffered(context.policy, context.hard)
+
+    /** How an energy balance is judged: as picked where a weekly average is offered, else each day. */
+    fun averaging(answers: PlanAnswers, context: PlanContext): GoalAveraging =
+        if (pick(answers, context) == GoalKind.EnergyBalance && weeklyOffered(context)) answers.averaging else GoalAveraging.Daily
+
     /** The kind these answers set a goal of: onboarding's pick, or Today's weight goal. */
-    fun pick(answers: PlanAnswers, context: PlanContext): GoalPick? = when {
-        !context.asks -> GoalPick.Weight
+    fun pick(answers: PlanAnswers, context: PlanContext): GoalKind? = when {
+        !context.asks -> GoalKind.Weight
         answers.wants != true -> null
         else -> answers.pick?.takeIf { it in picks(context) }
     }
@@ -448,7 +448,7 @@ object PlanFlow {
         }
         val pick = pick(answers, context) ?: return@buildList
         when (pick) {
-            GoalPick.Weight -> {
+            GoalKind.Weight -> {
                 add(PlanStep.Profile)
                 add(PlanStep.Activity)
                 if (showsGoal(answers, context)) {
@@ -457,15 +457,15 @@ object PlanFlow {
                 }
                 add(PlanStep.Overview)
             }
-            GoalPick.Balance, GoalPick.WeeklyBalance -> {
+            GoalKind.EnergyBalance -> {
                 add(PlanStep.Profile)
                 add(PlanStep.Activity)
                 if (showsBalance(answers, context)) add(PlanStep.Balance)
                 add(PlanStep.Overview)
             }
-            GoalPick.Burn -> add(PlanStep.Burn)
-            GoalPick.Meals -> add(PlanStep.MealCount)
-            GoalPick.ShowUp -> Unit
+            GoalKind.Burn -> add(PlanStep.Burn)
+            GoalKind.Meals -> add(PlanStep.MealCount)
+            GoalKind.TrackEveryDay, GoalKind.Steps, GoalKind.Unknown -> Unit
         }
         if (context.asks && context.streakOffered) add(PlanStep.Streak)
         add(PlanStep.Commit)
@@ -480,7 +480,7 @@ object PlanFlow {
         val body = answers.body
         return when (action) {
             is PlanAction.WantsGoal -> answers.copy(wants = action.wants)
-            is PlanAction.GoalPicked -> if (action.pick in picks(context)) answers.copy(pick = action.pick) else answers
+            is PlanAction.GoalPicked -> if (action.kind in picks(context)) answers.copy(pick = action.kind, typing = null) else answers
             is PlanAction.SexPicked -> answers.copy(body = body.copy(sex = action.sex))
             is PlanAction.BirthdayTyped -> answers.copy(
                 body = body.copy(birthday = action.parts, birthDate = Birthdays.dateOrNull(action.parts, context.today, Birthdays.EQUATION_AGES)),
@@ -495,17 +495,36 @@ object PlanFlow {
             is PlanAction.DirectionPicked -> answers.copy(goal = answers.goal.copy(direction = action.direction))
             is PlanAction.TargetTyped -> answers.copy(goal = answers.goal.copy(target = answers.goal.target.typed(action.text)))
             is PlanAction.RateStepped -> stepRate(answers, context, action.faster)
-            is PlanAction.BalanceSidePicked -> answers.copy(balance = answers.balance.copy(under = action.under).fitted(answers, context))
-            is PlanAction.BalanceStepped -> stepBalance(answers, context, action.more)
+            is PlanAction.BalanceSidePicked -> answers.copy(balance = answers.balance.copy(under = action.under).fitted(answers, context), typing = null)
+            is PlanAction.AveragingPicked -> if (weeklyOffered(context)) answers.copy(averaging = action.averaging) else answers
+            is PlanAction.BalanceStepped -> stepBalance(answers, context, action.more).copy(typing = null)
             is PlanAction.BurnStepped -> answers.copy(
                 burnKcal = (answers.burnKcal + if (action.more) PlanAnswers.BURN_STEP_KCAL else -PlanAnswers.BURN_STEP_KCAL)
                     .coerceIn(PlanAnswers.BURN_KCAL),
+                typing = null,
             )
-            is PlanAction.MealsStepped -> answers.copy(meals = (answers.meals + if (action.more) 1 else -1).coerceIn(PlanAnswers.MEALS))
+            is PlanAction.MealsStepped -> answers.copy(meals = (answers.meals + if (action.more) 1 else -1).coerceIn(PlanAnswers.MEALS), typing = null)
+            is PlanAction.BalanceTyped -> typed(answers, action.text, BalanceAnswer.STEP_KCAL..balanceMax(answers, context).coerceAtLeast(BalanceAnswer.STEP_KCAL)) {
+                answers.copy(balance = answers.balance.copy(kcal = it))
+            }
+            is PlanAction.BurnTyped -> typed(answers, action.text, PlanAnswers.BURN_KCAL) { answers.copy(burnKcal = it) }
+            is PlanAction.MealsTyped -> typed(answers, action.text, PlanAnswers.MEALS) { answers.copy(meals = it) }
             is PlanAction.StreakPicked -> answers.copy(streak = action.keep)
             PlanAction.ConnectHealthTapped, PlanAction.FindSupportTapped -> answers
         }
     }
+
+    /**
+     * A step's number typed: kept as typed while it is being typed, and the amount follows once it
+     * is a whole number in [range]. A number past the range waits, as typed, for the person to fix it.
+     */
+    private fun typed(answers: PlanAnswers, text: String, range: IntRange, set: (Int) -> PlanAnswers): PlanAnswers {
+        val digits = text.filter { it in '0'..'9' }.take(MAX_TYPED_DIGITS)
+        val value = digits.toIntOrNull()?.takeIf { it in range }
+        return (value?.let(set) ?: answers).copy(typing = digits)
+    }
+
+    private const val MAX_TYPED_DIGITS = 5
 
     /**
      * Continue on [step]: the kind needs one picked, the weight goal a direction and a usable
@@ -613,7 +632,7 @@ object PlanFlow {
 
     /** The goal these answers set, or [WeightGoal.None] when no goal step was answered. */
     fun weightGoal(answers: PlanAnswers, context: PlanContext): WeightGoal {
-        if (pick(answers, context) != GoalPick.Weight || !showsGoal(answers, context)) return WeightGoal.None
+        if (pick(answers, context) != GoalKind.Weight || !showsGoal(answers, context)) return WeightGoal.None
         val goal = answers.goal
         val start = answers.body.weightKgOrNull()
         return when (goal.direction) {
@@ -640,8 +659,8 @@ object PlanFlow {
     fun goal(answers: PlanAnswers, context: PlanContext, current: Settings?): Goal? {
         val baseline = inputs(answers, context)?.let(GoalBaselines::of)
         return when (pick(answers, context)) {
-            null -> null
-            GoalPick.Weight -> {
+            null, GoalKind.Steps, GoalKind.Unknown -> null
+            GoalKind.Weight -> {
                 val legacy = weightGoal(answers, context)
                 val direction = legacy.direction
                 if (direction != GoalDirection.Lose && direction != GoalDirection.Gain && direction != GoalDirection.Maintain) return null
@@ -655,20 +674,20 @@ object PlanFlow {
                     baseline = baseline,
                 )
             }
-            GoalPick.Balance, GoalPick.WeeklyBalance -> if (showsBalance(answers, context)) {
+            GoalKind.EnergyBalance -> if (showsBalance(answers, context)) {
                 Goal(
                     id = GoalKind.EnergyBalance.key,
                     type = GoalType.EnergyBalance(answers.balance.deltaKcal),
                     startDate = context.today,
-                    averaging = answers.pick?.averaging ?: GoalAveraging.Daily,
+                    averaging = averaging(answers, context),
                     baseline = baseline,
                 )
             } else {
                 null
             }
-            GoalPick.Burn -> Goal(GoalKind.Burn.key, GoalType.Burn(answers.burnKcal, BurnMeasure.Active), context.today)
-            GoalPick.Meals -> Goal(GoalKind.Meals.key, GoalType.Meals(answers.meals), context.today)
-            GoalPick.ShowUp -> Goal(GoalKind.TrackEveryDay.key, GoalType.TrackEveryDay, context.today)
+            GoalKind.Burn -> Goal(GoalKind.Burn.key, GoalType.Burn(answers.burnKcal, BurnMeasure.Active), context.today)
+            GoalKind.Meals -> Goal(GoalKind.Meals.key, GoalType.Meals(answers.meals), context.today)
+            GoalKind.TrackEveryDay -> Goal(GoalKind.TrackEveryDay.key, GoalType.TrackEveryDay, context.today)
         }
     }
 
@@ -786,7 +805,7 @@ data class ActivityView(
 }
 
 /** The kinds of goal on offer, and the one picked. */
-data class KindView(val picks: List<GoalPick>, val picked: GoalPick?)
+data class KindView(val picks: List<GoalKind>, val picked: GoalKind?)
 
 data class GoalView(
     val directions: List<GoalDirection>,
@@ -831,14 +850,18 @@ data class RateView(
  */
 data class BalanceView(
     val under: Boolean,
-    /** "250 kcal" a day under or over. */
+    /** "250 kcal" a day under or over; Hidden where calories don't show, and then no stepper. */
     val amount: Display,
+    /** The number in the stepper: as typed, or the amount. */
+    val text: String,
     val canLess: Boolean,
     val canMore: Boolean,
     /** "1,950 kcal", the day's target this means; Hidden while details are missing. */
     val target: Display,
     /** Averaged across the week. */
     val weekly: Boolean,
+    /** Daily or Weekly average is offered ([PlanFlow.weeklyOffered]). */
+    val weeklyOffered: Boolean = false,
     /** The tier note: gentle, steady, faster, or past the fat-loss limit. */
     val pace: PaceAssessment? = null,
     val limit: Display = Display.Hidden,
@@ -848,10 +871,10 @@ data class BalanceView(
 )
 
 /** A burn goal's step: active energy a day, through the policy as energy out. */
-data class BurnView(val amount: Display, val canLess: Boolean, val canMore: Boolean)
+data class BurnView(val amount: Display, val text: String, val canLess: Boolean, val canMore: Boolean)
 
 /** A meals goal's step: meals a day. A count, not a nutrition number. */
-data class MealCountView(val count: Int, val canLess: Boolean, val canMore: Boolean)
+data class MealCountView(val count: Int, val text: String, val canLess: Boolean, val canMore: Boolean)
 
 /** Which overview the answers lead to. */
 enum class OverviewKind {
@@ -900,6 +923,11 @@ data class OverviewView(
     val stage: BodyStage = BodyStage.None,
     /** An energy balance averaged across the week. */
     val weekly: Boolean = false,
+    /**
+     * A weight goal's projection, drawn in as the plan appears (`GoalReveal`): only where weight is
+     * on show and there is a goal weight, a pace and a typical day to project from.
+     */
+    val chart: ProjectionChartUi? = null,
 )
 
 object PlanViews {
@@ -965,10 +993,12 @@ object PlanViews {
         return BalanceView(
             under = balance.under,
             amount = energy(balance.kcal, context),
+            text = answers.typing ?: balance.kcal.toString(),
             canLess = balance.kcal > BalanceAnswer.STEP_KCAL,
             canMore = balance.kcal < PlanFlow.balanceMax(answers, context),
             target = target?.let { energy(it.aimKcal, context) } ?: Display.Hidden,
-            weekly = answers.pick == GoalPick.WeeklyBalance,
+            weekly = PlanFlow.averaging(answers, context) == GoalAveraging.Weekly,
+            weeklyOffered = PlanFlow.weeklyOffered(context),
             pace = GoalPace.assessDelta(balance.deltaKcal, profile.weightKg, limit),
             limit = limit?.kcalPerDay?.let { energy(it, context) } ?: Display.Hidden,
             limitEstimated = limit?.bodyFat?.from == BodyFatFrom.Estimated,
@@ -979,12 +1009,14 @@ object PlanViews {
 
     fun burn(answers: PlanAnswers, context: PlanContext): BurnView = BurnView(
         amount = burnPart(answers.burnKcal, context),
+        text = answers.typing ?: answers.burnKcal.toString(),
         canLess = answers.burnKcal > PlanAnswers.BURN_KCAL.first,
         canMore = answers.burnKcal < PlanAnswers.BURN_KCAL.last,
     )
 
     fun mealCount(answers: PlanAnswers): MealCountView = MealCountView(
         count = answers.meals,
+        text = answers.typing ?: answers.meals.toString(),
         canLess = answers.meals > PlanAnswers.MEALS.first,
         canMore = answers.meals < PlanAnswers.MEALS.last,
     )
@@ -997,13 +1029,14 @@ object PlanViews {
         val aim = targets?.energyKcal
         val pick = PlanFlow.pick(answers, context)
         // Against what a day burns eating the target, digesting food included where it counts.
-        val planned = PlanFlow.goal(answers, context, current)?.let(GoalTargets::of)
+        val plannedGoal = PlanFlow.goal(answers, context, current)
+        val planned = plannedGoal?.let(GoalTargets::of)
         val difference = when {
             planned != null -> planned.deltaKcal
             aim != null && burn != null -> aim - burn - stage.extraKcal
             else -> 0
         }
-        val balance = (pick == GoalPick.Balance || pick == GoalPick.WeeklyBalance) && PlanFlow.showsBalance(answers, context)
+        val balance = pick == GoalKind.EnergyBalance && PlanFlow.showsBalance(answers, context)
         val wouldSetTargets = goal.direction == GoalDirection.Lose || goal.direction == GoalDirection.Gain ||
             goal.direction == GoalDirection.Maintain || balance || (context.fresh && context.caloriesShown)
         val kind = when {
@@ -1032,8 +1065,17 @@ object PlanViews {
             burned = burn?.let { burnPart(it + stage.extraKcal, context) } ?: Display.Hidden,
             needsDetails = burn == null && wouldSetTargets,
             stage = stage,
-            weekly = balance && pick == GoalPick.WeeklyBalance,
+            weekly = balance && PlanFlow.averaging(answers, context) == GoalAveraging.Weekly,
+            chart = plannedGoal?.let { chart(it, answers, context) },
         )
+    }
+
+    /** [goal]'s projection from the weight typed, today, laid out through the mode's policy. */
+    private fun chart(goal: Goal, answers: PlanAnswers, context: PlanContext): ProjectionChartUi? {
+        val type = goal.weight ?: return null
+        val fromKg = answers.body.weightKgOrNull() ?: return null
+        val projection = GoalProjections.weight(goal, fromKg, context.today) ?: return null
+        return ProjectionCharts.ui(projection, type.targetKg, type.direction, answers.body.weightUnit, context.policy)
     }
 
     private fun weight(kg: Double?, unit: WeightUnit, context: PlanContext): Display =

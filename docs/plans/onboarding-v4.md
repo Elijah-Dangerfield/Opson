@@ -29,21 +29,25 @@ Welcome (beta card with release.betaNotice)
   → Want to set a goal?                                  (release.onboardingSetup from here)
       Not now, just let me log → save, Today. Nothing about a body asked.
       Yes, help me set one → What kind of goal?
-          A weight goal      → profile, activity, lose/keep/gain, pace, overview
-          A daily deficit or surplus / A weekly average
-                             → profile, activity, how much under or over, overview
-          Move more          → active energy a day
+          Weight             → profile, activity, lose/keep/gain, pace, overview (the plan drawn in)
+          Energy balance     → profile, activity, how much under or over (each day or a weekly
+                               average), overview
+          Burn               → active energy a day
           Track every day    → (nothing more)
-          Regular meals      → meals a day
+          Meals              → meals a day
       → Keep a streak? (with release.celebrations on)
       → I'm committed / Not now → save, Today
 ```
 
+- **The pieces are the goal screens' own** (`:libraries:goals:ui`): the kinds and their lines
+  (`GoalKindChoices`), the typed stepper for each amount (`TypedStepper` in a `GoalPanel`),
+  Daily or Weekly average (`AveragingChoice`), and on a weight goal's overview the projection
+  drawn in with the success tap (`GoalReveal`). A goal is set the same way here as in More.
 - **Kinds on offer** follow `GoalCatalog.offered` for the mode being started. A weight goal needs
-  weight on show; an energy balance and moving more need calories and energy out on show; the
+  weight on show; an energy balance and a burn goal need calories and energy out on show; the
   weekly average needs `GoalCatalog.weeklyOffered`. After "numbers have been hard", and for 16
-  and 17 year olds, only Track every day and Regular meals. Steps are left out until a steps
-  source exists (`TODO(steps)` in `PlanFlow.picks`).
+  and 17 year olds, only Track every day and Meals. Steps are left out until a steps source
+  exists (`TODO(steps)` in `PlanFlow.picks`).
 - **The body** (sex, height, weight) and a usual day's activity are asked only for a weight goal
   or an energy balance, the two that set a calorie target from a typical day's burn. The profile
   says why ("Used to estimate how much energy your body uses in a day") and both steps keep Skip.
@@ -54,15 +58,16 @@ Welcome (beta card with release.betaNotice)
   when a box is done, and autofill hints for the day, month and year of a birthday. The question
   stays neutral: under the boxes it only ever says "There's no such date" or "Check the year",
   never where the age line is. Profile in More types it the same way.
-- **Energy balance** is a side (eat less or eat more) and an amount, 50 to 1,000 kcal a day in
-  steps of 50, never so far under a typical day that the target would be under the 1,200 line
-  the engine holds everyone to. The pace note (Gentle, Steady, Faster, Above your fat-loss limit)
-  and the low-goal note with Find support show as for a weight goal. A weekly average says
-  "Judged across your week. A big day is just a day."
+- **Energy balance** is a side (eat less or eat more) and an amount, typed or stepped, 50 to
+  1,000 kcal a day in steps of 50, never so far under a typical day that the target would be
+  under the 1,200 line the engine holds everyone to. The pace note (Gentle, Steady, Faster, Above
+  your fat-loss limit) and the low-goal note with Find support show as for a weight goal. Daily or
+  Weekly average is the goal screens' choice, where it is offered; the overview of a weekly one
+  says "Judged across your week. A big day is just a day."
 - **"Not now, just let me log"** saves the weight goal as answered with no goal (`JustTrack`), so
   Today's "Set up your goal in a minute" card doesn't ask again. Any other kind does the same.
 - **The streak** explains which one. Always the showing-up streak (celebrations). For a goal
-  whose "met" can never mean eating less (Track every day, Regular meals, Move more:
+  whose "met" can never mean eating less (Track every day, Meals, Burn:
   `GoalStreaks.eligible`) the same yes also turns on the goal's own streak
   (`goalStreakEnabled`); a weight goal or an energy balance only ever gets the showing-up one.
   No streaks turns celebrations off. Nobody without a goal is asked.
@@ -106,7 +111,7 @@ Turning the flag off ends the beta: the card goes, and the server records nobody
 - The goal question comes after the mode, since the kinds on offer depend on what the mode
   shows; it is the first setup step after meal times.
 - Steps goals are not offered yet: nothing reads steps, so the goal would never be met.
-- Move more counts active energy only (`BurnMeasure.Active`), so it needs no body details.
+- A burn goal counts active energy only (`BurnMeasure.Active`), so it needs no body details.
 - Its number is shown only where calories show too, as the overview's working is.
 - The energy balance starts at 250 kcal under, the small end of Gentle; the owner listed a
   deficit first.
@@ -119,7 +124,6 @@ Turning the flag off ends the beta: the card goes, and the server records nobody
 
 ## Not done
 
-- Onboarding builds its own goal steps on the engine. When the goal screens land, its kind,
-  balance, burn and meals steps can be swapped for theirs (`TODO(goal-screens)` in
-  `PlanSteps.kt`).
+- The band (how far either side counts as on track) isn't asked in onboarding; a goal starts at
+  the engine's default and the goal screens change it.
 - Today's goal flow (`GoalSetupRoute`) is still a weight goal only.

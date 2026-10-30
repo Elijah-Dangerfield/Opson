@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.ui.label
+import com.opson.libraries.nutrition.GoalKind
 import com.opson.libraries.nutrition.HeightInput
 import com.opson.libraries.nutrition.HeightUnit
 import com.opson.libraries.nutrition.PresetId
@@ -1156,7 +1157,7 @@ private fun OnboardingGoalKindPreview() = OnboardingPreview(Fixtures.plan(PlanSt
 @Preview(widthDp = 390, heightDp = 1100)
 @Composable
 private fun OnboardingGoalKindPickedDarkPreview() =
-    OnboardingPreview(Fixtures.plan(PlanStep.Kind, PlanAnswers(wants = true, pick = GoalPick.WeeklyBalance)), darkTheme = true)
+    OnboardingPreview(Fixtures.plan(PlanStep.Kind, PlanAnswers(wants = true, pick = GoalKind.EnergyBalance)), darkTheme = true)
 
 /** Macros with grams: no energy balance, as a deficit gives away what is eaten. */
 @Preview(widthDp = 390, heightDp = 1000)
@@ -1168,7 +1169,7 @@ private fun OnboardingGoalKindMacrosPreview() =
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingGoalKindHardPreview() =
-    OnboardingPreview(Fixtures.plan(PlanStep.Kind, PlanAnswers(wants = true, pick = GoalPick.ShowUp), answers = Fixtures.HardAnswers))
+    OnboardingPreview(Fixtures.plan(PlanStep.Kind, PlanAnswers(wants = true, pick = GoalKind.TrackEveryDay), answers = Fixtures.HardAnswers))
 
 @Preview(widthDp = 390, heightDp = 1000)
 @Composable
@@ -1192,26 +1193,26 @@ private fun OnboardingGoalOverviewBalancePreview() = OnboardingPreview(Fixtures.
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun OnboardingBurnGoalPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Burn, PlanAnswers(pick = GoalPick.Burn)))
+private fun OnboardingBurnGoalPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Burn, PlanAnswers(pick = GoalKind.Burn)))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun OnboardingMealsGoalPreview() = OnboardingPreview(Fixtures.plan(PlanStep.MealCount, PlanAnswers(pick = GoalPick.Meals)))
+private fun OnboardingMealsGoalPreview() = OnboardingPreview(Fixtures.plan(PlanStep.MealCount, PlanAnswers(pick = GoalKind.Meals)))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingMealsGoalDarkPreview() =
-    OnboardingPreview(Fixtures.plan(PlanStep.MealCount, PlanAnswers(pick = GoalPick.Meals, meals = 4)), darkTheme = true)
+    OnboardingPreview(Fixtures.plan(PlanStep.MealCount, PlanAnswers(pick = GoalKind.Meals, meals = 4)), darkTheme = true)
 
 /** "Keep a streak?", after any goal: it counts showing up, never an amount. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
-private fun OnboardingStreakPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalPick.ShowUp)))
+private fun OnboardingStreakPreview() = OnboardingPreview(Fixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalKind.TrackEveryDay)))
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingStreakDarkPreview() =
-    OnboardingPreview(Fixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalPick.Meals)), darkTheme = true)
+    OnboardingPreview(Fixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalKind.Meals)), darkTheme = true)
 
 /** After a weight goal: only the showing-up streak, never one for the goal itself. */
 @Preview(widthDp = 390, heightDp = 844)
@@ -1221,7 +1222,7 @@ private fun OnboardingStreakWeightPreview() = OnboardingPreview(Fixtures.plan(Pl
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingStreakLargeTextPreview() =
-    OnboardingPreview(Fixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalPick.ShowUp)), largeText = true)
+    OnboardingPreview(Fixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalKind.TrackEveryDay)), largeText = true)
 
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
@@ -1363,5 +1364,5 @@ private fun OnboardingCommitmentDarkPreview() = OnboardingPreview(Fixtures.plan(
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun OnboardingCommitmentHardPreview() = OnboardingPreview(
-    Fixtures.plan(PlanStep.Commit, PlanAnswers(pick = GoalPick.ShowUp), answers = Fixtures.HardAnswers),
+    Fixtures.plan(PlanStep.Commit, PlanAnswers(pick = GoalKind.TrackEveryDay), answers = Fixtures.HardAnswers),
 )

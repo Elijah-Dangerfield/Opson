@@ -27,6 +27,12 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.BirthdayField
 import com.opson.libraries.diary.ui.Birthdays
 import com.opson.libraries.diary.ui.HeightField
+import com.opson.libraries.goals.ui.AveragingChoice
+import com.opson.libraries.goals.ui.GoalKindChoices
+import com.opson.libraries.goals.ui.GoalPanel
+import com.opson.libraries.goals.ui.GoalReveal
+import com.opson.libraries.goals.ui.TypedStepper
+import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.diary.ui.detail
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.diary.ui.note
@@ -60,6 +66,9 @@ import com.opson.system.AppTheme
 import com.opson.system.Dimension
 import kotlinx.datetime.LocalDate
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.goal_edit_kcal_a_day
+import opson.libraries.resources.generated.resources.goal_edit_meals_label
+import opson.libraries.resources.generated.resources.goal_edit_meals_unit
 import opson.libraries.resources.generated.resources.plan_ask_title
 import opson.libraries.resources.generated.resources.plan_ask_body
 import opson.libraries.resources.generated.resources.plan_ask_body_gentle
@@ -68,18 +77,6 @@ import opson.libraries.resources.generated.resources.plan_ask_no
 import opson.libraries.resources.generated.resources.plan_ask_footnote
 import opson.libraries.resources.generated.resources.plan_kind_title
 import opson.libraries.resources.generated.resources.plan_kind_body
-import opson.libraries.resources.generated.resources.plan_kind_weight
-import opson.libraries.resources.generated.resources.plan_kind_weight_detail
-import opson.libraries.resources.generated.resources.plan_kind_balance
-import opson.libraries.resources.generated.resources.plan_kind_balance_detail
-import opson.libraries.resources.generated.resources.plan_kind_weekly
-import opson.libraries.resources.generated.resources.plan_kind_weekly_detail
-import opson.libraries.resources.generated.resources.plan_kind_burn
-import opson.libraries.resources.generated.resources.plan_kind_burn_detail
-import opson.libraries.resources.generated.resources.plan_kind_show_up
-import opson.libraries.resources.generated.resources.plan_kind_show_up_detail
-import opson.libraries.resources.generated.resources.plan_kind_meals
-import opson.libraries.resources.generated.resources.plan_kind_meals_detail
 import opson.libraries.resources.generated.resources.plan_balance_title
 import opson.libraries.resources.generated.resources.plan_balance_body
 import opson.libraries.resources.generated.resources.plan_balance_under
@@ -92,7 +89,6 @@ import opson.libraries.resources.generated.resources.plan_burn_body
 import opson.libraries.resources.generated.resources.plan_burn_label
 import opson.libraries.resources.generated.resources.plan_meals_title
 import opson.libraries.resources.generated.resources.plan_meals_body
-import opson.libraries.resources.generated.resources.plan_meals_count
 import opson.libraries.resources.generated.resources.plan_streak_title
 import opson.libraries.resources.generated.resources.plan_streak_body
 import opson.libraries.resources.generated.resources.plan_streak_body_goal
@@ -192,7 +188,6 @@ import opson.libraries.resources.generated.resources.plan_weight_note
 import opson.libraries.resources.generated.resources.settings_look_weight_kg
 import opson.libraries.resources.generated.resources.settings_look_weight_lb
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -213,7 +208,7 @@ data class PlanView(
     val kind: KindView = KindView(emptyList(), null),
     val balance: BalanceView? = null,
     val burn: BurnView? = null,
-    val mealCount: MealCountView = MealCountView(GoalType.DEFAULT_MEALS, canLess = true, canMore = true),
+    val mealCount: MealCountView = MealCountView(GoalType.DEFAULT_MEALS, GoalType.DEFAULT_MEALS.toString(), canLess = true, canMore = true),
     /** Onboarding, where a goal is optional: no Skip on a goal's own steps, as Back changes the kind. */
     val asks: Boolean = false,
     /** "Keep a streak?" also starts the goal's own streak: a goal whose "met" is never eating less. */
@@ -274,7 +269,7 @@ internal fun ColumnScope.PlanStepContent(
     ScrollingBody {
         when (step) {
             PlanStep.Ask -> AskStep(view.hard)
-            PlanStep.Kind -> KindStep(view.kind, busy, onPlan)
+            PlanStep.Kind -> KindStep(view.kind, onPlan)
             PlanStep.Profile -> ProfileStep(view.profile, view.hard, view.today, busy, onPlan)
             PlanStep.Activity -> ActivityStep(view.activity, busy, onPlan)
             PlanStep.Goal -> GoalStep(view.goal, busy, onPlan)
@@ -352,45 +347,14 @@ private fun TwoAnswers(yes: String, no: String, footnote: String, busy: Boolean,
 }
 
 // ---------- Which kind ----------
-// TODO(goal-screens): the kind, balance, burn and meals steps are onboarding's own, built on the goal
-// engine. Swap them for the goal screens' components when those land (docs/plans/onboarding-v4.md).
+// The kinds, the typed stepper, Daily or Weekly average and the reveal are the goal screens' own
+// (`:libraries:goals:ui`), so a goal is set the same way here as in More.
 
 @Composable
-private fun KindStep(view: KindView, busy: Boolean, onPlan: (PlanAction) -> Unit) {
+private fun KindStep(view: KindView, onPlan: (PlanAction) -> Unit) {
     StepTitle(title = stringResource(Res.string.plan_kind_title), body = stringResource(Res.string.plan_kind_body))
-    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D300)) {
-        view.picks.forEach { pick ->
-            ChoiceRow(
-                label = stringResource(pick.label),
-                selected = pick == view.picked,
-                onClick = { onPlan(PlanAction.GoalPicked(pick)) },
-                role = Role.RadioButton,
-                enabled = !busy,
-                detail = stringResource(pick.detail),
-            )
-        }
-    }
+    GoalKindChoices(kinds = view.picks, selected = view.picked, onPick = { onPlan(PlanAction.GoalPicked(it)) })
 }
-
-private val GoalPick.label: StringResource
-    get() = when (this) {
-        GoalPick.Weight -> Res.string.plan_kind_weight
-        GoalPick.Balance -> Res.string.plan_kind_balance
-        GoalPick.WeeklyBalance -> Res.string.plan_kind_weekly
-        GoalPick.Burn -> Res.string.plan_kind_burn
-        GoalPick.ShowUp -> Res.string.plan_kind_show_up
-        GoalPick.Meals -> Res.string.plan_kind_meals
-    }
-
-private val GoalPick.detail: StringResource
-    get() = when (this) {
-        GoalPick.Weight -> Res.string.plan_kind_weight_detail
-        GoalPick.Balance -> Res.string.plan_kind_balance_detail
-        GoalPick.WeeklyBalance -> Res.string.plan_kind_weekly_detail
-        GoalPick.Burn -> Res.string.plan_kind_burn_detail
-        GoalPick.ShowUp -> Res.string.plan_kind_show_up_detail
-        GoalPick.Meals -> Res.string.plan_kind_meals_detail
-    }
 
 // ---------- An energy balance ----------
 
@@ -404,16 +368,21 @@ private fun BalanceStep(view: BalanceView, busy: Boolean, onPlan: (PlanAction) -
             onSelect = { if (!busy) onPlan(PlanAction.BalanceSidePicked(it)) },
             label = { stringResource(if (it) Res.string.plan_balance_under else Res.string.plan_balance_over) },
         )
-        FieldLabel(stringResource(if (view.under) Res.string.plan_balance_label_under else Res.string.plan_balance_label_over))
-        (view.amount as? Display.Shown)?.let { amount ->
-            Stepper(
-                amount = amount.text,
-                onDecrease = { onPlan(PlanAction.BalanceStepped(more = false)) },
-                onIncrease = { onPlan(PlanAction.BalanceStepped(more = true)) },
-                canDecrease = view.canLess && !busy,
-                canIncrease = view.canMore && !busy,
-                amountModifier = Modifier.testTag(Metric.Calories.testTag()),
-            )
+        if (view.amount is Display.Shown) {
+            val label = stringResource(if (view.under) Res.string.plan_balance_label_under else Res.string.plan_balance_label_over)
+            FieldLabel(label)
+            GoalPanel {
+                TypedStepper(
+                    text = view.text,
+                    onType = { onPlan(PlanAction.BalanceTyped(it)) },
+                    onStep = { onPlan(PlanAction.BalanceStepped(more = it)) },
+                    label = label,
+                    unit = stringResource(Res.string.goal_edit_kcal_a_day),
+                    canLower = view.canLess && !busy,
+                    canRaise = view.canMore && !busy,
+                    fieldModifier = Modifier.testTag(Metric.Calories.testTag()),
+                )
+            }
         }
         (view.target as? Display.Shown)?.let {
             Text(
@@ -441,7 +410,12 @@ private fun BalanceStep(view: BalanceView, busy: Boolean, onPlan: (PlanAction) -
             }
         }
         if (view.lowAim) LowGoalNote(onPlan)
-        if (view.weekly) Note(stringResource(Res.string.plan_overview_weekly))
+        if (view.weeklyOffered) {
+            AveragingChoice(
+                selected = if (view.weekly) GoalAveraging.Weekly else GoalAveraging.Daily,
+                onPick = { if (!busy) onPlan(PlanAction.AveragingPicked(it)) },
+            )
+        }
     }
 }
 
@@ -458,18 +432,21 @@ private fun LowGoalNote(onPlan: (PlanAction) -> Unit) {
 @Composable
 private fun BurnStep(view: BurnView, busy: Boolean, onPlan: (PlanAction) -> Unit) {
     StepTitle(title = stringResource(Res.string.plan_burn_title), body = stringResource(Res.string.plan_burn_body))
-    Column(verticalArrangement = Arrangement.spacedBy(Dimension.D500)) {
-        FieldLabel(stringResource(Res.string.plan_burn_label))
-        (view.amount as? Display.Shown)?.let { amount ->
-            Stepper(
-                amount = amount.text,
-                onDecrease = { onPlan(PlanAction.BurnStepped(more = false)) },
-                onIncrease = { onPlan(PlanAction.BurnStepped(more = true)) },
-                canDecrease = view.canLess && !busy,
-                canIncrease = view.canMore && !busy,
-                amountModifier = Modifier.testTag(Metric.EnergyOut.testTag()),
-            )
-        }
+    if (view.amount !is Display.Shown) return
+    val label = stringResource(Res.string.plan_burn_label)
+    FieldLabel(label)
+    Spacer(Modifier.height(Dimension.D300))
+    GoalPanel {
+        TypedStepper(
+            text = view.text,
+            onType = { onPlan(PlanAction.BurnTyped(it)) },
+            onStep = { onPlan(PlanAction.BurnStepped(more = it)) },
+            label = label,
+            unit = stringResource(Res.string.goal_edit_kcal_a_day),
+            canLower = view.canLess && !busy,
+            canRaise = view.canMore && !busy,
+            fieldModifier = Modifier.testTag(Metric.EnergyOut.testTag()),
+        )
     }
 }
 
@@ -478,13 +455,17 @@ private fun BurnStep(view: BurnView, busy: Boolean, onPlan: (PlanAction) -> Unit
 @Composable
 private fun MealCountStep(view: MealCountView, busy: Boolean, onPlan: (PlanAction) -> Unit) {
     StepTitle(title = stringResource(Res.string.plan_meals_title), body = stringResource(Res.string.plan_meals_body))
-    Stepper(
-        amount = pluralStringResource(Res.plurals.plan_meals_count, view.count, view.count),
-        onDecrease = { onPlan(PlanAction.MealsStepped(more = false)) },
-        onIncrease = { onPlan(PlanAction.MealsStepped(more = true)) },
-        canDecrease = view.canLess && !busy,
-        canIncrease = view.canMore && !busy,
-    )
+    GoalPanel {
+        TypedStepper(
+            text = view.text,
+            onType = { onPlan(PlanAction.MealsTyped(it)) },
+            onStep = { onPlan(PlanAction.MealsStepped(more = it)) },
+            label = stringResource(Res.string.goal_edit_meals_label),
+            unit = stringResource(Res.string.goal_edit_meals_unit),
+            canLower = view.canLess && !busy,
+            canRaise = view.canMore && !busy,
+        )
+    }
 }
 
 // ---------- Keep a streak? ----------
@@ -795,7 +776,8 @@ private fun OverviewStep(view: OverviewView) {
         goalWeight?.let {
             add(stringResource(if (view.kind == OverviewKind.Maintain) Res.string.plan_overview_keep else Res.string.plan_overview_goal) to (it.text to Metric.Weight))
         }
-        view.forecast?.let { add(stringResource(Res.string.plan_overview_forecast) to (it to null)) }
+        // With a chart, the reveal says when, under the line it draws.
+        view.forecast?.takeIf { view.chart == null }?.let { add(stringResource(Res.string.plan_overview_forecast) to (it to null)) }
         energy?.let { add(stringResource(Res.string.plan_overview_daily) to (stringResource(Res.string.plan_overview_daily_value, it.text) to Metric.Calories)) }
     }
     Column(verticalArrangement = Arrangement.spacedBy(Dimension.D600)) {
@@ -807,6 +789,8 @@ private fun OverviewStep(view: OverviewView) {
                 }
             }
         }
+        // The plan drawn in, with the phone's success tap as the line lands (the goal screens' own).
+        view.chart?.let { chart -> GoalPanel { GoalReveal(chart) } }
         if (view.compared) {
             val difference = view.difference as? Display.Shown
             Text(
@@ -832,7 +816,7 @@ private fun OverviewStep(view: OverviewView) {
             energy == null -> Note(stringResource(Res.string.plan_overview_background))
         }
         if (view.weekly) Note(stringResource(Res.string.plan_overview_weekly))
-        if (view.forecast != null) Note(stringResource(Res.string.plan_overview_forecast_note))
+        if (view.forecast != null && view.chart == null) Note(stringResource(Res.string.plan_overview_forecast_note))
         if (energy != null) Note(stringResource(Res.string.plan_overview_estimate))
     }
 }

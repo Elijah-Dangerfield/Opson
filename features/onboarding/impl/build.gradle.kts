@@ -35,6 +35,8 @@ kotlin {
             implementation(projects.libraries.entitlements)
             // GoalStreaks, which goals "Keep a streak?" can start a goal streak for.
             implementation(projects.libraries.goals)
+            // The goal pieces settings' goal screens use: the kinds, the typed stepper, Daily or Weekly, the reveal.
+            implementation(projects.libraries.goals.ui)
 
             // Compose dependencies (navigation and lifecycle provided by opson.feature plugin)
             implementation(compose.runtime)

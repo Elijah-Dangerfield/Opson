@@ -1,5 +1,6 @@
 package com.opson.features.onboarding.impl
 
+import com.opson.libraries.nutrition.GoalKind
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
 
 /**
@@ -52,17 +53,17 @@ object OnboardingLeakSurfaces {
             id = "onboarding-burn-goal",
             label = "Onboarding · how much activity",
             showsCaloriesInFull = true,
-        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.Burn, PlanAnswers(pick = GoalPick.Burn), policy = policy), onAction = {}) },
+        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.Burn, PlanAnswers(pick = GoalKind.Burn), policy = policy), onAction = {}) },
         LeakSurface(
             id = "onboarding-meals-goal",
             label = "Onboarding · how many meals",
             showsCaloriesInFull = false,
-        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.MealCount, PlanAnswers(pick = GoalPick.Meals), policy = policy), onAction = {}) },
+        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.MealCount, PlanAnswers(pick = GoalKind.Meals), policy = policy), onAction = {}) },
         LeakSurface(
             id = "onboarding-streak",
             label = "Onboarding · keep a streak?",
             showsCaloriesInFull = false,
-        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalPick.ShowUp), policy = policy), onAction = {}) },
+        ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.Streak, PlanAnswers(pick = GoalKind.TrackEveryDay), policy = policy), onAction = {}) },
         LeakSurface(
             id = "onboarding-commitment",
             label = "Onboarding · ready to start",

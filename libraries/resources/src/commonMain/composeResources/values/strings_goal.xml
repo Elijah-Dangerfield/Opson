@@ -112,21 +112,9 @@
     <string name="plan_ask_no">Not now, just let me log</string>
     <string name="plan_ask_footnote">You can set one later.</string>
 
-    <!-- Onboarding: which kind of goal. Each with one line on what it means. -->
+    <!-- Onboarding: which kind of goal. The kinds and their lines are the goal screens' (goal_kind_*). -->
     <string name="plan_kind_title">What kind of goal?</string>
     <string name="plan_kind_body">Pick one to start. You can change it later.</string>
-    <string name="plan_kind_weight">A weight goal</string>
-    <string name="plan_kind_weight_detail">Lose, keep or gain weight at a pace you pick.</string>
-    <string name="plan_kind_balance">A daily deficit or surplus</string>
-    <string name="plan_kind_balance_detail">Eat a set amount under or over what you burn each day.</string>
-    <string name="plan_kind_weekly">A weekly average</string>
-    <string name="plan_kind_weekly_detail">The same amount, averaged across your week.</string>
-    <string name="plan_kind_burn">Move more</string>
-    <string name="plan_kind_burn_detail">Burn a set amount of active energy each day.</string>
-    <string name="plan_kind_show_up">Track every day</string>
-    <string name="plan_kind_show_up_detail">Open Opson and log something each day.</string>
-    <string name="plan_kind_meals">Regular meals</string>
-    <string name="plan_kind_meals_detail">A set number of meals a day, three to start.</string>
 
     <!-- An energy balance: how far under or over a typical day -->
     <string name="plan_balance_title">How much under or over?</string>
@@ -145,10 +133,6 @@
     <!-- A meals goal: meals a day -->
     <string name="plan_meals_title">How many meals a day?</string>
     <string name="plan_meals_body">A meal counts once it has food in it.</string>
-    <plurals name="plan_meals_count">
-        <item quantity="one">%1$d meal</item>
-        <item quantity="other">%1$d meals</item>
-    </plurals>
 
     <!-- Onboarding, after a goal: the streak. It counts showing up, never an amount. -->
     <string name="plan_streak_title">Keep a streak?</string>
