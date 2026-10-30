@@ -89,52 +89,78 @@ data class DateParts(val day: String = "", val month: String = "", val year: Str
     }
 }
 
-/** One edit to a date's boxes: the date it leaves, and the box to go on in (null to stay put). */
-data class DateEdit(val parts: DateParts, val focus: DatePart? = null)
-
 /**
- * Typing into a date's boxes (`DateField`). Pure, so the screen and its tests agree on what a
- * keystroke, a paste or an autofill does.
+ * Typing a date as one run of digits (`DateField`). Pure, so the screen and its tests agree on
+ * what a keystroke, a paste or an autofill does.
  *
- * Digits can arrive faster than focus moves (a quick typist, a paste, autofill, a simulator typing
- * for a test), so a box that is already done passes on what lands in it to the boxes after it
- * rather than dropping it.
+ * The field holds one string: the digits typed, in the region's [DateOrder]. The boxes on screen
+ * are that string read box by box ([boxes]), so there is no focus to hand from box to box and no
+ * keystroke can land between two of them.
  */
 object DateEntry {
 
     /**
-     * [raw] is what [part]'s box now holds. Up to what the box takes, it is the box's new value.
-     * More is a whole date pasted or filled in by the phone, split across all three in [order]
-     * or, when that makes no date, whichever order does ("1998-05-11" in a day-first region). Or
-     * it is groups split by separators ("5/11"), one to a box from [part] on. Or it is digits
-     * typed on past a finished box, which go on into the next boxes with room.
+     * The boxes [typed] fills, in [order]. Each box takes digits until it is done: the year at
+     * four, a day or month at two, or at one when that digit can only stand alone (a month from 2
+     * to 9, a day from 4 to 9) or when the next digit could not follow it (a 1 then a 5 is
+     * January and the 5th, a 3 then a 4 is the 3rd and the start of the year).
      */
-    fun type(parts: DateParts, part: DatePart, raw: String, order: DateOrder): DateEdit {
-        val digits = raw.filter { it in '0'..'9' }
-        if (digits.length <= capacity(part, digits)) {
-            val added = digits.length > parts[part].length
-            return DateEdit(parts.with(part, digits), focus = if (added && isDone(part, digits)) order.after(part) else null)
+    fun boxes(typed: String, order: DateOrder): DateParts {
+        var parts = DateParts()
+        var rest = typed.filter { it in '0'..'9' }
+        for (part in order.parts) {
+            if (rest.isEmpty()) break
+            val taken = takes(part, rest)
+            parts = parts.with(part, rest.take(taken))
+            rest = rest.drop(taken)
         }
-        whole(raw, order)?.let { return DateEdit(it, focus = order.parts.last()) }
-        val groups = groups(raw)
-        return if (groups.size > 1) spread(parts, part, groups, order) else carry(parts, part, digits, order)
+        return parts
     }
 
     /**
-     * Delete pressed at the start of [part], most often in an empty box: the box before it loses
-     * its last digit and the cursor goes back there. Nothing happens in the first box.
+     * The digits that fill the boxes with [parts], as far as they run without a gap. A box the
+     * next one's first digit would otherwise join is padded to its length (a 1 before a 2 is
+     * "01"), so reading them back puts each digit in the same box.
      */
-    fun deleteBefore(parts: DateParts, part: DatePart, order: DateOrder): DateEdit {
-        val previous = order.before(part) ?: return DateEdit(parts)
-        return DateEdit(parts.with(previous, parts[previous].dropLast(1)), focus = previous)
+    fun typed(parts: DateParts, order: DateOrder): String {
+        val filled = order.parts
+            .takeWhile { parts[it].isNotEmpty() }
+            .map { part -> part to parts[part].filter { it in '0'..'9' }.take(part.length) }
+        return filled.mapIndexed { index, (part, text) ->
+            val next = filled.getOrNull(index + 1)?.second?.firstOrNull()
+            if (next != null && takes(part, text + next) > text.length) text.padStart(part.length, '0') else text
+        }.joinToString(separator = "")
     }
 
-    /** The first box in [order] with nothing typed, where the cursor starts; null when every box has something. */
-    fun firstEmpty(parts: DateParts, order: DateOrder): DatePart? = order.parts.firstOrNull { parts[it].isEmpty() }
+    /**
+     * What the field holds after an edit took it from [was] to [now]. A whole date arriving at
+     * once (a paste, the phone's autofill, a simulator typing) replaces everything, in [order] or
+     * whichever order makes it a date ("1998-05-11" in a day-first region). Otherwise digits are
+     * kept, a separator ends the box it follows ("5/11" is May and the 11th), and digits past the
+     * last box are dropped.
+     */
+    fun edit(was: String, now: String, order: DateOrder): String {
+        if (now == was) return was
+        val inserted = inserted(was, now)
+        if (inserted.length > 1) whole(inserted, order)?.let { return typed(it, order) }
+        var typed = ""
+        now.forEach { char -> typed = if (char in '0'..'9') typed + char else close(typed, order) }
+        return typed(boxes(typed, order), order)
+    }
 
     /**
-     * Whether [part] is finished, so focus can move to the next box: it is full, or its first
-     * digit can't start a longer one (a month from 2 to 9, a day from 4 to 9).
+     * The box the next digit goes into: the last one typed in while it can take more, else the
+     * one after. Null once the last box is done.
+     */
+    fun current(typed: String, order: DateOrder): DatePart? {
+        val parts = boxes(typed, order)
+        val last = order.parts.lastOrNull { parts[it].isNotEmpty() } ?: return order.parts.first()
+        return if (isDone(last, parts[last])) order.after(last) else last
+    }
+
+    /**
+     * Whether [part] is finished: it is full, or its first digit can't start a longer one (a
+     * month from 2 to 9, a day from 4 to 9).
      */
     fun isDone(part: DatePart, text: String): Boolean = when {
         text.length >= part.length -> true
@@ -144,42 +170,35 @@ object DateEntry {
         else -> false
     }
 
-    /** How many of [digits] [part] keeps: one when the first can only stand alone ("5" is May), else the box's length. */
-    private fun capacity(part: DatePart, digits: String): Int =
-        if (digits.isNotEmpty() && isDone(part, digits.take(1))) 1 else part.length
-
-    /** [digits] into [part] and on: each box keeps what it has room for after what it holds, the rest goes on. */
-    private fun carry(parts: DateParts, part: DatePart, digits: String, order: DateOrder): DateEdit {
-        var result = parts
-        var rest = digits
-        var last = part
-        for (box in order.parts.drop(order.parts.indexOf(part))) {
-            if (rest.isEmpty()) break
-            val held = if (box == part) "" else result[box]
-            val taken = (capacity(box, held + rest) - held.length).coerceIn(0, rest.length)
-            if (taken > 0) {
-                result = result.with(box, held + rest.take(taken))
-                rest = rest.drop(taken)
-                last = box
-            }
+    /** How many of [digits], which are not empty, [part] takes. */
+    private fun takes(part: DatePart, digits: String): Int {
+        val next = digits.getOrNull(1)
+        val alone = when (part) {
+            DatePart.Year -> false
+            DatePart.Month -> digits[0] in '2'..'9' || (digits[0] == '1' && next != null && next !in '0'..'2')
+            DatePart.Day -> digits[0] in '4'..'9' || (digits[0] == '3' && next != null && next !in '0'..'1')
         }
-        return DateEdit(result, focus = goOnFrom(result, last, order))
+        return if (alone) 1 else minOf(part.length, digits.length)
     }
 
-    /** Separated [groups], one to a box from [part] on, each cut to its box's length. */
-    private fun spread(parts: DateParts, part: DatePart, groups: List<String>, order: DateOrder): DateEdit {
-        val boxes = order.parts.drop(order.parts.indexOf(part)).zip(groups)
-        val result = boxes.fold(parts) { acc, (box, group) -> acc.with(box, group.take(box.length)) }
-        return DateEdit(result, focus = goOnFrom(result, boxes.last().first, order))
+    /** [typed] with the box it ends in closed, as a separator after it says: a day or month padded to two. */
+    private fun close(typed: String, order: DateOrder): String {
+        val parts = boxes(typed, order)
+        val last = order.parts.lastOrNull { parts[it].isNotEmpty() } ?: return typed
+        if (last == DatePart.Year) return typed
+        return typed(parts.with(last, parts[last].padStart(last.length, '0')), order)
     }
 
-    /** Where the cursor goes after [last] was typed into: the next box once [last] is done, else [last]. */
-    private fun goOnFrom(parts: DateParts, last: DatePart, order: DateOrder): DatePart =
-        if (isDone(last, parts[last])) order.after(last) ?: last else last
+    /** What an edit from [was] to [now] put in: [now] less what it shares with [was] at either end. */
+    private fun inserted(was: String, now: String): String {
+        val start = now.commonPrefixWith(was).length
+        val end = now.commonSuffixWith(was).length.coerceAtMost(minOf(now.length, was.length) - start)
+        return now.substring(start, now.length - end)
+    }
 
     private fun groups(raw: String): List<String> = raw.split(Regex("[^0-9]+")).filter { it.isNotEmpty() }
 
-    /** A whole date in [raw], by its separators or as eight digits. Null when no order makes one. */
+    /** A whole date in [raw], by its separators or as eight digits, with the year in full. Null when no order makes one. */
     private fun whole(raw: String, order: DateOrder): DateParts? {
         val groups = groups(raw)
         val candidates = when {
@@ -187,7 +206,9 @@ object DateEntry {
             groups.size == 1 && groups[0].length == EIGHT_DIGITS -> ordersFor(order).map { o -> fromDigits(groups[0], o) }
             else -> emptyList()
         }
-        return candidates.firstOrNull { it.dateOrNull() != null }?.let { DateParts.of(it.dateOrNull()) }
+        return candidates
+            .firstOrNull { it.year.length == DatePart.Year.length && it.dateOrNull() != null }
+            ?.let { DateParts.of(it.dateOrNull()) }
     }
 
     private fun ordersFor(preferred: DateOrder): List<DateOrder> = listOf(preferred) + DateOrder.entries.filter { it != preferred }

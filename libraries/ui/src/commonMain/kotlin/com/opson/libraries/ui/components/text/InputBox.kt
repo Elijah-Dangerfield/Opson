@@ -100,7 +100,7 @@ internal fun InputBox(
     )
 }
 
-/** [InputBox]'s box around a text field's own text, for a field built some other way (`DateField`). */
+/** [InputBox]'s box around a text field's own text, for a field built some other way. */
 @Composable
 internal fun InputFrame(
     empty: Boolean,

@@ -12,7 +12,6 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
@@ -33,14 +32,18 @@ import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 
 /**
- * Typing a date into [DateField] faster than the screen redraws. The bug, on the iOS simulator:
- * "05111998" typed quickly left Month empty, Day "19" and the cursor in an empty Year.
+ * Typing into [DateField], the real composable, the ways a phone sends text.
  *
- * The host holds the date the way a screen's view model does, by default: an edit comes back as
- * state on a coroutine, a moment later. "Quickly" holds the clock, so no frame is drawn between
- * keystrokes and the cursor cannot move on, which is what a fast typist, the simulator typing for
- * a test, a paste or autofill looks like to the field. Against the field as it was, the quick
- * test sent the screen a date with Month and Day wiped, and the slashes test filled Month with 51.
+ * The bug, on the iOS simulator: the three boxes were three text fields handing focus on, and iOS
+ * swaps its text input view with every hand-off, so keys that arrived in between went nowhere
+ * ("05111998" typed by the simulator left Year empty). The field is one text field now.
+ *
+ * [iosKey] and [iosDelete] edit the way Compose on iOS does: UIKit's `insertText` and
+ * `deleteBackward` become a new text that replaces the field's whole text, which is the
+ * semantics' set-text action. [androidKey] is a commit at the cursor, Android's way. "Quickly"
+ * holds the clock, so no frame is drawn between keys, as with a fast typist, a paste, autofill or
+ * a simulator typing. The host holds the date the way a screen's view model does: an edit comes
+ * back as state on a coroutine, a moment later.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -53,11 +56,7 @@ class DateFieldTypingTest {
     private var done = 0
 
     @OptIn(ExperimentalResourceApi::class)
-    private fun render(
-        order: DateOrder = DateOrder.MonthDayYear,
-        echoLater: Boolean = true,
-        focusOnOpen: Boolean = false,
-    ) {
+    private fun render(order: DateOrder = DateOrder.MonthDayYear, focusOnOpen: Boolean = false) {
         compose.setContent {
             AppTheme(darkTheme = false) {
                 // Compose resources take the Android context only from this effect, and only
@@ -66,7 +65,7 @@ class DateFieldTypingTest {
                 val scope = rememberCoroutineScope()
                 DateField(
                     parts = held,
-                    onChange = { typed -> if (echoLater) scope.launch { held = typed } else held = typed },
+                    onChange = { typed -> scope.launch { held = typed } },
                     order = order,
                     onDone = { done++ },
                     focusOnOpen = focusOnOpen,
@@ -75,170 +74,182 @@ class DateFieldTypingTest {
         }
     }
 
-    private fun boxes() = compose.onAllNodes(hasSetTextAction(), useUnmergedTree = true)
+    private fun field() = compose.onNode(hasSetTextAction(), useUnmergedTree = true)
 
-    private fun focused() = compose.onNode(isFocused(), useUnmergedTree = true)
+    /** The digits the field holds, as the text input sees them. */
+    private fun typed(): String = field().fetchSemanticsNode().config.getOrNull(SemanticsProperties.InputText)?.text.orEmpty()
 
-    private fun shown(): List<String> = boxes().fetchSemanticsNodes().map { node ->
-        node.config.getOrNull(SemanticsProperties.EditableText)?.text.orEmpty()
-    }
+    /** What a screen reader says for the field. */
+    private fun spoken(): String = field().fetchSemanticsNode().config.getOrNull(SemanticsProperties.EditableText)?.text.orEmpty()
 
-    /** Each character into whichever box has focus, with no frame drawn between them. */
-    private fun typeQuickly(text: String) {
+    private fun iosKey(key: Char) = field().performTextReplacement(typed() + key)
+
+    private fun iosDelete() = field().performTextReplacement(typed().dropLast(1))
+
+    private fun androidKey(key: Char) = field().performTextInput(key.toString())
+
+    private fun quickly(block: () -> Unit) {
         compose.mainClock.autoAdvance = false
-        text.forEach { char -> focused().performTextInput(char.toString()) }
+        block()
         compose.mainClock.autoAdvance = true
         compose.waitForIdle()
     }
 
-    /** Each character into whichever box has focus, the screen keeping up between them. */
-    private fun typeSteadily(text: String) {
-        text.forEach { char ->
-            focused().performTextInput(char.toString())
+    private fun steadily(text: String, key: (Char) -> Unit) = text.forEach { char ->
+        key(char)
+        compose.waitForIdle()
+    }
+
+    private fun tapIn() {
+        field().performClick()
+        compose.waitForIdle()
+    }
+
+    // The lead's taps on the simulator: 0, 5, 1, 1, one by one. Year stays empty.
+    @Test
+    fun iosKeys_oneByOne_fillMonthThenDay_andLeaveTheYear() {
+        render()
+        tapIn()
+
+        steadily("0511", ::iosKey)
+
+        assertEquals(DateParts(month = "05", day = "11"), held)
+        assertEquals("Month 05, Day 11", spoken())
+        field().assertIsFocused()
+    }
+
+    @Test
+    fun iosKeys_typedQuickly_keepEveryDigit() {
+        render()
+        tapIn()
+
+        quickly { "05111998".forEach(::iosKey) }
+
+        assertEquals(DateParts(month = "05", day = "11", year = "1998"), held)
+        assertEquals("Month 05, Day 11, Year 1998", spoken())
+    }
+
+    @Test
+    fun androidKeys_typedQuickly_keepEveryDigit() {
+        render(order = DateOrder.DayMonthYear)
+        tapIn()
+
+        quickly { "11051998".forEach(::androidKey) }
+
+        assertEquals(DateParts(day = "11", month = "05", year = "1998"), held)
+        assertEquals("Day 11, Month 05, Year 1998", spoken())
+    }
+
+    // Autofill, a paste and the simulator's typed text all reach the field as one string.
+    @Test
+    fun aWholeDate_insertedAtOnce_fillsAllThree() {
+        render()
+        listOf("05111998", "5/11/1998", "1998-05-11").forEach { whole ->
+            field().performTextReplacement("")
             compose.waitForIdle()
+            field().performTextInput(whole)
+            compose.waitForIdle()
+
+            assertEquals(DateParts(month = "05", day = "11", year = "1998"), held, whole)
+            assertEquals("05111998", typed(), whole)
         }
     }
 
-    private fun focusFirstBox() {
-        boxes()[0].performClick()
-        compose.waitForIdle()
-    }
-
     @Test
-    fun aDateTypedQuickly_landsInItsBoxes() {
+    fun aWholeDate_replacingTheText_fillsAllThree() {
         render()
-        focusFirstBox()
+        tapIn()
+        steadily("12", ::iosKey)
 
-        typeQuickly("05111998")
-
-        assertEquals(listOf("05", "11", "1998"), shown())
-        assertEquals(DateParts(month = "05", day = "11", year = "1998"), held)
-    }
-
-    @Test
-    fun aDateTypedQuickly_withAScreenThatHoldsItAtOnce_landsInItsBoxes() {
-        render(echoLater = false)
-        focusFirstBox()
-
-        typeQuickly("05111998")
-
-        assertEquals(listOf("05", "11", "1998"), shown())
-        assertEquals(DateParts(month = "05", day = "11", year = "1998"), held)
-    }
-
-    @Test
-    fun aMonthThatStandsAlone_movesOn_andTheRestFollows() {
-        render()
-        focusFirstBox()
-
-        typeQuickly("5111998")
-
-        assertEquals(listOf("5", "11", "1998"), shown())
-    }
-
-    @Test
-    fun aDateTypedQuickly_dayFirst() {
-        render(order = DateOrder.DayMonthYear)
-        focusFirstBox()
-
-        typeQuickly("11051998")
-
-        assertEquals(listOf("11", "05", "1998"), shown())
-        assertEquals(DateParts(day = "11", month = "05", year = "1998"), held)
-    }
-
-    @Test
-    fun aDateTypedSteadily_movesTheCursorOn_andEndsInTheYear() {
-        render()
-        focusFirstBox()
-
-        typeSteadily("05111998")
-
-        assertEquals(listOf("05", "11", "1998"), shown())
-        assertEquals(DateParts(month = "05", day = "11", year = "1998"), held)
-        boxes()[2].assertIsFocused()
-    }
-
-    @Test
-    fun aDateWithSlashes_intoTheFirstBox_fillsAllThree() = pastedIntoTheFirstBox("05/11/1998")
-
-    @Test
-    fun eightDigits_intoTheFirstBox_fillAllThree() = pastedIntoTheFirstBox("05111998")
-
-    @Test
-    fun aDateWithoutLeadingZeros_intoTheFirstBox_fillsAllThree() = pastedIntoTheFirstBox("5/11/1998")
-
-    private fun pastedIntoTheFirstBox(pasted: String) {
-        render()
-        boxes()[0].performTextInput(pasted)
+        field().performTextReplacement("12" + "05/11/1998")
         compose.waitForIdle()
 
-        assertEquals(listOf("05", "11", "1998"), shown())
         assertEquals(DateParts(month = "05", day = "11", year = "1998"), held)
-        boxes()[2].assertIsFocused()
+    }
+
+    @Test
+    fun iosDelete_takesTheLastDigit_backAcrossTheBoxes() {
+        render()
+        tapIn()
+        steadily("05111", ::iosKey)
+
+        quickly {
+            iosDelete()
+            iosDelete()
+        }
+
+        assertEquals(DateParts(month = "05", day = "1"), held)
+        assertEquals("051", typed())
     }
 
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun deleteInAnEmptyBox_goesBack_andTakesTheDigitBefore() {
+    fun aHardwareBackspace_takesTheLastDigit() {
         render()
-        focusFirstBox()
-        typeSteadily("0511")
-        boxes()[2].assertIsFocused()
+        tapIn()
+        steadily("0511", ::androidKey)
 
-        focused().performKeyInput { pressKey(Key.Backspace) }
+        field().performKeyInput { pressKey(Key.Backspace) }
         compose.waitForIdle()
 
-        assertEquals(listOf("05", "1", ""), shown())
         assertEquals(DateParts(month = "05", day = "1"), held)
-        boxes()[1].assertIsFocused()
-    }
-
-    // An on-screen keyboard's delete edits the box's text itself, where the invisible lead sits in
-    // front of the digits; replacing the empty box's text with nothing removes it the same way.
-    @Test
-    fun theKeyboardsDelete_inAnEmptyBox_goesBack_andTakesTheDigitBefore() {
-        render()
-        focusFirstBox()
-        typeSteadily("0511")
-
-        boxes()[2].performTextReplacement("")
-        compose.waitForIdle()
-
-        assertEquals(listOf("05", "1", ""), shown())
-        assertEquals(DateParts(month = "05", day = "1"), held)
-        boxes()[1].assertIsFocused()
     }
 
     @Test
-    fun theCursorStarts_inTheFirstEmptyBox() {
-        held = DateParts(month = "05")
+    fun digitsPastTheYear_areDropped() {
+        render()
+        tapIn()
+
+        quickly { "051119987".forEach(::iosKey) }
+
+        assertEquals("05111998", typed())
+        assertEquals(DateParts(month = "05", day = "11", year = "1998"), held)
+    }
+
+    @Test
+    fun theKeyboardIsUp_whenTheStepOpens() {
         render(focusOnOpen = true)
 
         compose.mainClock.advanceTimeBy(SETTLED_MILLIS)
 
-        boxes()[1].assertIsFocused()
+        field().assertIsFocused()
     }
 
     @Test
-    fun aDateTheScreenSets_replacesWhatIsShown() {
+    fun aDateTheScreenSets_replacesWhatIsTyped() {
         render()
-        focusFirstBox()
-        typeSteadily("12")
+        tapIn()
+        steadily("12", ::iosKey)
 
         held = DateParts.of(LocalDate(1998, 5, 11))
         compose.waitForIdle()
 
-        assertEquals(listOf("05", "11", "1998"), shown())
+        assertEquals("05111998", typed())
+        assertEquals("Month 05, Day 11, Year 1998", spoken())
+    }
+
+    // Settings that knew only a birth year: the year shows until digits reach its box.
+    @Test
+    fun aYearAlone_fromTheScreen_staysUntilTypedOver() {
+        held = DateParts(year = "1998")
+        render()
+        tapIn()
+
+        steadily("0511", ::iosKey)
+        assertEquals(DateParts(month = "05", day = "11", year = "1998"), held)
+
+        iosKey('2')
+        compose.waitForIdle()
+        assertEquals(DateParts(month = "05", day = "11", year = "2"), held)
     }
 
     @Test
-    fun theLastBoxsDoneKey_runsOnDone() {
+    fun theDoneKey_runsOnDone() {
         render()
-        focusFirstBox()
-        typeSteadily("05111998")
+        tapIn()
+        steadily("05111998", ::iosKey)
 
-        boxes()[2].performImeAction()
+        field().performImeAction()
 
         assertEquals(1, done)
     }
