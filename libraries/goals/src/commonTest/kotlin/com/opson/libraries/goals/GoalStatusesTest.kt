@@ -3,6 +3,9 @@ package com.opson.libraries.goals
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.nutrition.GoalVerdict
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import com.opson.libraries.nutrition.PaceTier
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,6 +36,19 @@ class GoalStatusesTest {
         assertEquals(4, week.remainingDays)
         assertEquals(-130, week.adjustmentKcal)
         assertEquals(1800, week.todayTargetKcal)
+    }
+
+    @Test
+    fun aWeeklyAverage_setMidweek_doesntAnswerForTheDaysBeforeIt() {
+        val wednesday = GoalFixtures.loseWeekly.copy(startDate = GoalFixtures.today.minus(DatePeriod(days = 1)))
+        val week = GoalFixtures.today(wednesday).single().week!!
+        assertEquals(0, week.balanceKcal, "Monday and Tuesday came before the goal")
+        assertEquals(1930, week.todayTargetKcal)
+        // The calendar judges Thursday, seen from Friday, by the same budget: not tightened by Tuesday.
+        val thursday = GoalFixtures.today
+        val closed = GoalFixtures.week + (thursday to GoalFixtures.week.getValue(thursday).copy(closed = true))
+        val days = GoalStatuses.days(GoalFixtures.settings(wednesday), closed, GoalFixtures.monday, thursday, thursday.plus(DatePeriod(days = 1)), GoalFixtures.WEIGHT_KG)
+        assertEquals(1930, days.getValue(wednesday.id).last().targetKcal)
     }
 
     @Test
