@@ -1,6 +1,7 @@
 package com.opson.libraries.diary
 
 import com.opson.libraries.nutrition.ActivityFrom
+import com.opson.libraries.nutrition.BaselineChange
 import com.opson.libraries.nutrition.BaselineInputs
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.BurnMeasure
@@ -9,6 +10,7 @@ import com.opson.libraries.nutrition.Goal
 import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.GoalBaselines
 import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.GoalRecalculated
 import com.opson.libraries.nutrition.GoalStatus
 import com.opson.libraries.nutrition.GoalTargets
 import com.opson.libraries.nutrition.GoalType
@@ -77,6 +79,26 @@ class GoalBookTest {
         val json = SettingsJson.encodeToJsonElement(Settings.serializer(), settings).jsonObject
         assertEquals(6, json.getValue("goals").jsonArray.size)
         assertEquals(goals, roundTrip(settings).goals)
+    }
+
+    @Test
+    fun answeredRecalculations_roundTrip_andAChangeThisBuildDoesntKnowIsLeftOut() {
+        val answered = weight.recorded(GoalRecalculated(start, setOf(BaselineChange.Weight, BaselineChange.Activity), 1950, 1880, accepted = true))
+        assertEquals(answered.history, GoalBook.goals(roundTrip(GoalBook.withGoals(Settings(), listOf(answered)))).single().history)
+
+        val raw = """{"goals":[{"id":"weight","kind":"weight","startDate":"2026-10-30","direction":"lose","history":[{"date":"2026-11-02","changes":["Weight","Moon"],"newAimKcal":1900,"accepted":false}]}]}"""
+        val entry = SettingsJson.decodeFromString(Settings.serializer(), raw).goals!!.single().history.single()
+        assertEquals(setOf(BaselineChange.Weight), entry.changes)
+        assertNull(entry.oldAimKcal)
+    }
+
+    @Test
+    fun theHistory_keepsTheLatestAnswers() {
+        val full = (1..Goal.MAX_HISTORY + 3).fold(weight) { goal, day ->
+            goal.recorded(GoalRecalculated(LocalDate(2026, 11, day), emptySet(), null, 1900 + day, accepted = day % 2 == 0))
+        }
+        assertEquals(Goal.MAX_HISTORY, full.history.size)
+        assertEquals(LocalDate(2026, 11, Goal.MAX_HISTORY + 3), full.history.last().date)
     }
 
     @Test

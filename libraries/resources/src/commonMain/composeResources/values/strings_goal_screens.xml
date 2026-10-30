@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The goal screens (features/settings impl goals/, libraries/goals/ui): setting any goal, the goal
+  page with its week and projection, and the reveal when a goal is set. Onboarding's goal question
+  reuses the libraries/goals/ui pieces and their strings.
+
+  Eating-disorder sensitive, as strings_goal.xml: never praise eating less, never hurry anyone,
+  never say a day was failed or must be made up for. Projections are rough and say so. A number
+  followed by "calories" is a calorie amount to the leak test, so those lines only show where
+  calories do. Same rules as strings.xml: no backslash escapes, positional %1$s.
+-->
+<resources>
+
+    <!-- Goal types: the name and one line on what it does. -->
+    <string name="goal_kind_weight">Weight</string>
+    <string name="goal_kind_weight_line">Lose, keep or gain weight. Your daily calorie target follows it.</string>
+    <string name="goal_kind_balance">Energy balance</string>
+    <string name="goal_kind_balance_line">Eat a set amount under or over what a typical day burns.</string>
+    <string name="goal_kind_burn">Burn</string>
+    <string name="goal_kind_burn_line">Reach an amount of energy burned each day.</string>
+    <string name="goal_kind_steps">Steps</string>
+    <string name="goal_kind_steps_line">Walk a number of steps each day.</string>
+    <string name="goal_kind_track">Track every day</string>
+    <string name="goal_kind_track_line">Show up each day: log something, check in or wrap up.</string>
+    <string name="goal_kind_meals">Meals</string>
+    <string name="goal_kind_meals_line">Have a number of meals each day.</string>
+
+    <!-- Daily or Weekly average, and the band. -->
+    <string name="goal_averaging_title">How days count</string>
+    <string name="goal_averaging_daily">Daily</string>
+    <string name="goal_averaging_weekly">Weekly average</string>
+    <string name="goal_averaging_daily_body">Each day stands on its own.</string>
+    <string name="goal_averaging_weekly_body">Your week counts as a whole. Days under your target leave a little more room later in the week.</string>
+    <string name="goal_averaging_weekly_caps">A big day only trims the days after it a little, never more than 10% or 200 calories. Anything left over is dropped. Each week starts fresh.</string>
+    <string name="goal_band_title">On track within</string>
+    <!-- One of the band's options: "±100". -->
+    <string name="goal_band_option">±%1$d</string>
+    <string name="goal_lower">Lower %1$s</string>
+    <string name="goal_raise">Raise %1$s</string>
+
+    <!-- The projection chart. -->
+    <string name="goal_chart_cd">Rough projection: from %1$s to %2$s, %3$s to %4$s</string>
+    <string name="goal_chart_cd_open">Rough projection: from %1$s to about %2$s by %3$s</string>
+    <string name="goal_chart_rough">A rough projection. Real weight goes up and down from day to day.</string>
+    <string name="goal_forecast_middle">Around %1$s at your target</string>
+    <string name="goal_forecast_band">Between %1$s and %2$s across your on-track range</string>
+    <string name="goal_forecast_none">Not within two years at this pace</string>
+</resources>

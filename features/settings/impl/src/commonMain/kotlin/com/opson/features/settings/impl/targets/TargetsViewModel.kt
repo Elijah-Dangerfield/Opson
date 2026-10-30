@@ -159,8 +159,8 @@ class TargetsViewModel(
                 (shownDialog() as? TargetsDialogKind.Recalculate)?.let { recalculationClosed = it.recalculation }
                 closeDialog(action)
             }
-            TargetsAction.RecalculationAccepted -> answerRecalculation(action) { current, offer -> GoalBook.accept(current, offer) }
-            TargetsAction.RecalculationKept -> answerRecalculation(action) { current, offer -> GoalBook.keep(current, offer) }
+            TargetsAction.RecalculationAccepted -> answerRecalculation(action) { current, offer -> GoalBook.accept(current, offer, today) }
+            TargetsAction.RecalculationKept -> answerRecalculation(action) { current, offer -> GoalBook.keep(current, offer, today) }
             TargetsAction.PaceInfoTapped -> openDialog(TargetsDialogKind.PaceInfo, action)
             is TargetsAction.ExplainTapped -> sendEvent(TargetsEvent.OpenExplainer(action.topic))
             TargetsAction.MicrosTapped -> sendEvent(TargetsEvent.OpenMicroTargets)

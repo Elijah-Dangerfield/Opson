@@ -117,6 +117,7 @@ if (!serverOnly) {
     include(":libraries:foods:impl")
     include(":libraries:goals")
     include(":libraries:goals:impl")
+    include(":libraries:goals:ui")
     include(":libraries:health")
     include(":libraries:health:impl")
     include(":libraries:medication")

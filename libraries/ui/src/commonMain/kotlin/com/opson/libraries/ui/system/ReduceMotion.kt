@@ -11,3 +11,11 @@ import androidx.compose.runtime.Composable
  */
 @Composable
 internal expect fun isReduceMotionEnabled(): Boolean
+
+/**
+ * Whether a one-off moment (a chart drawing itself in, a reveal) should start at rest: under a
+ * preview or screenshot, which must never wait on motion, or with the system's reduce-motion
+ * setting on. Read it once, as [isReduceMotionEnabled] is.
+ */
+@Composable
+fun prefersStillness(): Boolean = androidx.compose.ui.platform.LocalInspectionMode.current || isReduceMotionEnabled()
