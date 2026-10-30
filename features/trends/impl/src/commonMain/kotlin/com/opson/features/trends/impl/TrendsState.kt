@@ -64,6 +64,8 @@ data class TrendsInputs(
     val checkInOn: Boolean = false,
     /** When the current goal began, for the running total's "Since you started". `null` until a goal has a start date. */
     val goalStart: LocalDate? = null,
+    /** `release.health`: steps from the health app, for the Steps card. `null` with it off, or until the store has answered. */
+    val steps: TrendsStepsInputs? = null,
 )
 
 /** What the person has picked on the page itself, kept by the view model across new inputs. */
@@ -74,6 +76,8 @@ data class TrendsUi(
     /** `null` until picked: since the goal began when it has a start, else 30 days. */
     val runningSpan: RunningSpan? = null,
     val runningExplained: Boolean = false,
+    /** The Steps card's (i): where steps come from, and why they don't add to Burned. */
+    val stepsExplained: Boolean = false,
 )
 
 /** The Trends tab, top to bottom. Each card is `null` when it is off or the mode has nothing to put on it. */
@@ -90,6 +94,8 @@ data class TrendsState(
     val lastCheck: LastCheck? = null,
     val nutrients: NutrientsCard? = null,
     val expended: ExpendedCard? = null,
+    /** Steps from the health app over the range, or what it takes to see them. */
+    val steps: StepsCard? = null,
     val weight: WeightCard? = null,
     val hunger: HungerTrend? = null,
     /** The check-ins' 1 to 10 hunger over the span, drawn in the Hunger card above the meal notes'. */
@@ -202,6 +208,7 @@ object TrendsStateBuilder {
             (cards.intake && showsIntake(policy, weekContext)) ||
                 (cards.nutrients && showsNutrients(policy, weekContext)) ||
                 (cards.expended && inputs.expended != null && showsExpended(policy, weekContext)) ||
+                (cards.steps && inputs.steps?.days != null && policy.effectiveLevel(Metric.EnergyOut, Surface.Week) != Visibility.Hide) ||
                 (cards.weight && showsWeight(policy))
             )
         val range = if (ranged) settings.trendsRange else TrendsRange.Week
@@ -231,6 +238,7 @@ object TrendsStateBuilder {
             lastCheck = if (checkPending) lastCheck(inputs, window, dayAt, policy) else null,
             nutrients = if (cards.nutrients && !checkPending) nutrients(inputs, span, dayAt, policy, weekContext) else null,
             expended = if (cards.expended && !checkPending) expended(inputs, span, dayAt, policy, weekContext) else null,
+            steps = if (checkPending) null else TrendsStepsBuilder.card(inputs, policy, span, dayAt, ui),
             weight = if (cards.weight && !checkPending) weight(inputs, span, policy) else null,
             hunger = journal?.let { TrendsJournal.hunger(inputs, span, it) },
             checkInHunger = if (cards.journal && inputs.checkInOn) TrendsJournal.checkInHunger(inputs, span, dayAt) else null,

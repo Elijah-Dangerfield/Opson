@@ -322,6 +322,9 @@ internal fun upToTwoDecimals(value: Double): String {
     return if (fraction.isEmpty()) "$sign$whole" else "$sign$whole.$fraction"
 }
 
+/** A count that isn't an amount of food, like steps, grouped as every number in the app is: `8,214`. */
+fun countText(value: Int): String = groupThousands(value.toLong())
+
 internal fun groupThousands(value: Long): String {
     val digits = abs(value).toString()
     val grouped = digits.reversed().chunked(3).joinToString(",").reversed()

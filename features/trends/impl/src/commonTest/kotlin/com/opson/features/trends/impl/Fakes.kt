@@ -23,11 +23,13 @@ import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthSource
 import com.opson.libraries.health.HealthStatus
+import com.opson.libraries.health.StepsRepository
 import com.opson.libraries.nutrition.NumbersChange
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -166,11 +168,29 @@ class FakeHealthRepository(
         return days.filterKeys { it in from..to }.takeIf { status.value == HealthStatus.Connected }
     }
 
+    /** What Connect comes to, and how many times it was asked. */
+    var connectOutcome: ConnectOutcome = ConnectOutcome.Connected
+    var connects = 0
+
     override suspend fun refresh() = Unit
-    override suspend fun connect(): ConnectOutcome = unused()
+    override suspend fun connect(): ConnectOutcome {
+        connects++
+        return connectOutcome
+    }
     override suspend fun disconnect() = unused()
     override fun energy(day: LocalDate, timeZone: TimeZone): Flow<EnergyExpended?> = unused()
     override fun openSourceSettings(): Boolean = unused()
+}
+
+/** Steps from the health app: [days] for any span asked, each span recorded. */
+class FakeStepsRepository(var days: Map<LocalDate, Int>? = TrendsFixtures.steps()) : StepsRepository {
+    val spans = mutableListOf<Pair<LocalDate, LocalDate>>()
+    override val canAskForMore: StateFlow<Boolean> = MutableStateFlow(false)
+
+    override fun stepsBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Flow<Map<LocalDate, Int>?> {
+        spans += from to to
+        return flowOf(days?.filterKeys { it in from..to })
+    }
 }
 
 /** `release.checkIn` as the remote config would set it. */

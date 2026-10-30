@@ -109,6 +109,7 @@ class RealGoalRepositoryStepsTest {
 
     private class FakeSteps(private val counts: Map<LocalDate, Int>) : StepsRepository {
         val asked = mutableListOf<Pair<LocalDate, LocalDate>>()
+        override val canAskForMore: StateFlow<Boolean> = MutableStateFlow(false)
         override fun stepsBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Flow<Map<LocalDate, Int>?> {
             asked += from to to
             return flowOf(counts.filterKeys { it in from..to })

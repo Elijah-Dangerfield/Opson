@@ -104,6 +104,7 @@
     <string name="trends_settings_card_journal">Hunger and notes</string>
     <string name="trends_settings_card_calendar">On-track calendar</string>
     <string name="trends_settings_card_running">Running total</string>
+    <string name="trends_settings_card_steps">Steps</string>
 
     <!-- Sub-screens: where back goes, "‹ Trends" or "‹ Today", spoken on the arrow -->
     <string name="trends_back">‹ %1$s</string>
@@ -304,4 +305,29 @@
     <string name="trends_foods_more">And %1$d more</string>
     <string name="trends_foods_coverage">%1$d of %2$d foods list it, so the full amount may be higher.</string>
     <string name="trends_foods_close">Done</string>
+
+    <!-- Steps (release.health): each day's count from Apple Health or Health Connect. Steps are
+         a count, not energy, and never add to Burned. -->
+    <string name="trends_steps">Steps</string>
+    <string name="trends_steps_from">From %1$s</string>
+    <string name="trends_steps_reading">Steps</string>
+    <string name="trends_steps_help_cd">About steps</string>
+    <string name="trends_steps_help_apple_health">Apple Health puts your iPhone and Apple Watch together and counts each walk once.</string>
+    <string name="trends_steps_help_health_connect">When two apps count the same walk, Health Connect keeps the one higher on its list.</string>
+    <string name="trends_steps_help_private">Your steps stay on this phone.</string>
+    <string name="trends_steps_connect">Connect %1$s to see your daily steps here.</string>
+    <string name="trends_steps_allow">%1$s isn't sharing your steps with Opson yet.</string>
+    <string name="trends_steps_allow_button">Allow steps</string>
+    <string name="trends_steps_empty_apple_health">No steps from Apple Health for these days. To share them, open the Health app, tap your picture, then Apps and Opson.</string>
+    <string name="trends_steps_empty_health_connect">No steps from Health Connect for these days.</string>
+    <string name="trends_steps_average">Daily average</string>
+    <string name="trends_steps_today">Today so far</string>
+    <string name="trends_steps_best">Most in a day</string>
+    <string name="trends_steps_best_value">%1$s, %2$s</string>
+    <string name="trends_steps_goal_line">The line is your goal of %1$s a day.</string>
+    <string name="trends_steps_at_goal">Days at your goal</string>
+    <plurals name="trends_steps_streak">
+        <item quantity="one">%1$d day in a row at your goal</item>
+        <item quantity="other">%1$d days in a row at your goal</item>
+    </plurals>
 </resources>

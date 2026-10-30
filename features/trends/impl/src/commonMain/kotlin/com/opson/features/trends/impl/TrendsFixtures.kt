@@ -11,6 +11,7 @@ import com.opson.libraries.diary.HungerLevel
 import com.opson.libraries.diary.MoodLevel
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.Fullness
+import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Hunger
 import com.opson.libraries.diary.LogItem
 import com.opson.libraries.diary.LogMethod
@@ -21,7 +22,11 @@ import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.health.EnergyExpended
+import com.opson.libraries.health.HealthSource
+import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.Goal
+import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.RestingEnergy
 import com.opson.libraries.nutrition.RestingFrom
 import com.opson.libraries.nutrition.TargetStyle
@@ -99,6 +104,7 @@ object TrendsFixtures {
         notesLinked: Boolean = false,
         burnedByDay: Map<LocalDate, Burned>? = null,
         checkInOn: Boolean = false,
+        steps: TrendsStepsInputs? = null,
     ): TrendsInputs = TrendsInputs(
         today = today,
         settings = settings,
@@ -110,6 +116,7 @@ object TrendsFixtures {
         notesLinked = notesLinked,
         burnedByDay = burnedByDay,
         checkInOn = checkInOn,
+        steps = steps,
     )
 
     /**
@@ -134,6 +141,35 @@ object TrendsFixtures {
         val active = round(550 + sin(back * 1.3) * 140 + cos(back * 0.7) * 60)
         today.minus(back, DateTimeUnit.DAY) to EnergyExpended(restingKcal = 1610.0, activeKcal = active, workoutKcal = null)
     }
+
+    /**
+     * Four months of steps from Apple Health, a few thousand either side of 8,000 with a long walk
+     * most Saturdays, and today's 4,120 so far. A day here and there has none (the phone stayed home).
+     */
+    fun steps(): Map<LocalDate, Int> = (0 until TrendsStepsBuilder.HISTORY_DAYS).mapNotNull { back ->
+        val date = today.minus(back, DateTimeUnit.DAY)
+        val count = when {
+            back == 0 -> 4120
+            back % 17 == 9 -> return@mapNotNull null
+            date.dayOfWeek == DayOfWeek.SATURDAY -> round(12_400 + sin(back * 0.9) * 1_800)
+            else -> round(7_600 + sin(back * 1.7) * 2_300 + cos(back * 0.4) * 900)
+        }
+        date to count.toInt()
+    }.toMap()
+
+    /** A steps goal of 8,000 a day, set two months ago. */
+    fun stepsGoalSettings(settings: Settings = Settings()): Settings =
+        GoalBook.withGoals(settings, listOf(Goal("steps", GoalType.Steps(STEPS_GOAL), today.minus(STEPS_GOAL_DAYS, DateTimeUnit.DAY))))
+
+    const val STEPS_GOAL = 8_000
+    private const val STEPS_GOAL_DAYS = 60
+
+    /** Steps as Trends reads them: connected to Apple Health with [days], or [status] and nothing read. */
+    fun stepsInputs(
+        days: Map<LocalDate, Int>? = steps(),
+        status: HealthStatus = HealthStatus.Connected,
+        canAskForMore: Boolean = false,
+    ): TrendsStepsInputs = TrendsStepsInputs(HealthSource.AppleHealth, status, canAskForMore, days.takeIf { status == HealthStatus.Connected })
 
     fun nutrientsInputs(
         range: NutrientsRange = NutrientsRange.Day,

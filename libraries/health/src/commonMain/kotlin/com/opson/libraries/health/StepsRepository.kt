@@ -1,6 +1,8 @@
 package com.opson.libraries.health
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
@@ -20,6 +22,13 @@ import kotlinx.datetime.TimeZone
  */
 interface StepsRepository {
     /**
+     * Connected, with something Opson reads not allowed yet: on a phone connected before steps
+     * were read, that is steps. Asking again is [HealthRepository.connect]. The same as
+     * [HealthRecords.canAskForMore].
+     */
+    val canAskForMore: StateFlow<Boolean>
+
+    /**
      * Each day's steps from [from] to [to], both included, midnight to midnight in [timeZone].
      * Past days are read once, today (when it is in the span) again whenever energy is, so the
      * count moves while the screen is open. A day with no steps recorded is missing. Null while
@@ -34,6 +43,8 @@ interface StepsRepository {
 
     /** Reads nothing: for previews, tests and anything built without a health store. */
     object None : StepsRepository {
+        override val canAskForMore: StateFlow<Boolean> = MutableStateFlow(false)
+
         override fun stepsBetween(from: LocalDate, to: LocalDate, timeZone: TimeZone): Flow<Map<LocalDate, Int>?> = flowOf(null)
     }
 }

@@ -11,11 +11,14 @@ import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
+import com.opson.libraries.core.Catching
 import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.ConnectOutcome
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.health.StepsRepository
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
@@ -53,6 +56,7 @@ class TrendsViewModel(
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
     /** Today binds it (the Notes list); with nothing bound, the Notes card leaves its link off. */
     notesListLink: NotesListLink? = null,
+    private val steps: StepsRepository = StepsRepository.None,
 ) : SEAViewModel<TrendsState, TrendsEvent, TrendsAction>(initialStateArg = TrendsState()) {
 
     private val today: LocalDate get() = clock.now().toLocalDateTime(timeZone).date
@@ -101,7 +105,9 @@ class TrendsViewModel(
 
         val energy = combine(expended, burned, burnedByDay) { expended, burned, byDay -> Energy(expended, burned?.totalKcal, byDay) }
 
-        combine(settingsRepository.settings, policySource.policy, records, energy) { settings, policy, records, energy ->
+        val stepsInputs = if (healthFlag()) stepsInputs() else flowOf(null)
+
+        combine(settingsRepository.settings, policySource.policy, records, energy, stepsInputs) { settings, policy, records, energy, steps ->
             TrendsAction.InputsArrived(
                 TrendsInputs(
                     today = records.today,
@@ -116,6 +122,7 @@ class TrendsViewModel(
                     checkInOn = checkInOn,
                     // The weight goal's start: "Since you started this goal", the default once there is one.
                     goalStart = settings.weightGoal.startDate?.takeIf { it <= records.today },
+                    steps = steps,
                 ),
                 policy,
             )
@@ -135,6 +142,19 @@ class TrendsViewModel(
             .distinctUntilChanged()
             .mapLatest { (from, to) -> health.energyBetween(from, to, timeZone) }
             .onStart { emit(null) }
+
+    /**
+     * Steps over the last [TrendsStepsBuilder.HISTORY_DAYS] to today, whatever the range, so a
+     * steps goal's streak can reach back past it; with the store's status, so the card can say
+     * Connect. Starts at `null`: the page never waits on the store.
+     */
+    private fun stepsInputs(): Flow<TrendsStepsInputs?> =
+        policySource.policy.map { today }.distinctUntilChanged().flatMapLatest<LocalDate, TrendsStepsInputs?> { today ->
+            val from = today.minus(TrendsStepsBuilder.HISTORY_DAYS - 1, DateTimeUnit.DAY)
+            combine(steps.stepsBetween(from, today, timeZone), health.status, steps.canAskForMore) { days, status, more ->
+                TrendsStepsInputs(health.source, status, more, days)
+            }
+        }.onStart { emit(null) }
 
     override suspend fun handleAction(action: TrendsAction) {
         when (action) {
@@ -157,7 +177,23 @@ class TrendsViewModel(
             TrendsAction.NutrientsCardTapped -> sendEvent(TrendsEvent.OpenNutrients(today.toString()))
             TrendsAction.WeightCardTapped -> sendEvent(TrendsEvent.OpenWeight)
             TrendsAction.AllNotesTapped -> sendEvent(TrendsEvent.OpenNotes)
+            TrendsAction.StepsHelpTapped -> pick(action) { it.copy(stepsExplained = !it.stepsExplained) }
+            TrendsAction.StepsConnectTapped -> connectForSteps()
         }
+    }
+
+    /**
+     * Connect, or Allow steps: the store's own prompt, from this tap. Health Connect not installed,
+     * a refusal or a store that won't ask goes to the Integrations page, which says what to do next.
+     */
+    private suspend fun connectForSteps() {
+        val card = state.steps
+        if (card is StepsCard.Connect && card.install) {
+            sendEvent(TrendsEvent.OpenIntegrations)
+            return
+        }
+        val outcome = Catching { health.connect() }.getOrNull()
+        if (outcome != ConnectOutcome.Connected) sendEvent(TrendsEvent.OpenIntegrations)
     }
 
     /** Keeps [change] for the next inputs too, and rebuilds the page with it now. */
@@ -204,6 +240,12 @@ sealed interface TrendsAction {
     data class RunningSpanPicked(val span: RunningSpan) : TrendsAction
     data object RunningHelpTapped : TrendsAction
 
+    /** The Steps card's (i). */
+    data object StepsHelpTapped : TrendsAction
+
+    /** Connect on the Steps card, or Allow steps. */
+    data object StepsConnectTapped : TrendsAction
+
     /** One of the energy words' (i) sheets, [com.opson.features.settings.EnergyExplainerRoute.topic]. */
     data class EnergyExplainerTapped(val topic: String) : TrendsAction
 }
@@ -224,4 +266,7 @@ sealed interface TrendsEvent {
 
     /** The shared energy (i) sheet: what total burned (TDEE) is, or how a deficit or surplus works. */
     data class OpenEnergyExplainer(val topic: String) : TrendsEvent
+
+    /** More › Watch and health apps, when connecting from the Steps card needs more than a tap. */
+    data object OpenIntegrations : TrendsEvent
 }

@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.toRoute
 import com.opson.features.settings.EnergyExplainerRoute
+import com.opson.features.settings.IntegrationsRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.trends.NotesListLink
 import com.opson.features.trends.NutrientFoodsRoute
@@ -96,6 +97,7 @@ class TrendsFeatureEntryPoint(
                     TrendsEvent.OpenNotes -> notesListLink?.let { router.navigate(it.route()) }
                     is TrendsEvent.OpenDay -> router.navigate(TrendsDayRoute(event.dayIso))
                     is TrendsEvent.OpenEnergyExplainer -> router.navigate(EnergyExplainerRoute(event.topic))
+                    TrendsEvent.OpenIntegrations -> router.navigate(IntegrationsRoute())
                 }
             }
             val scrollState = rememberScrollState()
