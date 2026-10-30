@@ -33,6 +33,7 @@ import com.opson.libraries.diary.ui.FastingStatusFixtures
 import com.opson.libraries.health.EnergyExpended
 import com.opson.features.today.impl.activity.TodayActivityFixtures
 import com.opson.features.today.impl.activity.TodayActivitySection
+import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.ModeTiming
@@ -83,6 +84,7 @@ private fun Today(
     firstRow: Int = 0,
     drag: FoodDrag = rememberFoodDrag(),
     burned: Burned? = null,
+    burnedGap: BurnedGap? = null,
     activity: (@Composable () -> Unit)? = null,
     habits: LoggingHabits? = null,
     now: LocalTime? = null,
@@ -101,8 +103,9 @@ private fun Today(
             weighIns = weighIns,
             ui = ui,
             foodActionsOn = flagsOn,
-            goalsAndEnergyOn = burned != null,
+            goalsAndEnergyOn = burned != null || burnedGap != null,
             burned = burned,
+            burnedGap = burnedGap,
             habits = habits,
             now = now,
         ),
@@ -142,6 +145,25 @@ private fun TodayFullLargeTextPreview() = Phone(largeText = true) { TodayFull() 
 @Composable
 private fun TodayV4(settings: Settings = Settings()) =
     Today(full, settings = settings, expended = TodayFixtures.expended, burned = TodayFixtures.burned)
+
+/** Burned can't be worked out without a weigh-in: the card says so where the Burned line goes, with Fix. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryBurnedUnavailablePreview() = Phone {
+    Today(full, expended = TodayFixtures.expended, burnedGap = BurnedGap(setOf(BodyDetail.Weight)))
+}
+
+/** Range bar, waiting on age and height: Fix opens Profile. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun TodaySummaryBurnedUnavailableDarkPreview() = Phone(dark = true) {
+    Today(
+        full,
+        settings = Settings(todayCard = SummaryCardPreset.RangeBar),
+        expended = TodayFixtures.expended,
+        burnedGap = BurnedGap(setOf(BodyDetail.Age, BodyDetail.Height)),
+    )
+}
 
 /** 13.1 1d, the default: In and out, the main number To your range. */
 @Preview(widthDp = 390, heightDp = 844)

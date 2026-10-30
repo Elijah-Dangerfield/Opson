@@ -59,8 +59,13 @@
     <string name="today_activity_total">Total burned (TDEE)</string>
     <string name="today_burned_add">Add exercise</string>
     <string name="today_burned_none">No exercise logged yet</string>
-    <string name="today_activity_unknown">Add your details on Resting energy to see what you burn.</string>
     <string name="today_burned_unknown_action">Resting energy</string>
+    <!-- Where Burned would be on Today, when it can't be worked out. %1$s is what's missing, in settings_resting_needs_* words: "a weigh-in", "age, height". -->
+    <string name="today_burned_unavailable">Burned unavailable: needs %1$s</string>
+    <string name="today_burned_unavailable_setup">Burned unavailable: resting energy isn\'t set up</string>
+    <string name="today_burned_fix">Fix</string>
+    <string name="today_burned_fix_weight">Add a weigh-in</string>
+    <string name="today_burned_fix_profile">Open Profile</string>
     <string name="today_activity_watch_has_it">Already counted by %1$s</string>
     <string name="today_activity_health_note">%1$s already counts your watch's workouts. Only add one here if your watch missed it, or it counts twice.</string>
     <string name="today_activity_add_missed">Add exercise your watch missed</string>

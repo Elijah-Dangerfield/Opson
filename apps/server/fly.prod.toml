@@ -16,7 +16,8 @@
 #   - required: DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY;
 #   - required for App Review: APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY
 #     (deletion revokes the Sign in with Apple token);
-#   - before release.photo is on: ANTHROPIC_API_KEY;
+#   - never in v1: AI_CALLS_ENABLED and ANTHROPIC_API_KEY (both are needed
+#     for any model call; see the README's environment table);
 #   - for the admin console and the site's form: ADMIN_API_TOKEN,
 #     WAITLIST_ALLOWED_ORIGINS;
 #   - to see errors and traces anywhere but `fly logs`: SENTRY_DSN,

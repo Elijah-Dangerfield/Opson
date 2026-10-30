@@ -168,6 +168,8 @@ class PromptHostImpl(private val processor: PromptProcessor) : PromptHost {
                         // Today's list draws it (PromptTodayCardContribution).
                         PromptPresentation.Card -> Unit
                         PromptPresentation.Screen -> processor.screen(showing.id)?.let { router.navigate(it) }
+                        // The operating system draws it (the store's rating sheet).
+                        PromptPresentation.System -> processor.launch(showing.id)
                     }
                 }
             }

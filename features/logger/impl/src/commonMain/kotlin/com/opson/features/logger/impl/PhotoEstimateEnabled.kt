@@ -11,9 +11,9 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 /**
  * The 0.2 release flag for Photo estimate (docs/plans/0.2/README.md). Off,
  * the + sheet has no Photo tile, search no "Photograph it", and nothing can open the photo sheet, exactly
- * as 0.1 shipped; nothing about photos runs at launch either way. The 0.2
- * release flips it remotely, once the server has `ANTHROPIC_API_KEY` and the
- * privacy policy says where photos go.
+ * as 0.1 shipped; nothing about photos runs at launch either way. It stays off
+ * in v1: an estimate needs a model on the server (`AI_CALLS_ENABLED` and
+ * `ANTHROPIC_API_KEY`), and v1 runs with no server AI.
  */
 @Inject
 @SingleIn(AppScope::class)

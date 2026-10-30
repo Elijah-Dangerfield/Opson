@@ -637,6 +637,36 @@ b.loki_series("Scanner", [
     loki("D", f'sum(count_over_time({CLIENT} | event_name="barcode.permission_denied" [$__interval]))', "camera denied"),
     loki("E", f'sum(count_over_time({CLIENT} | event_name="barcode.camera_unavailable" [$__interval]))', "camera unavailable"),
 ], "Client events. Camera denied and unavailable count people who could not use the camera; they can still type the code.")
+# Energy against the macros (V33). Each food is judged as it is served; the rule is in
+# docs/food-data-sources.md. Ids and gaps only, no names or stated values.
+b.row("Energy math: do the calories add up to the macros?")
+b.sql_stat("Foods that don't add up",
+           "SELECT coalesce(sum(inconsistent)::float / nullif(sum(consistent) + sum(inconsistent), 0), 0) "
+           "FROM analytics.food_energy_by_source",
+           "Of the foods that could be judged, the share whose calories are further from their macros' energy than a "
+           "label's rounding allows (15 kcal or 12% a serving).",
+           unit="percentunit", decimals=1, thresholds=steps(("green", None), ("orange", 0.02), ("red", 0.05)))
+b.sql_stat("Not judged yet",
+           "SELECT coalesce(sum(unchecked), 0) FROM analytics.food_energy_by_source",
+           "Rows loaded before V33 that scripts/check_food_energy.py has not reached. 0 once it has run.",
+           thresholds=steps(("green", None), ("orange", 1)))
+b.sql_stat("Can't be judged",
+           "SELECT coalesce(sum(unknown), 0) FROM analytics.food_energy_by_source",
+           "No energy or a macro missing, or energy with no macros and no alcohol figure (spirits).", w=12)
+b.bars("Judged foods by source",
+       "SELECT source || ' (tier ' || tier || ')' AS source, consistent AS \"add up\", inconsistent AS \"don't\", "
+       "unknown AS \"can't tell\", unchecked AS \"not judged\" FROM analytics.food_energy_by_source "
+       "ORDER BY tier, source",
+       "Every approved food per source. off_export is the monthly Open Food Facts table; off is the barcode cache in "
+       "foods. Alcoholic drinks show as don't, since no source here carries an alcohol figure yet.",
+       w=12, h=10)
+b.sql_table("Furthest off",
+            "SELECT food_id, source, tier, gap_kcal_per_100 AS \"stated minus macros, kcal per 100\", checked_at "
+            "FROM analytics.food_energy_worst",
+            "The 200 foods whose calories are furthest from their macros, per 100 g or ml. Positive: more calories than "
+            "the macros give (alcohol, kJ read as kcal). Negative: fewer (a label's 0, sugar alcohols, a dropped digit). "
+            "A reviewer's correction takes a food off this list.",
+            w=12, h=10, no_value="Every food adds up")
 b.write()
 
 # ── Food review ────────────────────────────────────────────────────────────
@@ -697,7 +727,7 @@ b.loki_series("Add this food, step by step", [
     loki("A", f'sum(count_over_time({CLIENT} | event_name="barcode.miss" [$__interval]))', "barcode missed"),
     loki("B", f'sum(count_over_time({CLIENT} | event_name="food_add.started" [$__interval]))', "add started"),
     loki("C", f'sum(count_over_time({CLIENT} | event_name="food_add.photo_taken" | side="label" [$__interval]))', "label photo taken"),
-    loki("D", f'sum(count_over_time({CLIENT} | event_name="food_add.read" | outcome="read" [$__interval]))', "label read"),
+    loki("D", f'sum(count_over_time({CLIENT} | event_name="food_add.read" | outcome=~"read|on_phone|partly" [$__interval]))', "label read"),
     loki("E", f'sum(count_over_time({CLIENT} | event_name="food_add.submitted" | sent="true" [$__interval]))', "sent for review"),
 ], "Client events, no barcode or food in any of them. Approval is the Postgres half above.", w=24)
 b.loki_table("Where people stop",
@@ -705,8 +735,9 @@ b.loki_table("Where people stop",
              "Add this food left before anything was logged, by the step it was left at.")
 b.loki_table("How reads end",
              f'sum by (outcome) (count_over_time({CLIENT} | event_name="food_add.read" [$__range]))',
-             "Read: the form filled in. no_label: the second photo had no panel. unavailable: no model key on the "
-             "server, so the form opened empty.")
+             "on_phone: the phone read the panel and filled the form. partly: some of it. no_label: the phone "
+             "found no panel. unavailable: the phone could not read text, so the form opened empty. read, too_many, "
+             "offline and error come from builds before v1, which asked the server.")
 b.write()
 
 # ── Builders: contributions and abuse ──────────────────────────────────────
@@ -947,4 +978,53 @@ b.series("Day 1, 7 and 30 retention by cohort day", [sql("A",
          "WHERE $__timeFilter(cohort_day::timestamp) ORDER BY 1")],
          "Of the people whose first entry was that day, the share who logged again on day 1, 7 and 30.",
          w=24, unit="percentunit")
+b.write()
+
+# ── Review asks ────────────────────────────────────────────────────────────
+# Loki only: the asks are app events (docs/practices/review-asks.md). The QA menu's asks carry
+# experiment "qa" and stay out of every panel.
+ASKED = CLIENT + ' | event_name="review.asked" | experiment!="qa"'
+SKIPPED = CLIENT + ' | event_name="review.skipped"'
+ASSIGNED = CLIENT + ' | event_name="review.assigned"'
+b = Board("opson-review-asks", "Opson · Review asks",
+          "Which happy moment to ask for a store rating at. Asks per moment over time, to set against the "
+          "store's ratings by date. The stores never say who rated.",
+          links=[PULSE_LINK], time_from="now-30d")
+b.text("How to read this",
+       "Each install asks at one moment (its **variant**), split by the `review.weight*` values in remote config. "
+       "Neither store says whether anyone rated, so this board counts **asks**, and whether the sheet was "
+       "**likely shown**, by moment and day. The outcome is the store's own numbers: App Store Connect "
+       "› Ratings and Reviews and Play Console › Ratings, by date. To credit a change in ratings to one moment, "
+       "run one moment at a time (all other weights 0, a new `review.experiment` name) for two weeks each. "
+       "Full method in `docs/practices/review-asks.md`.", h=4)
+b.row("Asks")
+b.loki_stat("Asks", f'sum(count_over_time({ASKED} [$__range]))',
+            "Times the store was asked for its sheet. QA menu asks are left out.")
+b.loki_stat("Likely shown", f'sum(count_over_time({ASKED} | outcome="likely_shown" [$__range]))',
+            "Asks where the sheet probably appeared: a new window on iOS, a flow that stayed up on Android.")
+b.loki_stat("Installs asked", f'count(sum by (install_id) (count_over_time({ASKED} [$__range])))',
+            "Distinct installs asked at least once. Asks are 122 days apart, so this is close to Asks.")
+b.loki_stat("Installs given a moment", f'count(sum by (install_id) (count_over_time({ASSIGNED} [$__range])))',
+            "Installs assigned a variant in the range, at their first happy moment of any kind.")
+b.loki_series("Asks per day by moment", [loki("A",
+              f'sum by (variant) (count_over_time({ASKED} [1d]))', "{{variant}}")],
+              "Set this against the store's daily ratings. A rise in ratings a day or two after a moment's asks "
+              "is the signal; with every moment running at once it cannot be told apart.",
+              stacked=True, bars=True, interval="1d")
+b.loki_series("Asks per day by outcome", [loki("A",
+              f'sum by (outcome) (count_over_time({ASKED} [1d]))', "{{outcome}}")],
+              "likely_not_shown is mostly the store's own quota. no_window was never asked and is given back.",
+              stacked=True, bars=True, interval="1d")
+b.loki_table("Moment × outcome", f'sum by (variant, outcome) (count_over_time({ASKED} [$__range]))',
+             "Asks over the range. A moment whose asks are rarely likely_shown is burning asks the store refuses.")
+b.loki_table("Installs per moment", f'count by (variant) (sum by (variant, install_id) (count_over_time({ASSIGNED} [$__range])))',
+             "How the installs that reached a happy moment were split. Compare with the weights in remote config.")
+b.row("Held back")
+b.loki_series("Moments held back by reason", [loki("A",
+              f'sum by (reason) (count_over_time({SKIPPED} [1d]))', "{{reason}}")],
+              "This install's moment came and the ask waited: install_new (first week), asked_recently "
+              "(122 days), offline, trouble (an error or failed step in the last 30 minutes).",
+              stacked=True, bars=True, interval="1d")
+b.loki_table("Moment × reason held back", f'sum by (variant, reason) (count_over_time({SKIPPED} [$__range]))',
+             "A moment that is mostly held back by trouble comes right after things go wrong; a poor moment to ask.")
 b.write()

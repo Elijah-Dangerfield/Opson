@@ -22,6 +22,15 @@ import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import me.tatarka.inject.annotations.Inject
 import platform.AVFoundation.AVCaptureAutoFocusRangeRestrictionNear
+import platform.AVFoundation.ISO
+import platform.AVFoundation.exposureDuration
+import platform.AVFoundation.lensAperture
+import platform.CoreMedia.CMTimeGetSeconds
+import platform.Foundation.NSDate
+import platform.Foundation.timeIntervalSince1970
+import platform.darwin.DISPATCH_TIME_NOW
+import platform.darwin.dispatch_after
+import platform.darwin.dispatch_time
 import platform.AVFoundation.AVCaptureConnection
 import platform.AVFoundation.AVCaptureDevice
 import platform.AVFoundation.AVCaptureDeviceDiscoverySession
@@ -109,17 +118,20 @@ class IosBarcodeCamera @Inject constructor() : BarcodeCamera {
         scanArea: ScanArea,
         torchOn: Boolean,
         onTorchAvailable: (Boolean) -> Unit,
+        onLowLight: (Boolean) -> Unit,
         focusPoint: FocusPoint?,
         modifier: Modifier,
     ) {
         val latestOnCode by rememberUpdatedState(onCode)
         val latestOnUnavailable by rememberUpdatedState(onUnavailable)
         val latestOnTorchAvailable by rememberUpdatedState(onTorchAvailable)
+        val latestOnLowLight by rememberUpdatedState(onLowLight)
         val session = remember {
             CaptureSession(
                 onCode = { code -> latestOnCode(code) },
                 onUnavailable = { latestOnUnavailable() },
                 onTorchAvailable = { available -> latestOnTorchAvailable(available) },
+                onLowLight = { low -> latestOnLowLight(low) },
             )
         }
         SideEffect { session.scanArea = scanArea }
@@ -168,6 +180,7 @@ private class CaptureSession(
     onCode: (ScannedCode) -> Unit,
     private val onUnavailable: () -> Unit,
     private val onTorchAvailable: (Boolean) -> Unit,
+    private val onLowLight: (Boolean) -> Unit,
 ) {
     private val session = AVCaptureSession()
     private val output = AVCaptureMetadataOutput()
@@ -176,10 +189,20 @@ private class CaptureSession(
     private var stopped = false
     private var reportedUnavailable = false
     private val observers = mutableListOf<NSObjectProtocol>()
+    private val timing = ScanTiming("iOS")
+
+    /** Only on [captureQueue], like [device]: whether the light check keeps running. */
+    private var watchingLight = false
+    private val lowLight = LowLightDetector()
 
     // AVCaptureMetadataOutput holds its delegate weakly, so this is the strong reference. A read
     // already on its way to main when the screen closes is dropped, as on Android.
-    private val delegate = MetadataDelegate { code -> if (!stopped) onCode(code) }
+    private val delegate = MetadataDelegate { code ->
+        if (!stopped) {
+            timing.read(code.value)
+            onCode(code)
+        }
+    }
     private val previewLayer = AVCaptureVideoPreviewLayer(session = session).apply {
         videoGravity = AVLayerVideoGravityResizeAspectFill
     }
@@ -209,10 +232,15 @@ private class CaptureSession(
             val running = session.running
             camera?.let { applyTorch(it) }
             val hasTorch = camera?.hasTorch == true
+            if (running) {
+                watchingLight = true
+                watchLight()
+            }
             dispatch_async(dispatch_get_main_queue()) {
                 if (!running) {
                     unavailable()
                 } else if (!stopped) {
+                    timing.cameraUp()
                     onTorchAvailable(hasTorch)
                     // Only a running session knows its video size, which the conversion needs.
                     updateRectOfInterest()
@@ -223,13 +251,38 @@ private class CaptureSession(
 
     /** Call on the main thread. */
     fun stop() {
+        if (!stopped) timing.closed()
         stopped = true
         observers.forEach { NSNotificationCenter.defaultCenter.removeObserver(it) }
         observers.clear()
         dispatch_async(captureQueue) {
+            watchingLight = false
             // Stopping the session turns the torch off with it.
             if (session.running) session.stopRunning()
         }
+    }
+
+    /**
+     * Reads the exposure the camera settled on a few times a second and says
+     * when the scene has been dark for a moment, or lit again. AVFoundation
+     * offers no callback for it, and a video data output just to watch the
+     * light would cost far more than reading three numbers. On [captureQueue],
+     * until [stop].
+     */
+    private fun watchLight() {
+        if (!watchingLight) return
+        device?.let { camera ->
+            val ev = sceneEv100(
+                aperture = camera.lensAperture.toDouble(),
+                exposureSeconds = CMTimeGetSeconds(camera.exposureDuration),
+                iso = camera.ISO.toDouble(),
+            )
+            val now = (NSDate().timeIntervalSince1970 * MILLIS_PER_SECOND).toLong()
+            ev?.let { lowLight.update(it, now) }?.let { low ->
+                dispatch_async(dispatch_get_main_queue()) { if (!stopped) onLowLight(low) }
+            }
+        }
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, LIGHT_CHECK_NANOS), captureQueue) { watchLight() }
     }
 
     /** Call on the main thread. */
@@ -429,7 +482,13 @@ private class PreviewView(
     }
 }
 
-/** Runs on [metadataQueue]; hands each read to main, where the caller's state lives. */
+/**
+ * Runs on [metadataQueue]; hands each read to main, where the caller's state
+ * lives. With two codes in the area (two packs on a shelf), the one nearest
+ * the middle is the one being aimed at. Bounds are in the output's 0 to 1
+ * space, where the centred scan area's middle is the frame's.
+ */
+@OptIn(ExperimentalForeignApi::class)
 private class MetadataDelegate(private val onCode: (ScannedCode) -> Unit) :
     NSObject(),
     AVCaptureMetadataOutputObjectsDelegateProtocol {
@@ -441,14 +500,30 @@ private class MetadataDelegate(private val onCode: (ScannedCode) -> Unit) :
     ) {
         val read = didOutputMetadataObjects
             .filterIsInstance<AVMetadataMachineReadableCodeObject>()
-            .firstNotNullOfOrNull { code ->
-                val value = code.stringValue ?: return@firstNotNullOfOrNull null
-                FORMATS[code.type]?.let { ScannedCode(value, it) }
+            .mapNotNull { code ->
+                val value = code.stringValue ?: return@mapNotNull null
+                val format = FORMATS[code.type] ?: return@mapNotNull null
+                val distance = code.bounds.useContents {
+                    val dx = origin.x + size.width / 2 - CENTRE
+                    val dy = origin.y + size.height / 2 - CENTRE
+                    dx * dx + dy * dy
+                }
+                ScannedCode(value, format) to distance
             }
+            .minByOrNull { it.second }
+            ?.first
             ?: return
         dispatch_async(dispatch_get_main_queue()) { onCode(read) }
     }
 }
+
+/** The middle of the metadata output's 0 to 1 space. */
+private const val CENTRE = 0.5
+
+/** How often the light is checked: often enough to answer within a second or so. */
+private const val LIGHT_CHECK_NANOS = 250_000_000L
+
+private const val MILLIS_PER_SECOND = 1000.0
 
 /**
  * Where every capture session, this one's and the still camera's, is set up, started and stopped,

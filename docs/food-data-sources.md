@@ -298,7 +298,58 @@ SELECT count(*) FROM foods
 WHERE kcal_100g = 0 AND 4 * protein_100g + 4 * carbs_100g + 9 * fat_100g > 5;
 ```
 
-That is per 100 g, so it undercounts drinks with a larger serving.
+That is per 100 g, so it undercounts drinks with a larger serving. The
+energy check below counts them at their serving.
+
+## Energy math: does every food add up (2026-10-30)
+
+Every row in `foods` and `off_foods` now says whether its calories match its
+macros (V33): `energy_consistent` (true, false, or null when it can't be
+judged), `energy_gap_kcal` (stated minus the macros' energy, per 100 g or ml)
+and `energy_checked_at`. It is information only. Nothing is hidden, ranked or
+changed by it; the served energy guard above is separate and unchanged.
+
+**The rule** (`food_energy_check()` in V33):
+
+1. **Energy from the macros**, at Atwater's general factors: protein 4,
+   carbs 4, fat 9, alcohol 7 kcal a gram. Labels count carbohydrate two ways,
+   so three sums are tried and the one nearest the stated energy is used:
+   all carbs at 4; US "total carbohydrate" with fiber at 2 and sugar
+   alcohols at 2.4 inside it; EU carbohydrate with polyols at 2.4 inside it
+   and fiber outside at 2. Without fiber or polyol figures the three are the
+   same number. Fiber is `fiber_100g`; polyols and alcohol come from
+   `micros.sugar_alcohols_g` and `micros.alcohol_g` when a source has them.
+2. **At a serving**, when the first portion's size is known (grams, or the
+   ml its label names), because that is where a label rounds; per 100
+   otherwise.
+3. **Tolerance**: 15 kcal or 12% of the stated energy, whichever is larger.
+   That is the label form's tolerance (`LabelChecks`, and `MacroEnergyCheck`
+   in the app): energy is printed to the nearest 5 or 10 kcal and each macro
+   to the gram, which alone can move a serving by about 13 kcal, and some
+   foods use specific factors (nuts, whole grains). A serving stated under
+   5 kcal is a label's "0", which the FDA allows only below 5, so there the
+   macros must come in within 5 kcal too. This is the Monster Energy case.
+4. **Null** when energy or protein, carbs or fat is unknown, or when protein,
+   carbs and fat are all 0 with no alcohol figure but the energy isn't
+   (spirits look like this, and so do errors; neither can be told apart).
+5. **As served**: a reviewer's live correction (V29) is laid over the row
+   first, so correcting a food clears its flag and reverting brings it back.
+
+**Kept current** by triggers: a new row, a change to a row's numbers or
+portions, and a correction re-judge the food, so the importers, the barcode
+cache and approvals need no code of their own. The Open Food Facts reload
+copies the trigger onto its staging table, so each reload arrives judged.
+Rows loaded before V33 are judged by `scripts/check_food_energy.py` (command
+in apps/server/README.md).
+
+**What it finds.** On the committed USDA generic seed (13,324 foods): 13,066
+add up, 200 don't and 58 can't be judged. Nearly all of the 200 are alcoholic
+drinks and cocktails, because no importer stores alcohol yet; the rest are
+foods whose specific factors sit far from 4/4/9 (cocoa powder, oat bran,
+lecithin). Storing alcohol (USDA nutrient 221, NEVO `ALC`, Open Food Facts
+`alcohol_100g`) as `micros.alcohol_g` would clear most of them. Branded and
+Open Food Facts have not been measured; the Food catalog board shows them
+once the script has run.
 
 ## Generic national tables: import
 

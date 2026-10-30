@@ -8,17 +8,22 @@ import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 
-/** How a read of the label ended. */
+/**
+ * How the phone's read of the label ended. Builds before v1 also sent `read`, `too_many`,
+ * `offline` and `error`, from the server's read; the dashboards still count them.
+ */
 enum class ReadOutcome(val wire: String) {
-    Read("read"),
-    NoLabel("no_label"),
-    Unavailable("unavailable"),
-    TooMany("too_many"),
-    Offline("offline"),
-    Error("error"),
-
-    /** Builder mode: the phone read the panel well enough that the server was not asked. */
+    /** The panel read well enough to fill the form. */
     OnPhone("on_phone"),
+
+    /** Some of the panel read: the form is partly filled. */
+    Partly("partly"),
+
+    /** Text but no panel: the label photo is asked for again. */
+    NoLabel("no_label"),
+
+    /** This phone could not read text: the form opened empty. */
+    Unavailable("unavailable"),
 }
 
 /**
@@ -33,7 +38,7 @@ interface SubmitFoodTelemetry {
 
     fun photoTaken(side: PackSide, fromCamera: Boolean)
 
-    /** [checks] the reading fails; [unsure] fields the model was unsure of. */
+    /** [checks] the reading fails; [unsure] fields the phone's OCR was unsure of. */
     fun read(outcome: ReadOutcome, checks: Int, unsure: Int)
 
     /**

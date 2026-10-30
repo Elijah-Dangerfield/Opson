@@ -71,7 +71,9 @@ The events that motivated shipping direct-to-Grafana: what never reaches the bac
 | Event | Attributes | Fires |
 |---|---|---|
 | `net.backend_unreachable` | `operation`, `error_kind` (timeout / exception class) | Shared `NetworkCall` failure path, non-HTTP failures only. An HTTP status IS reachability |
-| `net.offline_banner` | `visible`, `os_online`, `backend_reachable` | Each edge of the app-wide offline banner (`AppStateImpl`), carrying which signal drove it |
+| `net.offline_banner` | `visible`, `os_online`, `backend_reachable` | Each edge of `AppState.isOffline` (`AppStateImpl`), the raw signal under the offline strip, carrying which signal drove it. A blip shorter than the strip's wait still fires this |
+| `net.offline_banner_shown` |, | The offline strip at the top of the app appeared: offline for longer than its 3 second wait (`ConnectionBannerImpl`, `:features:upgrade:impl`) |
+| `net.offline_banner_cleared` | `shown_ms` | The connection came back while the strip was up and it said "You're back online". `shown_ms` is how long it was up. A strip that was up when the app closed sends no cleared |
 | `conn.regained` |, | Reserved for offline→online recovery signals (`ConnectivityEdgeDispatcher` drives the app event; emit here if you need it in Loki). Apps with a long-lived socket should extend the `conn.*` namespace: `conn.reconnecting` (`attempt`), `conn.recovered` (`attempts`, `downtime_ms`), `conn.reconnect_failed` (`attempts`) |
 
 ## Product funnels
@@ -162,7 +164,7 @@ eat. The last step, approval, is not an app event: it is in the review ledger,
 |---|---|---|
 | `food_add.started` | `origin` (`barcode`, `search`: whether a code was scanned, as the server keeps it), `entry` (`barcode_miss`, `empty_search`, `search_results`, `add_sheet`, `foods`, `builders`) | The Add a packaged food screen opened |
 | `food_add.photo_taken` | `side` (`front`, `label`, `ingredients` in Builder mode), `source` (`camera`, `library`) | A photo came back for one side. Backing out fires nothing; a retake fires again |
-| `food_add.read` | `outcome` (`read`, `no_label`, `unavailable`, `too_many`, `offline`, `error`, and `on_phone` when Builder mode read the panel on the phone), `checks` (count failed), `unsure` (count of fields the model, or the phone's OCR, was unsure of) | The server answered Read the label, or the phone read it in Builder mode |
+| `food_add.read` | `outcome` (`on_phone` the panel read and filled the form, `partly` some of it, `no_label` no panel found, `unavailable` the phone could not read text; builds before v1 also sent `read`, `too_many`, `offline` and `error` from the server's read), `checks` (count failed), `unsure` (count of fields the phone's OCR was unsure of) | The phone finished reading the label after Read the label |
 | `food_add.submitted` | `origin`, `entry`, `edited` (the person changed what was read), `kept` (checks they kept the label's figure through), `numbers_shown` (the mode showed the numbers), `sent` (the copy for review reached the server; false when only the person's own food was saved) | Once per food, when it was saved (and logged, where there is a meal): on the server's answer, on Done after a failed send, or on leaving with it unsent |
 | `food_add.abandoned` | `stage` (`photos_none`, `photos_some`, `reading`, `review`, `no_label`, `too_many`, `read_failed`, `camera_off`) | Left before anything was saved |
 
@@ -299,9 +301,23 @@ typed.** The rules are in [prompts.md](prompts.md). A funnel is `prompt.shown` t
 
 | Event | Attributes | Fires |
 |---|---|---|
-| `prompt.shown` | `prompt` (`connect_health`, `meal_reminders`, `try_check_in`, `celebration`, …), `presentation` (`dialog`, `sheet`, `card`, `screen`), `trigger` (`today`, `report_sent`, `day_closed`, `qa`) | A prompt was picked and is about to be drawn. Written to the counts first, so it fires once per showing. `qa` is the QA menu's Show next |
+| `prompt.shown` | `prompt` (`connect_health`, `meal_reminders`, `try_check_in`, `celebration`, `review`, …), `presentation` (`dialog`, `sheet`, `card`, `screen`, `system`), `trigger` (`today`, `report_sent`, `day_closed`, `food_report_sent`, `celebration_cheered`, `showed_up`, `food_approved`, `qa`) | A prompt was picked and is about to be drawn. Written to the counts first, so it fires once per showing. `qa` is the QA menu's Show next |
 | `prompt.accepted` | `prompt` | The main button. Once per showing |
 | `prompt.dismissed` | `prompt` | Not now, a swipe, a tap outside or Back. Once per showing, never after an accept |
+
+### Asking for a rating (`release.reviewAsk`)
+
+From `RealReviewPromptCoordinator` and `ConfiguredReviewExperiment` (`:libraries:review:impl`)
+through `ReviewTelemetry`: a moment, an experiment name and an outcome, never the account. Each
+install asks at one moment (`variant`); the `review` prompt's `prompt.shown` fires just before
+`review.asked`. Neither store says whether anyone rated, so `outcome` is the closest signal there
+is; how to read it against store ratings is in [review-asks.md](review-asks.md).
+
+| Event | Attributes | Fires |
+|---|---|---|
+| `review.assigned` | `variant` (`celebration`, `day_felt_good`, `showing_up`, `food_approved`), `experiment` | An install was given its moment: at its first happy moment of any kind while `release.reviewAsk` is on, and again when the experiment is renamed or its moment's weight goes to 0 |
+| `review.skipped` | `variant`, `experiment`, `reason` (`install_new`, `asked_recently`, `offline`, `trouble`) | This install's moment really happened and the ask was held back. `trouble` is an error logged or a failed step in the last 30 minutes |
+| `review.asked` | `variant` (the moment asked at), `experiment` (`qa` for the QA menu's Show next), `outcome` (`likely_shown`, `likely_not_shown`, `requested`, `no_window`) | The store was asked for its sheet. `likely_shown` is iOS seeing a new window in the scene, or Android's flow staying up for a second or more; `no_window` was never asked and does not count as an ask |
 
 ### Celebrations (`release.celebrations`)
 

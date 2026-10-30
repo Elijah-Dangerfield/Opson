@@ -69,7 +69,16 @@ object SubmitFoodFixtures {
 
     fun photosState(policy: VisibilityPolicy, photos: Int = 0): SubmitFoodState = state(model(photos = photos), policy)
 
-    fun reviewState(policy: VisibilityPolicy): SubmitFoodState = state(reviewModel(), policy)
+    /** The phone read the label: the form filled in, the unsure fields marked. */
+    fun reviewState(policy: VisibilityPolicy): SubmitFoodState = state(reviewModel(notice = ReviewNotice.ReadOnPhone), policy)
+
+    /** The phone read some of the panel: what it found filled in, the rest empty under its notice. */
+    fun partlyState(policy: VisibilityPolicy): SubmitFoodState {
+        val partial = read.copy(
+            facts = facts.copy(perServing = facts.perServing.filterKeys { it == LabelNutrient.Energy || it == LabelNutrient.Protein }),
+        )
+        return state(reviewModel(read = partial, notice = ReviewNotice.ReadPartly), policy)
+    }
 
     /** From search: no barcode, and the energy fixed with "Use 234 kcal". */
     fun fixedState(policy: VisibilityPolicy): SubmitFoodState {
@@ -78,7 +87,7 @@ object SubmitFoodFixtures {
         return state(SubmitFoodForm.fix(model, check), policy)
     }
 
-    /** The server could not read it: the form is empty under its notice. */
+    /** This phone could not read text: the form is empty under its notice. */
     fun byHandState(policy: VisibilityPolicy): SubmitFoodState =
         state(reviewModel(read = null, notice = ReviewNotice.Unavailable), policy)
 
@@ -87,7 +96,8 @@ object SubmitFoodFixtures {
     /** From the Foods tab's Add a food: no meal, so it says Save food and logs nothing. */
     fun saveOnlyPhotosState(policy: VisibilityPolicy): SubmitFoodState = state(model(barcode = null).copy(slot = null), policy)
 
-    fun saveOnlyReviewState(policy: VisibilityPolicy): SubmitFoodState = state(reviewModel(barcode = null).copy(slot = null), policy)
+    fun saveOnlyReviewState(policy: VisibilityPolicy): SubmitFoodState =
+        state(reviewModel(barcode = null, notice = ReviewNotice.ReadOnPhone).copy(slot = null), policy)
 
     /** The label photo picked from the library would not open: a line under the photos says so. */
     fun photoFailedState(policy: VisibilityPolicy): SubmitFoodState =
@@ -97,7 +107,7 @@ object SubmitFoodFixtures {
     fun builderPhotosState(policy: VisibilityPolicy): SubmitFoodState =
         state(model(photos = 2).copy(builderMode = true, slot = null), policy)
 
-    /** Builder mode, the label read on the phone: the form filled in, with the notice to check it. */
+    /** Builder mode, the label read on the phone: the form filled in, with the ingredients photo beside it. */
     fun builderReviewState(policy: VisibilityPolicy): SubmitFoodState =
         state(reviewModel(notice = ReviewNotice.ReadOnPhone).copy(builderMode = true), policy)
 }

@@ -1,7 +1,7 @@
 ---
 app: Opson
 title: Consumer Health Data Privacy Policy
-updated: 2026-10-29
+updated: 2026-10-30
 contact: contact@nightjarlabs.llc
 ---
 
@@ -43,8 +43,9 @@ us, under contracts that let them use it only for that:
 
 - **Hosting and storage**: Fly.io and Supabase, which run our server and store
   your synced log.
-- **Photo analysis**: Anthropic, only for a photo estimate you ask for, or a
-  pack label you ask it to read.
+- **Review help**: Anthropic, whose AI assistant the person reviewing a food
+  you submitted may use to check its photos against its numbers. It gets the
+  photos and the food's details, never your account or your log.
 - **Crash reporting**: Sentry. Crash reports are built to leave out your log,
   but a report about a failed food search can include the words searched.
 

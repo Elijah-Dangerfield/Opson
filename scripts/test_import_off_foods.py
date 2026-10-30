@@ -346,6 +346,7 @@ class ReloadTest(unittest.TestCase):
         batches = [(text, n) for text, n in chunks if n]
         self.assertIn("SET statement_timeout = 0", sql[2])
         self.assertIn("CREATE TABLE IF NOT EXISTS public.off_foods_next", sql[3])
+        self.assertIn("pg_get_triggerdef", sql[3], "off_foods' triggers (the V33 energy check) go on the staging table")
         self.assertEqual([3, 1], [n for _, n in batches])
         self.assertEqual(batches[-1][0], sql[-1], "the load ends with its last batch; finish() swaps")
         self.assertNotIn("LOCK TABLE", "".join(sql))

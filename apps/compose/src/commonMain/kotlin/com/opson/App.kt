@@ -220,11 +220,12 @@ fun App(appComponent: AppComponent) {
                         // What a shake's bug report shows: drawn through a layer only when asked.
                         .screenCaptureSource(shakeHandler.screenCapture)
                 ) {
-                    // Maintenance, the version floor and the update offer cover or sit above
-                    // everything below. The guard collects its own state, so a change there
+                    // Maintenance, the version floor, the offline strip and the update offer cover
+                    // or sit above everything below. The guard collects its own state, so a change there
                     // recomposes the guard, not App.
                     AppGuardLayer(
                         guard = appComponent.appGuard,
+                        connection = appComponent.connectionBanner,
                         onOpenUrl = router::openWebLink,
                         onClearOverrides = {
                             guardScope.launch { appComponent.configOverrideRepository.clearAll() }

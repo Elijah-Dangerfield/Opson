@@ -27,6 +27,11 @@ private val home = BuilderPage.Home(
 @Composable
 private fun BuilderJoinPreview() = Page(BuilderProgramState(page = intro))
 
+/** Opened offline for the first time: nothing to show yet, so the offline card and Try again, no spinner. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun BuilderFirstOpenOfflinePreview() = Page(BuilderProgramState(page = null, problem = BuilderProblem.Offline))
+
 /** Someone who left, coming back: the same page with Apply again. In the dark. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

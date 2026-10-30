@@ -24,6 +24,8 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ShowingUp
 import com.opson.libraries.flowroutines.testing.CoroutineTest
 import com.opson.libraries.nutrition.PresetId
+import com.opson.libraries.prompts.PromptEvent
+import com.opson.libraries.prompts.PromptEvents
 import com.opson.libraries.prompts.PromptPresentation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -144,7 +146,14 @@ class CelebrationTest : CoroutineTest() {
     @Test
     fun iCanDoThis_closes_once() = runUnitTest {
         val telemetry = RecordingTelemetry()
-        val vm = CelebrationViewModel(Milestone.Week1.wire, offerTurnOff = true, settingsRepository = settings, telemetry = telemetry)
+        val moments = mutableListOf<PromptEvent>()
+        val vm = CelebrationViewModel(
+            Milestone.Week1.wire,
+            offerTurnOff = true,
+            settingsRepository = settings,
+            telemetry = telemetry,
+            promptEvents = PromptEvents { moments += it },
+        )
         val events = mutableListOf<CelebrationEvent>()
         backgroundScope.launch { vm.eventFlow.toList(events) }
 
@@ -153,6 +162,7 @@ class CelebrationTest : CoroutineTest() {
 
         assertEquals(listOf<CelebrationEvent>(CelebrationEvent.Close), events)
         assertEquals(listOf("shown:week_1:true", "answered:week_1:can_do_this"), telemetry.events)
+        assertEquals(listOf(PromptEvent.CelebrationCheered), moments, "their answer is a moment a prompt may follow")
         assertTrue(settings.state.value.celebrationsEnabled)
     }
 

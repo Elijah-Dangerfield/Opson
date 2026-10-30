@@ -3,9 +3,7 @@ package com.opson.features.logger.impl
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.foods.CarbBasis
 import com.opson.libraries.foods.LabelCheckCode
-import com.opson.libraries.foods.LabelDraft
 import com.opson.libraries.foods.LabelNutrient
-import com.opson.libraries.foods.LabelParse
 import com.opson.libraries.foods.ServingUnit
 import com.opson.libraries.foods.SubmitResult
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -32,17 +30,16 @@ data class SubmitFoodState(
     val canTakePhoto: Boolean = true,
     /** The photo picked for this side could not be read (an iCloud photo that would not download, say). */
     val photoFailed: PackSide? = null,
-    /** A Builder adding a food: the ingredients slot, and the label read on the phone (`release.builders`). */
+    /** A Builder adding a food: the ingredients slot (`release.builders`). */
     val builderMode: Boolean = false,
     val ingredients: MealPhoto? = null,
-    /** The label is being read on the phone rather than by the server. */
-    val readingOnPhone: Boolean = false,
 )
 
 sealed interface SubmitStage {
     /** Two photos to take, retake or pick. [canRead] once both are there. */
     data class Photos(val canRead: Boolean) : SubmitStage
 
+    /** The phone reading the label. A few seconds; nothing goes to the server. */
     data object Reading : SubmitStage
 
     data class Review(val form: SubmitForm) : SubmitStage
@@ -50,12 +47,8 @@ sealed interface SubmitStage {
     /** Logging it and sending it. */
     data object Saving : SubmitStage
 
-    /** The label photo shows no nutrition panel. */
+    /** The phone found no nutrition panel in the label photo. */
     data object NoLabel : SubmitStage
-
-    data object TooMany : SubmitStage
-
-    data class ReadFailed(val offline: Boolean) : SubmitStage
 
     data class CameraOff(val canAskAgain: Boolean) : SubmitStage
 
@@ -86,7 +79,7 @@ data class SubmitForm(
 )
 
 /**
- * One field. [needsLook] when the model was unsure of it (confidence under
+ * One field. [needsLook] when the reading was unsure of it (confidence under
  * [SubmitFoodStateBuilder.LOW_CONFIDENCE]); [flagged] when a failing check names it;
  * [missing] when it is required and empty.
  */
@@ -123,15 +116,19 @@ data class CheckRow(
     val kept: Boolean,
 )
 
+/** The line above the form saying where its contents came from. Every label is read on the phone. */
 enum class ReviewNotice {
-    /** The server cannot read labels right now: fill it in from the photo. */
+    /** This phone can't read text right now (no engine, or its model is still downloading): fill it in from the photo. */
     Unavailable,
 
     /** The person chose to type it in. */
     ByHand,
 
-    /** Builder mode: the phone read the label, and every number wants a look against the pack. */
+    /** The phone read the panel: the marked fields want a look against the pack. */
     ReadOnPhone,
+
+    /** The phone read some of the panel, not enough to rely on: the rest is for the person to fill in. */
+    ReadPartly,
 }
 
 sealed interface SubmitFoodAction {
@@ -143,10 +140,9 @@ sealed interface SubmitFoodAction {
     data object OpenSettingsTapped : SubmitFoodAction
     data class PhotoAnswered(val side: PackSide, val result: PhotoPickResult, val fromCamera: Boolean) : SubmitFoodAction
     data object ReadTapped : SubmitFoodAction
-    data class ReadArrived(val parse: LabelParse) : SubmitFoodAction
 
-    /** Builder mode: the phone read the panel well enough to fill the form without the server. */
-    data class ReadOnPhoneArrived(val draft: LabelDraft) : SubmitFoodAction
+    /** What the phone read off the label, and its guess at the name from the front. */
+    data class ReadOnPhoneArrived(val read: PhoneRead, val name: String?) : SubmitFoodAction
     data object TypeItInTapped : SubmitFoodAction
     data object TryAgainTapped : SubmitFoodAction
     data object RetakeLabelTapped : SubmitFoodAction
@@ -193,8 +189,6 @@ sealed interface SubmitStep {
     data object Review : SubmitStep
     data object Saving : SubmitStep
     data object NoLabel : SubmitStep
-    data object TooMany : SubmitStep
-    data class ReadFailed(val offline: Boolean) : SubmitStep
     data class CameraOff(val canAskAgain: Boolean) : SubmitStep
     data class SendFailed(val offline: Boolean, val tooMany: Boolean, val restricted: Boolean = false) : SubmitStep
 }
@@ -213,7 +207,6 @@ data class SubmitModel(
     val step: SubmitStep = SubmitStep.Photos,
     val front: MealPhoto? = null,
     val label: MealPhoto? = null,
-    val parseId: String? = null,
     val confidence: Map<String, Double> = emptyMap(),
     val texts: Map<String, String> = emptyMap(),
     val servingUnit: ServingUnit = ServingUnit.Gram,
@@ -226,10 +219,9 @@ data class SubmitModel(
     val derived: Set<LabelNutrient> = emptySet(),
     val kept: Set<Pair<LabelCheckCode, String>> = emptySet(),
     val notice: ReviewNotice? = null,
-    /** The fields the model filled, as it filled them, to tell an edit from a read. */
+    /** The fields the reading filled, as it filled them, to tell an edit from a read. */
     val read: Map<String, String> = emptyMap(),
     val photoFailed: PackSide? = null,
     val builderMode: Boolean = false,
     val ingredients: MealPhoto? = null,
-    val readingOnPhone: Boolean = false,
 )

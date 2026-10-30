@@ -3,6 +3,7 @@ package com.opson.features.onboarding.impl
 import androidx.lifecycle.viewModelScope
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.onboarding.OnboardingSetupEnabled
+import com.opson.libraries.core.AppState
 import com.opson.libraries.core.BuildInfo
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.DeviceRegion
@@ -112,6 +113,8 @@ class OnboardingViewModel(
     /** Native Sign in with Apple, which only iOS has. A parameter so tests can run either phone. */
     appleSignIn: Boolean = BuildInfo.isiOS(),
     private val clock: Clock = Clock.System,
+    /** Checked before Google or Apple opens, which would otherwise wait on a browser or sheet that can't load. */
+    private val connection: AppState = AssumeOnline,
 ) : SEAViewModel<OnboardingState, OnboardingEvent, OnboardingAction>(
     initialStateArg = OnboardingState(
         appleEnabled = appleSignIn,
@@ -241,6 +244,7 @@ class OnboardingViewModel(
      */
     private suspend fun OnboardingAction.handleApple(link: Boolean) {
         if (!state.canTapSignIn) return
+        if (connection.isOffline.value) return fail(AccountMethod.Apple, OnboardingAccountError.Offline)
         googleAttempt?.cancel()
         updateState { it.copy(accountInFlight = AccountMethod.Apple, accountError = null, conflict = null) }
         val request = Catching { appleSignInCoordinator.awaitCredential() }
@@ -257,6 +261,7 @@ class OnboardingViewModel(
     /** "Continue with Google", through the browser. See [googleAttempt] for why it runs off the loop. */
     private suspend fun OnboardingAction.handleGoogle(link: Boolean) {
         if (!state.canTapSignIn) return
+        if (connection.isOffline.value) return fail(AccountMethod.Google, OnboardingAccountError.Offline)
         googleAttempt?.cancel()
         updateState { it.copy(accountInFlight = AccountMethod.Google, accountError = null, conflict = null) }
         val action = this

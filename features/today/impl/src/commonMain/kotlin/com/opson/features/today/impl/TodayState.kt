@@ -469,6 +469,9 @@ sealed interface TodayAction {
     data object SummaryLongPressed : TodayAction
     data object WeightTapped : TodayAction
 
+    /** Fix on the card's "Burned unavailable" row: where the missing detail is entered. */
+    data object BurnedFixTapped : TodayAction
+
     // Select foods, drag them between meals, swipe to delete (release.todaySelect)
     data class FoodLongPressed(val entryId: String) : TodayAction
     data class FoodToggled(val entryId: String) : TodayAction
@@ -538,6 +541,9 @@ sealed interface TodayEvent {
     data object OpenTodayScreenSettings : TodayEvent
     data object OpenFasting : TodayEvent
     data object OpenWeight : TodayEvent
+
+    /** What Burned is waiting on: Weight, Profile or Resting energy. */
+    data class OpenBurnedFix(val fix: BurnedFix) : TodayEvent
     data class OpenPause(val change: NumbersChange) : TodayEvent
     data class ShowToast(val toast: Toast) : TodayEvent
 }
@@ -567,6 +573,8 @@ data class TodayInputs(
     val goalsAndEnergyOn: Boolean = false,
     /** The day's Burned, with [goalsAndEnergyOn]; null while no resting source can say. */
     val burned: Burned? = null,
+    /** With [burned] null and [goalsAndEnergyOn], what resting energy is waiting on; null when not known. */
+    val burnedGap: BurnedGap? = null,
     /** The card's page and collapse as left on this phone, with [summaryOn]. */
     val cardView: TodayCardView = TodayCardView(),
     /**

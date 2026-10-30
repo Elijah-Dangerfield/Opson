@@ -29,6 +29,9 @@ kotlin {
             implementation(projects.libraries.nutrition)
             implementation(projects.libraries.health)
             implementation(projects.libraries.reminders)
+            // The store's rating sheet (ReviewPrompt) and the approvals that can be its moment.
+            implementation(projects.libraries.review)
+            implementation(projects.libraries.foods)
             // Where they lead (IntegrationsRoute, RemindersRoute, CheckInRoute), and Today's card slot.
             implementation(projects.features.settings)
             implementation(projects.features.today)
@@ -56,6 +59,9 @@ kotlin {
             implementation(projects.libraries.ui)
             implementation(projects.libraries.resources)
             implementation(projects.libraries.diary)
+            implementation(projects.libraries.review)
+            implementation(projects.libraries.foods)
+            implementation(projects.libraries.core)
             implementation(libs.kotlinx.datetime)
             implementation(compose.components.resources)
         }

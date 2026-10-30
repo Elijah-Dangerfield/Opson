@@ -14,6 +14,12 @@
     <!-- Maintenance, strip -->
     <string name="upgrade_maintenance_logging_continues">You can keep logging. It saves on this phone and syncs when we're back.</string>
 
+    <!-- Offline, strip. Shows after a few seconds without a connection; "back" shows for a moment when it returns. -->
+    <string name="upgrade_offline_logging_works">You're offline. Logging still works and syncs when you're back.</string>
+    <!-- Before onboarding is done there is nothing to log yet, and signing in needs a connection. -->
+    <string name="upgrade_offline_needs_connection">You're offline. Signing in needs a connection.</string>
+    <string name="upgrade_offline_back">You're back online.</string>
+
     <!-- Update required -->
     <string name="upgrade_required_title">Time to update</string>
     <string name="upgrade_required_body">This version of Opson can't sync anymore. The update is free and keeps everything you've logged.</string>

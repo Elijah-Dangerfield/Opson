@@ -27,11 +27,17 @@ data class AppData(
      */
     val installId: String? = null,
 
-    /** Epoch-ms — first observed by the review coordinator. 0 = uncaptured. */
+    /** Epoch-ms: when the review coordinator first saw this install, at boot. 0 = uncaptured. */
     val reviewInstallAt: Long = 0L,
 
-    /** Epoch-ms — last review prompt the coordinator forwarded to the platform. 0 = never. */
+    /** Epoch-ms: the last time the review coordinator asked the store for its rating sheet. 0 = never. */
     val lastReviewPromptAt: Long = 0L,
+
+    /** The happy moment this install asks for a rating at (`ReviewMoment.wire`), "" until assigned. Device-scoped. */
+    val reviewVariant: String = "",
+
+    /** The `review.experiment` name [reviewVariant] was assigned under; a new name assigns again. */
+    val reviewExperiment: String = "",
 
     /**
      * The Builder application whose decision this phone last showed (the Builders page or its

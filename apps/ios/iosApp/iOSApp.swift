@@ -12,6 +12,7 @@ struct iOSApp: App {
     // Kotlin writes the widget snapshot through it from launch, whatever release.widgets says.
     let widgetBridge = IOSWidgetBridge()
     let textRecognitionBridge = IOSTextRecognitionBridge()
+    let labelModelBridge = IOSLabelModelBridge()
     private let nativeViewFactory = IOSNativeViewFactory.shared
     private let iOSAppComponent: IosAppComponent
 
@@ -24,7 +25,8 @@ struct iOSApp: App {
             nativeViewFactory: nativeViewFactory,
             widgetBridge: widgetBridge,
             textRecognitionBridge: textRecognitionBridge,
-            deviceSignals: IOSDeviceSignals()
+            deviceSignals: IOSDeviceSignals(),
+            labelModelBridge: labelModelBridge
         )
         iOSAppComponent.telemetry.initialize()
         // Construct every @AutoInit singleton up front — resolving the set is

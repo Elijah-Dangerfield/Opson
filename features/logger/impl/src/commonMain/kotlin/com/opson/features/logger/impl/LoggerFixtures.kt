@@ -703,6 +703,7 @@ object LoggerFixtures {
     /** Almost every phone's back camera has a torch, so the button shows. */
     val scanning: ScanModel = ScanModel(permission = CameraPermission.Granted, hasTorch = true)
     val scanningLit: ScanModel = scanning.copy(torchOn = true)
+    val scanningDim: ScanModel = scanning.copy(lowLight = true)
     val lookingUp: ScanModel = scanning.copy(lookup = Lookup.Running(MISSED_CODE))
     val lookingUpSlow: ScanModel = scanning.copy(lookup = Lookup.Running(MISSED_CODE, slow = true))
     val missed: ScanModel = scanning.copy(lookup = Lookup.Missed(MISSED_CODE))

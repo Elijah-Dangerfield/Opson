@@ -26,6 +26,8 @@ import com.opson.libraries.diary.CelebrationStyle
 import com.opson.libraries.diary.Milestone
 import com.opson.libraries.diary.SettingsRepository
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.prompts.PromptEvent
+import com.opson.libraries.prompts.PromptEvents
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.CelebrationBurst
 import com.opson.libraries.ui.components.Screen
@@ -80,6 +82,7 @@ class CelebrationViewModel(
     @Assisted offerTurnOff: Boolean,
     private val settingsRepository: SettingsRepository,
     private val telemetry: CelebrationTelemetry = CelebrationTelemetry.None,
+    private val promptEvents: PromptEvents = PromptEvents.None,
 ) : SEAViewModel<CelebrationState, CelebrationEvent, CelebrationAction>(
     initialStateArg = CelebrationState(
         milestone = Milestone.fromWire(milestoneWire),
@@ -101,6 +104,8 @@ class CelebrationViewModel(
         when (action) {
             CelebrationAction.CanDoThisTapped -> {
                 telemetry.answered(milestone, CelebrationAnswer.CanDoThis)
+                // Their own glad answer: the one moment a prompt may follow in the same session.
+                promptEvents.emit(PromptEvent.CelebrationCheered)
                 sendEvent(CelebrationEvent.Close)
             }
             CelebrationAction.TurnOffTapped -> {

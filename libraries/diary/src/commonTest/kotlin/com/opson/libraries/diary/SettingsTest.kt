@@ -438,4 +438,14 @@ class SettingsTest {
         assertEquals(MealTimes(), MealTimes().with(MealSlot.Uncategorized, LocalTime(1, 0)))
         assertEquals(LocalTime(19, 0), MealTimes().at(MealSlot.Dinner))
     }
+
+    /** Age is the birth year's; a birth date that came without its year still gives one, so Burned isn't left unknown. */
+    @Test
+    fun bodyProfile_readsTheBirthYear_elseTheBirthDatesYear() {
+        val today = LocalDate(2026, 10, 30)
+        assertEquals(28, Settings().withBirthDate(LocalDate(1998, 5, 11)).bodyProfile(77.0, today).ageYears)
+        assertEquals(28, Settings(birthDate = LocalDate(1998, 5, 11)).bodyProfile(77.0, today).ageYears)
+        assertEquals(30, Settings(birthYear = 1996, birthDate = LocalDate(1998, 5, 11)).bodyProfile(77.0, today).ageYears, "the year wins")
+        assertNull(Settings().bodyProfile(77.0, today).ageYears)
+    }
 }

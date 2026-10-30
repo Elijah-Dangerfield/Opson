@@ -1,0 +1,729 @@
+{
+  "uid": "opson-review-asks",
+  "title": "Opson \u00b7 Review asks",
+  "description": "Which happy moment to ask for a store rating at. Asks per moment over time, to set against the store's ratings by date. The stores never say who rated.",
+  "tags": [
+    "opson"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": true,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "1h",
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "Environment",
+        "type": "custom",
+        "query": "prod : opson-prod-db,dev : opson-db",
+        "current": {
+          "text": "prod",
+          "value": "opson-prod-db",
+          "selected": true
+        },
+        "options": [
+          {
+            "text": "prod",
+            "value": "opson-prod-db",
+            "selected": true
+          },
+          {
+            "text": "dev",
+            "value": "opson-db",
+            "selected": false
+          }
+        ],
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [
+    {
+      "title": "Pulse",
+      "type": "link",
+      "url": "/d/opson-pulse/opson-pulse?var-env=${env}",
+      "tooltip": "",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": false,
+      "icon": "dashboard"
+    }
+  ],
+  "panels": [
+    {
+      "type": "text",
+      "title": "How to read this",
+      "options": {
+        "mode": "markdown",
+        "content": "Each install asks at one moment (its **variant**), split by the `review.weight*` values in remote config. Neither store says whether anyone rated, so this board counts **asks**, and whether the sheet was **likely shown**, by moment and day. The outcome is the store's own numbers: App Store Connect \u203a Ratings and Reviews and Play Console \u203a Ratings, by date. To credit a change in ratings to one moment, run one moment at a time (all other weights 0, a new `review.experiment` name) for two weeks each. Full method in `docs/practices/review-asks.md`."
+      },
+      "id": 1,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      }
+    },
+    {
+      "type": "row",
+      "title": "Asks",
+      "collapsed": false,
+      "panels": [],
+      "id": 2,
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Asks",
+      "description": "Times the store was asked for its sheet. QA menu asks are left out. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"review.asked\" | experiment!=\"qa\" [$__range]))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 3,
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Likely shown",
+      "description": "Asks where the sheet probably appeared: a new window on iOS, a flow that stayed up on Android. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum(count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"review.asked\" | experiment!=\"qa\" | outcome=\"likely_shown\" [$__range]))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 4,
+      "gridPos": {
+        "x": 6,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Installs asked",
+      "description": "Distinct installs asked at least once. Asks are 122 days apart, so this is close to Asks. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "count(sum by (install_id) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"review.asked\" | experiment!=\"qa\" [$__range])))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 5,
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Installs given a moment",
+      "description": "Installs assigned a variant in the range, at their first happy moment of any kind. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "count(sum by (install_id) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"review.assigned\" [$__range])))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 6,
+      "gridPos": {
+        "x": 18,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Asks per day by moment",
+      "description": "Set this against the store's daily ratings. A rise in ratings a day or two after a moment's asks is the signal; with every moment running at once it cannot be told apart. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (variant) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"review.asked\" | experiment!=\"qa\" [1d]))",
+          "legendFormat": "{{variant}}",
+          "editorMode": "code",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "1d",
+      "id": 7,
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Asks per day by outcome",
+      "description": "likely_not_shown is mostly the store's own quota. no_window was never asked and is given back. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (outcome) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"review.asked\" | experiment!=\"qa\" [1d]))",
+          "legendFormat": "{{outcome}}",
+          "editorMode": "code",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "1d",
+      "id": 8,
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "Moment \u00d7 outcome",
+      "description": "Asks over the range. A moment whose asks are rarely likely_shown is burning asks the store refuses. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (variant, outcome) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"review.asked\" | experiment!=\"qa\" [$__range]))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 9,
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Installs per moment",
+      "description": "How the installs that reached a happy moment were split. Compare with the weights in remote config. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "count by (variant) (sum by (variant, install_id) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"review.assigned\" [$__range])))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 10,
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Held back",
+      "collapsed": false,
+      "panels": [],
+      "id": 11,
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Moments held back by reason",
+      "description": "This install's moment came and the ask waited: install_new (first week), asked_recently (122 days), offline, trouble (an error or failed step in the last 30 minutes). Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (reason) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"review.skipped\" [1d]))",
+          "legendFormat": "{{reason}}",
+          "editorMode": "code",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "interval": "1d",
+      "id": 12,
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "Moment \u00d7 reason held back",
+      "description": "A moment that is mostly held back by trouble comes right after things go wrong; a poor moment to ask. Loki keeps 31 days, so this panel cannot look further back.",
+      "datasource": {
+        "type": "loki",
+        "uid": "grafanacloud-logs"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "grafanacloud-logs"
+          },
+          "expr": "sum by (variant, reason) (count_over_time({service_name=\"opson-client\", deployment_environment=\"${env:text}\"} | event_name=\"review.skipped\" [$__range]))",
+          "legendFormat": "",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "No client telemetry in this range"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 13,
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

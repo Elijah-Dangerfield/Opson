@@ -1,7 +1,7 @@
 ---
 app: Opson
 title: Privacy Policy
-updated: 2026-10-29
+updated: 2026-10-30
 contact: contact@nightjarlabs.llc
 ---
 
@@ -117,21 +117,24 @@ Some features are switched on over time. When they are, this is how they work.
   record which barcodes were looked up, without your account attached. On
   Android, the camera image is read on the phone by Google's ML Kit, which may
   send Google usage and performance metrics but not the image.
-- **Photo estimates.** When you use one, the photo and your note are sent
-  through our server to [Anthropic](https://www.anthropic.com/legal/privacy),
-  which reads them and returns a list of foods. We don't save the photo or keep
-  a copy on our server, and it is not linked to your account. Anthropic does
-  not use it to train its models.
 - **Adding a food from its pack.** When a barcode or a search finds nothing,
-  you can photograph the front of the pack and its nutrition label. Both
-  photos go through our server to [Anthropic](https://www.anthropic.com/legal/privacy),
-  which reads the label; Anthropic does not use them to train its models. You
-  check what it read and submit. The food is saved to your foods and your log
-  straight away, and a copy goes to us for review: the food's details, the
-  barcode if there is one, and the two photos, linked to your account. The
-  photos are seen only by you and the person at Opson who reviews the food,
-  and are never at a public address. We delete them 30 days after the review,
-  and straight away if you delete your account. If we approve the food, its
+  you can photograph the front of the pack and its nutrition label. Your phone
+  reads the text on both photos itself (Apple's Vision on iPhone, Google's ML
+  Kit on Android, which may send Google usage metrics but not the image). On
+  some iPhones it may also ask Apple's on-device language model to read that
+  text, which stays on the phone. You check what it read and submit. The food
+  is saved to your foods and your log straight away, and a copy goes to us for
+  review: the food's details, the barcode if there is one, the two photos, the
+  text your phone read from the label, the numbers it filled in, a few
+  measurements of how clearly it read them and whether the photo came from the
+  camera or your library, all linked to your account. A person at Opson
+  reviews it. To help, they may give the photos, that text and the food's
+  details (never your account or your log) to an AI assistant, Anthropic's
+  [Claude](https://www.anthropic.com/legal/privacy), with model training
+  turned off, to check the numbers against the photos. The photos are seen
+  only by you and the person who reviews the food, and are never at a public
+  address. We delete them 30 days after the review, and straight away if you
+  delete your account. If we approve the food, its
   name, brand, barcode, serving and nutrition values (not the photos, and not
   who sent it) join the food database that everyone searches, and stay there
   after you delete your account, as any other food in the database would. We
@@ -147,18 +150,11 @@ Some features are switched on over time. When they are, this is how they work.
   and your photo choice below, and we count the foods and checks we accept
   from you to keep Builder Pro on. Your applications are deleted with your
   account.
-  - *Adding a food as a Builder.* Your phone reads the label photo itself
-    (Apple's Vision on iPhone, Google's ML Kit on Android, which may send
-    Google usage metrics but not the image). With the food we receive the text
-    your phone read from the label, the numbers it filled in, a few
-    measurements of how clearly it read them, whether the photo came from the
-    camera or your library, and a photo of the ingredients if you add one.
-    The label photo also goes through our server to
-    [Anthropic](https://www.anthropic.com/legal/privacy) for a second reading,
-    which Anthropic does not use to train its models. We use all of this to
-    check the numbers and to decide whether a person needs to look before the
-    food is added for everyone. It is kept with the review record and deleted
-    with your account. The photos follow the rules above.
+  - *Adding a food as a Builder.* As above, and with a photo of the
+    ingredients if you add one. We use what your phone read to check the
+    numbers and to decide whether a person needs to look before the food is
+    added for everyone. It is kept with the review record and deleted with your
+    account. The photos follow the rules above.
   - *Check against the pack.* Only the text your phone read from the label is
     sent, not the photo. We keep which food you checked, when, and whether the
     numbers matched, not the text. If they didn't and you send a correction, it
@@ -234,7 +230,7 @@ you ask us to help with your account or the law requires it.
 | Supabase | Stores your synced log and your account |
 | Sentry | Crash reports and feedback |
 | Grafana Labs | App usage events and server monitoring |
-| Anthropic | Photo estimates and reading pack labels, including a second reading of a Builder's label photo, only when you use them |
+| Anthropic | An AI assistant (Claude) the person reviewing a food you submitted may use to check its photos against its numbers. It gets the photos, the text read from them and the food's details, never your account or your log |
 | Apple | Sign in with Apple, speech recognition when you use voice logging, and DeviceCheck when you send a food or a report |
 | Google | Speech recognition and barcode reading on Android when you use them, and Play Integrity when you send a food or a report |
 

@@ -12,9 +12,8 @@ import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 /**
  * The 0.2 release flag for adding a packaged food from photos of its pack.
  * Off, a barcode miss and search offer what 0.1 did, the + sheet and the
- * Foods tab's Add a food don't offer it, and nothing can open the pack photos. Turn it on once the server has
- * `ANTHROPIC_API_KEY` (without it the form still works, typed by hand) and
- * the privacy policy's section on submitted foods is live.
+ * Foods tab's Add a food don't offer it, and nothing can open the pack photos. The label is read
+ * on the phone, so it needs nothing from the server but the review queue.
  */
 @Inject
 @SingleIn(AppScope::class)
