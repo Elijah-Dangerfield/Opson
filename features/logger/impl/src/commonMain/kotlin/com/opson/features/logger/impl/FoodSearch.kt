@@ -4,6 +4,7 @@ import com.opson.features.logger.SubmitEntry
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.LoggedFood
 import com.opson.libraries.diary.LoggedToMeal
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.SavedMeal
@@ -11,6 +12,7 @@ import com.opson.libraries.diary.Settings
 import com.opson.libraries.foods.Food
 import com.opson.libraries.foods.FoodRef
 import com.opson.libraries.foods.FoodSearchFilter
+import com.opson.libraries.foods.LearnedPicks
 import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.nutrition.Display
 import com.opson.libraries.nutrition.VisibilityPolicy
@@ -156,6 +158,13 @@ data class SearchInputs(
     val reviews: Map<String, ReviewStatus> = emptyMap(),
     /** The last 14 days and today, which the meal picker and "Usual around" read. */
     val recentDays: List<Day> = emptyList(),
+    /**
+     * The long tail of foods logged (`LoggedFoods`), newest first, with how often: matched by
+     * search on and offline, ranked by [PersonalRanking], and the count on a row's hint.
+     */
+    val logged: List<LoggedFood> = emptyList(),
+    /** What this person chose from results before, for which words (`SearchPicks`). */
+    val learned: LearnedPicks = LearnedPicks(),
     val now: LocalDateTime = LocalDateTime(today, LocalTime(NOON, 0)),
     val timeZone: TimeZone = TimeZone.UTC,
 )

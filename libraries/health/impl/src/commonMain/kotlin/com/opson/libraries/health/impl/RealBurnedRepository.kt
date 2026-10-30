@@ -11,12 +11,14 @@ import com.opson.libraries.diary.totals
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.health.ExerciseRelease
+import com.opson.libraries.health.goalReadings
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.HealthRepository
 import com.opson.libraries.health.HealthStatus
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.HealthActivity
+import com.opson.libraries.nutrition.HealthReadings
 import com.opson.libraries.nutrition.RestingEnergies
 import com.opson.libraries.nutrition.burnedFor
 import com.opson.libraries.nutrition.thermicEffectKcal
@@ -134,6 +136,18 @@ class RealBurnedRepository(
                 unusable = profile.unusable,
             )
         }.distinctUntilChanged()
+
+    /**
+     * One read of the last [BurnedRepository.HEALTH_DAYS] whole days: the most recent resting
+     * energy, as [healthResting] picks it, and each day's movement plus workouts the store read.
+     */
+    override fun healthReadings(): Flow<HealthReadings> = connected().flatMapLatest { connected ->
+        if (!connected) {
+            flowOf(HealthReadings.None)
+        } else {
+            flow { emit(health.goalReadings(calendar.today(), calendar.timeZone())) }
+        }
+    }.distinctUntilChanged()
 
     private fun resting(settings: Settings, kg: Double?, healthKcal: Int?) = RestingEnergies.resolve(
         source = settings.restingSource,

@@ -17,6 +17,12 @@ eggs	1:^Eggs?, whole
 whole milk	1:^Milk, whole
 blueberries	1:^Blueberries, raw
 strawberries	1:^Strawberries, raw
+strawberry	1:^Strawberries, raw ; !^Strawberry milk
+blueberry	1:^Blueberries, raw
+cherry	1:^Cherries, raw
+tomato	1:^Tomato(es)?, raw
+rice	1:^Rice, (cooked|white|brown)\b
+almonds	1:^(Nuts, )?Almonds ; !^Oil, almond
 grapes	1:^Grapes, raw
 brown rice	1:^Rice, brown ; !brand=Rice Browns
 white rice	1:^Rice, white ; !brand=White Foods
@@ -26,7 +32,6 @@ ground beef	1:^Beef, ground
 salmon	^(Fish, )?Salmon, (raw|cooked|baked|Atlantic)
 broccoli	1:^Broccoli, (raw|cooked)
 avocado	1:^Avocados?, raw
-almonds	1:^(Nuts, )?Almonds
 peanut butter	1:^Peanut butter
 greek yogurt	1:^Yogurt, Greek
 cheddar cheese	1:^Cheese, cheddar

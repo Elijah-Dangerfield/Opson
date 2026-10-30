@@ -90,7 +90,10 @@ Back arrow, the search field (barcode button inside while empty, behind
 - **Saved meals**: saved meals by name or food; + logs the whole meal.
 
 A row: name, then "Your usual" when the amount is this person's habit
-(`frequentFoods`), the amount and macros; energy; a round +. + logs one item
+(`frequentFoods`), the amount and macros; energy; a round +. In results for
+typed words the first detail says instead why the food is there: "Favorite",
+"Logged 3 times" or "Your food", and the person's own foods come first when
+their use says so (`PersonalRanking`, `docs/plans/search-ranking.md`). + logs one item
 at the last-used amount (`recentFoods`, else one serving), haptic confirm, a
 snackbar "{food} added to {meal}" with Undo (`RecentLogEvents.undo`, run in
 the app scope so it outlives the screen), and stays. Rows logged to this meal

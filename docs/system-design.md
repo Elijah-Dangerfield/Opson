@@ -288,6 +288,11 @@ sync_state (singleton: cursor bigint, last_success_at)
 food_cache (id pk, json, search_text, barcode null, last_used_at null, favorite boolean)   -- in :libraries:foods
 ```
 
+`food_cache` keeps the 500 most recently used catalog foods besides favorites
+(`FoodCacheDao.trim`); `LongTailFoodCache` fills in foods logged on another
+device. What someone chooses from search results for which words is a file,
+not a table (`SearchPicksStore`): on the phone only, wiped on a user change.
+
 The outbox holds at most one change per row: a newer change replaces the
 waiting one under a fresh id, so the server's ack for the old id cannot delete
 it. `base_payload` is the row before the first waiting change (null for a new

@@ -33,6 +33,7 @@ import com.opson.features.settings.MicroTargetRoute
 import com.opson.features.settings.MicroTargetsRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.SupportRoute
+import com.opson.features.settings.GoalRecalculationRoute
 import com.opson.features.settings.TargetsRoute
 import com.opson.features.settings.TodayScreenChoiceRoute
 import com.opson.features.settings.TodayScreenSettingsRoute
@@ -102,6 +103,10 @@ import com.opson.features.settings.impl.support.FindSupportViewModel
 import com.opson.features.settings.impl.support.SupportEvent
 import com.opson.features.settings.impl.support.SupportScreen
 import com.opson.features.settings.impl.support.SupportViewModel
+import com.opson.features.settings.impl.targets.GoalRecalculationAction
+import com.opson.features.settings.impl.targets.GoalRecalculationEvent
+import com.opson.features.settings.impl.targets.GoalRecalculationViewModel
+import com.opson.features.settings.impl.targets.RecalculatedDialog
 import com.opson.features.settings.impl.targets.TargetsEvent
 import com.opson.features.settings.impl.targets.TargetsScreen
 import com.opson.features.settings.impl.targets.TargetsViewModel
@@ -131,6 +136,7 @@ import com.opson.libraries.navigation.NavigationOptions
 import com.opson.libraries.navigation.OnTabReselected
 import com.opson.libraries.navigation.Router
 import com.opson.libraries.navigation.bottomSheet
+import com.opson.libraries.navigation.dialog
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.nutrition.Micronutrient
 import com.opson.libraries.nutrition.NumbersChange
@@ -170,6 +176,7 @@ class SettingsFeatureEntryPoint(
     private val microTargetViewModel: (Micronutrient) -> MicroTargetViewModel,
     private val providerSummaryViewModel: () -> ProviderSummaryViewModel,
     private val energyExplainerViewModel: (EnergyTopic) -> EnergyExplainerViewModel,
+    private val goalRecalculationViewModel: () -> GoalRecalculationViewModel,
 ) : FeatureEntryPoint {
 
     override fun NavGraphBuilder.buildNavGraph(router: Router) {
@@ -279,6 +286,25 @@ class SettingsFeatureEntryPoint(
                 }
             }
             TargetsScreen(state = state, onAction = viewModel::takeAction)
+        }
+
+        dialog<GoalRecalculationRoute> { _, dialogState ->
+            val viewModel: GoalRecalculationViewModel = viewModel { goalRecalculationViewModel() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    GoalRecalculationEvent.Close -> dialogState.dismiss()
+                }
+            }
+            state.dialog?.let { dialog ->
+                RecalculatedDialog(
+                    dialog = dialog,
+                    onAccept = { viewModel.takeAction(GoalRecalculationAction.Accepted) },
+                    onKeep = { viewModel.takeAction(GoalRecalculationAction.Kept) },
+                    onDismiss = { viewModel.takeAction(GoalRecalculationAction.Dismissed) },
+                    state = dialogState,
+                )
+            }
         }
 
         screen<MicroTargetsRoute> { backStackEntry ->
