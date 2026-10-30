@@ -2,8 +2,11 @@ package com.opson.libraries.goals
 
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.GoalBook
+import com.opson.libraries.nutrition.GoalDay
 import com.opson.libraries.nutrition.GoalVerdict
 import com.opson.libraries.nutrition.PaceTier
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.plus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -63,6 +66,27 @@ class GoalStatusesTest {
         assertTrue(facts.untracked)
         assertEquals(0, facts.mealsWithFood)
         assertEquals(false, facts.showedUp)
+    }
+
+    @Test
+    fun aDayFromTheLog_carriesItsSteps() {
+        assertEquals(8200, GoalStatuses.facts(Day(GoalFixtures.today), burned = null, steps = 8200).steps)
+    }
+
+    @Test
+    fun aStreak_countsMetDaysBack_passingOverTodayAndDaysThatDontCount() {
+        val days = listOf(
+            GoalVerdict.Off, GoalVerdict.Met, GoalVerdict.Met, GoalVerdict.NotCounted, GoalVerdict.Met, GoalVerdict.InProgress,
+        ).mapIndexed { index, verdict -> GoalDay(GoalFixtures.monday.plus(DatePeriod(days = index)), verdict) }
+        assertEquals(3, GoalStatuses.streak(days))
+        assertEquals(0, GoalStatuses.streak(days + GoalDay(GoalFixtures.monday.plus(DatePeriod(days = 6)), GoalVerdict.Near)))
+        assertEquals(0, GoalStatuses.streak(emptyList()))
+    }
+
+    @Test
+    fun theStepsGoal_isTheFirstActiveOne() {
+        assertEquals("steps", GoalStatuses.stepsGoal(GoalFixtures.settings(GoalFixtures.lose, GoalFixtures.steps))?.id)
+        assertNull(GoalStatuses.stepsGoal(GoalFixtures.settings(GoalFixtures.lose)))
     }
 
     @Test

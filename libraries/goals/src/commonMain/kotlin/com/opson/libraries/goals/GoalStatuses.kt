@@ -19,6 +19,7 @@ import com.opson.libraries.nutrition.GoalSafety
 import com.opson.libraries.nutrition.GoalTarget
 import com.opson.libraries.nutrition.GoalTargets
 import com.opson.libraries.nutrition.GoalType
+import com.opson.libraries.nutrition.GoalVerdict
 import com.opson.libraries.nutrition.PaceAssessment
 import com.opson.libraries.nutrition.WeeklyBudget
 import com.opson.libraries.nutrition.WeeklyBudgets
@@ -49,8 +50,11 @@ data class GoalToday(
  */
 object GoalStatuses {
 
-    /** What [day] says to a goal, with that day's [burned] when known. Steps have no source yet. */
-    fun facts(day: Day, burned: Burned?): GoalDayFacts {
+    /**
+     * What [day] says to a goal, with that day's [burned] and [steps] when known. [steps] is the
+     * health app's count ([com.opson.libraries.health.StepsRepository]); null when it has none.
+     */
+    fun facts(day: Day, burned: Burned?, steps: Int? = null): GoalDayFacts {
         val kcal = day.totals().kcal
         return GoalDayFacts(
             date = day.date,
@@ -60,7 +64,7 @@ object GoalStatuses {
             eatenKcal = kcal.value?.takeUnless { kcal.isPartial },
             burnedKcal = burned?.totalKcal,
             activeKcal = burned?.aboveRestingKcal,
-            steps = null,
+            steps = steps,
             mealsWithFood = day.doneMealCount,
             showedUp = !day.untracked && (day.hasLogged || day.closedByUser || day.checkIn != null),
         )
@@ -119,6 +123,26 @@ object GoalStatuses {
         return GoalBook.goals(settings).filter { it.isActive }.associate { goal ->
             goal.id to GoalDays.verdicts(goal, dates, days, context(goal, settings, today, limit))
         }
+    }
+
+    /** The first active steps goal, the one Trends' Steps card draws its line and streak from. */
+    fun stepsGoal(settings: Settings): Goal? = GoalBook.goals(settings).firstOrNull { it.isActive && it.type is GoalType.Steps }
+
+    /**
+     * Days in a row [days] met their goal, counting back from the last one. Today still going,
+     * and a day that doesn't count (skipped, or no reading), are passed over: they neither add to
+     * the run nor end it. Near or off ends it. Zero when the most recent counted day wasn't met.
+     */
+    fun streak(days: List<GoalDay>): Int {
+        var run = 0
+        for (day in days.sortedByDescending { it.date }) {
+            when (day.verdict) {
+                GoalVerdict.Met -> run++
+                GoalVerdict.InProgress, GoalVerdict.NotCounted, GoalVerdict.Future -> Unit
+                GoalVerdict.Near, GoalVerdict.Off -> return run
+            }
+        }
+        return run
     }
 
     /** The weight goal's projection from [weightKg] on [today], else from where it started. */

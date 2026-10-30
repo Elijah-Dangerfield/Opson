@@ -12,6 +12,8 @@ import com.opson.libraries.goals.GoalRepository
 import com.opson.libraries.goals.GoalStatuses
 import com.opson.libraries.goals.GoalToday
 import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.StepsRepository
 import com.opson.libraries.nutrition.BaselineInputs
 import com.opson.libraries.nutrition.GoalBaselines
 import com.opson.libraries.nutrition.GoalDay
@@ -25,8 +27,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import me.tatarka.inject.annotations.Inject
 import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
@@ -37,6 +42,9 @@ import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
  * [GoalRepository] from settings, the log, each day's Burned, the latest weigh-in and the health
  * app's readings. Holds nothing: every value is read while a flow is collected, and the answers
  * come from [GoalStatuses], so a preview built from the same inputs shows the same thing.
+ *
+ * Steps are read only while an active steps goal exists and `release.health` is on, so a goal
+ * screen never touches the health store for a person without one.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiddenFromObjC
@@ -48,6 +56,8 @@ class RealGoalRepository(
     private val burned: BurnedRepository,
     private val weights: WeightRepository,
     private val calendar: LocalCalendar,
+    private val steps: StepsRepository,
+    private val healthFlag: HealthReleaseFlag,
 ) : GoalRepository {
 
     override fun inputs(): Flow<BaselineInputs?> =
@@ -84,6 +94,12 @@ class RealGoalRepository(
         }.distinctUntilChanged()
     }
 
+    override fun weekDays(): Flow<Map<String, List<GoalDay>>> {
+        val today = calendar.today()
+        return settingsRepository.settings.map { WeeklyBudgets.weekStartOf(today, it.weekStart) }.distinctUntilChanged()
+            .flatMapLatest { start -> days(start, start.plus(DatePeriod(days = DAYS_A_WEEK - 1))) }
+    }
+
     override fun week(): Flow<WeeklyBudget?> = today().map { goals -> goals.firstOrNull { it.goal.drivesTarget }?.week }.distinctUntilChanged()
 
     override fun projection(): Flow<WeightProjection?> =
@@ -96,10 +112,26 @@ class RealGoalRepository(
             .flatMapLatest { start -> facts(start, to) }
 
     private fun facts(from: LocalDate, to: LocalDate): Flow<Map<LocalDate, GoalDayFacts>> =
-        combine(diary.observeDays(from, to), burned.burnedBetween(from, to)) { days, burnedByDay ->
-            days.associate { it.date to GoalStatuses.facts(it, burnedByDay[it.date]) }
+        combine(diary.observeDays(from, to), burned.burnedBetween(from, to), stepsBetween(from, to)) { days, burnedByDay, stepsByDay ->
+            // A day the log has nothing for still has steps: a steps goal reads it like any other.
+            val dates = days.map { it.date }.toSet()
+            val logged = days.associate { it.date to GoalStatuses.facts(it, burnedByDay[it.date], stepsByDay?.get(it.date)) }
+            val stepsOnly = stepsByDay.orEmpty().filterKeys { it !in dates }.mapValues { (date, count) -> GoalDayFacts(date, steps = count) }
+            logged + stepsOnly
         }
+
+    /** Each day's steps while an active steps goal exists; null otherwise, and the store untouched. */
+    private fun stepsBetween(from: LocalDate, to: LocalDate): Flow<Map<LocalDate, Int>?> {
+        if (!healthFlag()) return flowOf(null)
+        return settingsRepository.settings.map { GoalStatuses.stepsGoal(it) != null }.distinctUntilChanged().flatMapLatest { wanted ->
+            if (wanted) steps.stepsBetween(from, to, calendar.timeZone()) else flowOf(null)
+        }
+    }
 
     private fun latestWeightKg(): Flow<Double?> =
         weights.observeWeighIns().map { weighIns -> weighIns.maxByOrNull { it.measuredAt }?.kg }.distinctUntilChanged()
+
+    private companion object {
+        const val DAYS_A_WEEK = 7
+    }
 }

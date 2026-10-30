@@ -204,7 +204,7 @@ All three numbers (20%, 10%, 200) are `TODO(clinician)`.
 | Weight | direction (lose, keep, gain), target weight, pace, start weight | yes | no | weigh-ins |
 | Energy balance | kcal a day under (negative) or over what you burn | yes | no | eaten, baseline |
 | Burn | kcal a day, total burned (TDEE) or active only | no | no | Burned |
-| Steps | steps a day | no | no | `StepsSource` (not built yet) |
+| Steps | steps a day | no | no | the health app's daily steps (`StepsRepository`), read only while a steps goal is active |
 | Track every day | none | no | yes | the day was shown up for |
 | Meals | meals a day, 3 by default | no | yes | meals with food |
 
@@ -247,9 +247,10 @@ Pure, in `:libraries:nutrition`:
 In `:libraries:diary`: `Settings.goals` and `GoalBook` (migration, the `weightGoal` mirror, writes).
 
 In `:libraries:goals`: `GoalRepository`, the flows every screen reads (today's status for each
-goal, a span of day verdicts for the Trends calendar, the recap and celebrations, the week's
-budget, the projection, the pending recalculation, accept and keep) and `GoalFixtures` for
-previews.
+goal, a span of day verdicts for the Trends calendar, the recap and celebrations, this week's day
+verdicts for any goal type (`weekDays`), the week's budget, the projection, the pending
+recalculation, accept and keep), `GoalStatuses.streak` (days in a row met, passing over today and
+days that don't count) and `GoalFixtures` for previews.
 
 ## Edge cases
 
@@ -273,7 +274,6 @@ previews.
 ## Not in this package
 
 The goal UI (charts, animations, Today's burn line, typed inputs, macro split ranges, the Daily or
-Weekly average choice and the band picker), onboarding's "Do you want to set a goal?", the steps data
-source, and wiring Trends' calendar, the recap and Today's target to `GoalRepository` (today they
+Weekly average choice and the band picker), onboarding's "Do you want to set a goal?", and wiring Trends' calendar, the recap and Today's target to `GoalRepository` (today they
 read Targets, which a goal writes, so a daily goal already reads right; a weekly goal's adjusted
 day needs `GoalRepository.week()`). The API is built for them, and `GoalFixtures` has every state.

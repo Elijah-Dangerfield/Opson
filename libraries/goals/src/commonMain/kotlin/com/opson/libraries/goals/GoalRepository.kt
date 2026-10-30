@@ -8,6 +8,7 @@ import com.opson.libraries.nutrition.Recalculation
 import com.opson.libraries.nutrition.WeeklyBudget
 import com.opson.libraries.nutrition.WeightProjection
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.LocalDate
 import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
@@ -43,6 +44,12 @@ interface GoalRepository {
      * goal-met days.
      */
     fun days(from: LocalDate, to: LocalDate): Flow<Map<String, List<GoalDay>>>
+
+    /**
+     * This week, the person's week start to its last day, for every active goal by id: the week
+     * view any goal type draws, steps included. Days still to come are [com.opson.libraries.nutrition.GoalVerdict.Future].
+     */
+    fun weekDays(): Flow<Map<String, List<GoalDay>>> = flowOf(emptyMap())
 
     /** This week for the goal setting the target, or null without one. */
     fun week(): Flow<WeeklyBudget?>
