@@ -87,6 +87,8 @@ object LoggerFixtures {
             brand = brand,
             portions = listOf(Portion(portion, grams)) + more,
             micros = micros.mapValues { (_, amount) -> amount * per100 },
+            // FNDDS is USDA's generic data, which the server sends as the reference tier: no pack to verify.
+            tier = FoodTier.Reference,
         )
     }
 
@@ -219,6 +221,7 @@ object LoggerFixtures {
         added: Boolean = false,
         exercise: Boolean = false,
         closed: Boolean = false,
+        builder: Boolean = false,
     ): LoggerState {
         val inputs = inputs(settings = settings, date = date, firstRun = firstRun).let { if (closed) it.copy(day = it.day.closed()) else it }
         // Jasmine rice went in from Recent's + since the sheet opened: its row draws ✓.
@@ -236,6 +239,7 @@ object LoggerFixtures {
                 fastingReleased = flags,
                 exerciseReleased = exercise,
                 checkInAvailable = flags,
+                verifyAvailable = builder,
                 seen = inputs.day.allItems.mapTo(HashSet()) { it.id },
             ),
         )
@@ -691,6 +695,33 @@ object LoggerFixtures {
         entryDetailState(policy, settings = Settings(askTags = true))
 
     /** Basmati rice from Open Food Facts with its source tapped open: what it is and the licence's credit. */
+    /**
+     * The scanned yogurt for an active Builder: nobody has checked it against its pack, so Verify
+     * this food sits under the amount. Starred, so the top bar's star is filled.
+     */
+    fun builderVerifyState(policy: VisibilityPolicy): FoodDetailState {
+        val food = AmountFood.Catalog(scannedYogurt)
+        val ref = FoodRef.Catalog(scannedYogurt.id)
+        val settings = Settings().toggleFavorite(ref.key)
+        return FoodDetailStateBuilder.build(food, DetailChoice.initial(food, MealSlot.Dinner), detailInputs(policy, settings), ref, PickSource.Barcode)
+            .copy(canCheck = true)
+    }
+
+    /** The yogurt once a Builder verified it, the badge tapped open: what Verified means. */
+    fun verifiedExplainedState(policy: VisibilityPolicy): FoodDetailState {
+        val yogurt = scannedYogurt.copy(checked = true)
+        val food = AmountFood.Catalog(yogurt)
+        val choice = DetailChoice.initial(food, MealSlot.Dinner).copy(checkOpen = true)
+        return FoodDetailStateBuilder.build(food, choice, detailInputs(policy), FoodRef.Catalog(yogurt.id), PickSource.Barcode)
+    }
+
+    /** The yogurt nobody has checked, the badge tapped open: where its numbers come from. */
+    fun unverifiedExplainedState(policy: VisibilityPolicy): FoodDetailState {
+        val food = AmountFood.Catalog(scannedYogurt)
+        val choice = DetailChoice.initial(food, MealSlot.Dinner).copy(checkOpen = true)
+        return FoodDetailStateBuilder.build(food, choice, detailInputs(policy), FoodRef.Catalog(scannedYogurt.id), PickSource.Barcode)
+    }
+
     fun sourceExplainedState(policy: VisibilityPolicy): FoodDetailState {
         val food = AmountFood.Catalog(offRice)
         val choice = DetailChoice.initial(food, MealSlot.Dinner).copy(sourceOpen = true)
@@ -725,7 +756,7 @@ object LoggerFixtures {
 
     /** Opson's own copy, read from the wrapper and approved: the server's answer. */
     val opdbBar: Food = food("bar-opdb", "Peanut butter protein bar", "1 bar (55 g)", 55.0, 200.0, 20.0, 18.0, 8.0, "Trailhead")
-        .copy(source = FoodSource.UserSubmitted, barcode = "0$BAR_CODE", tier = FoodTier.Community, verified = true)
+        .copy(source = FoodSource.UserSubmitted, barcode = "0$BAR_CODE", tier = FoodTier.Community, verified = true, checked = true)
 
     /** Open Food Facts: the same label, so it folds into OPDB's row. */
     val offBar: Food = food("bar-off", "Protein bar peanut butter", "1 bar (55 g)", 55.0, 200.0, 20.0, 18.0, 8.0, "Trailhead")

@@ -77,6 +77,20 @@ class SupportViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun theKindNoteSwitch_showsWithFindSupport_andTurnsTheNotesOffAndOn() = runUnitTest {
+        assertEquals(null, Rig(findSupport = false).vm.state.kindNotes, "no switch for a note that can't show")
+        val rig = Rig(findSupport = true)
+        assertEquals(true, rig.vm.state.kindNotes)
+
+        rig.vm.takeAction(SupportAction.KindNotesToggled)
+        assertEquals(false, rig.vm.state.kindNotes)
+        assertEquals(false, rig.settings.settings.value.hardStretchNotes)
+
+        rig.vm.takeAction(SupportAction.KindNotesToggled)
+        assertEquals(true, rig.settings.settings.value.hardStretchNotes)
+    }
+
+    @Test
     fun notNow_makesNoFile() = runUnitTest {
         val rig = Rig(csv = Result.success(csv), settings = settingsIn(PresetId.NoNumbers))
         val events = eventsOf(rig.vm)

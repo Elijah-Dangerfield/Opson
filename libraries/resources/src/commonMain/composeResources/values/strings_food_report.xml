@@ -7,9 +7,10 @@
 <resources>
     <string name="food_report_title">Report a problem</string>
     <string name="food_report_intro">Tell us what looks off. Someone at Opson checks every report before the food changes.</string>
-    <string name="food_report_what">What's wrong?</string>
-    <string name="food_report_reason_calories">Wrong calories</string>
-    <string name="food_report_reason_nutrients">Wrong nutrients</string>
+    <string name="food_report_what">What's wrong? Pick all that apply.</string>
+    <string name="food_report_reason_numbers">Wrong calories or nutrients</string>
+    <string name="food_report_reason_missing">Missing information</string>
+    <string name="food_report_reason_missing_sub">Nutrients, a serving size or other details it should have</string>
     <string name="food_report_reason_serving">Wrong serving size</string>
     <string name="food_report_reason_name">Wrong name or brand</string>
     <string name="food_report_reason_duplicate">It's a duplicate</string>
@@ -30,7 +31,11 @@
     <string name="food_report_fat">Fat</string>
     <string name="food_report_serving">Serving size on the pack</string>
     <string name="food_report_serving_hint">1 can, 473 ml</string>
-    <string name="food_report_photo_title">A photo of the label (optional)</string>
+    <string name="food_report_photos">Photos (optional)</string>
+    <string name="food_report_front_title">Front of the pack</string>
+    <string name="food_report_front_hint">The name, the brand and the size.</string>
+    <string name="food_report_front_cd">Photo of the front of the pack</string>
+    <string name="food_report_photo_title">Back of the pack</string>
     <string name="food_report_photo_hint">The nutrition panel, to check the numbers against.</string>
     <string name="food_report_photo_cd">Photo of the label</string>
     <string name="food_report_photo_remove">Remove</string>

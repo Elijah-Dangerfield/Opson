@@ -78,6 +78,14 @@ private fun RunningTotalExplainedPreview() = Cards(dark = true, ui = TrendsUi(ru
     state.runningTotal?.let { RunningTotalCardView(it, onAction = {}) }
 }
 
+/** A weekly goal setting the target since 5 October: each day colored by what its week asked of it. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnTrackCalendarGoalPreview() = Cards(inputs = TrendsFixtures.goalInputs()) { state ->
+    state.calendar?.let { CalendarCardView(it, onAction = {}) }
+    state.runningTotal?.let { RunningTotalCardView(it, onAction = {}) }
+}
+
 /** The check-ins' hunger over the week, above the meal notes'. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

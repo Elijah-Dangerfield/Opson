@@ -25,6 +25,8 @@ kotlin {
             implementation(projects.libraries.scanner)
             // AppLifecycle: the photos lock again when the app goes to the background.
             implementation(projects.libraries.opson)
+            // Goals: the calendar colored by the goal setting the target, and when it began.
+            implementation(projects.libraries.goals)
             // The Expended card: energy from the watch, behind release.health.
             implementation(projects.libraries.health)
             // The weight chart's dose ticks, behind release.medication.
@@ -55,6 +57,7 @@ kotlin {
             implementation(projects.libraries.opson)
             implementation(projects.libraries.health)
             implementation(projects.libraries.medication)
+            implementation(projects.libraries.goals)
         }
     }
 }

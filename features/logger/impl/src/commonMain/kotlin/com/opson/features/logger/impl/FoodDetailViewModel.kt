@@ -77,13 +77,16 @@ sealed interface FoodDetailAction {
     /** The source's name: what the source is opens under it, or closes. */
     data object SourceTapped : FoodDetailAction
 
+    /** The Verified or Unverified badge: what it means opens under it, or closes. */
+    data object CheckBadgeTapped : FoodDetailAction
+
     /** Credits, under what the source is: every source's attribution. */
     data object CreditsTapped : FoodDetailAction
     data object RemoveFromRecentsTapped : FoodDetailAction
     data object ReportTapped : FoodDetailAction
 
-    /** A Builder's Check against the pack, on a catalog food. */
-    data object CheckTapped : FoodDetailAction
+    /** A Builder's Verify this food, on a catalog food nobody has checked. */
+    data object VerifyTapped : FoodDetailAction
     data object EditCopyTapped : FoodDetailAction
 
     /** No numbers: a hunger answer, or the same one again to clear it. */
@@ -123,8 +126,11 @@ sealed interface FoodDetailEvent {
      */
     data class OpenReport(val refKey: String, val target: ReportTarget? = null) : FoodDetailEvent
 
-    /** Check a catalog food against the pack in hand ([target] is the food and the amount on screen). */
-    data class OpenCheck(val target: ReportTarget) : FoodDetailEvent
+    /** Verify a catalog food against the pack in hand. */
+    data class OpenVerify(val foodId: String, val name: String) : FoodDetailEvent
+
+    /** The star changed: a snackbar says so, and its Undo sets [key] back to not [starred]. */
+    data class FavoriteChanged(val key: String, val starred: Boolean) : FoodDetailEvent
 
     /** Edit a copy of this food, which logs to [day] and [slot] once it is saved. */
     data class OpenEditCopy(val ref: FoodRef, val day: LocalDate, val slot: MealSlot) : FoodDetailEvent
@@ -326,18 +332,21 @@ class FoodDetailViewModel(
             }
             FoodDetailAction.CustomSizeSaved -> customSizeSaved(action)
             FoodDetailAction.CustomSizeDismissed -> action.choose { copy(customSize = null) }
-            FoodDetailAction.FavoriteTapped -> ref?.let { food -> settingsRepository.update { it.toggleFavorite(food.key) } }
+            FoodDetailAction.FavoriteTapped -> favorite()
             is FoodDetailAction.SlotPicked -> action.choose { copy(slot = action.slot) }
             is FoodDetailAction.TimePicked -> action.choose { copy(time = action.time) }
             FoodDetailAction.AllNutrientsTapped -> action.choose { copy(nutrientsOpen = !nutrientsOpen) }
             FoodDetailAction.SourceTapped -> action.choose { copy(sourceOpen = !sourceOpen) }
+            FoodDetailAction.CheckBadgeTapped -> action.choose { copy(checkOpen = !checkOpen) }
             FoodDetailAction.CreditsTapped -> sendEvent(FoodDetailEvent.OpenCredits)
             FoodDetailAction.RemoveFromRecentsTapped -> ref?.let { food ->
                 settingsRepository.update { it.hideFromRecent(food.key, clock.now().toEpochMilliseconds()) }
             }
             // Ids only: a report is read by people, and the food's name or numbers are this person's log.
             FoodDetailAction.ReportTapped -> ref?.let { sendEvent(FoodDetailEvent.OpenReport(it.key, reportTarget())) }
-            FoodDetailAction.CheckTapped -> reportTarget()?.let { sendEvent(FoodDetailEvent.OpenCheck(it)) }
+            FoodDetailAction.VerifyTapped -> model.food?.let(FoodDetailStateBuilder::catalogFood)?.takeIf { it.canBeVerified }?.let {
+                sendEvent(FoodDetailEvent.OpenVerify(it.id, it.name))
+            }
             FoodDetailAction.EditCopyTapped -> editCopy()
             FoodDetailAction.AddToMealTapped -> if (entryId != null) saveChanges() else addToMeal()
             FoodDetailAction.RemoveTapped -> remove()
@@ -423,7 +432,19 @@ class FoodDetailViewModel(
     }
 
     /** A catalog food and the amount on screen, which suggested numbers are read for. */
+    /**
+     * Stars the food or takes the star off, and says so. A catalog food is also kept on the device
+     * as a favorite, so the Foods tab can show it offline before it is ever logged.
+     */
+    private suspend fun favorite() {
+        val ref = ref ?: return
+        val starred = settingsRepository.update { it.toggleFavorite(ref.key) }.isFavorite(ref.key)
+        model.food?.let(FoodDetailStateBuilder::catalogFood)?.let { foodCatalog.setFavorite(it, starred) }
+        sendEvent(FoodDetailEvent.FavoriteChanged(ref.key, starred))
+    }
+
     private fun reportTarget(): ReportTarget? {
+
         val food = (model.food as? AmountFood.Catalog)?.food ?: return null
         val draft = food.draftFor(unit(), model.choice.quantity)
         return ReportTarget(food.id, food.name, draft.amountText, draft.grams?.takeIf { it > 0.0 })

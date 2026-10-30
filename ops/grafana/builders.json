@@ -354,7 +354,7 @@
     {
       "type": "stat",
       "title": "Waiting for review",
-      "description": "Submissions pending and reports open.",
+      "description": "Submissions pending, reports open and Builders' verifications waiting for a person.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
         "uid": "${env}"
@@ -369,7 +369,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT coalesce(sum(waiting), 0) FROM analytics.contribution_queue"
+          "rawSql": "SELECT coalesce(sum(waiting), 0) + (SELECT coalesce(max(open_verifications), 0) FROM analytics.food_verification_queue) FROM analytics.contribution_queue"
         }
       ],
       "fieldConfig": {
@@ -710,8 +710,277 @@
       }
     },
     {
+      "type": "row",
+      "title": "Database cleanup: verifications and reports",
+      "collapsed": false,
+      "panels": [],
+      "id": 13,
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
       "type": "stat",
-      "title": "Open reports",
+      "title": "Verifications waiting",
+      "description": "Builders' checks against the pack that need a person: something was wrong, or the label's text did not show the food's numbers.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(max(open_verifications), 0) FROM analytics.food_verification_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 14,
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 3,
+        "h": 5
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Foods with a waiting verification",
+      "description": "Distinct foods those verifications are about.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(max(foods), 0) FROM analytics.food_verification_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 15,
+      "gridPos": {
+        "x": 3,
+        "y": 21,
+        "w": 3,
+        "h": 5
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Said something was wrong",
+      "description": "Of the waiting verifications, those where the Builder flagged fields as wrong or missing.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(max(with_problem), 0) FROM analytics.food_verification_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 16,
+      "gridPos": {
+        "x": 6,
+        "y": 21,
+        "w": 3,
+        "h": 5
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Oldest waiting verification",
+      "description": "Hours since the oldest waiting verification was sent.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(extract(epoch FROM now() - max(oldest_at)) / 3600, 0) FROM analytics.food_verification_queue"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 48
+              },
+              {
+                "color": "red",
+                "value": 168
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "id": 17,
+      "gridPos": {
+        "x": 9,
+        "y": 21,
+        "w": 3,
+        "h": 5
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Reports waiting",
       "description": "Reports nobody has decided, the server's energy checks included.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -769,17 +1038,17 @@
         "graphMode": "none",
         "textMode": "value"
       },
-      "id": 13,
+      "id": 18,
       "gridPos": {
-        "x": 8,
-        "y": 14,
-        "w": 4,
-        "h": 6
+        "x": 12,
+        "y": 21,
+        "w": 3,
+        "h": 5
       }
     },
     {
       "type": "stat",
-      "title": "Foods with an open report",
+      "title": "Foods with a waiting report",
       "description": "Distinct foods those reports are about.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -829,12 +1098,12 @@
         "graphMode": "none",
         "textMode": "value"
       },
-      "id": 14,
+      "id": 19,
       "gridPos": {
-        "x": 12,
-        "y": 14,
-        "w": 4,
-        "h": 6
+        "x": 15,
+        "y": 21,
+        "w": 3,
+        "h": 5
       }
     },
     {
@@ -889,17 +1158,17 @@
         "graphMode": "none",
         "textMode": "value"
       },
-      "id": 15,
+      "id": 20,
       "gridPos": {
-        "x": 16,
-        "y": 14,
-        "w": 4,
-        "h": 6
+        "x": 18,
+        "y": 21,
+        "w": 3,
+        "h": 5
       }
     },
     {
       "type": "stat",
-      "title": "Oldest open report",
+      "title": "Oldest waiting report",
       "description": "Hours since the oldest open report was sent.",
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -957,11 +1226,170 @@
         "graphMode": "none",
         "textMode": "value"
       },
-      "id": 16,
+      "id": 21,
       "gridPos": {
-        "x": 20,
-        "y": 14,
-        "w": 4,
+        "x": 21,
+        "y": 21,
+        "w": 3,
+        "h": 5
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Verifications per day",
+      "description": "By the day sent. Confirmed on arrival: the label's text showed the food's four numbers and the Builder said nothing was wrong, so the food reads Verified at once. Sent for review: waits for a person (accepted and rejected show how those ended).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT day::timestamp AS time, metric, value FROM analytics.food_verifications_daily, LATERAL (VALUES ('confirmed on arrival', confirmed_on_arrival), ('sent for review', sent_for_review), ('accepted', accepted), ('rejected', rejected)) AS v(metric, value) WHERE $__timeFilter(day::timestamp) ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 22,
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Decisions per day, verifications and reports",
+      "description": "Every decision by the day it was made, on both queues.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT day::timestamp AS time, kind || ' ' || outcome AS metric, sum(n) AS value FROM analytics.food_review_decisions_daily, LATERAL (VALUES ('accepted', accepted), ('rejected', rejected), ('duplicate', duplicate)) AS v(outcome, n) WHERE $__timeFilter(day::timestamp) AND n > 0 GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 2,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "spanNulls": false,
+            "showPoints": "auto"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 23,
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "Decided per reviewer, 30 days",
+      "description": "Who is cleaning up the database: each reviewer's decisions, as the console's actor names them. The admin console's Review area has the same table.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${env}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${env}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT reviewer, sum(accepted) FILTER (WHERE kind = 'verification') AS verifications_accepted, sum(rejected) FILTER (WHERE kind = 'verification') AS verifications_rejected, sum(accepted) FILTER (WHERE kind = 'report') AS reports_accepted, sum(rejected) FILTER (WHERE kind = 'report') AS reports_rejected, sum(duplicate) FILTER (WHERE kind = 'report') AS reports_duplicate, sum(accepted + rejected + duplicate) AS total FROM analytics.food_review_decisions_daily WHERE day > current_date - 30 GROUP BY reviewer ORDER BY total DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "Nothing decided in 30 days"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "id": 24,
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 24,
         "h": 6
       }
     },
@@ -970,10 +1398,10 @@
       "title": "Contributors",
       "collapsed": false,
       "panels": [],
-      "id": 17,
+      "id": 25,
       "gridPos": {
         "x": 0,
-        "y": 20,
+        "y": 40,
         "w": 24,
         "h": 1
       }
@@ -1032,10 +1460,10 @@
         "showHeader": true,
         "cellHeight": "sm"
       },
-      "id": 18,
+      "id": 26,
       "gridPos": {
         "x": 0,
-        "y": 21,
+        "y": 41,
         "w": 24,
         "h": 10
       }
@@ -1094,10 +1522,10 @@
         "showHeader": true,
         "cellHeight": "sm"
       },
-      "id": 19,
+      "id": 27,
       "gridPos": {
         "x": 0,
-        "y": 31,
+        "y": 51,
         "w": 24,
         "h": 10
       }
@@ -1156,10 +1584,10 @@
         "showHeader": true,
         "cellHeight": "sm"
       },
-      "id": 20,
+      "id": 28,
       "gridPos": {
         "x": 0,
-        "y": 41,
+        "y": 61,
         "w": 12,
         "h": 8
       }
@@ -1218,10 +1646,10 @@
         "showHeader": true,
         "cellHeight": "sm"
       },
-      "id": 21,
+      "id": 29,
       "gridPos": {
         "x": 12,
-        "y": 41,
+        "y": 61,
         "w": 12,
         "h": 8
       }
@@ -1263,10 +1691,10 @@
           "showLegend": false
         }
       },
-      "id": 22,
+      "id": 30,
       "gridPos": {
         "x": 0,
-        "y": 49,
+        "y": 69,
         "w": 12,
         "h": 8
       }
@@ -1276,10 +1704,10 @@
       "title": "Signals",
       "collapsed": false,
       "panels": [],
-      "id": 23,
+      "id": 31,
       "gridPos": {
         "x": 0,
-        "y": 57,
+        "y": 77,
         "w": 24,
         "h": 1
       }
@@ -1336,10 +1764,10 @@
           "sort": "desc"
         }
       },
-      "id": 24,
+      "id": 32,
       "gridPos": {
         "x": 0,
-        "y": 58,
+        "y": 78,
         "w": 12,
         "h": 8
       }
@@ -1456,10 +1884,10 @@
         "showHeader": true,
         "cellHeight": "sm"
       },
-      "id": 25,
+      "id": 33,
       "gridPos": {
         "x": 12,
-        "y": 58,
+        "y": 78,
         "w": 12,
         "h": 8
       }
@@ -1495,10 +1923,10 @@
         "showHeader": true,
         "cellHeight": "sm"
       },
-      "id": 26,
+      "id": 34,
       "gridPos": {
         "x": 0,
-        "y": 66,
+        "y": 86,
         "w": 12,
         "h": 8
       }
@@ -1555,10 +1983,10 @@
           "sort": "desc"
         }
       },
-      "id": 27,
+      "id": 35,
       "gridPos": {
         "x": 12,
-        "y": 66,
+        "y": 86,
         "w": 12,
         "h": 8
       }
@@ -1568,10 +1996,10 @@
       "title": "Moderation",
       "collapsed": false,
       "panels": [],
-      "id": 28,
+      "id": 36,
       "gridPos": {
         "x": 0,
-        "y": 74,
+        "y": 94,
         "w": 24,
         "h": 1
       }
@@ -1628,10 +2056,10 @@
           "sort": "desc"
         }
       },
-      "id": 29,
+      "id": 37,
       "gridPos": {
         "x": 0,
-        "y": 75,
+        "y": 95,
         "w": 12,
         "h": 8
       }
@@ -1690,10 +2118,10 @@
         "showHeader": true,
         "cellHeight": "sm"
       },
-      "id": 30,
+      "id": 38,
       "gridPos": {
         "x": 12,
-        "y": 75,
+        "y": 95,
         "w": 12,
         "h": 8
       }

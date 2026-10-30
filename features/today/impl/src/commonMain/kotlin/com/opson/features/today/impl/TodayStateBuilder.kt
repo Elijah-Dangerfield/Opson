@@ -178,7 +178,7 @@ object TodayStateBuilder {
     private fun summary(inputs: TodayInputs, policy: VisibilityPolicy, context: FormatContext): TodaySummary? {
         val day = inputs.day
         val settings = inputs.settings
-        val range = todayRange(settings, day, inputs.today, inputs.expended, inputs.burned)
+        val range = todayRange(settings, day, inputs.today, inputs.expended, inputs.burned, weekShiftOn(day, inputs.today, inputs.goals))
         val eaten = day.totals().kcal.known
         val delayed = policy.level(Metric.Calories) == Visibility.Delay
         val shown = policy.effectiveLevel(Metric.Calories, Surface.Today, context) == Visibility.Show

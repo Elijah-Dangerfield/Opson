@@ -40,18 +40,25 @@ internal object ReportDiff {
         // Newest from a person first: they read the pack; the energy check only estimated.
         val ranked = group.reports.sortedWith(compareBy<FoodReportDto> { !it.fromPerson }.thenByDescending { it.createdAtEpochMs })
             .mapNotNull { it.suggestedPer100 }
-        return FIELDS.map { (key, label, unit) ->
-            val now = nowText(group.now, key)
+        return rows(group.now, suggestions, ranked)
+    }
+
+    /**
+     * [now] beside each of [suggestions]; the form starts at the first of [ranked] that sets a
+     * field. A Builder's verification is the same table with one suggestion.
+     */
+    fun rows(now: FoodNowDto?, suggestions: List<CorrectionValuesDto>, ranked: List<CorrectionValuesDto> = suggestions): List<ReportDiffRow> =
+        FIELDS.map { (key, label, unit) ->
+            val served = nowText(now, key)
             ReportDiffRow(
                 key = key,
                 label = label,
                 unit = unit,
-                now = now,
+                now = served,
                 suggested = suggestions.mapNotNull { text(it, key) }.distinct(),
                 proposed = ranked.firstNotNullOfOrNull { text(it, key) } ?: "",
             )
         }
-    }
 
     /**
      * The accept form's values, from what it starts at with the reviewer's [edits] over it. Blank
@@ -103,6 +110,8 @@ internal object ReportDiff {
     fun reasonLabel(reason: String): String = when (reason) {
         "wrong_calories" -> "Wrong calories"
         "wrong_nutrients" -> "Wrong nutrients"
+        "wrong_numbers" -> "Wrong numbers"
+        "missing_info" -> "Missing information"
         "wrong_serving" -> "Wrong serving size"
         "wrong_name" -> "Wrong name or brand"
         "duplicate" -> "Duplicate"

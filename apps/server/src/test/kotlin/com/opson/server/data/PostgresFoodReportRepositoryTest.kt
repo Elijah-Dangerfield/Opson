@@ -8,6 +8,7 @@ import com.opson.server.domain.EnergyFlag
 import com.opson.server.domain.FoodSnapshot
 import com.opson.server.domain.ImageType
 import com.opson.server.domain.NewFoodReport
+import com.opson.server.domain.PackSide
 import com.opson.server.domain.ReportOutcome
 import com.opson.server.domain.ReportPhoto
 import com.opson.server.domain.ReportReason
@@ -112,6 +113,30 @@ class PostgresFoodReportRepositoryTest : DatabaseTest() {
         // Served as the guard has it, not as the report says.
         assertEquals(2.1, catalog.findById(food)?.per100g?.kcal)
         assertEquals(1L, repo.countOpen())
+    }
+
+    @Test
+    fun aReportKeepsEveryReasonAndBothSidesOfThePack_andACorrectionMarksTheFoodChecked() = runTest {
+        val food = seedMonster()
+        val user = seedAuthUser()
+        val label = ReportPhoto(TestImages.jpeg, ImageType.Jpeg)
+        val front = ReportPhoto(TestImages.png, ImageType.Png)
+        val report = newReport(food, user, photo = label)
+            .copy(reason = ReportReason.MissingInfo, reasons = listOf(ReportReason.MissingInfo, ReportReason.WrongNumbers), frontPhoto = front)
+
+        val created = assertIs<ReportOutcome.Created>(repo.report(report)).report
+        assertEquals(listOf(ReportReason.MissingInfo, ReportReason.WrongNumbers), created.reasons)
+        assertTrue(created.hasPhoto && created.hasFrontPhoto)
+        assertContentEquals(TestImages.jpeg, repo.photo(report.id)?.bytes)
+        assertEquals("image/png", repo.photo(report.id, PackSide.Front)?.mediaType)
+        assertEquals(listOf(ReportReason.MissingInfo, ReportReason.WrongNumbers), repo.open(10).single().reasons)
+
+        assertFalse(checkNotNull(catalog.findById(food)).checked)
+        repo.applyCorrection(food, CorrectionValues(kcal = 2.1), report.snapshot, listOf(report.id), by = "Elijah")
+        assertTrue(checkNotNull(catalog.findById(food)).checked, "a reviewer stood behind it")
+        val live = repo.liveCorrections(listOf(food)).getValue(food)
+        repo.revert(live.id, by = "Elijah")
+        assertFalse(checkNotNull(catalog.findById(food)).checked, "and no longer does")
     }
 
     @Test

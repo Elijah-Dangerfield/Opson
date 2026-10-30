@@ -12,6 +12,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
+import com.opson.libraries.goals.GoalToday
 import com.opson.libraries.health.EnergyExpended
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.Display
@@ -472,6 +473,9 @@ sealed interface TodayAction {
     /** Fix on the card's "Burned unavailable" row: where the missing detail is entered. */
     data object BurnedFixTapped : TodayAction
 
+    /** The goal chip on the card: the goal it names. */
+    data object GoalChipTapped : TodayAction
+
     // Select foods, drag them between meals, swipe to delete (release.todaySelect)
     data class FoodLongPressed(val entryId: String) : TodayAction
     data class FoodToggled(val entryId: String) : TodayAction
@@ -545,6 +549,9 @@ sealed interface TodayEvent {
     /** What Burned is waiting on: Weight, Profile or Resting energy. */
     data class OpenBurnedFix(val fix: BurnedFix) : TodayEvent
     data class OpenPause(val change: NumbersChange) : TodayEvent
+
+    /** The goal the card's chip names, by [goalId]. */
+    data class OpenGoal(val goalId: String) : TodayEvent
     data class ShowToast(val toast: Toast) : TodayEvent
 }
 
@@ -586,6 +593,14 @@ data class TodayInputs(
     val now: LocalTime? = null,
     /** The day the late-day card was put away with Not now. */
     val nudgeDismissedOn: LocalDate? = null,
+    /**
+     * Every active goal today, the one setting the target first (`GoalRepository.today`), with
+     * [goalsAndEnergyOn]. A weekly average moves today's target by its week; the card names the
+     * goal and opens it.
+     */
+    val goals: List<GoalToday> = emptyList(),
+    /** What a usual whole day burns lately ([UsualBurn]), with [goalsAndEnergyOn]; null without enough days. */
+    val usualBurnKcal: Int? = null,
 ) {
     /** When each meal usually is: learned from the log where it can be, else the person's own times. */
     val usualTimes: MealTimes get() = habits?.usual ?: settings.mealTimes

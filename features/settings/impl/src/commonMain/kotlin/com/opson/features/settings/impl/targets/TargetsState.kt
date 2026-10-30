@@ -1,5 +1,6 @@
 package com.opson.features.settings.impl.targets
 
+import com.opson.libraries.diary.weightPlansOff
 import com.opson.libraries.diary.MacroMode
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.health.HealthSource
@@ -639,12 +640,13 @@ object TargetsStateBuilder {
 
     /**
      * The goal's card, where a goal is offered at all: the goal's type offered in the mode
-     * ([GoalCatalog.offered]: weight on show for a weight goal), numbers not hard, and not while
-     * pregnant or breastfeeding. "Just track" is an answer, so it gets the offer again rather than
+     * ([GoalCatalog.offered]: weight on show for a weight goal), numbers not hard, 18 or over
+     * ([weightPlansOff]), and not while pregnant or breastfeeding. "Just track" is an answer, so it gets the offer again rather than
      * a goal it never set.
      */
     fun goalCard(settings: Settings, policy: VisibilityPolicy, weightKg: Double?, today: LocalDate?): GoalCard? {
-        if (settings.onboarding.hard || settings.bodyStage != BodyStage.None) return null
+        val plansOff = today?.let(settings::weightPlansOff) ?: settings.onboarding.hard
+        if (plansOff || settings.bodyStage != BodyStage.None) return null
         val offered = GoalCatalog.offered(policy, hard = false, stage = settings.bodyStage)
         val goal = GoalBook.calorieGoal(settings) ?: return GoalCard.None.takeIf { GoalKind.Weight in offered }
         if (goal.type.kind !in offered) return null

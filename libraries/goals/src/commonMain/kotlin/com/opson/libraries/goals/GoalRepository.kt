@@ -8,6 +8,7 @@ import com.opson.libraries.nutrition.Recalculation
 import com.opson.libraries.nutrition.WeeklyBudget
 import com.opson.libraries.nutrition.WeightProjection
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.LocalDate
 import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
@@ -49,4 +50,24 @@ interface GoalRepository {
 
     /** The weight goal's projection from the latest weigh-in, or null without a weight goal that can draw one. */
     fun projection(): Flow<WeightProjection?>
+
+    /**
+     * Every active goal on [date] as it is wrapped up ([GoalStatuses.wrapUp]): Wrap up the day and
+     * the recap. Empty by default, so a fake that doesn't need it stays as it is.
+     */
+    fun wrapUp(date: LocalDate): Flow<List<GoalWrapUp>> = flowOf(emptyList())
+
+    companion object {
+        /** No goals: for previews, and a default where a constructor must not grow a required argument. */
+        val None: GoalRepository = object : GoalRepository {
+            override fun inputs(): Flow<BaselineInputs?> = flowOf(null)
+            override fun recalculation(): Flow<Recalculation?> = flowOf(null)
+            override suspend fun accept(recalculation: Recalculation) = Unit
+            override suspend fun keep(recalculation: Recalculation) = Unit
+            override fun today(): Flow<List<GoalToday>> = flowOf(emptyList())
+            override fun days(from: LocalDate, to: LocalDate): Flow<Map<String, List<GoalDay>>> = flowOf(emptyMap())
+            override fun week(): Flow<WeeklyBudget?> = flowOf(null)
+            override fun projection(): Flow<WeightProjection?> = flowOf(null)
+        }
+    }
 }

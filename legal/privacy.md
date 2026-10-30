@@ -32,9 +32,9 @@ also applies to you.
 - **Your days**: water, notes, how meals and days felt (hunger, fullness,
   mood) and check-ins.
 - **Weigh-ins**, if you add them, and **fasts**, if you use fasting.
-- **Your settings**: which numbers you want to see, your targets, and your
-  answers to the setup questions, including whether numbers or tracking have
-  been hard for you before.
+- **Your settings**: which numbers you want to see, your targets, your
+  birthday, and your answers to the setup questions, including whether numbers
+  or tracking have been hard for you before.
 - **Foods you create**: custom foods and saved meals.
 
 This is health information. We use it only to run the app for you: to show your
@@ -187,6 +187,11 @@ Some features are switched on over time. When they are, this is how they work.
   It runs on the phone where it can. Where it can't, Apple (on iPhone) or your
   phone's speech service (on Android) processes the audio. Opson never receives
   or keeps the audio. The words are handled like a typed meal.
+- **Notes when things look hard.** Now and then the app looks over your recent
+  log on your phone (very low days, big swings, many weigh-ins a day, weight
+  falling fast) and may offer ways to get support. That check runs only on
+  your phone. What it finds, and whether a note was shown, is never sent to us
+  or anyone else. You can turn the notes off in Support and sharing.
 - **Progress photos** stay on your phone, behind Face ID or your passcode. They
   are left out of phone backups, never uploaded, and deleted when you delete
   everything.
@@ -319,9 +324,14 @@ Framework. You can complain to your local data protection authority.
 
 ## Children
 
-Opson is not meant for children under 13, and we don't knowingly collect their
-data. If we learn that we have, we delete it. In some countries the age at which
-you can use an app like this without a parent's permission is higher, up to 16.
+Opson is for people 16 and over. The app asks for your birthday before you make
+an account. If the answer is under 16, no account is made, the birthday is not
+kept, and nothing is sent about it: the phone only remembers the day the person
+turns 16, so it can keep asking them to wait until then. If we learn that we
+have collected data from someone under 16 anyway, we delete it.
+
+For someone who is 16 or 17, the birthday is saved to their settings like any
+other, and Opson does not offer them weight goals or set a calorie deficit.
 
 ## Security
 

@@ -10,7 +10,9 @@ import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.diary.baselineInputs
 import com.opson.libraries.goals.GoalRepository
 import com.opson.libraries.goals.GoalStatuses
+import com.opson.libraries.goals.GoalStreaks
 import com.opson.libraries.goals.GoalToday
+import com.opson.libraries.goals.GoalWrapUp
 import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.nutrition.BaselineInputs
 import com.opson.libraries.nutrition.GoalBaselines
@@ -26,7 +28,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 import me.tatarka.inject.annotations.Inject
 import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
@@ -89,6 +93,20 @@ class RealGoalRepository(
     override fun projection(): Flow<WeightProjection?> =
         combine(settingsRepository.settings, latestWeightKg()) { settings, kg -> GoalStatuses.projection(settings, kg, calendar.today()) }
             .distinctUntilChanged()
+
+    override fun wrapUp(date: LocalDate): Flow<List<GoalWrapUp>> {
+        val today = calendar.today()
+        // Back to the week's start for a weekly goal, and as far as a streak reads when one is on.
+        val streaks = settingsRepository.settings.map { settings ->
+            settings.goalStreakEnabled && GoalBook.goals(settings).any { it.isActive && GoalStreaks.eligible(it.type) }
+        }.distinctUntilChanged()
+        val facts = streaks.flatMapLatest { on ->
+            weekFacts(if (on) date.minus(DatePeriod(days = GoalStreaks.WINDOW_DAYS - 1)) else date, date)
+        }
+        return combine(settingsRepository.settings, facts, latestWeightKg()) { settings, days, kg ->
+            GoalStatuses.wrapUp(settings, days, date, today, kg)
+        }.distinctUntilChanged()
+    }
 
     /** From the start of [from]'s week (the person's week start) to [to], read again if the week start changes. */
     private fun weekFacts(from: LocalDate, to: LocalDate): Flow<Map<LocalDate, GoalDayFacts>> =

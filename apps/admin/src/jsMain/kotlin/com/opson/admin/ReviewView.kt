@@ -82,8 +82,10 @@ private fun KeyLegend() {
  * the next pending food opening after each decision, and above the queue [WeeklyPass] (bulk
  * approve, export for an offline pre-check, import its decisions).
  *
- * Below them, reports on foods already in the catalog ([FoodReportsView]): "Report a problem" from
- * any food's detail, and the server's own energy check.
+ * Below them, the database cleanup on foods already in the catalog: Builders' verifications that
+ * need a person ([FoodVerificationsView]), reports ([FoodReportsView]: "Report a problem" from any
+ * food's detail, and the server's own energy check), and how many each reviewer decided
+ * ([ReviewerCountsView]).
  *
  * The photos never have a URL anyone else could open: they are fetched with the admin token and
  * shown through a blob URL that lives in this tab. Grafana's review board links here as
@@ -196,7 +198,10 @@ internal fun ReviewView(ctx: AdminCtx, openId: String?) {
         }
     }
 
+    // Database cleanup: Builders' verifications and reports both fix foods already in the catalog.
+    FoodVerificationsView(ctx, refresh, onDecided = { refresh++ })
     FoodReportsView(ctx, refresh)
+    ReviewerCountsView(ctx, refresh)
 
     BarcodeLinks(ctx, links, onDecided = { refresh++ })
 }

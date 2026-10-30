@@ -1,9 +1,13 @@
 package com.opson.libraries.foods
 
-/** What someone says is wrong with a catalog food. Wire values match the server's. */
-enum class FoodReportReason(val wire: String) {
-    WrongCalories("wrong_calories"),
-    WrongNutrients("wrong_nutrients"),
+/**
+ * What someone says is wrong with a catalog food; they can pick several. Wire values match the
+ * server's. [legacyWire] is the nearest code a server from before several reasons knows, sent as
+ * the single `reason` beside them.
+ */
+enum class FoodReportReason(val wire: String, val legacyWire: String = wire) {
+    WrongNumbers("wrong_numbers", "wrong_nutrients"),
+    MissingInfo("missing_info", "other"),
     WrongServing("wrong_serving"),
     WrongName("wrong_name"),
     Duplicate("duplicate"),
@@ -29,15 +33,24 @@ data class SuggestedFoodValues(
     val isEmpty: Boolean get() = listOf(kcal, protein, carbs, fat, servingGrams).all { it == null } && servingLabel.isNullOrBlank()
 }
 
-/** One report. [id] is made once, so a retry is the same report. [photo] is a JPEG the device already shrank. */
+/**
+ * One report. [id] is made once, so a retry is the same report. [reasons] are in the order the
+ * sheet lists them, never empty. [photo] is the back of the pack (its label) and [frontPhoto] the
+ * front, both JPEGs the device already shrank and both optional.
+ */
 class FoodReport(
     val id: String,
     val foodId: String,
-    val reason: FoodReportReason,
+    val reasons: List<FoodReportReason>,
     val suggested: SuggestedFoodValues?,
     val note: String?,
     val photo: ByteArray?,
-)
+    val frontPhoto: ByteArray? = null,
+) {
+    init {
+        require(reasons.isNotEmpty()) { "A report says what is wrong" }
+    }
+}
 
 sealed interface FoodReportResult {
     /** The server has it. [applied] when this person's values went straight onto the food (owners and admins, later). */

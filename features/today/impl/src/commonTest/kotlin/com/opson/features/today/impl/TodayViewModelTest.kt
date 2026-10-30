@@ -1,5 +1,10 @@
 package com.opson.features.today.impl
 
+import com.opson.libraries.goals.GoalRepository
+import com.opson.libraries.goals.GoalToday
+import kotlin.experimental.ExperimentalObjCRefinement
+import kotlin.native.HiddenFromObjC
+
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.Fast
 import com.opson.libraries.diary.FastingRelease
@@ -88,6 +93,7 @@ class TodayViewModelTest : CoroutineTest() {
         burnedRepository: FakeBurnedRepository = FakeBurnedRepository(),
         goalsAndEnergy: GoalsAndEnergyEnabled = goalsAndEnergyFlag(goalsAndEnergyOn),
         ticker: MinuteTicker = MinuteTicker { flowOf(clock.now) },
+        goals: GoalRepository = GoalRepository.None,
     ) = TodayViewModel(
         diary = diary,
         settingsRepository = settings,
@@ -110,6 +116,7 @@ class TodayViewModelTest : CoroutineTest() {
         burnedRepository = burnedRepository,
         cardView = cardView,
         nudges = nudges,
+        goalRepository = goals,
     )
 
     private fun TestScope.events(vm: TodayViewModel): List<TodayEvent> {
@@ -1216,12 +1223,33 @@ class TodayViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun withAGoal_theCardNamesIt_marksAUsualDay_andTheChipOpensTheGoal() = runUnitTest {
+        settings.state.value = TodayFixtures.weeklyGoalSettings
+        val vm = vm(summaryOn = true, goalsAndEnergyOn = true, burnedRepository = FakeBurnedRepository(TodayFixtures.burned), goals = FakeGoalsToday(TodayFixtures.weeklyGoals))
+        val events = events(vm)
+        val card = assertNotNull((vm.state.summary as TodaySummary.Energy).card)
+        assertEquals(GoalChip("weight", GoalLabel.Lose), card.goalChip)
+        // Every day of the last two weeks burned what today has so far.
+        assertEquals("2,180", card.burned?.usual?.kcal?.text())
+
+        vm.takeAction(TodayAction.GoalChipTapped)
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenGoal("weight")), events)
+    }
+
+    @Test
     fun energyTapped_opensEnergyToday() = runUnitTest {
         val vm = vm(summaryOn = true, goalsAndEnergyOn = true)
         val events = events(vm)
         vm.takeAction(TodayAction.EnergyTapped)
         assertEquals(listOf<TodayEvent>(TodayEvent.OpenEnergyToday), events)
     }
+}
+
+/** Goals as Today reads them: [today] for every collection, nothing else. */
+@OptIn(ExperimentalObjCRefinement::class)
+@HiddenFromObjC
+private class FakeGoalsToday(private val today: List<GoalToday>) : GoalRepository by GoalRepository.None {
+    override fun today(): Flow<List<GoalToday>> = flowOf(today)
 }
 
 /** A config the test can change, as a refresh does. */

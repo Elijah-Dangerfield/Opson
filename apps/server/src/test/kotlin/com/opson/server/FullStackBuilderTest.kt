@@ -8,12 +8,16 @@ import com.opson.server.config.FoodSourcesConfig
 import com.opson.server.data.CaptureJson
 import com.opson.server.data.CaptureLineJson
 import com.opson.server.data.LabelFactsJson
+import com.opson.server.data.VerificationPhotosJson
+import com.opson.server.data.VerificationProblemJson
+import com.opson.server.data.VerificationValuesJson
 import com.opson.server.db.AppConfigValuesTable
 import com.opson.server.db.BuilderApplicationsTable
 import com.opson.server.db.BuilderMembersTable
 import com.opson.server.db.DatabaseTest
 import com.opson.server.db.FoodProvenanceTable
 import com.opson.server.db.FoodVerificationsTable
+import com.opson.server.db.FoodsTable
 import com.opson.server.db.UserRolesTable
 import com.opson.server.di.ServerComponent
 import com.opson.server.di.create
@@ -46,6 +50,10 @@ import com.opson.server.routes.FoodSubmissionDetailResponse
 import com.opson.server.routes.FoodSubmissionRequest
 import com.opson.server.routes.FoodSubmissionResponse
 import com.opson.server.routes.MyAccessResponse
+import com.opson.server.routes.FoodResponse
+import com.opson.server.routes.FoodVerificationAdminResponse
+import com.opson.server.routes.FoodVerificationQueueResponse
+import com.opson.server.routes.ReviewerCountsResponse
 import com.opson.server.routes.VerificationRequest
 import com.opson.server.routes.VerificationResponse
 import com.opson.server.testing.DiaryFixtures
@@ -80,6 +88,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -127,6 +136,7 @@ class FullStackBuilderTest : DatabaseTest() {
         database.blockingTransaction {
             FoodVerificationsTable.deleteAll()
             FoodProvenanceTable.deleteAll()
+            TransactionManager.current().exec("DELETE FROM food_corrections")
             BuilderApplicationsTable.deleteAll()
             BuilderMembersTable.deleteAll()
             TransactionManager.current().exec("DELETE FROM moderation_actions")
@@ -551,6 +561,156 @@ class FullStackBuilderTest : DatabaseTest() {
             val me = client.me(builder)
             assertEquals(1, me.accepted30d)
             assertEquals(1, me.stats.checks)
+        }
+    }
+
+    /** The granola as USDA Branded would have it: the label's numbers per 100 g, its serving first. */
+    private fun seedBrandedGranola(kcal: Float = 418.2f): UUID {
+        val id = UUID.randomUUID()
+        database.blockingTransaction {
+            FoodsTable.insert {
+                it[FoodsTable.id] = id
+                it[sourceKind] = "usda_branded"
+                it[sourceId] = id.toString()
+                it[name] = "Maple granola"
+                it[brand] = "Hillside"
+                it[kcal100g] = kcal
+                it[protein100g] = 5.45f
+                it[carbs100g] = 67.3f
+                it[fat100g] = 14.5f
+                it[micros] = "{}"
+                it[portions] = """[{"label": "2/3 cup", "grams": 55}]"""
+            }
+        }
+        return id
+    }
+
+    private suspend fun HttpClient.verify(user: UserId, food: UUID, request: VerificationRequest) = post("/v1/foods/$food/verifications") {
+        header(HttpHeaders.Authorization, "Bearer ${jwt(user)}")
+        contentType(ContentType.Application.Json)
+        setBody(request)
+    }
+
+    private suspend fun HttpClient.food(user: UserId, food: UUID) =
+        get("/v1/foods/$food") { header(HttpHeaders.Authorization, "Bearer ${jwt(user)}") }.body<FoodResponse>()
+
+    private suspend fun HttpClient.verificationQueue(status: String = "open") =
+        get("/v1/admin/food-verifications?status=$status") { header("X-Admin-Token", adminToken) }.body<FoodVerificationQueueResponse>()
+
+    private suspend fun HttpClient.decideVerification(id: String, decision: String, body: String) =
+        post("/v1/admin/food-verifications/$id/$decision") {
+            header("X-Admin-Token", adminToken)
+            header("X-Admin-Actor", "elijah")
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+
+    private val photos = VerificationPhotosJson(
+        front = Base64.getEncoder().encodeToString(TestImages.jpeg),
+        label = Base64.getEncoder().encodeToString(TestImages.jpeg),
+    )
+
+    @Test
+    fun somethingWrongWaitsForAReviewerWhoseAcceptCorrectsTheSameFoodAndMarksItVerified() = runTest {
+        val builder = seedUser(ageDays = 10)
+        val component = component()
+        val food = seedBrandedGranola()
+        becomeBuilder(component, builder)
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier), adminConfig = AdminConfig(adminToken)) }
+            val client = jsonClient()
+            assertNull(client.food(builder, food).checked, "nobody has checked it")
+
+            val sent = client.verify(
+                builder,
+                food,
+                VerificationRequest(
+                    id = UUID.randomUUID().toString(),
+                    engine = "vision",
+                    lines = panel.map { CaptureLineJson(it, 0.9) },
+                    problem = VerificationProblemJson(
+                        wrong = listOf("calories"),
+                        missing = listOf("ingredients"),
+                        values = VerificationValuesJson(basisLabel = "2/3 cup", basisGrams = 55.0, kcal = 250.0),
+                        note = "New recipe, the pack says 250",
+                    ),
+                    photos = photos,
+                ),
+            )
+            assertEquals(HttpStatusCode.Created, sent.status)
+            val answer = sent.body<VerificationResponse>()
+            assertEquals("open", answer.review)
+            assertEquals("unconfirmed", answer.outcome, "nothing counts until a reviewer says so")
+            assertNull(client.food(builder, food).checked)
+
+            val queue = client.verificationQueue()
+            assertEquals(1, queue.open)
+            val waiting = queue.verifications.single()
+            assertEquals(listOf("calories"), waiting.wrong)
+            assertEquals(listOf("ingredients"), waiting.missing)
+            assertEquals(454.55, waiting.valuesPer100?.kcal)
+            assertEquals("Maple granola", waiting.snapshot?.name)
+            assertTrue(waiting.hasFrontPhoto && waiting.hasLabelPhoto)
+            val photo = client.get("/v1/admin/food-verifications/${waiting.id}/photos/front") { header("X-Admin-Token", adminToken) }
+            assertEquals(HttpStatusCode.OK, photo.status)
+
+            val accepted = client.decideVerification(waiting.id, "accept", """{"values": {"kcal": 454.55}}""")
+            assertEquals(HttpStatusCode.OK, accepted.status)
+            val decided = accepted.body<FoodVerificationAdminResponse>()
+            assertEquals("accepted", decided.status)
+            assertEquals("confirmed", decided.outcome)
+            assertNotNull(decided.correctionId)
+            assertEquals("elijah", decided.resolvedBy)
+
+            val served = client.food(builder, food)
+            assertEquals(food.toString(), served.id, "the same food, corrected; never a new one")
+            assertEquals(454.55, served.per100g.kcal)
+            assertEquals(true, served.checked)
+            assertEquals(1, client.me(builder).accepted30d)
+            assertEquals(HttpStatusCode.Conflict, client.decideVerification(waiting.id, "accept", "{}").status)
+
+            val reviewers = client.get("/v1/admin/food-review/reviewers") { header("X-Admin-Token", adminToken) }.body<ReviewerCountsResponse>()
+            assertEquals(1, reviewers.reviewers.single { it.reviewer == "elijah" }.verificationsAccepted)
+        }
+    }
+
+    @Test
+    fun aCleanCheckMarksTheFoodVerifiedAndAnUnreadOneWithPhotosWaitsForAPerson() = runTest {
+        val builder = seedUser(ageDays = 10)
+        val component = component()
+        val clean = seedBrandedGranola()
+        val unread = seedBrandedGranola()
+        val old = seedBrandedGranola()
+        becomeBuilder(component, builder)
+        testApplication {
+            application { installApp(component, JwtVerification.Static(verifier), adminConfig = AdminConfig(adminToken)) }
+            val client = jsonClient()
+            fun request(lines: List<String>, withPhotos: Boolean) =
+                VerificationRequest(UUID.randomUUID().toString(), "vision", lines.map { CaptureLineJson(it, 0.9) }, photos = photos.takeIf { withPhotos })
+
+            val confirmed = client.verify(builder, clean, request(panel, withPhotos = true)).body<VerificationResponse>()
+            assertEquals("confirmed", confirmed.outcome)
+            assertNull(confirmed.review)
+            assertEquals(true, client.food(builder, clean).checked)
+
+            val noProtein = panel.map { it.replace("Protein 3g", "Protein 9g") }
+            val waiting = client.verify(builder, unread, request(noProtein, withPhotos = true)).body<VerificationResponse>()
+            assertEquals("open", waiting.review)
+            // An app from before V34 sends no photos: as before, nothing waits.
+            val legacy = client.verify(builder, old, request(noProtein, withPhotos = false)).body<VerificationResponse>()
+            assertNull(legacy.review)
+            assertEquals(1, client.verificationQueue().open)
+
+            val rejected = client.decideVerification(waiting.id, "reject", """{"reason": "The photo is blurry"}""").body<FoodVerificationAdminResponse>()
+            assertEquals("rejected", rejected.status)
+            assertNull(client.food(builder, unread).checked)
+            assertEquals(0, client.verificationQueue().open)
+            assertEquals(listOf(waiting.id), client.verificationQueue("decided").verifications.map { it.id })
+
+            val bad = client.verify(builder, old, request(panel, withPhotos = false).copy(problem = VerificationProblemJson(wrong = listOf("taste"))))
+            assertEquals(HttpStatusCode.BadRequest, bad.status)
+            val both = client.verify(builder, old, request(panel, withPhotos = false).copy(problem = VerificationProblemJson(wrong = listOf("serving"), missing = listOf("serving"))))
+            assertEquals(HttpStatusCode.BadRequest, both.status)
         }
     }
 

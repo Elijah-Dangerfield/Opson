@@ -20,7 +20,9 @@ import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.FindSupportRoute
+import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.SupportRoute
+import com.opson.features.settings.TargetsRoute
 import com.opson.features.settings.TodayScreenSettingsRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.ProfileRoute
@@ -71,6 +73,9 @@ import com.opson.features.today.impl.dayclose.WhyNotCutBackSheetContent
 import com.opson.features.today.impl.daynote.DayNoteEvent
 import com.opson.features.today.impl.daynote.DayNoteSheetContent
 import com.opson.features.today.impl.daynote.DayNoteViewModel
+import com.opson.features.today.impl.kindnote.KindNoteEvent
+import com.opson.features.today.impl.kindnote.KindNoteSheetContent
+import com.opson.features.today.impl.kindnote.KindNoteViewModel
 import com.opson.features.today.impl.item.ItemSheetContent
 import com.opson.features.today.impl.item.ItemSheetEvent
 import com.opson.features.today.impl.item.ItemSheetViewModel
@@ -137,6 +142,7 @@ class TodayFeatureEntryPoint(
     private val celebrationViewModelFactory: (String, Boolean) -> CelebrationViewModel,
     private val progressViewModelFactory: () -> ProgressViewModel,
     private val streakViewModelFactory: () -> StreakIndicatorViewModel,
+    private val kindNoteViewModelFactory: () -> KindNoteViewModel,
     private val tabBar: TabBar,
     private val findSupportEnabled: FindSupportEnabled,
     /** Cards other modules add to the list, such as Medication's. */
@@ -345,6 +351,26 @@ class TodayFeatureEntryPoint(
             TodaySheet(router, sheetState) { ItemSheetContent(state = state, onAction = viewModel::takeAction) }
         }
 
+        bottomSheet<KindNoteRoute> { _, sheetState ->
+            val viewModel: KindNoteViewModel = viewModel { kindNoteViewModelFactory() }
+            val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+            viewModel.ObserveEvents { event ->
+                when (event) {
+                    KindNoteEvent.OpenFindSupport -> router.batch {
+                        goBack()
+                        navigate(FindSupportRoute())
+                    }
+                    KindNoteEvent.OpenModes -> router.batch {
+                        goBack()
+                        navigate(ModesRoute())
+                    }
+                    is KindNoteEvent.ShowToast -> showToast(event.toast)
+                    KindNoteEvent.Dismiss -> sheetState.dismiss()
+                }
+            }
+            TodaySheet(router, sheetState) { KindNoteSheetContent(state = state, onAction = viewModel::takeAction) }
+        }
+
         bottomSheet<WhyNotCutBackRoute> { _, sheetState ->
             TodaySheet(router, sheetState) { WhyNotCutBackSheetContent(onClose = { sheetState.dismiss() }) }
         }
@@ -432,6 +458,8 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenWaterSheet -> router.navigate(WaterSheetRoute(event.day.toString()))
             is TodayEvent.OpenDayClosed -> router.navigate(DayClosedRoute(event.day.toString()))
             is TodayEvent.OpenPause -> router.navigate(event.change.toRoute())
+            // Targets until the goal has its own screen: it shows the goal setting the target, and Change.
+            is TodayEvent.OpenGoal -> router.navigate(TargetsRoute())
             is TodayEvent.ShowToast -> showToast(event.toast)
         }
     }

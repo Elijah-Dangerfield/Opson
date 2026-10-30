@@ -12,7 +12,7 @@
     <string name="onboarding_welcome_body">You can show, soften, save for later or hide every number, and change it whenever you like.</string>
     <string name="onboarding_welcome_not_medical">Opson is a food log, not medical advice. Food values are estimates.</string>
     <string name="onboarding_get_started">Get started</string>
-    <string name="onboarding_welcome_next">Next you'll sign in, so your log is saved to your account.</string>
+    <string name="onboarding_welcome_next">Next you'll add your birthday and sign in, so your log is saved to your account.</string>
 
     <!--
       The plan. The design lists "barcode scan, recipes" under Free; barcode is hidden in 0.1 and

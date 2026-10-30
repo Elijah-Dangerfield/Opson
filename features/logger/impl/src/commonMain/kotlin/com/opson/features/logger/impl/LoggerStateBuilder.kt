@@ -41,6 +41,8 @@ data class LoggerChoices(
     val exerciseReleased: Boolean = false,
     /** `release.checkIn`, read once when the sheet opens. */
     val checkInAvailable: Boolean = false,
+    /** `release.builders` and an active Builder, read once when the sheet opens. */
+    val verifyAvailable: Boolean = false,
     val voice: VoiceCapture = VoiceCapture.Idle(),
     /** How tall the sheet is; it only ever grows. */
     val height: SheetHeight = SheetHeight.Partial,
@@ -100,8 +102,8 @@ object LoggerStateBuilder {
         )
     }
 
-    /** What a closed day still offers: a weigh-in, the fasting timer and a check-in are not part of its log. */
-    private val NOT_PART_OF_THE_DAY = setOf(AddAction.WeighIn, AddAction.Fasting, AddAction.CheckIn)
+    /** What a closed day still offers: a weigh-in, the fasting timer, a check-in and verifying a pack are not part of its log. */
+    private val NOT_PART_OF_THE_DAY = setOf(AddAction.WeighIn, AddAction.Fasting, AddAction.CheckIn, AddAction.VerifyFood)
 
     /** The slot a log lands in: [slot], or Uncategorized when the day has meal groups off. */
     fun effectiveSlot(inputs: LoggerInputs, slot: MealSlot): MealSlot =
@@ -128,6 +130,8 @@ object LoggerStateBuilder {
         if (choices.checkInAvailable) add(AddAction.CheckIn)
         if (inputs.settings.fastingTimerOn(choices.fastingReleased)) add(AddAction.Fasting)
         if (inputs.settings.exerciseOffered(choices.exerciseReleased, policy.level(Metric.EnergyOut))) add(AddAction.Exercise)
+        // Last: it adds nothing to the day, it is a Builder's own work.
+        if (choices.verifyAvailable) add(AddAction.VerifyFood)
     }
 
     private fun recentRows(inputs: LoggerInputs, policy: VisibilityPolicy, slot: MealSlot, choices: LoggerChoices, bare: FormatContext): List<FoodRowUi> {
