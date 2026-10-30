@@ -1020,3 +1020,52 @@ b.series("Day 1, 7 and 30 retention by cohort day", [sql("A",
          "Of the people whose first entry was that day, the share who logged again on day 1, 7 and 30.",
          w=24, unit="percentunit")
 b.write()
+
+# ── Review asks ────────────────────────────────────────────────────────────
+# Loki only: the asks are app events (docs/practices/review-asks.md). The QA menu's asks carry
+# experiment "qa" and stay out of every panel.
+ASKED = CLIENT + ' | event_name="review.asked" | experiment!="qa"'
+SKIPPED = CLIENT + ' | event_name="review.skipped"'
+ASSIGNED = CLIENT + ' | event_name="review.assigned"'
+b = Board("opson-review-asks", "Opson · Review asks",
+          "Which happy moment to ask for a store rating at. Asks per moment over time, to set against the "
+          "store's ratings by date. The stores never say who rated.",
+          links=[PULSE_LINK], time_from="now-30d")
+b.text("How to read this",
+       "Each install asks at one moment (its **variant**), split by the `review.weight*` values in remote config. "
+       "Neither store says whether anyone rated, so this board counts **asks**, and whether the sheet was "
+       "**likely shown**, by moment and day. The outcome is the store's own numbers: App Store Connect "
+       "› Ratings and Reviews and Play Console › Ratings, by date. To credit a change in ratings to one moment, "
+       "run one moment at a time (all other weights 0, a new `review.experiment` name) for two weeks each. "
+       "Full method in `docs/practices/review-asks.md`.", h=4)
+b.row("Asks")
+b.loki_stat("Asks", f'sum(count_over_time({ASKED} [$__range]))',
+            "Times the store was asked for its sheet. QA menu asks are left out.")
+b.loki_stat("Likely shown", f'sum(count_over_time({ASKED} | outcome="likely_shown" [$__range]))',
+            "Asks where the sheet probably appeared: a new window on iOS, a flow that stayed up on Android.")
+b.loki_stat("Installs asked", f'count(sum by (install_id) (count_over_time({ASKED} [$__range])))',
+            "Distinct installs asked at least once. Asks are 122 days apart, so this is close to Asks.")
+b.loki_stat("Installs given a moment", f'count(sum by (install_id) (count_over_time({ASSIGNED} [$__range])))',
+            "Installs assigned a variant in the range, at their first happy moment of any kind.")
+b.loki_series("Asks per day by moment", [loki("A",
+              f'sum by (variant) (count_over_time({ASKED} [1d]))', "{{variant}}")],
+              "Set this against the store's daily ratings. A rise in ratings a day or two after a moment's asks "
+              "is the signal; with every moment running at once it cannot be told apart.",
+              stacked=True, bars=True, interval="1d")
+b.loki_series("Asks per day by outcome", [loki("A",
+              f'sum by (outcome) (count_over_time({ASKED} [1d]))', "{{outcome}}")],
+              "likely_not_shown is mostly the store's own quota. no_window was never asked and is given back.",
+              stacked=True, bars=True, interval="1d")
+b.loki_table("Moment × outcome", f'sum by (variant, outcome) (count_over_time({ASKED} [$__range]))',
+             "Asks over the range. A moment whose asks are rarely likely_shown is burning asks the store refuses.")
+b.loki_table("Installs per moment", f'count by (variant) (sum by (variant, install_id) (count_over_time({ASSIGNED} [$__range])))',
+             "How the installs that reached a happy moment were split. Compare with the weights in remote config.")
+b.row("Held back")
+b.loki_series("Moments held back by reason", [loki("A",
+              f'sum by (reason) (count_over_time({SKIPPED} [1d]))', "{{reason}}")],
+              "This install's moment came and the ask waited: install_new (first week), asked_recently "
+              "(122 days), offline, trouble (an error or failed step in the last 30 minutes).",
+              stacked=True, bars=True, interval="1d")
+b.loki_table("Moment × reason held back", f'sum by (variant, reason) (count_over_time({SKIPPED} [$__range]))',
+             "A moment that is mostly held back by trouble comes right after things go wrong; a poor moment to ask.")
+b.write()

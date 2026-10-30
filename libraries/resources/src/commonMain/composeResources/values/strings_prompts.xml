@@ -24,4 +24,9 @@
     <string name="prompt_checkin_title">Try a check-in</string>
     <string name="prompt_checkin_body">A few taps on hunger, energy and mood. Only you see it.</string>
     <string name="prompt_checkin_accept">Check in</string>
+
+    <!-- The store's rating sheet (release.reviewAsk). The store draws it, so these only name it in the QA menu. -->
+    <string name="prompt_review_title">Rate Opson</string>
+    <string name="prompt_review_body">The store's own rating sheet, after a good moment.</string>
+    <string name="prompt_review_accept">Rate</string>
 </resources>

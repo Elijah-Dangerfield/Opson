@@ -42,15 +42,27 @@ data class BodyProfile(
             if (ageYears == null) add(BodyDetail.Age)
             if (sex == null) add(BodyDetail.Sex)
         }
+
+    /**
+     * What keeps [RestingEnergies.calculate] from answering: [missing], and any detail given but
+     * outside what the equation takes (a weight typed in the wrong unit, a height in inches).
+     * Empty exactly when the calculation has an answer.
+     */
+    val unusable: Set<BodyDetail>
+        get() = missing + buildSet {
+            if (weightKg != null && weightKg !in RestingEnergies.WEIGHT_KG) add(BodyDetail.Weight)
+            if (heightCm != null && heightCm !in RestingEnergies.HEIGHT_CM) add(BodyDetail.Height)
+            if (ageYears != null && ageYears !in RestingEnergies.AGE_YEARS) add(BodyDetail.Age)
+        }
 }
 
 enum class BodyDetail { Weight, Height, Age, Sex }
 
 object RestingEnergies {
     // Inputs outside these are a typo, not a body: they give no answer rather than a wild one.
-    private val WEIGHT_KG = 25.0..400.0
-    private val HEIGHT_CM = 100.0..250.0
-    private val AGE_YEARS = 13..120
+    internal val WEIGHT_KG = 25.0..400.0
+    internal val HEIGHT_CM = 100.0..250.0
+    internal val AGE_YEARS = 13..120
 
     private const val MALE = 5.0
     private const val FEMALE = -161.0

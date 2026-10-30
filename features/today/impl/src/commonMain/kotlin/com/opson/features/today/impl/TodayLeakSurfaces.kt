@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.opson.features.today.impl.activity.TodayActivityFixtures
+import com.opson.libraries.nutrition.BodyDetail
 import com.opson.features.today.impl.activity.TodayActivitySection
 import com.opson.features.today.impl.calendar.CalendarDropdownContent
 import com.opson.features.today.impl.checkin.CheckInSheetContent
@@ -134,6 +135,17 @@ object TodayLeakSurfaces {
         },
         LeakSurface(id = "today-activity-health", label = "Today, Activity from a health app", showsCaloriesInFull = true) { policy ->
             TodayActivityFixtures.withHealth(policy, withFood = true)?.let { TodayActivitySection(it, onAction = {}) }
+        },
+        // Burned that can't be worked out: the card and the Activity card say what it needs, with no amount in it.
+        LeakSurface(id = "today-burned-unavailable", label = "Today, Burned unavailable", showsCaloriesInFull = true) { policy ->
+            TodayScreen(
+                state = TodayFixtures.todayState(policy, summaryOn = true, goalsAndEnergyOn = true, burnedGap = BurnedGap(setOf(BodyDetail.Weight))),
+                onAction = {},
+            )
+        },
+        // No amounts at all: it only has to stay away where energy out is hidden.
+        LeakSurface(id = "today-activity-unavailable", label = "Today, Activity with Burned unavailable", showsCaloriesInFull = false) { policy ->
+            TodayActivityFixtures.unknown(policy, BurnedGap(setOf(BodyDetail.Weight)))?.let { TodayActivitySection(it, onAction = {}) }
         },
         LeakSurface(id = "today-untracked", label = "Today, marked untracked", showsCaloriesInFull = true) { policy ->
             TodayScreen(state = TodayFixtures.todayState(policy, day = TodayFixtures.untrackedDay()), onAction = {})

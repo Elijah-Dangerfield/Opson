@@ -14,12 +14,16 @@ kotlin {
             implementation(projects.libraries.opson)
             implementation(projects.libraries.flowroutines)
             implementation(projects.libraries.storage)
+            // The release flag, the experiment's name and the moments' weights.
+            implementation(projects.libraries.config)
         }
         commonTest.dependencies {
             implementation(projects.libraries.flowroutines.testing)
             implementation(projects.libraries.review)
             implementation(projects.libraries.opson)
             implementation(projects.libraries.storage)
+            implementation(projects.libraries.config)
+            implementation(projects.libraries.core)
         }
 
         androidMain.dependencies {

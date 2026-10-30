@@ -52,6 +52,8 @@ data class PromptAudience(
  * 3. The trigger must be one the prompt asked for.
  * 4. Someone who said numbers have been hard sees only prompts that opted in.
  * 5. At most one prompt a session ([com.opson.libraries.opson.SessionTracker]), events included.
+ *    The one exception is a moment that answers the prompt just shown ([PromptEvent.answersPrompt],
+ *    a celebration's "I can do this"): one prompt may follow it, once a session.
  * 6. On Today opening only: none in the first [QUIET_START] of an account on this phone, and
  *    [MIN_GAP] between any two prompts ([MIN_GAP_NUMBERS_HARD] after numbers have been hard). A
  *    moment ([PromptTrigger.After]) skips both, because it does not come back.
@@ -76,6 +78,7 @@ object PromptRules {
         audience: PromptAudience,
         now: Instant,
         shownThisSession: Boolean,
+        followUpTaken: Boolean = false,
     ): PromptBlock? {
         if (audience.userId == null) return PromptBlock.NotSignedIn
         if (!audience.onboarded) return PromptBlock.NotOnboarded
@@ -98,7 +101,7 @@ object PromptRules {
         }
         if (!asked) return PromptBlock.NotThisMoment
         if (audience.numbersHard && !candidate.offerWhenNumbersHard) return PromptBlock.NumbersHard
-        if (shownThisSession) return PromptBlock.ShownThisSession
+        if (shownThisSession && !isFollowUp(trigger, followUpTaken)) return PromptBlock.ShownThisSession
 
         if (trigger == PromptTrigger.TodayOpen) {
             if (account.firstSeenAtMs > 0 && now - Instant.fromEpochMilliseconds(account.firstSeenAtMs) < QUIET_START) {
@@ -111,6 +114,10 @@ object PromptRules {
         }
         return null
     }
+
+    /** A prompt after someone's own answer to the one just shown, while the session has not had one. */
+    fun isFollowUp(trigger: PromptTrigger, followUpTaken: Boolean): Boolean =
+        !followUpTaken && trigger is PromptTrigger.After && trigger.event.answersPrompt
 
     /** Highest priority first; a tie goes by id, so the order never depends on the set's. */
     val order: Comparator<PromptCandidate> = compareByDescending<PromptCandidate> { it.priority }.thenBy { it.id }

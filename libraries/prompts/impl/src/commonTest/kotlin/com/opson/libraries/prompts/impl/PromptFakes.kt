@@ -55,7 +55,13 @@ internal class FakeCandidate(
         return eligible
     }
 
-    override suspend fun accept(): PromptAccept = acceptsWith
+    var accepts = 0
+        private set
+
+    override suspend fun accept(): PromptAccept {
+        accepts++
+        return acceptsWith
+    }
 
     override suspend fun screen(): Route? = screenRoute
 }

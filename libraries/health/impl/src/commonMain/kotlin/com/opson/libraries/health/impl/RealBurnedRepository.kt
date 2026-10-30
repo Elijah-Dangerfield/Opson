@@ -131,6 +131,7 @@ class RealBurnedRepository(
                 healthKcal = healthKcal,
                 healthSource = if (healthFlag()) health.source else null,
                 weightKg = kg,
+                unusable = profile.unusable,
             )
         }.distinctUntilChanged()
 

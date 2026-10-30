@@ -39,6 +39,12 @@ import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.medication.MedicationEnabled
 import com.opson.libraries.progressphotos.ProgressPhotosEnabled
 import com.opson.libraries.reminders.RemindersEnabled
+import com.opson.libraries.review.impl.ReviewAskEnabled
+import com.opson.libraries.review.impl.ReviewExperimentName
+import com.opson.libraries.review.impl.ReviewWeightCelebration
+import com.opson.libraries.review.impl.ReviewWeightDayFeltGood
+import com.opson.libraries.review.impl.ReviewWeightFoodApproved
+import com.opson.libraries.review.impl.ReviewWeightShowingUp
 import com.opson.libraries.telemetry.impl.AppEventsEnabled
 import com.opson.libraries.telemetry.impl.AppEventsSampleRate
 import com.opson.libraries.telemetry.impl.KlogForwardingEnabled
@@ -344,6 +350,12 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     CelebrationsReleaseFlag(appConfigMap),
     DeviceCheckEnabled(appConfigMap),
     PlayIntegrityCloudProject(appConfigMap),
+    ReviewAskEnabled(appConfigMap),
+    ReviewExperimentName(appConfigMap),
+    ReviewWeightCelebration(appConfigMap),
+    ReviewWeightDayFeltGood(appConfigMap),
+    ReviewWeightShowingUp(appConfigMap),
+    ReviewWeightFoodApproved(appConfigMap),
 )
 
 private const val REGISTRY_NAME = "apps/admin/config-manifest-registry.json"

@@ -24,10 +24,14 @@ back.
 3. **Asked for this trigger.** `onTodayOpen` for Today settling; `events` for moments.
 4. **Numbers have been hard** means only prompts with `offerWhenNumbersHard = true`.
 5. **One prompt a session** (`SessionTracker`: a cold start, or 15 minutes in the background).
+   One exception: a moment that is someone's own answer to the prompt just shown
+   (`PromptEvent.answersPrompt`, today only a celebration's "I can do this") may call up one more
+   prompt in that session, once.
 6. **On Today opening only:** none in an account's first two days on this phone, and a day between
    any two prompts (three days after numbers have been hard).
 
-A **moment** (`PromptEvent`: a report sent, a food reported, the day closed) lets a prompt that lists it show as
+A **moment** (`PromptEvent`: a report sent, a food reported, the day closed, a celebration's "I
+can do this", today becoming a day someone showed up, a food they sent approved) lets a prompt that lists it show as
 Today next settles, within ten minutes. It skips rule 6, because the moment does not come back,
 but never rules 1 to 5. A moment nobody could use is dropped.
 
@@ -67,6 +71,13 @@ tap outside and Back count as Not now). Counts live on the phone, per account, i
 | `builder_declined` | dialog, once ever | Opson declined their application in the last 14 days and this phone hasn't shown it on the Builders page | More › Builders | `release.builders` |
 | `celebration` | screen, once per milestone | a milestone for showing up was reached in the last 7 days and not celebrated on this phone; right after wrapping up the day (`DayClosed`) or as Today opens; offered after numbers have been hard, gently | A milestone's celebration (`CelebrationRoute`) | `release.celebrations` |
 | `set_up_goal` | card, up to 3 times, 3 days apart | the account never answered the weight goal, the mode shows weight, not pregnant or breastfeeding; not after numbers have been hard | the goal flow (`GoalSetupRoute`) | `release.onboardingSetup` |
+| `review` | system (the store's rating sheet) | right after this install's happy moment: a celebration's "I can do this", today wrapped up as Good, the first thing of the day from someone who showed up on 10 of the last 14 days, or a food they sent approved. Never as Today opens, never after numbers have been hard; the review coordinator adds a quiet first week, 122 days between asks and none offline or after trouble | the store's own sheet | `release.reviewAsk` |
+
+A **system** prompt (`PromptPresentation.System`) is drawn by the operating system: the host
+calls the candidate's `accept()`, which asks the store for its rating sheet, and draws nothing.
+It counts as shown, never as accepted or dismissed, because the store never says. Which moment
+each install asks at, the pacing and how to read the results are in
+[`review-asks.md`](review-asks.md).
 
 A **screen** prompt (`PromptPresentation.Screen`) draws itself: the host opens the route its
 `screen()` names, and that screen owns its buttons, so nothing is counted as accepted or
@@ -147,7 +158,9 @@ closes after `accept()` did the work itself (a join call, say).
 **Emitting a moment.** Inject `PromptEvents` and call `emit(PromptEvent.X)` where the moment
 happens, after it succeeded. `FeedbackRepositoryImpl` emits `ReportSent` for bug reports and
 feedback, `FoodReportViewModel` for a food's "Report a problem" (with `FoodReportSent` too, which only that report emits), and Close the day's Done emits
-`DayClosed`. A new kind of report emits `ReportSent` too; a new kind of moment is a new `PromptEvent` value. A constructor that must
+`DayClosed`, a celebration's "I can do this" emits `CelebrationCheered`, and `MomentWatcher`
+(`:libraries:prompts:impl`) emits `ShowedUp` and `FoodApproved` when it sees them change while the
+app runs. A new kind of report emits `ReportSent` too; a new kind of moment is a new `PromptEvent` value. A constructor that must
 not grow a required argument can default it to `PromptEvents.None`.
 
 ## Testing a prompt

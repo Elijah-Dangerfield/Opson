@@ -239,6 +239,7 @@ object TodayFixtures {
         habits: LoggingHabits? = null,
         now: LocalTime? = null,
         nudgeDismissedOn: LocalDate? = null,
+        burnedGap: BurnedGap? = null,
     ): TodayInputs = TodayInputs(
         today = today,
         timeZone = timeZone,
@@ -252,6 +253,7 @@ object TodayFixtures {
         foodActionsOn = foodActionsOn,
         goalsAndEnergyOn = goalsAndEnergyOn,
         burned = burned,
+        burnedGap = burnedGap,
         habits = habits,
         now = now,
         nudgeDismissedOn = nudgeDismissedOn,
@@ -358,6 +360,7 @@ object TodayFixtures {
         burned: Burned? = null,
         habits: LoggingHabits? = null,
         now: LocalTime? = null,
+        burnedGap: BurnedGap? = null,
     ): TodayState = TodayStateBuilder.build(
         inputs(
             day,
@@ -371,6 +374,7 @@ object TodayFixtures {
             burned = burned,
             habits = habits,
             now = now,
+            burnedGap = burnedGap,
         ),
         policy,
         menuOpen,

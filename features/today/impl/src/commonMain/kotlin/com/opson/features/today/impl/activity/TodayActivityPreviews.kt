@@ -1,5 +1,8 @@
 package com.opson.features.today.impl.activity
 
+import com.opson.features.today.impl.BurnedGap
+import com.opson.libraries.nutrition.BodyDetail
+
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -69,8 +72,8 @@ object TodayActivityFixtures {
         HealthSource.AppleHealth,
     )
 
-    /** Resting energy not known yet: no total, and the way to fix that. */
-    fun unknown(policy: VisibilityPolicy): TodayActivityCard? = card(policy, burned = null, entries = emptyList())
+    /** Resting energy not known yet: no total, what it needs ([gap]), and the way to fix that. */
+    fun unknown(policy: VisibilityPolicy, gap: BurnedGap? = null): TodayActivityCard? = card(policy, burned = null, entries = emptyList(), gap = gap)
 
     /** A morning run from Garmin and an evening class on the watch, as the health app has them. */
     val workouts: List<HealthWorkout> = listOf(
@@ -109,9 +112,10 @@ object TodayActivityFixtures {
         entries: List<ExerciseEntry>,
         health: HealthSource? = null,
         workouts: List<HealthWorkout> = emptyList(),
+        gap: BurnedGap? = null,
     ): TodayActivityCard? =
         TodayActivityStateBuilder.build(
-            TodayActivityInputs(day, Settings(), burned, entries, policy, released = true, timeZone = TimeZone.UTC, healthSource = health, workouts = workouts),
+            TodayActivityInputs(day, Settings(), burned, entries, policy, released = true, timeZone = TimeZone.UTC, healthSource = health, workouts = workouts, gap = gap),
         ).card
 }
 
@@ -166,3 +170,14 @@ private fun TodayActivityWorkoutsDarkPreview() = Section(TodayActivityFixtures.w
 @Preview(widthDp = 390)
 @Composable
 private fun TodayActivityUnknownPreview() = Section(TodayActivityFixtures.unknown(full))
+
+/** Burned waiting on a weigh-in: the card says so and Add a weigh-in goes straight there. */
+@Preview(widthDp = 390)
+@Composable
+private fun TodayActivityUnknownWeighInPreview() = Section(TodayActivityFixtures.unknown(full, BurnedGap(setOf(BodyDetail.Weight))))
+
+/** Waiting on more than a weigh-in: Open Profile. */
+@Preview(widthDp = 390)
+@Composable
+private fun TodayActivityUnknownProfileDarkPreview() =
+    Section(TodayActivityFixtures.unknown(full, BurnedGap(setOf(BodyDetail.Age, BodyDetail.Height))), dark = true)

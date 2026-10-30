@@ -203,6 +203,16 @@ dots and sticky bar are unchanged. Off, page 1 is design sync 2's.
   shows (bars, balance) only with Watch energy on show as well as calories.
   Without Burned the card has no Burned bar and the main number flips between
   the goal view and Eaten.
+- **Burned unavailable** (2026-10-30): when Burned can't be worked out and
+  energy out is on show, every preset draws "Burned unavailable: needs a
+  weigh-in" (or "age, height", from `RestingChoices.unusable`: missing, or
+  outside what the equation takes) where the Burned line goes, with Fix: Weight
+  when a weigh-in is all it needs, Profile for the rest, Resting energy when
+  nothing names it (`BurnedGap`). The line used to vanish with no word, which
+  read as random. A mode that hides energy out still hides it, with no row.
+  Today and the Activity card read `release.goalsAndEnergy`, `release.health`
+  and `release.exercise` again each minute (`MinuteTicker`), not once when built:
+  a flag the config turned on later left the card drawn and Burned never read.
 - **Target line** for a set deficit or surplus: "Target 1,680 · 435 kcal left at
   your goal", "Target 2,480 · follows what you burn".
 - **Goal against Burned everywhere:** Today, Close the day (today's Burned also
@@ -287,9 +297,13 @@ the last row.
   watch missed it. "Add exercise your watch missed" (outlined, at the bottom)
   opens the sheet with "My watch didn't record this" already on
   (`ExerciseRoute.notOnWatch`). Without a health app the + stays in the header.
+- **Burned unknown**: the card says what it needs in the same words as the top
+  card ("Burned unavailable: needs a weigh-in") with one button, Add a weigh-in,
+  Open Profile or Resting energy.
 - Previews `today-activity-previews__*` (manual, from Apple Health, with and
-  without entries, with digesting food); leak surfaces `today-activity` and
-  `today-activity-health`, both with digesting food counted.
+  without entries, with digesting food, Burned unknown); leak surfaces
+  `today-activity`, `today-activity-health` (both with digesting food counted),
+  `today-burned-unavailable` and `today-activity-unavailable`.
 
 ## Learned meal times and the late-day card (no flag, 2026-10-29)
 

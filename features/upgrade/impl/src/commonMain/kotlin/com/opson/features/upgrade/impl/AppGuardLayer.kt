@@ -29,10 +29,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.opson.features.upgrade.AppGuard
 import com.opson.features.upgrade.AppGuardState
+import com.opson.features.upgrade.ConnectionBanner
+import com.opson.features.upgrade.ConnectionStrip
 import com.opson.features.upgrade.blocksApp
 import com.opson.libraries.core.BuildInfo
 import com.opson.libraries.ui.PreviewContent
@@ -55,6 +60,9 @@ import opson.libraries.resources.generated.resources.upgrade_debug_clear_overrid
 import opson.libraries.resources.generated.resources.upgrade_maintenance_logging_continues
 import opson.libraries.resources.generated.resources.upgrade_maintenance_title
 import opson.libraries.resources.generated.resources.upgrade_maintenance_try_again
+import opson.libraries.resources.generated.resources.upgrade_offline_back
+import opson.libraries.resources.generated.resources.upgrade_offline_logging_works
+import opson.libraries.resources.generated.resources.upgrade_offline_needs_connection
 import opson.libraries.resources.generated.resources.upgrade_required_body
 import opson.libraries.resources.generated.resources.upgrade_required_cta
 import opson.libraries.resources.generated.resources.upgrade_required_reassurance
@@ -67,22 +75,26 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
  * the back stack is intact when the stop lifts.
  *
  * The state is collected here, so a guard change recomposes this and not the shell that calls it.
- * A strip (maintenance banner, update offer) sits above the app and takes the status bar with it,
- * so screens drawn under it do not pad for the status bar twice.
+ * A strip (maintenance banner, offline, update offer) sits above the app and takes the status bar
+ * with it, so screens drawn under it do not pad for the status bar twice. It pushes the app down
+ * rather than covering it, so nothing on a screen is ever hidden behind it.
  */
 @Composable
 fun AppGuardLayer(
     guard: AppGuard,
+    connection: ConnectionBanner,
     onOpenUrl: (String) -> Unit,
     onClearOverrides: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     val state by guard.state.collectAsState()
+    val strip by connection.strip.collectAsState()
     val scope = rememberCoroutineScope()
     var retrying by remember { mutableStateOf(false) }
 
     AppGuardContent(
         state = state,
+        connection = strip,
         retrying = retrying,
         onRetry = {
             if (!retrying) {
@@ -106,9 +118,26 @@ fun AppGuardLayer(
     )
 }
 
+/**
+ * One strip at a time, in this order: the operator's maintenance message (offline, it already
+ * says logging continues), then the offline strip, then the update offer, which can wait for a
+ * connection anyway.
+ */
+private enum class Strip { Maintenance, Connection, Update }
+
+private class LastStrip(var strip: Strip? = null, var connection: ConnectionStrip = ConnectionStrip.Hidden)
+
+private fun strip(state: AppGuardState, connection: ConnectionStrip): Strip? = when {
+    state is AppGuardState.MaintenanceBanner -> Strip.Maintenance
+    connection != ConnectionStrip.Hidden -> Strip.Connection
+    state is AppGuardState.UpdateAvailable -> Strip.Update
+    else -> null
+}
+
 @Composable
 internal fun AppGuardContent(
     state: AppGuardState,
+    connection: ConnectionStrip = ConnectionStrip.Hidden,
     retrying: Boolean,
     onRetry: () -> Unit,
     onOpenStore: () -> Unit,
@@ -116,25 +145,31 @@ internal fun AppGuardContent(
     onClearOverrides: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val strip = state is AppGuardState.MaintenanceBanner || state is AppGuardState.UpdateAvailable
+    val showing = strip(state, connection)
+    // What the strip said last, so it keeps its words while it animates away. Plain fields, not
+    // state: they only follow what this composition already read.
+    val last = remember { LastStrip() }
+    if (showing != null) last.strip = showing
+    if (connection != ConnectionStrip.Hidden) last.connection = connection
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             AnimatedVisibility(
-                visible = strip,
+                visible = showing != null,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut(),
             ) {
-                when (state) {
-                    is AppGuardState.MaintenanceBanner -> MaintenanceStrip(state)
-                    AppGuardState.UpdateAvailable -> UpdateStrip(onOpenStore = onOpenStore, onDismiss = onDismissUpdate)
-                    else -> Unit
+                when (last.strip) {
+                    Strip.Maintenance -> (state as? AppGuardState.MaintenanceBanner)?.let { MaintenanceStrip(it) }
+                    Strip.Connection -> ConnectionStripView(last.connection)
+                    Strip.Update -> UpdateStrip(onOpenStore = onOpenStore, onDismiss = onDismissUpdate)
+                    null -> Unit
                 }
             }
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .then(if (strip) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier),
+                    .then(if (showing != null) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier),
             ) {
                 content()
             }
@@ -193,6 +228,32 @@ private fun MaintenanceStrip(state: AppGuardState.MaintenanceBanner) {
             )
         }
     }
+}
+
+/**
+ * Offline, said calmly on the soft fill like the maintenance strip: what still works, never a
+ * warning colour. Read out when it changes, without taking focus.
+ */
+@Composable
+private fun ConnectionStripView(strip: ConnectionStrip) {
+    val text = when (strip) {
+        is ConnectionStrip.Offline -> stringResource(
+            if (strip.loggingWorks) Res.string.upgrade_offline_logging_works else Res.string.upgrade_offline_needs_connection,
+        )
+        ConnectionStrip.BackOnline -> stringResource(Res.string.upgrade_offline_back)
+        ConnectionStrip.Hidden -> return
+    }
+    Text(
+        text = text,
+        typography = AppTheme.type.body,
+        color = AppTheme.colors.ink,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(AppTheme.colors.soft)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    )
 }
 
 @Composable
@@ -274,10 +335,11 @@ private fun PreviewApp() {
 }
 
 @Composable
-private fun GuardPreview(state: AppGuardState) {
+private fun GuardPreview(state: AppGuardState, connection: ConnectionStrip = ConnectionStrip.Hidden) {
     PreviewContent {
         AppGuardContent(
             state = state,
+            connection = connection,
             retrying = false,
             onRetry = {},
             onOpenStore = {},
@@ -315,6 +377,24 @@ private fun AppGuardPreview_UpgradeRequired() {
 @Composable
 private fun AppGuardPreview_UpdateAvailable() {
     GuardPreview(AppGuardState.UpdateAvailable)
+}
+
+@Preview
+@Composable
+private fun AppGuardPreview_Offline() {
+    GuardPreview(AppGuardState.Normal, ConnectionStrip.Offline(loggingWorks = true))
+}
+
+@Preview
+@Composable
+private fun AppGuardPreview_OfflineBeforeOnboarding() {
+    GuardPreview(AppGuardState.Normal, ConnectionStrip.Offline(loggingWorks = false))
+}
+
+@Preview
+@Composable
+private fun AppGuardPreview_BackOnline() {
+    GuardPreview(AppGuardState.Normal, ConnectionStrip.BackOnline)
 }
 
 @Preview

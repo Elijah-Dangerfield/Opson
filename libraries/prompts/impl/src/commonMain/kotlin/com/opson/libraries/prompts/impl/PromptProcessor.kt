@@ -74,6 +74,9 @@ class PromptProcessor(
     /** The session (its uuid) in which a prompt last showed. In memory: a new process is a new session. */
     private var promptedInSession: String? = null
 
+    /** The session in which a prompt followed someone's answer to another ([PromptRules.isFollowUp]). */
+    private var followedUpInSession: String? = null
+
     /** Prompts answered since they last showed. */
     private val answered = mutableSetOf<String>()
 
@@ -127,10 +130,15 @@ class PromptProcessor(
         for (trigger in moments + PromptTrigger.TodayOpen) {
             val moment = (trigger as? PromptTrigger.After)?.event
             for (candidate in ordered) {
-                val block = PromptRules.check(candidate, trigger, account, who, now, shownThisSession = promptedInSession == session)
+                val shownThisSession = promptedInSession == session
+                val followUpTaken = followedUpInSession == session
+                val block = PromptRules.check(candidate, trigger, account, who, now, shownThisSession, followUpTaken)
                 if (block != null) continue
                 val eligible = eligibility.getOrPut(candidate.id to moment) { isEligible(candidate, moment) }
-                if (eligible) return@withLock show(candidate, trigger, userId, session, now)
+                if (eligible) {
+                    if (shownThisSession) followedUpInSession = session
+                    return@withLock show(candidate, trigger, userId, session, now)
+                }
             }
         }
         null
@@ -145,6 +153,15 @@ class PromptProcessor(
         return Catching { candidate.accept() }
             .logOnFailure { "Prompt $id failed to accept" }
             .getOrNull() ?: PromptAccept.Done
+    }
+
+    /**
+     * A [PromptPresentation.System] prompt's showing: its [PromptCandidate.accept] asks the
+     * system, which draws whatever it draws. Counted as shown already; never as an answer.
+     */
+    suspend fun launch(id: String) {
+        val candidate = candidate(id) ?: return
+        Catching { candidate.accept() }.logOnFailure { "Prompt $id failed to launch" }
     }
 
     /** Where a [PromptPresentation.Screen] prompt draws itself, or null when it has nowhere to go. */
@@ -214,6 +231,7 @@ class PromptProcessor(
         val now = clock.now()
         mutex.withLock {
             promptedInSession = null
+            followedUpInSession = null
             if (id == null || _card.value?.id == id) _card.value = null
             ledger.update(userId) { account ->
                 // The quiet start is over too, or a reset would hide everything for two days.

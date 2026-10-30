@@ -1,147 +1,170 @@
 package com.opson.libraries.review.impl
 
-import com.opson.libraries.opson.AppCache
-import com.opson.libraries.opson.AppData
+import com.opson.libraries.core.logging.EXTRA_APP_EVENT
+import com.opson.libraries.core.logging.LogContext
+import com.opson.libraries.core.logging.LogEntry
+import com.opson.libraries.core.logging.LogLevel
+import com.opson.libraries.flowroutines.AppCoroutineScope
 import com.opson.libraries.flowroutines.testing.CoroutineTest
-import com.opson.libraries.review.ReviewLauncher
-import com.opson.libraries.review.ReviewTrigger
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.opson.libraries.opson.AppData
+import com.opson.libraries.review.ReviewLaunchOutcome
+import com.opson.libraries.review.ReviewMoment
+import com.opson.libraries.review.ReviewVariant
+import kotlinx.coroutines.cancel
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlin.time.Clock
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
+import kotlin.time.Duration.Companion.minutes
 
-/**
- * Pins [RealReviewPromptCoordinator]'s eligibility gate. Stripped to
- * pure behavior on the AppCache + clock + launcher contract — the
- * platform-side `ReviewLauncher` is exercised via a counting fake so
- * we never reach a real OS call from a unit test.
- */
-@OptIn(ExperimentalTime::class)
 class RealReviewPromptCoordinatorTest : CoroutineTest() {
 
-    @Test
-    fun firstRequest_beforeInstallAgeWindow_doesNotLaunch_butStampsInstallAt() = runUnitTest {
-        val clock = MutableClock(at = T0)
-        val cache = FakeAppCache()
-        val launcher = CountingLauncher()
-        val coordinator = RealReviewPromptCoordinator(cache, launcher, clock)
-
-        val launched = coordinator.requestPrompt(ReviewTrigger.MilestoneReached)
-
-        assertFalse(launched, "fresh install is below the age floor")
-        assertEquals(0, launcher.requestCount)
-        assertEquals(T0_MS, cache.get().reviewInstallAt, "first miss stamps install time")
-        assertEquals(0L, cache.get().lastReviewPromptAt, "no prompt recorded")
+    private val clock = MutableClock()
+    private val config = FakeConfig(
+        "release.reviewAsk" to true,
+        "review.weightCelebration" to 1,
+        "review.weightDayFeltGood" to 0,
+        "review.weightShowingUp" to 0,
+    )
+    private val cache = FakeAppCache()
+    private val launcher = FakeLauncher()
+    private val appState = FakeAppState()
+    private val telemetry = RecordingReviewTelemetry()
+    private val scope by lazy { AppCoroutineScope(dispatchers) }
+    private val trouble by lazy { RecentTrouble(clock, appState, scope) }
+    private val coordinator by lazy {
+        RealReviewPromptCoordinator(
+            appCache = cache,
+            launcher = launcher,
+            experiment = experiment(config, cache, telemetry),
+            appState = appState,
+            trouble = trouble,
+            telemetry = telemetry,
+            clock = clock,
+            appScope = scope,
+        )
     }
 
-    @Test
-    fun secondRequestAfterAgeFloor_launches_andRecordsPrompt() = runUnitTest {
-        val clock = MutableClock(at = T0)
-        val cache = FakeAppCache()
-        val launcher = CountingLauncher()
-        val coordinator = RealReviewPromptCoordinator(cache, launcher, clock)
+    private val celebration = ReviewVariant(ReviewMoment.Celebration, "moments-1")
 
-        coordinator.requestPrompt(ReviewTrigger.MilestoneReached)
-        clock.advance(RealReviewPromptCoordinator.minInstallAge + 1.days)
+    @AfterTest
+    fun stop() = scope.cancel()
 
-        val launched = coordinator.requestPrompt(ReviewTrigger.TaskCompleted)
-
-        assertTrue(launched)
-        assertEquals(1, launcher.requestCount)
-        assertEquals(clock.nowMs(), cache.get().lastReviewPromptAt)
-        assertEquals(T0_MS, cache.get().reviewInstallAt, "installAt preserved across attempts")
-    }
-
-    @Test
-    fun cooldown_suppressesRepeatRequestsWithinWindow() = runUnitTest {
-        val clock = MutableClock(at = T0)
-        val cache = FakeAppCache(
-            initial = AppData(reviewInstallAt = T0_MS - 10.days.inWholeMilliseconds),
-        )
-        val launcher = CountingLauncher()
-        val coordinator = RealReviewPromptCoordinator(cache, launcher, clock)
-
-        assertTrue(coordinator.requestPrompt(ReviewTrigger.SessionEnd))
-
-        clock.advance(7.days)
-        assertFalse(
-            coordinator.requestPrompt(ReviewTrigger.MilestoneReached),
-            "second prompt inside cooldown is suppressed",
-        )
-        assertEquals(1, launcher.requestCount, "launcher only fired once")
+    /** A week and a day after the first launch. */
+    private fun settledIn() {
+        coordinator
+        clock.advance(RealReviewPromptCoordinator.MIN_INSTALL_AGE + 1.days)
     }
 
     @Test
-    fun cooldown_releasesAfterMinCooldown() = runUnitTest {
-        val clock = MutableClock(at = T0)
-        val cache = FakeAppCache(
-            initial = AppData(reviewInstallAt = T0_MS - 10.days.inWholeMilliseconds),
-        )
-        val launcher = CountingLauncher()
-        val coordinator = RealReviewPromptCoordinator(cache, launcher, clock)
+    fun stampsTheInstallAtBoot() = runUnitTest {
+        coordinator
 
-        assertTrue(coordinator.requestPrompt(ReviewTrigger.SessionEnd))
-
-        clock.advance(RealReviewPromptCoordinator.minPromptCooldown + 1.days)
-
-        assertTrue(
-            coordinator.requestPrompt(ReviewTrigger.SessionEnd),
-            "after cooldown elapses we can prompt again",
-        )
-        assertEquals(2, launcher.requestCount)
-        assertEquals(clock.nowMs(), cache.get().lastReviewPromptAt)
+        assertEquals(T0.toEpochMilliseconds(), cache.get().reviewInstallAt)
     }
 
     @Test
-    fun backToBackRequests_promptOnce() = runUnitTest {
-        val clock = MutableClock(at = T0)
-        val cache = FakeAppCache(
-            initial = AppData(reviewInstallAt = T0_MS - 10.days.inWholeMilliseconds),
+    fun asksOnlyAtThisInstallsMoment() = runUnitTest {
+        assertTrue(coordinator.asksAt(ReviewMoment.Celebration))
+        assertFalse(coordinator.asksAt(ReviewMoment.DayFeltGood))
+        assertFalse(coordinator.clearToAsk(ReviewMoment.DayFeltGood))
+        assertEquals(emptyList(), telemetry.skipped, "another install's moment is not a skip")
+    }
+
+    @Test
+    fun theFirstWeekIsQuiet() = runUnitTest {
+        coordinator
+        clock.advance(6.days)
+
+        assertFalse(coordinator.clearToAsk(ReviewMoment.Celebration))
+        assertEquals(listOf(celebration to ReviewHold.InstallTooNew), telemetry.skipped)
+    }
+
+    @Test
+    fun clearAfterTheFirstWeek() = runUnitTest {
+        settledIn()
+
+        assertTrue(coordinator.clearToAsk(ReviewMoment.Celebration))
+        assertTrue(coordinator.couldAsk())
+    }
+
+    @Test
+    fun anAsk_isWrittenDown_andHoldsTheNextFor122Days() = runUnitTest {
+        settledIn()
+
+        assertEquals(ReviewLaunchOutcome.LikelyShown, coordinator.ask(ReviewMoment.Celebration))
+        assertEquals(clock.now().toEpochMilliseconds(), cache.get().lastReviewPromptAt)
+        assertEquals(listOf(celebration to ReviewLaunchOutcome.LikelyShown), telemetry.asked)
+
+        clock.advance(121.days)
+        assertFalse(coordinator.clearToAsk(ReviewMoment.Celebration))
+        assertEquals(ReviewHold.AskedRecently, telemetry.skipped.last().second)
+
+        clock.advance(2.days)
+        assertTrue(coordinator.clearToAsk(ReviewMoment.Celebration))
+    }
+
+    @Test
+    fun noWindow_givesTheAskBack() = runUnitTest {
+        cache.state.value = AppData(lastReviewPromptAt = 1L)
+        settledIn()
+        launcher.outcome = ReviewLaunchOutcome.NoForegroundUi
+
+        assertEquals(ReviewLaunchOutcome.NoForegroundUi, coordinator.ask(ReviewMoment.Celebration))
+
+        assertEquals(1L, cache.get().lastReviewPromptAt, "the store was never asked")
+        assertEquals(ReviewLaunchOutcome.NoForegroundUi, telemetry.asked.single().second)
+    }
+
+    @Test
+    fun neverOffline() = runUnitTest {
+        settledIn()
+        appState.isOffline.value = true
+
+        assertFalse(coordinator.clearToAsk(ReviewMoment.Celebration))
+        assertEquals(ReviewHold.Offline, telemetry.skipped.last().second)
+    }
+
+    @Test
+    fun neverWithinHalfAnHourOfTrouble() = runUnitTest {
+        settledIn()
+        trouble.note()
+        clock.advance(29.minutes)
+
+        assertFalse(coordinator.clearToAsk(ReviewMoment.Celebration))
+        assertEquals(ReviewHold.Trouble, telemetry.skipped.last().second)
+
+        clock.advance(2.minutes)
+        assertTrue(coordinator.clearToAsk(ReviewMoment.Celebration))
+    }
+
+    @Test
+    fun troubleIs_anErrorLine_orAFailedStep() {
+        fun entry(level: LogLevel, event: String? = null) = LogEntry(
+            level = level,
+            tag = null,
+            message = null,
+            throwable = null,
+            context = LogContext(emptyMap(), event?.let { mapOf(EXTRA_APP_EVENT to it) } ?: emptyMap()),
         )
-        val launcher = CountingLauncher()
-        val coordinator = RealReviewPromptCoordinator(cache, launcher, clock)
 
-        val r1 = coordinator.requestPrompt(ReviewTrigger.MilestoneReached)
-        val r2 = coordinator.requestPrompt(ReviewTrigger.TaskCompleted)
-        val r3 = coordinator.requestPrompt(ReviewTrigger.SessionEnd)
-
-        assertTrue(r1)
-        assertFalse(r2, "second trigger is suppressed by cooldown")
-        assertFalse(r3)
-        assertEquals(1, launcher.requestCount)
+        assertTrue(RecentTrouble.isTrouble(entry(LogLevel.Error)))
+        assertTrue(RecentTrouble.isTrouble(entry(LogLevel.Info, "net.backend_unreachable")))
+        assertTrue(RecentTrouble.isTrouble(entry(LogLevel.Info, "barcode.miss")))
+        assertFalse(RecentTrouble.isTrouble(entry(LogLevel.Warn)))
+        assertFalse(RecentTrouble.isTrouble(entry(LogLevel.Info, "prompt.shown")))
     }
 
-    companion object {
-        private val T0: Instant = Instant.fromEpochMilliseconds(1_700_000_000_000)
-        private const val T0_MS: Long = 1_700_000_000_000
+    @Test
+    fun goingOffline_countsAsTrouble() = runUnitTest {
+        settledIn()
+        trouble
+        appState.isOffline.value = true
+        appState.isOffline.value = false
+
+        assertFalse(coordinator.clearToAsk(ReviewMoment.Celebration))
+        assertEquals(ReviewHold.Trouble, telemetry.skipped.last().second)
     }
-}
-
-@OptIn(ExperimentalTime::class)
-private class MutableClock(at: Instant) : Clock {
-    private var current: Instant = at
-    fun advance(by: Duration) { current += by }
-    fun nowMs(): Long = current.toEpochMilliseconds()
-    override fun now(): Instant = current
-}
-
-private class CountingLauncher : ReviewLauncher {
-    var requestCount: Int = 0
-        private set
-    override suspend fun requestReview() { requestCount++ }
-}
-
-private class FakeAppCache(initial: AppData = AppData()) : AppCache {
-    private val state = MutableStateFlow(initial)
-    override val updates: Flow<AppData> = state
-    override suspend fun get(): AppData = state.value
-    override suspend fun set(value: AppData) { state.value = value }
-    override suspend fun clear() { state.value = AppData() }
 }

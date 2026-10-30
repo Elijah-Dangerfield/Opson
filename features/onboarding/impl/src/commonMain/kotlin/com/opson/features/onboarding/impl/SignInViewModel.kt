@@ -1,5 +1,6 @@
 package com.opson.features.onboarding.impl
 
+import com.opson.libraries.core.AppState
 import com.opson.libraries.core.BuildInfo
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.isiOS
@@ -37,6 +38,8 @@ class SignInViewModel(
     private val appCache: AppCache,
     private val appleSignInCoordinator: AppleSignInCoordinator,
     private val authOutcomeClassifier: AuthOutcomeClassifier,
+    /** Checked before Google or Apple opens, which would otherwise wait on a browser or sheet that can't load. */
+    private val connection: AppState = AssumeOnline,
 ) : SEAViewModel<SignInState, SignInEvent, SignInAction>(
     initialStateArg = SignInState(
         // Apple is the native flow only, which is iOS-only.
@@ -79,6 +82,7 @@ class SignInViewModel(
             }
 
             is SignInAction.SignInWithOAuth -> action.run {
+                if (connection.isOffline.value) return@run updateState { it.copy(error = SignInError.NetworkError) }
                 logger.i { "SignInWithOAuth(${action.provider}): starting" }
                 updateState { it.copy(isSubmitting = true, error = null) }
                 // Returns once the browser has redirected back with a session, so a new Google
@@ -87,6 +91,7 @@ class SignInViewModel(
             }
 
             is SignInAction.SignInWithApple -> action.run {
+                if (connection.isOffline.value) return@run updateState { it.copy(error = SignInError.NetworkError) }
                 logger.i { "SignInWithApple: requesting native credential" }
                 updateState { it.copy(isSubmitting = true, error = null) }
                 Catching { appleSignInCoordinator.awaitCredential() }

@@ -42,7 +42,10 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
+import com.opson.libraries.config.AppConfigMap
+import com.opson.libraries.health.GoalsAndEnergyEnabled
 import com.opson.libraries.health.HealthRepository
+import com.opson.libraries.nutrition.BodyDetail
 import com.opson.libraries.health.EnergyExpended
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -83,6 +86,8 @@ class TodayViewModelTest : CoroutineTest() {
         healthRepository: HealthRepository = health,
         goalsAndEnergyOn: Boolean = false,
         burnedRepository: FakeBurnedRepository = FakeBurnedRepository(),
+        goalsAndEnergy: GoalsAndEnergyEnabled = goalsAndEnergyFlag(goalsAndEnergyOn),
+        ticker: MinuteTicker = MinuteTicker { flowOf(clock.now) },
     ) = TodayViewModel(
         diary = diary,
         settingsRepository = settings,
@@ -95,13 +100,13 @@ class TodayViewModelTest : CoroutineTest() {
         healthFlag = healthFlag(healthOn),
         fasting = fasting,
         fastingRelease = FastingRelease { fastingReleased },
-        ticker = MinuteTicker { flowOf(clock.now) },
+        ticker = ticker,
         editor = diary,
         weights = weights,
         summaryEnabled = summaryFlag(summaryOn),
         selectEnabled = selectFlag(selectOn),
         foodActionsEnabled = foodActionsFlag(foodActionsOn),
-        goalsAndEnergy = goalsAndEnergyFlag(goalsAndEnergyOn),
+        goalsAndEnergy = goalsAndEnergy,
         burnedRepository = burnedRepository,
         cardView = cardView,
         nudges = nudges,
@@ -1169,6 +1174,47 @@ class TodayViewModelTest : CoroutineTest() {
         assertEquals(emptyMap(), settings.state.value.todayMainNumberByStyle)
     }
 
+    // --- Burned that can't be worked out ---
+
+    @Test
+    fun burnedUnknown_theCardSaysWhatItNeeds_andFixOpensThatPlace() = runUnitTest {
+        val burned = FakeBurnedRepository(null, unusable = setOf(BodyDetail.Height, BodyDetail.Age))
+        val vm = vm(summaryOn = true, goalsAndEnergyOn = true, burnedRepository = burned)
+        val events = events(vm)
+        val card = assertNotNull((vm.state.summary as TodaySummary.Energy).card)
+        assertNull(card.burned)
+        assertEquals(BurnedGap(setOf(BodyDetail.Height, BodyDetail.Age)), card.burnedUnavailable)
+
+        vm.takeAction(TodayAction.BurnedFixTapped)
+        assertEquals(listOf<TodayEvent>(TodayEvent.OpenBurnedFix(BurnedFix.Profile)), events)
+
+        // The details arrive: the line is back and the row goes.
+        burned.burnedFlow.value = TodayFixtures.burned
+        val back = assertNotNull((vm.state.summary as TodaySummary.Energy).card)
+        assertNotNull(back.burned)
+        assertNull(back.burnedUnavailable)
+    }
+
+    /**
+     * The flag was read once when Today was built. A config that turned `release.goalsAndEnergy`
+     * on afterwards (a refresh after a new build's first launch, or after signing in) built the
+     * card, which reads the flag each time, with Burned never read: the line was missing until the
+     * app was restarted, with nothing to say why.
+     */
+    @Test
+    fun goalsAndEnergyTurnedOnAfterTodayWasBuilt_readsBurned_onTheNextMinute() = runUnitTest {
+        val config = MutableConfig(mapOf("release" to mapOf("goalsAndEnergy" to false)))
+        val ticks = MutableStateFlow(clock.now)
+        val vm = vm(summaryOn = true, burnedRepository = FakeBurnedRepository(TodayFixtures.burned), goalsAndEnergy = GoalsAndEnergyEnabled(config), ticker = MinuteTicker { ticks })
+        assertNull((vm.state.summary as TodaySummary.Energy).card)
+
+        config.map = mapOf("release" to mapOf("goalsAndEnergy" to true))
+        ticks.value = clock.now + 1.minutes
+        val card = assertNotNull((vm.state.summary as TodaySummary.Energy).card)
+        assertEquals("2,180", card.burned?.total?.text())
+        assertNull(card.burnedUnavailable)
+    }
+
     @Test
     fun energyTapped_opensEnergyToday() = runUnitTest {
         val vm = vm(summaryOn = true, goalsAndEnergyOn = true)
@@ -1177,3 +1223,6 @@ class TodayViewModelTest : CoroutineTest() {
         assertEquals(listOf<TodayEvent>(TodayEvent.OpenEnergyToday), events)
     }
 }
+
+/** A config the test can change, as a refresh does. */
+private class MutableConfig(override var map: Map<String, *>) : AppConfigMap()
