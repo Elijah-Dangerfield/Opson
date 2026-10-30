@@ -5,7 +5,11 @@ import com.opson.features.trends.impl.recap.RecapBannerEvent
 import com.opson.features.trends.impl.recap.RecapBannerStore
 import com.opson.features.trends.impl.recap.RecapBannerViewModel
 import com.opson.features.trends.impl.recap.RecapFixtures
+import com.opson.features.trends.impl.recap.RecapViewModel
+import com.opson.libraries.diary.DayMarks
 import com.opson.libraries.diary.LocalCalendar
+import com.opson.libraries.diary.RecapKind
+import com.opson.libraries.diary.RecapPeriod
 import com.opson.libraries.diary.MinuteTicker
 import com.opson.libraries.diary.RecapsRelease
 import com.opson.libraries.diary.Settings
@@ -19,6 +23,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
@@ -60,6 +65,32 @@ class RecapBannerTest : CoroutineTest() {
         assertTrue(first.state.offersOptOut)
         vm()
         assertEquals(1, optOuts.shows[OptOut.RecapBanner], "the same week again is the same showing")
+    }
+
+    @Test
+    fun lookingInOnAWeekStillGoing_leavesItsBanner_butOpeningOneThatsOverUsesItUp() = runUnitTest {
+        fun recap(period: RecapPeriod) = RecapViewModel(
+            kind = period.kind.wire,
+            startIso = period.start.toString(),
+            diary = FakeDiaryRepository(RecapFixtures.days()),
+            weights = FakeWeightRepository(),
+            settingsRepository = FakeSettingsRepository(),
+            policySource = FakePolicySource(),
+            calendar = object : LocalCalendar {
+                override fun timeZone(): TimeZone = TimeZone.UTC
+                override fun today(): LocalDate = monday
+            },
+            burnedRepository = FakeBurnedRepository(),
+            goalsAndEnergy = goalsAndEnergyFlag(),
+            checkInEnabled = checkInFlag(false),
+            marks = DayMarks { flowOf(emptyList()) },
+            banner = store,
+            healthFlag = healthFlag(false),
+        )
+        recap(RecapPeriod(RecapKind.Week, monday))
+        assertEquals(emptySet(), store.handled.first(), "this week is still going")
+        recap(RecapFixtures.week)
+        assertEquals(setOf(RecapFixtures.week.key), store.handled.first())
     }
 
     @Test

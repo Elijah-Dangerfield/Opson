@@ -68,10 +68,16 @@ class RealGoalRepository(
             settings.baselineInputs(kg, calendar.today(), health)
         }.distinctUntilChanged()
 
+    /**
+     * The recalculation the goal setting the target has to offer. A goal whose typical day came
+     * from the health app gets none while the store can't be read: falling back to the equation
+     * then would look like the person changed their source.
+     */
     override fun recalculation(): Flow<Recalculation?> =
-        combine(settingsRepository.settings, inputs()) { settings, inputs ->
+        combine(settingsRepository.settings, latestWeightKg(), burned.healthReadings()) { settings, kg, health ->
             val goal = GoalBook.driving(settings) ?: return@combine null
-            inputs?.let { GoalBaselines.recalculation(goal, it) }
+            if (health.unavailable && goal.baseline?.inputs?.readsHealth == true) return@combine null
+            settings.baselineInputs(kg, calendar.today(), health)?.let { GoalBaselines.recalculation(goal, it) }
         }.distinctUntilChanged()
 
     override suspend fun accept(recalculation: Recalculation) {

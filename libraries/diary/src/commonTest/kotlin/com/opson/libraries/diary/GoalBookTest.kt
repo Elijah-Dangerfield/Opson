@@ -119,9 +119,27 @@ class GoalBookTest {
     }
 
     @Test
-    fun anUnreadableGoal_isDropped_notGuessed() {
-        val raw = """{"goals":[{"id":"w","kind":"weight","startDate":"2026-10-30","direction":"sideways"},{"kind":"steps","startDate":"2026-10-30","count":5}]}"""
-        assertEquals(emptyList(), SettingsJson.decodeFromString(Settings.serializer(), raw).goals)
+    fun aGoalThisBuildCantReadInFull_isKeptAsItCame_andWrittenBackUntouched() {
+        val goals = listOf(
+            """{"id":"weight","kind":"weight","startDate":"2026-10-30","direction":"sideways","kgPerWeek":0.5}""",
+            """{"kind":"steps","startDate":"2026-10-30","count":5}""",
+            """{"id":"b","kind":"energy_balance","startDate":"2026-10-30","kcalPerDay":"lots"}""",
+            """{"id":"m","kind":"burn","startDate":"2026-10-30","kcal":400,"measure":"heart_points"}""",
+            """{"id":"e","kind":"energy_balance","startDate":"2026-10-30","kcalPerDay":-300,"averaging":"monthly"}""",
+            """{"id":"s","kind":"steps","startDate":"2026-10-30","count":9000,"status":"archived"}""",
+        )
+        val settings = SettingsJson.decodeFromString(Settings.serializer(), """{"weightGoal":{"direction":"lose"},"goals":[${goals.joinToString(",")}]}""")
+        val read = settings.goals!!
+        assertEquals(goals.size, read.size, "nothing dropped")
+        assertTrue(read.all { it.type is GoalType.Unknown && !it.drivesTarget }, "nothing guessed at or acted on")
+        assertNull(GoalBook.driving(settings))
+        assertEquals(GoalDirection.Lose, GoalBook.withGoals(settings, GoalBook.goals(settings)).weightGoal.direction, "older builds' weight goal left as it was")
+
+        // Saved again with a goal of this build's own beside them: every one goes back as it came.
+        val saved = GoalBook.withGoal(settings, Goal("t", GoalType.TrackEveryDay, start))
+        val written = SettingsJson.encodeToJsonElement(Settings.serializer(), saved).jsonObject.getValue("goals").jsonArray
+        assertEquals(goals.map { SettingsJson.parseToJsonElement(it) }, written.take(goals.size))
+        assertEquals(goals.size + 1, written.size)
     }
 
     @Test
@@ -226,6 +244,38 @@ class GoalBookTest {
         // No baseline yet: nothing to write.
         val waiting = weight.copy(baseline = null)
         assertEquals(Settings(), GoalBook.applyTarget(Settings(), waiting))
+    }
+
+    @Test
+    fun aBirthdayUnderEighteen_pausesWeightAndDeficitGoals_andTheTargetGoesBackToATypicalDay() {
+        val today = LocalDate(2026, 10, 30)
+        val steps = Goal("steps", GoalType.Steps(8000), start)
+        val set = GoalBook.withGoal(GoalBook.applyTarget(Settings(macroMode = MacroMode.Grams), weight), steps)
+        val adult = set.withBirthDate(LocalDate(1990, 1, 1))
+        assertTrue(GoalBook.pauseWeightPlans(adult, today) === adult, "an adult keeps every goal")
+
+        val teen = set.withBirthDate(LocalDate(2010, 1, 1))
+        val paused = GoalBook.pauseWeightPlans(teen, today)
+        val goals = GoalBook.goals(paused)
+        assertEquals(GoalStatus.Paused, goals.first { it.id == Goal.WEIGHT_ID }.status)
+        assertEquals(GoalStatus.Active, goals.first { it.id == "steps" }.status, "a steps goal isn't about weight")
+        assertNull(GoalBook.driving(paused))
+        val typicalDay = GoalTargets.aimKcal(GoalType.Weight(GoalDirection.Maintain), weight.baseline!!)
+        assertEquals(typicalDay, paused.targets.energyKcal, "a deficit no longer sets what they eat")
+        assertTrue(set.targets.energyKcal!! < typicalDay!!)
+        assertTrue(GoalBook.pauseWeightPlans(paused, today) === paused, "nothing left to pause")
+    }
+
+    @Test
+    fun anAcceptedRecalculation_keepsThePastTarget_andItSyncsWithTheGoal() {
+        val set = GoalBook.applyTarget(Settings(macroMode = MacroMode.Grams), weight.copy(declined = null))
+        val offer = GoalBaselines.recalculation(GoalBook.driving(set)!!, inputs.copy(activityKcal = 300, activityFrom = ActivityFrom.Everyday))!!
+        val accepted = GoalBook.accept(set, offer, on = LocalDate(2026, 11, 5))
+        val goal = GoalBook.driving(accepted)!!
+        val past = goal.pastTargets.single()
+        assertEquals(LocalDate(2026, 11, 4), past.until)
+        assertEquals(GoalTargets.of(weight)!!.aimKcal, past.aimKcal, "the days before were judged by the old target")
+        assertEquals(goal.pastTargets, GoalBook.goals(roundTrip(accepted)).single().pastTargets)
     }
 
     @Test

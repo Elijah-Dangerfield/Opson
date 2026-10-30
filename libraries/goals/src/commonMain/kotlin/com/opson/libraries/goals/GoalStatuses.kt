@@ -62,7 +62,7 @@ object GoalStatuses {
             closed = day.closedByUser,
             eatenKcal = kcal.value?.takeUnless { kcal.isPartial },
             burnedKcal = burned?.totalKcal,
-            activeKcal = burned?.aboveRestingKcal,
+            activeKcal = burned?.realActivityKcal,
             steps = steps,
             mealsWithFood = day.doneMealCount,
             showedUp = !day.untracked && (day.hasLogged || day.closedByUser || day.checkIn != null),
@@ -109,10 +109,14 @@ object GoalStatuses {
         }
     }
 
-    /** [goal]'s week on [GoalContext.today]: only for a calorie goal with a target. */
+    /**
+     * [goal]'s week on [GoalContext.today]: only for a calorie goal with a target. Days before the
+     * goal started aren't in its budget: a goal set on Thursday doesn't answer for Monday.
+     */
     fun week(goal: Goal, context: GoalContext, days: Map<LocalDate, GoalDayFacts>): WeeklyBudget? {
         val target = context.target ?: return null
-        return WeeklyBudgets.of(context.today, context.weekStart, target.aimKcal, goal.toleranceKcal, goal.averaging, days, context.floor)
+        val since = days.filterKeys { it >= goal.startDate }
+        return WeeklyBudgets.of(context.today, context.weekStart, target.aimKcal, goal.toleranceKcal, goal.averaging, since, context.floor)
     }
 
     /** Each active goal's day from [from] to [to], by goal id. */

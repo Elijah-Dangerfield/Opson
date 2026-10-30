@@ -183,7 +183,7 @@ Welcome now says the next step asks for a birthday.
 
 `HardStretch` (`:libraries:diary`) reads the last four weeks of the log on the phone. Only fair
 days count: tracked, in the past or wrapped up, with an amount on every food. A light day only
-counts as low if it looks complete (wrapped up, or food in three meals), so a forgotten lunch is
+counts as low if it looks complete (wrapped up, or food in breakfast, lunch and dinner), so a forgotten lunch is
 not restriction.
 
 | Signal | Strength | Rule (all `TODO(clinician)`) | Why |

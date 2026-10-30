@@ -91,10 +91,17 @@ object TodayGoals {
         return if (eat is Display.Shown) WeekLine.Eat(eat) else null
     }
 
-    /** A burn goal's line on [burned]'s scale: its kcal, or resting plus its kcal for an active-only goal. */
+    /**
+     * A burn goal's line on [burned]'s scale: its kcal, or for an active-only goal its kcal on top
+     * of everything in Burned that isn't real activity ([Burned.realActivityKcal]: resting, the
+     * everyday estimate, digesting food), so the bar crosses the line when the activity does.
+     */
     fun burnGoalKcal(goals: List<GoalToday>, burned: Burned): Int? {
         val type = goals.firstNotNullOfOrNull { it.goal.type as? GoalType.Burn } ?: return null
-        return if (type.measure == BurnMeasure.Total) type.kcal else burned.resting.kcal + type.kcal
+        if (type.measure == BurnMeasure.Total) return type.kcal
+        // With activity left out of Burned, the bar never holds it: the line sits past everything it does.
+        val inBar = if (burned.activityCounted) burned.realActivityKcal ?: 0 else 0
+        return burned.totalKcal - inBar + type.kcal
     }
 }
 

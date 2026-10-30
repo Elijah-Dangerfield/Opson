@@ -138,9 +138,11 @@ on the organisations' sites on 2026-10-27 (`docs/legal-review-2026-10.md`);
 recheck each quarter.
 
 **Never logged, synced or shared**: no app event, the chosen country is not
-saved, the launcher's failures are swallowed, and `App.kt` doesn't report
-`FindSupportRoute` to the crash scope or the jank monitor (the screen beneath
-keeps the attribution). iOS lists `tel` and `sms` in `LSApplicationQueriesSchemes`
+saved, the launcher's failures are swallowed, and `FindSupportRoute` is an
+`@UnloggedRoute`, so `App.kt` reports it to neither the crash scope nor the
+jank monitor (the screen beneath keeps the attribution). The kind note and
+"Why not cut back?" are marked the same way; mark any new route whose being
+open says something about the person's health. iOS lists `tel` and `sms` in `LSApplicationQueriesSchemes`
 so `canOpenURL` can see them.
 
 Support's crisis row (`SupportState.crisis`) comes from the same region:

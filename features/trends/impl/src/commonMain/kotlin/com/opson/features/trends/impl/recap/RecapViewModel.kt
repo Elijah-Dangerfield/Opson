@@ -108,7 +108,8 @@ class RecapViewModel(
                 policy,
             )
         }.collectIn(viewModelScope) { takeAction(it) }
-        viewModelScope.launch { period.collect { banner.seen(it) } }
+        // Only a period that is over: looking in on this week mustn't use up its banner for when it ends.
+        viewModelScope.launch { period.collect { if (it.end < calendar.today()) banner.seen(it) } }
     }
 
     /**

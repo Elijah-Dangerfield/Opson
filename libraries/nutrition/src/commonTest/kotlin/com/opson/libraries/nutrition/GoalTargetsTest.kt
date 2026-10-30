@@ -178,10 +178,28 @@ class GoalTargetsTest {
     }
 
     @Test
+    fun aBirthday_isDrift_notSomethingThePersonDid() {
+        // Older, and resting energy a little lower with it: drift, which waits for a real move.
+        assertNull(GoalBaselines.recalculation(lose(), inputs.copy(ageYears = 31, restingKcal = 1770)))
+        assertEquals(
+            setOf(BaselineChange.Age, BaselineChange.Resting),
+            GoalBaselines.recalculation(lose(), inputs.copy(ageYears = 40, restingKcal = 1650))?.changes,
+        )
+    }
+
+    @Test
     fun aGoalWithNoBaselineYet_isOfferedOne() {
         val offer = GoalBaselines.recalculation(lose().copy(baseline = null), inputs)!!
         assertNull(offer.oldAimKcal)
         assertEquals(1930, offer.newAimKcal)
+    }
+
+    @Test
+    fun aGoalWithNoBaseline_keptThrough_isNotAskedAgain_untilTheInputsMove() {
+        val kept = lose().copy(baseline = null, declined = inputs)
+        assertNull(GoalBaselines.recalculation(kept, inputs), "Keep sticks")
+        assertNull(GoalBaselines.recalculation(kept, inputs.copy(weightKg = 89.6)), "a weigh-in's drift isn't worth asking again")
+        assertEquals(1630, GoalBaselines.recalculation(kept, inputs.copy(activityKcal = 380, everyday = EverydayActivity.MostlySitting))?.newAimKcal)
     }
 
     @Test

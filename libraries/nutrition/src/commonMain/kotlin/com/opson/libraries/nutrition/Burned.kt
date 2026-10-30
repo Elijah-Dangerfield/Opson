@@ -176,6 +176,15 @@ data class Burned(
 
     /** Everything on top of resting energy: activity, and digesting food when it counts. */
     val aboveRestingKcal: Int get() = totalKcal - resting.kcal
+
+    /**
+     * What the person actually moved: the health app's movement and workouts, and logged
+     * exercise. Never the everyday estimate (the same every day, whatever they did) or digesting
+     * food. Null when nothing read or logged any, so a day with only the estimate isn't judged.
+     * An active-only burn goal counts this.
+     */
+    val realActivityKcal: Int?
+        get() = listOfNotNull(movementKcal, workoutKcal, exerciseKcal).takeIf { it.isNotEmpty() }?.sumOf { it.coerceAtLeast(0) }
 }
 
 /**

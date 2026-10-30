@@ -21,7 +21,12 @@ import com.opson.libraries.health.BurnedRepository
 import com.opson.libraries.health.HealthReleaseFlag
 import com.opson.libraries.health.RestingChoices
 import com.opson.libraries.health.StepsRepository
+import com.opson.libraries.nutrition.BaselineChange
 import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.GoalBaselines
+import com.opson.libraries.nutrition.HealthReadings
+import com.opson.libraries.nutrition.RestingFrom
+import com.opson.libraries.nutrition.RestingSource
 import com.opson.libraries.nutrition.Goal
 import com.opson.libraries.nutrition.GoalVerdict
 import kotlinx.coroutines.flow.Flow
@@ -40,8 +45,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
-/** A steps goal reads the health app's steps through [RealGoalRepository], and nothing else does. */
-class RealGoalRepositoryStepsTest {
+/**
+ * [RealGoalRepository]: a steps goal reads the health app's steps, and nothing else does; a goal
+ * whose typical day came from the health app is offered no new one while the store can't be read.
+ */
+class RealGoalRepositoryTest {
 
     private val today = GoalFixtures.today
     private val monday = GoalFixtures.monday
@@ -90,10 +98,29 @@ class RealGoalRepositoryStepsTest {
         assertNull(goal.facts.steps)
     }
 
-    private fun repository(goal: Goal, steps: StepsRepository, healthOn: Boolean = true) = RealGoalRepository(
-        settingsRepository = FakeSettings(GoalBook.withGoals(Settings(), listOf(goal))),
+    @Test
+    fun aHealthBasedGoal_isOfferedNothing_whileTheStoreCantBeRead() = runTest {
+        val fromHealth = GoalFixtures.inputs.copy(restingFrom = RestingFrom.Health)
+        val goal = GoalFixtures.lose.copy(baseline = GoalBaselines.of(fromHealth))
+        val settings = GoalFixtures.settings(goal).copy(restingSource = RestingSource.Health)
+        fun offer(readings: HealthReadings) =
+            repository(goal, FakeSteps(emptyMap()), settings = settings, burned = Readings(readings)).recalculation()
+
+        assertNull(offer(HealthReadings.Unavailable).first(), "a failed read isn't a change of source")
+        val moved = offer(HealthReadings(restingKcal = 2100)).first()
+        assertEquals(true, moved?.changes?.contains(BaselineChange.Resting), "a real reading still offers one")
+    }
+
+    private fun repository(
+        goal: Goal,
+        steps: StepsRepository,
+        healthOn: Boolean = true,
+        settings: Settings = GoalBook.withGoals(Settings(), listOf(goal)),
+        burned: BurnedRepository = NoBurned,
+    ) = RealGoalRepository(
+        settingsRepository = FakeSettings(settings),
         diary = EmptyDiary,
-        burned = NoBurned,
+        burned = burned,
         weights = NoWeighIns,
         calendar = object : LocalCalendar {
             override fun timeZone(): TimeZone = TimeZone.UTC
@@ -125,6 +152,12 @@ class RealGoalRepositoryStepsTest {
     private object NoBurned : BurnedRepository {
         override fun burned(day: LocalDate): Flow<Burned?> = flowOf(null)
         override fun restingChoices(): Flow<RestingChoices> = error("not read here")
+    }
+
+    private class Readings(private val readings: HealthReadings) : BurnedRepository {
+        override fun burned(day: LocalDate): Flow<Burned?> = flowOf(null)
+        override fun restingChoices(): Flow<RestingChoices> = error("not read here")
+        override fun healthReadings(): Flow<HealthReadings> = flowOf(readings)
     }
 
     private object NoWeighIns : WeightRepository {

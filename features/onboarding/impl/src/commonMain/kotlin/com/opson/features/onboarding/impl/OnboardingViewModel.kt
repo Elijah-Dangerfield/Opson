@@ -72,7 +72,11 @@ import me.tatarka.inject.annotations.Inject
  *      back, and this phone keeps the gate closed until their sixteenth birthday
  *      (`AppData.ageGateOpensOn`). 16 and 17 go on with the goal flow's gentle path: no
  *      weights, weight goals or deficits, and celebrations without counts. The birthday
- *      fills the profile step's. A guest from an older build skips it.
+ *      fills the profile step's. A guest from an older build skips it. The phone holds
+ *      the birthday (`AppData.pendingBirthDate`) until the account exists, and it is
+ *      written to the account as soon as it does, since email sign-up, its verification
+ *      or a restart can leave this screen. A real account that isn't set up and has no
+ *      birthday anywhere comes back through this step.
  *   3. **Sign in** ([OnboardingStep.SignIn]): Apple (iOS), Google, and email
  *      when it is on ([SignInMethods.EMAIL]). There is no way past it without
  *      an account. A new account goes on to the questions; one that already
@@ -279,23 +283,57 @@ class OnboardingViewModel(
      */
     private suspend fun OnboardingAction.handleAgeContinue() {
         val born = state.ageAnswer ?: return
-        if (AgeGate.bandOf(born, state.today) == AgeBand.TooYoung) {
-            Catching { appCache.update { it.copy(ageGateOpensOn = AgeGate.opensOn(born).toString()) } }
-                .logOnFailure { "Onboarding could not close the age gate" }
-            googleAttempt?.cancel()
-            // No step event: the app sends nothing more about someone this young.
-            updateState { it.copy(step = OnboardingStep.TooYoung, ageAnswer = null, ageParts = DateParts()) }
-            return
-        }
-        updateState { it.copy(ageAsked = true, plan = it.plan.copy(body = it.plan.body.copy(birthDate = born, birthday = DateParts.of(born)))) }
+        if (AgeGate.bandOf(born, state.today) == AgeBand.TooYoung) return closeAgeGate(born)
+        updateState { it.withBirthday(born) }
+        // Signed in already (the account came back here without a birthday): kept on it now.
+        if (state.accountReady) return enterQuestions()
+        // Sign-in can leave this screen, so the birthday waits on the phone until the account exists.
+        Catching { appCache.update { it.copy(pendingBirthDate = born.toString()) } }
+            .logOnFailure { "Onboarding could not hold the birthday" }
         goTo(OnboardingStep.SignIn)
     }
 
-    private suspend fun OnboardingAction.enterQuestions() {
-        val first = OnboardingStep.Question(SetupQuestion.Reason)
+    /**
+     * Under 16: the gate closes on this phone until their sixteenth birthday, and the birthday
+     * itself is not kept. Reached from the age question, or from a birthday found or typed once an
+     * account exists, which then is never set up.
+     */
+    private suspend fun OnboardingAction.closeAgeGate(born: LocalDate) {
+        Catching { appCache.update { it.copy(ageGateOpensOn = AgeGate.opensOn(born).toString(), pendingBirthDate = null) } }
+            .logOnFailure { "Onboarding could not close the age gate" }
+        googleAttempt?.cancel()
+        // No step event: the app sends nothing more about someone this young.
         updateState {
-            it.copy(step = first, accountInFlight = null, accountError = null, conflict = null).withRecommendation()
+            it.copy(
+                step = OnboardingStep.TooYoung,
+                ageAnswer = null,
+                ageParts = DateParts(),
+                plan = it.plan.copy(body = it.plan.body.copy(birthDate = null, birthday = DateParts())),
+            )
         }
+    }
+
+    /**
+     * A real account that isn't set up yet: the questions, once the account has a birthday. The
+     * birthday is the one given before sign-in (this screen's, or the one the phone held through
+     * an email sign-up or a restart), else the account's own; it is written to the account now,
+     * not at the end, so leaving setup halfway can't lose it. With none anywhere, the age question
+     * comes first, since an account with no birthday would be treated as an adult's.
+     */
+    private suspend fun OnboardingAction.enterQuestions() {
+        if (isAgeGateClosed()) return updateState { it.copy(step = OnboardingStep.TooYoung) }
+        val held = Catching { appCache.get().pendingBirthDate?.let(LocalDate::parse) }.getOrNull()
+        val born = state.plan.body.birthDate ?: held ?: settingsRepository.settings.value.knownBirthDate
+        updateState { it.copy(accountReady = true, accountInFlight = null, accountError = null, conflict = null) }
+        if (born == null) return goTo(OnboardingStep.Age)
+        if (AgeGate.bandOf(born, state.today) == AgeBand.TooYoung) return closeAgeGate(born)
+        val today = state.today
+        val kept = settingsRepository.settings.value.knownBirthDate == born ||
+            Catching { settingsRepository.update(stampNumbersChange = false) { it.withAgeAnswer(born, today) } }
+                .logOnFailure { "Onboarding could not keep the birthday" }.isSuccess
+        if (held != null && kept) Catching { appCache.update { it.copy(pendingBirthDate = null) } }
+        val first = OnboardingStep.Question(SetupQuestion.Reason)
+        updateState { it.withBirthday(born).copy(step = first).withRecommendation() }
         logStepViewed(first)
     }
 
@@ -407,7 +445,8 @@ class OnboardingViewModel(
 
     /** Signed in to an account that is already set up: Today. */
     private suspend fun OnboardingAction.finishSignedIn() {
-        appCache.update { it.copy(hasUserOnboarded = true) }
+        // An account set up before keeps its own birthday; the one held for a new account goes.
+        appCache.update { it.copy(hasUserOnboarded = true, pendingBirthDate = null) }
         updateState { it.copy(accountInFlight = null, isFinishing = true) }
         leaveForToday()
     }
@@ -435,6 +474,8 @@ class OnboardingViewModel(
     private suspend fun OnboardingAction.advance() {
         if (state.isFinishing) return
         if (state.step == OnboardingStep.Age) return handleAgeContinue()
+        // A birthday under 16 typed on the profile step (where the age question wasn't asked).
+        state.plan.body.birthDate?.takeIf { AgeGate.bandOf(it, state.today) == AgeBand.TooYoung }?.let { return closeAgeGate(it) }
         val next = when (val step = state.step) {
             is OnboardingStep.Question -> SetupQuestion.of(step.question.number + 1)
                 ?.let { OnboardingStep.Question(it) }
@@ -706,6 +747,11 @@ data class OnboardingState(
     val ageAnswer: LocalDate? = null,
     /** The age question was answered, so the profile step doesn't ask the birthday again. */
     val ageAsked: Boolean = false,
+    /**
+     * Signed in to a real account that isn't set up yet. The age question then leads to the
+     * questions, and has no Welcome or sign-in to go back to.
+     */
+    val accountReady: Boolean = false,
     /** The order the birthday's boxes come in, from the phone's region. */
     val dateOrder: DateOrder = DateOrder.DayMonthYear,
     /** The goal flow's answers ([PlanFlow]). */
@@ -745,8 +791,15 @@ data class OnboardingState(
     val showsMeals: Boolean
         get() = setupSteps && (Presets[chosen].today == TodayLayout.MealTimeline || Why.EatingRegularly in answers.why)
 
-    /** 16 or 17 by the birthday given ([AgeGate]). */
-    val olderTeen: Boolean get() = AgeGate.bandOf(plan.body.birthDate, today) == AgeBand.OlderTeen
+    /**
+     * Under 18 by the birthday given ([AgeGate]). Under 16 counts too: such a birthday typed on the
+     * profile step closes the gate on Continue, and until then gets the gentle path.
+     */
+    val underEighteen: Boolean get() = AgeGate.bandOf(plan.body.birthDate, today).let { it == AgeBand.OlderTeen || it == AgeBand.TooYoung }
+
+    /** The birthday [born] answered: kept on the plan, so the profile step doesn't ask it again. */
+    internal fun withBirthday(born: LocalDate): OnboardingState =
+        copy(ageAsked = true, plan = plan.copy(body = plan.body.copy(birthDate = born, birthday = DateParts.of(born))))
 
     /**
      * The goal flow's context for [policy], the mode being started's. Onboarding is a new account,
@@ -756,7 +809,7 @@ data class OnboardingState(
     fun planContext(policy: VisibilityPolicy): PlanContext =
         PlanContext(
             today = today,
-            hard = answers.hard || olderTeen,
+            hard = answers.hard || underEighteen,
             policy = policy,
             fresh = true,
             health = health,
@@ -807,7 +860,7 @@ data class OnboardingState(
     val canGoBack: Boolean
         get() = when (step) {
             OnboardingStep.Welcome, OnboardingStep.TooYoung -> false
-            OnboardingStep.Age -> !isFinishing
+            OnboardingStep.Age -> !isFinishing && !accountReady
             OnboardingStep.SignIn -> !signInOnly && accountInFlight != AccountMethod.Apple && !isFinishing
             OnboardingStep.Recommendation, OnboardingStep.Meals, is OnboardingStep.Plan -> !isFinishing
             is OnboardingStep.Question -> !isFinishing && step.question != SetupQuestion.Reason
@@ -956,6 +1009,6 @@ sealed interface OnboardingAction {
  */
 internal fun Settings.withAgeAnswer(birthDate: LocalDate?, today: LocalDate): Settings {
     val born = birthDate ?: return this
-    val teen = AgeGate.bandOf(born, today) == AgeBand.OlderTeen
+    val teen = AgeGate.bandOf(born, today).let { it == AgeBand.OlderTeen || it == AgeBand.TooYoung }
     return withBirthDate(born).let { if (teen && it.celebrationCounts == null) it.copy(celebrationCounts = false) else it }
 }

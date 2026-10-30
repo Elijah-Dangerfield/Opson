@@ -18,6 +18,9 @@ import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.NumbersSettings
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.WeightUnit
+import com.opson.libraries.goals.GoalStatuses
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.minus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -54,6 +57,15 @@ class GoalEditorTest {
         assertEquals(listOf(GoalKind.TrackEveryDay, GoalKind.Meals), GoalEditor.kinds(context(base.copy(onboarding = OnboardingAnswers(hard = true)))))
         val none = GoalEditor.kinds(context(preset = PresetId.NoNumbers))
         assertFalse(GoalKind.Weight in none || GoalKind.EnergyBalance in none)
+    }
+
+    @Test
+    fun underEighteen_onlyTheGentleTypes_andNoWeeklyAverage() {
+        val teen = context(base.withBirthDate(kotlinx.datetime.LocalDate(2010, 6, 1)))
+        assertEquals(listOf(GoalKind.TrackEveryDay, GoalKind.Meals), GoalEditor.kinds(teen))
+        val draft = GoalEditor.draft(GoalFixtures.balance, null, teen)
+        assertNull(GoalEditor.view(draft, teen).kind, "a deficit picked before isn't drawn")
+        assertNull(GoalEditor.view(draft, teen).averaging)
     }
 
     @Test
@@ -183,6 +195,41 @@ class GoalEditorTest {
         assertEquals(GoalStatus.Paused, GoalBook.weight(saved)?.status)
         assertEquals(GoalKind.EnergyBalance, GoalBook.driving(saved)?.type?.kind)
         assertEquals(GoalTargets.of(GoalBook.driving(saved)!!)!!.aimKcal, saved.targets.energyKcal)
+    }
+
+    @Test
+    fun editingAPausedGoal_orOneThePersonTookTheirTargetBackFrom_keepsItThatWay() {
+        val paused = GoalBook.pause(GoalFixtures.settings(GoalFixtures.lose, base = base), GoalFixtures.lose.id)
+        val pausedGoal = GoalBook.weight(paused)!!
+        val pausedContext = context(paused, existing = pausedGoal)
+        val widened = GoalEditor.goal(reduce(pausedContext, GoalEdit.BandPicked(200), from = GoalEditor.draft(pausedGoal, null, pausedContext)), pausedContext)!!
+        val savedPaused = GoalEditor.save(paused, widened)
+        assertEquals(GoalStatus.Paused, GoalBook.weight(savedPaused)?.status, "a band isn't picking it up again")
+        assertEquals(paused.targets, savedPaused.targets)
+
+        val mine = GoalBook.override(GoalFixtures.settings(GoalFixtures.lose, base = base)).let { it.copy(targets = it.targets.raise()) }
+        val ownGoal = GoalBook.weight(mine)!!
+        val ownContext = context(mine, existing = ownGoal)
+        val edited = GoalEditor.goal(reduce(ownContext, GoalEdit.BandPicked(200), from = GoalEditor.draft(ownGoal, null, ownContext)), ownContext)!!
+        val savedOwn = GoalEditor.save(mine, edited)
+        assertEquals(mine.targets, savedOwn.targets, "their own target stays theirs")
+        assertNull(GoalBook.driving(savedOwn))
+    }
+
+    @Test
+    fun aNewPace_leavesThePastDaysJudgedByTheTargetTheyHad() {
+        val existing = GoalFixtures.lose
+        val settings = GoalFixtures.settings(existing, base = base)
+        val context = context(settings, existing = existing)
+        val faster = reduce(context, GoalEdit.PaceStepped(faster = true), from = GoalEditor.draft(existing, null, context))
+        val goal = GoalEditor.goal(faster, context)!!
+        assertTrue(GoalTargets.of(goal)!!.aimKcal < GoalTargets.of(existing)!!.aimKcal, "a faster pace eats less")
+
+        fun week(of: com.opson.libraries.diary.Settings) =
+            GoalStatuses.days(of, GoalFixtures.week, GoalFixtures.monday, GoalFixtures.today, GoalFixtures.today, GoalFixtures.WEIGHT_KG).getValue(existing.id)
+        val saved = GoalEditor.save(settings, goal)
+        assertEquals(week(settings).take(3), week(saved).take(3), "Monday to Wednesday keep their verdicts")
+        assertEquals(GoalFixtures.today.minus(DatePeriod(days = 1)), GoalBook.driving(saved)!!.pastTargets.single().until)
     }
 
     @Test

@@ -13,7 +13,8 @@ import kotlin.math.roundToInt
 /**
  * What the engine knows about one day, for any goal type. [eatenKcal] is null when something
  * logged has no calories, so the day can't be read against a calorie goal. [burnedKcal] and
- * [activeKcal] are the day's Burned and the part above resting; [steps] is the hook for a steps
+ * [activeKcal] are the day's Burned and the real activity in it ([Burned.realActivityKcal]: null
+ * when only the everyday estimate stands in); [steps] is the hook for a steps
  * source, null until one exists. [showedUp] is celebrations' rule (`DayMark.showedUp`).
  */
 data class GoalDayFacts(

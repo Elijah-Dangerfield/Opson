@@ -104,6 +104,15 @@ class TodayGoalsTest {
     }
 
     @Test
+    fun anActiveBurnGoal_sitsPastTheEstimateAndDigesting_soOnlyRealActivityCrossesIt() {
+        val goals = GoalFixtures.today(GoalFixtures.lose, GoalFixtures.burn)
+        val estimated = Burned(RestingEnergy(1610, RestingFrom.Calculated), everydayKcal = 320, foodKcal = 120)
+        assertEquals(1610 + 320 + 120 + 500, TodayGoals.burnGoalKcal(goals, estimated))
+        val moved = estimated.copy(everydayKcal = null, movementKcal = 400)
+        assertEquals(1610 + 120 + 500, TodayGoals.burnGoalKcal(goals, moved))
+    }
+
+    @Test
     fun theMarks_leaveWithEnergyOut() {
         val card = card(policy = policy(PresetId.Full, overrides = mapOf(Metric.EnergyOut to Visibility.Hide)))
         assertNull(card.burned)

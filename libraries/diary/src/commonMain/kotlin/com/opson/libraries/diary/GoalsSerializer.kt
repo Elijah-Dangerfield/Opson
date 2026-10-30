@@ -15,6 +15,7 @@ import com.opson.libraries.nutrition.GoalKind
 import com.opson.libraries.nutrition.GoalRecalculated
 import com.opson.libraries.nutrition.GoalStatus
 import com.opson.libraries.nutrition.GoalType
+import com.opson.libraries.nutrition.PastTarget
 import com.opson.libraries.nutrition.RestingFrom
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.KSerializer
@@ -27,14 +28,14 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * [Settings.goals] on the wire: a list of flat objects, one a goal, each with `id`, `kind` and the
- * fields its kind uses (docs/plans/goals-v2.md, "Storage and migration"). A kind this build
- * doesn't know is kept as it came ([GoalType.Unknown]) and written back unchanged, so an older
- * build never deletes a newer build's goal. A goal it knows but can't read sensibly (no id, no
- * start date) is dropped rather than guessed at.
+ * fields its kind uses (docs/plans/goals-v2.md, "Storage and migration"). A goal this build can't
+ * read in full (a kind it doesn't know, a value that doesn't parse, a status, averaging or
+ * measure a newer build added) is kept as it came ([GoalType.Unknown]), never acted on, and
+ * written back unchanged, so an older build never deletes or rewrites a newer build's goal. One
+ * with no id or start date is kept the same way under a stand-in id.
  */
 internal object GoalsSerializer : KSerializer<List<Goal>> {
     private val elements = ListSerializer(JsonElement.serializer())
@@ -50,18 +51,24 @@ internal object GoalsSerializer : KSerializer<List<Goal>> {
     }
 
     override fun deserialize(decoder: Decoder): List<Goal> =
-        decoder.decodeSerializableValue(elements).mapNotNull { element ->
-            val kind = ((element as? JsonObject)?.get("kind") as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
-            if (GoalKind.fromKey(kind) == null) return@mapNotNull unknown(kind, element)
-            readOrNull { SettingsJson.decodeFromJsonElement(GoalWire.serializer(), element).toGoal() }
+        decoder.decodeSerializableValue(elements).mapIndexed { index, element ->
+            val kind = (element as? JsonObject)?.text("kind")
+            val known = kind?.takeIf { GoalKind.fromKey(it) != null }
+                ?.let { readOrNull { SettingsJson.decodeFromJsonElement(GoalWire.serializer(), element).toGoal() } }
+            known ?: kept(kind, element, index)
         }
 
-    private fun unknown(kind: String, element: JsonElement): Goal? {
-        val obj = element as? JsonObject ?: return null
-        val id = obj["id"]?.jsonPrimitive?.contentOrNull ?: return null
-        val start = obj["startDate"]?.jsonPrimitive?.contentOrNull?.let { readOrNull { LocalDate.parse(it) } } ?: return null
-        return Goal(id = id, type = GoalType.Unknown(kind, element.toString()), startDate = start, setsTarget = false)
+    /** A goal as it came, under its own id and start where it has them. */
+    private fun kept(kind: String?, element: JsonElement, index: Int): Goal {
+        val obj = element as? JsonObject
+        val id = obj?.text("id") ?: "$UNREADABLE_ID$index"
+        val start = obj?.text("startDate")?.let { readOrNull { LocalDate.parse(it) } } ?: LocalDate.fromEpochDays(0)
+        return Goal(id = id, type = GoalType.Unknown(kind.orEmpty(), element.toString()), startDate = start, setsTarget = false)
     }
+
+    private fun JsonObject.text(key: String): String? = (get(key) as? JsonPrimitive)?.contentOrNull
+
+    private const val UNREADABLE_ID = "unreadable-"
 }
 
 /** Null for a value that doesn't parse (a SerializationException or a bad date are both IllegalArgumentExceptions). */
@@ -98,6 +105,9 @@ private class GoalWire(
     // Answered recalculations, for the goal screen. An older build drops them when it rewrites the
     // goal, which costs only the record.
     val history: List<HistoryWire>? = null,
+    // Targets the goal had before it last moved, so past days keep their verdicts. An older build
+    // drops them when it rewrites the goal, and those days are judged by today's target again.
+    val pastTargets: List<PastTargetWire>? = null,
 ) {
     fun toGoal(): Goal? {
         val type = when (GoalKind.fromKey(kind)) {
@@ -107,24 +117,26 @@ private class GoalWire(
                 GoalType.Weight(direction, targetKg, kgPerWeek?.takeIf { it.isFinite() && it > 0 } ?: 0.0, startKg)
             }
             GoalKind.EnergyBalance -> GoalType.EnergyBalance(kcalPerDay ?: return null)
-            GoalKind.Burn -> GoalType.Burn(kcal?.takeIf { it > 0 } ?: return null, measure?.let(BurnMeasure::fromKey) ?: BurnMeasure.Active)
+            GoalKind.Burn -> GoalType.Burn(kcal?.takeIf { it > 0 } ?: return null, measure?.let { BurnMeasure.fromKey(it) ?: return null } ?: BurnMeasure.Active)
             GoalKind.Steps -> GoalType.Steps(count?.takeIf { it > 0 } ?: return null)
             GoalKind.TrackEveryDay -> GoalType.TrackEveryDay
-            GoalKind.Meals -> GoalType.Meals(count?.takeIf { it in 1..MAX_MEALS } ?: GoalType.DEFAULT_MEALS)
+            GoalKind.Meals -> GoalType.Meals(count?.let { it.takeIf { it in 1..MAX_MEALS } ?: return null } ?: GoalType.DEFAULT_MEALS)
             GoalKind.Unknown, null -> return null
         }
+        // Anything this build would have to guess at (and then write back guessed) keeps the goal as it came.
         return Goal(
             id = id,
             type = type,
             startDate = startDate,
-            status = GoalStatus.fromKey(status) ?: GoalStatus.Paused,
-            averaging = GoalAveraging.fromKey(averaging) ?: GoalAveraging.Daily,
-            toleranceKcal = toleranceKcal.coerceIn(0, MAX_TOLERANCE_KCAL),
+            status = GoalStatus.fromKey(status) ?: return null,
+            averaging = GoalAveraging.fromKey(averaging) ?: return null,
+            toleranceKcal = toleranceKcal.takeIf { it in 0..MAX_TOLERANCE_KCAL } ?: return null,
             setsTarget = (setsTarget ?: true) && type.setsCalories,
-            baseline = baseline?.toBaseline(),
-            declined = declined?.toInputs(),
+            baseline = baseline?.let { it.toBaseline() ?: return null },
+            declined = declined?.let { it.toInputs() ?: return null },
             targetsKcal = targetsKcal,
             history = history.orEmpty().mapNotNull { it.toEntry() }.takeLast(Goal.MAX_HISTORY),
+            pastTargets = pastTargets.orEmpty().map { it.toPast() }.sortedBy { it.until }.takeLast(Goal.MAX_PAST_TARGETS),
         )
     }
 
@@ -155,6 +167,7 @@ private class GoalWire(
                 baseline = goal.baseline?.let(BaselineWire::of),
                 declined = goal.declined?.let(InputsWire::of),
                 history = goal.history.takeIf { it.isNotEmpty() }?.map(HistoryWire::of),
+                pastTargets = goal.pastTargets.takeIf { it.isNotEmpty() }?.map(PastTargetWire::of),
             )
         }
     }
@@ -168,7 +181,7 @@ private class BaselineWire(
     val sex: String? = null,
     val inputs: InputsWire? = null,
 ) {
-    fun toBaseline() = GoalBaseline(burnKcal, extraKcal, digesting, sex?.let(::sexOf), inputs?.toInputs())
+    fun toBaseline(): GoalBaseline? = GoalBaseline(burnKcal, extraKcal, digesting, sex?.let { sexOf(it) ?: return null }, inputs?.let { it.toInputs() ?: return null })
 
     companion object {
         fun of(baseline: GoalBaseline) = BaselineWire(
@@ -196,18 +209,19 @@ private class InputsWire(
     val stage: String = BodyStage.None.key,
     val bodyFatPercent: Double? = null,
 ) {
-    fun toInputs() = BaselineInputs(
-        restingFrom = RestingFrom.entries.firstOrNull { it.name.lowercase() == restingFrom } ?: RestingFrom.Calculated,
+    /** Null for a source, level, sex or stage this build doesn't know: the goal is then kept as it came. */
+    fun toInputs(): BaselineInputs? = BaselineInputs(
+        restingFrom = RestingFrom.entries.firstOrNull { it.name.lowercase() == restingFrom } ?: return null,
         restingKcal = restingKcal,
-        activityFrom = ActivityFrom.fromKey(activityFrom) ?: ActivityFrom.Everyday,
-        everyday = EverydayActivity.fromKey(everyday) ?: EverydayActivity.Default,
+        activityFrom = ActivityFrom.fromKey(activityFrom) ?: return null,
+        everyday = EverydayActivity.fromKey(everyday) ?: return null,
         activityKcal = activityKcal,
         digesting = digesting,
         weightKg = weightKg,
         heightCm = heightCm,
         ageYears = ageYears,
-        sex = sex?.let(::sexOf),
-        stage = BodyStage.fromKey(stage) ?: BodyStage.None,
+        sex = sex?.let { sexOf(it) ?: return null },
+        stage = BodyStage.fromKey(stage) ?: return null,
         bodyFatPercent = bodyFatPercent,
     )
 
@@ -254,6 +268,15 @@ private class HistoryWire(
             newAimKcal = entry.newAimKcal,
             accepted = entry.accepted,
         )
+    }
+}
+
+@Serializable
+private class PastTargetWire(val until: LocalDate, val aimKcal: Int, val minKcal: Int, val maxKcal: Int) {
+    fun toPast() = PastTarget(until, aimKcal, minKcal, maxKcal)
+
+    companion object {
+        fun of(past: PastTarget) = PastTargetWire(past.until, past.aimKcal, past.minKcal, past.maxKcal)
     }
 }
 

@@ -6,6 +6,7 @@ import kotlin.experimental.ExperimentalObjCRefinement
 import kotlin.native.HiddenFromObjC
 import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.weightPlansOff
 import com.opson.libraries.goals.GoalStatuses
 import com.opson.libraries.goals.TargetProjections
 import com.opson.libraries.goals.ui.ProjectionChartUi
@@ -24,6 +25,7 @@ import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.GoalKind
 import com.opson.libraries.nutrition.GoalPace
 import com.opson.libraries.nutrition.GoalProjections
+import com.opson.libraries.nutrition.GoalStatus
 import com.opson.libraries.nutrition.GoalTargets
 import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.Metric
@@ -188,7 +190,7 @@ object GoalEditor {
 
     /** The types a goal may be in this mode, for this person ([GoalCatalog.offered]). */
     fun kinds(context: GoalEditContext): List<GoalKind> =
-        GoalCatalog.offered(context.policy, context.settings.onboarding.hard, context.settings.bodyStage)
+        GoalCatalog.offered(context.policy, context.settings.weightPlansOff(context.today), context.settings.bodyStage)
 
     /** A draft holding [goal]'s answers, or a fresh one of [kind]. */
     fun draft(goal: Goal?, kind: GoalKind?, context: GoalEditContext): GoalDraft {
@@ -299,15 +301,22 @@ object GoalEditor {
             GoalKind.Meals -> GoalType.Meals(amount(draft.mealsText, MEALS) ?: return null)
             GoalKind.Unknown -> return null
         }
-        return Goal(
+        val goal = Goal(
             id = existing?.id ?: kind.key,
             type = type,
             startDate = existing?.startDate ?: context.today,
+            // A paused goal stays paused, and one the person took their own target back from stays
+            // that way: changing a band is not picking it up again.
+            status = existing?.status ?: GoalStatus.Active,
             averaging = if (type.setsCalories) draft.averaging else GoalAveraging.Daily,
             toleranceKcal = draft.toleranceKcal,
+            setsTarget = existing?.setsTarget ?: type.setsCalories,
             baseline = context.inputs?.takeIf { type.setsCalories }?.let(GoalBaselines::of),
+            targetsKcal = existing?.targetsKcal,
             history = existing?.history.orEmpty(),
         )
+        // The days before today keep the target they had: a new pace isn't judged backwards.
+        return existing?.let { GoalTargets.keepPast(it, goal, context.today) } ?: goal
     }
 
     private fun weightType(draft: GoalDraft, context: GoalEditContext, existing: Goal?): GoalType.Weight? {
@@ -320,9 +329,13 @@ object GoalEditor {
         return GoalType.Weight(draft.direction, target, rate, before?.startKg ?: current)
     }
 
-    /** Settings with [goal] saved: it writes its target when it sets one and a typical day is known. */
+    /**
+     * Settings with [goal] saved: it writes its target when it sets it (a new calorie goal, or one
+     * already setting it) and a typical day is known. A paused goal, or one whose target the
+     * person set themselves, is saved without touching Targets.
+     */
     fun save(settings: Settings, goal: Goal): Settings =
-        if (goal.type.setsCalories && goal.baseline != null) GoalBook.applyTarget(settings, goal) else GoalBook.withGoal(settings, goal)
+        if (goal.drivesTarget && goal.baseline != null) GoalBook.applyTarget(settings, goal) else GoalBook.withGoal(settings, goal)
 
     fun view(draft: GoalDraft, context: GoalEditContext): GoalEditView {
         val editing = context.existing != null
@@ -343,7 +356,7 @@ object GoalEditor {
             burn = if (kind == GoalKind.Burn) BurnPart(draft.measure, field(draft.burnText, burnRange(draft.measure))) else null,
             steps = if (kind == GoalKind.Steps) field(draft.stepsText, STEPS) else null,
             meals = if (kind == GoalKind.Meals) field(draft.mealsText, MEALS) else null,
-            averaging = draft.averaging.takeIf { setsCalories && GoalCatalog.weeklyOffered(context.policy, context.settings.onboarding.hard) },
+            averaging = draft.averaging.takeIf { setsCalories && GoalCatalog.weeklyOffered(context.policy, context.settings.weightPlansOff(context.today)) },
             toleranceKcal = draft.toleranceKcal.takeIf { setsCalories && context.calories },
             target = kcal(target?.aimKcal),
             low = kcal(target?.minKcal),
