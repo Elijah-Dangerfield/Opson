@@ -271,6 +271,25 @@ explains the estimate and its limits. Only where calories and energy out show
 in full, never after numbers have been hard; the pounds and the scale only
 where weight shows in full. `RunningTotalTest`.
 
+### Steps
+Under Expended, behind `TrendsCards.steps` and `release.health`
+(`TrendsStepsBuilder`, `TrendsStepsViews.kt`). `StepsRepository.stepsBetween`
+reads the last 120 days to today once (today live), whatever the range, so a
+steps goal's streak can reach past it. A bar a day over the page's range (a
+week labelled by weekday; a month or three months unlabelled, with the first
+day and `Today` under them and narrower gaps), today striped, a missing day a
+gap. The average beside the title leaves today out. Under the chart: Today so
+far, Daily average, Most in a day, and with an active steps goal
+(`GoalStatuses.stepsGoal`) its line across the bars, Days at your goal (the
+goal engine's verdicts) and `N days in a row at your goal` from two on
+(`GoalStatuses.streak`, today and skipped days passed over). The (i) says where
+steps come from, that they never add to Burned, and that they stay on the
+phone. Not connected: what it would show and Connect (`HealthRepository.connect`
+from the tap; a refusal or Health Connect to install opens Watch and health
+apps). Connected before steps were read: Allow steps. Nothing read: says so,
+with where to share steps in the Health app. Gone wherever energy out is
+hidden, and on a device with no health store. `TrendsStepsTest`.
+
 ### Data
 `DiaryRepository.observeDays(from, to)`, `WeightRepository.observeWeighIns(since
 = today − 120 days)`, `SettingsRepository.settings`,
@@ -289,6 +308,7 @@ Surface `Week` (with `day` = the span's last day), weight on `Weight`.
 | Hunger, Notes | none (levels and counts) | always | always | always, before a weekly check too | always |
 | On-track calendar | calories (and energy out for a goal aimed at Burned) | colored against the plan | logged or not | each day once it opens | logged or not |
 | Running total | calories, energy out, weight | total, pounds, scale trend | card removed | days that have opened | card removed |
+| Steps | energy out (steps aren't energy, but they are activity) | counts, goal line | counts, goal line | counts | card removed |
 | Day sheet | calories, energy out | eaten, burned, difference, plan | logged or not | once the day opens | logged or not |
 
 ### Copy (`strings_trends.xml`)
@@ -337,7 +357,8 @@ data class CardToggle(val card: TrendsCard, val on: Boolean)   // Intake, Recap,
 Intake listed only when calories can show on the week view; Nutrients when a
 macro can; Weight when weight is not hidden; Recap, the On-track calendar and
 Hunger and notes always; Running total with Burned (`release.goalsAndEnergy`)
-where calories and energy out show, and not after numbers have been hard.
+where calories and energy out show, and not after numbers have been hard; Steps
+with `release.health`, connected or not, wherever energy out isn't hidden.
 
 | Action | Does |
 |---|---|
@@ -347,7 +368,7 @@ where calories and energy out show, and not after numbers have been hard.
 | `CloseTapped` | `Dismiss`. |
 
 Copy: `Trends settings`; `Week starts on`: Monday / Saturday / Sunday; `Show on
-Trends`: Eaten chart / On-track calendar / Recap / Nutrients / Expended / Running total / Weight / Hunger and notes. `SURFACES`: `trends-settings`.
+Trends`: Eaten chart / On-track calendar / Recap / Nutrients / Expended / Steps / Running total / Weight / Hunger and notes. `SURFACES`: `trends-settings`.
 
 ---
 
