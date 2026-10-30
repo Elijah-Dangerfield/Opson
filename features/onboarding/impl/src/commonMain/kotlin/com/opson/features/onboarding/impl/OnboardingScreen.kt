@@ -151,6 +151,8 @@ fun OnboardingScreen(
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (val step = state.step) {
                 OnboardingStep.Welcome -> WelcomeStep(state, onAction)
+                OnboardingStep.Age -> AgeStep(state, onAction)
+                OnboardingStep.TooYoung -> TooYoungStep(onAction)
                 OnboardingStep.SignIn -> SignInStep(state, onAction)
                 is OnboardingStep.Question -> QuestionStep(state, step.question, onAction)
                 OnboardingStep.Recommendation -> RecommendationStep(state, onAction)

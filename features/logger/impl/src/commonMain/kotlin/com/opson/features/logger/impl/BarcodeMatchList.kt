@@ -41,6 +41,9 @@ import opson.libraries.resources.generated.resources.barcode_scan_again
 import opson.libraries.resources.generated.resources.barcode_search_instead
 import opson.libraries.resources.generated.resources.search_off_credit
 import org.jetbrains.compose.resources.stringResource
+import com.opson.libraries.ui.components.VerifiedMark
+import opson.libraries.resources.generated.resources.food_check_verified_cd
+import opson.libraries.resources.generated.resources.adding_unverified
 
 /**
  * "Pick a match": every food the code matched, the suggested one first and outlined, each with its
@@ -125,11 +128,14 @@ private fun Marks(row: MatchRowUi) {
         }
         when {
             row.unverified -> UnverifiedMark()
-            row.verified -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Icon(icon = AppIcons.CheckCircle, size = 12.dp, color = AppTheme.colors.muted)
-                Text(text = stringResource(Res.string.barcode_match_verified), typography = mark, color = AppTheme.colors.muted, maxLines = 1)
-            }
+            row.verified -> VerifiedMark(
+                text = stringResource(Res.string.barcode_match_verified),
+                description = stringResource(Res.string.food_check_verified_cd),
+                iconSize = 12.dp,
+            )
+            row.notChecked -> Text(text = stringResource(Res.string.adding_unverified), typography = mark, color = AppTheme.colors.muted, maxLines = 1)
         }
+
         if (row.corrected) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                 Icon(icon = AppIcons.EditNote, size = 12.dp, color = AppTheme.colors.muted)

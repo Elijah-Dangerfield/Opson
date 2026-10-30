@@ -17,6 +17,7 @@ import com.opson.features.today.impl.dayclose.DayCloseAction
 import com.opson.features.today.impl.dayclose.DayCloseEvent
 import com.opson.features.today.impl.dayclose.DayCloseState
 import com.opson.features.today.impl.dayclose.DayCloseViewModel
+import com.opson.features.today.impl.kindnote.CutBackLooks
 import com.opson.features.today.impl.dayclose.FeelingChoice
 import com.opson.features.today.impl.dayclose.MealsLine
 import com.opson.features.today.impl.dayclose.RangeLine
@@ -211,6 +212,7 @@ class DayCloseTest : CoroutineTest() {
         policySource: FakePolicySource = FakePolicySource(),
         checkInOn: Boolean = false,
         settings: Settings = Settings(),
+        cutBackLooks: CutBackLooks = CutBackLooks.None,
     ) = DayCloseViewModel(
         day = day,
         diary = diary,
@@ -222,6 +224,7 @@ class DayCloseTest : CoroutineTest() {
         checkInEnabled = checkInFlag(checkInOn),
         goalsAndEnergy = goalsAndEnergyFlag(),
         burnedRepository = FakeBurnedRepository(),
+        cutBackLooks = cutBackLooks,
     )
 
     @Test
@@ -608,7 +611,8 @@ class DayCloseTest : CoroutineTest() {
     @Test
     fun whyNotCutBackAndSupportOpenTheirPages() = runUnitTest {
         val events = mutableListOf<DayCloseEvent>()
-        val vm = vm()
+        val looks = FakeCutBackLooks()
+        val vm = vm(cutBackLooks = looks)
         backgroundScope.launch { vm.eventFlow.toList(events) }
 
         vm.takeAction(DayCloseAction.WhyNotCutBackTapped)
@@ -616,5 +620,6 @@ class DayCloseTest : CoroutineTest() {
 
         assertEquals(listOf<DayCloseEvent>(DayCloseEvent.OpenWhyNotCutBack, DayCloseEvent.OpenSupport), events)
         assertEquals(0, diary.writes, "opening support is never recorded")
+        assertEquals(1, looks.recorded, "a look at Why not cut back is noted on the phone for the hard-stretch check")
     }
 }

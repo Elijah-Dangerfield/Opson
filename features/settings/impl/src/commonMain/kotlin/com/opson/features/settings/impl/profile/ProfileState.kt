@@ -1,6 +1,7 @@
 package com.opson.features.settings.impl.profile
 
 import com.opson.features.settings.ProfileRoute
+import com.opson.libraries.diary.weightPlansOff
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.WeighIn
 import com.opson.libraries.health.HealthProfile
@@ -103,8 +104,9 @@ object ProfileStateBuilder {
         today: LocalDate = PREVIEW_TODAY,
     ): ProfileState {
         val weightShown = policy.effectiveLevel(Metric.Weight, Surface.Settings) == Visibility.Show
-        // BMI and body fat are body-composition numbers: never offered after "numbers have been hard".
-        val composition = weightShown && !settings.onboarding.hard
+        // BMI and body fat are body-composition numbers: never offered after "numbers have been hard",
+        // or under 18, where adult BMI lines don't apply and weight talk is what guidance says to avoid.
+        val composition = weightShown && !settings.weightPlansOff(today)
         return ProfileState(
             loaded = true,
             back = back,

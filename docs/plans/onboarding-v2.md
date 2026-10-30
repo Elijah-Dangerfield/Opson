@@ -16,7 +16,8 @@ surplus, and meal times for No numbers or someone eating regularly.
 
 | Step | Who sees it | What it writes | Flag |
 |---|---|---|---|
-| Welcome | everyone | nothing; "Get started" opens sign-in | |
+| Welcome | everyone | nothing; "Get started" opens the birthday (a guest from an older build goes straight to sign-in) | |
+| When's your birthday? | everyone but an older build's guest, required, before any account exists (2026-10-30) | nothing yet; the birthday goes to the profile step and is saved with setup. Under 16 goes to "Opson isn't for under-16s yet", with Find support, no account and no way back; the phone keeps `AppData.ageGateOpensOn` (the sixteenth birthday) and opens on that screen until then. The steps are `AgeStep` and `TooYoungStep` (`AgeGateSteps.kt`), self-contained so a reworked flow can move them, as long as they stay before sign-in | |
 | Sign in | everyone, required (908798dd) | the account: Apple (iOS), Google, email when `SignInMethods.EMAIL` is on. An account that already exists goes to Today and keeps its mode | |
 | 1 of 3: Why are you tracking? | everyone, skippable | `onboarding.why` | |
 | 2 of 3: How do numbers sit with you? | everyone, skippable | `onboarding.feel` | |
@@ -200,6 +201,11 @@ for this audience.
   that would. With no goal, a new account starts from a typical day's burn but
   never under the app's starting range. Tests hold both (`WeightGoalTest`,
   `PlanFlowTest`).
+- **16 and over.** The age question comes before sign-in, so nobody under 16
+  ever gets an account (`AgeGate`, `docs/research/ed-safety-review.md`). 16 and
+  17 get the same gentle goal path as after "numbers have been hard": no
+  weight, no goal weight, no pace, no deficit, and celebrations without counts.
+  Nothing is sent about someone turned away: no step event, no abandoned event.
 - **A statement, not a diagnosis.** Optional, phrased as something to agree
   with. The body now says what a yes does, because "the answer is used for
   nothing else" was not true: it also keeps fasting and exercise adjustments

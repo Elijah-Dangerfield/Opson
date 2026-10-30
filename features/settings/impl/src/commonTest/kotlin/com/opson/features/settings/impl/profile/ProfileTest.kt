@@ -116,6 +116,13 @@ class ProfileTest : CoroutineTest() {
     }
 
     @Test
+    fun underEighteen_neverBmiOrBodyFat() {
+        val state = build(ProfileFixtures.filled.withBirthDate(kotlinx.datetime.LocalDate(2009, 6, 1)))
+        assertEquals(Display.Hidden, state.bmi)
+        assertNull(state.bodyFatText)
+    }
+
+    @Test
     fun afterNumbersHaveBeenHard_neverBmiOrBodyFat() {
         val state = build(ProfileFixtures.filled.copy(onboarding = OnboardingAnswers(hard = true)))
         assertEquals(ProfileWeight.Logged(Display.Shown("64.2 kg"), onText = "Oct 25"), state.weight)

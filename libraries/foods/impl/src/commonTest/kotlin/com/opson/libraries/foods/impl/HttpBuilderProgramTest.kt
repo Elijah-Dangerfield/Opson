@@ -38,6 +38,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import com.opson.libraries.foods.FoodVerification
+import com.opson.libraries.foods.VerifyField
+import com.opson.libraries.foods.VerifyProblem
+import com.opson.libraries.foods.VerifyValues
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(InternalNetworkingApi::class)
 class HttpBuilderProgramTest : CoroutineTest() {
@@ -212,10 +218,51 @@ class HttpBuilderProgramTest : CoroutineTest() {
             },
         )
 
-        val result = checks.check("c1", "food-1", "mlkit", listOf(LabelTextLine("Calories 230", 0.9)))
+        val result = checks.verify(FoodVerification("c1", "food-1", "mlkit", listOf(LabelTextLine("Calories 230", 0.9))))
 
         assertEquals(FoodCheckResult.Unconfirmed(listOf("fat_g")), result)
-        val line = Json.parseToJsonElement(seen.single()).jsonObject.getValue("lines").jsonArray.single().jsonObject
+        val body = Json.parseToJsonElement(seen.single()).jsonObject
+        val line = body.getValue("lines").jsonArray.single().jsonObject
         assertEquals("Calories 230", line.getValue("text").jsonPrimitive.content)
+        // An old app's check: no problem, no photos.
+        assertFalse("problem" in body)
+        assertFalse("photos" in body)
     }
+
+    @Test
+    fun somethingWrongGoesWithItsPhotosAndWaitsForAReviewer() = runUnitTest {
+        val seen = mutableListOf<String>()
+        val checks = HttpFoodChecks(
+            FakeNetworkClient { request ->
+                seen += (request.body as OutgoingContent.ByteArrayContent).bytes().decodeToString()
+                respond(
+                    """{"id":"c2","outcome":"unconfirmed","grounded":4,"groundable":4,"review":"open"}""",
+                    HttpStatusCode.Created,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            },
+        )
+        val problem = VerifyProblem(
+            wrong = setOf(VerifyField.Calories, VerifyField.Serving),
+            // Said both ways: wrong wins.
+            missing = setOf(VerifyField.Ingredients, VerifyField.Serving),
+            values = VerifyValues(basisLabel = "1 bar", basisGrams = 40.0, kcal = 190.0, name = "  "),
+            note = "  New recipe  ",
+        )
+
+        val result = checks.verify(FoodVerification("c2", "food-1", "vision", emptyList(), problem, front = byteArrayOf(1), label = byteArrayOf(2)))
+
+        assertEquals(FoodCheckResult.InReview, result)
+        val body = Json.parseToJsonElement(seen.single()).jsonObject
+        val sent = body.getValue("problem").jsonObject
+        assertEquals(listOf("calories", "serving"), sent.getValue("wrong").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(listOf("ingredients"), sent.getValue("missing").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals("New recipe", sent.getValue("note").jsonPrimitive.content)
+        val values = sent.getValue("values").jsonObject
+        assertEquals(190.0, values.getValue("kcal").jsonPrimitive.content.toDouble())
+        assertFalse("name" in values, "a blank name is left out")
+        val photos = body.getValue("photos").jsonObject
+        assertTrue("front" in photos && "label" in photos)
+    }
+
 }

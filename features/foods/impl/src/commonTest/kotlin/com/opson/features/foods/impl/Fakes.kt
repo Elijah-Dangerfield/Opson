@@ -219,7 +219,8 @@ class FakeFoodCatalog(private val foods: List<Food> = emptyList()) : FoodCatalog
 
     override suspend fun describe(text: String): Catching<List<ParsedItem>> = Catching.success(emptyList())
 
-    override fun observeFavorites(): Flow<List<Food>> = flowOf(emptyList())
+    /** Every food it knows, as if each had been starred: the Foods tab finds its favorites here. */
+    override fun observeFavorites(): Flow<List<Food>> = flowOf(foods)
 
     override fun observeRecent(limit: Int): Flow<List<Food>> = flowOf(emptyList())
 

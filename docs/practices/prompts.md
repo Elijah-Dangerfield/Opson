@@ -71,8 +71,14 @@ tap outside and Back count as Not now). Counts live on the phone, per account, i
 | `builder_declined` | dialog, once ever | Opson declined their application in the last 14 days and this phone hasn't shown it on the Builders page | More › Builders | `release.builders` |
 | `celebration` | screen, once per milestone | a milestone for showing up was reached in the last 7 days and not celebrated on this phone; right after wrapping up the day (`DayClosed`) or as Today opens; offered after numbers have been hard, gently | A milestone's celebration (`CelebrationRoute`) | `release.celebrations` |
 | `set_up_goal` | card, up to 3 times, 3 days apart | the account never answered the weight goal, the mode shows weight, not pregnant or breastfeeding; not after numbers have been hard | the goal flow (`GoalSetupRoute`) | `release.onboardingSetup` |
+| `kind_note` | screen (its own sheet, `KindNoteRoute`), at most every 21 days however it was answered | the log on this phone suggests a hard stretch (`HardStretch` in `:libraries:diary`: very low complete days, restrict and big-day swings, many weigh-ins a day, fast loss, or two weaker signals) and the person has not turned the notes off (`Settings.hardStretchNotes`); offered after numbers have been hard; priority `CARE`, above everything; `sensitive` | Find support, Modes ("Show fewer numbers"), or Not now; "Don't show these notes" turns it off | `release.findSupport` |
 | `review` | system (the store's rating sheet) | right after this install's happy moment: a celebration's "I can do this", today wrapped up as Good, the first thing of the day from someone who showed up on 10 of the last 14 days, or a food they sent approved. Never as Today opens, never after numbers have been hard; the review coordinator adds a quiet first week, 122 days between asks and none offline or after trouble | the store's own sheet | `release.reviewAsk` |
 | `goal_recalculated` | screen, any number of times, a day apart | the goal setting the target has a recalculation to offer (`GoalRepository.recalculation`): something its typical day is worked out from changed enough to move the target, and the person hasn't kept their target through these inputs | its own dialog over Today (`GoalRecalculationRoute`): what changed, the target now and with the update, Use the new target or Keep my current target | `release.onboardingSetup` |
+
+A **sensitive** prompt (`PromptCandidate.sensitive`) is one whose showing says something about
+the person's health. The processor counts it on the phone like any other but sends no
+`prompt.*` app event and writes no log line for it. `kind_note` is the one; anything that reacts
+to someone's eating or weight should be too.
 
 A **system** prompt (`PromptPresentation.System`) is drawn by the operating system: the host
 calls the candidate's `accept()`, which asks the store for its rating sheet, and draws nothing.

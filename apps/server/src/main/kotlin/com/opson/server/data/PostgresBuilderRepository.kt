@@ -242,8 +242,8 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
 
         /**
          * Accepted contributions, newest first: approved submissions not overturned by an audit,
-         * accepted reports, and checks that agreed with the catalog (builder-program.md, "What
-         * Builders get").
+         * accepted reports, and checks that agreed with the catalog or that a reviewer accepted,
+         * counted from the decision (builder-program.md, "What Builders get").
          */
         private val ACCEPTED_UNION = """
             SELECT reviewed_at AS accepted_at FROM food_submissions
@@ -251,7 +251,7 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
             UNION ALL
             SELECT resolved_at FROM food_reports WHERE user_id = ? AND status = 'accepted' AND resolved_at IS NOT NULL
             UNION ALL
-            SELECT created_at FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed'
+            SELECT coalesce(resolved_at, created_at) FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed'
         """.trimIndent()
 
         private val ACCEPTED_SQL = "SELECT accepted_at FROM ($ACCEPTED_UNION) a ORDER BY accepted_at DESC LIMIT ?"
@@ -260,7 +260,7 @@ class PostgresBuilderRepository(private val database: Database) : BuilderReposit
             SELECT
               (SELECT count(*) FROM food_submissions WHERE user_id = ? AND status = 'approved' AND reviewed_at > ? AND audit IS DISTINCT FROM 'failed')
             + (SELECT count(*) FROM food_reports WHERE user_id = ? AND status = 'accepted' AND resolved_at > ?)
-            + (SELECT count(*) FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed' AND created_at > ?)
+            + (SELECT count(*) FROM food_verifications WHERE user_id = ? AND outcome = 'confirmed' AND coalesce(resolved_at, created_at) > ?)
         """.trimIndent()
 
         private val REVIEWED_SQL = """

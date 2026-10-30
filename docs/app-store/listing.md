@@ -39,13 +39,28 @@ promises a feature the build hides is a rejection.
 
 ## Age rating
 
-Answer "None" to everything except:
+Opson is for people 16 and over (`legal/terms.md`, and onboarding's age question turns anyone
+younger away before an account exists; `docs/research/ed-safety-review.md` has the reasoning).
+The store rating should say the same.
+
+Apple's 2025 questionnaire (13+, 16+ and 18+ tiers; answers due before any update after
+2026-01-31). Answer "None" to everything except:
 
 | Question | Answer | Why |
 |---|---|---|
 | Medical or treatment information | Infrequent / mild | Nutrition values and a link to eating disorder support resources |
+| Health or wellness topics | Yes | Calorie tracking is Apple's own example |
 
-Expected result: 12+ (Apple may compute 9+; either is fine).
+The computed rating will likely come out lower than 16+. Raise it: in App Store Connect's age
+rating, set the app's minimum age to **16+** (Apple lets a developer pick a higher rating to
+match its terms). Owner to do this by hand, once, before the next submission.
+
+Google Play, Target audience and content: tick **16-17** and **18 and over** only. No group under
+13 is ticked, so the Families policy does not apply. The IARC questionnaire stays as it was.
+
+Texas (SB 2420, enforced for new Texas Apple Accounts since 2026-06-04) and similar laws in Utah,
+Louisiana and California (2027) put an age-range signal in the store. Opson does not read it yet;
+the follow-up is in the safety review.
 
 ## App Privacy (nutrition labels)
 

@@ -1,7 +1,7 @@
 ---
 app: Opson
 title: Terms of Service
-updated: 2026-10-29
+updated: 2026-10-30
 contact: contact@nightjarlabs.llc
 ---
 
@@ -34,9 +34,12 @@ other places to get help.
 
 ## Who can use Opson
 
-You must be at least 13 years old to use Opson. If you are under the age at
-which you can agree to terms like these where you live, a parent or guardian
-has to agree to them for you.
+You must be at least 16 years old to use Opson. Calorie tracking can make
+eating harder for people who are still growing, and Opson has no way for a
+parent, coach or clinician to supervise. The app asks for your birthday before
+you make an account and does not let anyone younger sign up. If you are under
+the age at which you can agree to terms like these where you live, a parent or
+guardian has to agree to them for you.
 
 ## Your account and your data
 

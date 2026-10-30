@@ -117,6 +117,7 @@ import opson.libraries.resources.generated.resources.today_dayclose_why_not
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import com.opson.features.today.impl.KeyNutrient
+import com.opson.features.today.impl.kindnote.CutBackLooks
 import com.opson.features.today.impl.MacroTile
 import com.opson.libraries.diary.ui.KeyNutrientCell
 import com.opson.libraries.diary.ui.KeyNutrientsPage
@@ -197,6 +198,8 @@ class DayCloseViewModel(
     private val burnedRepository: BurnedRepository,
     private val promptEvents: PromptEvents = PromptEvents.None,
     private val celebrations: CelebrationsSource = CelebrationsSource.None,
+    /** Each "Why not cut back?" is noted on the phone for the hard-stretch check. */
+    private val cutBackLooks: CutBackLooks = CutBackLooks.None,
 ) : SEAViewModel<DayCloseState, DayCloseEvent, DayCloseAction>(initialStateArg = DayCloseState()) {
 
     private var model = Model()
@@ -249,7 +252,10 @@ class DayCloseViewModel(
             is DayCloseAction.FeelingTapped -> action.rebuild { copy(feeling = action.feeling.takeIf { it != feeling }) }
             DayCloseAction.CheckInTapped -> if (state.checkIn != null) sendEvent(DayCloseEvent.OpenCheckIn(day))
             DayCloseAction.NutrientsTapped -> sendEvent(DayCloseEvent.OpenNutrients(day))
-            DayCloseAction.WhyNotCutBackTapped -> sendEvent(DayCloseEvent.OpenWhyNotCutBack)
+            DayCloseAction.WhyNotCutBackTapped -> {
+                cutBackLooks.record()
+                sendEvent(DayCloseEvent.OpenWhyNotCutBack)
+            }
             DayCloseAction.SupportTapped -> sendEvent(DayCloseEvent.OpenSupport)
             DayCloseAction.CommitmentTapped -> action.rebuild { copy(committed = true) }
             DayCloseAction.DoneTapped -> {

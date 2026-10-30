@@ -80,6 +80,7 @@ import opson.libraries.resources.generated.resources.logger_loading_cd
 import opson.libraries.resources.generated.resources.logger_meal_picker_cd
 import opson.libraries.resources.generated.resources.logger_recent
 import org.jetbrains.compose.resources.stringResource
+import opson.libraries.resources.generated.resources.builder_verify_tile
 
 /**
  * The add sheet's body (design sync 4, 13.4a and 13.4b). On [LoggerPane.Actions]: the title with
@@ -319,6 +320,7 @@ private fun AddAction.tile(): Tile {
         AddAction.CheckIn -> Tile(stringResource(Res.string.adding_action_check_in), AppIcons.Mood, note, LoggerAction.CheckInTapped)
         AddAction.Fasting -> Tile(stringResource(Res.string.adding_action_fasting), AppIcons.HourglassTop, body, LoggerAction.FastingTapped)
         AddAction.Exercise -> Tile(stringResource(Res.string.adding_action_exercise), AppIcons.FitnessCenter, body, LoggerAction.ExerciseTapped)
+        AddAction.VerifyFood -> Tile(stringResource(Res.string.builder_verify_tile), AppIcons.Builder, colors.builder, LoggerAction.VerifyFoodTapped)
     }
 }
 
