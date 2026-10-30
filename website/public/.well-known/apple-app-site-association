@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "MSMDV43SUS.com.opson.Opson"
+        ],
+        "components": [
+          {
+            "/": "/r/*",
+            "comment": "A shared recipe"
+          }
+        ],
+        "appID": "MSMDV43SUS.com.opson.Opson",
+        "paths": [
+          "/r/*"
+        ]
+      }
+    ]
+  }
+}

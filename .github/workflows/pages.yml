@@ -9,7 +9,9 @@
 #               skip, so pushes don't fail before the domain is set up.
 # Needs:        Secrets CLOUDFLARE_API_TOKEN (Pages edit) and
 #               CLOUDFLARE_ACCOUNT_ID; variables SITE_URL (https://<domain>),
-#               SITE_BASE (/) and PUBLIC_API_URL. The Pages project is
+#               SITE_BASE (/) and PUBLIC_API_URL; optionally ANDROID_CERT_SHA256,
+#               the Play app signing certificate's SHA-256 for assetlinks.json
+#               (recipe links opening the app). The Pages project is
 #               CLOUDFLARE_PAGES_PROJECT, default "opson".
 # Side effects: Updates the live site, including the waitlist form, which posts
 #               to PUBLIC_API_URL. That server must list SITE_URL in
@@ -46,6 +48,7 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL }}
       SITE_BASE: ${{ vars.SITE_BASE }}
       PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
+      ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
