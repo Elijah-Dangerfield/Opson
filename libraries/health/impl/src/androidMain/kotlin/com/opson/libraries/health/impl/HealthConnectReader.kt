@@ -15,6 +15,7 @@ import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeightRecord
 import androidx.health.connect.client.records.Record
+import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
@@ -53,7 +54,7 @@ import java.time.LocalDateTime as JavaLocalDateTime
 import java.time.Period
 
 /**
- * Health Connect. Reads total and active energy, exercise sessions, weight and height; nothing
+ * Health Connect. Reads total and active energy, steps, exercise sessions, weight and height; nothing
  * else is asked for and nothing is ever written. The permissions here and in the module's
  * manifest must match: Health Connect refuses to show a permission the manifest does not declare.
  *
@@ -176,6 +177,25 @@ class HealthConnectReader(
         }
     }
 
+    /**
+     * Health Connect's own daily total. Where two apps wrote the same walk (a phone and a watch),
+     * its aggregate keeps the app higher in the person's Data and access priority list for that
+     * time rather than adding both.
+     */
+    override suspend fun dailySteps(from: Instant, to: Instant, timeZone: TimeZone): Map<LocalDate, Int> {
+        if (!StepsRecord::class.allowedIn(granted())) return emptyMap()
+        val days = client.aggregateGroupByPeriod(
+            AggregateGroupByPeriodRequest(
+                metrics = setOf(StepsRecord.COUNT_TOTAL),
+                timeRangeFilter = TimeRangeFilter.between(from.toJavaLocal(timeZone), to.toJavaLocal(timeZone)),
+                timeRangeSlicer = Period.ofDays(1),
+            ),
+        )
+        return days.mapNotNull { slice ->
+            slice.result[StepsRecord.COUNT_TOTAL]?.let { slice.startTime.toLocalDate().toKotlinLocalDate() to it.toInt() }
+        }.toMap()
+    }
+
     override suspend fun workouts(from: Instant, to: Instant): List<HealthWorkout> {
         val granted = granted()
         if (!ExerciseSessionRecord::class.allowedIn(granted)) return emptyList()
@@ -228,6 +248,7 @@ class HealthConnectReader(
         val metrics = buildSet {
             if (TotalCaloriesBurnedRecord::class.allowedIn(granted)) add(TotalCaloriesBurnedRecord.ENERGY_TOTAL)
             if (ActiveCaloriesBurnedRecord::class.allowedIn(granted)) add(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL)
+            if (StepsRecord::class.allowedIn(granted)) add(StepsRecord.COUNT_TOTAL)
         }
         // The aggregate says who contributed without reading every record.
         if (metrics.isNotEmpty()) origins += client.aggregate(AggregateRequest(metrics = metrics, timeRangeFilter = range)).dataOrigins
@@ -309,6 +330,7 @@ class HealthConnectReader(
             HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
             HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
             HealthPermission.getReadPermission(BasalMetabolicRateRecord::class),
+            HealthPermission.getReadPermission(StepsRecord::class),
             HealthPermission.getReadPermission(ExerciseSessionRecord::class),
             HealthPermission.getReadPermission(WeightRecord::class),
             HealthPermission.getReadPermission(HeightRecord::class),
