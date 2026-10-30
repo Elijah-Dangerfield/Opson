@@ -1,6 +1,7 @@
 package com.opson.libraries.diary
 
 import com.opson.libraries.nutrition.ActivityFrom
+import com.opson.libraries.nutrition.BaselineChange
 import com.opson.libraries.nutrition.BaselineInputs
 import com.opson.libraries.nutrition.BodySex
 import com.opson.libraries.nutrition.BodyStage
@@ -11,6 +12,7 @@ import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.GoalBaseline
 import com.opson.libraries.nutrition.GoalDirection
 import com.opson.libraries.nutrition.GoalKind
+import com.opson.libraries.nutrition.GoalRecalculated
 import com.opson.libraries.nutrition.GoalStatus
 import com.opson.libraries.nutrition.GoalType
 import com.opson.libraries.nutrition.RestingFrom
@@ -93,6 +95,9 @@ private class GoalWire(
     val count: Int? = null,
     val baseline: BaselineWire? = null,
     val declined: InputsWire? = null,
+    // Answered recalculations, for the goal screen. An older build drops them when it rewrites the
+    // goal, which costs only the record.
+    val history: List<HistoryWire>? = null,
 ) {
     fun toGoal(): Goal? {
         val type = when (GoalKind.fromKey(kind)) {
@@ -119,6 +124,7 @@ private class GoalWire(
             baseline = baseline?.toBaseline(),
             declined = declined?.toInputs(),
             targetsKcal = targetsKcal,
+            history = history.orEmpty().mapNotNull { it.toEntry() }.takeLast(Goal.MAX_HISTORY),
         )
     }
 
@@ -148,6 +154,7 @@ private class GoalWire(
                 count = (type as? GoalType.Steps)?.count ?: (type as? GoalType.Meals)?.count,
                 baseline = goal.baseline?.let(BaselineWire::of),
                 declined = goal.declined?.let(InputsWire::of),
+                history = goal.history.takeIf { it.isNotEmpty() }?.map(HistoryWire::of),
             )
         }
     }
@@ -218,6 +225,34 @@ private class InputsWire(
             sex = inputs.sex?.name?.lowercase(),
             stage = inputs.stage.key,
             bodyFatPercent = inputs.bodyFatPercent,
+        )
+    }
+}
+
+@Serializable
+private class HistoryWire(
+    val date: LocalDate,
+    val changes: List<String> = emptyList(),
+    val oldAimKcal: Int? = null,
+    val newAimKcal: Int,
+    val accepted: Boolean,
+) {
+    /** A change this build doesn't know is left out of the entry, not the entry out of the list. */
+    fun toEntry() = GoalRecalculated(
+        date = date,
+        changes = changes.mapNotNull { key -> BaselineChange.entries.firstOrNull { it.name == key } }.toSet(),
+        oldAimKcal = oldAimKcal,
+        newAimKcal = newAimKcal,
+        accepted = accepted,
+    )
+
+    companion object {
+        fun of(entry: GoalRecalculated) = HistoryWire(
+            date = entry.date,
+            changes = entry.changes.map { it.name },
+            oldAimKcal = entry.oldAimKcal,
+            newAimKcal = entry.newAimKcal,
+            accepted = entry.accepted,
         )
     }
 }

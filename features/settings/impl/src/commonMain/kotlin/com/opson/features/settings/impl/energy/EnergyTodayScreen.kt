@@ -69,7 +69,7 @@ import opson.libraries.resources.generated.resources.settings_energy_movement
 import opson.libraries.resources.generated.resources.settings_energy_everyday_always
 import opson.libraries.resources.generated.resources.today_burned_everyday
 import opson.libraries.resources.generated.resources.today_burned_exercise
-import opson.libraries.resources.generated.resources.energy_digesting
+import opson.libraries.resources.generated.resources.energy_tef_short
 import opson.libraries.resources.generated.resources.energy_digesting_line
 import opson.libraries.resources.generated.resources.settings_energy_no_activity
 import opson.libraries.resources.generated.resources.settings_energy_not_counted
@@ -216,7 +216,7 @@ private fun BurnedCardView(burned: BurnedSection, onAction: (EnergyTodayAction) 
         }
         NutrientVisible(burned.food) {
             HorizontalDivider(color = AppTheme.colors.line)
-            BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.energy_digesting), stringResource(Res.string.energy_digesting_line), burned.food)
+            BurnedRow(AppTheme.colors.activeEnergy, stringResource(Res.string.energy_tef_short), stringResource(Res.string.energy_digesting_line), burned.food)
         }
     }
 }

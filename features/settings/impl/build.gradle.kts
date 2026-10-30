@@ -29,6 +29,8 @@ kotlin {
             implementation(projects.libraries.health)
             // Goals: the goal setting the target, its recalculations and pace (Targets).
             implementation(projects.libraries.goals)
+            // The projection chart, its reveal and the pieces a goal is set with (the goal screens).
+            implementation(projects.libraries.goals.ui)
             // The first-run tips registry (Tips), for the weight goal row's tip.
             implementation(projects.libraries.prompts)
             // The Widgets page and its More row, and the widget's leak surface.
@@ -68,6 +70,8 @@ kotlin {
             implementation(projects.libraries.config)
             implementation(projects.libraries.health)
             implementation(projects.libraries.goals)
+            // ProjectionChartUi, which the goal screens' states carry.
+            implementation(projects.libraries.goals.ui)
             // PromptCandidate, for the goal recalculation prompt.
             implementation(projects.libraries.prompts)
             implementation(projects.libraries.widgets)

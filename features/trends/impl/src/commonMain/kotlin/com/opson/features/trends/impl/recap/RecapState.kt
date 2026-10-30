@@ -68,6 +68,8 @@ data class RecapInputs(
     val weighIns: List<WeighIn>,
     val timeZone: TimeZone,
     val burnedByDay: Map<LocalDate, Burned>? = null,
+    /** Each day's steps from the health app while a steps goal is active (`release.health`); null otherwise. */
+    val stepsByDay: Map<LocalDate, Int>? = null,
     val checkInOn: Boolean = false,
     val marks: List<DayMark> = emptyList(),
     val celebrations: CelebrationStyle = CelebrationStyle.Off,
@@ -466,7 +468,9 @@ object RecapStateBuilder {
         val active = GoalBook.goals(settings).filter { it.isActive && it.type.kind in offered }
         if (active.isEmpty()) return emptyList()
         // Every day the log holds, so a weekly average replays its week and a goal streak its run.
-        val facts = inputs.days.filter { it.date <= end }.associate { day -> day.date to GoalStatuses.facts(day, inputs.burnedByDay?.get(day.date)) }
+        val facts = inputs.days.filter { it.date <= end }.associate { day ->
+            day.date to GoalStatuses.facts(day, inputs.burnedByDay?.get(day.date), inputs.stepsByDay?.get(day.date))
+        }
         val weightKg = inputs.weighIns.lastOrNull { it.measuredAt.toLocalDateTime(inputs.timeZone).date <= end }?.kg
         val wrapped = period.days
             .filter { it < inputs.today || (it == inputs.today && dayAt(it).closedByUser) }

@@ -6,6 +6,7 @@ import com.opson.features.settings.impl.FakePolicySource
 import com.opson.features.settings.impl.FakeSettingsRepository
 import com.opson.features.settings.impl.SettingsFixtures
 import com.opson.features.settings.impl.eventsOf
+import com.opson.features.settings.impl.integrations.FakeCalendar
 import com.opson.features.settings.impl.weightGoalsFlag
 import com.opson.libraries.diary.GoalBook
 import com.opson.libraries.flowroutines.testing.CoroutineTest
@@ -38,6 +39,11 @@ class GoalRecalculationTest : CoroutineTest() {
         vm.takeAction(GoalRecalculationAction.Accepted)
         runCurrent()
         assertEquals(2150, repository.state.value.targets.energyKcal)
+        // The goal screen lists it: that day, from what to what, and that it was taken.
+        val entry = GoalBook.driving(repository.state.value)?.history?.single()
+        assertEquals(GoalFixtures.today, entry?.date)
+        assertEquals(1930 to 2150, entry?.oldAimKcal to entry?.newAimKcal)
+        assertEquals(true, entry?.accepted)
         assertEquals(listOf<GoalRecalculationEvent>(GoalRecalculationEvent.Close), events)
     }
 
@@ -78,5 +84,5 @@ class GoalRecalculationTest : CoroutineTest() {
     }
 
     private fun viewModel(repository: FakeSettingsRepository, goals: FakeGoalRepository) =
-        GoalRecalculationViewModel(repository, goals, FakePolicySource(SettingsFixtures.policy(PresetId.Full)))
+        GoalRecalculationViewModel(repository, goals, FakePolicySource(SettingsFixtures.policy(PresetId.Full)), FakeCalendar(GoalFixtures.today))
 }

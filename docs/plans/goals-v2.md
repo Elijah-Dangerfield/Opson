@@ -288,8 +288,42 @@ Built on 2026-10-30 (docs/decisions.md, "With a goal, the app is organized aroun
 - **Trends**: the calendar and its day sheet judge days from the goal's start by `GoalRepository.days`;
   the running total's "Since you started" counts from the goal's start.
 
+## The goal UI
+
+Built on 2026-10-30 from the owner's feedback on the goal and target screens. Everything is behind
+`release.onboardingSetup`, as goals already were.
+
+- **`:libraries:goals:ui`**, the pieces more than one feature draws, so onboarding's goal question
+  can build from the same ones: `ProjectionChart` (the band between eating at the low and high end,
+  the target's line through it, the goal weight dashed), `GoalReveal` (the line draws in, then the
+  forecast fades up and the success haptic plays; at rest under reduce motion and in previews, the
+  haptic still plays under reduce motion), `ProjectionForecastLines`, `GoalKindChoices`,
+  `AveragingChoice` (Daily or Weekly average, the caps said gently), `BandChoice`, `TypedStepper`
+  and `InlineNumberField`. `ProjectionCharts.ui` lays a `WeightProjection` out and words it through
+  the policy; it returns null where weight isn't on show, so there is no chart then rather than a
+  chart with no numbers (a line of weight is weight).
+- **`TargetProjections`** (`:libraries:goals`): where a target with no goal weight leads, twelve
+  weeks against a typical day, with the same 7,700 kcal rule and digesting food. Used for an energy
+  balance goal and for the person's own range, one number, deficit or surplus on Targets.
+- **Set a goal** (`GoalEditRoute`, `features/settings` `goals/`): every type, the type's own answers
+  typed or stepped, Daily or Weekly average and the band where a calorie target follows, the target
+  it comes to, and where it leads. Weight needs a weigh-in and the details resting energy needs; the
+  editor links to the goal flow (`GoalSetupRoute`) for them. A new calorie goal pauses the other one
+  and says so. Saving plays the reveal.
+- **Goals** (`GoalsRoute`): each goal with this week from `GoalRepository.days`, a weekly average's
+  number for today, the typical day behind its target (with the TDEE sheet), its projection, and
+  `Goal.history`: every recalculation the person answered (`GoalBook.accept` and `keep` record it
+  when given the day). Pause and pick up again. Opened from Targets' goal card and Today's chip.
+- **Targets**: range ends, a set deficit or surplus and a day group's number are typed in place
+  (`Targets.withEnd`, `withDeficit`, `withSurplus`, `withGroupNumber`, the same limits as a step;
+  Done on a number that can't be used says why). The macro split shows grams at each end of a range
+  (or one number's leeway). The goal card draws its projection.
+- **Digesting food (TEF)**: named for what it is, with its own (i) sheet (`EnergyTopic.Digesting`)
+  and its switch; the Total burned (TDEE) sheet lists only the parts this person's Burned has and
+  carries the same switch.
+
 ## Not in this package
 
-The goal UI (charts, animations, typed inputs, macro split ranges, the Daily or Weekly average
-choice and the band picker), onboarding's "Do you want to set a goal?" and its goal streak question,
-and the recap. The API is built for them, and `GoalFixtures` has every state.
+Onboarding's "Do you want to set a goal?" and its goal streak question (built from the pieces
+above), and the recap. The steps data source is built: `StepsRepository` feeds a steps goal's days
+through `GoalRepository`.

@@ -361,6 +361,9 @@ data class TargetsState(
 | `FindSupportTapped` | `OpenFindSupport`, with `release.findSupport` only. |
 | `MacroCardTapped` | Opens or closes the Ratios / Grams editor in the card. |
 | `MacroModePicked(mode)` | `settings.macroMode`. |
+| `FieldTyped(field, text)` | A range end, a set deficit or surplus, or a day group's number typed in its well (owner feedback, 2026-10-30). The draft stays on screen and writes once it is a value a step could reach (`Targets.withEnd` and the rest). |
+| `FieldDone(field)` | Done on a typed amount that couldn't be used toasts why (the floor, the ceiling, the gap, the cap) and goes back to the saved number. |
+| `SeeGoalTapped` | The goal card while it sets the target: `OpenGoals` (docs/plans/goals-v2.md, "The goal UI"). |
 | `ModesTapped`, `BackTapped` | `OpenModes`, `Close`. |
 
 **The note under a low goal (2026-10-29).** `GoalSafety`
@@ -404,7 +407,12 @@ the goal (`fitMacrosTo`, the goal drives), or make their total the goal
 the floor). Where calories are hidden (Macros with grams) the editor is grams
 alone: no percents, presets or comparison, since each would be the calorie
 goal in disguise. Where no macro shows as an amount (Macros only) there is
-nothing to edit.
+nothing to edit. Under a range (a goal's band is one) or one number with its
+leeway, each macro also shows its grams at the two ends of the calories ("109 g
+to 131 g"), the same split scaled; a deficit, surplus or by day has no fixed
+ends, so it doesn't. With a weigh-in and a typical day, and weight, calories
+and energy out on show, the person's own range, one number, deficit or surplus
+draws where it leads (`TargetProjections`, twelve weeks).
 
 Visibility (surface `Settings`): every amount appears only when calories are
 configured `Show`; otherwise the page is the `Targets are hidden in this mode`
@@ -527,8 +535,8 @@ reads back what the calculation is given ("Male, 28, 5 ft 11 in, 170.0 lb",
 is easy to spot.
 
 **The energy words and their (i) sheets.** One set of terms everywhere:
-Resting energy (BMR), Everyday activity, Exercise, Digesting food, and Total
-burned (TDEE) for their sum; compact places (Today's card, back labels) drop
+Resting energy (BMR), Everyday activity, Exercise, Digesting food (TEF, the
+thermic effect of food), and Total burned (TDEE) for their sum; compact places (Today's card, back labels) drop
 the abbreviation. An (i) on Resting energy's intro, Energy today's and
 Targets' Burned, a set deficit or surplus, and Today's Activity card total
 opens `EnergyExplainerRoute(topic)`, a sheet in plain words: what the term is,
@@ -537,7 +545,14 @@ deficit, and the person's own working (Mifflin-St Jeor term by term, today's
 parts of Burned, today's goal from Burned) wherever their mode shows those
 numbers. The working needs energy out and, for resting energy, weight on show;
 the 3,500 rule needs calories; digesting food is only a part where it counts.
-Leak surfaces `energy-explainer-resting`, `-burned` and `-balance`.
+The Total burned sheet lists only the parts this person's Burned has (the
+health app's activity or the everyday estimate, exercise while activity counts,
+digesting food once it is on) and carries the "Count digesting food (TEF)"
+switch where calories show; digesting food has its own sheet
+(`EnergyTopic.Digesting`), from Resting energy's switch and the Burned sheet:
+what TEF is, about 10% of what is eaten, why it is off unless turned on, and
+what it does to Burned. Leak surfaces `energy-explainer-resting`, `-burned`,
+`-balance` and `-digesting`.
 
 **Energy today (13.2c)**, `EnergyTodayRoute()`, for Today's summary card to
 link to. Eaten with its ± and "Likely 1,145 to 1,345. 5 of 7 foods are

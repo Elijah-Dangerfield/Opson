@@ -75,11 +75,11 @@ class RealGoalRepository(
         }.distinctUntilChanged()
 
     override suspend fun accept(recalculation: Recalculation) {
-        settingsRepository.update { GoalBook.accept(it, recalculation) }
+        settingsRepository.update { GoalBook.accept(it, recalculation, calendar.today()) }
     }
 
     override suspend fun keep(recalculation: Recalculation) {
-        settingsRepository.update { GoalBook.keep(it, recalculation) }
+        settingsRepository.update { GoalBook.keep(it, recalculation, calendar.today()) }
     }
 
     override fun today(): Flow<List<GoalToday>> {

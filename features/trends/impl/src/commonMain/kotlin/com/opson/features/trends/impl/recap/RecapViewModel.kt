@@ -19,15 +19,22 @@ import com.opson.libraries.diary.WeightRepository
 import com.opson.libraries.flowroutines.SEAViewModel
 import com.opson.libraries.flowroutines.collectIn
 import com.opson.libraries.health.BurnedRepository
+import com.opson.libraries.goals.GoalStatuses
+import com.opson.libraries.goals.GoalStreaks
 import com.opson.libraries.health.GoalsAndEnergyEnabled
+import com.opson.libraries.health.HealthReleaseFlag
+import com.opson.libraries.health.StepsRepository
 import com.opson.libraries.nutrition.Burned
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.VisibilityPolicySource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
@@ -56,7 +63,9 @@ class RecapViewModel(
     checkInEnabled: CheckInEnabled,
     private val marks: DayMarks,
     private val banner: RecapBannerStore,
+    healthFlag: HealthReleaseFlag,
     celebrations: CelebrationsRelease = CelebrationsRelease.Off,
+    private val steps: StepsRepository = StepsRepository.None,
 ) : SEAViewModel<RecapState, RecapEvent, RecapAction>(initialStateArg = RecapState()) {
 
     private val period = MutableStateFlow(
@@ -68,6 +77,7 @@ class RecapViewModel(
         val goalsOn = goalsAndEnergy()
         val checkInOn = checkInEnabled()
         val celebrationsOn = celebrations.isOn()
+        val healthOn = healthFlag()
         val records = period.flatMapLatest { shown ->
             val today = calendar.today()
             val end = minOf(shown.end, today)
@@ -77,7 +87,8 @@ class RecapViewModel(
                 weights.observeWeighIns(since = since),
                 if (goalsOn && shown.start <= end) burnedRepository.burnedBetween(shown.start, end) else flowOf(null),
                 if (celebrationsOn) marks.observe() else flowOf(emptyList()),
-            ) { days, weighIns, burned, dayMarks -> Records(shown, today, days, weighIns, burned, dayMarks) }
+                if (healthOn && shown.start <= end) stepsFor(shown.start, end) else flowOf(null),
+            ) { days, weighIns, burned, dayMarks, stepsByDay -> Records(shown, today, days, weighIns, burned, dayMarks, stepsByDay) }
         }
         combine(records, settingsRepository.settings, policySource.policy) { records, settings, policy ->
             RecapAction.InputsArrived(
@@ -89,6 +100,7 @@ class RecapViewModel(
                     weighIns = records.weighIns,
                     timeZone = calendar.timeZone(),
                     burnedByDay = records.burned,
+                    stepsByDay = records.steps,
                     checkInOn = checkInOn,
                     marks = records.marks,
                     celebrations = if (celebrationsOn) settings.celebrationStyle else CelebrationStyle.Off,
@@ -98,6 +110,15 @@ class RecapViewModel(
         }.collectIn(viewModelScope) { takeAction(it) }
         viewModelScope.launch { period.collect { banner.seen(it) } }
     }
+
+    /**
+     * Each day's steps for a steps goal's week. Back as far as a goal streak reads, since a wrap-up
+     * carries its run; none, and the store untouched, without an active steps goal.
+     */
+    private fun stepsFor(from: LocalDate, to: LocalDate): Flow<Map<LocalDate, Int>?> =
+        settingsRepository.settings.map { GoalStatuses.stepsGoal(it) != null }.distinctUntilChanged().flatMapLatest { wanted ->
+            if (wanted) steps.stepsBetween(from.minus(GoalStreaks.WINDOW_DAYS, DateTimeUnit.DAY), to, calendar.timeZone()) else flowOf(null)
+        }
 
     override suspend fun handleAction(action: RecapAction) {
         when (action) {
@@ -119,6 +140,7 @@ class RecapViewModel(
         val weighIns: List<WeighIn>,
         val burned: Map<LocalDate, Burned>?,
         val marks: List<DayMark>,
+        val steps: Map<LocalDate, Int>?,
     )
 
     internal companion object {

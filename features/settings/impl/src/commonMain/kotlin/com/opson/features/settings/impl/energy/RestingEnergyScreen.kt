@@ -78,7 +78,7 @@ import opson.libraries.resources.generated.resources.settings_resting_profile_un
 import opson.libraries.resources.generated.resources.settings_resting_sex_female
 import opson.libraries.resources.generated.resources.settings_resting_sex_male
 import opson.libraries.resources.generated.resources.settings_resting_steps_workouts
-import opson.libraries.resources.generated.resources.settings_resting_thermic
+import opson.libraries.resources.generated.resources.energy_tef_switch
 import opson.libraries.resources.generated.resources.settings_resting_thermic_line
 import opson.libraries.resources.generated.resources.settings_resting_title
 import opson.libraries.resources.generated.resources.settings_loading_cd
@@ -139,15 +139,19 @@ fun RestingEnergyScreen(
                 },
             )
             // Not activity, so it sits beside the switch rather than under it: turning activity off leaves it on.
+            // Named for what it is (owner feedback, 2026-10-30), with an (i) that explains it.
             SettingsRow(
-                title = stringResource(Res.string.settings_resting_thermic),
+                title = stringResource(Res.string.energy_tef_switch),
                 icon = null,
                 subtitle = stringResource(Res.string.settings_resting_thermic_line),
                 trailing = {
-                    AppSwitch(
-                        checked = state.thermicEffectInBurned,
-                        onCheckedChange = { onAction(RestingEnergyAction.ThermicEffectToggled(it)) },
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        EnergyInfoButton(onClick = { onAction(RestingEnergyAction.DigestingInfoTapped) })
+                        AppSwitch(
+                            checked = state.thermicEffectInBurned,
+                            onCheckedChange = { onAction(RestingEnergyAction.ThermicEffectToggled(it)) },
+                        )
+                    }
                 },
             )
         }

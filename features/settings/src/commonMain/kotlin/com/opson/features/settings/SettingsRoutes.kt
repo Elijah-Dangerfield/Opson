@@ -33,6 +33,22 @@ class TargetsRoute : Route()
 class GoalRecalculationRoute : Route()
 
 /**
+ * Your goals (docs/plans/goals-v2.md, "The goal UI"): each goal with this week, where it leads,
+ * and what changed its target. From Targets' goal card, and Today's goal card. [goalId] scrolls
+ * nothing; it puts that goal first. Behind `release.onboardingSetup`, as goals are.
+ */
+@Serializable
+data class GoalsRoute(val goalId: String? = null) : Route()
+
+/**
+ * Set a goal, or change one. [goalId] is the goal being changed, null for a new one; [kind] is a
+ * goal type's wire key (`GoalKind.key`) to start a new goal on, null to pick one first. Saving a
+ * goal that has a projection plays its reveal before it closes.
+ */
+@Serializable
+data class GoalEditRoute(val goalId: String? = null, val kind: String? = null) : Route()
+
+/**
  * Where Burned's resting energy comes from (design sync 4, 13.2d): calculated, the health app or
  * a number of the person's own, and whether activity counts. `release.goalsAndEnergy`.
  * [fromEnergyToday] picks the back label: Energy today opens it with `true`, Targets with `false`.
@@ -52,6 +68,7 @@ class EnergyExplainerRoute(val topic: String = TOPIC_RESTING) : Route() {
         const val TOPIC_RESTING = "resting"
         const val TOPIC_BURNED = "burned"
         const val TOPIC_BALANCE = "balance"
+        const val TOPIC_DIGESTING = "digesting"
     }
 }
 

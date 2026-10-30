@@ -132,6 +132,55 @@ class EnergyExplainerTest : CoroutineTest() {
     }
 
     @Test
+    fun burned_describesOnlyThePartsInUse() {
+        val estimated = build(EnergyTopic.Burned)
+        assertNull(estimated.parts.health, "no app: the everyday estimate")
+        assertFalse(estimated.digestingOn)
+        assertTrue(estimated.digesting, "where calories show, the switch is offered")
+
+        val withApp = build(
+            EnergyTopic.Burned,
+            settings = settings.copy(thermicEffectInBurned = true, activityInBurned = false),
+            burned = burned.copy(everydayKcal = null, movementKcal = 400, workoutKcal = 100),
+        )
+        assertEquals(HealthSource.AppleHealth, withApp.parts.health)
+        assertFalse(withApp.parts.activityCounted)
+        assertTrue(withApp.digestingOn)
+
+        assertFalse(build(EnergyTopic.Burned, numbers = NumbersSettings(PresetId.MacrosWithGrams)).digesting, "no calories, no digesting food")
+    }
+
+    @Test
+    fun digesting_saysTodaysAmount_onlyWhereItCountsAndCaloriesShow() {
+        val on = build(EnergyTopic.Digesting, settings = settings.copy(thermicEffectInBurned = true))
+        assertEquals(Display.Shown("150 kcal"), on.digestingToday)
+        assertTrue(on.ruleNumbers)
+        assertEquals(Display.Hidden, build(EnergyTopic.Digesting).digestingToday)
+        val hidden = build(EnergyTopic.Digesting, settings = settings.copy(thermicEffectInBurned = true), numbers = NumbersSettings(PresetId.NoNumbers))
+        assertEquals(Display.Hidden, hidden.digestingToday)
+        assertFalse(hidden.ruleNumbers)
+        assertFalse(hidden.digesting)
+    }
+
+    @Test
+    fun theSwitch_onTheSheet_writesTheSetting_andTheLinkOpensDigestingFood() = runUnitTest {
+        val repository = FakeSettingsRepository(settings)
+        val vm = EnergyExplainerViewModel(
+            EnergyTopic.Burned,
+            repository,
+            FakeBurnedRepository(burned = burned, choices = choices),
+            FakePolicySource(SettingsFixtures.policy(PresetId.Full)),
+            FakeCalendar(SettingsFixtures.today),
+        )
+        val events = eventsOf(vm)
+        vm.takeAction(EnergyExplainerAction.DigestingToggled(on = true))
+        assertTrue(repository.state.value.thermicEffectInBurned)
+        vm.takeAction(EnergyExplainerAction.DigestingInfoTapped)
+        assertEquals(listOf<EnergyExplainerEvent>(EnergyExplainerEvent.OpenTopic(EnergyTopic.Digesting)), events)
+        assertEquals(EnergyTopic.Digesting, EnergyTopic.fromWire(EnergyExplainerRoute.TOPIC_DIGESTING))
+    }
+
+    @Test
     fun anUnknownTopic_opensRestingEnergy() {
         assertEquals(EnergyTopic.Burned, EnergyTopic.fromWire(EnergyExplainerRoute.TOPIC_BURNED))
         assertEquals(EnergyTopic.Resting, EnergyTopic.fromWire("something else"))
