@@ -114,6 +114,7 @@ class SurfacesCoverageTest {
                 "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
                 "today-calendar", "today-select-v4", "today-drag-move", "today-moved", "food-actions", "food-actions-amount",
                 "today-notes",
+                "today-kind-note",
                 "today-closed", "day-closed-sheet", "day-close-closed", "food-actions-closed",
                 "day-close-recap-deficit", "day-close-recap-surplus", "check-in",
                 "today-flipped", "today-flipped-percent", "today-flipped-stats", "today-sticky-flipped",

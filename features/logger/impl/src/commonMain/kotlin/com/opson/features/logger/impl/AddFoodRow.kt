@@ -45,11 +45,13 @@ import opson.libraries.resources.generated.resources.search_badge_nevo
 import opson.libraries.resources.generated.resources.search_badge_off
 import opson.libraries.resources.generated.resources.search_badge_opson
 import opson.libraries.resources.generated.resources.search_badge_usda
-import opson.libraries.resources.generated.resources.search_badge_verified_cd
 import opson.libraries.resources.generated.resources.search_badge_yours
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import com.opson.libraries.ui.components.VerifiedMark
+import opson.libraries.resources.generated.resources.food_check_verified
+import opson.libraries.resources.generated.resources.food_check_verified_cd
 
 /**
  * A food with a + (design sync 4, 13.4b and 13.4c): its name, "Your usual · 1 cup · 4P 45C 0F"
@@ -166,11 +168,16 @@ private fun AddRow(
         }
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             NutrientText(metric = Metric.Calories, display = calories, typography = AppTheme.type.numeric, color = AppTheme.colors.ink, maxLines = 1)
-            // Waiting for review says so in place of the source: it is what the person needs to know about these numbers.
-            if (unverified) {
-                UnverifiedMark()
-            } else {
-                badge?.let { SourceMark(it, verified, badgeAccent) }
+            // Waiting for review says so in place of the source, and so does Verified: it is what the person
+            // needs to know about these numbers. The source is on the food's detail.
+            when {
+                unverified -> UnverifiedMark()
+                verified -> VerifiedMark(
+                    text = stringResource(Res.string.food_check_verified),
+                    description = stringResource(Res.string.food_check_verified_cd),
+                    iconSize = 12.dp,
+                )
+                else -> badge?.let { SourceMark(it, badgeAccent) }
             }
         }
         val description = stringResource(if (added) Res.string.adding_added_cd else Res.string.adding_add_cd, name)
@@ -184,15 +191,13 @@ private fun AddRow(
     }
 }
 
-/** The source's short name, with a check when someone accountable stands behind the numbers. */
+/** The source's short name. */
 @Composable
-private fun SourceMark(badge: String, verified: Boolean, accent: Boolean) {
+private fun SourceMark(badge: String, accent: Boolean) {
     val color = if (accent) AppTheme.colors.accent else AppTheme.colors.muted
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        if (verified) Icon(icon = AppIcons.CheckCircle.described(stringResource(Res.string.search_badge_verified_cd)), size = 12.dp, color = color)
-        Text(text = badge, typography = AppTheme.type.captionStrong, color = color, maxLines = 1)
-    }
+    Text(text = badge, typography = AppTheme.type.captionStrong, color = color, maxLines = 1)
 }
+
 
 /** "Unverified": a food this person added to Opson's food database that nobody has checked yet. */
 @Composable

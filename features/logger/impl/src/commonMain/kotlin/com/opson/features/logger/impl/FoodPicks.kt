@@ -23,6 +23,7 @@ import com.opson.libraries.nutrition.Metric
 import com.opson.libraries.nutrition.Surface
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.macroLine
+import com.opson.libraries.foods.FoodCheck
 
 /**
  * A food a + logs as it stands: [draft] is the amount it goes in at, the person's last one when
@@ -63,7 +64,7 @@ data class FoodRowUi(
     val added: Boolean,
     /** Where the food came from; null with the search options off, or for a source with no badge. */
     val badge: SourceBadge? = null,
-    /** Tiers 1 to 3, or a food someone added once a reviewer approved it. Never set for the person's own foods. */
+    /** Verified: a person checked this catalog food against its package. Never set for the person's own foods. */
     val verified: Boolean = false,
     /**
      * Added to Opson's food database by this person and not checked yet: their own copy while its
@@ -186,7 +187,7 @@ internal object FoodPicks {
                 ref is FoodRef.Custom -> SourceBadge.YourFood
                 else -> catalogFood?.let { SourceBadge.of(it.source) }
             },
-            verified = catalogFood?.verified == true,
+            verified = (food ?: catalogFood)?.check == FoodCheck.Verified,
             unverified = when (ref) {
                 is FoodRef.Custom -> reviews[ref.id] == ReviewStatus.Pending
                 is FoodRef.Catalog -> (food ?: catalogFood)?.unverified == true

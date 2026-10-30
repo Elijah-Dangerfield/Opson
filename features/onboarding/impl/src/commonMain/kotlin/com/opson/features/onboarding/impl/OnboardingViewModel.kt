@@ -11,6 +11,8 @@ import com.opson.libraries.core.isiOS
 import com.opson.libraries.core.logOnFailure
 import com.opson.libraries.core.logging.KLog
 import com.opson.libraries.core.logging.logEvent
+import com.opson.libraries.diary.AgeBand
+import com.opson.libraries.diary.AgeGate
 import com.opson.libraries.diary.LocalCalendar
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.MealTimes
@@ -58,18 +60,24 @@ import me.tatarka.inject.annotations.Inject
  * optional statement, a starting mode and the setup steps that mode needs.
  *
  *   1. **Welcome**: "Get started" opens the sign-in step.
- *   2. **Sign in** ([OnboardingStep.SignIn]): Apple (iOS), Google, and email
+ *   2. **Age** ([OnboardingStep.Age]): a birthday, before any account exists ([AgeGate]).
+ *      Under 16 goes to [OnboardingStep.TooYoung], which makes no account and has no way
+ *      back, and this phone keeps the gate closed until their sixteenth birthday
+ *      (`AppData.ageGateOpensOn`). 16 and 17 go on with the goal flow's gentle path: no
+ *      weights, weight goals or deficits, and celebrations without counts. The birthday
+ *      fills the profile step's. A guest from an older build skips it.
+ *   3. **Sign in** ([OnboardingStep.SignIn]): Apple (iOS), Google, and email
  *      when it is on ([SignInMethods.EMAIL]). There is no way past it without
  *      an account. A new account goes on to the questions; one that already
  *      exists is set up already, so it goes to Today and keeps its mode.
- *   3. **Questions 1 and 2 and the statement**: each answer recomputes the
+ *   4. **Questions 1 and 2 and the statement**: each answer recomputes the
  *      recommendation ([ModeRecommender]). Every step can be skipped and
  *      nothing asks again later.
- *   4. **Recommendation**: the mode, the answer that picked it, what you'll see
+ *   5. **Recommendation**: the mode, the answer that picked it, what you'll see
  *      and what stays out of view ([ModePreview]), the other modes and All
  *      modes. All numbers is never offered to someone who agreed numbers have
  *      been hard.
- *   5. **Setup** (`release.onboardingSetup`, [OnboardingState.setupSteps]): meal
+ *   6. **Setup** (`release.onboardingSetup`, [OnboardingState.setupSteps]): meal
  *      times where Today is built around them, then the goal flow ([PlanFlow]):
  *      the profile, a usual day's activity, a weight goal and its pace where the
  *      mode shows weight and numbers have not been hard, an overview of what
@@ -165,6 +173,9 @@ class OnboardingViewModel(
         when (action) {
             OnboardingAction.ResolveEntry -> action.handleResolveEntry()
             OnboardingAction.GetStartedTapped -> action.handleGetStarted()
+            is OnboardingAction.AgeAnswered -> action.updateState {
+                if (it.step == OnboardingStep.Age && AgeGate.ageOn(action.birthDate, it.today) != null) it.copy(ageAnswer = action.birthDate) else it
+            }
             OnboardingAction.TalkToSomeoneTapped -> sendEvent(OnboardingEvent.NavigateToSupport)
             is OnboardingAction.OptionTapped -> action.handleOptionTapped(action.option)
             OnboardingAction.ContinueTapped -> action.advance()
@@ -220,6 +231,7 @@ class OnboardingViewModel(
     }
 
     private suspend fun OnboardingAction.openWelcomeOrSignIn() {
+        if (isAgeGateClosed()) return updateState { it.copy(step = OnboardingStep.TooYoung) }
         if (route.signInFirst) openSignIn(guest = state.guest, signInOnly = false) else logStepViewed(OnboardingStep.Welcome)
     }
 
@@ -228,9 +240,35 @@ class OnboardingViewModel(
         logStepViewed(OnboardingStep.SignIn)
     }
 
-    /** "Get started": the sign-in step. */
+    /** "Get started": the birthday, or straight to sign-in for a guest from an older build. */
     private suspend fun OnboardingAction.handleGetStarted() {
         if (state.step != OnboardingStep.Welcome) return
+        goTo(if (state.guest) OnboardingStep.SignIn else OnboardingStep.Age)
+    }
+
+    /** This phone was told someone under 16 is using it, and they haven't turned 16 since. */
+    private suspend fun isAgeGateClosed(): Boolean {
+        val opensOn = Catching { appCache.get().ageGateOpensOn }.getOrNull() ?: return false
+        val day = Catching { LocalDate.parse(opensOn) }.getOrNull() ?: return false
+        return state.today < day
+    }
+
+    /**
+     * Continue on the birthday. Under 16 closes the gate on this phone until their sixteenth
+     * birthday and makes no account; the birthday itself is not kept. Anyone else signs in, with
+     * the birthday carried to the profile step.
+     */
+    private suspend fun OnboardingAction.handleAgeContinue() {
+        val born = state.ageAnswer ?: return
+        if (AgeGate.bandOf(born, state.today) == AgeBand.TooYoung) {
+            Catching { appCache.update { it.copy(ageGateOpensOn = AgeGate.opensOn(born).toString()) } }
+                .logOnFailure { "Onboarding could not close the age gate" }
+            googleAttempt?.cancel()
+            // No step event: the app sends nothing more about someone this young.
+            updateState { it.copy(step = OnboardingStep.TooYoung, ageAnswer = null) }
+            return
+        }
+        updateState { it.copy(plan = it.plan.copy(body = it.plan.body.copy(birthDate = born))) }
         goTo(OnboardingStep.SignIn)
     }
 
@@ -377,6 +415,7 @@ class OnboardingViewModel(
      */
     private suspend fun OnboardingAction.advance() {
         if (state.isFinishing) return
+        if (state.step == OnboardingStep.Age) return handleAgeContinue()
         val next = when (val step = state.step) {
             is OnboardingStep.Question -> SetupQuestion.of(step.question.number + 1)
                 ?.let { OnboardingStep.Question(it) }
@@ -497,7 +536,7 @@ class OnboardingViewModel(
 
         Catching {
             settingsRepository.update(stampNumbersChange = false) { current ->
-                val started = current.startingWith(preset, answers, meals)
+                val started = current.startingWith(preset, answers, meals).withAgeAnswer(plan.body.birthDate, today)
                 val withPlan = if (planned) PlanFlow.save(started, plan, context) else started
                 committed?.let { withPlan.copy(planCommitment = PlanCommitment(today, it)) } ?: withPlan
             }
@@ -539,8 +578,9 @@ class OnboardingViewModel(
     private suspend fun OnboardingAction.handleBack() {
         if (!state.canGoBack) return
         val previous = when (val step = state.step) {
-            OnboardingStep.Welcome -> return
-            OnboardingStep.SignIn -> OnboardingStep.Welcome
+            OnboardingStep.Welcome, OnboardingStep.TooYoung -> return
+            OnboardingStep.Age -> OnboardingStep.Welcome
+            OnboardingStep.SignIn -> if (state.plan.body.birthDate != null && !state.guest) OnboardingStep.Age else OnboardingStep.Welcome
             OnboardingStep.Meals, is OnboardingStep.Plan -> state.setupBefore(step)
             OnboardingStep.Recommendation -> OnboardingStep.Question(SetupQuestion.Statement)
             is OnboardingStep.Question -> SetupQuestion.of(step.question.number - 1)?.let { OnboardingStep.Question(it) } ?: return
@@ -558,7 +598,7 @@ class OnboardingViewModel(
         // on Welcome exits the app and clears the entry). A process kill won't
         // reach this; the funnel's step_viewed-without-completed sessions cover
         // that case.
-        if (!completed) {
+        if (!completed && state.step != OnboardingStep.TooYoung) {
             logger.logEvent("onboarding.abandoned", "step" to state.step.eventName)
         }
         super.onCleared()
@@ -627,6 +667,8 @@ data class OnboardingState(
     /** The phone's day: for the birthday picker and when a goal starts. */
     val today: LocalDate = DEFAULT_TODAY,
     val mealTimes: MealTimes = MealTimes(),
+    /** The birthday picked on [OnboardingStep.Age], before Continue. Carried on as [PlanAnswers.body]'s. */
+    val ageAnswer: LocalDate? = null,
     /** The goal flow's answers ([PlanFlow]). */
     val plan: PlanAnswers = PlanAnswers(),
     /** The phone's health app, as the activity step offers it. */
@@ -660,9 +702,23 @@ data class OnboardingState(
     val showsMeals: Boolean
         get() = setupSteps && (Presets[chosen].today == TodayLayout.MealTimeline || Why.EatingRegularly in answers.why)
 
-    /** The goal flow's context for [policy], the mode being started's. Onboarding is a new account. */
+    /** 16 or 17 by the birthday given ([AgeGate]). */
+    val olderTeen: Boolean get() = AgeGate.bandOf(plan.body.birthDate, today) == AgeBand.OlderTeen
+
+    /**
+     * The goal flow's context for [policy], the mode being started's. Onboarding is a new account.
+     * Someone 16 or 17 gets the gentle path, as after "numbers have been hard": no weights, weight
+     * goals or deficits.
+     */
     fun planContext(policy: VisibilityPolicy): PlanContext =
-        PlanContext(today = today, hard = answers.hard, policy = policy, fresh = true, health = health, environment = Settings().baselineEnvironment(healthReadings))
+        PlanContext(
+            today = today,
+            hard = answers.hard || olderTeen,
+            policy = policy,
+            fresh = true,
+            health = health,
+            environment = Settings().baselineEnvironment(healthReadings),
+        )
 
     /**
      * The setup steps for [chosen], in order: meal times where they shape Today, then the goal
@@ -703,7 +759,8 @@ data class OnboardingState(
 
     val canGoBack: Boolean
         get() = when (step) {
-            OnboardingStep.Welcome -> false
+            OnboardingStep.Welcome, OnboardingStep.TooYoung -> false
+            OnboardingStep.Age -> !isFinishing
             OnboardingStep.SignIn -> !signInOnly && accountInFlight != AccountMethod.Apple && !isFinishing
             OnboardingStep.Recommendation, OnboardingStep.Meals, is OnboardingStep.Plan -> !isFinishing
             is OnboardingStep.Question -> !isFinishing && step.question != SetupQuestion.Reason
@@ -732,6 +789,16 @@ sealed interface OnboardingStep {
 
     data object Welcome : OnboardingStep {
         override val eventName = "welcome"
+    }
+
+    /** The birthday, before any account exists ([AgeGate]). */
+    data object Age : OnboardingStep {
+        override val eventName = "age"
+    }
+
+    /** Under 16: no account, and no way back to the question. Never sent as an event. */
+    data object TooYoung : OnboardingStep {
+        override val eventName = "too_young"
     }
 
     /** Apple, Google or email. Required: there is no way past it without an account. */
@@ -799,8 +866,11 @@ sealed interface OnboardingAccountError {
 sealed interface OnboardingAction {
     /** Internal: fired once on init to resolve the opening step / bounce. */
     data object ResolveEntry : OnboardingAction
-    /** "Get started" on Welcome: the sign-in step. */
+    /** "Get started" on Welcome: the birthday. */
     data object GetStartedTapped : OnboardingAction
+
+    /** A birthday picked on [OnboardingStep.Age]. Continue then decides. */
+    data class AgeAnswered(val birthDate: LocalDate) : OnboardingAction
     data class OptionTapped(val option: SetupOption) : OnboardingAction
 
     /** "Talk to someone" on the statement, shown whichever answer is picked. */
@@ -830,4 +900,15 @@ sealed interface OnboardingAction {
     data object UseThatAccountTapped : OnboardingAction
     /** One step back, when [OnboardingState.canGoBack]. */
     data object Back : OnboardingAction
+}
+
+/**
+ * The age gate's answer kept on a new account: the birthday given, and celebrations without
+ * counts for someone 16 or 17 unless they had already picked. [birthDate] is null when nobody
+ * answered (a guest from an older build).
+ */
+internal fun Settings.withAgeAnswer(birthDate: LocalDate?, today: LocalDate): Settings {
+    val born = birthDate ?: return this
+    val teen = AgeGate.bandOf(born, today) == AgeBand.OlderTeen
+    return withBirthDate(born).let { if (teen && it.celebrationCounts == null) it.copy(celebrationCounts = false) else it }
 }

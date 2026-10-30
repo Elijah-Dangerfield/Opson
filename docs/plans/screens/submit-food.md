@@ -128,7 +128,7 @@ runs as before. The submission carries what the phone read (its lines, draft
 and measured signals, `SubmissionCapture`), which the server uses to ground
 the numbers and route the food. A food the server publishes at once (an
 owner's, or one the auto lane approved) closes with "is in Opson's food
-database". Check against the pack, the food detail's ⋮ item for Builders, is
+database". Verify this food, the card a Builder sees on a food's detail, is
 its own sheet (`CheckFoodRoute`).
 
 ## Numbers and the mode

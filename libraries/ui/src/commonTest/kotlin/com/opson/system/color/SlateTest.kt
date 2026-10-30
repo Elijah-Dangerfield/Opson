@@ -43,6 +43,13 @@ class SlateTest {
         assertContrast(c.accentTint, c.ink, AA, c)
     }
 
+    /** The Builders color is text on every background it sits on, and a fill with its own text. */
+    @Test
+    fun builder_meetsAa_asTextAndAsAFill() = schemes.forEach { c ->
+        listOf(c.surface, c.bg, c.soft, c.builder.container).forEach { assertContrast(c.builder.content, it, AA, c) }
+        assertContrast(c.onBuilder, c.builder.content, AA, c)
+    }
+
     /** The on-track calendar writes the day's number in ink on its fill. */
     @Test
     fun dayNumbers_meetAa_onEveryPlanFill() = schemes.forEach { c ->

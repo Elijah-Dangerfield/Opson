@@ -49,6 +49,74 @@ burn from the mean (one long run moves it for two weeks).
 
 ---
 
+## 2026-10-30: Opson is for 16 and over, and a hard stretch gets a kind note worked out on the phone
+
+**Decision:** onboarding asks for a birthday after Welcome and before sign-in
+(`AgeGate`, `OnboardingStep.Age`). Under 16 sees a kind screen with Find
+support, makes no account, and the phone keeps the gate closed until the
+sixteenth birthday (`AppData.ageGateOpensOn`, the date only). 16 and 17 get the
+goal flow's gentle path (no weights, weight goals or deficits, as after
+"numbers have been hard") and celebrations without counts; `weightPlansOff`
+keeps the goal flow and its Today card off for anyone under 18. Terms and
+privacy say 16. Separately, `HardStretch` reads the last four weeks of the log
+on the phone (very low complete days, restrict and big-day swings, many
+weigh-ins a day, fast loss, plus weaker signals that need a second) and the
+`kind_note` prompt offers Find support, fewer numbers or Not now, at most
+every 21 days, behind `release.findSupport` and the person's own
+`hardStretchNotes` switch. A prompt can be `sensitive`: no app event, no log
+line. Thresholds are TODO(clinician).
+
+**Alternatives:** 13 (the old terms; COPPA's line, but calorie tracking is
+linked with disordered eating in teens and Opson has no supervision); 18
+(MyFitnessPal and Noom's line, but it shuts out older teens who would find a
+tracker elsewhere with fewer protections). Asking age after sign-in (an
+account would already exist for a child). Reading the store's age signal
+(Declared Age Range, Play Age Signals) instead of asking: a follow-up, since
+it covers only some regions so far. Detecting patterns on the server: no
+health inference should leave the phone. Full reasoning in
+[ed-safety-review.md](research/ed-safety-review.md).
+
+## 2026-10-30: What "verified" means, and Builders' verifications go to a reviewer with their photos
+
+**Decision:** a food is *checked* (the app's Verified mark) when a person
+checked it against its pack or a reviewer stood behind it: a Builder's
+verification confirmed by the label's text or accepted by a reviewer, a live
+reviewer's correction, or a food someone added that a reviewer approved. The
+server works it out as it serves a food (`FoodCheck`, beside the corrections
+overlay) and sends `checked: true`, leaving the field out otherwise. The older
+`verified` flag (an accountable source, tiers 1 to 3) keeps its meaning for
+ranking. USDA's and NEVO's reference rows are never checked: there is no pack.
+A Builder's verification that says "Something was wrong" (which fields were
+wrong or missing, the right values, a note), or whose label text did not show
+the numbers while they sent photos, is kept with its front and label photos
+and the food as they saw it, and waits in the console's Review area beside
+reports. Accepting it can lay a correction over the existing food (the V29
+overlay, never a new food) and counts toward Builder Pro; photos go 30 days
+after the decision, like report photos. Reports take several reasons at once,
+including "missing information", and a front photo beside the label.
+
+In the app, Builders get a color of their own (`AppTheme.colors.builder`, an
+indigo nothing else uses) and a mark (`AppIcons.Builder`), on what only they
+see (Verify this food on a detail, Verify a food on the + sheet and the Foods
+tab) and on the Verified badge. Verify is never in a menu and never offered
+for a verified food or generic data. The label is read on the phone, the same
+`PhoneLabelReader` as Add a packaged food; nothing on the server reads it.
+
+**Alternatives:** storing a `checked` column on `foods`; rejected because
+`off_foods` is swapped monthly and a column cannot follow a rollback or a
+reverted correction without a job. Counting USDA's generic rows as verified;
+rejected because the owner's ask is "checked by a person against the package",
+and a Builder can't check an apple. Keeping V31's rule that a check keeps no
+photo and a mismatch is filed as a report; rejected because a reviewer then
+has to find the food again from a report with one photo, where the
+verification already names the food and the fields.
+
+**Why:** the owner could not see whether a food had been checked, and asked
+for review to be about cleaning up the existing entry rather than judging a
+new one.
+
+---
+
 ## 2026-10-30: No server AI in v1; labels are read on the phone and a person reviews weekly
 
 **Decision:** the server calls no model unless `AI_CALLS_ENABLED=true` is set

@@ -122,17 +122,37 @@ object FoodsFixtures {
         ),
     )
 
-    /** [repeats]: `release.repeats` on, with these rules ([withRepeats]) or none yet. */
+    /** A catalog yogurt starred and never logged: a Builder verified it. */
+    val starredYogurt = Food(
+        id = "skyr",
+        source = FoodSource.UsdaBranded,
+        name = "Icelandic skyr, plain",
+        brand = "Siggi's",
+        per100g = NutrientProfile(kcal = 63.0, protein = 11.0, carbs = 4.0, fat = 0.0),
+        portions = listOf(Portion("1 cup", 150.0)),
+        checked = true,
+    )
+
+    /** The jasmine rice as the catalog has it, verified: Recent and Favorites draw the badge. */
+    private val riceFood = Food(id = "rice", source = FoodSource.UsdaBranded, name = "Jasmine rice", per100g = NutrientProfile(kcal = 130.0), checked = true)
+
+    /**
+     * [repeats]: `release.repeats` on, with these rules ([withRepeats]) or none yet. [favorites]:
+     * the skyr, the pandesal and the rice starred. [builder]: an active Builder.
+     */
+    @Suppress("LongParameterList")
     fun foodsInputs(
         withRecent: Boolean = true,
         empty: Boolean = false,
         inReview: Boolean = false,
         repeatsOn: Boolean = false,
         withRepeats: Boolean = true,
+        favorites: Boolean = false,
+        builder: Boolean = false,
     ): FoodsInputs {
         val rules = if (!repeatsOn) null else if (withRepeats && !empty) repeats else emptyList()
         return if (empty) {
-            FoodsInputs(customFoods = emptyList(), savedMeals = emptyList(), recent = emptyList(), repeats = rules)
+            FoodsInputs(customFoods = emptyList(), savedMeals = emptyList(), recent = emptyList(), repeats = rules, verifyOn = builder)
         } else {
             FoodsInputs(
                 customFoods = listOf(pandesal),
@@ -140,6 +160,10 @@ object FoodsFixtures {
                 recent = if (withRecent) recent else emptyList(),
                 reviews = if (inReview) mapOf(pandesal.id to ReviewStatus.Pending) else emptyMap(),
                 repeats = rules,
+                favoriteKeys = if (favorites) listOf("f:${starredYogurt.id}", "c:${pandesal.id}", "f:rice") else emptyList(),
+                catalog = mapOf(starredYogurt.id to starredYogurt, riceFood.id to riceFood),
+                history = recent,
+                verifyOn = builder,
             )
         }
     }
@@ -153,7 +177,9 @@ object FoodsFixtures {
         inReview: Boolean = false,
         repeatsOn: Boolean = false,
         withRepeats: Boolean = true,
-    ): FoodsState = FoodsStateBuilder.build(foodsInputs(withRecent, empty, inReview, repeatsOn, withRepeats), policy)
+        favorites: Boolean = false,
+        builder: Boolean = false,
+    ): FoodsState = FoodsStateBuilder.build(foodsInputs(withRecent, empty, inReview, repeatsOn, withRepeats, favorites, builder), policy)
 
     /** A new repeat of the usual breakfast on weekdays, from today; [empty] is the form as it opens. */
     fun repeatDraft(empty: Boolean = false): RepeatDraft = if (empty) {

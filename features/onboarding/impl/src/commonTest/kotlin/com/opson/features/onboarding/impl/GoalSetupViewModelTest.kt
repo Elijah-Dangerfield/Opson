@@ -137,12 +137,16 @@ class GoalSetupViewModelTest : CoroutineTest() {
     @Test
     fun theCard_showsOnlyWhereAWeightGoalMakesSense() {
         val full = OnboardingFixtures.policy(PresetId.Full)
-        assertTrue(GoalSetupPrompt.worthOffering(Settings(), full))
-        assertFalse(GoalSetupPrompt.worthOffering(Settings(weightGoal = WeightGoal(GoalDirection.JustTrack)), full), "answered")
-        assertFalse(GoalSetupPrompt.worthOffering(Settings(onboarding = OnboardingAnswers(hard = true)), full))
-        assertFalse(GoalSetupPrompt.worthOffering(Settings(bodyStage = BodyStage.Pregnant), full))
-        assertFalse(GoalSetupPrompt.worthOffering(Settings(), OnboardingFixtures.policy(PresetId.MacrosOnly)), "weight is a trend there")
-        assertTrue(GoalSetupPrompt.worthOffering(Settings(), OnboardingFixtures.policy(PresetId.MacrosWithGrams)))
+        assertTrue(GoalSetupPrompt.worthOffering(Settings(), full, DEFAULT_TODAY))
+        assertFalse(GoalSetupPrompt.worthOffering(Settings(weightGoal = WeightGoal(GoalDirection.JustTrack)), full, DEFAULT_TODAY), "answered")
+        assertFalse(GoalSetupPrompt.worthOffering(Settings(onboarding = OnboardingAnswers(hard = true)), full, DEFAULT_TODAY))
+        assertFalse(GoalSetupPrompt.worthOffering(Settings(bodyStage = BodyStage.Pregnant), full, DEFAULT_TODAY))
+        assertFalse(GoalSetupPrompt.worthOffering(Settings(), OnboardingFixtures.policy(PresetId.MacrosOnly), DEFAULT_TODAY), "weight is a trend there")
+        assertTrue(GoalSetupPrompt.worthOffering(Settings(), OnboardingFixtures.policy(PresetId.MacrosWithGrams), DEFAULT_TODAY))
+        assertFalse(
+            GoalSetupPrompt.worthOffering(Settings().withBirthDate(LocalDate(2009, 1, 1)), full, DEFAULT_TODAY),
+            "never for anyone under 18",
+        )
     }
 
     private fun TestScope.closes(vm: GoalSetupViewModel): MutableList<GoalSetupEvent> {

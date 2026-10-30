@@ -77,6 +77,8 @@ internal data class SchemeColors(
     val activeEnergy: Color,
     val nutrients: NutrientColors,
     val plan: PlanColors,
+    val builder: ToneColors,
+    val onBuilder: Color,
 )
 
 /**
@@ -97,6 +99,9 @@ internal data class SchemeColors(
  *   buttons keep white labels. It sits between the danger brick and the fiber brown: yellower
  *   than one, fuller than the other.
  * - **accentTint** is a pale peach, not the carbs tint, so a selected row never reads as breakfast.
+ * - **builder** is an indigo, #4B4BB8 on #E6E6F8: no other token is blue-violet (fat is a sky
+ *   blue, resting energy a grey-blue), so the Builders' card and the Verified badge read as their
+ *   own. Text on surface (7.2), bg (6.3) and its tint (5.8); white on it is 7.2.
  *
  * WCAG AA, checked by `SlateTest`: ink, inkSoft, muted and the accent pass on bg, surface and raised.
  */
@@ -122,6 +127,8 @@ internal val SlateLight = SchemeColors(
         fiber = tone("fiber", 0xFF8E6E3A, 0xFFF1E8DC),
     ),
     plan = plan(on = 0xFFA8D8B4, near = 0xFFF3D782, off = 0xFFF2B5A0, logged = 0xFFFCE7D8),
+    builder = tone("builder", 0xFF4B4BB8, 0xFFE6E6F8),
+    onBuilder = Color(0xFFFFFFFF),
 )
 
 /**
@@ -141,6 +148,7 @@ internal val SlateLight = SchemeColors(
  * - **scrim** is the sheet's #0B0E14 at 63%, measured under the add sheet (`add-sheet-half.png`).
  * - **Nutrient colors** are at least 6.9:1 on the surface. Their tints are the meal tiles
  *   (`today-select-v4.png`, `today-later.png`), carbs gold with the light theme's: #F7D67A on #3F3822.
+ * - **builder** is a lit periwinkle, #B4B4FF on #2E2E5C, with near-black indigo text on a fill.
  */
 internal val SlateDark = SchemeColors(
     bg = Color(0xFF161B27),
@@ -164,6 +172,8 @@ internal val SlateDark = SchemeColors(
         fiber = tone("fiber", 0xFFD9B98C, 0xFF3B3329),
     ),
     plan = plan(on = 0xFF2E6646, near = 0xFF6B5819, off = 0xFF7A3A2B, logged = 0xFF4A2C17),
+    builder = tone("builder", 0xFFB4B4FF, 0xFF2E2E5C),
+    onBuilder = Color(0xFF15153A),
 )
 
 private fun tone(name: String, content: Long, container: Long) = ToneColors(

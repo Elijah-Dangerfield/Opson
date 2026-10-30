@@ -86,6 +86,13 @@ object OnboardingFixtures {
     /** On iOS, as the design draws it. Welcome looks the same on Android. */
     fun welcome(): OnboardingState = OnboardingState(appleEnabled = true).withRecommendation()
 
+    /** The birthday question after Welcome, with [answer] picked so far. */
+    fun age(answer: LocalDate? = null): OnboardingState =
+        OnboardingState(step = OnboardingStep.Age, ageAnswer = answer).withRecommendation()
+
+    /** Someone under 16: no account. */
+    fun tooYoung(): OnboardingState = OnboardingState(step = OnboardingStep.TooYoung).withRecommendation()
+
     fun question(question: SetupQuestion, answers: SetupAnswers = SetupAnswers()): OnboardingState =
         OnboardingState(step = OnboardingStep.Question(question), answers = answers).withRecommendation()
 

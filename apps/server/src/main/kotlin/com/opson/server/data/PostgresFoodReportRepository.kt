@@ -17,6 +17,7 @@ import com.opson.server.domain.FoodReport
 import com.opson.server.domain.FoodReportRepository
 import com.opson.server.domain.FoodSnapshot
 import com.opson.server.domain.NewFoodReport
+import com.opson.server.domain.PackSide
 import com.opson.server.domain.ReportOutcome
 import com.opson.server.domain.ReportReason
 import com.opson.server.domain.ReportStatus
@@ -69,9 +70,11 @@ class PostgresFoodReportRepository(
         return try {
             database.transaction {
                 insertReport(report)
-                report.photo?.let { photo ->
+                for ((side, photo) in listOf(PackSide.Label to report.photo, PackSide.Front to report.frontPhoto)) {
+                    photo ?: continue
                     FoodReportPhotosTable.insert {
                         it[reportId] = report.id
+                        it[kind] = side.wire
                         it[mediaType] = photo.type.mediaType
                         it[bytes] = photo.bytes
                     }
@@ -96,6 +99,8 @@ class PostgresFoodReportRepository(
             it[userId] = report.userId?.value
             it[createdAt] = clock.now().toJavaInstant()
             it[reason] = report.reason.wire
+            // The server's own check and an older app's single reason keep the V29 shape.
+            it[reasons] = report.reasons.map { r -> r.wire }.takeIf { report.userId != null }
             it[suggested] = report.suggested?.takeUnless(SuggestedValues::isEmpty)?.let(FoodReportJson::suggested)
             it[note] = report.note
             it[snapshot] = FoodReportJson.snapshot(report.snapshot)
@@ -144,8 +149,8 @@ class PostgresFoodReportRepository(
             .orderBy(FoodReportsTable.createdAt to SortOrder.ASC)
             .limit(limit)
             .toList()
-        val withPhotos = photoOwners(rows.map { it[FoodReportsTable.id] })
-        rows.map { it.toReport(it[FoodReportsTable.id] in withPhotos) }
+        val photos = photoSides(rows.map { it[FoodReportsTable.id] })
+        rows.map { it.toReport(photos[it[FoodReportsTable.id]].orEmpty()) }
     }
 
     override suspend fun countOpen(): Long = database.transaction {
@@ -158,17 +163,19 @@ class PostgresFoodReportRepository(
             .orderBy(FoodReportsTable.createdAt to SortOrder.DESC)
             .limit(MAX_PER_FOOD)
             .toList()
-        val withPhotos = photoOwners(rows.map { it[FoodReportsTable.id] })
-        rows.map { it.toReport(it[FoodReportsTable.id] in withPhotos) }
+        val photos = photoSides(rows.map { it[FoodReportsTable.id] })
+        rows.map { it.toReport(photos[it[FoodReportsTable.id]].orEmpty()) }
     }
 
     private suspend fun get(id: UUID): FoodReport? = database.transaction {
         FoodReportsTable.selectAll().where { FoodReportsTable.id eq id }.singleOrNull()
-            ?.let { it.toReport(photoOwners(listOf(id)).isNotEmpty()) }
+            ?.let { it.toReport(photoSides(listOf(id))[id].orEmpty()) }
     }
 
-    override suspend fun photo(reportId: UUID): StoredPhoto? = database.transaction {
-        FoodReportPhotosTable.selectAll().where { FoodReportPhotosTable.reportId eq reportId }.singleOrNull()
+    override suspend fun photo(reportId: UUID, side: PackSide): StoredPhoto? = database.transaction {
+        FoodReportPhotosTable.selectAll()
+            .where { (FoodReportPhotosTable.reportId eq reportId) and (FoodReportPhotosTable.kind eq side.wire) }
+            .singleOrNull()
             ?.let { StoredPhoto(it[FoodReportPhotosTable.mediaType], it[FoodReportPhotosTable.bytes]) }
     }
 
@@ -194,27 +201,10 @@ class PostgresFoodReportRepository(
         return database.transaction {
             val open = openReports(reportIds, foodId)
             if (open.size != reportIds.distinct().size) return@transaction CorrectionOutcome.NotOpen
-            val live = FoodCorrectionsSql.live(listOf(foodId), forUpdate = true)[foodId]
-            val now = clock.now().toJavaInstant()
-            val id = UUID.randomUUID()
             val reviewer = by.take(MAX_ACTOR)
-            // The newer goes in not live, the older then points at it, and only then is the newer
-            // opened: the unique index on live corrections never sees two for one food.
-            FoodCorrectionsTable.insert {
-                it[this.id] = id
-                it[this.foodId] = foodId
-                it[createdAt] = now
-                it[createdBy] = reviewer
-                it[correctionFields] = FoodReportJson.values(values.over(live?.values))
-                it[this.base] = FoodReportJson.snapshot(base)
-                it[revertedAt] = now
-            }
-            live?.let { older ->
-                FoodCorrectionsTable.update({ FoodCorrectionsTable.id eq older.id }) { it[supersededBy] = id }
-            }
-            FoodCorrectionsTable.update({ FoodCorrectionsTable.id eq id }) { it[revertedAt] = null }
-            close(reportIds, ReportStatus.Accepted, reviewer, resolution = null) { it[correctionId] = id }
-            CorrectionOutcome.Applied(FoodCorrectionsSql.toCorrection(FoodCorrectionsTable.selectAll().where { FoodCorrectionsTable.id eq id }.single()))
+            val correction = FoodCorrectionsSql.lay(foodId, values, base, reviewer, clock.now())
+            close(reportIds, ReportStatus.Accepted, reviewer, resolution = null) { it[correctionId] = correction.id }
+            CorrectionOutcome.Applied(correction)
         }
     }
 
@@ -283,21 +273,22 @@ class PostgresFoodReportRepository(
         }
     }
 
-    private fun photoOwners(ids: List<UUID>): Set<UUID> = if (ids.isEmpty()) {
-        emptySet()
+    /** Which sides each report has a photo of. */
+    private fun photoSides(ids: List<UUID>): Map<UUID, Set<String>> = if (ids.isEmpty()) {
+        emptyMap()
     } else {
-        FoodReportPhotosTable.select(FoodReportPhotosTable.reportId)
+        FoodReportPhotosTable.select(FoodReportPhotosTable.reportId, FoodReportPhotosTable.kind)
             .where { FoodReportPhotosTable.reportId inList ids }
-            .map { it[FoodReportPhotosTable.reportId] }
-            .toSet()
+            .groupBy({ it[FoodReportPhotosTable.reportId] }, { it[FoodReportPhotosTable.kind] })
+            .mapValues { it.value.toSet() }
     }
 
-    private fun ResultRow.toReport(hasPhoto: Boolean) = FoodReport(
+    private fun ResultRow.toReport(photos: Set<String>) = FoodReport(
         id = this[FoodReportsTable.id],
         foodId = this[FoodReportsTable.foodId],
         userId = this[FoodReportsTable.userId]?.let(::UserId),
         createdAt = this[FoodReportsTable.createdAt].toKotlinInstant(),
-        reason = ReportReason.fromWire(this[FoodReportsTable.reason]) ?: ReportReason.Other,
+        reason = reasonOf(this),
         suggested = this[FoodReportsTable.suggested]?.let(FoodReportJson::suggested),
         note = this[FoodReportsTable.note],
         snapshot = FoodReportJson.snapshot(this[FoodReportsTable.snapshot]),
@@ -307,8 +298,12 @@ class PostgresFoodReportRepository(
         resolution = this[FoodReportsTable.resolution],
         correctionId = this[FoodReportsTable.correctionId],
         duplicateOf = this[FoodReportsTable.duplicateOf],
-        hasPhoto = hasPhoto,
+        hasPhoto = PackSide.Label.wire in photos,
+        reasons = this[FoodReportsTable.reasons]?.mapNotNull(ReportReason::fromWire)?.ifEmpty { null } ?: listOf(reasonOf(this)),
+        hasFrontPhoto = PackSide.Front.wire in photos,
     )
+
+    private fun reasonOf(row: ResultRow) = ReportReason.fromWire(row[FoodReportsTable.reason]) ?: ReportReason.Other
 
     private fun ExposedSQLException.isUniqueViolation(): Boolean =
         sqlState == UNIQUE_VIOLATION || (cause as? SQLException)?.sqlState == UNIQUE_VIOLATION
@@ -324,6 +319,32 @@ class PostgresFoodReportRepository(
 /** Reading `food_corrections` inside whatever transaction is current, for this repository and the catalog's overlay. */
 @OptIn(ExperimentalTime::class)
 internal object FoodCorrectionsSql {
+    /**
+     * A new live correction over [foodId], merged over the live one, which it supersedes, in the
+     * current transaction. A report's acceptance and a verification's both come through here.
+     */
+    fun lay(foodId: UUID, values: CorrectionValues, base: FoodSnapshot, by: String, at: Instant): FoodCorrection {
+        val live = live(listOf(foodId), forUpdate = true)[foodId]
+        val now = at.toJavaInstant()
+        val id = UUID.randomUUID()
+        // The newer goes in not live, the older then points at it, and only then is the newer
+        // opened: the unique index on live corrections never sees two for one food.
+        FoodCorrectionsTable.insert {
+            it[this.id] = id
+            it[this.foodId] = foodId
+            it[createdAt] = now
+            it[createdBy] = by
+            it[correctionFields] = FoodReportJson.values(values.over(live?.values))
+            it[this.base] = FoodReportJson.snapshot(base)
+            it[revertedAt] = now
+        }
+        live?.let { older ->
+            FoodCorrectionsTable.update({ FoodCorrectionsTable.id eq older.id }) { it[supersededBy] = id }
+        }
+        FoodCorrectionsTable.update({ FoodCorrectionsTable.id eq id }) { it[revertedAt] = null }
+        return toCorrection(FoodCorrectionsTable.selectAll().where { FoodCorrectionsTable.id eq id }.single())
+    }
+
     fun live(foodIds: Collection<UUID>, forUpdate: Boolean = false): Map<UUID, FoodCorrection> {
         if (foodIds.isEmpty()) return emptyMap()
         val query = FoodCorrectionsTable.selectAll().where {

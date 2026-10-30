@@ -56,6 +56,13 @@ interface PromptCandidate {
     val offerWhenNumbersHard: Boolean get() = false
 
     /**
+     * That it showed, or how it was answered, says something about the person's health (the
+     * hard-stretch note does). A sensitive prompt sends no app event and writes no log line; its
+     * counts stay on the phone like every prompt's.
+     */
+    val sensitive: Boolean get() = false
+
+    /**
      * Whether it makes sense now: its release flag is on, the thing is not done already. Cheap
      * reads only; it runs while Today settles, and only once every global rule has passed. A throw
      * counts as false.
@@ -140,6 +147,9 @@ sealed interface PromptAccept {
 
 /** Shared scale for [PromptCandidate.priority], so a new prompt can say where it sits. */
 object PromptPriority {
+    /** Ways to get support when someone's log suggests a hard stretch. Above everything else. */
+    const val CARE = 600
+
     /** A milestone the person just reached. Above a moment's offer: it is about them, not something to try. */
     const val CELEBRATION = 500
 

@@ -95,9 +95,10 @@ data class SubmitFoodRoute(
 }
 
 /**
- * The barcode scanner for a Builder checking packs (More › Builders' "Check a food against its
- * pack"): Also read the label starts on, so a code that finds a food opens Check against the pack
- * instead of its detail, and a code nothing knows offers Add a packaged food without logging it.
+ * The barcode scanner for a Builder verifying packs (Verify a food on More › Builders, the + sheet
+ * and the Foods tab): Also read the label starts on, so a code that finds a food nobody has checked
+ * opens Verify this food instead of its detail, and a code nothing knows offers Add a packaged
+ * food without logging it.
  * [dayIso] is only where a food goes if they turn the label reading off and add it from its
  * detail. Show it only to an active Builder with `release.builders` on.
  */

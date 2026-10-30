@@ -103,6 +103,7 @@ class TargetsWeightGoalTest : CoroutineTest() {
         assertNull(card(settings(), preset = PresetId.MacrosOnly).goal, "weight is a trend there")
         assertNull(card(settings().copy(onboarding = OnboardingAnswers(hard = true))).goal)
         assertNull(card(settings().copy(bodyStage = BodyStage.Pregnant)).goal)
+        assertNull(card(settings().withBirthDate(kotlinx.datetime.LocalDate(2009, 6, 1))).goal, "under 18")
         val words = assertIs<GoalCard.Setting>(card(settings(), preset = PresetId.MacrosWithGrams).goal, "weight shows there, calories don't")
         assertEquals(Display.Hidden, words.target)
     }
