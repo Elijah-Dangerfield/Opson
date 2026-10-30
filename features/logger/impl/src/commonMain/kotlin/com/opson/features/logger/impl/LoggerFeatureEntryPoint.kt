@@ -115,7 +115,7 @@ class LoggerFeatureEntryPoint(
     private val settings: () -> SettingsRepository,
     // "Report a problem" on a catalog food; off, the ⋮ item opens the bug report.
     private val foodReports: FoodReportEnabled,
-    // Check against the pack on a catalog food, for an active Builder.
+    // Verify this food on a catalog food, for an active Builder.
     private val builders: BuildersEnabled,
     private val builderProgram: BuilderProgram,
 ) : FeatureEntryPoint {
@@ -170,7 +170,7 @@ class LoggerFeatureEntryPoint(
             BarcodeScanner(backStackEntry.toRoute<BarcodeScanRoute>(), router)
         }
 
-        // More › Builders' "Check a food against its pack", for an active Builder.
+        // More › Builders' Verify a food, and the + sheet's and Foods tab's, for an active Builder.
         screen<CheckPackRoute> { backStackEntry ->
             val route = backStackEntry.toRoute<CheckPackRoute>()
             BarcodeScanner(BarcodeScanRoute(route.dayIso, MealSlot.Snack, checkPack = true), router)
@@ -530,7 +530,7 @@ class LoggerFeatureEntryPoint(
                     }
                 }
 
-                // A Builder reading the label: Check against the pack takes the scanner's place.
+                // A Builder reading the label: Verify this food takes the scanner's place.
                 is BarcodeScanEvent.OpenCheck -> router.batch {
                     goBack()
                     navigate(CheckFoodRoute(event.foodId, event.name))

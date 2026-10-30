@@ -39,6 +39,7 @@ kotlin {
             implementation(projects.libraries.navigation)
             implementation(projects.features.foods)
             implementation(projects.features.logger)
+            implementation(projects.features.builder)
             implementation(projects.libraries.core)
             implementation(projects.libraries.diary)
             implementation(projects.libraries.diary.ui)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Copy for Opson Builders (release.builders): More › Builders, the application, the prompts,
-  Builder mode in Add a packaged food, Check against the pack, and the scanner's Also read the label.
+  Builder mode in Add a packaged food, Verify this food, and the scanner's Also read the label.
   "Opson Builders" once where someone applies, "Builder" everywhere else (builder-program.md).
   Short and plain: one idea a line. Same rules as strings.xml: no backslash escapes, positional
   %1$s arguments.
@@ -67,7 +67,7 @@
     <string name="builder_pro_ended">Pro ended on %1$s. Reach %2$d this month to turn it back on.</string>
     <string name="builder_add_food">Add a food</string>
     <string name="builder_add_food_sub">Photograph a pack Opson doesn't have</string>
-    <string name="builder_check_food">Check a food against its pack</string>
+    <string name="builder_check_food">Verify a food</string>
     <string name="builder_check_food_sub">Scan the barcode, then the label</string>
     <string name="builder_stats_foods">Foods added</string>
     <string name="builder_stats_checks">Checks</string>

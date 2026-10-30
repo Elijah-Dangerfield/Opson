@@ -12,6 +12,7 @@ import com.opson.libraries.foods.BuilderStatus
 import com.opson.libraries.foods.BuilderTrust
 import com.opson.libraries.foods.FoodCheckResult
 import com.opson.libraries.foods.FoodChecks
+import com.opson.libraries.foods.FoodVerification
 import com.opson.libraries.foods.FoodReport
 import com.opson.libraries.foods.FoodReportResult
 import com.opson.libraries.foods.FoodReports
@@ -64,10 +65,10 @@ class FakeTextRecognizer(
 }
 
 class FakeFoodChecks(var answer: FoodCheckResult = FoodCheckResult.Confirmed) : FoodChecks {
-    val sent = mutableListOf<List<LabelTextLine>>()
+    val sent = mutableListOf<FoodVerification>()
 
-    override suspend fun check(id: String, foodId: String, engine: String, lines: List<LabelTextLine>): FoodCheckResult {
-        sent += lines
+    override suspend fun verify(verification: FoodVerification): FoodCheckResult {
+        sent += verification
         return answer
     }
 }

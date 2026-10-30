@@ -180,8 +180,8 @@ object LoggerLeakSurfaces {
         LeakSurface(id = "submit-food-builder-review", label = "Add a packaged food, Builder mode, read on the phone", showsCaloriesInFull = true) { policy ->
             SubmitFoodScreen(state = SubmitFoodFixtures.builderReviewState(policy), onAction = {})
         },
-        // Check against the pack: pack and Opson side by side only where calories and macros show.
-        LeakSurface(id = "check-food-differs", label = "Check against the pack, the label differs", showsCaloriesInFull = true) { policy ->
+        // Verify this food: pack and Opson side by side, and the right numbers to type, only where calories and macros show.
+        LeakSurface(id = "check-food-differs", label = "Verify this food, the label differs", showsCaloriesInFull = true) { policy ->
             CheckFoodSheetContent(
                 state = CheckFoodStateBuilder.build(
                     CheckModel(
@@ -194,6 +194,12 @@ object LoggerLeakSurfaces {
                                 differing = setOf(com.opson.libraries.foods.LabelNutrient.Energy),
                                 servingGrams = 55.0,
                             ),
+                        ),
+                        // "Something was wrong" on, with the label's calories in its field.
+                        somethingWrong = true,
+                        form = VerifyForm(
+                            issues = mapOf(com.opson.libraries.foods.VerifyField.Calories to FieldIssue.Wrong),
+                            values = mapOf(VerifyForm.KCAL to "230"),
                         ),
                     ),
                     policy,

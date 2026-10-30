@@ -40,7 +40,7 @@ data class BarcodeScanState(
     val suggestLight: Boolean = false,
     /**
      * A Builder's "Also read the label" (`release.builders`): null when not offered. On, a code
-     * that finds a food opens Check against the pack instead of the detail, so the next tap
+     * that finds a food opens Verify this food instead of the detail, so the next tap
      * photographs the label. Nothing is read from the scanner's frames.
      */
     val readLabel: Boolean? = null,

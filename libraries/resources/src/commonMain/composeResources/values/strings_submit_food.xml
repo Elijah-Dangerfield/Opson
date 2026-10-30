@@ -91,7 +91,7 @@
     <string name="submit_n_vitamin_b12_ug">Vitamin B12</string>
     <string name="submit_n_choline_mg">Choline</string>
 
-    <!-- Units beside a figure: the nutrient fields, the serving unit picker, the check lines and Check against the pack's rows. -->
+    <!-- Units beside a figure: the nutrient fields, the serving unit picker, the check lines and Verify this food's rows. -->
     <string name="submit_unit_kcal">kcal</string>
     <string name="submit_unit_g">g</string>
     <string name="submit_unit_mg">mg</string>

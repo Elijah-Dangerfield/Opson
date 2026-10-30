@@ -28,7 +28,8 @@ data class BuilderProgramRoute(val via: String = VIA_MORE) : Route() {
 
 /**
  * The release flag for Opson Builders (builder-program.md): More › Builders, the join prompt,
- * Builder mode in Add a packaged food, Check against the pack on a food's detail and the
+ * Builder mode in Add a packaged food, Verify this food on a food's detail (and Verify a food on
+ * the + sheet and the Foods tab), the Verified badge's Builders color and the
  * scanner's "Also read the label". Off, none of them shows. Turn it on once the server has
  * `/v1/builders` (V30); against a server without it the page says Builders isn't open yet.
  */

@@ -230,7 +230,8 @@ class FoodSearchStateBuilderTest {
     fun aPendingCatalogFoodIsUnverifiedAndAnApprovedOneIsOpsonsAndVerified() {
         val bar = LoggerFixtures.rice.copy(id = "bar", name = "Oat bar", source = FoodSource.UserSubmitted, tier = FoodTier.Community)
         val pending = bar.copy(reviewStatus = ReviewStatus.Pending)
-        val approved = bar.copy(id = "bar-2", verified = true)
+        val approved = bar.copy(id = "bar-2", verified = true, checked = true)
+
         val asked = choices("oat bar").copy(searchOptions = true)
         val filter = checkNotNull(FoodSearchStateBuilder.catalogFilter(inputs(), asked))
         val withOptions = asked.copy(search = SearchOutcome("oat bar", foods = listOf(pending, approved), offline = false, filter = filter))
