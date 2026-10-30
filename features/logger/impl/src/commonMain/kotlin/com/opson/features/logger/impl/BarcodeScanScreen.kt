@@ -73,6 +73,7 @@ import opson.libraries.resources.generated.resources.barcode_camera_unavailable_
 import opson.libraries.resources.generated.resources.barcode_cancel
 import opson.libraries.resources.generated.resources.barcode_code
 import opson.libraries.resources.generated.resources.barcode_hint
+import opson.libraries.resources.generated.resources.barcode_hint_dark
 import opson.libraries.resources.generated.resources.barcode_light_off
 import opson.libraries.resources.generated.resources.barcode_light_on
 import opson.libraries.resources.generated.resources.barcode_look_up
@@ -132,7 +133,7 @@ fun BarcodeScanScreen(
             // The list is the answer, so it sits right under the title where the camera was.
             if (state.stage !is ScanStage.Matches) CameraWindow(state, onAction, viewfinder)
             state.readLabel?.let { on -> ReadLabelRow(on, onAction) }
-            StageContent(state.stage, onAction)
+            StageContent(state.stage, state.suggestLight, onAction)
         }
     }
 }
@@ -286,10 +287,10 @@ private fun TorchButton(on: Boolean, onClick: () -> Unit, modifier: Modifier) {
 }
 
 @Composable
-private fun StageContent(stage: ScanStage, onAction: (BarcodeScanAction) -> Unit) {
+private fun StageContent(stage: ScanStage, suggestLight: Boolean, onAction: (BarcodeScanAction) -> Unit) {
     when (stage) {
         ScanStage.Starting -> Unit
-        ScanStage.Scanning -> Scanning(onAction)
+        ScanStage.Scanning -> Scanning(suggestLight, onAction)
         is ScanStage.Typing -> Typing(stage, onAction)
         ScanStage.CameraUnavailable -> Options(
             title = stringResource(Res.string.barcode_camera_unavailable_title),
@@ -388,11 +389,11 @@ private fun Miss(stage: ScanStage.Miss, onAction: (BarcodeScanAction) -> Unit) {
     }
 }
 
-/** The camera is live: the hint, and the ways out that don't need it. */
+/** The camera is live: the hint (the light, when it's dark), and the ways out that don't need it. */
 @Composable
-private fun Scanning(onAction: (BarcodeScanAction) -> Unit) {
+private fun Scanning(suggestLight: Boolean, onAction: (BarcodeScanAction) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
-        Caption(stringResource(Res.string.barcode_hint))
+        Caption(stringResource(if (suggestLight) Res.string.barcode_hint_dark else Res.string.barcode_hint))
         ButtonPrimary(
             onClick = { onAction(BarcodeScanAction.TypeCodeTapped) },
             style = ButtonStyle.Tonal,
