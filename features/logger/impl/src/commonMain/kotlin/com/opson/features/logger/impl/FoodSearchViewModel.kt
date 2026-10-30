@@ -147,9 +147,9 @@ class FoodSearchViewModel(
                 pick(action, action.row)
             } else {
                 action.choose { copy(focusSearch = false) }
+                sendEvent(SearchEvent.OpenFoodDetail(action.row.ref, action.row.source, day, slot()))
                 // Opening a result is half a choice: the detail is where many people log from.
                 learn(action.row, weight = OPENED)
-                sendEvent(SearchEvent.OpenFoodDetail(action.row.ref, action.row.source, day, slot()))
             }
             is SearchAction.AddTapped -> if (pickForMeal != null) pick(action, action.row) else add(action.row)
             is SearchAction.SavedMealAddTapped -> addSavedMeal(action.id)
@@ -249,8 +249,8 @@ class FoodSearchViewModel(
         // A closed day refuses it, and the day it reads says so in place of the lists.
         val committed = logger.log(day, slot, listOf(pick.toLogPick()))?.valueOrNull() ?: return
         unshown.logged(row.key, committed.itemIds)
-        learn(row)
         committed.event?.let { sendEvent(SearchEvent.Added(row.shortName, it)) }
+        learn(row)
     }
 
     /**
