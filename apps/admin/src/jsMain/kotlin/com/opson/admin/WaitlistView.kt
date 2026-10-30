@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import kotlinx.browser.document
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.placeholder
 import org.jetbrains.compose.web.dom.Button
@@ -21,10 +20,6 @@ import org.jetbrains.compose.web.dom.TextInput
 import org.jetbrains.compose.web.dom.Th
 import org.jetbrains.compose.web.dom.Thead
 import org.jetbrains.compose.web.dom.Tr
-import org.w3c.dom.HTMLAnchorElement
-import org.w3c.dom.url.URL
-import org.w3c.files.Blob
-import org.w3c.files.BlobPropertyBag
 
 private const val PAGE_SIZE = 50
 
@@ -70,7 +65,7 @@ internal fun WaitlistView(ctx: AdminCtx) {
         ctx.scope.launch {
             Catching {
                 val csv = ctx.api.exportWaitlistCsv()
-                downloadCsv("opson-waitlist-${ctx.envName.lowercase()}.csv", csv)
+                downloadText("opson-waitlist-${ctx.envName.lowercase()}.csv", csv, "text/csv;charset=utf-8")
                 val rows = csv.trimEnd().lines().size - 1
                 ctx.setStatus(Status(true, "Exported $rows address(es) from ${ctx.envName}."))
             }.onFailure { ctx.setStatus(Status(false, it.message ?: "Export failed")) }
@@ -161,15 +156,4 @@ internal fun WaitlistView(ctx: AdminCtx) {
             }
         }
     }
-}
-
-/** Hands [csv] to the browser as a file download. Nothing leaves the page but the file. */
-private fun downloadCsv(fileName: String, csv: String) {
-    val blob = Blob(arrayOf(csv), BlobPropertyBag(type = "text/csv;charset=utf-8"))
-    val url = URL.createObjectURL(blob)
-    val link = document.createElement("a") as HTMLAnchorElement
-    link.href = url
-    link.download = fileName
-    link.click()
-    URL.revokeObjectURL(url)
 }
