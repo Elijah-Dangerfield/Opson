@@ -152,7 +152,7 @@ private fun Photos(state: CheckFoodState, next: PackSide, onAction: (CheckFoodAc
             title = stringResource(Res.string.builder_verify_front_title),
             hint = stringResource(Res.string.builder_verify_front_hint),
             description = stringResource(Res.string.builder_verify_front_title),
-            onTake = takeIf(state, next == PackSide.Front, onAction),
+            onTake = cameraAction(state, next == PackSide.Front, onAction),
             onChoose = { onAction(CheckFoodAction.ChooseFromLibraryTapped) }.takeIf { next == PackSide.Front },
             onRemove = null,
         )
@@ -178,13 +178,14 @@ private fun LabelSlot(state: CheckFoodState, active: Boolean, onAction: (CheckFo
         title = stringResource(Res.string.builder_verify_label_title),
         hint = stringResource(Res.string.builder_verify_label_hint),
         description = stringResource(Res.string.submit_label_cd),
-        onTake = takeIf(state, active, onAction),
+        onTake = cameraAction(state, active, onAction),
         onChoose = { onAction(CheckFoodAction.ChooseFromLibraryTapped) }.takeIf { active },
         onRemove = null,
     )
 }
 
-private fun takeIf(state: CheckFoodState, active: Boolean, onAction: (CheckFoodAction) -> Unit): (() -> Unit)? =
+/** The camera button for the photo up next, where there is a camera and it may be used. */
+private fun cameraAction(state: CheckFoodState, active: Boolean, onAction: (CheckFoodAction) -> Unit): (() -> Unit)? =
     { onAction(CheckFoodAction.TakePhotoTapped) }.takeIf { active && state.canTakePhoto && !state.cameraOff }
 
 @Composable
