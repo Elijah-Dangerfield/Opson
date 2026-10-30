@@ -2,7 +2,12 @@ package com.opson.libraries.goals
 
 import com.opson.libraries.diary.Day
 import com.opson.libraries.diary.GoalBook
+import com.opson.libraries.nutrition.Burned
+import com.opson.libraries.nutrition.GoalContext
+import com.opson.libraries.nutrition.GoalDays
 import com.opson.libraries.nutrition.GoalVerdict
+import com.opson.libraries.nutrition.RestingEnergy
+import com.opson.libraries.nutrition.RestingFrom
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
@@ -79,6 +84,18 @@ class GoalStatusesTest {
         assertTrue(facts.untracked)
         assertEquals(0, facts.mealsWithFood)
         assertEquals(false, facts.showedUp)
+    }
+
+    @Test
+    fun anActiveBurn_countsRealActivityOnly_andADayWithOnlyTheEstimateIsNotJudged() {
+        val resting = RestingEnergy(1610, RestingFrom.Calculated)
+        val estimate = GoalStatuses.facts(Day(GoalFixtures.monday), Burned(resting, everydayKcal = 600, foodKcal = 150))
+        assertNull(estimate.activeKcal, "the everyday estimate and digesting food aren't activity")
+        val days = GoalDays.verdicts(GoalFixtures.burn, listOf(GoalFixtures.monday), mapOf(GoalFixtures.monday to estimate), GoalContext(today = GoalFixtures.today))
+        assertEquals(GoalVerdict.NotCounted, days.single().verdict)
+
+        val moved = GoalStatuses.facts(Day(GoalFixtures.monday), Burned(resting, movementKcal = 300, workoutKcal = 150, exerciseKcal = 100, foodKcal = 150))
+        assertEquals(550, moved.activeKcal)
     }
 
     @Test

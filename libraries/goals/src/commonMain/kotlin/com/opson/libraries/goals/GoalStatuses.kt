@@ -62,7 +62,7 @@ object GoalStatuses {
             closed = day.closedByUser,
             eatenKcal = kcal.value?.takeUnless { kcal.isPartial },
             burnedKcal = burned?.totalKcal,
-            activeKcal = burned?.aboveRestingKcal,
+            activeKcal = burned?.realActivityKcal,
             steps = steps,
             mealsWithFood = day.doneMealCount,
             showedUp = !day.untracked && (day.hasLogged || day.closedByUser || day.checkIn != null),
