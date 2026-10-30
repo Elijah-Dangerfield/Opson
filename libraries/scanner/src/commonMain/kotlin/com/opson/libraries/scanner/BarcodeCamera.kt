@@ -3,8 +3,24 @@ package com.opson.libraries.scanner
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
-/** The retail symbologies food packs carry. Nothing else is asked for, which keeps reads fast and false reads rare. */
-enum class BarcodeFormat { Ean13, Ean8, UpcA, UpcE }
+/**
+ * What the camera reads. A food scan asks only for the retail symbologies packs carry ([Retail]),
+ * which keeps reads fast and false reads rare; scanning a recipe's code asks for [Qr] alone.
+ */
+enum class BarcodeFormat {
+    Ean13,
+    Ean8,
+    UpcA,
+    UpcE,
+
+    /** A QR code; [ScannedCode.value] is its text as written. */
+    Qr,
+    ;
+
+    companion object {
+        val Retail: Set<BarcodeFormat> = setOf(Ean13, Ean8, UpcA, UpcE)
+    }
+}
 
 /** One read from the camera: the digits as decoded, and the symbology. */
 data class ScannedCode(val value: String, val format: BarcodeFormat)
@@ -54,8 +70,7 @@ class FocusPoint(val x: Float, val y: Float)
  */
 interface BarcodeCamera {
     /**
-     * The live camera, reading EAN-13, EAN-8, UPC-A and UPC-E inside
-     * [scanArea]. Calls [onCode] on the main thread for every read, many times
+     * The live camera, reading [formats] inside [scanArea]. Calls [onCode] on the main thread for every read, many times
      * a second for the same pack; the caller decides which to keep. With more
      * than one code in the area, the one nearest the middle is read. Calls
      * [onUnavailable] on the main thread when the camera cannot run even
@@ -73,6 +88,7 @@ interface BarcodeCamera {
      */
     @Composable
     fun Viewfinder(
+        formats: Set<BarcodeFormat>,
         onCode: (ScannedCode) -> Unit,
         onUnavailable: () -> Unit,
         scanArea: ScanArea,

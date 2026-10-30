@@ -80,6 +80,7 @@ class AndroidBarcodeCamera @Inject constructor(
      */
     @Composable
     override fun Viewfinder(
+        formats: Set<BarcodeFormat>,
         onCode: (ScannedCode) -> Unit,
         onUnavailable: () -> Unit,
         scanArea: ScanArea,
@@ -102,11 +103,12 @@ class AndroidBarcodeCamera @Inject constructor(
                 implementationMode = PreviewView.ImplementationMode.COMPATIBLE
             }
         }
-        val session = remember(context, lifecycleOwner, previewView) {
+        val session = remember(context, lifecycleOwner, previewView, formats) {
             CameraSession(
                 context = context,
                 lifecycleOwner = lifecycleOwner,
                 previewView = previewView,
+                formats = formats,
                 onCode = { code -> latestOnCode(code) },
                 onUnavailable = { latestOnUnavailable() },
                 onTorchAvailable = { available -> latestOnTorchAvailable(available) },
@@ -153,6 +155,7 @@ private class CameraSession(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
     private val previewView: PreviewView,
+    formats: Set<BarcodeFormat>,
     private val onCode: (ScannedCode) -> Unit,
     private val onUnavailable: () -> Unit,
     private val onTorchAvailable: (Boolean) -> Unit,
@@ -176,9 +179,9 @@ private class CameraSession(
     }
     private val analysisExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val scanner: BarcodeScanner = BarcodeScanning.getClient(
-        BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_EAN_8, Barcode.FORMAT_UPC_A, Barcode.FORMAT_UPC_E)
-            .build(),
+        formats.map(::mlKitFormat).let { asked ->
+            BarcodeScannerOptions.Builder().setBarcodeFormats(asked.first(), *asked.drop(1).toIntArray()).build()
+        },
     )
     private var provider: ProcessCameraProvider? = null
     private var preview: Preview? = null
@@ -361,7 +364,16 @@ private fun Barcode.toScannedCode(): ScannedCode? {
         Barcode.FORMAT_EAN_8 -> BarcodeFormat.Ean8
         Barcode.FORMAT_UPC_A -> BarcodeFormat.UpcA
         Barcode.FORMAT_UPC_E -> BarcodeFormat.UpcE
+        Barcode.FORMAT_QR_CODE -> BarcodeFormat.Qr
         else -> return null
     }
     return ScannedCode(value, format)
+}
+
+private fun mlKitFormat(format: BarcodeFormat): Int = when (format) {
+    BarcodeFormat.Ean13 -> Barcode.FORMAT_EAN_13
+    BarcodeFormat.Ean8 -> Barcode.FORMAT_EAN_8
+    BarcodeFormat.UpcA -> Barcode.FORMAT_UPC_A
+    BarcodeFormat.UpcE -> Barcode.FORMAT_UPC_E
+    BarcodeFormat.Qr -> Barcode.FORMAT_QR_CODE
 }

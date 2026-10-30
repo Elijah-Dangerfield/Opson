@@ -55,6 +55,7 @@ import com.opson.libraries.navigation.nullableSerializableType
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.scanner.BarcodeCamera
+import com.opson.libraries.scanner.BarcodeFormat
 import com.opson.libraries.scanner.MealPhotoPicker
 import com.opson.libraries.speech.MicPermissionPrompt
 import com.opson.libraries.ui.components.Screen
@@ -560,6 +561,7 @@ class LoggerFeatureEntryPoint(
             onAction = viewModel::takeAction,
             viewfinder = { request, modifier ->
                 barcodeCamera.Viewfinder(
+                    formats = BarcodeFormat.Retail,
                     onCode = { viewModel.takeAction(BarcodeScanAction.CodeRead(it)) },
                     onUnavailable = { viewModel.takeAction(BarcodeScanAction.CameraUnavailable) },
                     scanArea = request.scanArea,
