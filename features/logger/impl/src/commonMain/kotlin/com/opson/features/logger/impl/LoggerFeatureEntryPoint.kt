@@ -86,6 +86,10 @@ import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import kotlin.reflect.typeOf
+import com.opson.libraries.diary.SettingsRepository
+import opson.libraries.resources.generated.resources.adding_detail_favorited
+import opson.libraries.resources.generated.resources.adding_detail_unfavorited
+import opson.libraries.resources.generated.resources.builder_verify_already
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class, multibinding = true)
@@ -108,6 +112,7 @@ class LoggerFeatureEntryPoint(
     private val recentLogEvents: () -> RecentLogEvents,
     private val diary: () -> DiaryRepository,
     private val editor: () -> DiaryItemEditor,
+    private val settings: () -> SettingsRepository,
     // "Report a problem" on a catalog food; off, the ⋮ item opens the bug report.
     private val foodReports: FoodReportEnabled,
     // Check against the pack on a catalog food, for an active Builder.
@@ -287,7 +292,12 @@ class LoggerFeatureEntryPoint(
                     goBack()
                     navigate(PhotoEstimateRoute(event.day.toString(), event.slot))
                 }
+                is LoggerEvent.OpenVerify -> router.batch {
+                    goBack()
+                    navigate(CheckPackRoute(event.day.toString()))
+                }
                 is LoggerEvent.OpenPackagedFood -> router.batch {
+
                     goBack()
                     navigate(SubmitFoodRoute(event.day.toString(), event.slot, entry = SubmitEntry.AddSheet))
                 }
@@ -426,7 +436,8 @@ class LoggerFeatureEntryPoint(
                     event.target?.takeIf { foodReports() }?.route()
                         ?: BugReportRoute(contextMessage = getString(Res.string.adding_detail_report_context, event.refKey)),
                 )
-                is FoodDetailEvent.OpenCheck -> router.navigate(CheckFoodRoute(event.target.foodId, event.target.name))
+                is FoodDetailEvent.OpenVerify -> router.navigate(CheckFoodRoute(event.foodId, event.name))
+                is FoodDetailEvent.FavoriteChanged -> showFavorite(event.key, event.starred)
                 is FoodDetailEvent.OpenEditCopy -> router.navigate(
                     EditCopyRoute(
                         dayIso = event.day.toString(),
@@ -438,8 +449,9 @@ class LoggerFeatureEntryPoint(
             }
         }
 
+        val standing by builderProgram.standing.collectAsStateWithLifecycle()
         Screen(containerColor = AppTheme.colors.bg.color) { padding ->
-            val canCheck = builders.value && builderProgram.isBuilder
+            val canCheck = builders.value && standing?.isActive == true
             FoodDetailContent(state = state.copy(canCheck = canCheck), onAction = viewModel::takeAction, modifier = Modifier.padding(padding))
         }
     }
@@ -510,10 +522,14 @@ class LoggerFeatureEntryPoint(
                 BarcodeScanEvent.RequestPermission -> requestPermission()
                 BarcodeScanEvent.Scanned -> haptics.confirm()
                 // The food detail takes this screen's place.
-                is BarcodeScanEvent.OpenFoodDetail -> router.batch {
-                    goBack()
-                    navigate(FoodDetailRoute(event.foodId, isCustom = false, source = PickSource.Barcode, dayIso = event.day.toString(), slot = event.slot))
+                is BarcodeScanEvent.OpenFoodDetail -> {
+                    event.alreadyVerified?.let { showSnackBar(message = getString(Res.string.builder_verify_already, it)) }
+                    router.batch {
+                        goBack()
+                        navigate(FoodDetailRoute(event.foodId, isCustom = false, source = PickSource.Barcode, dayIso = event.day.toString(), slot = event.slot))
+                    }
                 }
+
                 // A Builder reading the label: Check against the pack takes the scanner's place.
                 is BarcodeScanEvent.OpenCheck -> router.batch {
                     goBack()
@@ -575,7 +591,17 @@ class LoggerFeatureEntryPoint(
         )
     }
 
+    /** The star's snackbar. Undo puts the star back as it was, even once the detail has closed. */
+    private suspend fun showFavorite(key: String, starred: Boolean) {
+        showSnackBar(
+            message = getString(if (starred) Res.string.adding_detail_favorited else Res.string.adding_detail_unfavorited),
+            actionLabel = getString(Res.string.adding_undo),
+            onAction = { appScope().launch { settings().update { it.setFavorite(key, !starred) } } },
+        )
+    }
+
     private suspend fun showWaterAdded(day: LocalDate, ml: Int) {
+
         showSnackBar(
             message = getString(Res.string.adding_water_added),
             actionLabel = getString(Res.string.adding_undo),

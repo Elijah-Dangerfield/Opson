@@ -138,22 +138,12 @@
     <string name="builder_sent_published">%1$s is in Opson's food database. Thanks for adding it.</string>
 
     <!-- Check against the pack -->
-    <string name="builder_check_menu">Check against the pack</string>
-    <string name="builder_check_title">Check against the pack</string>
-    <string name="builder_check_intro">Photograph the nutrition label. Your phone reads it and compares it with Opson's numbers. Only the text is sent to Opson, not the photo.</string>
     <string name="builder_check_reading">Reading the label…</string>
     <string name="builder_check_unreadable">Couldn't read a nutrition label in that photo. Try again closer, with the whole panel in view.</string>
-    <string name="builder_check_matches_title">It matches the pack</string>
-    <string name="builder_check_matches_body">Send it and this counts as a check.</string>
-    <string name="builder_check_send">Send the check</string>
     <string name="builder_check_differs_title">The pack says something different</string>
     <string name="builder_check_differs_hidden">Some numbers on the pack don't match what Opson has.</string>
     <string name="builder_check_row_pack">Pack</string>
     <string name="builder_check_row_opson">Opson</string>
-    <string name="builder_check_correct">Send a correction</string>
-    <string name="builder_check_correct_note">Checked against the pack by a Builder.</string>
-    <string name="builder_check_retake">Take another photo</string>
-    <string name="builder_check_confirmed">Thanks, that's checked.</string>
     <string name="builder_check_unconfirmed">Some numbers couldn't be read, so this check doesn't count. Try a clearer photo.</string>
     <string name="builder_check_corrected">Thanks. Your correction is with Opson's reviewers.</string>
     <string name="builder_check_not_builder">Checking foods is for Builders.</string>
@@ -163,7 +153,51 @@
     <string name="builder_check_per_serving">Per serving</string>
     <string name="builder_check_per_100">Per 100 g</string>
 
+    <!-- Verify this food: a Builder's card on a food's detail and the sheet it opens -->
+    <string name="builder_verify_card_title">Verify this food</string>
+    <string name="builder_verify_card_body">Nobody has checked it against the pack yet.</string>
+    <string name="builder_verify_title">Verify this food</string>
+    <string name="builder_verify_intro">Take two photos: the front of the pack, then the nutrition label. Your phone reads the label and compares it with what Opson has.</string>
+    <string name="builder_verify_front_title">Front of the pack</string>
+    <string name="builder_verify_front_hint">Optional. It shows the reviewer the name and size.</string>
+    <string name="builder_verify_label_title">Nutrition label</string>
+    <string name="builder_verify_label_hint">The whole panel, straight on.</string>
+    <string name="builder_verify_skip_front">Skip the front</string>
+    <string name="builder_verify_photos_kept">Opson keeps the photos only if a reviewer needs to look at them.</string>
+    <string name="builder_verify_matches_title">It matches what Opson has</string>
+    <string name="builder_verify_matches_body">Verify it and everyone sees it as Verified.</string>
+    <string name="builder_verify_something_wrong">Something was wrong</string>
+    <string name="builder_verify_something_wrong_sub">Wrong or missing information</string>
+    <string name="builder_verify_what">What was off?</string>
+    <string name="builder_verify_wrong">Wrong</string>
+    <string name="builder_verify_missing">Missing</string>
+    <string name="builder_verify_field_calories">Calories</string>
+    <string name="builder_verify_field_macros">Protein, carbs or fat</string>
+    <string name="builder_verify_field_serving">Serving size</string>
+    <string name="builder_verify_field_name">Name or brand</string>
+    <string name="builder_verify_field_ingredients">Ingredients or allergens</string>
+    <string name="builder_verify_field_barcode">Barcode</string>
+    <string name="builder_verify_values_title">What the pack says</string>
+    <string name="builder_verify_name">Name</string>
+    <string name="builder_verify_brand">Brand</string>
+    <string name="builder_verify_barcode">Barcode</string>
+    <string name="builder_verify_serving_grams">Serving weight</string>
+    <string name="builder_verify_note">Note for the reviewer (optional)</string>
+    <string name="builder_verify_note_hint">New recipe, a different size, anything that helps</string>
+    <string name="builder_verify_send">Verify</string>
+    <string name="builder_verify_send_review">Send for review</string>
+    <string name="builder_verify_again">Take the photos again</string>
+    <string name="builder_verify_confirmed">Thanks. Everyone sees it as Verified now.</string>
+    <string name="builder_verify_in_review">Thanks. A reviewer will look at your photos and fix the food.</string>
+    <string name="builder_verify_already">%1$s is already verified.</string>
+
+    <!-- Verify a food: the + sheet's tile and the Foods tab's card, which open the scanner -->
+    <string name="builder_verify_tile">Verify a food</string>
+    <string name="builder_verify_foods_title">Verify a food</string>
+    <string name="builder_verify_foods_body">Scan a pack and check it against what Opson has.</string>
+
     <!-- The scanner -->
+
     <string name="builder_scan_read_label">Also read the label</string>
     <string name="builder_scan_read_label_on">After the code, you'll photograph the label</string>
 </resources>

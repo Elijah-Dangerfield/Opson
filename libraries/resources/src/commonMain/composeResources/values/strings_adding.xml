@@ -112,5 +112,15 @@
     <string name="adding_detail_remove">Remove from log</string>
     <string name="adding_detail_saved">Changes saved</string>
     <string name="adding_detail_removed">%1$s removed</string>
+    <string name="adding_detail_favorited">Added to favorites</string>
+    <string name="adding_detail_unfavorited">Removed from favorites</string>
+
+    <!-- The Verified badge: on search rows, a food's detail, the Foods tab and Pick a match -->
+    <string name="food_check_verified">Verified</string>
+    <string name="food_check_verified_cd">Verified. A person checked it against the package.</string>
+    <string name="food_check_verified_about">A person checked these numbers against the package.</string>
+    <string name="food_check_unverified_about">%1$s. Nobody has checked it against the package yet.</string>
+    <string name="food_check_unverified_about_plain">Nobody has checked it against the package yet.</string>
+
 
 </resources>

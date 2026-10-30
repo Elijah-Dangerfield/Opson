@@ -167,7 +167,7 @@ object LoggerLeakSurfaces {
                         amountText = "8.0 fl oz (240 ml)",
                         amountGrams = 240.0,
                         canTakePhoto = true,
-                        reason = com.opson.libraries.foods.FoodReportReason.WrongCalories,
+                        picked = setOf(com.opson.libraries.foods.FoodReportReason.WrongNumbers),
                         fields = mapOf(FoodReportStateBuilder.KCAL to "5", FoodReportStateBuilder.CARBS to "2"),
                     ),
                     policy,

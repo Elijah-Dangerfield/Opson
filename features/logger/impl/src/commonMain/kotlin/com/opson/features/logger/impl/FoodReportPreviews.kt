@@ -6,6 +6,7 @@ import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.nutrition.ui.previewVisibilityPolicy
 import com.opson.libraries.ui.PreviewContent
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import com.opson.libraries.scanner.MealPhoto
 
 // Every state comes from FoodReportStateBuilder over a model, as the view model builds it.
 // One theme per preview.
@@ -36,12 +37,12 @@ private fun FoodReportPreview() = Report(monster)
 @Composable
 private fun FoodReportDarkPreview() = Report(monster, dark = true)
 
-/** Wrong calories: the right numbers for the serving on screen, typed in, and a note. */
-@Preview(widthDp = 390, heightDp = 1500)
+/** Wrong numbers and missing information: the right numbers for the serving on screen, typed in, and a note. */
+@Preview(widthDp = 390, heightDp = 1700)
 @Composable
 private fun FoodReportCaloriesPreview() = Report(
     monster.copy(
-        reason = FoodReportReason.WrongCalories,
+        picked = setOf(FoodReportReason.WrongNumbers, FoodReportReason.MissingInfo),
         fields = mapOf(FoodReportStateBuilder.KCAL to "5", FoodReportStateBuilder.CARBS to "2", FoodReportStateBuilder.SERVING to "1 can, 473 ml"),
         note = "The can says 10 calories",
     ),
@@ -50,21 +51,28 @@ private fun FoodReportCaloriesPreview() = Report(
 /** No numbers: the reason and the serving, never a calorie or a macro to type. */
 @Preview(widthDp = 390, heightDp = 1300)
 @Composable
-private fun FoodReportNoNumbersPreview() = Report(monster.copy(reason = FoodReportReason.WrongServing), policy = noNumbers)
+private fun FoodReportNoNumbersPreview() = Report(monster.copy(picked = setOf(FoodReportReason.WrongServing)), policy = noNumbers)
 
 /** Offline: everything kept, and a word on sending it later. */
 @Preview(widthDp = 390, heightDp = 1500)
 @Composable
 private fun FoodReportOfflinePreview() = Report(
-    monster.copy(reason = FoodReportReason.WrongCalories, fields = mapOf(FoodReportStateBuilder.KCAL to "5"), problem = ReportProblem.Offline),
+    monster.copy(picked = setOf(FoodReportReason.WrongNumbers), fields = mapOf(FoodReportStateBuilder.KCAL to "5"), problem = ReportProblem.Offline),
 )
 
 /** Sending. */
 @Preview(widthDp = 390, heightDp = 1100)
 @Composable
-private fun FoodReportSendingPreview() = Report(monster.copy(reason = FoodReportReason.Duplicate, sending = true))
+private fun FoodReportSendingPreview() = Report(monster.copy(picked = setOf(FoodReportReason.Duplicate), sending = true))
+
+/** Both photos of the pack added: the front and the back. */
+@Preview(widthDp = 390, heightDp = 1300)
+@Composable
+private fun FoodReportPhotosPreview() = Report(
+    monster.copy(picked = setOf(FoodReportReason.WrongName), front = MealPhoto(byteArrayOf(1, 2, 3)), photo = MealPhoto(byteArrayOf(4, 5, 6))),
+)
 
 /** The camera was refused: the library still works. */
 @Preview(widthDp = 390, heightDp = 1100)
 @Composable
-private fun FoodReportCameraOffPreview() = Report(monster.copy(reason = FoodReportReason.NotFood, cameraOff = true))
+private fun FoodReportCameraOffPreview() = Report(monster.copy(picked = setOf(FoodReportReason.NotFood), cameraOff = true))

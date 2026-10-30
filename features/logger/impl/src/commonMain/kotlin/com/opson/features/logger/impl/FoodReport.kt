@@ -36,9 +36,13 @@ data class ReportTarget(val foodId: String, val name: String, val amountText: St
 data class FoodReportState(
     val name: String,
     val reasons: List<FoodReportReason> = FoodReportReason.entries,
-    val reason: FoodReportReason? = null,
-    /** The right numbers, for a reason about them; null for any other reason. */
+    /** Every reason picked; several can be. */
+    val picked: Set<FoodReportReason> = emptySet(),
+    /** The right numbers, once a reason about them is picked; null otherwise. */
     val values: ReportValues? = null,
+    /** The front of the pack, optional. */
+    val front: MealPhoto? = null,
+    /** The back of the pack, its nutrition label, optional. */
     val photo: MealPhoto? = null,
     /** False where there is no camera (the iOS simulator): only the library is offered. */
     val canTakePhoto: Boolean = true,
@@ -77,17 +81,20 @@ enum class ReportProblem { Offline, Failed, TooMany, Gone }
 
 sealed interface FoodReportAction {
     data class PolicyArrived(val policy: VisibilityPolicy) : FoodReportAction
-    data class ReasonPicked(val reason: FoodReportReason) : FoodReportAction
+
+    /** Picks [reason], or unpicks it when it is already picked. */
+    data class ReasonToggled(val reason: FoodReportReason) : FoodReportAction
 
     /** [key] is one of [FoodReportStateBuilder.FIELDS]. */
     data class FieldTyped(val key: String, val text: String) : FoodReportAction
     data class NoteTyped(val text: String) : FoodReportAction
-    data object TakePhotoTapped : FoodReportAction
-    data object ChooseFromLibraryTapped : FoodReportAction
+    /** The camera or the library for [side]; the answer comes back as [PhotoAnswered] for that side. */
+    data class TakePhotoTapped(val side: PackSide) : FoodReportAction
+    data class ChooseFromLibraryTapped(val side: PackSide) : FoodReportAction
     data class CameraPermissionAnswered(val permission: CameraPermission) : FoodReportAction
     data object OpenSettingsTapped : FoodReportAction
     data class PhotoAnswered(val result: PhotoPickResult) : FoodReportAction
-    data object RemovePhotoTapped : FoodReportAction
+    data class RemovePhotoTapped(val side: PackSide) : FoodReportAction
     data object SendTapped : FoodReportAction
 }
 
@@ -106,9 +113,10 @@ data class FoodReportModel(
     val amountText: String?,
     val amountGrams: Double?,
     val canTakePhoto: Boolean,
-    val reason: FoodReportReason? = null,
+    val picked: Set<FoodReportReason> = emptySet(),
     val fields: Map<String, String> = emptyMap(),
     val note: String = "",
+    val front: MealPhoto? = null,
     val photo: MealPhoto? = null,
     val photoFailed: Boolean = false,
     val cameraOff: Boolean = false,
@@ -126,8 +134,8 @@ object FoodReportStateBuilder {
     val FIELDS = listOf(KCAL, PROTEIN, CARBS, FAT, SERVING)
     private val NUMBERS = listOf(KCAL, PROTEIN, CARBS, FAT)
 
-    /** The reasons that are about numbers, so the sheet asks for the right ones. */
-    private val ABOUT_NUMBERS = setOf(FoodReportReason.WrongCalories, FoodReportReason.WrongNutrients, FoodReportReason.WrongServing)
+    /** The reasons that are about numbers, so the sheet asks for the right ones. Missing ones are numbers too. */
+    private val ABOUT_NUMBERS = setOf(FoodReportReason.WrongNumbers, FoodReportReason.MissingInfo, FoodReportReason.WrongServing)
     private const val MAX_NOTE = 1_000
 
     /** Calories and every macro are on show: a mode that hides them never asks for them either. */
@@ -136,8 +144,8 @@ object FoodReportStateBuilder {
 
     fun build(model: FoodReportModel, policy: VisibilityPolicy): FoodReportState = FoodReportState(
         name = model.name,
-        reason = model.reason,
-        values = model.reason?.takeIf { it in ABOUT_NUMBERS }?.let {
+        picked = model.picked,
+        values = model.picked.takeIf { picked -> picked.any { it in ABOUT_NUMBERS } }?.let {
             val shown = numbersShown(policy)
             ReportValues(
                 basis = basis(model),
@@ -149,6 +157,7 @@ object FoodReportStateBuilder {
                 serving = model.fields[SERVING].orEmpty(),
             )
         },
+        front = model.front,
         photo = model.photo,
         canTakePhoto = model.canTakePhoto,
         photoFailed = model.photoFailed,
@@ -156,7 +165,7 @@ object FoodReportStateBuilder {
         note = model.note,
         sending = model.sending,
         problem = model.problem,
-        canSend = model.reason != null && !model.sending && model.problem != ReportProblem.Gone,
+        canSend = model.picked.isNotEmpty() && !model.sending && model.problem != ReportProblem.Gone,
     )
 
     /** "8 fl oz (240 ml)" as the detail had it, its weight added when the amount does not say it. */
@@ -172,7 +181,7 @@ object FoodReportStateBuilder {
      * reason asks for. Numbers that do not read are left out rather than sent wrong.
      */
     fun suggested(model: FoodReportModel, policy: VisibilityPolicy): SuggestedFoodValues? {
-        if (model.reason !in ABOUT_NUMBERS) return null
+        if (model.picked.none { it in ABOUT_NUMBERS }) return null
         val shown = numbersShown(policy)
         fun number(key: String) = model.fields[key]?.trim()?.replace(',', '.')?.toDoubleOrNull()?.takeIf { shown && it >= 0 }
         val values = SuggestedFoodValues(
@@ -188,6 +197,9 @@ object FoodReportStateBuilder {
     }
 
     fun note(text: String): String = text.take(MAX_NOTE)
+
+    /** The picked reasons in the sheet's order, which is what the server reads first. */
+    fun reasons(model: FoodReportModel): List<FoodReportReason> = FoodReportReason.entries.filter { it in model.picked }
 
     /** A field as it is typed: a number keeps digits and one decimal point, the serving is free text. */
     fun typed(key: String, text: String): String = if (key in NUMBERS) {

@@ -2,28 +2,20 @@ package com.opson.features.logger.impl
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import com.opson.libraries.diary.ui.FoodRowsCard
 import com.opson.libraries.diary.ui.SectionLabel
 import com.opson.libraries.foods.FoodReportReason
 import com.opson.libraries.ui.components.NoteBanner
-import com.opson.libraries.ui.components.PhotoThumbnail
 import com.opson.libraries.ui.components.SheetHeader
 import com.opson.libraries.ui.components.button.ButtonGhost
 import com.opson.libraries.ui.components.button.ButtonPrimary
-import com.opson.libraries.ui.components.button.ButtonSecondary
 import com.opson.libraries.ui.components.button.ButtonSize
-import com.opson.libraries.ui.components.button.ButtonStyle
-import com.opson.libraries.ui.components.icon.AppIcons
-import com.opson.libraries.ui.components.radio.RadioRow
 import com.opson.libraries.ui.components.text.NumberField
 import com.opson.libraries.ui.components.text.SingleLineField
 import com.opson.libraries.ui.components.text.Text
@@ -43,14 +35,11 @@ import opson.libraries.resources.generated.resources.food_report_note_hint
 import opson.libraries.resources.generated.resources.food_report_offline
 import opson.libraries.resources.generated.resources.food_report_photo_cd
 import opson.libraries.resources.generated.resources.food_report_photo_hint
-import opson.libraries.resources.generated.resources.food_report_photo_remove
 import opson.libraries.resources.generated.resources.food_report_photo_title
 import opson.libraries.resources.generated.resources.food_report_protein
-import opson.libraries.resources.generated.resources.food_report_reason_calories
 import opson.libraries.resources.generated.resources.food_report_reason_duplicate
 import opson.libraries.resources.generated.resources.food_report_reason_name
 import opson.libraries.resources.generated.resources.food_report_reason_not_food
-import opson.libraries.resources.generated.resources.food_report_reason_nutrients
 import opson.libraries.resources.generated.resources.food_report_reason_other
 import opson.libraries.resources.generated.resources.food_report_reason_serving
 import opson.libraries.resources.generated.resources.food_report_send
@@ -65,13 +54,19 @@ import opson.libraries.resources.generated.resources.food_report_values_for_100
 import opson.libraries.resources.generated.resources.food_report_values_title
 import opson.libraries.resources.generated.resources.food_report_what
 import opson.libraries.resources.generated.resources.logger_amount_kcal
-import opson.libraries.resources.generated.resources.submit_choose
 import opson.libraries.resources.generated.resources.submit_open_settings
 import opson.libraries.resources.generated.resources.submit_photo_failed
-import opson.libraries.resources.generated.resources.submit_retake
-import opson.libraries.resources.generated.resources.submit_take
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import com.opson.libraries.ui.components.CheckRow
+import com.opson.libraries.ui.components.HorizontalDivider
+import opson.libraries.resources.generated.resources.food_report_reason_numbers
+import opson.libraries.resources.generated.resources.food_report_reason_missing
+import opson.libraries.resources.generated.resources.food_report_reason_missing_sub
+import opson.libraries.resources.generated.resources.food_report_photos
+import opson.libraries.resources.generated.resources.food_report_front_title
+import opson.libraries.resources.generated.resources.food_report_front_hint
+import opson.libraries.resources.generated.resources.food_report_front_cd
 
 /**
  * "Report a problem", stateless: what is wrong, the right numbers when the reason is about them,
@@ -97,17 +92,18 @@ fun FoodReportSheetContent(
             SectionLabel(stringResource(Res.string.food_report_what))
             FoodRowsCard {
                 state.reasons.forEachIndexed { index, reason ->
-                    RadioRow(
+                    CheckRow(
                         title = stringResource(reason.label),
-                        selected = reason == state.reason,
-                        onClick = { onAction(FoodReportAction.ReasonPicked(reason)) },
+                        subtitle = reason.detail?.let { stringResource(it) },
+                        checked = reason in state.picked,
+                        onCheckedChange = { onAction(FoodReportAction.ReasonToggled(reason)) },
                         showDivider = index < state.reasons.lastIndex,
                     )
                 }
             }
         }
         state.values?.let { Values(it, onAction) }
-        PhotoCard(state, onAction)
+        Photos(state, onAction)
         Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
             SectionLabel(stringResource(Res.string.food_report_note))
             TextArea(
@@ -169,49 +165,40 @@ private fun Number(label: StringResource, value: String, key: String, unit: Stri
     }
 }
 
-/** The label photo: the thumbnail once there is one, and the ways to get or drop it. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Photos of the front and the back of the pack, each optional, each with its own buttons. */
 @Composable
-private fun PhotoCard(state: FoodReportState, onAction: (FoodReportAction) -> Unit) {
-    FoodRowsCard {
-        Row(
-            modifier = Modifier.padding(vertical = AppTheme.spacing.section),
-            horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row),
-            verticalAlignment = Alignment.Top,
-        ) {
-            PhotoThumbnail(jpeg = state.photo?.jpeg, contentDescription = stringResource(Res.string.food_report_photo_cd))
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-                Text(stringResource(Res.string.food_report_photo_title), typography = AppTheme.type.cardTitle, color = AppTheme.colors.ink)
-                Text(stringResource(Res.string.food_report_photo_hint), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
-                    if (state.canTakePhoto && !state.cameraOff) {
-                        ButtonPrimary(
-                            onClick = { onAction(FoodReportAction.TakePhotoTapped) },
-                            icon = AppIcons.PhotoCamera,
-                            size = ButtonSize.Small,
-                            style = if (state.photo == null) ButtonStyle.Filled else ButtonStyle.Tonal,
-                        ) { Text(stringResource(if (state.photo == null) Res.string.submit_take else Res.string.submit_retake)) }
-                    }
-                    ButtonSecondary(
-                        onClick = { onAction(FoodReportAction.ChooseFromLibraryTapped) },
-                        icon = AppIcons.PhotoLibrary,
-                        size = ButtonSize.Small,
-                    ) { Text(stringResource(Res.string.submit_choose)) }
-                    if (state.photo != null) {
-                        ButtonGhost(onClick = { onAction(FoodReportAction.RemovePhotoTapped) }, size = ButtonSize.Small) {
-                            Text(stringResource(Res.string.food_report_photo_remove))
-                        }
-                    }
-                }
-                if (state.cameraOff) {
-                    Text(stringResource(Res.string.food_report_camera_off), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
-                    ButtonGhost(onClick = { onAction(FoodReportAction.OpenSettingsTapped) }, size = ButtonSize.Small) {
-                        Text(stringResource(Res.string.submit_open_settings))
-                    }
-                }
-                if (state.photoFailed) Text(stringResource(Res.string.submit_photo_failed), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+private fun Photos(state: FoodReportState, onAction: (FoodReportAction) -> Unit) {
+    val camera = state.canTakePhoto && !state.cameraOff
+    Column(verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.chip)) {
+        SectionLabel(stringResource(Res.string.food_report_photos))
+        FoodRowsCard {
+            PackPhotoSlot(
+                photo = state.front,
+                title = stringResource(Res.string.food_report_front_title),
+                hint = stringResource(Res.string.food_report_front_hint),
+                description = stringResource(Res.string.food_report_front_cd),
+                onTake = { onAction(FoodReportAction.TakePhotoTapped(PackSide.Front)) }.takeIf { camera },
+                onChoose = { onAction(FoodReportAction.ChooseFromLibraryTapped(PackSide.Front)) },
+                onRemove = { onAction(FoodReportAction.RemovePhotoTapped(PackSide.Front)) },
+            )
+            HorizontalDivider()
+            PackPhotoSlot(
+                photo = state.photo,
+                title = stringResource(Res.string.food_report_photo_title),
+                hint = stringResource(Res.string.food_report_photo_hint),
+                description = stringResource(Res.string.food_report_photo_cd),
+                onTake = { onAction(FoodReportAction.TakePhotoTapped(PackSide.Label)) }.takeIf { camera },
+                onChoose = { onAction(FoodReportAction.ChooseFromLibraryTapped(PackSide.Label)) },
+                onRemove = { onAction(FoodReportAction.RemovePhotoTapped(PackSide.Label)) },
+            )
+        }
+        if (state.cameraOff) {
+            Text(stringResource(Res.string.food_report_camera_off), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
+            ButtonGhost(onClick = { onAction(FoodReportAction.OpenSettingsTapped) }, size = ButtonSize.Small) {
+                Text(stringResource(Res.string.submit_open_settings))
             }
         }
+        if (state.photoFailed) Text(stringResource(Res.string.submit_photo_failed), typography = AppTheme.type.secondary, color = AppTheme.colors.muted)
     }
 }
 
@@ -221,13 +208,20 @@ private fun ReportBasis.text(): String = grams?.let { stringResource(Res.string.
 
 private val FoodReportReason.label: StringResource
     get() = when (this) {
-        FoodReportReason.WrongCalories -> Res.string.food_report_reason_calories
-        FoodReportReason.WrongNutrients -> Res.string.food_report_reason_nutrients
+        FoodReportReason.WrongNumbers -> Res.string.food_report_reason_numbers
+        FoodReportReason.MissingInfo -> Res.string.food_report_reason_missing
         FoodReportReason.WrongServing -> Res.string.food_report_reason_serving
         FoodReportReason.WrongName -> Res.string.food_report_reason_name
         FoodReportReason.Duplicate -> Res.string.food_report_reason_duplicate
         FoodReportReason.NotFood -> Res.string.food_report_reason_not_food
         FoodReportReason.Other -> Res.string.food_report_reason_other
+    }
+
+/** A line under a reason that needs one: what counts as missing. */
+private val FoodReportReason.detail: StringResource?
+    get() = when (this) {
+        FoodReportReason.MissingInfo -> Res.string.food_report_reason_missing_sub
+        else -> null
     }
 
 private val ReportProblem.message: StringResource

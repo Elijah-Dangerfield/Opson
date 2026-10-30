@@ -13,6 +13,7 @@ import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.macroLine
 import kotlin.math.abs
 import kotlin.math.max
+import com.opson.libraries.foods.FoodCheck
 
 /**
  * One row of "Pick a match": a food a scanned code matched, at one serving, or several that are
@@ -31,7 +32,10 @@ data class MatchRowUi(
     /** Every database the row stands for, the suggested one's first. Empty for a source with no short name. */
     val sources: List<SourceBadge>,
     val suggested: Boolean,
+    /** Verified: a person checked the food against its package. */
     val verified: Boolean = false,
+    /** A packaged food nobody has checked yet: Pick a match says so, since it is choosing between sources. */
+    val notChecked: Boolean = false,
     val corrected: Boolean = false,
     val numbersLookOff: Boolean = false,
     /** The person's own food, not checked yet. */
@@ -83,7 +87,8 @@ object BarcodeMatches {
                 macros = if (draft.hasMacros) policy.macroLine(draft.amounts(), Surface.Logger, bare, MacroLineStyle.Compact) else emptyList(),
                 sources = group.mapNotNull { SourceBadge.of(it.food.source) }.distinct(),
                 suggested = index == 0,
-                verified = food.verified,
+                verified = food.check == FoodCheck.Verified,
+                notChecked = food.check == FoodCheck.Unverified,
                 corrected = numbersShow && match.corrected,
                 numbersLookOff = numbersShow && match.numbersLookOff,
                 unverified = food.unverified,

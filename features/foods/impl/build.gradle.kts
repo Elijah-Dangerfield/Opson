@@ -12,6 +12,8 @@ kotlin {
             implementation(projects.features.foods)
             // LoggerRoute and FoodSearchRoute: Foods rows open the + sheet or a food, search opens search, and Create a meal picks through it.
             implementation(projects.features.logger)
+            // VerifyFoodAvailable: a Builder's Verify a food card.
+            implementation(projects.features.builder)
 
             implementation(projects.libraries.core)
             implementation(projects.libraries.flowroutines)

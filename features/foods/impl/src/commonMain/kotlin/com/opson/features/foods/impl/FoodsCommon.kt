@@ -37,6 +37,9 @@ import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.foods_unverified
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
+import com.opson.libraries.ui.components.VerifiedMark
+import opson.libraries.resources.generated.resources.food_check_verified
+import opson.libraries.resources.generated.resources.food_check_verified_cd
 
 /** A one-off message for the snackbar. Every Foods view model's toast event carries one. */
 data class Toast(val message: StringResource, val args: List<Any> = emptyList())
@@ -105,6 +108,8 @@ internal fun FoodsRow(
     showDivider: Boolean = true,
     /** Sent to Opson's food database and not checked yet. */
     unverified: Boolean = false,
+    /** A person checked it against its package. */
+    verified: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -130,6 +135,12 @@ internal fun FoodsRow(
                         Icon(icon = AppIcons.Schedule, size = 12.dp, color = AppTheme.colors.muted)
                         Text(text = stringResource(Res.string.foods_unverified), typography = AppTheme.type.captionStrong, color = AppTheme.colors.muted, maxLines = 1)
                     }
+                } else if (verified) {
+                    VerifiedMark(
+                        text = stringResource(Res.string.food_check_verified),
+                        description = stringResource(Res.string.food_check_verified_cd),
+                        iconSize = 12.dp,
+                    )
                 }
             }
             NutrientText(

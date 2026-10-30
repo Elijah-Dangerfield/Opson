@@ -114,10 +114,13 @@ data class Portion(val label: String, val grams: Double)
 
 /**
  * A catalog food. [micros] is per 100 g, keyed with the unit in the key
- * (`sodium_mg`). [verified] means someone accountable stands behind the
- * numbers (tiers [FoodTier.Reference] to [FoodTier.Licensed], and a food someone
- * added once a reviewer approved it); it is for a mark on the row, not for
- * ranking, which the server already did. [reviewStatus] is that review.
+ * (`sodium_mg`). [verified] is the server's word that its source is one
+ * accountable for the numbers (tiers [FoodTier.Reference] to
+ * [FoodTier.Licensed], and an approved submission); it is for ranking, which
+ * the server already did. [checked] is what the app calls Verified: a person
+ * checked this food against its package (a Builder's verification, a
+ * reviewer's correction, an approved submission). [reviewStatus] is the
+ * review of a food someone added. [check] says which of those a screen shows.
  */
 @Serializable
 data class Food(
@@ -132,12 +135,32 @@ data class Food(
     val tier: FoodTier = FoodTier.Unknown,
     val verified: Boolean = false,
     val reviewStatus: ReviewStatus = ReviewStatus.Approved,
+    val checked: Boolean = false,
 ) {
     val isOpenFoodFacts: Boolean get() = source == FoodSource.OpenFoodFacts
 
     /** Added to Opson's food database by its submitter and not checked yet: only they can see it. */
     val unverified: Boolean get() = reviewStatus != ReviewStatus.Approved
+
+    /** Whether anyone checked it against its package, as the badge says it. */
+    val check: FoodCheck
+        get() = when {
+            unverified -> FoodCheck.InReview
+            checked -> FoodCheck.Verified
+            tier == FoodTier.Reference -> FoodCheck.Reference
+            else -> FoodCheck.Unverified
+        }
+
+    /** A Builder can verify it against its pack: a packaged food nobody has checked yet. */
+    val canBeVerified: Boolean get() = check == FoodCheck.Unverified
 }
+
+/**
+ * The Verified badge. [Verified]: a person checked it against the package. [Unverified]: from its
+ * source, not checked yet. [Reference]: generic lab data (USDA, NEVO) with no package to check, so
+ * no badge. [InReview]: the person's own submission, waiting for a reviewer.
+ */
+enum class FoodCheck { Verified, Unverified, Reference, InReview }
 
 enum class Confidence(val wire: String) {
     High("high"),

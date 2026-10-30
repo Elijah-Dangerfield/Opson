@@ -21,7 +21,10 @@
     <string name="foods_add_by_hand">Or type it in</string>
     <!-- On a Your foods row: sent to Opson's food database and not checked yet. -->
     <string name="foods_unverified">Unverified</string>
+    <string name="foods_favorites">Favorites</string>
+    <string name="foods_favorites_empty">Tap the star on a food to keep it here.</string>
     <string name="foods_saved">Saved meals</string>
+
     <string name="foods_yours">Your foods</string>
     <string name="foods_yours_empty">Foods you make show up here and in search.</string>
     <string name="foods_recent">Recent</string>

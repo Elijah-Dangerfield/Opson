@@ -9,6 +9,7 @@ import me.tatarka.inject.annotations.Inject
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+import com.opson.libraries.foods.BuilderProgram
 
 /**
  * More › Builders: what Opson Builders is and Apply, then where the application stands, and once
@@ -39,4 +40,19 @@ class BuildersEnabled(appConfigMap: AppConfigMap) : FlagConfigValue(appConfigMap
     override val path = "release.builders"
     override val default = false
     override val description = "Opson Builders: join for Pro, Builder mode with on-device label reading, check foods against the pack"
+}
+
+/**
+ * Whether Verify a food is offered on the + sheet and the Foods tab: `release.builders` on and an
+ * active Builder, as far as the phone knows. A `fun interface`, so a screen's tests can pass
+ * `VerifyFoodAvailable { true }`.
+ */
+fun interface VerifyFoodAvailable {
+    operator fun invoke(): Boolean
+}
+
+@Inject
+@ContributesBinding(AppScope::class)
+class BuilderVerifyFoodAvailable(private val enabled: BuildersEnabled, private val program: BuilderProgram) : VerifyFoodAvailable {
+    override fun invoke(): Boolean = enabled.value && program.isBuilder
 }
