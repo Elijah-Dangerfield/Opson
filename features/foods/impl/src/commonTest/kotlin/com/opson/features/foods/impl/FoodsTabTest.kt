@@ -24,6 +24,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 import com.opson.features.builder.VerifyFoodAvailable
+import com.opson.libraries.diary.RecipesRelease
 import kotlinx.coroutines.test.advanceUntilIdle
 
 /** The Foods tab: [FoodsStateBuilder]'s sections and visibility, and [FoodsViewModel]'s actions. */
@@ -39,8 +40,13 @@ class FoodsTabTest : CoroutineTest() {
     private val catalog = FakeFoodCatalog(listOf(FoodsFixtures.starredYogurt))
     private var builder = false
 
-    private fun vm(repeatsOn: Boolean = false) =
-        FoodsViewModel(customFoods, savedMeals, diary, policySource, submittedFoods, repeats, RepeatsRelease { repeatsOn }, settings, catalog, FakeCalendar(), VerifyFoodAvailable { builder })
+    private val recipes = FakeRecipeRepository(RecipeFixtures.recipes())
+
+    private fun vm(repeatsOn: Boolean = false, recipesOn: Boolean = false) =
+        FoodsViewModel(
+            customFoods, savedMeals, diary, policySource, submittedFoods, repeats, RepeatsRelease { repeatsOn }, settings, catalog, FakeCalendar(),
+            recipes, RecipesRelease { recipesOn }, VerifyFoodAvailable { builder },
+        )
 
     private fun TestScope.events(vm: FoodsViewModel): List<FoodsEvent> {
         val events = mutableListOf<FoodsEvent>()

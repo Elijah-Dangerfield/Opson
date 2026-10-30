@@ -4,6 +4,9 @@ import androidx.lifecycle.viewModelScope
 import com.opson.features.logger.FoodSearchRoute
 import com.opson.libraries.diary.CustomFoodRepository
 import com.opson.libraries.diary.DiaryRepository
+import com.opson.libraries.diary.Recipe
+import com.opson.libraries.diary.RecipeRepository
+import com.opson.libraries.diary.RecipesRelease
 import com.opson.libraries.diary.RepeatRepository
 import com.opson.libraries.diary.RepeatRule
 import com.opson.libraries.diary.RepeatsRelease
@@ -25,7 +28,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
- * The Foods tab: favorites, saved meals, repeats (`release.repeats`), the user's own foods and
+ * The Foods tab: favorites, saved meals, recipes (`release.recipes`), repeats (`release.repeats`), the user's own foods and
  * recent ones, each a way into the logger with that food already picked or into its editor, and
  * for an active Builder, Verify a food. Everything it reads is on the device.
  */
@@ -41,6 +44,8 @@ class FoodsViewModel(
     settingsRepository: SettingsRepository,
     foodCatalog: FoodCatalog,
     private val calendar: LocalCalendar,
+    recipes: RecipeRepository,
+    recipesRelease: RecipesRelease,
     verifyFood: VerifyFoodAvailable = VerifyFoodAvailable { false },
 ) : SEAViewModel<FoodsState, FoodsEvent, FoodsAction>(initialStateArg = FoodsState()) {
 
@@ -56,8 +61,9 @@ class FoodsViewModel(
             val known = combine(foodCatalog.observeFavorites(), foodCatalog.observeRecent(limit = KNOWN_LIMIT)) { favorites, recent ->
                 (recent + favorites).associateBy { it.id }
             }
-            combine(base, starred, known, diary.recentFoods(limit = HISTORY_LIMIT)) { inputs, keys, catalog, history ->
-                inputs.copy(favoriteKeys = keys, catalog = catalog, history = history, verifyOn = verifyOn)
+            val recipeList: Flow<List<Recipe>?> = if (recipesRelease.isOn()) recipes.observeAll() else flowOf(null)
+            combine(base, starred, known, diary.recentFoods(limit = HISTORY_LIMIT), recipeList) { inputs, keys, catalog, history, list ->
+                inputs.copy(favoriteKeys = keys, catalog = catalog, history = history, verifyOn = verifyOn, recipes = list)
             }.collect { takeAction(FoodsAction.InputsArrived(it)) }
         }
         viewModelScope.launch {
@@ -84,6 +90,9 @@ class FoodsViewModel(
             is FoodsAction.RowTapped -> sendEvent(FoodsEvent.OpenLogger(action.target.toLoggerRoute()))
             FoodsAction.NewRepeatTapped -> sendEvent(FoodsEvent.OpenRepeat(ruleId = null))
             is FoodsAction.RepeatTapped -> sendEvent(FoodsEvent.OpenRepeat(action.id))
+            is FoodsAction.RecipeTapped -> sendEvent(FoodsEvent.OpenRecipe(action.id))
+            FoodsAction.NewRecipeTapped -> sendEvent(FoodsEvent.OpenNewRecipe)
+            FoodsAction.ScanRecipeTapped -> sendEvent(FoodsEvent.OpenScanRecipe)
         }
     }
 

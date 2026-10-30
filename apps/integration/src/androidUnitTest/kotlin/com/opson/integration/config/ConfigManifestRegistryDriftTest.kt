@@ -33,6 +33,7 @@ import com.opson.libraries.diary.FastingReleaseFlag
 import com.opson.libraries.diary.CelebrationsReleaseFlag
 import com.opson.libraries.entitlements.impl.BetaReleaseFlag
 import com.opson.libraries.diary.RecapsEnabled
+import com.opson.libraries.diary.RecipesReleaseFlag
 import com.opson.libraries.diary.RepeatsReleaseFlag
 import com.opson.libraries.foods.impl.DeviceCheckEnabled
 import com.opson.libraries.foods.impl.PlayIntegrityCloudProject
@@ -350,6 +351,7 @@ internal fun declaredConfigValues(appConfigMap: AppConfigMap): List<ConfiguredVa
     ExerciseReleaseFlag(appConfigMap, GoalsAndEnergyEnabled(appConfigMap)),
     MedicationEnabled(appConfigMap),
     RepeatsReleaseFlag(appConfigMap),
+    RecipesReleaseFlag(appConfigMap),
     CelebrationsReleaseFlag(appConfigMap),
     BetaReleaseFlag(appConfigMap),
     RecapsEnabled(appConfigMap),

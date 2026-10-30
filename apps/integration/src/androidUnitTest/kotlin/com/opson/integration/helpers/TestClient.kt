@@ -24,6 +24,7 @@ import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayWrite
 import com.opson.libraries.diary.DiaryRepository
 import com.opson.libraries.diary.ExerciseRepository
+import com.opson.libraries.diary.RecipeRepository
 import com.opson.libraries.diary.FastingReleaseFlag
 import com.opson.libraries.diary.FastingRepository
 import com.opson.libraries.diary.LogDraft
@@ -42,6 +43,9 @@ import com.opson.libraries.diary.impl.DiarySyncer
 import com.opson.libraries.diary.impl.DiaryTables
 import com.opson.libraries.diary.impl.DiaryWriter
 import com.opson.libraries.diary.impl.ExerciseRepositoryImpl
+import com.opson.libraries.diary.impl.RecipeRepositoryImpl
+import com.opson.libraries.foods.PublicRecipes
+import com.opson.libraries.foods.impl.HttpPublicRecipes
 import com.opson.libraries.diary.impl.FastingRepositoryImpl
 import com.opson.libraries.diary.impl.HttpDataExport
 import com.opson.libraries.diary.impl.HttpDiarySyncApi
@@ -187,6 +191,7 @@ class TestClient(
         savedMeals = database.savedMealDao(),
         fasts = database.fastDao(),
         exercises = database.exerciseDao(),
+        recipes = database.recipeDao(),
         outbox = database.outboxDao(),
         syncState = database.syncStateDao(),
         transactor = transactor,
@@ -259,6 +264,7 @@ class TestClient(
     val customFoods: CustomFoodRepository = CustomFoodRepositoryImpl(tables, writer)
     val savedMeals: SavedMealRepository = SavedMealRepositoryImpl(tables, writer)
     val exercise: ExerciseRepository = ExerciseRepositoryImpl(tables, writer)
+    val recipes: RecipeRepository = RecipeRepositoryImpl(tables, writer)
     val export: DataExport = HttpDataExport(networkClient, calendar)
 
     // ── Foods ────────────────────────────────────────────────────────────────
@@ -268,6 +274,7 @@ class TestClient(
     val foodLabels: FoodLabels = HttpFoodLabels(networkClient)
     val submittedFoods = SubmittedFoodsStore(cacheFactory, networkClient, appScope)
     val barcodeLinks: BarcodeLinkReporter = HttpBarcodeLinkReporter(networkClient, appScope)
+    val publicRecipes: PublicRecipes = HttpPublicRecipes(networkClient)
 
     // ── Account ──────────────────────────────────────────────────────────────
     /** `release.betaNotice` as this phone reads it. Off, as in a store build until the owner turns it on. */
@@ -287,7 +294,7 @@ class TestClient(
                         database.exampleUserDataDao(), database.logEntryDao(), database.dayRecordDao(),
                         database.mealFeelingDao(), database.weighInDao(), database.customFoodDao(),
                         database.savedMealDao(), database.outboxDao(), database.syncStateDao(),
-                        database.foodCacheDao(), database.fastDao(), database.exerciseDao(),
+                        database.foodCacheDao(), database.fastDao(), database.exerciseDao(), database.recipeDao(),
                     ),
                 ),
                 settingsStore,

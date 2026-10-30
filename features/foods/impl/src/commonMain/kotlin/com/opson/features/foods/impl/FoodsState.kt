@@ -5,6 +5,7 @@ import com.opson.libraries.foods.ReviewStatus
 import com.opson.libraries.navigation.Route
 import com.opson.libraries.diary.CustomFood
 import com.opson.libraries.diary.LogItem
+import com.opson.libraries.diary.Recipe
 import com.opson.libraries.diary.RepeatRule
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.foods.FoodRef
@@ -27,6 +28,9 @@ data class FoodsState(
     /** The foods starred on their detail, newest star first. */
     val favorites: List<FoodsRowUi> = emptyList(),
     val repeats: List<RepeatRowUi> = emptyList(),
+    /** `release.recipes`: the Recipes card, under Saved meals. */
+    val recipesOn: Boolean = false,
+    val recipes: List<RecipeRowUi> = emptyList(),
     val savedMeals: List<FoodsRowUi> = emptyList(),
     val yourFoods: List<FoodsRowUi> = emptyList(),
     val recent: List<FoodsRowUi> = emptyList(),
@@ -71,6 +75,10 @@ sealed interface FoodsAction {
 
     data object NewRepeatTapped : FoodsAction
     data class RepeatTapped(val id: String) : FoodsAction
+
+    data class RecipeTapped(val id: String) : FoodsAction
+    data object NewRecipeTapped : FoodsAction
+    data object ScanRecipeTapped : FoodsAction
 }
 
 sealed interface FoodsEvent {
@@ -84,6 +92,10 @@ sealed interface FoodsEvent {
 
     /** A repeat to edit, or a new one when [ruleId] is null. */
     data class OpenRepeat(val ruleId: String?) : FoodsEvent
+
+    data class OpenRecipe(val recipeId: String) : FoodsEvent
+    data object OpenNewRecipe : FoodsEvent
+    data object OpenScanRecipe : FoodsEvent
 }
 
 /** Everything the tab reads, so [FoodsStateBuilder] is a pure function of it. */
@@ -102,6 +114,8 @@ data class FoodsInputs(
     /** What was logged lately, newest first: a favorite shows the amount it was last logged at. */
     val history: List<LogItem> = emptyList(),
     val verifyOn: Boolean = false,
+    /** Null while `release.recipes` is off. */
+    val recipes: List<Recipe>? = null,
 )
 
 /**
@@ -120,6 +134,8 @@ object FoodsStateBuilder {
             verifyOn = inputs.verifyOn,
             favorites = favorites(inputs, ::calories),
             repeats = inputs.repeats.orEmpty().map { RepeatStateBuilder.row(it, inputs.savedMeals, policy) },
+            recipesOn = inputs.recipes != null,
+            recipes = inputs.recipes.orEmpty().map { RecipeNumbers.row(it, policy) },
             savedMeals = inputs.savedMeals.map { meal ->
                 FoodsRowUi(
                     key = "meal:${meal.id}",

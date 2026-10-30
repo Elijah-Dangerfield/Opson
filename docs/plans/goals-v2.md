@@ -324,6 +324,6 @@ Built on 2026-10-30 from the owner's feedback on the goal and target screens. Ev
 
 ## Not in this package
 
-The steps data source and the recap. Onboarding's "Do you want to set a goal?" and its streak
-question are in [onboarding-v4.md](onboarding-v4.md), built from the pieces above. The API is
-built for them, and `GoalFixtures` has every state.
+The recap. Onboarding's "Do you want to set a goal?" and its streak question are in
+[onboarding-v4.md](onboarding-v4.md), built from the pieces above. The steps data source is
+built: `StepsRepository` feeds a steps goal's days through `GoalRepository`.

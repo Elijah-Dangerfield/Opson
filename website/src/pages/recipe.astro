@@ -1,0 +1,157 @@
+---
+// A shared recipe, for anyone who opens its link or scans its QR code without the app.
+// public/_redirects serves /r/<code> from here; the script reads the code from the address and
+// asks the server (src/lib/recipe.ts). With the app installed and the site verified, the link
+// opens the app instead and this page never shows.
+import Layout from '../layouts/Layout.astro';
+import { API_URL } from '../consts';
+
+const APP_STORE = 'https://apps.apple.com/app/id6827143148';
+const PLAY_STORE = 'https://play.google.com/store/apps/details?id=com.opson';
+---
+
+<Layout title="A recipe on Opson" description="A recipe someone shared from Opson, with what goes in it and the numbers for a serving.">
+  <article class="page recipe" data-recipe data-api={API_URL}>
+    <div class="wrap">
+      <p class="status" role="status" aria-live="polite" data-status>Loading the recipe.</p>
+
+      <div class="found" data-found hidden>
+        <header class="page-head">
+          <h1 data-name></h1>
+          <p data-meta></p>
+        </header>
+
+        <p class="unverified" data-unverified></p>
+
+        <section class="card" aria-labelledby="serving-title">
+          <h2 id="serving-title">Per serving</h2>
+          <p class="kcal" data-kcal></p>
+          <p class="macros" data-macros></p>
+        </section>
+
+        <section class="card" aria-labelledby="ingredients-title">
+          <h2 id="ingredients-title">Ingredients</h2>
+          <ul class="ingredients" data-ingredients></ul>
+        </section>
+
+        <section class="card" aria-labelledby="notes-title" data-notes-section hidden>
+          <h2 id="notes-title">Notes</h2>
+          <p class="notes" data-notes></p>
+        </section>
+      </div>
+
+      <section class="get" aria-labelledby="get-title">
+        <h2 id="get-title">Log it in Opson</h2>
+        <p>Opson is a food log with no ads. With the app you can log a serving of this recipe or save it to your own.</p>
+        <div class="actions">
+          <a class="button" data-open-app href="opson://">Open in Opson</a>
+          <a class="store" href={APP_STORE}>Get Opson on the App Store</a>
+          <a class="store" href={PLAY_STORE}>Get Opson on Google Play</a>
+        </div>
+      </section>
+
+      <noscript>
+        <p class="status">This page needs JavaScript to show the recipe. Open the link on a phone with Opson installed, or get the app below.</p>
+        <style>
+          [data-status] { display: none; }
+        </style>
+      </noscript>
+    </div>
+  </article>
+</Layout>
+
+<script>
+  import { appLink, checkedText, codeFrom, fetchRecipe, kcalText, macrosText, servingsText } from '../lib/recipe';
+
+  const root = document.querySelector<HTMLElement>('[data-recipe]')!;
+  const status = root.querySelector<HTMLElement>('[data-status]')!;
+  const found = root.querySelector<HTMLElement>('[data-found]')!;
+  const text = (selector: string, value: string) => {
+    root.querySelector<HTMLElement>(selector)!.textContent = value;
+  };
+
+  // Not a top-level await: the build's browser targets don't all take one.
+  async function show() {
+    const code = codeFrom(location.pathname, location.search);
+    if (!code) {
+      status.textContent = 'This link is missing its recipe code. Ask whoever shared it for the link again.';
+    } else {
+      root.querySelector<HTMLAnchorElement>('[data-open-app]')!.href = appLink(code);
+      const lookup = await fetchRecipe(root.dataset.api ?? '', code);
+      if (lookup.kind === 'not_found') {
+        status.textContent = 'No recipe has that code. Check the link, or ask for a new one.';
+      } else if (lookup.kind === 'not_shared') {
+        status.textContent = "This recipe isn't shared right now. Whoever made it stopped sharing it, or Opson took it down.";
+      } else if (lookup.kind === 'error') {
+        status.textContent = "We couldn't load this recipe. Try again in a minute.";
+      } else {
+        const recipe = lookup.recipe;
+        document.title = `${recipe.name}, a recipe on Opson`;
+        // Everything the person wrote goes in as text, never as markup.
+        text('[data-name]', recipe.name);
+        text('[data-meta]', [`By ${recipe.by ?? 'an Opson user'}`, `Makes ${servingsText(recipe.servings)}`].join(' · '));
+        text('[data-unverified]', `Made by a person, not checked by Opson. ${checkedText(recipe.checkedCount, recipe.ingredients.length)}`);
+        text('[data-kcal]', kcalText(recipe.perServing.kcal) ?? 'Calories not known');
+        text('[data-macros]', macrosText(recipe.perServing));
+        const list = root.querySelector<HTMLUListElement>('[data-ingredients]')!;
+        for (const ingredient of recipe.ingredients) {
+          const item = document.createElement('li');
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = ingredient.checked ? `${ingredient.name} (checked by Opson)` : ingredient.name;
+          const amount = document.createElement('span');
+          amount.className = 'amount';
+          amount.textContent = ingredient.amountText ?? '';
+          item.append(name, amount);
+          list.append(item);
+        }
+        if (recipe.notes) {
+          text('[data-notes]', recipe.notes);
+          root.querySelector<HTMLElement>('[data-notes-section]')!.hidden = false;
+        }
+        status.hidden = true;
+        found.hidden = false;
+      }
+    }
+  }
+  show();
+</script>
+
+<style>
+  .status { color: var(--muted); font-size: 18px; }
+  .unverified {
+    background: var(--accent-tint);
+    color: var(--ink);
+    border-radius: var(--radius-input);
+    padding: 14px 18px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-card);
+    padding: 22px 26px;
+    margin-bottom: 18px;
+  }
+  .card h2 { font-size: 15px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+  .kcal { font-size: 26px; font-weight: 800; color: var(--ink); }
+  .macros { color: var(--muted); }
+  .ingredients { list-style: none; padding: 0; margin: 0; }
+  .ingredients li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--line, #E6E8EE); }
+  .ingredients li:first-child { border-top: none; }
+  .ingredients .amount { color: var(--muted); text-align: right; }
+  .notes { white-space: pre-line; color: var(--ink-soft); }
+  .get { margin-top: 40px; }
+  .get h2 { font-size: 22px; margin-bottom: 8px; }
+  .get p { color: var(--ink-soft); margin-bottom: 18px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .store {
+    display: inline-block;
+    padding: 12px 18px;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+    color: var(--ink);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .store:hover { border-color: var(--accent); color: var(--accent); }
+</style>

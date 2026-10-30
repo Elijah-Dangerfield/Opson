@@ -334,6 +334,49 @@ object ExercisesTable : SyncedTable("exercises") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/**
+ * A recipe (V35): ingredients for the whole batch and how many servings it makes. Sync writes the
+ * columns up to [deleted]; the public ones are the publish routes' and the admin console's alone.
+ */
+object RecipesTable : SyncedTable("recipes") {
+    val id = uuid("id")
+    val name = text("name")
+    val servings = float("servings")
+    val items = jsonb("items")
+    val notes = text("notes").nullable()
+    val savedFrom = text("saved_from").nullable()
+
+    /*
+     * Everything below is the server's: raw SQL in PostgresPublicRecipeRepository writes it. Marked
+     * database-generated so an Exposed upsert of a synced row never names them; it would otherwise
+     * write NULL over a nullable one and take a shared recipe's code away on every edit.
+     */
+    val createdAt = timestamp("created_at").databaseGenerated()
+    val publicCode = text("public_code").nullable().databaseGenerated()
+    val publicState = text("public_state").databaseGenerated()
+    val publicShowName = bool("public_show_name").databaseGenerated()
+    val publishedAt = timestamp("published_at").nullable().databaseGenerated()
+    val removedAt = timestamp("removed_at").nullable().databaseGenerated()
+    val removedBy = text("removed_by").nullable().databaseGenerated()
+    val removedReason = text("removed_reason").nullable().databaseGenerated()
+    val saveCount = integer("save_count").databaseGenerated()
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** A report on a shared recipe (V35). */
+object RecipeReportsTable : Table("recipe_reports") {
+    val id = uuid("id")
+    val recipeId = uuid("recipe_id")
+    val userId = uuid("user_id")
+    val createdAt = timestamp("created_at")
+    val reason = text("reason")
+    val note = text("note").nullable()
+    val status = text("status")
+    val decidedAt = timestamp("decided_at").nullable()
+    val decidedBy = text("decided_by").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
 /** The whole client `Settings` object as one jsonb document per user. */
 object UserSettingsTable : SyncedTable("user_settings") {
     val settings = jsonb("settings")

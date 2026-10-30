@@ -58,6 +58,7 @@ import platform.AVFoundation.AVMediaTypeVideo
 import platform.AVFoundation.AVMetadataMachineReadableCodeObject
 import platform.AVFoundation.AVMetadataObjectTypeEAN13Code
 import platform.AVFoundation.AVMetadataObjectTypeEAN8Code
+import platform.AVFoundation.AVMetadataObjectTypeQRCode
 import platform.AVFoundation.AVMetadataObjectTypeUPCECode
 import platform.AVFoundation.autoFocusRangeRestriction
 import platform.AVFoundation.constituentDevices
@@ -113,6 +114,7 @@ class IosBarcodeCamera @Inject constructor() : BarcodeCamera {
     @OptIn(ExperimentalForeignApi::class)
     @Composable
     override fun Viewfinder(
+        formats: Set<BarcodeFormat>,
         onCode: (ScannedCode) -> Unit,
         onUnavailable: () -> Unit,
         scanArea: ScanArea,
@@ -126,8 +128,9 @@ class IosBarcodeCamera @Inject constructor() : BarcodeCamera {
         val latestOnUnavailable by rememberUpdatedState(onUnavailable)
         val latestOnTorchAvailable by rememberUpdatedState(onTorchAvailable)
         val latestOnLowLight by rememberUpdatedState(onLowLight)
-        val session = remember {
+        val session = remember(formats) {
             CaptureSession(
+                formats = formats,
                 onCode = { code -> latestOnCode(code) },
                 onUnavailable = { latestOnUnavailable() },
                 onTorchAvailable = { available -> latestOnTorchAvailable(available) },
@@ -177,6 +180,7 @@ class IosBarcodeCamera @Inject constructor() : BarcodeCamera {
  */
 @OptIn(ExperimentalForeignApi::class)
 private class CaptureSession(
+    private val formats: Set<BarcodeFormat>,
     onCode: (ScannedCode) -> Unit,
     private val onUnavailable: () -> Unit,
     private val onTorchAvailable: (Boolean) -> Unit,
@@ -339,7 +343,8 @@ private class CaptureSession(
             output.setMetadataObjectsDelegate(delegate, queue = metadataQueue)
             // Only after the output is in the session: the types it supports depend on the input, and
             // asking for one it does not throws. Fewer types also means less work per frame.
-            output.metadataObjectTypes = FORMATS.keys.filter { type -> output.availableMetadataObjectTypes.any { it == type } }
+            output.metadataObjectTypes = FORMATS.filterValues { it in formats }.keys
+                .filter { type -> output.availableMetadataObjectTypes.any { it == type } }
         }
         session.commitConfiguration()
         if (!added) return null
@@ -544,4 +549,5 @@ private val FORMATS: Map<String?, BarcodeFormat> = mapOf(
     AVMetadataObjectTypeEAN13Code to BarcodeFormat.Ean13,
     AVMetadataObjectTypeEAN8Code to BarcodeFormat.Ean8,
     AVMetadataObjectTypeUPCECode to BarcodeFormat.UpcE,
+    AVMetadataObjectTypeQRCode to BarcodeFormat.Qr,
 )

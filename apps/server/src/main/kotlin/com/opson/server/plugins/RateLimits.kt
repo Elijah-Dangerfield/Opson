@@ -30,6 +30,8 @@ const val EXPORT_LIMIT = "export"
 const val FOOD_LABEL_LIMIT = "food-label"
 const val BARCODE_LINK_LIMIT = "barcode-link"
 const val FOOD_REPORT_LIMIT = "food-report"
+const val RECIPE_READ_LIMIT = "recipe-read"
+const val RECIPE_WRITE_LIMIT = "recipe-write"
 
 fun Application.installRateLimits() {
     install(RateLimit) {
@@ -106,6 +108,20 @@ fun Application.installRateLimits() {
         register(RateLimitName(BARCODE_LINK_LIMIT)) {
             // A link report follows a barcode miss and a search, so it can
             // never legitimately outrun the miss route's 60/min.
+            rateLimiter(limit = 30, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(RECIPE_READ_LIMIT)) {
+            // A shared recipe can be read with no account (the website's recipe page), and each
+            // read looks up its ingredients in the catalog. A person opening links never gets
+            // near this; a scraper walking codes does.
+            rateLimiter(limit = 60, refillPeriod = 1.minutes)
+            requestKey { call -> call.clientIp() }
+        }
+
+        register(RateLimitName(RECIPE_WRITE_LIMIT)) {
+            // Sharing and reporting recipes. The real limits are per user (RecipeLimiter).
             rateLimiter(limit = 30, refillPeriod = 1.minutes)
             requestKey { call -> call.clientIp() }
         }

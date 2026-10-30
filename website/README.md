@@ -21,7 +21,10 @@ Run these inside `website/`.
 ## Structure
 
 - `src/pages/`: one file per route: `index` (home and waitlist), `privacy`,
-  `terms`, `health-data`, `credits`, `contact`, `404`
+  `terms`, `health-data`, `credits`, `contact`, `recipe` (a shared recipe), `404`,
+  and `.well-known/assetlinks.json` (Android App Links, built from a variable)
+- `src/lib/recipe.ts`: what the recipe page asks the server and how it reads the answer
+- `src/lib/appLinks.ts`: the two files that let a recipe link open the app
 - `src/layouts/Layout.astro`: shared shell (meta tags, nav, footer)
 - `src/components/`: `Nav`, `Footer`, `WaitlistForm`, `Screenshot`
 - `src/lib/waitlist.ts`: the waitlist request and what each answer means
@@ -29,6 +32,10 @@ Run these inside `website/`.
 - `src/content/site-privacy.md`: the website's own privacy wording
 - `src/styles/global.css`: colors, type and shared rules
 - `src/fonts/`: Atkinson Hyperlegible Next, subset to Latin (OFL)
+- `public/_redirects` and `public/_headers`: Cloudflare Pages rules. `/r/<code>` is
+  served by the recipe page; the Apple file is sent as JSON
+- `public/.well-known/apple-app-site-association`: Apple's universal links file
+  (`appLinks.test.ts` keeps it equal to `appleAppSiteAssociation()`)
 - `public/`: the logo files (`favicon.svg`, the bowl without steam; `opson-mark.svg`, the
   mark on its white disc for the dark nav; `apple-touch-icon.png`; `og-image.png`, the
   link preview card) and `.nojekyll`. Sources are in `docs/design/brand/`
@@ -99,6 +106,46 @@ instead, because the server only accepts JSON.
 only answers browsers from origins listed in its `WAITLIST_ALLOWED_ORIGINS`,
 so that list needs the site's origin (`https://www.opsontracker.com`) and
 `http://localhost:4321` for local work.
+
+## Shared recipes and the links that open the app
+
+A recipe shared from the app (`release.recipes`, `docs/plans/recipes.md`) has the
+link `https://www.opsontracker.com/r/<code>`, and its QR code carries that link.
+Cloudflare serves `/r/*` from `src/pages/recipe.astro` (the `_redirects` rule keeps
+the address), which reads the code, calls `GET ${PUBLIC_API_URL}/v1/recipes/public/<code>`
+(open to any origin, no account) and shows the recipe, the line that a person made
+it and Opson didn't check it, Open in Opson (`opson://recipe/<code>`) and links to
+both stores. Without JavaScript it says to open the link on a phone with Opson.
+
+### Universal links and App Links
+
+With these in place, the link opens the app when it is installed and the page only
+when it isn't. Until then everything still works: the link opens the page, and Open
+in Opson opens the app.
+
+- **iOS.** `public/.well-known/apple-app-site-association` claims `/r/*` for
+  `MSMDV43SUS.com.opson.Opson`, and `_headers` serves it as JSON. The app's side is
+  the Associated Domains entitlement (`applinks:www.opsontracker.com`; the bare
+  domain forwards to www, and Apple doesn't follow a redirect to fetch the file). Both
+  `iosAppDebug.entitlements` and `iosApp.entitlements` carry it, and Associated Domains is
+  registered on `com.opson.Opson` (done 2026-10-30 through the App Store Connect API), so a
+  release build's profile includes it.
+- **Android.** The manifest already asks Android to verify `/r/` links on
+  `www.opsontracker.com`. Android checks `/.well-known/assetlinks.json`, which needs the SHA-256 of
+  the certificate Google signs the app with: Play Console, the app, Test and release,
+  App integrity, App signing, "App signing key certificate", SHA-256. Set it as the
+  repo variable `ANDROID_CERT_SHA256` (several, comma-separated, if you also want a
+  debug or upload key) and redeploy the site. Without it the file is `[]`.
+
+```bash
+printf "Play app signing SHA-256 (AA:BB:...): "; read -r FP
+[ -n "$FP" ] && gh variable set ANDROID_CERT_SHA256 --body "$FP" && gh workflow run pages.yml; unset FP
+```
+
+Check them after a deploy: `curl -i https://www.opsontracker.com/.well-known/apple-app-site-association`
+should answer 200 with `content-type: application/json`, and Google's
+[Statement List tester](https://developers.google.com/digital-asset-links/tools/generator)
+should say the link is verified for `com.opson`.
 
 ## Going live
 

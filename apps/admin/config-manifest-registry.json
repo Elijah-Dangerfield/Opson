@@ -33,6 +33,7 @@
   { "path": "release.providerSummary", "type": "boolean", "default": false, "description": "Support: a PDF summary for a provider, from a range and contents the person picks" },
   { "path": "release.medication", "type": "boolean", "default": false, "description": "Medication tracking: More › Medication, the dose sheet, the Today card, the dose reminder, weight ticks and the provider summary section" },
   { "path": "release.repeats", "type": "boolean", "default": false, "description": "Repeating on the Foods tab: foods and meals that log themselves on the days picked" },
+  { "path": "release.recipes", "type": "boolean", "default": false, "description": "Recipes on the Foods tab, sharing them by link and QR code, and shared recipes in search" },
   { "path": "release.reviewAsk", "type": "boolean", "default": false, "description": "Ask for a store rating at one happy moment per install, split by the review.weight* values" },
   { "path": "review.experiment", "type": "string", "default": "moments-1", "description": "Rename to give every install a new rating-ask moment from the current weights" },
   { "path": "review.weightCelebration", "type": "int", "default": 1, "description": "Share of installs asked for a rating after I can do this on a milestone celebration" },

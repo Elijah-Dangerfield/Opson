@@ -157,7 +157,7 @@ the usual `ProblemResponse`.
 
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/v1/sync` | Push the outbox and pull changes in one call. 400 `too_many_mutations` (> 500), 400 `invalid_cursor`. |
+| POST | `/v1/sync` | Push the outbox and pull changes in one call. 400 `too_many_mutations` (> 500), 400 `invalid_cursor`. Recipes: "Recipes and sharing them" below. |
 | GET | `/v1/foods/search?q=&limit=25` | Ranked search, `limit` 1 to 50. 400 `invalid_query`. Records one anonymous `food_search_events` row. Optional `category` (`restaurant`, `beverage`, `common`), `source` (`usda`, `off`) and `sort` (`best`, `name`); 400 `invalid_category` / `invalid_source` / `invalid_sort`. NEVO foods only with `credits=nevo` (RIVM requires its citation, which 0.1 can't show). |
 | GET | `/v1/foods/search/options` | `{sources, categories}` this server takes; `off` only when `FOOD_SEARCH_OFF_ENABLED` is on. |
 | GET | `/v1/foods/{id}` | 400 `invalid_id`, 404 `not_found`. |
@@ -182,10 +182,10 @@ POST /v1/sync  { "cursor": 0, "mutations": [ { "id": "<outbox id>", "entity": "l
 ```
 
 - `entity` is `log_entry`, `day_record`, `meal_feeling`, `weigh_in`,
-  `custom_food`, `saved_meal`, `settings`, `fast` or `exercise`. Row shapes
+  `custom_food`, `saved_meal`, `settings`, `fast`, `exercise` or `recipe`. Row shapes
   are the `*RowDto` classes in `routes/SyncDto.kt`; pulled rows come back in
-  the same shapes. `fasts` and `exercises` come back only to a request whose
-  `accepts` names `fast` or `exercise`, so a 0.1 client gets the 0.1 response.
+  the same shapes. `fasts`, `exercises` and `recipes` come back only to a request whose
+  `accepts` names `fast`, `exercise` or `recipe`, so a 0.1 client gets the 0.1 response.
 - Rejections carry a stable code: `unknown_entity`, or `invalid_row` (could
   not be decoded, or broke a rule in `domain/DiaryRules.kt`). Messages name
   the field and never echo the value. A rejection never blocks the rest.
@@ -600,6 +600,44 @@ Micros keys carry their unit: `sugars_g`, `added_sugars_g`, `saturated_fat_g`,
 `vitamin_c_mg`, `vitamin_d_ug`, `vitamin_e_mg`, `vitamin_k_ug`,
 `thiamin_mg`, `riboflavin_mg`, `niacin_mg`, `vitamin_b6_mg`,
 `folate_dfe_ug`, `vitamin_b12_ug`, `choline_mg`.
+
+### Recipes and sharing them (`V35__recipes.sql`, behind `release.recipes` in the app)
+
+A recipe is ingredients for the whole batch (the client's `LogDraft` snapshots,
+like a saved meal's items), how many servings it makes and optional notes. It
+syncs like any diary row as entity `recipe`, returned only to a request whose
+`accepts` names it; `saved_from` is the share code of someone else's recipe it
+was saved from. The sharing columns on the same row (`public_code`,
+`public_state` `private`/`live`/`hidden`/`removed`, `public_show_name`,
+`published_at`, `removed_*`, `save_count`) are written only by the routes
+below and the console, never by sync (`RecipesTable` marks them
+database-generated so an Exposed upsert can't null them), and changing them
+bumps `server_seq`, so the owner's other phones learn a recipe is shared. A
+public read never shows the creator's totals: `PublicRecipes.serve` works each
+catalog ingredient with a weight out again from the catalog's numbers (with
+corrections), and counts it as checked when that food is verified and
+approved. The display name shows only when the owner chose it, and a name the
+server made up (`user-1a2b3c4d`) never does. Docs: `docs/plans/recipes.md`.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/v1/recipes/public/{code}` | **No account.** CORS open for this GET alone (the website's recipe page reads it). 404 `not_found`, 410 `not_shared` (stopped, removed, hidden, or deleted). 60/min per IP. `Cache-Control: max-age=60`. |
+| POST | `/v1/recipes/{id}/publish` `{recipe, showName}` | Writes the row as sync would, then shares it: `{code, state}`. A contribution: `refuseIfRestricted` and the device headers; 10 an hour and 30 a day per user (`RecipeLimiter`). 400 `invalid_id`, `invalid_recipe`, `empty_recipe`; 403 `contributions_restricted`, `removed`; 404 `not_found` (someone else's id, or deleted); 429. |
+| POST | `/v1/recipes/{id}/unpublish` | 204, or 404. Never gated. The code is kept, so sharing again gives the same link. |
+| GET | `/v1/recipes/search?q=&limit=10` | Live recipes whose name holds `q` (2 to 100 characters), exact and prefix first, then saves. |
+| POST | `/v1/recipes/public/{code}/reports` `{id, reason, note?}` | `wrong_nutrition`, `unsafe`, `offensive`, `spam`, `other`. A contribution; 10 in 10 minutes and 30 a day. 201, 200 for a repeat, 400 `own_recipe`. Three open reports from different people hide the recipe. |
+| POST | `/v1/recipes/public/{code}/saves` | Someone saved it. 204. |
+| GET | `/v1/admin/recipes?filter=reported\|hidden\|live\|removed` | Admin token. The console's Review area. |
+| GET | `/v1/admin/recipes/{id}` | As the public sees it, with every report. |
+| POST | `/v1/admin/recipes/{id}/remove` `{reason}` | Takes it down and upholds its reports; the owner can't share it again. |
+| POST | `/v1/admin/recipes/{id}/restore` | Hidden goes back up; removed goes back to private. Open reports are dismissed. |
+| POST | `/v1/admin/recipes/{id}/dismiss-reports` | Closes the open reports; hidden goes back up. |
+
+A moderation rollback (`RecipeReverter`, kind `recipe`) removes every public
+recipe of the account. Deleting the account deletes its recipes and its
+reports. `analytics.recipes_daily` (made, first shared) and
+`analytics.recipe_sharing` (live, hidden, removed, saves, open reports, oldest
+open report) carry counts only.
 
 ### Website waitlist (`V16__waitlist.sql`)
 

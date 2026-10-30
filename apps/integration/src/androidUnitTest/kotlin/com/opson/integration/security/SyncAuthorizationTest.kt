@@ -8,6 +8,7 @@ import com.opson.libraries.diary.ExerciseDraft
 import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.RecipeDraft
 import com.opson.libraries.diary.impl.wire.SyncMutationDto
 import com.opson.libraries.diary.impl.wire.SyncRequestDto
 import kotlinx.coroutines.flow.first
@@ -39,6 +40,7 @@ class SyncAuthorizationTest : IntegrationTest() {
         val meal = alicePhone.savedMeals.create("Alice's lunch", MealSlot.Lunch, listOf(LogDraft("Salad", Precision.Estimate)))
         alicePhone.diary.setDayNote(alicePhone.today(), "Alice's note")
         val run = alicePhone.exercise.add(ExerciseDraft(alicePhone.today(), alicePhone.clock.now(), "yoga", minutes = 30, kcal = 90)).written()
+        val recipe = alicePhone.recipes.create(RecipeDraft("Alice's chili", 6.0, listOf(LogDraft("Beans", Precision.Estimate, kcal = 700.0))))
         alicePhone.syncNow().getOrThrow()
 
         // Bob pulls from the beginning: none of Alice's rows come.
@@ -46,6 +48,7 @@ class SyncAuthorizationTest : IntegrationTest() {
         val pulled = bobPhone.syncApi.sync(SyncRequestDto(cursor = 0, accepts = EVERY_ENTITY)).getOrThrow()
         assertEquals(0, pulled.changes.logEntries.size + pulled.changes.weighIns.size + pulled.changes.customFoods.size + pulled.changes.savedMeals.size + pulled.changes.dayRecords.size)
         assertEquals(emptyList(), pulled.changes.exercises.orEmpty())
+        assertEquals(emptyList(), pulled.changes.recipes.orEmpty())
 
         // Bob replays Alice's ids with his own content and a later timestamp.
         val alicesRows = alicePhone.syncApi.sync(SyncRequestDto(cursor = 0, accepts = EVERY_ENTITY)).getOrThrow().changes
@@ -59,6 +62,7 @@ class SyncAuthorizationTest : IntegrationTest() {
             "saved_meal" to wire(alicesRows.savedMeals.single()).hijacked("name", "Bob was here"),
             "day_record" to wire(alicesRows.dayRecords.single()).hijacked("note", "Bob was here"),
             "exercise" to wire(alicesRows.exercises.orEmpty().single()).hijacked("activity", "running_10"),
+            "recipe" to wire(alicesRows.recipes.orEmpty().single()).hijacked("name", "Bob was here"),
         ).map { (entity, row) -> SyncMutationDto(id = UUID.randomUUID().toString(), entity = entity, row = row) }
         val replay = bobPhone.syncApi.sync(SyncRequestDto(cursor = 0, mutations = mutations)).getOrThrow()
         assertTrue(replay.changes.logEntries.none { it.id == entry.id }, "the replay pulls nothing of Alice's either")
@@ -68,6 +72,7 @@ class SyncAuthorizationTest : IntegrationTest() {
         assertEquals("Alice's bar", server.query("SELECT name FROM custom_foods WHERE id = ?::uuid", food.id).single()["name"])
         assertEquals("Alice's lunch", server.query("SELECT name FROM saved_meals WHERE id = ?::uuid", meal.id).single()["name"])
         assertEquals("yoga", server.query("SELECT activity FROM exercises WHERE id = ?::uuid", run.id).single()["activity"])
+        assertEquals("Alice's chili", server.query("SELECT name FROM recipes WHERE id = ?::uuid", recipe.id).single()["name"])
         assertEquals(
             listOf(alice),
             server.query("SELECT user_id::text AS u FROM log_entries WHERE id = ?::uuid", entry.id).map { it["u"] },
@@ -87,7 +92,7 @@ class SyncAuthorizationTest : IntegrationTest() {
 
     private companion object {
         /** Every entity past 0.1's, so a pull would carry Alice's of those too. */
-        val EVERY_ENTITY = listOf("fast", "exercise")
+        val EVERY_ENTITY = listOf("fast", "exercise", "recipe")
     }
 
     private val wireJson = Json {

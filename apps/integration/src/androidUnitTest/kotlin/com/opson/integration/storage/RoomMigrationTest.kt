@@ -65,6 +65,9 @@ class RoomMigrationTest {
     fun fromVersion12_everyRowSurvives() = migratesKeepingEveryRow(12)
 
     @Test
+    fun fromVersion13_everyRowSurvives() = migratesKeepingEveryRow(13)
+
+    @Test
     fun theOldestMigratedVersionIsTheFirstWithAppData() {
         assertEquals(5, AppDatabase.FIRST_APP_DATA_VERSION, "a version below 5 would be dropped, not migrated; add a test for it")
     }
@@ -106,6 +109,8 @@ class RoomMigrationTest {
             }
             // A table added later is there and empty: medication (13) starts with nothing logged.
             if (from < MEDICATION_SINCE) assertNull(database.medicationDoseDao().get("id"), "medication_doses exists and is empty")
+            // And recipes (14).
+            if (from < RECIPES_SINCE) assertNull(database.recipeDao().get("id"), "recipes exists and is empty")
         } finally {
             database.close()
         }
@@ -129,9 +134,10 @@ class RoomMigrationTest {
         const val LOG_ENTRIES_SINCE = 6
         const val UNTRACKED_SINCE = 7
         const val MEDICATION_SINCE = 13
+        const val RECIPES_SINCE = 14
 
         /** The versions the `fromVersionN` tests above cover. */
-        val TESTED_VERSIONS = setOf(5, 6, 7, 8, 9, 10, 11, 12)
+        val TESTED_VERSIONS = setOf(5, 6, 7, 8, 9, 10, 11, 12, 13)
     }
 }
 
@@ -147,7 +153,7 @@ private class Schema(json: JsonObject) {
 
     companion object {
         /** `AppDatabase`'s version; a migrated file has to end up here. */
-        const val CURRENT = 13
+        const val CURRENT = 14
 
         fun read(version: Int): Schema {
             val file = File(directory(), "$version.json")

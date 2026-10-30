@@ -54,7 +54,10 @@ import com.opson.libraries.navigation.bottomSheet
 import com.opson.libraries.navigation.nullableSerializableType
 import com.opson.libraries.navigation.screen
 import com.opson.libraries.navigation.serializableType
+import com.opson.features.foods.PublicRecipeRoute
+import com.opson.features.foods.RecipeRoute
 import com.opson.libraries.scanner.BarcodeCamera
+import com.opson.libraries.scanner.BarcodeFormat
 import com.opson.libraries.scanner.MealPhotoPicker
 import com.opson.libraries.speech.MicPermissionPrompt
 import com.opson.libraries.ui.components.Screen
@@ -380,6 +383,9 @@ class LoggerFeatureEntryPoint(
                 is SearchEvent.OpenSearchOptions -> router.navigate(SearchOptionsRoute(event.openFoodFacts))
                 is SearchEvent.Added -> showAdded(event.name, event.event)
                 is SearchEvent.Picked -> haptics.toggle(on = event.on)
+                is SearchEvent.OpenRecipe -> router.navigate(
+                    event.recipeId?.let(::RecipeRoute) ?: PublicRecipeRoute(event.code.orEmpty()),
+                )
                 SearchEvent.Close -> router.goBack()
             }
         }
@@ -560,6 +566,7 @@ class LoggerFeatureEntryPoint(
             onAction = viewModel::takeAction,
             viewfinder = { request, modifier ->
                 barcodeCamera.Viewfinder(
+                    formats = BarcodeFormat.Retail,
                     onCode = { viewModel.takeAction(BarcodeScanAction.CodeRead(it)) },
                     onUnavailable = { viewModel.takeAction(BarcodeScanAction.CameraUnavailable) },
                     scanArea = request.scanArea,

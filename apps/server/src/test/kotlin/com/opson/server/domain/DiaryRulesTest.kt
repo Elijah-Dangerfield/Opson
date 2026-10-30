@@ -199,6 +199,22 @@ class DiaryRulesTest {
         assertEquals("day is in the future", DiaryRules.validate(fast(day = today.plusDays(9)), now))
     }
 
+    private fun recipe(servings: Double = 4.0, name: String = "Chili", notes: String? = null, items: Int = 3) = Recipe(
+        UUID.randomUUID(), name, servings, "[" + List(items) { "{}" }.joinToString(",") + "]", items, notes, clientUpdatedAt = now, deleted = false,
+    )
+
+    @Test
+    fun aRecipeMakesAQuarterServingToAThousand_withSixtyIngredientsAtMost() {
+        assertNull(DiaryRules.validate(recipe(), now))
+        assertNull(DiaryRules.validate(recipe(servings = 0.25), now))
+        assertEquals("servings is out of range", DiaryRules.validate(recipe(servings = 0.0), now))
+        assertEquals("servings is out of range", DiaryRules.validate(recipe(servings = 1001.0), now))
+        assertEquals("servings is out of range", DiaryRules.validate(recipe(servings = Double.NaN), now))
+        assertEquals("items has too many entries", DiaryRules.validate(recipe(items = 61), now))
+        assertEquals("name is required", DiaryRules.validate(recipe(name = " "), now))
+        assertEquals("notes is longer than 4000 characters", DiaryRules.validate(recipe(notes = "x".repeat(4001)), now))
+    }
+
     private fun exercise(minutes: Int = 30, kcal: Int = 200, activity: String = "walking", name: String? = null, startedAt: Instant = now) =
         Exercise(UUID.randomUUID(), today, startedAt, activity, name, minutes, kcal, kcalTyped = false, notOnWatch = false, clientUpdatedAt = now, deleted = false)
 

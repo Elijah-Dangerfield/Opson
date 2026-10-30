@@ -88,6 +88,7 @@ object DiaryRules {
             is UserSettings -> row.copy(changedAt = row.changedAt?.clamped(), clientUpdatedAt = updatedAt)
             is Fast -> row.copy(startedAt = row.startedAt.clamped(), endedAt = row.endedAt?.clamped(), clientUpdatedAt = updatedAt)
             is Exercise -> row.copy(startedAt = row.startedAt.clamped(), clientUpdatedAt = updatedAt)
+            is Recipe -> row.copy(clientUpdatedAt = updatedAt)
         }
     }
 
@@ -102,8 +103,21 @@ object DiaryRules {
             is UserSettings -> jsonSize("settings", row.settingsJson)
             is Fast -> validateFast(row, now)
             is Exercise -> validateExercise(row, now)
+            is Recipe -> validateRecipe(row)
         }
     }
+
+    private fun validateRecipe(row: Recipe): String? =
+        text("name", row.name, RecipeRules.MAX_NAME, required = true)
+            ?: text("notes", row.notes, RecipeRules.MAX_NOTES)
+            ?: when {
+                !row.servings.isFinite() || row.servings < RecipeRules.MIN_SERVINGS || row.servings > RecipeRules.MAX_SERVINGS ->
+                    "servings is out of range"
+                row.itemCount > RecipeRules.MAX_ITEMS -> "items has too many entries"
+                row.savedFrom != null && !RecipeRules.isCode(row.savedFrom) -> "savedFrom is not a share code"
+                else -> null
+            }
+            ?: jsonSize("items", row.itemsJson)
 
     private fun validateEntry(row: LogEntry, now: Instant): String? =
         dayError(row.day, now)

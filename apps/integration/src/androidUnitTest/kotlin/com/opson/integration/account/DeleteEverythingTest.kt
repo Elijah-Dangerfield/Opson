@@ -13,6 +13,7 @@ import com.opson.libraries.diary.LogDraft
 import com.opson.libraries.diary.MealFeeling
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.RecipeDraft
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.foods.FoodSubmission
 import com.opson.libraries.foods.LabelParse
@@ -50,6 +51,7 @@ class DeleteEverythingTest : IntegrationTest() {
         customFoods.create(CustomFoodDraft(name = "Protein shake", servingAmount = 1.0, servingUnit = "scoop", kcal = 120.0))
         savedMeals.create("Lunch box", MealSlot.Lunch, listOf(LogDraft("Sandwich", Precision.Estimate, kcal = 400.0)))
         exercise.add(ExerciseDraft(day, clock.now(), "yoga", minutes = 20, kcal = 60)).written()
+        recipes.create(RecipeDraft("Chili", servings = 6.0, ingredients = listOf(LogDraft("Beans", Precision.Estimate, kcal = 700.0))))
         submitALabel()
     }
 
@@ -119,6 +121,17 @@ class DeleteEverythingTest : IntegrationTest() {
             "INSERT INTO food_provenance (food_id, kind, ref_id, user_id) VALUES (?::uuid, 'submission', ?::uuid, ?::uuid)",
             UUID.randomUUID().toString(), UUID.randomUUID().toString(), user,
         )
+        // A report on a shared recipe (V35) goes with the account that made it.
+        val recipe = UUID.randomUUID().toString()
+        sql(
+            "INSERT INTO recipes (id, user_id, name, servings, client_updated_at, public_code, public_state) " +
+                "VALUES (?::uuid, ?::uuid, 'Soup', 2, now(), 'zzzz2345', 'live')",
+            recipe, user,
+        )
+        sql(
+            "INSERT INTO recipe_reports (id, recipe_id, user_id, reason) VALUES (?::uuid, ?::uuid, ?::uuid, 'spam')",
+            UUID.randomUUID().toString(), recipe, user,
+        )
         sql("INSERT INTO device_sightings (user_id, device_hash, platform) VALUES (?::uuid, 'hash', 'ios')", user)
         sql(
             "INSERT INTO device_markers (id, device_hash, platform, action_id, user_id, created_by) " +
@@ -164,6 +177,7 @@ class DeleteEverythingTest : IntegrationTest() {
         assertEquals(emptyList(), phone.customFoods.observeAll().first())
         assertEquals(emptyList(), phone.savedMeals.observeAll().first())
         assertTrue(phone.exercise.observeDay(phone.today()).first().isEmpty())
+        assertEquals(emptyList(), phone.recipes.observeAll().first())
         // The settings flow trails the cleared store by a moment, as it does for a screen.
         phone.settings.settings.awaitState { it == Settings() } // No numbers is gone with the account
     }

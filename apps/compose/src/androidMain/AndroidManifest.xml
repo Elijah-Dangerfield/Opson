@@ -42,15 +42,31 @@
               as iOS does; App.kt hands the OAuth return to supabase-kt and
               routes the rest through the `deepLinks` on `screen<Route>`.
 
-              When adding App Links (https://, requires assetlinks.json on
-              the host) sit them alongside this filter as a separate
-              <intent-filter android:autoVerify="true"> block.
+              App Links (https) sit beside it in their own autoVerify filter.
             -->
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="opson" />
+            </intent-filter>
+
+            <!--
+              A shared recipe's link (release.recipes): https://www.opsontracker.com/r/<code>.
+              Only www: the bare domain forwards to it, and before Android 12 one host that
+              fails verification fails them all.
+              Android opens the app for it once the site's /.well-known/assetlinks.json names
+              this app's signing key (website/README.md, "Universal links and App Links");
+              until then the link opens the recipe's web page, which offers Open in Opson.
+              MainActivity forwards it to the DeepLinkBridge with the opson:// links.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="www.opsontracker.com" />
+                <data android:pathPrefix="/r/" />
             </intent-filter>
         </activity>
 

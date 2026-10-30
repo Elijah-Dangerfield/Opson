@@ -271,6 +271,9 @@ enum class SyncEntity(val wire: String) {
 
     /** Logged exercise (`release.exercise`). A server that predates it refuses it as `unknown_entity`. */
     Exercise("exercise"),
+
+    /** A recipe (`release.recipes`). A server that predates it refuses it as `unknown_entity`. */
+    Recipe("recipe"),
     ;
 
     companion object {

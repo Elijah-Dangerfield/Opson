@@ -15,6 +15,7 @@ import com.opson.libraries.diary.SyncEntity
 import com.opson.libraries.diary.SyncRejection
 import com.opson.libraries.diary.db.SyncStateEntity
 import com.opson.libraries.diary.impl.wire.ExerciseRowDto
+import com.opson.libraries.diary.impl.wire.RecipeRowDto
 import com.opson.libraries.diary.impl.wire.FastRowDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
 import com.opson.libraries.diary.impl.wire.SettingsRowDto
@@ -184,10 +185,34 @@ class DiarySyncerTest : CoroutineTest() {
     }
 
     @Test
-    fun everyRequestSaysItAcceptsFastsAndExercise() = runUnitTest {
+    fun everyRequestSaysItAcceptsFastsExerciseAndRecipes() = runUnitTest {
         syncer.sync()
 
-        assertEquals(listOf("fast", "exercise"), api.requests.single().accepts)
+        assertEquals(listOf("fast", "exercise", "recipe"), api.requests.single().accepts)
+    }
+
+    @Test
+    fun aPulledRecipeIsStored_andOneWithAnEditWaitingStillTakesTheServersSharing() = runUnitTest {
+        val pulled = RecipeRowDto(
+            id = "00000000-0000-4000-8000-0000000000a1",
+            name = "Chili",
+            servings = 6.0,
+            clientUpdatedAtEpochMs = 1_000,
+        )
+        api.respond = { ackEverything(it).copy(changes = SyncChangesDto(recipes = listOf(pulled))) }
+        syncer.sync()
+        assertEquals(pulled.toEntity(), db.recipes.state.value[pulled.id])
+
+        val local = pulled.copy(name = "Chili for six", clientUpdatedAtEpochMs = 5_000).toEntity()
+        db.recipes.put(local.id, local)
+        db.outboxDao.enqueue(SyncEntity.Recipe, local.id, "{}", base = null, nowEpochMs = 5_000)
+        val shared = pulled.copy(publicCode = "abcd2345", publicState = "live", publicShowName = true)
+        api.respond = { ackEverything(it).copy(applied = emptyList(), changes = SyncChangesDto(recipes = listOf(shared))) }
+        syncer.sync()
+        val stored = db.recipes.state.value.getValue(pulled.id)
+        assertEquals("Chili for six", stored.name, "the waiting local edit wins")
+        assertEquals("abcd2345", stored.publicCode, "the sharing is the server's")
+        assertEquals("live", stored.publicState)
     }
 
     @Test

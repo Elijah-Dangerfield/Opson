@@ -6,6 +6,7 @@ import com.opson.server.db.ExercisesTable
 import com.opson.server.db.FastsTable
 import com.opson.server.db.LogEntriesTable
 import com.opson.server.db.MealFeelingsTable
+import com.opson.server.db.RecipesTable
 import com.opson.server.db.SavedMealsTable
 import com.opson.server.db.UserSettingsTable
 import com.opson.server.db.WeighInsTable
@@ -22,6 +23,10 @@ import com.opson.server.domain.MealFeeling
 import com.opson.server.domain.MealSlot
 import com.opson.server.domain.Nutrients
 import com.opson.server.domain.Precision
+import com.opson.server.domain.PublicRecipes
+import com.opson.server.domain.PublicState
+import com.opson.server.domain.Recipe
+import com.opson.server.domain.RecipeSharing
 import com.opson.server.domain.SavedMeal
 import com.opson.server.domain.UserSettings
 import com.opson.server.domain.WeighIn
@@ -158,6 +163,26 @@ internal fun ResultRow.toExercise(): Exercise = Exercise(
     clientUpdatedAt = this[ExercisesTable.clientUpdatedAt].toKotlinInstant(),
     deleted = this[ExercisesTable.deleted],
 )
+
+internal fun ResultRow.toRecipe(): Recipe {
+    val items = this[RecipesTable.items]
+    return Recipe(
+        id = this[RecipesTable.id],
+        name = this[RecipesTable.name],
+        servings = this[RecipesTable.servings].clean() ?: 1.0,
+        itemsJson = items,
+        itemCount = PublicRecipes.items(items).size,
+        notes = this[RecipesTable.notes],
+        clientUpdatedAt = this[RecipesTable.clientUpdatedAt].toKotlinInstant(),
+        deleted = this[RecipesTable.deleted],
+        savedFrom = this[RecipesTable.savedFrom],
+        sharing = RecipeSharing(
+            code = this[RecipesTable.publicCode],
+            state = PublicState.fromWire(this[RecipesTable.publicState]),
+            showName = this[RecipesTable.publicShowName],
+        ),
+    )
+}
 
 internal fun ResultRow.toUserSettings(): UserSettings = UserSettings(
     settingsJson = this[UserSettingsTable.settings],

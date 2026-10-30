@@ -43,6 +43,23 @@ object FoodsLeakSurfaces {
         LeakSurface(id = "foods-repeat-edit", label = "Edit repeat", showsCaloriesInFull = true) { policy ->
             RepeatScreen(state = FoodsFixtures.repeatState(policy, edit = true), onAction = {})
         },
+        // release.recipes: each recipe's row carries one serving's calories.
+        LeakSurface(id = "foods-recipes", label = "Foods tab, Recipes", showsCaloriesInFull = true) { policy ->
+            FoodsScreen(state = FoodsFixtures.foodsState(policy, withRecent = false, recipesOn = true), onAction = {})
+        },
+        LeakSurface(id = "recipe-edit", label = "Edit recipe", showsCaloriesInFull = true) { policy ->
+            RecipeEditScreen(state = RecipeFixtures.editState(policy, editing = true), onAction = {})
+        },
+        LeakSurface(id = "recipe", label = "A recipe", showsCaloriesInFull = true) { policy ->
+            RecipeScreen(state = RecipeFixtures.viewState(policy), onAction = {})
+        },
+        // Someone's shared recipe: its numbers are worked out by the server, and still follow the mode.
+        LeakSurface(id = "recipe-public", label = "A shared recipe", showsCaloriesInFull = true) { policy ->
+            PublicRecipeScreen(state = RecipeFixtures.publicState(policy), onAction = {})
+        },
+        LeakSurface(id = "recipe-log", label = "Log a serving", showsCaloriesInFull = true) { policy ->
+            LogRecipeSheetContent(state = RecipeFixtures.logState(policy), onAction = {}, onClose = {})
+        },
         // Design sync 4, 13.3e, from a food's ⋮ on Today (release.foodActions). The Calories field
         // and its "Was" are tagged as calories, so Full's control sees them and no other mode may.
         LeakSurface(id = "edit-a-copy", label = "Edit a copy", showsCaloriesInFull = true) { policy ->

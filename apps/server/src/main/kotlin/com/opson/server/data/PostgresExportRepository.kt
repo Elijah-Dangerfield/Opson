@@ -7,6 +7,7 @@ import com.opson.server.db.ExercisesTable
 import com.opson.server.db.FastsTable
 import com.opson.server.db.LogEntriesTable
 import com.opson.server.db.MealFeelingsTable
+import com.opson.server.db.RecipesTable
 import com.opson.server.db.SavedMealsTable
 import com.opson.server.db.SyncedTable
 import com.opson.server.db.UserSettingsTable
@@ -113,6 +114,7 @@ class PostgresExportRepository(
             Kind(FastsTable, listOf(FastsTable.day)) { it.toFast() },
             Kind(CustomFoodsTable, listOf(CustomFoodsTable.name, CustomFoodsTable.id)) { it.toCustomFood() },
             Kind(SavedMealsTable, listOf(SavedMealsTable.name, SavedMealsTable.id)) { it.toSavedMeal() },
+            Kind(RecipesTable, listOf(RecipesTable.name, RecipesTable.id)) { it.toRecipe() },
             Kind(UserSettingsTable, listOf(UserSettingsTable.userId)) { it.toUserSettings() },
         )
     }

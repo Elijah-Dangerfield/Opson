@@ -352,6 +352,22 @@ uses the trimmed name. Previews: `FoodsAddFood` (Full), dark, Nutrient focus,
 120, so Full reads `120 kcal`; `showsCaloriesInFull = true`) and
 `foods-add-food-blind` (`false`).
 
+## Recipes
+
+Behind `release.recipes`; the whole design is `docs/plans/recipes.md`. On the
+Foods tab a Recipes card sits under Saved meals: each recipe with "Makes 6
+servings · 4 ingredients" (and "Shared" when it is), one serving's calories,
+then New recipe and Scan a recipe code. Drawn even with none, with a line
+saying what a recipe is for. Routes (`RecipeRoutes.kt`, all registered by
+`RecipesEntryPoint`): `RecipeEditRoute` (New/Edit recipe: name, servings
+stepper, ingredients through search in pick-for-this-meal mode, the whole
+recipe's and one serving's numbers, notes), `RecipeRoute` (its page: Log a
+serving, Share, Edit, Delete), `RecipeShareRoute` (sheet: what becomes public,
+then the link and QR code), `PublicRecipeRoute` (someone's shared recipe, by
+code), `LogRecipeRoute` and `ReportRecipeRoute` (sheets) and `ScanRecipeRoute`
+(QR only). Previews are in `RecipePreviews.kt`; leak surfaces `foods-recipes`,
+`recipe-edit`, `recipe`, `recipe-public`, `recipe-log`.
+
 ## Repeating
 
 Behind `release.repeats`. The owner asked for foods that log themselves every

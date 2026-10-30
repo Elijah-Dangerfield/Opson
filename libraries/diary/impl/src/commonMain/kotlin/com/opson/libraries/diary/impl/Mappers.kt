@@ -17,6 +17,10 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Mood
 import com.opson.libraries.diary.MoodLevel
 import com.opson.libraries.diary.Precision
+import com.opson.libraries.diary.Recipe
+import com.opson.libraries.diary.RecipeDraft
+import com.opson.libraries.diary.RecipeShareState
+import com.opson.libraries.diary.RecipeSharing
 import com.opson.libraries.diary.SavedMeal
 import com.opson.libraries.diary.Sleep
 import com.opson.libraries.diary.WeighIn
@@ -24,6 +28,7 @@ import com.opson.libraries.diary.db.CustomFoodEntity
 import com.opson.libraries.diary.db.DayRecordEntity
 import com.opson.libraries.diary.db.LogEntryEntity
 import com.opson.libraries.diary.db.MealFeelingEntity
+import com.opson.libraries.diary.db.RecipeEntity
 import com.opson.libraries.diary.db.SavedMealEntity
 import com.opson.libraries.diary.db.WeighInEntity
 import com.opson.libraries.diary.impl.wire.CheckInWire
@@ -32,6 +37,7 @@ import com.opson.libraries.diary.impl.wire.DayRecordRowDto
 import com.opson.libraries.diary.impl.wire.FoodUnitDto
 import com.opson.libraries.diary.impl.wire.LogEntryRowDto
 import com.opson.libraries.diary.impl.wire.MealFeelingRowDto
+import com.opson.libraries.diary.impl.wire.RecipeRowDto
 import com.opson.libraries.diary.impl.wire.SavedMealRowDto
 import com.opson.libraries.diary.impl.wire.WeighInRowDto
 import com.opson.libraries.diary.impl.wire.WireJson
@@ -441,6 +447,61 @@ internal fun SavedMealRowDto.toEntity(): SavedMealEntity = SavedMealEntity(
     name = name,
     usualSlot = usualSlot,
     itemsJson = WireJson.encodeToString(JsonArray.serializer(), items),
+    clientUpdatedAtEpochMs = clientUpdatedAtEpochMs,
+    deleted = deleted,
+)
+
+// ---------- recipes ----------
+
+internal fun RecipeEntity.toDomain(): Recipe = Recipe(
+    id = id,
+    name = name,
+    servings = servings,
+    // Ingredients another build wrote in a shape this one cannot read are dropped, not fatal.
+    ingredients = Catching { WireJson.decodeFromString(draftsSerializer, itemsJson) }.getOrDefault(emptyList()),
+    notes = notes,
+    savedFrom = savedFrom,
+    sharing = RecipeSharing(code = publicCode, state = RecipeShareState.fromWire(publicState), showName = publicShowName),
+    updatedAtEpochMs = clientUpdatedAtEpochMs,
+)
+
+/** A new or edited recipe, keeping the sharing the server last gave [kept]. */
+internal fun RecipeDraft.toEntity(id: String, updatedAtEpochMs: Long, kept: RecipeEntity?): RecipeEntity = RecipeEntity(
+    id = id,
+    name = name.trim(),
+    servings = servings,
+    itemsJson = WireJson.encodeToString(draftsSerializer, ingredients),
+    notes = notes?.trim()?.takeIf { it.isNotEmpty() },
+    savedFrom = savedFrom ?: kept?.savedFrom,
+    publicCode = kept?.publicCode,
+    publicState = kept?.publicState ?: RecipeShareState.Private.wire,
+    publicShowName = kept?.publicShowName ?: false,
+    clientUpdatedAtEpochMs = updatedAtEpochMs,
+    deleted = false,
+)
+
+/** What goes up. The sharing fields go too, and the server ignores them. */
+internal fun RecipeEntity.toRow(): RecipeRowDto = RecipeRowDto(
+    id = id,
+    name = name,
+    servings = servings,
+    items = WireJson.decodeFromString(JsonArray.serializer(), itemsJson),
+    notes = notes,
+    clientUpdatedAtEpochMs = clientUpdatedAtEpochMs,
+    deleted = deleted,
+    savedFrom = savedFrom,
+)
+
+internal fun RecipeRowDto.toEntity(): RecipeEntity = RecipeEntity(
+    id = id,
+    name = name,
+    servings = servings,
+    itemsJson = WireJson.encodeToString(JsonArray.serializer(), items),
+    notes = notes,
+    savedFrom = savedFrom,
+    publicCode = publicCode,
+    publicState = publicState ?: RecipeShareState.Private.wire,
+    publicShowName = publicShowName ?: false,
     clientUpdatedAtEpochMs = clientUpdatedAtEpochMs,
     deleted = deleted,
 )
