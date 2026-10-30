@@ -227,7 +227,9 @@ object RecapStateBuilder {
         val gentle = settings.onboarding.hard
         val context = FormatContext(day = period.end)
         val opens = { metric: Metric, day: Day -> TrendsStateBuilder.opensOn(metric, day, inputs.today, settings.weekStart, policy) }
-        val logged = past.map(dayAt).filter { it.countsInTrends }
+        // Today adds up once it is wrapped up, as the goals do: half a day isn't a low day.
+        val finished = past.filter { it < inputs.today || dayAt(it).closedByUser }
+        val logged = finished.map(dayAt).filter { it.countsInTrends }
 
         val eaten = if (gentle) null else eaten(inputs, dates, dayAt, logged, policy, context, opens)
         val burned = if (gentle) null else burned(inputs, logged, policy, context, opens)

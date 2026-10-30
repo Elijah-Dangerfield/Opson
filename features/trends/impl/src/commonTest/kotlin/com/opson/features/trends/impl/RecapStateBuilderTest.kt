@@ -130,6 +130,18 @@ class RecapStateBuilderTest {
     }
 
     @Test
+    fun today_addsUpOnlyOnceItIsWrappedUp() {
+        val days = listOf(day(0, kcal = 2000.0), day(1, kcal = 400.0))
+        val going = RecapStateBuilder.build(inputs(days).copy(today = week.start.plus(1, DateTimeUnit.DAY)), full)
+        assertEquals(Display.Shown("2,000 kcal"), going.eaten?.average, "half a day isn't a low day")
+        assertEquals(1, going.eaten?.days)
+
+        val wrapped = days.map { if (it.date == week.start.plus(1, DateTimeUnit.DAY)) it.copy(closedAt = Instant.parse("2026-10-13T21:00:00Z")) else it }
+        val closed = RecapStateBuilder.build(inputs(wrapped).copy(today = week.start.plus(1, DateTimeUnit.DAY)), full)
+        assertEquals(2, closed.eaten?.days)
+    }
+
+    @Test
     fun burned_isAddedUpOverLoggedDays_inItsParts() {
         val days = listOf(day(0, kcal = 2000.0), day(1, kcal = 1800.0), day(2))
         val burn = Burned(RestingEnergy(1600, RestingFrom.Health), movementKcal = 400, workoutKcal = 300, exerciseKcal = 100, foodKcal = 200)
