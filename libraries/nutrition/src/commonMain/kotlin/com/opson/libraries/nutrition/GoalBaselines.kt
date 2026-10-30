@@ -247,16 +247,24 @@ object GoalBaselines {
         if (!goal.drivesTarget) return null
         val newBaseline = of(current)
         val newAim = GoalTargets.aimKcal(goal.type, newBaseline) ?: return null
-        val old = goal.baseline ?: return Recalculation(goal.id, emptySet(), null, newAim, null, newBaseline)
+        val old = goal.baseline
+        if (old == null) {
+            // Kept through before: offered again only once the inputs move as far as they would
+            // have to for a goal with a baseline, or Keep would be asked again every day.
+            return if (keptThrough(goal, current, newAim)) null else Recalculation(goal.id, emptySet(), null, newAim, null, newBaseline)
+        }
         val oldAim = GoalTargets.aimKcal(goal.type, old) ?: return null
         val changes = changes(old.inputs, current)
         if (!worthOffering(changes, oldAim, newAim)) return null
-        goal.declined?.let { declined ->
-            val sinceDeclined = changes(declined, current)
-            val declinedAim = GoalTargets.aimKcal(goal.type, of(declined)) ?: return@let
-            if (!worthOffering(sinceDeclined, declinedAim, newAim)) return null
-        }
+        if (keptThrough(goal, current, newAim)) return null
         return Recalculation(goal.id, changes, oldAim, newAim, old.inputs, newBaseline)
+    }
+
+    /** The person kept their target through inputs ([Goal.declined]) these barely differ from. */
+    private fun keptThrough(goal: Goal, current: BaselineInputs, newAim: Int): Boolean {
+        val declined = goal.declined ?: return false
+        val declinedAim = GoalTargets.aimKcal(goal.type, of(declined)) ?: return false
+        return !worthOffering(changes(declined, current), declinedAim, newAim)
     }
 
     private fun worthOffering(changes: Set<BaselineChange>, oldAim: Int, newAim: Int): Boolean {

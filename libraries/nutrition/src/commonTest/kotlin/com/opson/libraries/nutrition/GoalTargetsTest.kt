@@ -185,6 +185,14 @@ class GoalTargetsTest {
     }
 
     @Test
+    fun aGoalWithNoBaseline_keptThrough_isNotAskedAgain_untilTheInputsMove() {
+        val kept = lose().copy(baseline = null, declined = inputs)
+        assertNull(GoalBaselines.recalculation(kept, inputs), "Keep sticks")
+        assertNull(GoalBaselines.recalculation(kept, inputs.copy(weightKg = 89.6)), "a weigh-in's drift isn't worth asking again")
+        assertEquals(1630, GoalBaselines.recalculation(kept, inputs.copy(activityKcal = 380, everyday = EverydayActivity.MostlySitting))?.newAimKcal)
+    }
+
+    @Test
     fun aMigratedGoal_withNoInputs_isJudgedByTheTargetAlone() {
         val legacy = lose().copy(baseline = GoalBaseline(burnKcal = 2480, sex = BodySex.Male))
         assertNull(GoalBaselines.recalculation(legacy, inputs.copy(restingKcal = 1850)), "50 more is drift")
