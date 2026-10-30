@@ -161,8 +161,9 @@ Welcome now says the next step asks for a birthday.
   (`AppData.ageGateOpensOn`, the date only). The birthday itself isn't kept, and the app sends no
   step event or abandoned event for them.
 - Someone 16 or 17 gets an account, with the same gentle goal path as after "numbers have been hard":
-  no weight, goal weight, pace or deficit in setup, no goal flow card on Today, no BMI or body
-  fat on Profile, and celebrations without counts unless they choose counts.
+  no weight, goal weight, pace or deficit in setup, no goal flow card on Today, no goal card on
+  Targets, no BMI or body fat on Profile, and celebrations without counts unless they choose
+  counts. Targets still lets anyone type their own number, with the usual low-goal note.
 - Why 16: 13 matches COPPA but not the evidence; the peak onset of eating disorders is
   mid-adolescence and the AAP advises against dieting for teens. 18 matches MyFitnessPal, but an
   older teen turned away will find a tracker with fewer protections. 16 is also GDPR's highest
