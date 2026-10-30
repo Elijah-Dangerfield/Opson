@@ -1,6 +1,7 @@
 package com.opson.features.today.impl
 
 import com.opson.libraries.navigation.Route
+import com.opson.libraries.navigation.UnloggedRoute
 import kotlinx.serialization.Serializable
 
 /*
@@ -25,14 +26,19 @@ data class ItemSheetRoute(val dayIso: String, val entryId: String) : Route()
 @Serializable
 data class DayNoteRoute(val dayIso: String) : Route()
 
-/** Day close's "Why not cut back?" on the big-day card: a short reason, nothing to do. */
+/**
+ * Day close's "Why not cut back?" on the big-day card: a short reason, nothing to do. Opening it
+ * feeds the hard-stretch check, so its name stays out of crash and jank reports.
+ */
 @Serializable
+@UnloggedRoute
 class WhyNotCutBackRoute : Route()
 
 /**
  * The kind note ([com.opson.features.today.impl.kindnote.KindNotePrompt]), which the prompt host
  * opens over Today when the log suggests a hard stretch. Named for what it is to the person, not
- * for what set it off.
+ * for what set it off. Never named in crash or jank reports.
  */
 @Serializable
+@UnloggedRoute
 class KindNoteRoute : Route()

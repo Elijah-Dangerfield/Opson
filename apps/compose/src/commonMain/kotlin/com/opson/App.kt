@@ -31,7 +31,6 @@ import com.opson.features.logger.LoggerRoute
 import com.opson.features.medication.LogDoseRoute
 import com.opson.features.onboarding.OnboardingRoute
 import com.opson.features.upgrade.impl.AppGuardLayer
-import com.opson.features.settings.FindSupportRoute
 import com.opson.features.today.TodayRoute
 import com.opson.libraries.core.Catching
 import com.opson.libraries.core.logOnFailure
@@ -51,6 +50,7 @@ import com.opson.libraries.navigation.floatingwindow.FloatingWindowNavigator
 import com.opson.libraries.navigation.TabBar
 import com.opson.libraries.identity.auth.isSomeones
 import com.opson.libraries.navigation.impl.DelegatingRouter
+import com.opson.libraries.navigation.isUnlogged
 import com.opson.libraries.navigation.serializableType
 import com.opson.libraries.navigation.toEnterTransition
 import com.opson.libraries.navigation.toExitTransition
@@ -378,10 +378,10 @@ private fun AppNavigation(
     // from a LaunchedEffect keyed on the name so we only touch the Sentry
     // scope when the route actually changes, not on every recomposition.
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    // Find support is never logged: its route reaches neither the crash scope nor the jank
-    // monitor, so attribution stays with the screen beneath it.
+    // An UnloggedRoute (Find support, the kind note, ...) is never logged: its name reaches
+    // neither the crash scope nor the jank monitor, so attribution stays with the screen beneath it.
     val currentRouteName = currentBackStackEntry?.destination
-        ?.takeUnless { it.hasRoute<FindSupportRoute>() }
+        ?.takeUnless { it.isUnlogged() }
         ?.routeClassNameOrNull()
     LaunchedEffect(currentRouteName) {
         currentRouteName?.let {

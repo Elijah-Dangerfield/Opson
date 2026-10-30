@@ -1,6 +1,7 @@
 package com.opson.features.settings
 
 import com.opson.libraries.navigation.Route
+import com.opson.libraries.navigation.UnloggedRoute
 import kotlinx.serialization.Serializable
 
 /**
@@ -171,9 +172,10 @@ class WidgetsRoute : Route()
  * the onboarding statement and the big-day card. Check [FindSupportEnabled] before linking here.
  *
  * Opening it is never logged, synced or shared: no app event, and the app shell keeps this route
- * out of crash and jank attribution.
+ * out of crash and jank attribution ([UnloggedRoute]).
  */
 @Serializable
+@UnloggedRoute
 class FindSupportRoute : Route()
 
 /**
