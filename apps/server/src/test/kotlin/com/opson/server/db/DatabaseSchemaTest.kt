@@ -593,6 +593,8 @@ class DatabaseSchemaTest : DatabaseTest() {
             "contribution_lanes_daily", "builder_program_daily",
             // V32, applications.
             "builder_applications_daily",
+            // V33, energy against the macros.
+            "food_energy_by_source", "food_energy_worst",
         )
         val SUPPORT_VIEWS = listOf(
             "users", "user_installs", "user_daily_logging", "user_daily_marks", "user_settings",
