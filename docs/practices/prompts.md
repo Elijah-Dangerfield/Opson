@@ -21,7 +21,9 @@ back.
 2. **The prompt's own record** (`PromptFrequency`): accepted once ends it; `maxDismissals` Not
    nows end it (default 1); `maxShows` showings end it (default 1, "never more than once"); two
    showings are at least `minGap` apart. Nothing skips these.
-3. **Asked for this trigger.** `onTodayOpen` for Today settling; `events` for moments.
+3. **Asked for this trigger.** `onTodayOpen` for Today settling; `events` for moments. An
+   **optional** prompt (`PromptCandidate.optional`: every dialog, sheet and card unless it says
+   otherwise) waits while suggestions are off (`Settings.suggestions`, `PromptBlock.TurnedOff`).
 4. **Numbers have been hard** means only prompts with `offerWhenNumbersHard = true`.
 5. **One prompt a session** (`SessionTracker`: a cold start, or 15 minutes in the background).
    One exception: a moment that is someone's own answer to the prompt just shown
@@ -94,12 +96,34 @@ in `CelebrationStore`), but it answers to every global rule, so it never lands o
 and takes the session's one showing. Its priority, `PromptPriority.CELEBRATION`, puts it above a
 moment's offer.
 
+## "I'd rather not see these"
+
+Some things on Today are simply not for everyone (owner feedback, 2026-10-30). Each has its own
+switch, and offers the way out where it shows, on its first five showings
+(`OptOuts.OFFERED_SHOWINGS`), not only the first: someone unsure on day one often knows by the
+third time. After five the offer goes and the switch stays. Turning one off shows a snackbar that
+says where to turn it back on.
+
+| `OptOut` | What it turns off | Where the offer is | A showing is | The switch |
+|---|---|---|---|---|
+| `Celebrations` | milestone celebrations, the streak and Your progress | the celebration screen | each celebration | More › Reminders and celebrations (`celebrationsEnabled`) |
+| `Streak` | the streak in Today's header | Your progress, which the streak opens | each time Your progress opens | More › Today screen (`todayStreak`) |
+| `RecapBanner` | "Your week is ready" on Today | the banner | each week or month it shows | More › Today screen (`recapBanner`) |
+| `Tips` | first-run tips | the tip's bubble ("No more tips") | each tip | More › Today screen (`tips`) |
+| `Suggestions` | every optional prompt | under the prompt's buttons | each optional prompt | More › Today screen (`suggestions`) |
+
+The count is per account on this phone, in the prompt ledger (`AccountLedger.optOutShows`), so it
+survives signing out and is never synced; `LedgerOptOuts` counts and writes the switch. Tips count
+their own showings (a tip shows once, so the tips seen are the count), so the bubble knows at once.
+A new one: an `OptOut` value, a `Settings` switch, a row in More › Today screen, then call
+`OptOuts.showing` where it draws and `OptOuts.turnOff` on the answer.
+
 ## First-run tips
 
 A tip is not a prompt: it offers nothing, it points at something already on screen ("Tap a
 number with the arrows to see it another way"). They have their own, smaller rules, in
 `TipMemory` (`:libraries:prompts:impl`): at most one a screen visit, never before onboarding is
-done, and each once per account on this phone. When a screen has several on it, the first in
+done, never with tips turned off (`Settings.tips`), and each once per account on this phone. When a screen has several on it, the first in
 `Tips.all` not yet seen wins, so the registry's order is the priority.
 
 To add one: a `Tip` in `Tips.kt` with its line in `strings_tips.xml`, then wrap what it points at

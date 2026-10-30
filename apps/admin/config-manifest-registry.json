@@ -26,6 +26,7 @@
   { "path": "release.checkIn", "type": "boolean", "default": false, "description": "The check-in sheet (hunger, energy, mood, sleep), its ways in from the + sheet and Close the day, and Patterns' charts" },
   { "path": "release.celebrations", "type": "boolean", "default": false, "description": "Milestone celebrations for showing up, the streak on Today, Your progress, and the Celebrations rows in More" },
   { "path": "release.betaNotice", "type": "boolean", "default": false, "description": "The beta: Welcome says Pro isn't here yet and beta members get a lifetime discount, and accounts are recorded as beta members. Turn off when the beta ends" },
+  { "path": "release.recaps", "type": "boolean", "default": false, "description": "Weekly and monthly recaps, their way in from Trends, the recap banner on Today and its switch in More" },
   { "path": "release.foodActions", "type": "boolean", "default": false, "description": "A food's menu on Today: change amount, move, copy to another day, edit a copy, favorite" },
   { "path": "release.goalsAndEnergy", "type": "boolean", "default": false, "description": "Targets: one number, a set deficit and surplus; Burned, Resting energy and Energy today" },
   { "path": "release.exercise", "type": "boolean", "default": false, "description": "Exercise logged by hand, counted in Burned; needs goalsAndEnergy" },

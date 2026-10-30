@@ -7,6 +7,9 @@
 -->
 <resources>
     <string name="prompt_not_now">Not now</string>
+    <!-- Under the buttons on the first few suggestions: turns suggestions off (Settings.suggestions) -->
+    <string name="prompt_rather_not">I'd rather not see these</string>
+    <string name="prompt_suggestions_off">Suggestions are off. Turn them back on in More › Today screen.</string>
 
     <!-- Connect Apple Health or Health Connect (release.health), a sheet -->
     <string name="prompt_health_title_apple">Bring in Apple Health</string>

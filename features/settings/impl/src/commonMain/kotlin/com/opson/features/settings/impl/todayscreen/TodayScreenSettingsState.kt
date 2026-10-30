@@ -72,6 +72,12 @@ data class TodayScreenSettingsState(
     val weightNote: OverrideNote? = null,
     /** Close the day's button in Today's header, not a row in the list. */
     val closeDay: Boolean = true,
+    /** The streak in the header, while celebrations are offered and on; null when the row is not there. */
+    val streak: Boolean? = null,
+    /** "Your week is ready" (`release.recaps`); null when the row is not there. */
+    val recapBanner: Boolean? = null,
+    val tips: Boolean = true,
+    val suggestions: Boolean = true,
 )
 
 enum class FollowStyle { Range, Exact, Deficit, Surplus, ByDay }
@@ -96,6 +102,8 @@ data class TodayScreenFlags(
     val goalsAndEnergy: Boolean = true,
     val todaySummary: Boolean = true,
     val fasting: Boolean = false,
+    val celebrations: Boolean = false,
+    val recaps: Boolean = false,
 )
 
 object TodayScreenSettingsStateBuilder {
@@ -158,6 +166,10 @@ object TodayScreenSettingsStateBuilder {
             weight = settings.todayWeight.takeIf { flags.todaySummary },
             weightNote = hiddenNote(numbers, Metric.Weight, Res.string.settings_today_weight_hidden).takeIf { flags.todaySummary && settings.todayWeight },
             closeDay = settings.todayCloseDay,
+            streak = settings.todayStreak.takeIf { flags.celebrations && settings.celebrationsEnabled },
+            recapBanner = settings.recapBanner.takeIf { flags.recaps },
+            tips = settings.tips,
+            suggestions = settings.suggestions,
         )
     }
 

@@ -14,6 +14,16 @@
     <string name="today_dayclose_recap_none">Nothing logged today.</string>
     <string name="today_dayclose_recap_none_other_day">Nothing logged that day.</string>
 
+    <!-- Opened early: before noon, or hours before the time this person usually wraps up. Never in the way. -->
+    <string name="today_dayclose_early_title">It's only %1$s</string>
+    <string name="today_dayclose_early_body_usual">You usually wrap up around %1$s.</string>
+    <string name="today_dayclose_early_body">You can still wrap up now, and reopen the day later.</string>
+    <string name="today_dayclose_early_learned">Based on when you usually wrap up.</string>
+    <string name="today_dayclose_early_not_yet">Not yet</string>
+
+    <!-- Today wrapped up on the last day of the week (release.recaps): the week's recap. -->
+    <string name="today_dayclose_week_recap">See your week, %1$s</string>
+
     <!-- Eaten against burned. Only where calories and energy out both show. -->
     <string name="today_dayclose_balance_title">Eaten and burned</string>
     <string name="today_dayclose_balance_eaten">Eaten</string>

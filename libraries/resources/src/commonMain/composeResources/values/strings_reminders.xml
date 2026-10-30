@@ -22,6 +22,7 @@
     <string name="reminders_level_subtle">Subtle</string>
     <string name="reminders_level_full">Full</string>
     <string name="reminders_times_label">Meal reminder times</string>
+    <string name="reminders_times_learned">Based on when you usually log. Tap a meal to change its time.</string>
     <string name="reminders_time_off">Off</string>
     <string name="reminders_time_title">%1$s time</string>
     <string name="reminders_time_ok">OK</string>

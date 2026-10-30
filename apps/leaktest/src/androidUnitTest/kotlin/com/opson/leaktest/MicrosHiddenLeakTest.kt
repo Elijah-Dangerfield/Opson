@@ -66,6 +66,7 @@ class MicrosHiddenLeakTest(private val surface: LeakSurface, private val case: M
             "food-detail-nutrients", "edit-a-copy-label", "edit-a-copy-sizes",
             // Close the day's recap lists the same minerals as Today's card.
             "day-close", "day-close-check-in", "day-close-closed", "day-close-streak", "day-close-recap-deficit", "day-close-recap-surplus",
+            "day-close-early", "day-close-week-recap",
         ) + TODAY_CARD_SURFACES
 
         /** Derived, so a preset added later is covered the day it hides micros. */

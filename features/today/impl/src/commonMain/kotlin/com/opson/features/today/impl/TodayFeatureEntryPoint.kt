@@ -44,6 +44,7 @@ import com.opson.features.today.impl.celebration.StreakIndicatorEvent
 import com.opson.features.today.impl.celebration.StreakIndicatorViewModel
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.celebrate_turned_off
+import opson.libraries.resources.generated.resources.progress_streak_hidden
 import com.opson.features.today.DayCloseRoute
 import com.opson.features.today.DayClosedRoute
 import com.opson.features.today.MealNoteRoute
@@ -90,6 +91,7 @@ import com.opson.features.today.impl.water.WaterSheetEvent
 import com.opson.features.today.impl.water.WaterSheetViewModel
 import com.opson.features.trends.NutrientsRange
 import com.opson.features.trends.NutrientsRoute
+import com.opson.features.trends.RecapRoute
 import com.opson.features.trends.WeightRoute
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.flowroutines.ObserveEvents
@@ -208,6 +210,10 @@ class TodayFeatureEntryPoint(
             viewModel.ObserveEvents { event ->
                 when (event) {
                     ProgressEvent.Dismiss -> sheetState.dismiss()
+                    ProgressEvent.StreakHidden -> {
+                        sheetState.dismiss()
+                        showToast(Toast(Res.string.progress_streak_hidden))
+                    }
                 }
             }
             TodaySheet(router, sheetState) { ProgressSheetContent(state = state, onAction = viewModel::takeAction) }
@@ -239,6 +245,7 @@ class TodayFeatureEntryPoint(
                     DayCloseEvent.OpenSupport -> router.navigate(if (findSupportEnabled()) FindSupportRoute() else SupportRoute())
                     is DayCloseEvent.OpenCheckIn -> router.navigate(CheckInRoute(event.day.toString()))
                     is DayCloseEvent.OpenNutrients -> router.navigate(NutrientsRoute(event.day.toString(), NutrientsRange.Day))
+                    is DayCloseEvent.OpenRecap -> router.navigate(RecapRoute(event.period.kind.wire, event.period.start.toString()))
                     is DayCloseEvent.ShowToast -> showToast(event.toast)
                 }
             }

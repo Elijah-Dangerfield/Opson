@@ -11,15 +11,21 @@ import kotlin.native.HiddenFromObjC
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 
-/** A prompt's dialog or sheet. [content] is null for an id no candidate has any more, which closes at once. */
+/**
+ * A prompt's dialog or sheet. [content] is null for an id no candidate has any more, which closes
+ * at once. [offersOptOut]: "I'd rather not see these" under the two buttons.
+ */
 @HiddenFromObjC
-data class PromptState(val content: PromptContent?)
+data class PromptState(val content: PromptContent?, val offersOptOut: Boolean = false)
 
 @HiddenFromObjC
 sealed interface PromptAction {
     data object AcceptTapped : PromptAction
 
     data object NotNowTapped : PromptAction
+
+    /** "I'd rather not see these": suggestions off, and this one closes. */
+    data object TurnOffTapped : PromptAction
 
     /** Gone by a swipe, a tap outside or Back, after the animation. Counts as Not now unless already answered. */
     data object Gone : PromptAction
@@ -34,6 +40,9 @@ sealed interface PromptUiEvent {
 
     /** Animate away. */
     data object Close : PromptUiEvent
+
+    /** Animate away after suggestions were turned off; a line says where to turn them back on. */
+    data object TurnedOff : PromptUiEvent
 }
 
 @HiddenFromObjC
@@ -42,7 +51,7 @@ class PromptViewModel(
     @Assisted private val id: String,
     private val processor: PromptProcessor,
 ) : SEAViewModel<PromptState, PromptUiEvent, PromptAction>(
-    initialStateArg = PromptState(content = processor.candidate(id)?.content),
+    initialStateArg = PromptState(content = processor.candidate(id)?.content, offersOptOut = processor.offersOptOut(id)),
 ) {
     private var leaving = false
 
@@ -64,6 +73,12 @@ class PromptViewModel(
                 leaving = true
                 processor.dismissed(id)
                 sendEvent(PromptUiEvent.Close)
+            }
+            PromptAction.TurnOffTapped -> {
+                if (leaving) return
+                leaving = true
+                processor.turnedOff(id)
+                sendEvent(PromptUiEvent.TurnedOff)
             }
             PromptAction.Gone -> processor.dismissed(id)
         }
