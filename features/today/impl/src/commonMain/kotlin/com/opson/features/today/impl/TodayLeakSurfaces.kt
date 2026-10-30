@@ -143,7 +143,8 @@ object TodayLeakSurfaces {
                 onAction = {},
             )
         },
-        LeakSurface(id = "today-activity-unavailable", label = "Today, Activity with Burned unavailable", showsCaloriesInFull = true) { policy ->
+        // No amounts at all: it only has to stay away where energy out is hidden.
+        LeakSurface(id = "today-activity-unavailable", label = "Today, Activity with Burned unavailable", showsCaloriesInFull = false) { policy ->
             TodayActivityFixtures.unknown(policy, BurnedGap(setOf(BodyDetail.Weight)))?.let { TodayActivitySection(it, onAction = {}) }
         },
         LeakSurface(id = "today-untracked", label = "Today, marked untracked", showsCaloriesInFull = true) { policy ->
