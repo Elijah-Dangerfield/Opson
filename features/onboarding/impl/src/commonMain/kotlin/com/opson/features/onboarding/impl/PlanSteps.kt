@@ -352,6 +352,8 @@ private fun TwoAnswers(yes: String, no: String, footnote: String, busy: Boolean,
 }
 
 // ---------- Which kind ----------
+// TODO(goal-screens): the kind, balance, burn and meals steps are onboarding's own, built on the goal
+// engine. Swap them for the goal screens' components when those land (docs/plans/onboarding-v4.md).
 
 @Composable
 private fun KindStep(view: KindView, busy: Boolean, onPlan: (PlanAction) -> Unit) {

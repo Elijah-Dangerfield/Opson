@@ -680,8 +680,8 @@ capabilities in `domain/Entitlements.kt` (`photo_estimate`,
    builder to `pro`);
 3. its own grants in `entitlement_grants`: one entitlement, or a whole bundle
    from `entitlements.bundles` (seeded `pro` to all six), with an optional
-   expiry, a `source` tag (`manual`, `founding`, `builder`, `comp`, later
-   `app_store` / `play`) and a reason;
+   expiry, a `source` tag (`manual`, `founding`, `builder`, `comp`, `beta`,
+   later `app_store` / `play`) and a reason;
 
 minus its revocations (a grant row with `effect = revoke`), which beat all
 three. The three `entitlements.*` paths are ordinary config flags: edited,
@@ -712,6 +712,7 @@ account.
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/v1/me/entitlements` | JWT. `{role, permissions, entitlements: [{key, sources: [{type, bundle?, role?, expiresAtEpochMs?}]}]}`, `type` being `everyone`, `role` or `grant`. No admin notes. Clients ignore keys they don't know. |
+| POST | `/v1/me/beta` | JWT. The caller joins the beta ([Beta members](#beta-members)). 201 `{joinedAtEpochMs}` the first time, 200 with the first join after that, 409 `beta_closed` while `release.betaNotice` is off for them, 403 `anonymous` for a guest. |
 | GET | `/v1/admin/users/{id}/access` | Admin token. Role and who set it, permissions, each entitlement with its sources and grants, revocations, every grant ever, the last 50 changes. Resolved for a neutral client. |
 | PUT | `/v1/admin/users/{id}/role` `{role, reason?}` | `member` clears it. 400 `invalid_role`, 404 `not_found`. |
 | POST | `/v1/admin/users/{id}/grants` `{kind, key, effect?, source?, reason?, expiresAtEpochMs?}` | `kind` `entitlement` or `bundle`, `effect` `grant` (default) or `revoke` (entitlements only). 201. 400 `unknown_entitlement`, `unknown_bundle`, `invalid_effect`, `invalid_source`, `invalid_expiry`; 404 `not_found`. |
@@ -737,6 +738,21 @@ if [ -n "$T" ] && [ -n "$ID" ]; then curl -fsS -X PUT "$S/v1/admin/users/$ID/rol
 every gate keeps asking the same question. Granting paid features outside
 in-app purchase has an App Store 3.1.1 angle; see `docs/decisions.md`
 (2026-10-29, roles and entitlements).
+
+### Beta members
+
+Everyone who uses Opson during the beta gets a lifetime discount on Pro when it arrives (owner,
+2026-10-30). While `release.betaNotice` is on, the app calls `POST /v1/me/beta` once per account
+on its sync edges (`BetaMembership` in `:libraries:entitlements:impl`), and the server records a
+grant: `kind` bundle, `key` beta, `source` beta, no expiry, actor `app` in `access_audit`. There
+is no `beta` bundle in `entitlements.bundles`, so it unlocks nothing today; defining one later
+gives every beta member those entitlements with no release. The server reads the same flag for
+the caller, so once the owner turns it off nobody new joins, and a member asking again gets
+their first join back. To list them: `SELECT user_id, min(granted_at) FROM entitlement_grants
+WHERE source = 'beta' AND removed_at IS NULL GROUP BY user_id`. Accounts made before the app
+build that calls the route are recorded the first time they open that build while the beta is
+on; anyone who never does can be found by `auth.users.created_at`. The discount itself (how
+much, on what) is the owner's call: see `docs/plans/onboarding-v4.md`.
 
 ### Moderation: bans, restrictions, provenance and devices (`V30__moderation.sql`)
 

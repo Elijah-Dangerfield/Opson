@@ -84,13 +84,18 @@ the exact fire site.
 ### Onboarding
 
 All from `OnboardingViewModel`, read by `ops/grafana/onboarding-funnel.json`. `step` is always the
-step's own name, never an index: `welcome`, `question_1`, `question_2`, `statement` (the
-optional "numbers have been hard" step, `question_4` before design v3), `recommendation`, the
-setup steps `goal`, `resting_energy` and `meal_times` (`release.onboardingSetup`), and `sign_in`
-(the required sign-in step straight after Welcome; `account` before accounts were required).
-`question_3` ("What do you want to notice?") was cut in onboarding v2 (`docs/plans/onboarding-v2.md`). **No event carries an answer to the setup questions or the statement**, not even as a
-count: agreeing that "numbers or tracking have been hard for me before" is close to a clinical
-disclosure.
+step's own name, never an index: `welcome`, `age` (the birthday, before sign-in; `too_young` is
+never sent), `sign_in` (`account` before accounts were required), `question_1`, `question_2`,
+`statement` (the optional "numbers have been hard" step, `question_4` before design v3),
+`recommendation`, then the setup steps (`release.onboardingSetup`): `meal_times`, `goal_ask`
+("Want to set a goal?"), `goal_kind`, `profile`, `activity`, `weight_goal`, `goal_rate`,
+`energy_balance`, `burn_goal`, `meals_goal`, `goal_overview`, `streak` and `commitment`
+(docs/plans/onboarding-v4.md). Which goal steps were viewed says which kind was picked; no event
+names it. `question_3` ("What do you want to notice?") was cut in onboarding v2
+(`docs/plans/onboarding-v2.md`). **No event carries an answer to the setup questions or the
+statement**, not even as a count: agreeing that "numbers or tracking have been hard for me
+before" is close to a clinical disclosure. Nor does any carry a setup value: a weight, a
+birthday, a pace or a target.
 
 | Event | Attributes | Fires |
 |---|---|---|
@@ -99,6 +104,9 @@ disclosure.
 | `onboarding.sign_in_failed` | `method`, `reason` (`offline`, `not_enabled`, `in_use`, `failed`) | A sign-in on the sign-in step that came back with an error. A dismissed Apple sheet or a cancelled browser is not a failure |
 | `onboarding.completed` | `duration_sec`, `preset` (key), `took_recommendation` | Once, when Start or the last setup step saves the mode, just before Today. Before accounts were required it also carried `account_ready` and `skipped_all` |
 | `onboarding.abandoned` | `step` | `onCleared` before the mode was saved or the person left for Today. A process kill never gets here |
+| `onboarding.goal_wanted` | `wanted` | When setup saves, if "Want to set a goal?" was answered: true for "Yes, help me set one", false for "Not now, just let me log" |
+| `onboarding.streak` | `kept` | When setup saves, if "Keep a streak?" was answered |
+| `onboarding.commitment` | `committed` | "I'm committed" (true) or "Not now" (false) on the last step |
 
 ### Modes and the pause
 

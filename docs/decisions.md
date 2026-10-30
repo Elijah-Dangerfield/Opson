@@ -6,6 +6,32 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-30: Onboarding asks whether to set a goal before anything about the body, and records beta members as a grant
+
+**Decision:** after the mode, onboarding asks "Want to set a goal?". "Not now, just let me log"
+saves with no body asked and marks the weight goal answered (`JustTrack`), so Today doesn't ask
+again. A goal picks its kind from what the mode shows (weight, a daily or weekly energy balance,
+moving more, showing up, regular meals; only the last two after "numbers have been hard" or under
+18), and only the kinds that set a calorie target ask the profile and activity. "Keep a streak?"
+and "I'm committed" come only after a goal; the streak's yes turns on celebrations and, for a goal
+whose "met" is never eating less, `goalStreakEnabled`. The birthday is typed (three boxes in the
+region's order, autofill hints on both platforms) and asked once, on the age question.
+
+While `release.betaNotice` is on, Welcome says Opson is in beta and Pro isn't here, and every
+signed-in account calls `POST /v1/me/beta` once, which writes a `beta` bundle grant (source
+`beta`). The server checks the same flag, so turning it off ends the beta.
+
+**Alternatives:** a `betaJoinedAt` settings key (client-only, but the client could write it any
+time, and it isn't where entitlements live); a table of its own (a migration and a row in
+DeleteEverythingTest for one timestamp); recording only at the end of onboarding (misses every
+account made before this build). Asking the goal question before the mode (the kinds offered
+depend on the mode). Offering steps goals now (nothing reads steps yet).
+
+**Why:** the owner wants the friendliest tracker for every kind of person, including someone who
+doesn't want a goal or to be asked their weight. The discount needs a durable, server-side record
+of who joined during the beta; the grants table already is one, with an audit trail and a place in
+the console. What the discount is stays the owner's call (`docs/plans/onboarding-v4.md`).
+
 ## 2026-10-30: With a goal, the app is organized around it; a goal streak only where met isn't eating less
 
 **Decision:** an active goal reaches every surface that judges a day, all

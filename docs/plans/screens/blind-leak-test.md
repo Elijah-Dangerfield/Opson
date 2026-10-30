@@ -247,6 +247,9 @@ From `Friendly Tracking.dc.html`, in its order, then the additions.
 | new | | `onboarding-goal-from-burn` | onboarding | `onboarding-v2.md`; the goal step started from an ordinary day's burn, with "Based on about … burned", energy out | yes |
 | new | | `onboarding-resting-energy` | onboarding | `onboarding-v2.md`; resting energy's details and the estimate they give, energy out | yes |
 | new | | `onboarding-meal-times` | onboarding | `onboarding-v2.md`; when meals usually happen, no amounts | no |
+| new | | `onboarding-goal-ask`, `onboarding-goal-kind`, `onboarding-meals-goal`, `onboarding-streak` | onboarding | `onboarding-v4.md`; whether to set a goal, which kind, meals a day and the streak: no amounts | no |
+| new | | `onboarding-energy-balance` | onboarding | `onboarding-v4.md`; how far under or over a typical day, and the target it makes: calories, and never drawn without energy out | yes |
+| new | | `onboarding-burn-goal` | onboarding | `onboarding-v4.md`; active energy a day, energy out | yes |
 | new | | `day-close-streak`, `today-streak` | today | 2026-10-29, `release.celebrations`; the run once today is wrapped up, and the streak in Today's header. Days showed up, never an amount | yes |
 | new | | `celebration`, `celebration-gentle`, `progress` | today | 2026-10-29, `release.celebrations`; a milestone's celebration with counts and gently, and Your progress | no |
 | new | | `today-goal-weekly`, `day-close-goal` | today | 2026-10-30, a goal set: the week's line, the goal chip, the burned bar's usual-day and burn-goal marks, and Wrap up the day's goal card with its week and streak. Every amount through the policy; Later opens Day close's as it does the rest of the page | yes |

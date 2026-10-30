@@ -95,6 +95,12 @@ paywall ("about 5 a day"). Model costs keep falling, and the cascade in
 
 ## Founding members: lifetime Pro for the first X
 
+> **2026-10-30, owner:** everyone who joins during the beta gets a lifetime *discount* on Pro
+> when it arrives, and onboarding says so behind `release.betaNotice`. Beta members are recorded on
+> the server as a `beta` grant. That differs from the founding plan below (Pro free for the first
+> 1,000 active accounts); how the two fit, and what the discount is, are the owner's call. See
+> [onboarding-v4.md](../onboarding-v4.md), "The beta".
+
 ### What X should be
 
 **1,000.** Reasoning:

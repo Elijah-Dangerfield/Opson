@@ -18,6 +18,7 @@ import com.opson.libraries.core.AuthGate
 import com.opson.libraries.core.AuthRequirement
 import com.opson.libraries.core.AuthVerdict
 import com.opson.libraries.diary.CustomFoodRepository
+import com.opson.libraries.entitlements.impl.BetaMembership
 import com.opson.libraries.diary.DataExport
 import com.opson.libraries.diary.DayCheckIns
 import com.opson.libraries.diary.DayWrite
@@ -269,6 +270,10 @@ class TestClient(
     val barcodeLinks: BarcodeLinkReporter = HttpBarcodeLinkReporter(networkClient, appScope)
 
     // ── Account ──────────────────────────────────────────────────────────────
+    /** `release.betaNotice` as this phone reads it. Off, as in a store build until the owner turns it on. */
+    var betaOn: Boolean = false
+    val betaMembership = BetaMembership(cacheFactory, networkClient) { betaOn }
+
     private val profileApi = HttpProfileApi(networkClient)
     private val profileCache = ProfileCache(cacheFactory)
     val auth: AuthRepository = SupabaseAuthRepositoryImpl(

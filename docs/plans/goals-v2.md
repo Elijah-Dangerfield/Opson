@@ -289,5 +289,5 @@ Built on 2026-10-30 (docs/decisions.md, "With a goal, the app is organized aroun
 ## Not in this package
 
 The goal UI (charts, animations, typed inputs, macro split ranges, the Daily or Weekly average
-choice and the band picker), onboarding's "Do you want to set a goal?" and its goal streak question,
-the steps data source, and the recap. The API is built for them, and `GoalFixtures` has every state.
+choice and the band picker), the steps data source, and the recap. Onboarding's "Do you want to set
+a goal?" and its streak question are in [onboarding-v4.md](onboarding-v4.md). The API is built for them, and `GoalFixtures` has every state.

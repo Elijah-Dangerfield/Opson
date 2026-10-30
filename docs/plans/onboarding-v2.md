@@ -1,5 +1,8 @@
 # Onboarding v2
 
+> The setup steps were reworked on 2026-10-30: a goal is asked for first and is optional,
+> and the body is asked only for a goal that needs it. See [onboarding-v4.md](onboarding-v4.md).
+
 Written 2026-10-27 against design sync 4. It answers the owner's question ("are
 we asking the right questions and getting useful info?") and records what was
 rebuilt.
