@@ -82,6 +82,9 @@ sealed interface AddAction {
 
     /** `release.exercise`, with energy out not hidden ([com.opson.libraries.diary.exerciseOffered]). */
     data object Exercise : AddAction
+
+    /** An active Builder (`release.builders`): scan a pack and verify it, in the Builders color. */
+    data object VerifyFood : AddAction
 }
 
 /** The Describe it pane. */
@@ -153,6 +156,7 @@ sealed interface LoggerAction {
     data object BarcodeTapped : LoggerAction
     data object PhotoTapped : LoggerAction
     data object PackagedFoodTapped : LoggerAction
+    data object VerifyFoodTapped : LoggerAction
     /** Opens Describe it; with `release.voice` on it starts listening too, asking for the mic first if it must. */
     data object DescribeItTapped : LoggerAction
     data object SavedMealsTapped : LoggerAction
@@ -206,6 +210,9 @@ sealed interface LoggerEvent {
 
     /** "Packaged food": the pack's photos, to log to [slot] on [day]. */
     data class OpenPackagedFood(val day: LocalDate, val slot: MealSlot) : LoggerEvent
+
+    /** "Verify a food": the scanner reading labels, in the sheet's place. */
+    data class OpenVerify(val day: LocalDate) : LoggerEvent
     data object OpenWeighIn : LoggerEvent
     data object OpenFasting : LoggerEvent
     data class OpenCheckIn(val day: LocalDate) : LoggerEvent

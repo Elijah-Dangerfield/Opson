@@ -865,7 +865,22 @@ class BarcodeScanViewModelTest : CoroutineTest() {
     }
 
     @Test
+    fun aFoodSomeoneAlreadyVerifiedOpensItsDetailAndSaysSo() = runUnitTest {
+        val verified = LoggerFixtures.scannedYogurt.copy(checked = true)
+        catalog.barcodeResult = Catching.success(verified)
+        val vm = vm(builder = true, checkPack = true)
+        val events = events(vm)
+        settle()
+
+        vm.takeAction(BarcodeScanAction.CodeRead(ScannedCode("0036632027627", BarcodeFormat.Ean13)))
+        settle()
+
+        assertEquals(BarcodeScanEvent.OpenFoodDetail(verified.id, LoggerFixtures.today, MealSlot.Dinner, alreadyVerified = verified.name), events.last())
+    }
+
+    @Test
     fun checkingPacksStartsReadingTheLabelAndAMissAddsTheFoodWithoutLoggingIt() = runUnitTest {
+
         val vm = vm(addFood = true, builder = true, checkPack = true)
         val events = events(vm)
         settle()

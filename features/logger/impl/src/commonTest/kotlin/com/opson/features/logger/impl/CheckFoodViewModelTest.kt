@@ -6,6 +6,7 @@ import com.opson.libraries.foods.FoodCheckResult
 import com.opson.libraries.foods.FoodReportReason
 import com.opson.libraries.foods.FoodSource
 import com.opson.libraries.foods.NutrientProfile
+import com.opson.libraries.foods.VerifyField
 import com.opson.libraries.nutrition.PresetId
 import com.opson.libraries.scanner.MealPhoto
 import com.opson.libraries.scanner.PhotoPickResult
@@ -14,9 +15,12 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.submit_unit_kcal
@@ -28,6 +32,7 @@ class CheckFoodViewModelTest : CoroutineTest() {
         id = "granola-1",
         source = FoodSource.UsdaBranded,
         name = "Maple granola",
+        brand = "Nature's Path",
         per100g = NutrientProfile(kcal = 418.0, protein = 5.5, carbs = 67.3, fat = 14.5),
     )
     private val catalog = FakeFoodCatalog(foods = listOf(granola))
@@ -35,7 +40,8 @@ class CheckFoodViewModelTest : CoroutineTest() {
     private val checks = FakeFoodChecks()
     private val reports = RecordingFoodReports()
     private val policy = FakePolicySource()
-    private val photo = MealPhoto(byteArrayOf(9))
+    private val front = MealPhoto(byteArrayOf(1))
+    private val label = MealPhoto(byteArrayOf(9))
 
     private fun vm() = CheckFoodViewModel(
         route = CheckFoodRoute(granola.id, granola.name),
@@ -53,67 +59,156 @@ class CheckFoodViewModelTest : CoroutineTest() {
         runCurrent()
     }
 
+    /** The front, then the label, as the sheet asks for them. */
     private fun TestScope.photographed(vm: CheckFoodViewModel = vm()): CheckFoodViewModel {
         settle()
-        vm.takeAction(CheckFoodAction.PhotoAnswered(PhotoPickResult.Picked(photo)))
+        assertEquals(CheckStage.Photos(PackSide.Front), vm.state.stage)
+        vm.takeAction(CheckFoodAction.PhotoAnswered(PhotoPickResult.Picked(front)))
+        settle()
+        assertEquals(CheckStage.Photos(PackSide.Label), vm.state.stage)
+        vm.takeAction(CheckFoodAction.PhotoAnswered(PhotoPickResult.Picked(label)))
         settle()
         return vm
     }
 
-    @Test
-    fun aLabelThatMatchesIsSentAsACheckWithItsTextAndNoPhoto() = runUnitTest {
-        val vm = photographed()
-        assertEquals(CheckStage.Matches, vm.state.stage)
+    private fun opsonHas(kcal: Double) {
+        catalog.foods = listOf(granola.copy(per100g = granola.per100g.copy(kcal = kcal)))
+    }
 
-        vm.takeAction(CheckFoodAction.SendCheckTapped)
+    @Test
+    fun aLabelThatMatchesIsVerifiedWithItsTextAndBothPhotos() = runUnitTest {
+        val vm = photographed()
+        val review = assertIs<CheckStage.Review>(vm.state.stage)
+        assertTrue(review.matches)
+        assertNull(review.form, "nothing was wrong")
+
+        vm.takeAction(CheckFoodAction.SendTapped)
         settle()
 
         assertEquals(CheckStage.Done(CheckDone.Confirmed), vm.state.stage)
-        assertEquals(GRANOLA_PANEL.size, checks.sent.single().size)
+        val sent = checks.sent.single()
+        assertEquals(GRANOLA_PANEL.size, sent.lines.size)
+        assertNull(sent.problem)
+        assertContentEquals(front.jpeg, sent.front)
+        assertContentEquals(label.jpeg, sent.label)
         assertTrue(reports.sent.isEmpty())
     }
 
     @Test
-    fun aCheckTheServerCouldNotGroundSaysItDoesNotCount() = runUnitTest {
-        checks.answer = FoodCheckResult.Unconfirmed(listOf("fat_g"))
+    fun aLabelThatDiffersOpensSomethingWasWrongWithCaloriesMarkedAndTheLabelsFigures() = runUnitTest {
+        opsonHas(kcal = 300.0)
         val vm = photographed()
-        vm.takeAction(CheckFoodAction.SendCheckTapped)
-        settle()
 
-        assertEquals(CheckStage.Done(CheckDone.Unconfirmed), vm.state.stage)
+        val review = assertIs<CheckStage.Review>(vm.state.stage)
+        assertFalse(review.matches)
+        assertTrue(review.perServing)
+        val energy = review.rows.first()
+        assertEquals(UnitAmount("230", Res.string.submit_unit_kcal), energy.pack)
+        assertEquals(listOf(true, false, false, false), review.rows.map { it.differs })
+        val form = assertNotNull(review.form)
+        assertEquals(FieldIssue.Wrong, form.fields.single { it.field == VerifyField.Calories }.issue)
+        assertEquals(listOf(VerifyInputUi(VerifyForm.KCAL, "230")), form.values)
+        assertEquals("2/3 cup", form.basis?.amount)
     }
 
     @Test
-    fun aLabelThatDiffersShowsTheRowsAndSendsACorrectionWithThePhoto() = runUnitTest {
-        catalog.foods = listOf(granola.copy(per100g = granola.per100g.copy(kcal = 300.0)))
+    fun somethingWrongGoesToAReviewerAgainstTheFoodThatIsThere() = runUnitTest {
+        opsonHas(kcal = 300.0)
+        checks.answer = FoodCheckResult.InReview
         val vm = photographed()
-        val differs = assertIs<CheckStage.Differs>(vm.state.stage)
-        assertTrue(differs.perServing)
-        val energy = differs.rows.first()
-        assertEquals(UnitAmount("230", Res.string.submit_unit_kcal), energy.pack)
-        assertTrue(energy.differs)
-        assertEquals(listOf(true, false, false, false), differs.rows.map { it.differs })
+        vm.takeAction(CheckFoodAction.IssuePicked(VerifyField.Ingredients, FieldIssue.Missing))
+        vm.takeAction(CheckFoodAction.IssuePicked(VerifyField.NameBrand, FieldIssue.Wrong))
+        vm.takeAction(CheckFoodAction.ValueTyped(VerifyForm.BRAND, "Nature's Path Organic"))
+        vm.takeAction(CheckFoodAction.NoteTyped("  New recipe  "))
+        vm.takeAction(CheckFoodAction.SendTapped)
+        settle()
 
-        vm.takeAction(CheckFoodAction.SendCorrectionTapped)
+        assertEquals(CheckStage.Done(CheckDone.InReview), vm.state.stage)
+        val problem = assertNotNull(checks.sent.single().problem)
+        assertEquals(setOf(VerifyField.Calories, VerifyField.NameBrand), problem.wrong)
+        assertEquals(setOf(VerifyField.Ingredients), problem.missing)
+        val values = assertNotNull(problem.values)
+        assertEquals(230.0, values.kcal)
+        assertEquals(55.0, values.basisGrams)
+        assertEquals("Nature's Path Organic", values.brand)
+        assertEquals("Maple granola", values.name)
+        assertNull(values.protein, "only the values the marked parts ask for")
+        assertEquals("New recipe", problem.note)
+        assertTrue(reports.sent.isEmpty())
+    }
+
+    @Test
+    fun aServerFromBeforeReviewsGetsTheProblemAsAReportWithBothPhotos() = runUnitTest {
+        opsonHas(kcal = 300.0)
+        checks.answer = FoodCheckResult.Unconfirmed(listOf("energy_kcal"))
+        val vm = photographed()
+        vm.takeAction(CheckFoodAction.SendTapped)
         settle()
 
         val report = reports.sent.single()
-        assertEquals(FoodReportReason.WrongCalories, report.reason)
+        assertEquals(listOf(FoodReportReason.WrongNumbers), report.reasons)
         val suggested = assertNotNull(report.suggested)
-        assertEquals(100.0, suggested.basisGrams)
-        assertEquals(418.0, suggested.kcal!!, 1.0)
-        assertEquals(55.0, suggested.servingGrams)
-        assertEquals(photo.jpeg.toList(), report.photo?.toList())
+        assertEquals(230.0, suggested.kcal)
+        assertEquals(55.0, suggested.basisGrams)
+        assertContentEquals(label.jpeg, report.photo)
+        assertContentEquals(front.jpeg, report.frontPhoto)
         assertEquals(CheckStage.Done(CheckDone.Corrected), vm.state.stage)
     }
 
     @Test
-    fun inAModeThatHidesNumbersADifferenceIsSaidInWords() = runUnitTest {
+    fun turningSomethingWasWrongOffSendsAPlainCheck() = runUnitTest {
+        opsonHas(kcal = 300.0)
+        checks.answer = FoodCheckResult.Unconfirmed(listOf("energy_kcal"))
+        val vm = photographed()
+        vm.takeAction(CheckFoodAction.SomethingWrongChanged(false))
+        vm.takeAction(CheckFoodAction.SendTapped)
+        settle()
+
+        assertNull(checks.sent.single().problem)
+        assertEquals(CheckStage.Done(CheckDone.Unconfirmed), vm.state.stage)
+        assertTrue(reports.sent.isEmpty())
+    }
+
+    @Test
+    fun somethingWrongOnAMatchWaitsUntilItSaysWhat() = runUnitTest {
+        val vm = photographed()
+        vm.takeAction(CheckFoodAction.SomethingWrongChanged(true))
+        assertFalse(assertIs<CheckStage.Review>(vm.state.stage).canSend)
+
+        vm.takeAction(CheckFoodAction.IssuePicked(VerifyField.Barcode, FieldIssue.Missing))
+        assertTrue(assertIs<CheckStage.Review>(vm.state.stage).canSend)
+        // The same answer again takes it back.
+        vm.takeAction(CheckFoodAction.IssuePicked(VerifyField.Barcode, FieldIssue.Missing))
+        assertFalse(assertIs<CheckStage.Review>(vm.state.stage).canSend)
+    }
+
+    @Test
+    fun inAModeThatHidesNumbersTheLabelsOwnFiguresGoUnseen() = runUnitTest {
         policy.policy.value = policy(PresetId.NoNumbers)
-        catalog.foods = listOf(granola.copy(per100g = granola.per100g.copy(kcal = 300.0)))
+        opsonHas(kcal = 300.0)
+        checks.answer = FoodCheckResult.InReview
         val vm = photographed()
 
-        assertEquals(emptyList(), assertIs<CheckStage.Differs>(vm.state.stage).rows)
+        val review = assertIs<CheckStage.Review>(vm.state.stage)
+        assertEquals(emptyList(), review.rows)
+        assertEquals(emptyList(), assertNotNull(review.form).values, "no number to type")
+
+        vm.takeAction(CheckFoodAction.SendTapped)
+        settle()
+        assertEquals(230.0, checks.sent.single().problem?.values?.kcal)
+    }
+
+    @Test
+    fun theFrontCanBeSkipped() = runUnitTest {
+        val vm = vm()
+        settle()
+        vm.takeAction(CheckFoodAction.SkipFrontTapped)
+        assertEquals(CheckStage.Photos(PackSide.Label), vm.state.stage)
+        vm.takeAction(CheckFoodAction.PhotoAnswered(PhotoPickResult.Picked(label)))
+        settle()
+        vm.takeAction(CheckFoodAction.SendTapped)
+        settle()
+        assertNull(checks.sent.single().front)
     }
 
     @Test
@@ -125,8 +220,7 @@ class CheckFoodViewModelTest : CoroutineTest() {
         assertEquals(CheckStage.Unreadable, vm.state.stage)
 
         recognizer.result = TextRecognition.Unavailable
-        vm.takeAction(CheckFoodAction.RetakeTapped)
-        vm.takeAction(CheckFoodAction.PhotoAnswered(PhotoPickResult.Picked(photo)))
+        vm.takeAction(CheckFoodAction.PhotoAnswered(PhotoPickResult.Picked(label)))
         settle()
         assertEquals(CheckProblem.Unavailable, vm.state.problem)
     }

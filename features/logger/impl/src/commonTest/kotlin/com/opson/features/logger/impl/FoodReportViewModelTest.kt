@@ -53,7 +53,7 @@ class FoodReportViewModelTest : CoroutineTest() {
         vm.takeAction(FoodReportAction.SendTapped)
         assertTrue(reports.sent.isEmpty())
 
-        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.Duplicate))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.Duplicate))
         assertTrue(vm.stateFlow.value.canSend)
         assertNull(vm.stateFlow.value.values, "a duplicate asks for no numbers")
     }
@@ -61,7 +61,7 @@ class FoodReportViewModelTest : CoroutineTest() {
     @Test
     fun wrongCaloriesSendsTheNumbersForTheAmountOnScreen_photoAndNote() = runUnitTest {
         val vm = vm()
-        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.WrongCalories))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.WrongNumbers))
         assertEquals(ReportBasis("8.0 fl oz (240 ml)"), vm.stateFlow.value.values?.basis)
         vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.KCAL, "5"))
         vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.CARBS, "2,0x"))
@@ -74,7 +74,7 @@ class FoodReportViewModelTest : CoroutineTest() {
 
         val report = reports.sent.single()
         assertEquals("f1", report.foodId)
-        assertEquals(FoodReportReason.WrongCalories, report.reason)
+        assertEquals(listOf(FoodReportReason.WrongNumbers), report.reasons)
         assertEquals(
             SuggestedFoodValues(basisLabel = "8.0 fl oz (240 ml)", basisGrams = 240.0, kcal = 5.0, carbs = 2.0, servingLabel = "1 can, 473 ml"),
             report.suggested,
@@ -88,7 +88,7 @@ class FoodReportViewModelTest : CoroutineTest() {
     fun aLabelPhotoFillsTheNumbersLeftEmptyForTheAmountOnScreen() = runUnitTest {
         recognizer.lines = GRANOLA_PANEL
         val vm = vm(route = FoodReportRoute(foodId = "f2", name = "Granola", amountText = "1 bar", amountGrams = 40))
-        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.WrongNutrients))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.WrongNumbers))
         vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.KCAL, "150"))
 
         vm.takeAction(FoodReportAction.PhotoAnswered(PhotoPickResult.Picked(MealPhoto(byteArrayOf(8)))))
@@ -110,7 +110,7 @@ class FoodReportViewModelTest : CoroutineTest() {
     fun aPhotoWithNoPanelFillsNothing() = runUnitTest {
         recognizer.lines = listOf("Granola", "Baked in small batches")
         val vm = vm()
-        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.WrongCalories))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.WrongNumbers))
         vm.takeAction(FoodReportAction.PhotoAnswered(PhotoPickResult.Picked(MealPhoto(byteArrayOf(8)))))
 
         val values = vm.stateFlow.value.values!!
@@ -121,7 +121,7 @@ class FoodReportViewModelTest : CoroutineTest() {
     @Test
     fun aModeThatHidesNumbersNeverAsksForThemOrSendsThem() = runUnitTest {
         val vm = vm(PresetId.NoNumbers)
-        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.WrongCalories))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.WrongNumbers))
         val values = vm.stateFlow.value.values
         assertFalse(values!!.numbers)
         vm.takeAction(FoodReportAction.FieldTyped(FoodReportStateBuilder.KCAL, "5"))
@@ -135,7 +135,7 @@ class FoodReportViewModelTest : CoroutineTest() {
     fun offlineKeepsEverythingAndTryingAgainSendsTheSameReport() = runUnitTest {
         reports.answer = FoodReportResult.Failed(offline = true)
         val vm = vm()
-        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.WrongName))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.WrongName))
         vm.takeAction(FoodReportAction.NoteTyped("It's the mango one"))
         vm.takeAction(FoodReportAction.SendTapped)
 
@@ -156,11 +156,11 @@ class FoodReportViewModelTest : CoroutineTest() {
     fun aFoodThatIsGoneCannotBeSentAgain() = runUnitTest {
         reports.answer = FoodReportResult.Gone
         val vm = vm()
-        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.Other))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.Other))
         vm.takeAction(FoodReportAction.SendTapped)
         assertEquals(ReportProblem.Gone, vm.stateFlow.value.problem)
         assertFalse(vm.stateFlow.value.canSend)
-        vm.takeAction(FoodReportAction.ReasonPicked(FoodReportReason.NotFood))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.NotFood))
         assertEquals(ReportProblem.Gone, vm.stateFlow.value.problem)
     }
 
@@ -168,20 +168,54 @@ class FoodReportViewModelTest : CoroutineTest() {
     fun theCameraAsksFirst_andARefusalLeavesTheLibrary() = runUnitTest {
         permissions.permission = CameraPermission.NotAsked
         val vm = vm()
-        vm.takeAction(FoodReportAction.TakePhotoTapped)
+        vm.takeAction(FoodReportAction.TakePhotoTapped(PackSide.Label))
         vm.takeAction(FoodReportAction.CameraPermissionAnswered(CameraPermission.Denied(canAskAgain = false)))
         assertTrue(vm.stateFlow.value.cameraOff)
         vm.takeAction(FoodReportAction.PhotoAnswered(PhotoPickResult.Failed))
         assertTrue(vm.stateFlow.value.photoFailed)
         vm.takeAction(FoodReportAction.PhotoAnswered(PhotoPickResult.Picked(MealPhoto(byteArrayOf(1)))))
         assertFalse(vm.stateFlow.value.photoFailed)
-        vm.takeAction(FoodReportAction.RemovePhotoTapped)
+        vm.takeAction(FoodReportAction.RemovePhotoTapped(PackSide.Label))
         assertNull(vm.stateFlow.value.photo)
     }
 
     @Test
+    fun severalReasonsGoTogetherInTheSheetsOrder_withBothPhotos() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.WrongName))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.MissingInfo))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.Duplicate))
+        // A second tap takes a reason back off.
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.Duplicate))
+        assertEquals(setOf(FoodReportReason.WrongName, FoodReportReason.MissingInfo), vm.stateFlow.value.picked)
+        // Missing information is about numbers too: the right ones can be given.
+        assertTrue(vm.stateFlow.value.values != null)
+
+        vm.takeAction(FoodReportAction.ChooseFromLibraryTapped(PackSide.Front))
+        vm.takeAction(FoodReportAction.PhotoAnswered(PhotoPickResult.Picked(MealPhoto(byteArrayOf(1)))))
+        vm.takeAction(FoodReportAction.TakePhotoTapped(PackSide.Label))
+        vm.takeAction(FoodReportAction.PhotoAnswered(PhotoPickResult.Picked(MealPhoto(byteArrayOf(2)))))
+        vm.takeAction(FoodReportAction.SendTapped)
+
+        val report = reports.sent.single()
+        assertEquals(listOf(FoodReportReason.MissingInfo, FoodReportReason.WrongName), report.reasons)
+        assertContentEquals(byteArrayOf(1), report.frontPhoto)
+        assertContentEquals(byteArrayOf(2), report.photo)
+    }
+
+    @Test
+    fun takingEveryReasonBackOffMeansNothingToSend() = runUnitTest {
+        val vm = vm()
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.Other))
+        vm.takeAction(FoodReportAction.ReasonToggled(FoodReportReason.Other))
+        assertFalse(vm.stateFlow.value.canSend)
+        vm.takeAction(FoodReportAction.SendTapped)
+        assertTrue(reports.sent.isEmpty())
+    }
+
+    @Test
     fun withoutAKnownWeightTheNumbersAreFor100Grams() {
-        val model = FoodReportModel(name = "Oats", amountText = null, amountGrams = null, canTakePhoto = true, reason = FoodReportReason.WrongNutrients)
+        val model = FoodReportModel(name = "Oats", amountText = null, amountGrams = null, canTakePhoto = true, picked = setOf(FoodReportReason.WrongNumbers))
         assertNull(FoodReportStateBuilder.basis(model))
         assertEquals(ReportBasis("1 cup", grams = 81), FoodReportStateBuilder.basis(model.copy(amountText = "1 cup", amountGrams = 81.0)))
         assertEquals(ReportBasis("150 g"), FoodReportStateBuilder.basis(model.copy(amountText = "150 g", amountGrams = 150.0)))

@@ -70,8 +70,19 @@ Routes in `:features:foods` (`com.opson.features.foods`); impl in
 ### Layout (v3 11.1)
 Large title "Foods"; a sticky search bar (a button that opens the logger with
 search focused); two tiles side by side (Create a meal, pink tile; Add a food,
-brown tile); the Saved meals card; the Your foods card; the Recent card; the
-data credit in caption type at the very end. Rows: bold name, a muted
+brown tile); for an active Builder, Verify a food (a card in the Builders
+color, `VerifyFoodAvailable`, which opens the scanner reading labels); the
+Favorites card; the Saved meals card; the Your foods card; the Recent card; the
+data credit in caption type at the very end.
+
+Favorites are the foods starred on their detail (`Settings.favoriteFoods`,
+newest star first). A food logged before reads as it was last logged; a
+catalog food never logged reads at its first serving (or 100 g) from the copy
+the phone keeps (`FoodCatalog.observeFavorites`); the person's own food as
+Your foods has it. A star whose food the phone does not have yet waits. Empty,
+the card says to tap the star on a food. A catalog row a person checked
+against its pack carries the Verified badge, here and in Recent.
+ Rows: bold name, a muted
 subtitle, the bare calories ("445"), a 40 dp tinted round + with a 48 dp
 target. Each card's section label sits inside it, above a hairline.
 

@@ -42,6 +42,15 @@ import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import kotlin.time.Instant
+import com.opson.libraries.foods.ContributionAttestation
+import com.opson.libraries.foods.FoodVerification
+import com.opson.libraries.foods.VerifyField
+import com.opson.libraries.foods.VerifyProblem
+import io.ktor.client.plugins.timeout
+import io.ktor.client.request.header
+import io.ktor.http.encodeURLPathPart
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 /** The server's `BuilderMeResponse`. */
 @Serializable
@@ -230,7 +239,41 @@ class HttpBuilderProgram(
 }
 
 @Serializable
-data class VerificationRequestDto(val id: String, val engine: String, val lines: List<CaptureLineDto>)
+data class VerificationRequestDto(
+    val id: String,
+    val engine: String,
+    val lines: List<CaptureLineDto>,
+    val problem: VerifyProblemDto? = null,
+    val photos: VerifyPhotosDto? = null,
+)
+
+/** The server's `problem`: field codes, the right values for a basis, a note. */
+@Serializable
+data class VerifyProblemDto(
+    val wrong: List<String> = emptyList(),
+    val missing: List<String> = emptyList(),
+    val values: VerifyValuesDto? = null,
+    val note: String? = null,
+)
+
+@Serializable
+data class VerifyValuesDto(
+    val name: String? = null,
+    val brand: String? = null,
+    val barcode: String? = null,
+    val basisLabel: String? = null,
+    val basisGrams: Double? = null,
+    val kcal: Double? = null,
+    val protein: Double? = null,
+    val carbs: Double? = null,
+    val fat: Double? = null,
+    val servingLabel: String? = null,
+    val servingGrams: Double? = null,
+)
+
+/** Base64 JPEGs. */
+@Serializable
+data class VerifyPhotosDto(val front: String? = null, val label: String? = null)
 
 @Serializable
 data class VerificationResponseDto(
@@ -239,22 +282,52 @@ data class VerificationResponseDto(
     val grounded: Int = 0,
     val groundable: Int = 0,
     val missing: List<String> = emptyList(),
+    /** `open` when it waits for a reviewer; absent otherwise, and from servers before reviews. */
+    val review: String? = null,
 )
 
-/** `POST /v1/foods/{id}/verifications`. Not retried by itself; a check is one tap. */
+/**
+ * `POST /v1/foods/{id}/verifications`. Not retried by itself; a check is one tap, and the same id
+ * on "Try again" means a check that did arrive is not doubled. Nothing in it is logged.
+ */
 @ContributesBinding(AppScope::class)
 @Inject
-class HttpFoodChecks(private val networkClient: NetworkClient) : FoodChecks {
-    override suspend fun check(id: String, foodId: String, engine: String, lines: List<LabelTextLine>): FoodCheckResult =
-        networkClient.authedCall("foods.verification") { client ->
-            val response = client.post("/v1/foods/$foodId/verifications") {
+class HttpFoodChecks(
+    private val networkClient: NetworkClient,
+    private val attestation: ContributionAttestation = ContributionAttestation.None,
+) : FoodChecks {
+    @OptIn(ExperimentalEncodingApi::class)
+    override suspend fun verify(verification: FoodVerification): FoodCheckResult {
+        val request = VerificationRequestDto(
+            id = verification.id,
+            engine = verification.engine,
+            lines = verification.lines.map { CaptureLineDto(it.text, it.confidence) },
+            problem = verification.problem?.takeUnless { it.isEmpty }?.toDto(),
+            photos = if (verification.front == null && verification.label == null) {
+                null
+            } else {
+                VerifyPhotosDto(verification.front?.let { Base64.encode(it) }, verification.label?.let { Base64.encode(it) })
+            },
+        )
+        val device = attestation.headers(verification.id)
+        return networkClient.authedCall("foods.verification") { client ->
+            val response = client.post("/v1/foods/${verification.foodId.encodeURLPathPart()}/verifications") {
                 expectSuccess = false
+                device.forEach { (name, value) -> header(name, value) }
+                timeout {
+                    requestTimeoutMillis = HttpFoodReports.TIMEOUT_MS
+                    socketTimeoutMillis = HttpFoodReports.TIMEOUT_MS
+                }
                 contentType(ContentType.Application.Json)
-                setBody(VerificationRequestDto(id, engine, lines.map { CaptureLineDto(it.text, it.confidence) }))
+                setBody(request)
             }
             when (response.status) {
                 HttpStatusCode.Created, HttpStatusCode.OK -> response.body<VerificationResponseDto>().let { body ->
-                    if (body.outcome == "confirmed") FoodCheckResult.Confirmed else FoodCheckResult.Unconfirmed(body.missing)
+                    when {
+                        body.review == REVIEW_OPEN -> FoodCheckResult.InReview
+                        body.outcome == CONFIRMED -> FoodCheckResult.Confirmed
+                        else -> FoodCheckResult.Unconfirmed(body.missing)
+                    }
                 }
                 HttpStatusCode.Forbidden -> FoodCheckResult.NotBuilder
                 HttpStatusCode.NotFound -> FoodCheckResult.Gone
@@ -262,4 +335,33 @@ class HttpFoodChecks(private val networkClient: NetworkClient) : FoodChecks {
                 else -> FoodCheckResult.Failed(offline = false)
             }
         }.getOrElse { FoodCheckResult.Failed(offline = it.isOfflineError()) }
+    }
+
+    private fun VerifyProblem.toDto() = VerifyProblemDto(
+        wrong = VerifyField.entries.filter { it in wrong }.map { it.wire },
+        // A field is wrong or missing, never both: wrong wins.
+        missing = VerifyField.entries.filter { it in missing && it !in wrong }.map { it.wire },
+        values = values?.takeUnless { it.isEmpty }?.let {
+            VerifyValuesDto(
+                name = it.name?.trim()?.ifEmpty { null },
+                brand = it.brand?.trim()?.ifEmpty { null },
+                barcode = it.barcode?.trim()?.ifEmpty { null },
+                basisLabel = it.basisLabel,
+                basisGrams = it.basisGrams,
+                kcal = it.kcal,
+                protein = it.protein,
+                carbs = it.carbs,
+                fat = it.fat,
+                servingLabel = it.servingLabel?.trim()?.ifEmpty { null },
+                servingGrams = it.servingGrams,
+            )
+        },
+        note = note?.trim()?.ifEmpty { null }?.take(MAX_NOTE),
+    )
+
+    private companion object {
+        const val CONFIRMED = "confirmed"
+        const val REVIEW_OPEN = "open"
+        const val MAX_NOTE = 1_000
+    }
 }

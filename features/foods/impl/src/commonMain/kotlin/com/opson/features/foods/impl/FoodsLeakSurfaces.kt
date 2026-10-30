@@ -11,8 +11,9 @@ import com.opson.libraries.nutrition.ui.leak.LeakSurface
  */
 object FoodsLeakSurfaces {
     val all: List<LeakSurface> = listOf(
+        // With favorites and a Builder's Verify a food: a favorite's calories follow the mode like every row's.
         LeakSurface(id = "foods", label = "Foods tab", showsCaloriesInFull = true) { policy ->
-            FoodsScreen(state = FoodsFixtures.foodsState(policy), onAction = {})
+            FoodsScreen(state = FoodsFixtures.foodsState(policy, favorites = true, builder = true), onAction = {})
         },
         LeakSurface(id = "foods-create-meal", label = "Create a meal", showsCaloriesInFull = true) { policy ->
             CreateMealScreen(state = FoodsFixtures.createMealState(policy), onAction = {})

@@ -24,6 +24,8 @@ import kotlinx.datetime.LocalDate
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Inject
 import kotlin.time.Duration.Companion.milliseconds
+import com.opson.libraries.foods.Food
+import com.opson.libraries.foods.FoodCheck
 
 /**
  * The scanner: camera permission, one lookup per read, and what a miss
@@ -100,7 +102,7 @@ class BarcodeScanViewModel(
                 val position = matched.groups.indexOfFirst { group -> group.first().food.id == action.foodId }
                 if (position < 0) return
                 telemetry.matchPicked(position = position, of = matched.groups.size)
-                sendEvent(open(matched.groups[position].first().food.id, matched.groups[position].first().food.name))
+                sendEvent(open(matched.groups[position].first().food))
             }
             is BarcodeScanAction.PolicyArrived -> {
                 policy = action.policy
@@ -168,16 +170,25 @@ class BarcodeScanViewModel(
         val answer = groups.firstOrNull()?.first()?.food ?: return
         telemetry.hit(answer.source, slow = lookup.slow, typed = lookup.typed)
         if (groups.size == 1) {
-            sendEvent(open(answer.id, answer.name))
+            sendEvent(open(answer))
         } else {
             action.rebuild { copy(lookup = Lookup.Matched(action.code, groups)) }
             telemetry.matchesShown(count = groups.size, typed = lookup.typed)
         }
     }
 
-    /** Where a found food goes: its detail, or with Also read the label on, Check against the pack. */
-    private fun open(foodId: String, name: String): BarcodeScanEvent =
-        if (model.canReadLabel && model.readLabel) BarcodeScanEvent.OpenCheck(foodId, name) else BarcodeScanEvent.OpenFoodDetail(foodId, day, slot)
+    /**
+     * Where a found food goes: its detail, or with Also read the label on, Verify this food. A
+     * food someone already verified, or generic data with no pack, opens its detail instead.
+     */
+    private fun open(food: Food): BarcodeScanEvent {
+        val reading = model.canReadLabel && model.readLabel
+        return when {
+            reading && food.canBeVerified -> BarcodeScanEvent.OpenCheck(food.id, food.name)
+            reading && food.check == FoodCheck.Verified -> BarcodeScanEvent.OpenFoodDetail(food.id, day, slot, alreadyVerified = food.name)
+            else -> BarcodeScanEvent.OpenFoodDetail(food.id, day, slot)
+        }
+    }
 
     /** The digits under the barcode, through the same lookup as a scan. A wrong check digit is a typo to fix. */
     private suspend fun lookUpTyped(action: BarcodeScanAction) {

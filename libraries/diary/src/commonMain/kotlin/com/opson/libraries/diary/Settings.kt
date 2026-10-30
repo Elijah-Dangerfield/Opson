@@ -419,6 +419,9 @@ data class Settings(
     fun toggleFavorite(foodKey: String): Settings =
         copy(favoriteFoods = if (isFavorite(foodKey)) favoriteFoods - foodKey else listOf(foodKey) + favoriteFoods)
 
+    /** Stars [foodKey] when [on], or takes the star off; doing what is already done changes nothing (an Undo after a second tap). */
+    fun setFavorite(foodKey: String, on: Boolean): Settings = if (isFavorite(foodKey) == on) this else toggleFavorite(foodKey)
+
     /** Takes [foodKey] off Recent as of [atEpochMs]; logging it after that brings it back. */
     fun hideFromRecent(foodKey: String, atEpochMs: Long): Settings =
         copy(hiddenRecentFoods = hiddenRecentFoods + (foodKey to atEpochMs))

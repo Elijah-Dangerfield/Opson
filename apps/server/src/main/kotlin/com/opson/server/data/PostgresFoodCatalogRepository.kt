@@ -170,13 +170,16 @@ class PostgresFoodCatalogRepository(
     /**
      * Stored rows as they are served, in the current transaction: a reviewer's
      * live correction laid over each (`food_corrections`, V29), then the
-     * energy guard ([ServedFood]). The importers only ever write the stored
+     * energy guard ([ServedFood]), and whether a person checked it
+     * (`food_verifications`, V34). The importers only ever write the stored
      * rows, so a correction outlives every reload.
      */
     private fun served(foods: List<Food>): List<Food> {
         if (foods.isEmpty()) return foods
-        val corrections = FoodCorrectionsSql.live(foods.map { it.id })
-        return foods.map { ServedFood.of(it, corrections[it.id]) }
+        val ids = foods.map { it.id }
+        val corrections = FoodCorrectionsSql.live(ids)
+        val verified = FoodVerificationsSql.verified(ids)
+        return foods.map { ServedFood.of(it, corrections[it.id], verified = it.id in verified) }
     }
 
     private fun servedMatches(matches: List<FoodMatch>): List<FoodMatch> {
