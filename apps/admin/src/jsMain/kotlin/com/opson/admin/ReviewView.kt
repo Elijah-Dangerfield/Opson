@@ -201,6 +201,8 @@ internal fun ReviewView(ctx: AdminCtx, openId: String?) {
     // Database cleanup: Builders' verifications and reports both fix foods already in the catalog.
     FoodVerificationsView(ctx, refresh, onDecided = { refresh++ })
     FoodReportsView(ctx, refresh)
+    // Recipes people shared (release.recipes): reported ones first.
+    RecipesView(ctx, refresh)
     ReviewerCountsView(ctx, refresh)
 
     BarcodeLinks(ctx, links, onDecided = { refresh++ })
