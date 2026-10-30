@@ -10,18 +10,19 @@ from pathlib import Path
 
 from review_bundle import FORMAT, Missing, check, decision_problem, download_photos
 
-URL = "https://opson.example/v1/admin/food-submissions/s1/photos/"
+S1 = "5b0e7c52-1d0f-4a39-9a51-2f7c3f6d8e01"
+DEV = "https://opson-server-dev.fly.dev"
 
 
-def bundle(*items):
-    return {"format": FORMAT, "env": "Dev", "exportedAt": "2026-11-02T09:00:00.000Z", "items": list(items)}
+def bundle(*items, env="Dev"):
+    return {"format": FORMAT, "env": env, "exportedAt": "2026-11-02T09:00:00.000Z", "items": list(items)}
 
 
-def item(item_id="s1", decision=None):
+def item(item_id=S1, decision=None, origin=DEV):
     return {
         "id": item_id,
         "name": "Granola bar",
-        "photos": {kind: URL + kind for kind in ("front", "label", "ingredients")},
+        "photos": {kind: f"{origin}/v1/admin/food-submissions/{item_id}/photos/{kind}" for kind in ("front", "label", "ingredients")},
         "decision": decision or {"action": None},
     }
 
@@ -50,8 +51,8 @@ class PhotosTest(unittest.TestCase):
         self.assertEqual(problems, [], "a missing ingredients photo is not a problem")
         saved = json.loads(self.path.read_text())["items"][0]["localPhotos"]
         self.assertEqual(saved, {
-            "front": "opson-review-dev-2026-11-02-photos/s1-front.jpg",
-            "label": "opson-review-dev-2026-11-02-photos/s1-label.jpg",
+            "front": f"opson-review-dev-2026-11-02-photos/{S1}-front.jpg",
+            "label": f"opson-review-dev-2026-11-02-photos/{S1}-label.jpg",
         })
         self.assertEqual((Path(self.dir.name) / saved["label"]).read_bytes(), b"jpeg:label")
         self.assertTrue(all(token == "secret" for _, token in self.asked))
@@ -63,7 +64,41 @@ class PhotosTest(unittest.TestCase):
             return b"x"
 
         _, problems = download_photos(self.path, "secret", get=no_label)
-        self.assertEqual(problems, ["s1: no label photo on the server"])
+        self.assertEqual(problems, [f"{S1}: no label photo on the server"])
+
+    def write(self, *items, env="Dev"):
+        self.path.write_text(json.dumps(bundle(*items, env=env)))
+
+    def test_the_token_goes_only_to_the_bundles_own_server(self):
+        elsewhere = item(origin="https://attacker.example")
+        plain = item(origin="http://opson-server-dev.fly.dev")
+        prod = item(origin="https://opson-server-prod.fly.dev")
+        sideways = item()
+        sideways["photos"] = {"label": f"{DEV}/v1/admin/users/{S1}/photos/label", "front": f"{DEV}/v1/admin/food-submissions/{S1}/photos/front?x=1"}
+        for bad in (elsewhere, plain, prod, sideways):
+            self.write(bad)
+            written, problems = download_photos(self.path, "secret", get=self.fake)
+            self.assertEqual(written, 0)
+            self.assertTrue(problems and all("not fetched" in p for p in problems), problems)
+        self.assertEqual(self.asked, [], "no request carried the token")
+
+    def test_an_id_that_is_not_a_uuid_is_never_requested_or_written(self):
+        for bad_id in ("../../etc/passwd", "s1", "", None):
+            self.write(item(item_id=bad_id) if bad_id is not None else {**item(), "id": None})
+            written, problems = download_photos(self.path, "secret", get=self.fake)
+            self.assertEqual(written, 0)
+            self.assertTrue(problems[0].endswith("none of its photos were fetched"), problems)
+        self.assertEqual(self.asked, [])
+        self.assertEqual(list((Path(self.dir.name) / "opson-review-dev-2026-11-02-photos").iterdir()), [])
+
+    def test_an_unknown_env_needs_an_https_origin(self):
+        self.write(item(origin="https://staging.example"), env="Staging")
+        with self.assertRaises(SystemExit):
+            download_photos(self.path, "secret", get=self.fake)
+        with self.assertRaises(SystemExit):
+            download_photos(self.path, "secret", get=self.fake, origin="http://staging.example")
+        written, _ = download_photos(self.path, "secret", get=self.fake, origin="https://staging.example")
+        self.assertEqual(written, 2)
 
     def test_a_file_that_is_not_a_bundle_is_refused(self):
         self.path.write_text(json.dumps({"format": "something else"}))
