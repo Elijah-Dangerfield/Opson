@@ -158,6 +158,11 @@ data class VerificationResponse(
     val groundable: Int,
     val missing: List<String> = emptyList(),
     val review: String? = null,
+    /**
+     * `agreement` on a match that counts once a second Builder's match or a reviewer agrees. It
+     * also says `review: "open"`, which is what an app from before this reads.
+     */
+    val awaiting: String? = null,
 )
 
 @Serializable
@@ -394,10 +399,14 @@ fun Route.builderRoutes(
                     val lines = request.lines.map { CaptureLine(it.text, it.confidence) }
                     val grounding = VerificationCheck.ground(food.per100g, food.portions.firstOrNull()?.grams, lines)
                     val grounded = grounding.complete && grounding.groundable == VerificationCheck.HEADLINE
+                    val matched = grounded && reported == null
+                    // The text that matched is the app's: a Builder's match waits, with its photos, for a
+                    // second Builder's match or a reviewer. An owner's or admin's stands on arrival.
+                    val awaitsAgreement = matched && !permissions.can(userId, Permission.FoodEditDirect)
                     // A person looks at it when the Builder said something was wrong, or when the text
                     // did not show the numbers and they sent the photos a person needs to judge it.
-                    val queued = reported != null || (!grounded && photos.isNotEmpty())
-                    val outcome = if (grounded && !queued) VerificationOutcome.Confirmed else VerificationOutcome.Unconfirmed
+                    val queued = reported != null || (!grounded && photos.isNotEmpty()) || awaitsAgreement
+                    val outcome = if (matched) VerificationOutcome.Confirmed else VerificationOutcome.Unconfirmed
                     val recorded = verifications.record(
                         FoodVerification(
                             id = id,
@@ -642,7 +651,18 @@ private fun BuilderStanding.toAdmin() = AdminBuilderResponse(
 )
 
 private fun FoodVerification.toResponse(missing: List<String>) =
-    VerificationResponse(id.toString(), outcome.wire, grounded, groundable, missing, review = status?.takeIf { it == VerificationStatus.Open }?.wire)
+    VerificationResponse(
+        id = id.toString(),
+        outcome = outcome.wire,
+        grounded = grounded,
+        groundable = groundable,
+        missing = missing,
+        review = status?.takeIf { it == VerificationStatus.Open }?.wire,
+        awaiting = AWAITING_AGREEMENT.takeIf { awaitsAgreement },
+    )
+
+/** `awaiting` on a match that waits for a second Builder or a reviewer. */
+private const val AWAITING_AGREEMENT = "agreement"
 
 private const val MAX_ACTOR = 100
 private const val MAX_REASON = 500

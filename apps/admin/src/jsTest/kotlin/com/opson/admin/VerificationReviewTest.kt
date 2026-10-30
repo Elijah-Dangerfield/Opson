@@ -66,6 +66,8 @@ class VerificationReviewTest {
         assertEquals("The Builder said something was wrong", VerificationReview.why(verification()))
         val unread = verification(wrong = emptyList(), missing = emptyList(), values = null, per100 = null, note = null)
         assertEquals("The label's text showed 3 of 4 numbers", VerificationReview.why(unread))
+        val match = unread.copy(outcome = "confirmed", grounded = 4)
+        assertEquals("The label's text showed all 4 numbers. Accept it if the photos agree, or wait for a second Builder", VerificationReview.why(match))
     }
 
     @Test

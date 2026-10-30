@@ -221,8 +221,10 @@ checks it against `CatalogSource`.
 **Checked (the app's Verified mark, V34).** `verified` says the source is
 accountable and search ranks by it. `checked` says a person checked this food
 against its pack, or a reviewer stood behind it: a Builder's verification
-confirmed by the label's text or accepted by a reviewer, a live reviewer's
-correction, or an approved `user_submitted` food (`FoodCheck`). Nothing stores
+accepted by a reviewer or by a second Builder's agreeing match, an owner's or
+admin's match, a live reviewer's correction, or an approved `user_submitted`
+food (`FoodCheck`). A single Builder's match waits: the label's text is the
+app's, so it proves little alone. Nothing stores
 it: the catalog works it out as it serves a food (`served()`, one query on
 `food_verifications` beside the corrections overlay), so a reverted correction
 or a rolled-back Builder takes the mark away by itself. Every food answer
@@ -975,7 +977,8 @@ held only while the person is active: `BuilderService.roleWindow` gives the
 role's bundles an end, `BuilderRules.proUntil`, in closed form. A first month
 from joining, then 30 days after the last time ten accepted contributions fell
 inside 30 days (approved submissions not failed by an audit, accepted reports,
-confirmed checks, counted from the reviewer's decision when one decided). Worked out on every entitlement read, so no job runs and a
+confirmed checks that stand, counted from the decision: a reviewer's, or the
+second Builder's match that agreed). Worked out on every entitlement read, so no job runs and a
 reviewer's decision counts at once; the role source carries the date, so
 `/v1/me/entitlements` tells the app. A `builder` role set by hand in the console,
 with no membership row, keeps V28's unconditional Pro.
@@ -1024,7 +1027,7 @@ submission limit is 60, up from 20. Photos of an active Builder who chose
 | POST | `/v1/builders/join` `{acceptTerms, termsVersion, photoRetention}` | Older apps' Join: applies. 400 `terms_required`; 403 `guest`, `too_new`, `removed`; 409 `full` (also a declined application still waiting). |
 | POST | `/v1/builders/leave` | The role goes; the row stays (`left`). Coming back is a new application; acceptance keeps the first join date. |
 | PUT | `/v1/builders/me` `{photoRetention}` | |
-| POST | `/v1/foods/{id}/verifications` `{id, engine, lines, problem?, photos?}` | A Builder's check against the pack: the label's text, read on the phone. `confirmed` when the food's four headline numbers, per 100 or per serving, are on their rows; once per person and food. V34: `problem` ("Something was wrong": `wrong` and `missing` field codes from `calories`, `macros`, `serving`, `name_brand`, `ingredients`, `barcode`, never both for one field; `values` the right ones for a basis like a report's `suggested`, plus `name`, `brand`, `barcode`; `note`) and `photos` (`front`, `label`, base64, 4 MB each). With a problem, or with photos and numbers the text did not show, it waits for a reviewer with the photos and the food as served, and the answer says `review: "open"`; an app before V34 sends neither and gets the old behaviour, and a server before V34 never says `review`. The body is at most 12 MB and is read only after the Builder check. A retry of an id already recorded answers as it did the first time and spends none of the hourly limit. 400 `invalid_problem`, `invalid_image`; 403 `not_a_builder`, `contributions_restricted`; 404; 409; 413; 429. |
+| POST | `/v1/foods/{id}/verifications` `{id, engine, lines, problem?, photos?}` | A Builder's check against the pack: the label's text, read on the phone. `confirmed` when the food's four headline numbers, per 100 or per serving, are on their rows; once per person and food. V34: `problem` ("Something was wrong": `wrong` and `missing` field codes from `calories`, `macros`, `serving`, `name_brand`, `ingredients`, `barcode`, never both for one field; `values` the right ones for a basis like a report's `suggested`, plus `name`, `brand`, `barcode`; `note`) and `photos` (`front`, `label`, base64, 4 MB each). With a problem, or with photos and numbers the text did not show, it waits for a reviewer with the photos and the food as served, and the answer says `review: "open"`. A match from a Builder waits too, with its photos, and says `awaiting: "agreement"` as well: a second Builder's match of the same food accepts both (`resolved_by` `auto:agreed`, which the reviewer counts leave out), or a reviewer accepts it; until then it neither marks the food nor counts toward Pro. An owner's or admin's match (`food.edit.direct`) stands on arrival; an app before V34 sends neither and gets the old behaviour, and a server before V34 never says `review`. The body is at most 12 MB and is read only after the Builder check. A retry of an id already recorded answers as it did the first time and spends none of the hourly limit. 400 `invalid_problem`, `invalid_image`; 403 `not_a_builder`, `contributions_restricted`; 404; 409; 413; 429. |
 | GET | `/v1/admin/food-verifications?status=open\|decided&limit=50` | `{open, verifications}`: waiting oldest first, or the latest decisions. Each has `wrong`, `missing`, `values`, `valuesPer100` (as accepting would store them), `note`, `snapshot` (as the Builder saw it), `now` (as served), `hasFrontPhoto`, `hasLabelPhoto`, the outcome and the decision. Each call deletes photos of verifications decided over 30 days ago. |
 | GET | `/v1/admin/food-verifications/{id}/photos/{front\|label}` | `Cache-Control: no-store`. |
 | POST | `/v1/admin/food-verifications/{id}/accept` `{values?, note?}` | Stands behind it: the outcome becomes `confirmed` (it counts toward Builder Pro, once per person and food) and the food is checked. `values` (per 100, name, brand, serving) lay a correction over the existing food through the V29 overlay. 409 `not_open`. |

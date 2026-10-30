@@ -7,7 +7,12 @@ import kotlin.time.Instant
 
 /** A Builder's check of a catalog food against the pack in their hand. */
 enum class VerificationOutcome(val wire: String) {
-    /** Every headline number of the food was found in the label's text: it counts as accepted. */
+    /**
+     * Every headline number of the food was found in the label's text. The text is the app's, so
+     * on its own it proves little: one from a Builder waits ([FoodVerification.awaitsAgreement])
+     * until a second Builder's match or a reviewer agrees, and only then counts toward Pro and
+     * marks the food checked. An owner's or admin's counts on arrival.
+     */
     Confirmed("confirmed"),
 
     /** Some weren't. Nothing changes and nothing counts; a real difference goes through Report a problem. */
@@ -88,7 +93,16 @@ data class FoodVerification(
     val correctionId: UUID? = null,
     /** Which photos are kept: only with one that waits or waited for a reviewer. */
     val photos: Set<PackSide> = emptySet(),
-)
+) {
+    /** A match waiting for a second Builder's match or a reviewer, with its photos and the food as seen. */
+    val awaitsAgreement: Boolean
+        get() = outcome == VerificationOutcome.Confirmed && status == VerificationStatus.Open && problem == null
+
+    companion object {
+        /** `resolved_by` on matches accepted because two Builders' agreed; `auto:` marks a lane, not a reviewer. */
+        const val AGREED_BY = "auto:agreed"
+    }
+}
 
 sealed interface VerifyOutcome {
     data class Recorded(val verification: FoodVerification) : VerifyOutcome
@@ -112,8 +126,10 @@ sealed interface VerificationDecision {
 interface FoodVerificationRepository {
     /**
      * Records the check. A second confirmation of the same food by the same person is kept as
-     * unconfirmed, so checking one pack twice never counts twice toward Pro. [photos] are kept
-     * only with one that waits for a reviewer ([VerificationStatus.Open]).
+     * unconfirmed and decided, so checking one pack twice never counts twice toward Pro. [photos]
+     * are kept only with one that waits ([VerificationStatus.Open]). A match that
+     * [FoodVerification.awaitsAgreement] is accepted at once, as [FoodVerification.AGREED_BY],
+     * when another Builder's match of the same food stands, and theirs with it if it was waiting.
      */
     suspend fun record(verification: FoodVerification, photos: Map<PackSide, ReportPhoto> = emptyMap()): VerifyOutcome
 

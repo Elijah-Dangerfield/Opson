@@ -6,6 +6,30 @@ the decision, alternatives considered, and *why*. Newest first.
 
 ---
 
+## 2026-10-30: A Builder's match counts once a second Builder or a reviewer agrees
+
+**Decision:** a Builder's verification whose label text showed every headline
+number no longer marks the food Verified or counts toward Builder Pro on
+arrival. It waits (`status = 'open'`, its photos and the food as seen kept)
+until a second Builder's match of the same numbers arrives, which accepts both
+(`resolved_by = 'auto:agreed'`), or a reviewer accepts it in the console. Each
+counts toward Pro from that moment. An owner's or admin's match
+(`food.edit.direct`) stands on arrival. The answer says `review: "open"` with
+`awaiting: "agreement"`; an app from before reads the first and says a
+reviewer will look. Matches decided on arrival before this (V31) keep their
+mark: they have no photos for anyone to look at again.
+
+**Alternatives:** queueing every match for the owner alone; rejected because
+the owner reviews weekly and agreement between two people holding the pack
+is the same evidence without the wait. Re-reading the photo on the server;
+rejected by the no-server-AI rule.
+
+**Why:** the label text is read on the phone and sent by the app, so a single
+match rested on text anyone could type, and it handed out the Verified mark and
+Pro credit.
+
+---
+
 ## 2026-10-30: Onboarding asks whether to set a goal before anything about the body, and records beta members as a grant
 
 **Decision:** after the mode, onboarding asks "Want to set a goal?". "Not now, just let me log"
