@@ -230,8 +230,11 @@ deep, so the list is replaced whole, which is what we want.
   none, which those builds show as "changed by hand".
 - `weightGoal` that no longer matches what `goals` would write was changed by an older build; the
   weight goal is rebuilt from it and keeps its baseline.
-- A goal type this build doesn't know is kept as it came and never acted on, so an older build
-  doesn't delete a newer build's goal.
+- A goal this build can't read in full is kept as it came, never acted on, and written back
+  byte for byte, so an older build neither deletes nor rewrites a newer build's goal: a kind it
+  doesn't know, a value that doesn't parse, or a status, averaging, measure or baseline input it
+  doesn't know (coercing those to a default would write the default back). While such a goal is a
+  weight goal, `weightGoal` is left as it was.
 
 ## The engine API
 

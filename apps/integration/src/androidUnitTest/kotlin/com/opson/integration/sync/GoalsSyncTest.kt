@@ -5,6 +5,8 @@ import com.opson.integration.helpers.awaitState
 import com.opson.integration.helpers.randomUserId
 import com.opson.libraries.core.Catching
 import com.opson.libraries.diary.GoalBook
+import com.opson.libraries.diary.Settings
+import com.opson.libraries.diary.SettingsJson
 import com.opson.libraries.diary.impl.DiarySyncApi
 import com.opson.libraries.diary.impl.wire.SyncRequestDto
 import com.opson.libraries.diary.impl.wire.SyncResponseDto
@@ -122,6 +124,34 @@ class GoalsSyncTest : IntegrationTest() {
         assertTrue(weight.drivesTarget, "the old build's target is the goal's")
         assertEquals(GoalAveraging.Weekly, weight.averaging, "what it didn't know is kept")
         assertEquals("track", goals[1].id)
+    }
+
+    @Test
+    fun aGoalANewerBuildWrote_survivesASaveFromThisOne_untouched() = integration {
+        val user = randomUserId()
+        val newer = """{"id":"move","kind":"burn","startDate":"2026-10-30","kcal":400,"measure":"heart_points","averaging":"monthly"}"""
+        val newerGoals = SettingsJson.decodeFromString(Settings.serializer(), """{"goals":[$newer]}""").goals!!
+        val newPhone = client(user)
+        newPhone.syncNow().getOrThrow()
+        newPhone.settings.isKnown.awaitState { it }
+        newPhone.settings.update { it.copy(goals = newerGoals) }
+        newPhone.syncNow().getOrThrow()
+
+        // This build reads it, can't make sense of it, and saves a goal of its own beside it.
+        val phone = client(user)
+        phone.syncNow().getOrThrow()
+        phone.settings.settings.awaitState { it.goals != null }
+        phone.settings.update { GoalBook.withGoal(it, track) }
+        phone.syncNow().getOrThrow()
+
+        val stored = server.query(
+            "SELECT settings->'goals'->0->>'measure' AS measure, settings->'goals'->0->>'averaging' AS averaging, " +
+                "jsonb_array_length(settings->'goals') AS goals FROM user_settings WHERE user_id = ?::uuid",
+            user,
+        ).single()
+        assertEquals("heart_points", stored["measure"], "not coerced to active")
+        assertEquals("monthly", stored["averaging"], "not coerced to daily")
+        assertEquals(2, stored["goals"])
     }
 
     private companion object {

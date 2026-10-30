@@ -119,9 +119,27 @@ class GoalBookTest {
     }
 
     @Test
-    fun anUnreadableGoal_isDropped_notGuessed() {
-        val raw = """{"goals":[{"id":"w","kind":"weight","startDate":"2026-10-30","direction":"sideways"},{"kind":"steps","startDate":"2026-10-30","count":5}]}"""
-        assertEquals(emptyList(), SettingsJson.decodeFromString(Settings.serializer(), raw).goals)
+    fun aGoalThisBuildCantReadInFull_isKeptAsItCame_andWrittenBackUntouched() {
+        val goals = listOf(
+            """{"id":"weight","kind":"weight","startDate":"2026-10-30","direction":"sideways","kgPerWeek":0.5}""",
+            """{"kind":"steps","startDate":"2026-10-30","count":5}""",
+            """{"id":"b","kind":"energy_balance","startDate":"2026-10-30","kcalPerDay":"lots"}""",
+            """{"id":"m","kind":"burn","startDate":"2026-10-30","kcal":400,"measure":"heart_points"}""",
+            """{"id":"e","kind":"energy_balance","startDate":"2026-10-30","kcalPerDay":-300,"averaging":"monthly"}""",
+            """{"id":"s","kind":"steps","startDate":"2026-10-30","count":9000,"status":"archived"}""",
+        )
+        val settings = SettingsJson.decodeFromString(Settings.serializer(), """{"weightGoal":{"direction":"lose"},"goals":[${goals.joinToString(",")}]}""")
+        val read = settings.goals!!
+        assertEquals(goals.size, read.size, "nothing dropped")
+        assertTrue(read.all { it.type is GoalType.Unknown && !it.drivesTarget }, "nothing guessed at or acted on")
+        assertNull(GoalBook.driving(settings))
+        assertEquals(GoalDirection.Lose, GoalBook.withGoals(settings, GoalBook.goals(settings)).weightGoal.direction, "older builds' weight goal left as it was")
+
+        // Saved again with a goal of this build's own beside them: every one goes back as it came.
+        val saved = GoalBook.withGoal(settings, Goal("t", GoalType.TrackEveryDay, start))
+        val written = SettingsJson.encodeToJsonElement(Settings.serializer(), saved).jsonObject.getValue("goals").jsonArray
+        assertEquals(goals.map { SettingsJson.parseToJsonElement(it) }, written.take(goals.size))
+        assertEquals(goals.size + 1, written.size)
     }
 
     @Test

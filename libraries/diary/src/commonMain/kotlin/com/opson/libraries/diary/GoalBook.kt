@@ -8,6 +8,7 @@ import com.opson.libraries.nutrition.GoalAveraging
 import com.opson.libraries.nutrition.GoalBaseline
 import com.opson.libraries.nutrition.GoalBaselines
 import com.opson.libraries.nutrition.GoalDirection
+import com.opson.libraries.nutrition.GoalKind
 import com.opson.libraries.nutrition.GoalRecalculated
 import com.opson.libraries.nutrition.GoalStatus
 import com.opson.libraries.nutrition.GoalTargets
@@ -157,6 +158,8 @@ object GoalBook {
 
     /** What [Settings.weightGoal] says for [goals], given what it said before ([previous]). */
     fun mirror(goals: List<Goal>, previous: WeightGoal): WeightGoal {
+        // A weight goal this build can't read (kept as it came): what older builds see stays as it was.
+        if (goals.any { (it.type as? GoalType.Unknown)?.wireKind == GoalKind.Weight.key }) return previous
         val goal = goals.firstOrNull { it.type is GoalType.Weight && it.status != GoalStatus.Done }
         val weight = goal?.type as? GoalType.Weight
         if (goal == null || weight == null) {
