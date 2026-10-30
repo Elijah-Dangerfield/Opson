@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.datetime.LocalDate
+import com.opson.libraries.ui.components.text.DateParts
 
 /**
  * The goal flow from Today: it starts from what the account has, writes nothing until the last
@@ -89,6 +90,18 @@ class GoalSetupViewModelTest : CoroutineTest() {
         assertEquals(PlanCommitment(FixedCalendar.today(), committed = true), saved.planCommitment)
         assertTrue(weights.added.isEmpty(), "the weight wasn't changed")
         assertEquals(1, closed.size)
+    }
+
+    @Test
+    fun aBirthdayUnderEighteen_typedOnTheProfileStep_turnsWeightGoalsOffAtOnce() = runUnitTest {
+        val vm = newVm(FakeSettingsRepository(account.copy(birthDate = null, birthYear = null)))
+        runCurrent()
+        assertFalse(vm.state.context!!.hard)
+
+        vm.takeAction(GoalSetupAction.Plan(PlanAction.BirthdayTyped(DateParts.of(LocalDate(2010, 1, 5)))))
+        runCurrent()
+
+        assertTrue(vm.state.context!!.hard, "no weight goal or deficit for a 16-year-old")
     }
 
     @Test
