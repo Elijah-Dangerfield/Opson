@@ -94,6 +94,15 @@ data class AppData(
     val ageGateOpensOn: String? = null,
 
     /**
+     * The birthday ("2009-04-18") given at onboarding's age question, held from Continue until
+     * an account exists to keep it on. Sign-in can leave onboarding (email sign-up and its
+     * verification open a fresh one, the app can be killed after the account is made), so the
+     * view model's own state isn't enough. Cleared once the account's settings have it.
+     * Device-scoped: no account owns it yet.
+     */
+    val pendingBirthDate: String? = null,
+
+    /**
      * When "Why not cut back?" was opened (epoch ms, newest last, capped), for the hard-stretch
      * check on this phone. Never synced or sent. Account-scoped.
      */

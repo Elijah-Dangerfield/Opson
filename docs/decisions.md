@@ -141,7 +141,11 @@ keeps the goal flow and its Today card off for anyone under 18, and the goals
 page and editor offer them only the gentle goals. A birthday under 18 typed on
 Profile after a weight or deficit goal was set pauses that goal
 (`GoalBook.pauseWeightPlans`) and puts a deficit target back at a typical
-day's burn, with a toast saying why. Terms and
+day's burn, with a toast saying why. The birthday waits on the phone
+(`AppData.pendingBirthDate`) from the age question until an account exists and
+is written to it then, because email sign-up, its verification and a restart
+all leave onboarding; a not-set-up account with no birthday anywhere goes back
+through the age question, since no birthday would read as an adult. Terms and
 privacy say 16. Separately, `HardStretch` reads the last four weeks of the log
 on the phone (very low complete days, restrict and big-day swings, many
 weigh-ins a day, fast loss, plus weaker signals that need a second) and the

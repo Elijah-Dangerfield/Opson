@@ -27,6 +27,7 @@ import com.opson.libraries.nutrition.SexChoice
 import com.opson.libraries.nutrition.TargetStyle
 import com.opson.libraries.nutrition.Targets
 import com.opson.libraries.nutrition.Units
+import com.opson.libraries.opson.AppData
 import com.opson.libraries.nutrition.WeightGoal
 import com.opson.libraries.nutrition.WeightUnit
 import com.opson.libraries.ui.components.text.DateParts
@@ -117,7 +118,7 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         val settings = FakeSettingsRepository()
         val weights = FakeWeightRepository()
         val vm = atProfile(listOf(NumbersFeel.LoveThem), settings = settings, weights = weights, region = "US")
-        assertTrue(vm.state.planView!!.profile.birthdayShown, "a new account that skipped the age question is asked here")
+        assertFalse(vm.state.planView!!.profile.birthdayShown, "asked at the age question, not again here")
         typeImperialBody(vm)
         plan(vm, PlanAction.ActivityPicked(OnboardingFixtures.ImperialBody.activity))
         vm.takeAction(OnboardingAction.ContinueTapped)
@@ -471,8 +472,8 @@ class OnboardingSetupStepsTest : CoroutineTest() {
         celebrations: Boolean = true,
         beta: Boolean = false,
     ) = OnboardingViewModel(
-        appCache = FakeAppCache(),
-        // Signed in to a new account, so onboarding opens at the first question.
+        // Signed in to a new account that answered the age question, so onboarding opens at the first question.
+        appCache = FakeAppCache(initial = AppData(pendingBirthDate = OnboardingFixtures.ImperialBody.birthDate.toString())),
         authRepository = FakeAuthRepository(initialAuthState = sampleAuthenticated),
         authOutcomeClassifier = StubAuthOutcomeClassifier(),
         appleSignInCoordinator = FakeAppleSignInCoordinator(),
