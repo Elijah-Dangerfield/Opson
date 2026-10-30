@@ -19,6 +19,14 @@
     <string name="ds_loading_your_data">Loading your data</string>
     <string name="ds_loading_almost_there">Almost there</string>
 
+    <!-- DateField: the three boxes of a typed date, and what each holds before anything is typed -->
+    <string name="ds_date_day">Day</string>
+    <string name="ds_date_month">Month</string>
+    <string name="ds_date_year">Year</string>
+    <string name="ds_date_day_hint">DD</string>
+    <string name="ds_date_month_hint">MM</string>
+    <string name="ds_date_year_hint">YYYY</string>
+
     <!-- DateCopy: the days next to today, and a span of days. The month and weekday names come
          from the phone's own language settings. DateWords carries the same English for tests. -->
     <string name="ds_date_today">Today</string>

@@ -52,16 +52,18 @@ fun OutlinedTextField(
     minLines: Int = 1,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     onTextLayout: (TextLayoutResult) -> Unit = {},
-    cursorBrush: Brush = SolidColor(AppTheme.colors.accentPrimary.color)
+    cursorBrush: Brush = SolidColor(AppTheme.colors.accentPrimary.color),
+    /** What the field holds, so the phone can offer a saved email, password or code ([FieldContent]). */
+    content: FieldContent? = null,
 ) {
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
+        modifier = modifier.fieldContent(content),
         enabled = enabled,
         readOnly = readOnly,
         typographyToken = typographyToken,
-        keyboardOptions = keyboardOptions,
+        keyboardOptions = keyboardOptions.withContent(content),
         keyboardActions = keyboardActions,
         singleLine = singleLine,
         maxLines = maxLines,

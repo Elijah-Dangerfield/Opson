@@ -55,7 +55,8 @@ object NumberInput {
  *
  * The field shows the string it is given; it never formats or rounds a
  * number. Exposes its value as `EditableText` semantics (see [InputBox]), which
- * matters here more than anywhere: an Energy field is a calorie amount.
+ * matters here more than anywhere: an Energy field is a calorie amount. [content] lets the
+ * phone offer to fill it (a birthday's day, month or year).
  */
 @Composable
 fun NumberField(
@@ -70,12 +71,13 @@ fun NumberField(
     enabled: Boolean = true,
     imeAction: ImeAction = ImeAction.Done,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    content: FieldContent? = null,
 ) {
     val field = @Composable { fieldModifier: Modifier ->
         InputBox(
             value = value,
             onValueChange = onValueChange,
-            modifier = fieldModifier,
+            modifier = fieldModifier.fieldContent(content),
             placeholder = placeholder,
             suffix = unit,
             enabled = enabled,
@@ -85,7 +87,7 @@ fun NumberField(
                 keyboardType = if (allowDecimal) KeyboardType.Decimal else KeyboardType.Number,
                 imeAction = imeAction,
                 autoCorrectEnabled = false,
-            ),
+            ).withContent(content),
             keyboardActions = keyboardActions,
             visualTransformation = VisualTransformation.None,
             textAlign = textAlign,
