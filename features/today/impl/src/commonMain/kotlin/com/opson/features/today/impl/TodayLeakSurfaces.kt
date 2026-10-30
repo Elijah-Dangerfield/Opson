@@ -12,6 +12,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.opson.features.today.impl.celebration.CelebrationScreen
+import com.opson.features.today.impl.kindnote.KindNoteSheetContent
+import com.opson.features.today.impl.kindnote.KindNoteState
 import com.opson.features.today.impl.celebration.CelebrationState
 import com.opson.features.today.impl.celebration.ProgressFixtures
 import com.opson.features.today.impl.celebration.ProgressSheetContent
@@ -22,6 +24,7 @@ import com.opson.libraries.diary.Milestone
 import com.opson.features.today.impl.dayclose.DayClosedSheetContent
 import com.opson.features.today.impl.dayclose.DayClosedState
 import com.opson.libraries.diary.MainNumberChoice
+import com.opson.libraries.goals.GoalFixtures
 import com.opson.libraries.diary.Reading
 import com.opson.libraries.diary.SummaryCardPreset
 import com.opson.libraries.ui.components.SheetHandle
@@ -50,6 +53,7 @@ import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.nutrition.VisibilityPolicy
 import com.opson.libraries.nutrition.ui.leak.LeakSurface
+import kotlinx.datetime.LocalTime
 
 /**
  * Today's surfaces for `CaloriesHiddenLeakTest` (`docs/plans/screens/blind-leak-test.md`).
@@ -66,6 +70,10 @@ object TodayLeakSurfaces {
         // Notes are words and a hunger level, never an amount, in every mode.
         LeakSurface(id = "today-notes", label = "Notes", showsCaloriesInFull = false) { _ ->
             NotesScreen(state = TodayFixtures.notesState(), onAction = {})
+        },
+        // The kind note: never a number or what set it off, in every mode.
+        LeakSurface(id = "today-kind-note", label = "Kind note", showsCaloriesInFull = false) { _ ->
+            KindNoteSheetContent(state = KindNoteState(), onAction = {})
         },
         // Design sync 4: End after a set time ran out. The banner names modes, never an amount.
         LeakSurface(id = "today-timer-ended", label = "Today · the mode timer ran out", showsCaloriesInFull = true) { policy ->
@@ -177,6 +185,42 @@ object TodayLeakSurfaces {
         // progress and Today with the streak in its header. They count days showed up, never an amount.
         LeakSurface(id = "day-close-streak", label = "Day close, wrapped up, with the run", showsCaloriesInFull = true) { policy ->
             DayCloseScreen(state = TodayFixtures.dayCloseState(policy, closed = true, celebrating = TodayFixtures.celebrating()), onAction = {})
+        },
+        // Opened early: the note says the time of day and the usual wrap-up time, never an amount.
+        LeakSurface(id = "day-close-early", label = "Day close, opened early", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(state = TodayFixtures.dayCloseState(policy, now = LocalTime(7, 0), usualWrapUp = LocalTime(20, 0)), onAction = {})
+        },
+        // release.recaps: the week's last day wrapped up links to its recap, named by its dates.
+        LeakSurface(id = "day-close-week-recap", label = "Day close, the week's last day wrapped up", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(state = TodayFixtures.dayCloseState(policy, closed = true, recapsOn = true), onAction = {})
+        },
+        // With a goal (2026-10-30): the week's line, the chip, the burned bar's marks, and how the
+        // day went for the goal and its week. Every amount goes through the policy.
+        LeakSurface(id = "today-goal-weekly", label = "Today · a weekly goal and a burn goal", showsCaloriesInFull = true) { policy ->
+            TodayScreen(
+                state = TodayFixtures.todayState(
+                    policy,
+                    settings = TodayFixtures.weeklyGoalSettings,
+                    expended = TodayFixtures.expended,
+                    summaryOn = true,
+                    goalsAndEnergyOn = true,
+                    burned = TodayFixtures.burned,
+                    goals = TodayFixtures.weeklyGoals,
+                    usualBurnKcal = TodayFixtures.USUAL_BURN_KCAL,
+                ),
+                onAction = {},
+            )
+        },
+        LeakSurface(id = "day-close-goal", label = "Day close · a weekly goal, burn and meals", showsCaloriesInFull = true) { policy ->
+            DayCloseScreen(
+                state = TodayFixtures.dayCloseState(
+                    policy,
+                    settings = GoalFixtures.settings(GoalFixtures.loseWeekly, GoalFixtures.burn, GoalFixtures.meals).copy(goalStreakEnabled = true),
+                    burned = TodayFixtures.burned,
+                    goals = GoalFixtures.wrapUp(GoalFixtures.loseWeekly, GoalFixtures.burn, GoalFixtures.meals, streaks = true, eatenKcal = 1500.0),
+                ),
+                onAction = {},
+            )
         },
         LeakSurface(id = "celebration", label = "A milestone's celebration", showsCaloriesInFull = false) { _ ->
             CelebrationScreen(state = CelebrationState(Milestone.Week1, offerTurnOff = true), onAction = {})

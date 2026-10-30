@@ -27,6 +27,10 @@ import com.opson.libraries.diary.StreakDay
 import com.opson.libraries.diary.ui.SectionLabel
 import com.opson.libraries.diary.ui.TodayCard
 import com.opson.libraries.flowroutines.SEAViewModel
+import com.opson.libraries.prompts.OptOut
+import com.opson.libraries.prompts.OptOuts
+import com.opson.libraries.ui.components.button.FlatButton
+import com.opson.libraries.ui.components.button.FlatButtonTone
 import com.opson.libraries.ui.PreviewContent
 import com.opson.libraries.ui.components.SheetHeader
 import com.opson.libraries.ui.components.icon.AppIcons
@@ -54,6 +58,7 @@ import opson.libraries.resources.generated.resources.progress_days
 import opson.libraries.resources.generated.resources.progress_forgiven
 import opson.libraries.resources.generated.resources.progress_gentle_body
 import opson.libraries.resources.generated.resources.progress_gentle_counts_off
+import opson.libraries.resources.generated.resources.progress_hide_streak
 import opson.libraries.resources.generated.resources.progress_longest
 import opson.libraries.resources.generated.resources.progress_milestones
 import opson.libraries.resources.generated.resources.progress_no_run
@@ -73,6 +78,8 @@ data class ProgressState(
     val loading: Boolean = true,
     val style: CelebrationStyle = CelebrationStyle.Counts,
     val counts: ProgressCounts? = null,
+    /** "Hide the streak on Today", on the first few times this opens ([OptOuts]); More › Today screen after. */
+    val offerHideStreak: Boolean = false,
 )
 
 /** The run, the longest run, the days showed up this month, the next milestone, the last week and the badges. */
@@ -115,23 +122,37 @@ object ProgressStateBuilder {
 
 sealed interface ProgressAction {
     data class Arrived(val celebrating: Celebrating?) : ProgressAction
+    data class HideOffered(val offered: Boolean) : ProgressAction
     data object CloseTapped : ProgressAction
+
+    /** "Hide the streak on Today": the streak goes from Today's header, and More › Today screen brings it back. */
+    data object HideStreakTapped : ProgressAction
 }
 
 sealed interface ProgressEvent {
     data object Dismiss : ProgressEvent
+
+    /** Closed after hiding the streak; the toast says where it comes back. */
+    data object StreakHidden : ProgressEvent
 }
 
-/** Your progress, from the streak in Today's header. Celebrations turned off while it is open close it. */
+/**
+ * Your progress, from the streak in Today's header. Celebrations turned off while it is open close
+ * it. Each opening counts as a showing of the streak ([OptOut.Streak]), since the pill itself has
+ * no room for a way to hide it.
+ */
 @Inject
 class ProgressViewModel(
     source: CelebrationsSource,
     private val telemetry: CelebrationTelemetry = CelebrationTelemetry.None,
+    private val optOuts: OptOuts = OptOuts.None,
 ) : SEAViewModel<ProgressState, ProgressEvent, ProgressAction>(initialStateArg = ProgressState()) {
     private var opened = false
+    private var hiding = false
 
     init {
         viewModelScope.launch { source.observe().collect { takeAction(ProgressAction.Arrived(it)) } }
+        viewModelScope.launch { takeAction(ProgressAction.HideOffered(optOuts.showing(OptOut.Streak))) }
     }
 
     override suspend fun handleAction(action: ProgressAction) {
@@ -142,9 +163,16 @@ class ProgressViewModel(
                     opened = true
                     telemetry.progressOpened(celebrating.style)
                 }
-                action.updateState { ProgressStateBuilder.build(celebrating) }
+                action.updateState { ProgressStateBuilder.build(celebrating).copy(offerHideStreak = it.offerHideStreak) }
             }
+            is ProgressAction.HideOffered -> action.updateState { it.copy(offerHideStreak = action.offered) }
             ProgressAction.CloseTapped -> sendEvent(ProgressEvent.Dismiss)
+            ProgressAction.HideStreakTapped -> {
+                if (hiding) return
+                hiding = true
+                optOuts.turnOff(OptOut.Streak)
+                sendEvent(ProgressEvent.StreakHidden)
+            }
         }
     }
 }
@@ -171,6 +199,15 @@ fun ProgressSheetContent(state: ProgressState, onAction: (ProgressAction) -> Uni
             color = AppTheme.colors.muted,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
+        if (state.offerHideStreak) {
+            FlatButton(
+                text = stringResource(Res.string.progress_hide_streak),
+                onClick = { onAction(ProgressAction.HideStreakTapped) },
+                tone = FlatButtonTone.Text,
+                centered = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
@@ -369,6 +406,11 @@ private fun ProgressSheetPreview() = ProgressPreviewFrame(ProgressFixtures.count
 private fun ProgressSheetDarkPreview() = ProgressPreviewFrame(ProgressFixtures.counts, dark = true)
 
 /** Nothing yet: no run, every milestone ahead. */
+/** One of the first few openings: the way to hide the streak under the rest. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun ProgressSheetHideStreakPreview() = ProgressPreviewFrame(ProgressFixtures.counts.copy(offerHideStreak = true))
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun ProgressSheetFreshPreview() = ProgressPreviewFrame(ProgressFixtures.fresh)

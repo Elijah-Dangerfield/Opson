@@ -36,6 +36,9 @@ const val TERMS_URL = "https://nightjarlabs.llc/opson/terms"
  *   (the row then opens Find support) or the flag is off.
  * @property couldNotDial the phone had no dialer: the row's number, said plainly.
  * @property providerSummary where "Make a summary for your provider" sits, if anywhere.
+ * @property kindNotes the switch for Today's kind note when the log suggests a hard stretch
+ *   (`Settings.hardStretchNotes`); null, and no row, with `release.findSupport` off, since the note
+ *   only shows with it.
  */
 data class SupportState(
     val export: ExportStatus = ExportStatus.Idle,
@@ -44,6 +47,7 @@ data class SupportState(
     val crisis: CrisisLine? = null,
     val couldNotDial: String? = null,
     val providerSummary: ProviderSummaryOffer = ProviderSummaryOffer.None,
+    val kindNotes: Boolean? = null,
 )
 
 object SupportStateBuilder {
@@ -52,6 +56,7 @@ object SupportStateBuilder {
         country: SupportCountry?,
         providerSummary: Boolean = false,
         workingWithProvider: Boolean = false,
+        kindNotes: Boolean = true,
     ): SupportState = SupportState(
         findSupport = findSupport,
         crisis = country?.takeIf { findSupport }?.let { SupportDirectory.of(it).crisis },
@@ -60,6 +65,7 @@ object SupportStateBuilder {
             workingWithProvider -> ProviderSummaryOffer.First
             else -> ProviderSummaryOffer.InYourData
         },
+        kindNotes = kindNotes.takeIf { findSupport },
     )
 }
 
@@ -122,6 +128,7 @@ class SupportViewModel(
         country = SupportCountry.of(region.countryCode()),
         providerSummary = providerSummary(),
         workingWithProvider = settings.settings.value.onboarding.workingWithProvider,
+        kindNotes = settings.settings.value.hardStretchNotes,
     ),
 ) {
 
@@ -147,6 +154,10 @@ class SupportViewModel(
             SupportAction.KeepMyDataTapped -> action.updateState { it.copy(delete = DeleteStep.Idle) }
             SupportAction.DeleteConfirmed -> delete(action)
             SupportAction.BackTapped -> sendEvent(SupportEvent.Close)
+            SupportAction.KindNotesToggled -> if (state.kindNotes != null) {
+                val next = settings.update { it.copy(hardStretchNotes = !it.hardStretchNotes) }
+                action.updateState { it.copy(kindNotes = next.hardStretchNotes) }
+            }
         }
     }
 
@@ -236,4 +247,7 @@ sealed interface SupportAction {
     data object KeepMyDataTapped : SupportAction
     data object DeleteConfirmed : SupportAction
     data object BackTapped : SupportAction
+
+    /** The kind note's switch. */
+    data object KindNotesToggled : SupportAction
 }

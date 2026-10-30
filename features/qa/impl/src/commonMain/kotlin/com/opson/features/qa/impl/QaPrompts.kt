@@ -35,6 +35,7 @@ import opson.libraries.resources.generated.resources.qa_block_not_onboarded
 import opson.libraries.resources.generated.resources.qa_block_not_signed_in
 import opson.libraries.resources.generated.resources.qa_block_not_this_moment
 import opson.libraries.resources.generated.resources.qa_block_numbers_hard
+import opson.libraries.resources.generated.resources.qa_block_turned_off
 import opson.libraries.resources.generated.resources.qa_block_prompted_recently
 import opson.libraries.resources.generated.resources.qa_block_settling_in
 import opson.libraries.resources.generated.resources.qa_block_shown_enough
@@ -246,6 +247,7 @@ private fun PromptBlock.label(): StringResource = when (this) {
     PromptBlock.ShownRecently -> Res.string.qa_block_shown_recently
     PromptBlock.NotThisMoment -> Res.string.qa_block_not_this_moment
     PromptBlock.NumbersHard -> Res.string.qa_block_numbers_hard
+    PromptBlock.TurnedOff -> Res.string.qa_block_turned_off
     PromptBlock.ShownThisSession -> Res.string.qa_block_shown_this_session
     PromptBlock.SettlingIn -> Res.string.qa_block_settling_in
     PromptBlock.PromptedRecently -> Res.string.qa_block_prompted_recently

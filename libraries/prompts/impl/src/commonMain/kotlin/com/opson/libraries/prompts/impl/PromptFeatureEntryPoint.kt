@@ -26,6 +26,7 @@ import com.opson.libraries.prompts.PromptAccept
 import com.opson.libraries.prompts.PromptHost
 import com.opson.libraries.prompts.PromptPresentation
 import com.opson.libraries.ui.components.dialog.Dialog
+import com.opson.libraries.ui.snackbar.showSnackBar
 import com.opson.libraries.ui.components.dialog.DialogState
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheet
 import com.opson.libraries.ui.components.dialog.bottomsheet.BottomSheetState
@@ -36,6 +37,9 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 import me.tatarka.inject.annotations.Inject
+import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.prompt_suggestions_off
+import org.jetbrains.compose.resources.getString
 import software.amazon.lastmile.kotlin.inject.anvil.AppScope
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
@@ -94,6 +98,7 @@ class PromptFeatureEntryPoint(
                 content = content,
                 onAccept = { viewModel.takeAction(PromptAction.AcceptTapped) },
                 onDismiss = { viewModel.takeAction(PromptAction.NotNowTapped) },
+                onTurnOff = if (state.offersOptOut) ({ viewModel.takeAction(PromptAction.TurnOffTapped) }) else null,
             )
         }
     }
@@ -121,6 +126,7 @@ class PromptFeatureEntryPoint(
                 content = content,
                 onAccept = { viewModel.takeAction(PromptAction.AcceptTapped) },
                 onDismiss = { viewModel.takeAction(PromptAction.NotNowTapped) },
+                onTurnOff = if (state.offersOptOut) ({ viewModel.takeAction(PromptAction.TurnOffTapped) }) else null,
             )
         }
     }
@@ -136,8 +142,17 @@ class PromptFeatureEntryPoint(
                 router.openWebLink(event.url)
             }
             PromptUiEvent.Close -> close()
+            PromptUiEvent.TurnedOff -> {
+                close()
+                showSuggestionsOff()
+            }
         }
     }
+}
+
+/** The line after "I'd rather not see these" on a suggestion: where to turn them back on. */
+private suspend fun showSuggestionsOff() {
+    showSnackBar(message = getString(Res.string.prompt_suggestions_off))
 }
 
 /**
@@ -198,6 +213,7 @@ class PromptTodayCardContribution(
         val id = showing?.id ?: return null
         if (day != calendar.today()) return null
         val content = processor.candidate(id)?.content ?: return null
+        val offersOptOut = showing?.offersOptOut == true
         return {
             PromptTodayCard(
                 content = content,
@@ -211,6 +227,16 @@ class PromptTodayCardContribution(
                     }
                 },
                 onDismiss = { scope.launch { processor.dismissed(id) } },
+                onTurnOff = if (offersOptOut) {
+                    {
+                        scope.launch {
+                            processor.turnedOff(id)
+                            showSuggestionsOff()
+                        }
+                    }
+                } else {
+                    null
+                },
             )
         }
     }

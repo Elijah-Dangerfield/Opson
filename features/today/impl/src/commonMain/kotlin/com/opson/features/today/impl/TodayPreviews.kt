@@ -738,6 +738,27 @@ private fun DayCloseClosedStreakGentlePreview() = Phone {
     )
 }
 
+/** Opened at 7 am by someone who usually wraps up around 8 pm: the note at the top, with Not yet. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun DayCloseEarlyPreview() = Phone {
+    DayCloseScreen(TodayFixtures.dayCloseState(full, now = LocalTime(7, 0), usualWrapUp = LocalTime(20, 0)), onAction = {})
+}
+
+/** Opened in the morning before a usual time is learned, in No numbers. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun DayCloseEarlyNotLearnedPreview() = Phone(dark = true) {
+    DayCloseScreen(TodayFixtures.dayCloseState(policy(PresetId.NoNumbers), now = LocalTime(9, 30)), onAction = {})
+}
+
+/** The week's last day wrapped up, with `release.recaps`: the way to the week's recap under the run. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun DayCloseClosedWeekRecapPreview() = Phone {
+    DayCloseScreen(TodayFixtures.dayCloseState(full, closed = true, celebrating = TodayFixtures.celebrating(), recapsOn = true), onAction = {})
+}
+
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun DayCloseClosedBlindPreview() = Phone(dark = true) {

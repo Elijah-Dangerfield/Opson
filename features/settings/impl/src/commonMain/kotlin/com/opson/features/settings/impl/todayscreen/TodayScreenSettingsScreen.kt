@@ -61,6 +61,15 @@ import opson.libraries.resources.generated.resources.settings_today_burned_break
 import opson.libraries.resources.generated.resources.settings_today_burned_breakdown_line
 import opson.libraries.resources.generated.resources.settings_today_card_pages
 import opson.libraries.resources.generated.resources.settings_today_close_day
+import opson.libraries.resources.generated.resources.settings_today_now_and_then
+import opson.libraries.resources.generated.resources.settings_today_recap
+import opson.libraries.resources.generated.resources.settings_today_recap_body
+import opson.libraries.resources.generated.resources.settings_today_streak
+import opson.libraries.resources.generated.resources.settings_today_streak_body
+import opson.libraries.resources.generated.resources.settings_today_suggestions
+import opson.libraries.resources.generated.resources.settings_today_suggestions_body
+import opson.libraries.resources.generated.resources.settings_today_tips
+import opson.libraries.resources.generated.resources.settings_today_tips_body
 import opson.libraries.resources.generated.resources.settings_today_follow_by_day
 import opson.libraries.resources.generated.resources.settings_today_follow_deficit
 import opson.libraries.resources.generated.resources.settings_today_follow_exact
@@ -150,7 +159,19 @@ fun TodayScreenSettingsScreen(
         }
         SectionLabel(stringResource(Res.string.settings_today_in_header))
         SettingsCard {
-            Switch(Res.string.settings_today_close_day, state.closeDay, TodaySwitch.CloseDay, onAction, last = true)
+            Switch(Res.string.settings_today_close_day, state.closeDay, TodaySwitch.CloseDay, onAction, last = state.streak == null)
+            state.streak?.let { on ->
+                Switch(Res.string.settings_today_streak, on, TodaySwitch.Streak, onAction, Res.string.settings_today_streak_body, last = true)
+            }
+        }
+        // What Today offers now and then; each can also be turned off where it shows, the first few times.
+        SectionLabel(stringResource(Res.string.settings_today_now_and_then))
+        SettingsCard {
+            state.recapBanner?.let { on ->
+                Switch(Res.string.settings_today_recap, on, TodaySwitch.RecapBanner, onAction, Res.string.settings_today_recap_body)
+            }
+            Switch(Res.string.settings_today_suggestions, state.suggestions, TodaySwitch.Suggestions, onAction, Res.string.settings_today_suggestions_body)
+            Switch(Res.string.settings_today_tips, state.tips, TodaySwitch.Tips, onAction, Res.string.settings_today_tips_body, last = true)
         }
     }
 }
@@ -527,6 +548,19 @@ private fun TodayScreenMainNumberPreview() {
 private fun TodayScreenCardPagesPreview() {
     SettingsPreview {
         TodayScreenChoiceSheetContent(TodayScreenChoiceState.of(TodayScreenChoice.CardPages, Settings()), onAction = {})
+    }
+}
+
+/** With celebrations and recaps released: the streak in the header, and the recap banner with tips and suggestions. */
+@Preview
+@Composable
+private fun TodayScreenSettingsNowAndThenPreview() {
+    SettingsPreview {
+        val settings = SettingsFixtures.settings().copy(tips = false)
+        TodayScreenSettingsScreen(
+            TodayScreenSettingsStateBuilder.build(settings, TodayScreenFlags(celebrations = true, recaps = true)),
+            onAction = {},
+        )
     }
 }
 

@@ -1,6 +1,7 @@
 package com.opson.libraries.prompts.impl
 
 import com.opson.libraries.flowroutines.testing.CoroutineTest
+import com.opson.libraries.prompts.OptOut
 import com.opson.libraries.prompts.PromptAccept
 import com.opson.libraries.prompts.PromptBlock
 import com.opson.libraries.prompts.PromptCandidate
@@ -28,10 +29,11 @@ class PromptProcessorTest : CoroutineTest() {
     private val audience = FakeAudience()
     private val sessions = FakeSessions()
     private val telemetry = RecordingTelemetry()
+    private val optOuts = RecordingOptOuts()
 
     private fun processor(vararg candidates: PromptCandidate, settled: Boolean = true): PromptProcessor {
         if (settled) ledger.accounts[USER] = AccountLedger(firstSeenAtMs = (T0 - 30.days).toEpochMilliseconds())
-        return PromptProcessor(candidates.toSet(), ledger, audience, sessions, telemetry, clock)
+        return PromptProcessor(candidates.toSet(), ledger, audience, sessions, telemetry, clock, optOuts)
     }
 
     /** A new session a day and a bit later: the usual way the next prompt gets its chance. */
@@ -169,6 +171,20 @@ class PromptProcessorTest : CoroutineTest() {
         val record = ledger.account(USER).record("go")
         assertEquals(0, record.dismissals)
         assertEquals(listOf("shown:go:dialog:today", "accepted:go"), telemetry.events)
+    }
+
+    @Test
+    fun `a sensitive prompt is counted but never sent as an event`() = runUnitTest {
+        val processor = processor(FakeCandidate("quiet", sensitive = true, frequency = PromptFrequency(maxShows = 5, maxDismissals = 5, minGap = 1.days)))
+
+        assertEquals("quiet", processor.next()?.id)
+        processor.dismissed("quiet")
+        nextDay()
+        assertEquals("quiet", processor.next()?.id)
+        processor.accepted("quiet")
+
+        assertEquals(emptyList(), telemetry.events)
+        assertEquals(2, ledger.account(USER).record("quiet").shows)
     }
 
     @Test
@@ -386,6 +402,54 @@ class PromptProcessorTest : CoroutineTest() {
 
         processor.reset("a")
         assertEquals("a", processor.next()?.id)
+    }
+
+    @Test
+    fun `the first five optional prompts offer to turn suggestions off and the sixth does not`() = runUnitTest {
+        val processor = processor(FakeCandidate("a", presentation = PromptPresentation.Card, frequency = PromptFrequency(maxShows = 10, minGap = 0.days)))
+        repeat(5) { index ->
+            val showing = processor.next()
+            assertEquals(true, showing?.offersOptOut, "showing ${index + 1}")
+            assertEquals(true, processor.offersOptOut("a"))
+            nextDay()
+        }
+        assertEquals(false, processor.next()?.offersOptOut)
+        assertEquals(false, processor.offersOptOut("a"))
+    }
+
+    @Test
+    fun `a prompt that is not optional never offers it and never counts`() = runUnitTest {
+        val news = object : PromptCandidate by FakeCandidate("news", presentation = PromptPresentation.Sheet) {
+            override val optional = false
+        }
+        val processor = processor(news)
+
+        assertEquals(false, processor.next()?.offersOptOut)
+        assertEquals(null, ledger.account(USER).optOutShows["suggestions"])
+    }
+
+    @Test
+    fun `turning suggestions off answers the prompt and writes the switch`() = runUnitTest {
+        val processor = processor(FakeCandidate("a", presentation = PromptPresentation.Card))
+        processor.next()
+
+        processor.turnedOff("a")
+
+        assertEquals(1, ledger.account(USER).record("a").dismissals)
+        assertEquals(listOf(OptOut.Suggestions), optOuts.turnedOff)
+        assertNull(processor.card.value)
+    }
+
+    @Test
+    fun `with suggestions off an optional prompt waits and news still shows`() = runUnitTest {
+        audience.audience = audience.audience.copy(suggestions = false)
+        val news = object : PromptCandidate by FakeCandidate("news", presentation = PromptPresentation.Sheet) {
+            override val optional = false
+        }
+        val processor = processor(FakeCandidate("offer", priority = 300), news)
+
+        assertEquals("news", processor.next()?.id)
+        assertEquals(PromptBlock.TurnedOff, processor.inspect().first { it.id == "offer" }.blockedBy)
     }
 
     private companion object {

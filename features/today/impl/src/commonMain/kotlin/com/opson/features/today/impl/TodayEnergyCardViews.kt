@@ -120,9 +120,11 @@ private fun InOut(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Co
             FigureRow(stringResource(Res.string.today_card_burned), Metric.EnergyOut, burned.total)
             BurnedBar(burned)
             if (burned.breakdown) Breakdown(burned)
+            BurnMarksLegend(burned)
         }
         card.burnedUnavailable?.let { BurnedUnavailableRow(it, onAction) }
         card.target?.let { TargetText(it) }
+        GoalFooter(card, onAction)
     }
 }
 
@@ -150,9 +152,11 @@ private fun RangeBarCard(card: EnergyCard, onAction: (TodayAction) -> Unit, macr
                 box = true,
             )
         }
+        card.burned?.let { BurnMarksLegend(it) }
         card.burnedUnavailable?.let { BurnedUnavailableRow(it, onAction) }
         macros()
         SummaryLink(text = stringResource(Res.string.today_card_energy), onClick = { onAction(TodayAction.EnergyTapped) })
+        GoalFooter(card, onAction)
     }
 }
 
@@ -196,8 +200,10 @@ private fun Rings(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: @Co
                 FlipContent(card.main.kind) { MainLabel(it, switchable = card.next != null, short = true) }
             }
         }
+        card.burned?.let { BurnMarksLegend(it) }
         card.burnedUnavailable?.let { BurnedUnavailableRow(it, onAction) }
         macros()
+        GoalFooter(card, onAction)
     }
 }
 
@@ -238,7 +244,9 @@ private fun Equation(card: EnergyCard, onAction: (TodayAction) -> Unit, macros: 
             typography = AppTheme.type.secondaryStrong,
             color = AppTheme.colors.inkSoft,
         )
+        BurnMarksLegend(burned)
         macros()
+        GoalFooter(card, onAction)
     }
 }
 
@@ -397,10 +405,13 @@ private fun BurnedBar(burned: BurnedBars) {
     val track = AppTheme.colors.track.color
     val resting = AppTheme.colors.restingEnergy.color
     val active = AppTheme.colors.activeEnergy.color
+    val usual = AppTheme.colors.inkSoft.color
+    val goal = AppTheme.colors.accent.color
     Box(
         Modifier
             .fillMaxWidth()
             .height(BAR_HEIGHT)
+            .burnMarks(burned, usual, goal)
             .drawBehind {
                 val radius = CornerRadius(size.height / 2)
                 drawRoundRect(track, size = size, cornerRadius = radius)

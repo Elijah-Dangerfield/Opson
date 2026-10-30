@@ -60,6 +60,10 @@ data class EnergyCard(
     val mainFraction: Float,
     /** Rings' first ring: eaten against the goal, 0 to 1. */
     val eatenFraction: Float,
+    /** The goal the card is about, which a tap opens; null without an active goal. */
+    val goalChip: GoalChip? = null,
+    /** A weekly average's line: on track, or about how much today. Null for a daily goal or none. */
+    val weekLine: WeekLine? = null,
 )
 
 /** The main number: what it is ([kind], which names its label) and the amount, through [metric]'s level. */
@@ -77,7 +81,9 @@ sealed interface GoalLine {
 /**
  * Burned as two bars on the eaten bar's scale: [restingFraction] and [activeFraction] end to end,
  * and where it all ends ([tick]) for the Range bar preset. [breakdown] is More › Today screen's
- * "Burned breakdown".
+ * "Burned breakdown". [usual] marks what a usual whole day burns ([UsualBurn], today only) and
+ * [goal] a burn goal's line, each to meet or cross; both ride on energy out being on show, as the
+ * bars do.
  */
 data class BurnedBars(
     val total: Display,
@@ -87,6 +93,8 @@ data class BurnedBars(
     val activeFraction: Float,
     val tick: Float,
     val breakdown: Boolean,
+    val usual: BurnMark? = null,
+    val goal: BurnMark? = null,
 )
 
 /** [left] is how much is left at the goal, null once it is reached; a surplus's line says it follows the burn instead. */
@@ -110,7 +118,9 @@ object EnergyCardBuilder {
         val goal = settings.targets.rangeFor(day.date, preset, inputs.burned?.totalKcal)
         val energyOutShown = policy.effectiveLevel(Metric.EnergyOut, Surface.Today, context) == Visibility.Show
         val burned = inputs.burned?.takeIf { energyOutShown }
-        val scale = maxOf(range.maxKcal, burned?.totalKcal ?: 0) * HEADROOM
+        val usualKcal = inputs.usualBurnKcal?.takeIf { burned != null && day.date == inputs.today }
+        val burnGoalKcal = burned?.let { TodayGoals.burnGoalKcal(inputs.goals, it) }
+        val scale = maxOf(range.maxKcal, burned?.totalKcal ?: 0, usualKcal ?: 0, burnGoalKcal ?: 0) * HEADROOM
         val bare = context.copy(of = null, bare = true)
         val goalKind = goalKind(settings.targets.style, goal)
 
@@ -167,6 +177,8 @@ object EnergyCardBuilder {
                     activeFraction = (b.aboveRestingKcal / scale).toFloat().coerceIn(0f, 1f),
                     tick = (b.totalKcal / scale).toFloat().coerceIn(0f, 1f),
                     breakdown = settings.todayBurnedBreakdown,
+                    usual = usualKcal?.let { BurnMark(policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Today, bare), (it / scale).toFloat().coerceIn(0f, 1f)) },
+                    goal = burnGoalKcal?.let { BurnMark(policy.resolve(Metric.EnergyOut, it.toDouble(), Surface.Today, bare), (it / scale).toFloat().coerceIn(0f, 1f)) },
                 )
             },
             burnedUnavailable = if (energyOutShown && inputs.burned == null) inputs.burnedGap ?: BurnedGap() else null,
@@ -188,6 +200,8 @@ object EnergyCardBuilder {
                 else -> ((target - eaten) / target).toFloat()
             }.coerceIn(0f, 1f),
             eatenFraction = (eaten / target).toFloat().coerceIn(0f, 1f),
+            goalChip = TodayGoals.chip(inputs.goals),
+            weekLine = TodayGoals.weekLine(inputs, policy, context),
         )
     }
 

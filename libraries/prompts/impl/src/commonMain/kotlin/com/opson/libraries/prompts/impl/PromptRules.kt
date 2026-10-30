@@ -35,6 +35,8 @@ data class PromptAudience(
     val onboarded: Boolean,
     /** "Numbers or tracking have been hard for me before", from onboarding. */
     val numbersHard: Boolean,
+    /** Optional suggestions are on (`Settings.suggestions`). */
+    val suggestions: Boolean = true,
 )
 
 /**
@@ -49,7 +51,8 @@ data class PromptAudience(
  * 2. The prompt's own record: accepted once ends it, [PromptFrequency.maxDismissals] Not nows end
  *    it, [PromptFrequency.maxShows] showings end it, and two showings are at least
  *    [PromptFrequency.minGap] apart. Nothing skips these, events included.
- * 3. The trigger must be one the prompt asked for.
+ * 3. The trigger must be one the prompt asked for, and an optional one waits while suggestions
+ *    are turned off ([PromptCandidate.optional]).
  * 4. Someone who said numbers have been hard sees only prompts that opted in.
  * 5. At most one prompt a session ([com.opson.libraries.opson.SessionTracker]), events included.
  *    The one exception is a moment that answers the prompt just shown ([PromptEvent.answersPrompt],
@@ -100,6 +103,7 @@ object PromptRules {
             PromptTrigger.Forced -> true
         }
         if (!asked) return PromptBlock.NotThisMoment
+        if (candidate.optional && !audience.suggestions) return PromptBlock.TurnedOff
         if (audience.numbersHard && !candidate.offerWhenNumbersHard) return PromptBlock.NumbersHard
         if (shownThisSession && !isFollowUp(trigger, followUpTaken)) return PromptBlock.ShownThisSession
 

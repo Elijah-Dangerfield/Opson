@@ -55,6 +55,8 @@ import com.opson.system.thenIf
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
 import opson.libraries.resources.generated.resources.Res
+import opson.libraries.resources.generated.resources.goal_calendar_note
+import opson.libraries.resources.generated.resources.goal_calendar_note_week
 import opson.libraries.resources.generated.resources.today_cal_initial_fri
 import opson.libraries.resources.generated.resources.today_cal_initial_mon
 import opson.libraries.resources.generated.resources.today_cal_initial_sat
@@ -176,6 +178,13 @@ internal fun CalendarCardView(calendar: OnTrackCalendar, onAction: (TrendsAction
             typography = AppTheme.type.secondary,
             color = AppTheme.colors.muted,
         )
+        calendar.goalSince?.let { since ->
+            Text(
+                text = stringResource(if (calendar.goalWeekly) Res.string.goal_calendar_note_week else Res.string.goal_calendar_note, DateCopy.monthDay(since)),
+                typography = AppTheme.type.secondary,
+                color = AppTheme.colors.muted,
+            )
+        }
         Legend(calendar)
     }
 }
@@ -616,15 +625,18 @@ private val RunningSpan.label: StringResource
         RunningSpan.SinceStart -> Res.string.trends_running_since
     }
 
-private val RunningTotalCard.weightPhrase: StringResource
-    get() = when {
-        side == Balance.Over && unit == WeightUnit.Lb -> Res.string.trends_running_gained_lb
-        side == Balance.Over -> Res.string.trends_running_gained_kg
-        unit == WeightUnit.Lb -> Res.string.trends_running_lost_lb
-        else -> Res.string.trends_running_lost_kg
-    }
+private val RunningTotalCard.weightPhrase: StringResource get() = balanceWeightPhrase(side, unit)
 
-private val ScaleDirection.word: StringResource?
+/** "Roughly 0.4 kg of body weight lost, using the rule of thumb…": the running total's and a recap's. */
+internal fun balanceWeightPhrase(side: Balance, unit: WeightUnit): StringResource = when {
+    side == Balance.Over && unit == WeightUnit.Lb -> Res.string.trends_running_gained_lb
+    side == Balance.Over -> Res.string.trends_running_gained_kg
+    unit == WeightUnit.Lb -> Res.string.trends_running_lost_lb
+    else -> Res.string.trends_running_lost_kg
+}
+
+/** "Down %s" or "Up %s"; null for about the same. */
+internal val ScaleDirection.word: StringResource?
     get() = when (this) {
         ScaleDirection.Down -> Res.string.trends_running_scale_down
         ScaleDirection.Up -> Res.string.trends_running_scale_up

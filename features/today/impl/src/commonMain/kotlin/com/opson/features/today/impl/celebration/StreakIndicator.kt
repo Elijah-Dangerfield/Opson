@@ -25,6 +25,10 @@ import com.opson.libraries.ui.components.text.Text
 import com.opson.libraries.ui.system.MinTouchTarget
 import com.opson.system.AppTheme
 import com.opson.system.background
+import com.opson.libraries.diary.SettingsRepository
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import me.tatarka.inject.annotations.Inject
 import opson.libraries.resources.generated.resources.Res
@@ -61,13 +65,21 @@ sealed interface StreakIndicatorEvent {
     data object OpenProgress : StreakIndicatorEvent
 }
 
-/** Its own view model beside Today's, so the header's streak is all Today needs to know of celebrations. */
+/**
+ * Its own view model beside Today's, so the header's streak is all Today needs to know of
+ * celebrations. Hidden with [com.opson.libraries.diary.Settings.todayStreak] off, while the rest of
+ * celebrations carry on.
+ */
 @Inject
-class StreakIndicatorViewModel(source: CelebrationsSource) :
+class StreakIndicatorViewModel(source: CelebrationsSource, settings: SettingsRepository) :
     SEAViewModel<StreakIndicatorState, StreakIndicatorEvent, StreakIndicatorAction>(initialStateArg = StreakIndicatorState()) {
 
     init {
-        viewModelScope.launch { source.observe().collect { takeAction(StreakIndicatorAction.Arrived(it)) } }
+        val shown = settings.settings.map { it.todayStreak }.distinctUntilChanged()
+        viewModelScope.launch {
+            combine(source.observe(), shown) { celebrating, on -> celebrating.takeIf { on } }
+                .collect { takeAction(StreakIndicatorAction.Arrived(it)) }
+        }
     }
 
     override suspend fun handleAction(action: StreakIndicatorAction) {

@@ -6,6 +6,9 @@
 -->
 <resources>
     <string name="tip_got_it">Got it</string>
+    <!-- Beside Got it on the first few tips: turns tips off -->
+    <string name="tip_no_more">No more tips</string>
+    <string name="tip_turned_off">Tips are off. Turn them back on in More › Today screen.</string>
     <string name="tip_flip_figure">Tap a number with the arrows to see it another way, like eaten or still to go.</string>
     <string name="tip_food_details">Tap a food you logged to see what's in it or change the amount.</string>
     <string name="tip_pull_refresh">Pull down on Today to check for anything new from your other devices or your health app.</string>

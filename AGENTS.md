@@ -135,6 +135,9 @@ each install asks at, the pacing and how to read the results are in
 [`docs/practices/review-asks.md`](docs/practices/review-asks.md).
 First-run tips (a small bubble pointing at something new) are not prompts: register one in `Tips.kt`
 and wrap its target in `CoachMarkAnchor` inside the screen's `CoachMarkScreen`; never open your own.
+Something optional on Today (a celebration, the streak, the recap card, tips, an offer) gets "I'd rather
+not see these" on its first five showings through `OptOuts` and a switch in More; the table is in
+`docs/practices/prompts.md`.
 
 ## Entitlements and roles (`:libraries:entitlements`)
 

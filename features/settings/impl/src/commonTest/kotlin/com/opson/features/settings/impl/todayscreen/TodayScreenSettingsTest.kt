@@ -52,6 +52,37 @@ class TodayScreenSettingsTest : CoroutineTest() {
     )
 
     @Test
+    fun theStreakRow_isThereWhileCelebrationsAreReleasedAndOn_andTheRecapRowWithRecaps() {
+        val settings = SettingsFixtures.settings()
+        val none = TodayScreenSettingsStateBuilder.build(settings)
+        assertNull(none.streak)
+        assertNull(none.recapBanner)
+        assertTrue(none.tips && none.suggestions, "tips and suggestions are always there to turn off")
+
+        val released = TodayScreenSettingsStateBuilder.build(settings, TodayScreenFlags(celebrations = true, recaps = true))
+        assertEquals(true, released.streak)
+        assertEquals(true, released.recapBanner)
+
+        val celebrationsOff = TodayScreenSettingsStateBuilder.build(settings.copy(celebrationsEnabled = false), TodayScreenFlags(celebrations = true))
+        assertNull(celebrationsOff.streak, "no streak to show with celebrations off")
+    }
+
+    @Test
+    fun theNowAndThenSwitches_writeTheirSettings() = runUnitTest {
+        val repository = FakeSettingsRepository()
+        val vm = vm(repository)
+        vm.takeAction(TodayScreenSettingsAction.Toggled(TodaySwitch.Streak, on = false))
+        vm.takeAction(TodayScreenSettingsAction.Toggled(TodaySwitch.RecapBanner, on = false))
+        vm.takeAction(TodayScreenSettingsAction.Toggled(TodaySwitch.Tips, on = false))
+        vm.takeAction(TodayScreenSettingsAction.Toggled(TodaySwitch.Suggestions, on = false))
+        val settings = repository.settings.value
+        assertFalse(settings.todayStreak)
+        assertFalse(settings.recapBanner)
+        assertFalse(settings.tips)
+        assertFalse(settings.suggestions)
+    }
+
+    @Test
     fun theDefaults_inAndOut_followMyGoal_bothPages_everyRowOn() {
         val state = TodayScreenSettingsStateBuilder.build(SettingsFixtures.settings())
         assertTrue(state.presetsOn)

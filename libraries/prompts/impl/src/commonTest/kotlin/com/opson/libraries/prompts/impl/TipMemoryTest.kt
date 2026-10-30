@@ -28,6 +28,13 @@ class TipMemoryTest {
     }
 
     @Test
+    fun theFirstFiveTips_offerNoMoreTips_andLaterOnesDont() {
+        assertTrue((1..5).all { TipMemory.offersOptOut(it) })
+        assertTrue(!TipMemory.offersOptOut(6))
+        assertTrue(!TipMemory.offersOptOut(0), "nothing shown yet offers nothing")
+    }
+
+    @Test
     fun everyTip_hasItsOwnId() {
         assertTrue(Tips.all.map { it.id }.toSet().size == Tips.all.size)
     }

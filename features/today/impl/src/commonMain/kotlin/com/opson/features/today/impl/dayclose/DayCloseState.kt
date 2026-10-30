@@ -5,6 +5,8 @@ import com.opson.features.today.impl.MacroTile
 import com.opson.features.today.impl.Toast
 import com.opson.features.today.impl.TodayStateBuilder
 import com.opson.features.today.impl.todayRange
+import com.opson.features.today.impl.weekShiftOn
+import com.opson.libraries.goals.GoalWrapUp
 import com.opson.features.today.impl.celebration.Celebrating
 import com.opson.libraries.diary.CelebrationStyle
 import com.opson.libraries.diary.CheckIn
@@ -13,6 +15,7 @@ import com.opson.libraries.diary.DayFeeling
 import com.opson.libraries.diary.EventLevel
 import com.opson.libraries.diary.MealSlot
 import com.opson.libraries.diary.Milestone
+import com.opson.libraries.diary.RecapPeriod
 import com.opson.libraries.diary.Settings
 import com.opson.libraries.diary.ui.label
 import com.opson.libraries.health.EnergyExpended
@@ -34,6 +37,7 @@ import com.opson.libraries.nutrition.toMicronutrients
 import com.opson.libraries.ui.time.RelativeDay
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.plus
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.today_dayclose_title
@@ -93,6 +97,12 @@ data class DayCloseState(
     val closed: Boolean = false,
     /** Today wrapped up, with celebrations on (`release.celebrations`): the run and the next milestone, gently. */
     val streak: StreakLine? = null,
+    /** Today, not wrapped up yet, opened early: a note at the top with "Not yet". */
+    val early: EarlyWrapUp? = null,
+    /** Today wrapped up on the last day of its week, with `release.recaps`: the way to the week's recap. */
+    val weekRecap: RecapPeriod? = null,
+    /** How the day went for each active goal, the week so far for a weekly average, and a goal streak where one is on. */
+    val goal: GoalWrapCard? = null,
 )
 
 /** "4 days in a row. 3 more to a week." with counts; a kind line without. */
@@ -198,6 +208,15 @@ sealed interface DayCloseAction {
     /** Reopen this day: it takes food again, and the screen closes back to Today. */
     data object ReopenTapped : DayCloseAction
     data object BackTapped : DayCloseAction
+
+    /** The early note's "Not yet": back to Today, nothing saved. */
+    data object NotYetTapped : DayCloseAction
+
+    /** "See your week": the week's recap. */
+    data object WeekRecapTapped : DayCloseAction
+
+    /** When this person usually wraps up, learned from the last few weeks; null until it is. */
+    data class UsualWrapUpArrived(val usual: LocalTime?) : DayCloseAction
 }
 
 sealed interface DayCloseEvent {
@@ -206,6 +225,7 @@ sealed interface DayCloseEvent {
     data object OpenSupport : DayCloseEvent
     data class OpenCheckIn(val day: LocalDate) : DayCloseEvent
     data class OpenNutrients(val day: LocalDate) : DayCloseEvent
+    data class OpenRecap(val period: RecapPeriod) : DayCloseEvent
 
     /** After wrapping up today: the run so far, when no celebration is about to say more. */
     data class ShowToast(val toast: Toast) : DayCloseEvent
@@ -221,6 +241,14 @@ data class DayCloseInputs(
     val checkInOn: Boolean = false,
     /** The day's Burned with `release.goalsAndEnergy`, what a set deficit or surplus aims at. */
     val burned: Burned? = null,
+    /** The time Wrap up the day was opened, for the early note; null leaves the note out. */
+    val now: LocalTime? = null,
+    /** When this person usually wraps up ([com.opson.libraries.diary.LoggingHabits.wrapUp]). */
+    val usualWrapUp: LocalTime? = null,
+    /** `release.recaps`: wrapping up a week's last day offers its recap. */
+    val recapsOn: Boolean = false,
+    /** Every active goal on the day as it is wrapped up (`GoalRepository.wrapUp`). */
+    val goals: List<GoalWrapUp> = emptyList(),
 )
 
 /**
@@ -250,7 +278,7 @@ object DayCloseStateBuilder {
         val today = inputs.today
         val settings = inputs.settings
         val isToday = day.date == today
-        val range = todayRange(settings, day, today, inputs.expended, inputs.burned)
+        val range = todayRange(settings, day, today, inputs.expended, inputs.burned, weekShiftOn(inputs.goals))
         val eaten = day.totals().kcal.known
         val bare = day.formatContext(today, bare = true)
         val eatenDisplay = policy.resolve(Metric.Calories, eaten, Surface.DayClose, day.formatContext(today, of = range.targetKcal.toDouble(), bare = true))
@@ -326,6 +354,10 @@ object DayCloseStateBuilder {
             note = note,
             closed = day.closedByUser,
             streak = if (isToday && day.closedByUser) StreakLine.of(celebrating) else null,
+            early = if (isToday && !day.closedByUser) inputs.now?.let { EarlyWrapUp.of(it, inputs.usualWrapUp) } else null,
+            weekRecap = RecapPeriod.weekOf(day.date, settings.weekStart)
+                .takeIf { inputs.recapsOn && isToday && day.closedByUser && it.end == day.date },
+            goal = if (day.hasLogged || day.closedByUser) DayCloseGoals.card(inputs.goals, day, today, settings, policy, caloriesShown = shown) else null,
         )
     }
 

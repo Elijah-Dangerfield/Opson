@@ -67,7 +67,7 @@ class EnergyOutHiddenLeakTest(private val surface: LeakSurface) {
             "onboarding-goal-rate", "onboarding-goal-overview",
             "integrations", "today-expended", "today-exercise", "today-summary", "day-close-check-in",
             "today-macros", "today-weight", "today-select", "today-select-remove", "today-swipe-delete",
-            "today-delete-confirm", "targets-goal-style", "resting-energy", "energy-today", "trends", "trends-deficit", "trends-day",
+            "today-delete-confirm", "targets-goal-style", "resting-energy", "energy-today", "trends", "trends-deficit", "trends-day", "recap-week", "recap-month", "recap-deficit", "recap-goals", "recap-in-progress",
             "today-select-v4", "today-moved",
             "today-summary-in-out", "today-summary-range-bar", "today-summary-rings", "today-summary-equation",
             "today-activity", "today-activity-health", "exercise-sheet",
@@ -75,6 +75,7 @@ class EnergyOutHiddenLeakTest(private val surface: LeakSurface) {
             "day-close-recap-deficit", "day-close-recap-surplus", "targets-safety-notes", "targets-goal",
             "today-flipped", "today-flipped-percent", "today-flipped-stats", "today-sticky-flipped",
             "energy-explainer-resting", "energy-explainer-burned", "energy-explainer-balance",
+            "today-goal-weekly", "day-close-goal",
         )
 
         @JvmStatic
