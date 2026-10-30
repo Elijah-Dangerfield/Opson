@@ -35,7 +35,6 @@ import opson.libraries.resources.generated.resources.trends_steps
 import opson.libraries.resources.generated.resources.trends_steps_allow
 import opson.libraries.resources.generated.resources.trends_steps_allow_button
 import opson.libraries.resources.generated.resources.trends_steps_at_goal
-import opson.libraries.resources.generated.resources.trends_steps_average
 import opson.libraries.resources.generated.resources.trends_steps_best
 import opson.libraries.resources.generated.resources.trends_steps_best_value
 import opson.libraries.resources.generated.resources.trends_steps_connect
@@ -141,7 +140,6 @@ private fun Chart(card: StepsCard.Chart) {
     Column {
         val rows = buildList<Pair<String, String>> {
             card.today?.let { add(stringResource(Res.string.trends_steps_today) to countText(it)) }
-            card.average?.let { add(stringResource(Res.string.trends_steps_average) to countText(it)) }
             card.best?.let { add(stringResource(Res.string.trends_steps_best) to stringResource(Res.string.trends_steps_best_value, countText(it.steps), it.day)) }
             card.goal?.takeIf { it.counted > 0 }?.let { add(stringResource(Res.string.trends_steps_at_goal) to stringResource(Res.string.trends_recap_days_value, it.met, it.counted)) }
         }

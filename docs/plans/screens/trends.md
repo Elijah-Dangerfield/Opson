@@ -278,8 +278,8 @@ reads the last 120 days to today once (today live), whatever the range, so a
 steps goal's streak can reach past it. A bar a day over the page's range (a
 week labelled by weekday; a month or three months unlabelled, with the first
 day and `Today` under them and narrower gaps), today striped, a missing day a
-gap. The average beside the title leaves today out. Under the chart: Today so
-far, Daily average, Most in a day, and with an active steps goal
+gap. The average beside the title (`8,214 avg`) leaves today out. Under the
+chart: Today so far, Most in a day, and with an active steps goal
 (`GoalStatuses.stepsGoal`) its line across the bars, Days at your goal (the
 goal engine's verdicts) and `N days in a row at your goal` from two on
 (`GoalStatuses.streak`, today and skipped days passed over). The (i) says where

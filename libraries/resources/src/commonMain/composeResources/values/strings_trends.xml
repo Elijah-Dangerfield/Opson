@@ -320,7 +320,6 @@
     <string name="trends_steps_allow_button">Allow steps</string>
     <string name="trends_steps_empty_apple_health">No steps from Apple Health for these days. To share them, open the Health app, tap your picture, then Apps and Opson.</string>
     <string name="trends_steps_empty_health_connect">No steps from Health Connect for these days.</string>
-    <string name="trends_steps_average">Daily average</string>
     <string name="trends_steps_today">Today so far</string>
     <string name="trends_steps_best">Most in a day</string>
     <string name="trends_steps_best_value">%1$s, %2$s</string>
