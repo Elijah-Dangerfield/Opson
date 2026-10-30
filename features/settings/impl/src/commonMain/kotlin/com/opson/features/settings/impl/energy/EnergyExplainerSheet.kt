@@ -279,13 +279,10 @@ private fun DigestingTopic(state: EnergyExplainerState, onAction: (EnergyExplain
     Paragraph(stringResource(Res.string.energy_info_tef_share))
     Paragraph(stringResource(Res.string.energy_info_tef_optional))
     Paragraph(stringResource(if (state.ruleNumbers) Res.string.energy_info_tef_burned else Res.string.energy_info_tef_burned_plain))
-    NutrientPhrase(
-        metric = Metric.EnergyOut,
-        display = state.digestingToday,
-        phrase = { stringResource(Res.string.energy_info_tef_today, it) },
-        typography = AppTheme.type.body.Tabular,
-        color = AppTheme.colors.ink,
-    )
+    NutrientVisible(state.digestingToday) {
+        Heading(stringResource(Res.string.energy_info_tef_today))
+        Working { Term(stringResource(Res.string.energy_tef_short), state.digestingToday, adds = null) }
+    }
     if (state.digesting) DigestingSwitch(state.digestingOn, onAction)
 }
 

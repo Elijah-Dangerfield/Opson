@@ -149,7 +149,7 @@
     <string name="energy_info_tef_optional">It's off unless you turn it on. Everyday activity estimates already take some of it in, so counting it as well can count it twice. Some people still like to see it on its own.</string>
     <string name="energy_info_tef_burned">With it on, Burned grows as you eat. 2,000 calories eaten adds about 200.</string>
     <string name="energy_info_tef_burned_plain">With it on, Burned grows a little as you eat.</string>
-    <string name="energy_info_tef_today">Today so far: about %1$s</string>
+    <string name="energy_info_tef_today">Today so far</string>
     <string name="energy_info_burned_yours">TDEE, your total daily energy expenditure, is everything you burn in a day. Yours is made of these parts.</string>
     <string name="energy_info_part_health_line">Walking, standing and moving about outside workouts, from %1$s.</string>
     <string name="energy_info_part_exercise_health">Workouts %1$s records, and ones you log.</string>

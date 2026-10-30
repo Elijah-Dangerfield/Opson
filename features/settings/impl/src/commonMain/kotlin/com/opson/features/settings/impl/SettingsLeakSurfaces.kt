@@ -216,7 +216,8 @@ object SettingsLeakSurfaces {
             EnergyExplainerSheetContent(EnergyExplainerStateBuilder.build(EnergyTopic.Resting, EnergyExplainerFixtures.inputs(policy.settings), policy), onAction = {})
         },
         LeakSurface(id = "energy-explainer-burned", label = "Total burned (TDEE) explained", showsCaloriesInFull = true) { policy ->
-            EnergyExplainerSheetContent(EnergyExplainerStateBuilder.build(EnergyTopic.Burned, EnergyExplainerFixtures.inputs(policy.settings), policy), onAction = {})
+            // With digesting food counted, so its line is checked too.
+            EnergyExplainerSheetContent(EnergyExplainerStateBuilder.build(EnergyTopic.Burned, EnergyExplainerFixtures.inputs(policy.settings, digesting = true), policy), onAction = {})
         },
         LeakSurface(id = "energy-explainer-digesting", label = "Digesting food (TEF) explained", showsCaloriesInFull = true) { policy ->
             EnergyExplainerSheetContent(

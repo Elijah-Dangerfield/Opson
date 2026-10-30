@@ -75,8 +75,7 @@ class EnergyOutHiddenLeakTest(private val surface: LeakSurface) {
             "day-close-recap-deficit", "day-close-recap-surplus", "targets-safety-notes", "targets-goal",
             "today-flipped", "today-flipped-percent", "today-flipped-stats", "today-sticky-flipped",
             "energy-explainer-resting", "energy-explainer-burned", "energy-explainer-balance", "energy-explainer-digesting",
-            "goal-edit", "goal-edit-balance", "goals",
-            "today-goal-weekly", "day-close-goal",
+            "goals", "today-goal-weekly", "day-close-goal",
         )
 
         @JvmStatic
