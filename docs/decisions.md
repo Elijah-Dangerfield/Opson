@@ -11,8 +11,8 @@ the decision, alternatives considered, and *why*. Newest first.
 **Decision:** after the mode, onboarding asks "Want to set a goal?". "Not now, just let me log"
 saves with no body asked and marks the weight goal answered (`JustTrack`), so Today doesn't ask
 again. A goal picks its kind from what the mode shows (weight, a daily or weekly energy balance,
-moving more, showing up, regular meals; only the last two after "numbers have been hard" or under
-18), and only the kinds that set a calorie target ask the profile and activity. "Keep a streak?"
+moving more, steps where a health app can read them, showing up, regular meals; only the last
+two after "numbers have been hard" or under 18), and only the kinds that set a calorie target ask the profile and activity. "Keep a streak?"
 and "I'm committed" come only after a goal; the streak's yes turns on celebrations and, for a goal
 whose "met" is never eating less, `goalStreakEnabled`. The birthday is typed (three boxes in the
 region's order, autofill hints on both platforms) and asked once, on the age question.
@@ -25,7 +25,7 @@ signed-in account calls `POST /v1/me/beta` once, which writes a `beta` bundle gr
 time, and it isn't where entitlements live); a table of its own (a migration and a row in
 DeleteEverythingTest for one timestamp); recording only at the end of onboarding (misses every
 account made before this build). Asking the goal question before the mode (the kinds offered
-depend on the mode). Offering steps goals now (nothing reads steps yet).
+depend on the mode).
 
 **Why:** the owner wants the friendliest tracker for every kind of person, including someone who
 doesn't want a goal or to be asked their weight. The discount needs a durable, server-side record

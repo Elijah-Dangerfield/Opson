@@ -33,6 +33,7 @@ Welcome (beta card with release.betaNotice)
           Energy balance     → profile, activity, how much under or over (each day or a weekly
                                average), overview
           Burn               → active energy a day
+          Steps              → steps a day (where a health app can be connected; it offers to)
           Track every day    → (nothing more)
           Meals              → meals a day
       → Keep a streak? (with release.celebrations on)
@@ -45,9 +46,9 @@ Welcome (beta card with release.betaNotice)
   drawn in with the success tap (`GoalReveal`). A goal is set the same way here as in More.
 - **Kinds on offer** follow `GoalCatalog.offered` for the mode being started. A weight goal needs
   weight on show; an energy balance and a burn goal need calories and energy out on show; the
-  weekly average needs `GoalCatalog.weeklyOffered`. After "numbers have been hard", and for 16
-  and 17 year olds, only Track every day and Meals. Steps are left out until a steps source
-  exists (`TODO(steps)` in `PlanFlow.picks`).
+  weekly average needs `GoalCatalog.weeklyOffered`; steps need a health app that can be connected
+  (`release.health` on and a store on the phone), since that is where they are read. After
+  "numbers have been hard", and for 16 and 17 year olds, only Track every day and Meals.
 - **The body** (sex, height, weight) and a usual day's activity are asked only for a weight goal
   or an energy balance, the two that set a calorie target from a typical day's burn. The profile
   says why ("Used to estimate how much energy your body uses in a day") and both steps keep Skip.
@@ -67,7 +68,7 @@ Welcome (beta card with release.betaNotice)
 - **"Not now, just let me log"** saves the weight goal as answered with no goal (`JustTrack`), so
   Today's "Set up your goal in a minute" card doesn't ask again. Any other kind does the same.
 - **The streak** explains which one. Always the showing-up streak (celebrations). For a goal
-  whose "met" can never mean eating less (Track every day, Meals, Burn:
+  whose "met" can never mean eating less (Track every day, Meals, Burn, Steps:
   `GoalStreaks.eligible`) the same yes also turns on the goal's own streak
   (`goalStreakEnabled`); a weight goal or an energy balance only ever gets the showing-up one.
   No streaks turns celebrations off. Nobody without a goal is asked.
@@ -110,7 +111,7 @@ Turning the flag off ends the beta: the card goes, and the server records nobody
 
 - The goal question comes after the mode, since the kinds on offer depend on what the mode
   shows; it is the first setup step after meal times.
-- Steps goals are not offered yet: nothing reads steps, so the goal would never be met.
+- A steps goal starts at 8,000 a day and steps by 500, as the goal screens' editor does.
 - A burn goal counts active energy only (`BurnMeasure.Active`), so it needs no body details.
 - Its number is shown only where calories show too, as the overview's working is.
 - The energy balance starts at 250 kcal under, the small end of Gentle; the owner listed a

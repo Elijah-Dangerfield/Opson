@@ -188,6 +188,22 @@ class GoalQuestionTest {
     }
 
     @Test
+    fun steps_areOffered_whereAHealthAppCanReadThem() {
+        val withHealth = full.copy(health = OnboardingFixtures.appleHealth)
+        assertEquals(
+            listOf(GoalKind.Weight, GoalKind.EnergyBalance, GoalKind.Burn, GoalKind.Steps, GoalKind.TrackEveryDay, GoalKind.Meals),
+            PlanFlow.picks(withHealth),
+        )
+        assertFalse(GoalKind.Steps in PlanFlow.picks(full), "no health app on this phone, or release.health off")
+        val answers = PlanAnswers(wants = true, pick = GoalKind.Steps)
+        assertEquals(listOf(PlanStep.Ask, PlanStep.Kind, PlanStep.StepCount, PlanStep.Streak, PlanStep.Commit), PlanFlow.steps(answers, withHealth))
+        val stepped = PlanFlow.reduce(answers, PlanAction.StepsStepped(more = true), withHealth)
+        val saved = PlanFlow.save(Settings(), stepped.copy(streak = true), withHealth)
+        assertEquals(GoalType.Steps(8500), GoalBook.goals(saved).single().type)
+        assertTrue(saved.goalStreakEnabled, "a steps goal's met is never eating less")
+    }
+
+    @Test
     fun aWeeklyAverage_isOnlyKept_whereItIsOffered() {
         val weekly = PlanFlow.reduce(OnboardingFixtures.balance().copy(wants = true), PlanAction.AveragingPicked(GoalAveraging.Weekly), full)
         assertEquals(GoalAveraging.Weekly, PlanFlow.goal(weekly, full, null)?.averaging)

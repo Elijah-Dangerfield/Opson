@@ -132,6 +132,7 @@
 
     <!-- A meals goal: meals a day -->
     <string name="plan_meals_title">How many meals a day?</string>
+    <string name="plan_steps_title">How many steps a day?</string>
     <string name="plan_meals_body">A meal counts once it has food in it.</string>
 
     <!-- Onboarding, after a goal: the streak. It counts showing up, never an amount. -->

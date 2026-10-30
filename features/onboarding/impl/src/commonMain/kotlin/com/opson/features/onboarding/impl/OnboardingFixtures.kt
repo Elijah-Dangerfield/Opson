@@ -148,9 +148,11 @@ object OnboardingFixtures {
         return state.withViews(policy ?: policy(state.chosen))
     }
 
+    /** Apple Health, not connected yet: what the activity and steps steps offer to connect. */
+    val appleHealth: HealthOffer = HealthOffer.CanConnect(HealthSource.AppleHealth)
+
     /** The activity step, offering the phone's health app. */
-    fun activityConnect(): OnboardingState =
-        plan(PlanStep.Activity, PlanAnswers(body = ImperialBody), health = HealthOffer.CanConnect(HealthSource.AppleHealth))
+    fun activityConnect(): OnboardingState = plan(PlanStep.Activity, PlanAnswers(body = ImperialBody), health = appleHealth)
 
     /** The meal times step after the design's answers (eating regularly), with a later breakfast. */
     fun meals(): OnboardingState = OnboardingState(

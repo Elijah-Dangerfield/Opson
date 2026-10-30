@@ -102,7 +102,7 @@ class SurfacesCoverageTest {
                 "onboarding-welcome", "onboarding-statement", "onboarding-recommendation", "onboarding-account",
                 "onboarding-profile", "onboarding-weight-goal", "onboarding-goal-rate", "onboarding-goal-overview",
                 "onboarding-commitment", "onboarding-meal-times", "onboarding-goal-ask", "onboarding-goal-kind",
-                "onboarding-energy-balance", "onboarding-burn-goal", "onboarding-meals-goal", "onboarding-streak",
+                "onboarding-energy-balance", "onboarding-burn-goal", "onboarding-meals-goal", "onboarding-steps-goal", "onboarding-streak",
             ),
             "TodayLeakSurfaces" to listOf(
                 "today", "today-big-day", "today-added", "today-untracked", "today-low-logging", "today-groups-off", "today-past", "today-future",

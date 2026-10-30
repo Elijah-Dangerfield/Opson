@@ -68,6 +68,10 @@ import kotlinx.datetime.LocalDate
 import opson.libraries.resources.generated.resources.Res
 import opson.libraries.resources.generated.resources.goal_edit_kcal_a_day
 import opson.libraries.resources.generated.resources.goal_edit_meals_label
+import opson.libraries.resources.generated.resources.goal_edit_steps_label
+import opson.libraries.resources.generated.resources.goal_edit_steps_note
+import opson.libraries.resources.generated.resources.goal_edit_steps_unit
+import opson.libraries.resources.generated.resources.plan_steps_title
 import opson.libraries.resources.generated.resources.goal_edit_meals_unit
 import opson.libraries.resources.generated.resources.plan_ask_title
 import opson.libraries.resources.generated.resources.plan_ask_body
@@ -208,6 +212,7 @@ data class PlanView(
     val kind: KindView = KindView(emptyList(), null),
     val balance: BalanceView? = null,
     val burn: BurnView? = null,
+    val stepCount: StepCountView? = null,
     val mealCount: MealCountView = MealCountView(GoalType.DEFAULT_MEALS, GoalType.DEFAULT_MEALS.toString(), canLess = true, canMore = true),
     /** Onboarding, where a goal is optional: no Skip on a goal's own steps, as Back changes the kind. */
     val asks: Boolean = false,
@@ -230,6 +235,7 @@ fun PlanViews.all(answers: PlanAnswers, context: PlanContext, current: Settings)
         kind = kind(answers, context),
         balance = balance(answers, context).takeIf { PlanStep.Balance in steps },
         burn = burn(answers, context).takeIf { PlanStep.Burn in steps },
+        stepCount = stepCount(answers, context).takeIf { PlanStep.StepCount in steps },
         mealCount = mealCount(answers),
         asks = context.asks,
         goalStreak = PlanFlow.goalStreakOffered(answers, context),
@@ -277,6 +283,7 @@ internal fun ColumnScope.PlanStepContent(
             PlanStep.Balance -> view.balance?.let { BalanceStep(it, busy, onPlan) }
             PlanStep.Burn -> view.burn?.let { BurnStep(it, busy, onPlan) }
             PlanStep.MealCount -> MealCountStep(view.mealCount, busy, onPlan)
+            PlanStep.StepCount -> view.stepCount?.let { StepCountStep(it, busy, onPlan) }
             PlanStep.Overview -> OverviewStep(view.overview)
             PlanStep.Streak -> StreakStep(view.goalStreak)
             PlanStep.Commit -> CommitStep(view.hard)
@@ -465,6 +472,36 @@ private fun MealCountStep(view: MealCountView, busy: Boolean, onPlan: (PlanActio
             canLower = view.canLess && !busy,
             canRaise = view.canMore && !busy,
         )
+    }
+}
+
+// ---------- Steps ----------
+
+/** Steps a day, read from the phone's health app, with the way to connect it while it isn't. */
+@Composable
+private fun StepCountStep(view: StepCountView, busy: Boolean, onPlan: (PlanAction) -> Unit) {
+    StepTitle(title = stringResource(Res.string.plan_steps_title), body = stringResource(Res.string.goal_edit_steps_note))
+    GoalPanel {
+        TypedStepper(
+            text = view.text,
+            onType = { onPlan(PlanAction.StepsTyped(it)) },
+            onStep = { onPlan(PlanAction.StepsStepped(more = it)) },
+            label = stringResource(Res.string.goal_edit_steps_label),
+            unit = stringResource(Res.string.goal_edit_steps_unit),
+            canLower = view.canLess && !busy,
+            canRaise = view.canMore && !busy,
+        )
+    }
+    val health = view.health
+    if (health is HealthOffer.CanConnect) {
+        Spacer(Modifier.height(Dimension.D700))
+        ButtonSecondary(
+            onClick = { onPlan(PlanAction.ConnectHealthTapped) },
+            enabled = !busy && !health.connecting,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(if (health.connecting) Res.string.plan_activity_connecting else Res.string.plan_activity_connect, health.source.name()))
+        }
     }
 }
 

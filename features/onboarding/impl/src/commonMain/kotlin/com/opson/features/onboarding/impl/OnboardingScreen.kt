@@ -1204,6 +1204,19 @@ private fun OnboardingMealsGoalPreview() = OnboardingPreview(Fixtures.plan(PlanS
 private fun OnboardingMealsGoalDarkPreview() =
     OnboardingPreview(Fixtures.plan(PlanStep.MealCount, PlanAnswers(pick = GoalKind.Meals, meals = 4)), darkTheme = true)
 
+/** Steps, with Apple Health still to connect. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingStepsGoalPreview() =
+    OnboardingPreview(Fixtures.plan(PlanStep.StepCount, PlanAnswers(pick = GoalKind.Steps), health = Fixtures.appleHealth))
+
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun OnboardingStepsGoalConnectedDarkPreview() = OnboardingPreview(
+    Fixtures.plan(PlanStep.StepCount, PlanAnswers(pick = GoalKind.Steps), health = HealthOffer.Connected(com.opson.libraries.health.HealthSource.AppleHealth)),
+    darkTheme = true,
+)
+
 /** "Keep a streak?", after any goal: it counts showing up, never an amount. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

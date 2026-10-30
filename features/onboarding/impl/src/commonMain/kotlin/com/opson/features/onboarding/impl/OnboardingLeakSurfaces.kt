@@ -60,6 +60,13 @@ object OnboardingLeakSurfaces {
             showsCaloriesInFull = false,
         ) { policy -> OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.MealCount, PlanAnswers(pick = GoalKind.Meals), policy = policy), onAction = {}) },
         LeakSurface(
+            id = "onboarding-steps-goal",
+            label = "Onboarding · how many steps",
+            showsCaloriesInFull = false,
+        ) { policy ->
+            OnboardingScreen(state = OnboardingFixtures.plan(PlanStep.StepCount, PlanAnswers(pick = GoalKind.Steps), health = OnboardingFixtures.appleHealth, policy = policy), onAction = {})
+        },
+        LeakSurface(
             id = "onboarding-streak",
             label = "Onboarding · keep a streak?",
             showsCaloriesInFull = false,

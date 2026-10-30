@@ -86,6 +86,9 @@ enum class PlanStep(val eventName: String) {
 
     /** How many meals a day. */
     MealCount("meals_goal"),
+
+    /** How many steps a day. */
+    StepCount("steps_goal"),
     Overview("goal_overview"),
 
     /** "Keep a streak?" Onboarding only, with celebrations on. */
@@ -237,6 +240,8 @@ data class PlanAnswers(
     val burnKcal: Int = DEFAULT_BURN_KCAL,
     /** Meals a day, for a meals goal. */
     val meals: Int = GoalType.DEFAULT_MEALS,
+    /** Steps a day, for a steps goal. */
+    val steps: Int = DEFAULT_STEPS,
     /**
      * The amount being typed into the step's number (the balance, the burn or the meals): kept
      * as typed, and the amount follows it once it is a number in range. Cleared by a step.
@@ -256,6 +261,11 @@ data class PlanAnswers(
         const val BURN_STEP_KCAL = 50
         val BURN_KCAL: IntRange = 50..1500
         val MEALS: IntRange = 1..6
+
+        /** As the goal screens start and step a steps goal (GoalEditor). */
+        const val DEFAULT_STEPS = 8000
+        const val STEPS_STEP = 500
+        val STEPS: IntRange = 1000..50000
     }
 }
 
@@ -348,11 +358,13 @@ sealed interface PlanAction {
     data class BalanceStepped(val more: Boolean) : PlanAction
     data class BurnStepped(val more: Boolean) : PlanAction
     data class MealsStepped(val more: Boolean) : PlanAction
+    data class StepsStepped(val more: Boolean) : PlanAction
 
     /** The same amounts typed. */
     data class BalanceTyped(val text: String) : PlanAction
     data class BurnTyped(val text: String) : PlanAction
     data class MealsTyped(val text: String) : PlanAction
+    data class StepsTyped(val text: String) : PlanAction
 
     /** "Yes, keep a streak" or "No streak". The view model moves on from it. */
     data class StreakPicked(val keep: Boolean) : PlanAction
@@ -419,8 +431,9 @@ object PlanFlow {
         when (kind) {
             // Its number is energy in kcal, so calories have to be on show too, as for the overview's working.
             GoalKind.Burn -> context.energyOutShown
-            // TODO(steps): offer steps once a steps source reads them (goals-v2, "Goal types").
-            GoalKind.Steps, GoalKind.Unknown -> false
+            // Steps are read from the phone's health app, so only where one can be connected.
+            GoalKind.Steps -> context.health != HealthOffer.Unavailable
+            GoalKind.Unknown -> false
             else -> true
         }
     }
@@ -465,7 +478,8 @@ object PlanFlow {
             }
             GoalKind.Burn -> add(PlanStep.Burn)
             GoalKind.Meals -> add(PlanStep.MealCount)
-            GoalKind.TrackEveryDay, GoalKind.Steps, GoalKind.Unknown -> Unit
+            GoalKind.Steps -> add(PlanStep.StepCount)
+            GoalKind.TrackEveryDay, GoalKind.Unknown -> Unit
         }
         if (context.asks && context.streakOffered) add(PlanStep.Streak)
         add(PlanStep.Commit)
@@ -509,6 +523,11 @@ object PlanFlow {
             }
             is PlanAction.BurnTyped -> typed(answers, action.text, PlanAnswers.BURN_KCAL) { answers.copy(burnKcal = it) }
             is PlanAction.MealsTyped -> typed(answers, action.text, PlanAnswers.MEALS) { answers.copy(meals = it) }
+            is PlanAction.StepsStepped -> answers.copy(
+                steps = (answers.steps + if (action.more) PlanAnswers.STEPS_STEP else -PlanAnswers.STEPS_STEP).coerceIn(PlanAnswers.STEPS),
+                typing = null,
+            )
+            is PlanAction.StepsTyped -> typed(answers, action.text, PlanAnswers.STEPS) { answers.copy(steps = it) }
             is PlanAction.StreakPicked -> answers.copy(streak = action.keep)
             PlanAction.ConnectHealthTapped, PlanAction.FindSupportTapped -> answers
         }
@@ -659,7 +678,8 @@ object PlanFlow {
     fun goal(answers: PlanAnswers, context: PlanContext, current: Settings?): Goal? {
         val baseline = inputs(answers, context)?.let(GoalBaselines::of)
         return when (pick(answers, context)) {
-            null, GoalKind.Steps, GoalKind.Unknown -> null
+            null, GoalKind.Unknown -> null
+            GoalKind.Steps -> Goal(GoalKind.Steps.key, GoalType.Steps(answers.steps), context.today)
             GoalKind.Weight -> {
                 val legacy = weightGoal(answers, context)
                 val direction = legacy.direction
@@ -873,6 +893,9 @@ data class BalanceView(
 /** A burn goal's step: active energy a day, through the policy as energy out. */
 data class BurnView(val amount: Display, val text: String, val canLess: Boolean, val canMore: Boolean)
 
+/** A steps goal's step: steps a day, and the health app to read them from while it isn't connected. */
+data class StepCountView(val text: String, val canLess: Boolean, val canMore: Boolean, val health: HealthOffer)
+
 /** A meals goal's step: meals a day. A count, not a nutrition number. */
 data class MealCountView(val count: Int, val text: String, val canLess: Boolean, val canMore: Boolean)
 
@@ -1012,6 +1035,13 @@ object PlanViews {
         text = answers.typing ?: answers.burnKcal.toString(),
         canLess = answers.burnKcal > PlanAnswers.BURN_KCAL.first,
         canMore = answers.burnKcal < PlanAnswers.BURN_KCAL.last,
+    )
+
+    fun stepCount(answers: PlanAnswers, context: PlanContext): StepCountView = StepCountView(
+        text = answers.typing ?: answers.steps.toString(),
+        canLess = answers.steps > PlanAnswers.STEPS.first,
+        canMore = answers.steps < PlanAnswers.STEPS.last,
+        health = context.health,
     )
 
     fun mealCount(answers: PlanAnswers): MealCountView = MealCountView(

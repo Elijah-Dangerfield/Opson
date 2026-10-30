@@ -89,7 +89,7 @@ never sent), `sign_in` (`account` before accounts were required), `question_1`, 
 `statement` (the optional "numbers have been hard" step, `question_4` before design v3),
 `recommendation`, then the setup steps (`release.onboardingSetup`): `meal_times`, `goal_ask`
 ("Want to set a goal?"), `goal_kind`, `profile`, `activity`, `weight_goal`, `goal_rate`,
-`energy_balance`, `burn_goal`, `meals_goal`, `goal_overview`, `streak` and `commitment`
+`energy_balance`, `burn_goal`, `steps_goal`, `meals_goal`, `goal_overview`, `streak` and `commitment`
 (docs/plans/onboarding-v4.md). Which goal steps were viewed says which kind was picked; no event
 names it. `question_3` ("What do you want to notice?") was cut in onboarding v2
 (`docs/plans/onboarding-v2.md`). **No event carries an answer to the setup questions or the

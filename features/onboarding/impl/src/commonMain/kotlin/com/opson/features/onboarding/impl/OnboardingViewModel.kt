@@ -478,7 +478,7 @@ class OnboardingViewModel(
         if (state.isFinishing) return
         when (change) {
             PlanAction.FindSupportTapped -> sendEvent(OnboardingEvent.NavigateToSupport)
-            PlanAction.ConnectHealthTapped -> if (step == PlanStep.Activity) connectHealth()
+            PlanAction.ConnectHealthTapped -> if (step == PlanStep.Activity || step == PlanStep.StepCount) connectHealth()
             is PlanAction.WantsGoal, is PlanAction.StreakPicked -> {
                 if (step != (if (change is PlanAction.WantsGoal) PlanStep.Ask else PlanStep.Streak)) return
                 updateState { it.copy(plan = PlanFlow.reduce(it.plan, change, it.planContext(policyFor(it.chosen)))).withViews(policyFor(it.chosen)) }
