@@ -291,6 +291,25 @@ class RecipeRoutesTest : DatabaseTest() {
     }
 
     @Test
+    fun stoppingAndSharingAgainCantPutAHiddenRecipeBackUp() = runTest {
+        val owner = seedAuthUser()
+        val recipe = DiaryFixtures.recipe()
+        withApp { client ->
+            val code = client.publish(owner, recipe).body<PublishRecipeResponse>().code
+            repeat(RecipeRules.HIDE_AFTER_REPORTS) { client.report(seedAuthUser(), code) }
+            assertEquals(HttpStatusCode.Gone, client.get("/v1/recipes/public/$code").status)
+
+            client.post("/v1/recipes/${recipe.id}/unpublish") { header(HttpHeaders.Authorization, TestJwt.bearer(owner)) }
+            val again = client.publish(owner, recipe.copy(clientUpdatedAt = recipe.clientUpdatedAt + 1.hours)).body<PublishRecipeResponse>()
+            assertEquals("hidden", again.state)
+            assertEquals(HttpStatusCode.Gone, client.get("/v1/recipes/public/$code").status)
+
+            client.post("/v1/admin/recipes/${recipe.id}/dismiss-reports") { header("X-Admin-Token", adminToken) }
+            assertEquals(HttpStatusCode.OK, client.get("/v1/recipes/public/$code").status, "a person looked and it is back")
+        }
+    }
+
+    @Test
     fun aRollbackTakesEverySharedRecipeDown() = runTest {
         val owner = seedAuthUser()
         val first = DiaryFixtures.recipe()

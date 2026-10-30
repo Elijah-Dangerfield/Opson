@@ -626,7 +626,7 @@ server made up (`user-1a2b3c4d`) never does. Docs: `docs/plans/recipes.md`.
 |---|---|---|
 | GET | `/v1/recipes/public/{code}` | **No account.** CORS open for this GET alone (the website's recipe page reads it). 404 `not_found`, 410 `not_shared` (stopped, removed, hidden, or deleted). 60/min per IP. `Cache-Control: max-age=60`. |
 | POST | `/v1/recipes/{id}/publish` `{recipe, showName}` | Writes the row as sync would, then shares it: `{code, state}`. A contribution: `refuseIfRestricted` and the device headers; 10 an hour and 30 a day per user (`RecipeLimiter`). Body at most 512 KB. 400 `invalid_id`, `invalid_recipe`, `empty_recipe`; 403 `contributions_restricted`, `removed`; 404 `not_found` (someone else's id, or deleted); 429. |
-| POST | `/v1/recipes/{id}/unpublish` | 204, or 404. Never gated. The code is kept, so sharing again gives the same link. |
+| POST | `/v1/recipes/{id}/unpublish` | 204, or 404. Never gated. The code is kept, so sharing again gives the same link. Reports stay open through a stop, so sharing again while three of them stand comes back `hidden`. |
 | GET | `/v1/recipes/search?q=&limit=10` | Live recipes whose name holds `q` (2 to 100 characters), exact and prefix first, then saves. |
 | POST | `/v1/recipes/public/{code}/reports` `{id, reason, note?}` | `wrong_nutrition`, `unsafe`, `offensive`, `spam`, `other`. A contribution; 10 in 10 minutes and 30 a day. Body at most 16 KB. 201, 200 for a repeat, 400 `own_recipe`. Three open reports from different people hide the recipe. |
 | POST | `/v1/recipes/public/{code}/saves` | Someone saved it. 204. |

@@ -77,17 +77,30 @@ class PostgresPublicRecipeRepository(
         val (state, deleted) = current ?: return PublishOutcome.NotYours
         if (deleted) return PublishOutcome.NotYours
         if (state == PublicState.Removed) return PublishOutcome.Removed
+        // Reports outlive a stop: sharing again while enough of them are open goes back to hidden,
+        // so stopping and starting can't put a reported recipe back up before a person looks.
         return queryRows(
             """
             UPDATE recipes SET
                 public_code = coalesce(public_code, ?),
-                public_state = CASE WHEN public_state = 'hidden' THEN 'hidden' ELSE 'live' END,
+                public_state = CASE
+                    WHEN public_state = 'hidden' THEN 'hidden'
+                    WHEN (SELECT count(DISTINCT user_id) FROM recipe_reports WHERE recipe_id = recipes.id AND status = 'open') >= ? THEN 'hidden'
+                    ELSE 'live'
+                END,
                 public_show_name = ?,
                 published_at = coalesce(published_at, ?)
             WHERE id = ? AND user_id = ?
             RETURNING public_code, public_state
             """.trimIndent(),
-            listOf(textArg(RecipeRules.newCode(random)), boolArg(showName), instantArg(clock.now()), uuidArg(recipe.id), uuidArg(userId.value)),
+            listOf(
+                textArg(RecipeRules.newCode(random)),
+                intArg(RecipeRules.HIDE_AFTER_REPORTS),
+                boolArg(showName),
+                instantArg(clock.now()),
+                uuidArg(recipe.id),
+                uuidArg(userId.value),
+            ),
         ) { PublishOutcome.Published(it.getString("public_code"), PublicState.fromWire(it.getString("public_state"))) }.single()
     }
 
