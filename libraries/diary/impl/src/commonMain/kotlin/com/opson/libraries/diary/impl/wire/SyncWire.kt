@@ -28,7 +28,7 @@ data class SyncRequestDto(
 )
 
 /** Every entity past the 0.1 set this client reads from `changes`. */
-internal val SYNC_ACCEPTS: List<String> = listOf("fast", "exercise")
+internal val SYNC_ACCEPTS: List<String> = listOf("fast", "exercise", "recipe")
 
 @Serializable
 data class SyncMutationDto(
@@ -67,6 +67,8 @@ data class SyncChangesDto(
     val fasts: List<FastRowDto>? = null,
     /** Present only when the request accepts `exercise`. */
     val exercises: List<ExerciseRowDto>? = null,
+    /** Present only when the request accepts `recipe`. */
+    val recipes: List<RecipeRowDto>? = null,
 )
 
 @Serializable
@@ -218,6 +220,27 @@ data class ExerciseRowDto(
     val notOnWatch: Boolean = false,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean = false,
+)
+
+/**
+ * A recipe. The `public*` fields are the server's sharing state: they come down so this phone
+ * knows a recipe is shared, and the server ignores them on the way up.
+ */
+@Serializable
+data class RecipeRowDto(
+    val id: String,
+    val name: String,
+    val servings: Double,
+    /** `LogDraft` JSON for the whole batch, the same shape as a saved meal's items. */
+    val items: JsonArray = JsonArray(emptyList()),
+    val notes: String? = null,
+    val clientUpdatedAtEpochMs: Long,
+    val deleted: Boolean = false,
+    /** The share code of someone else's recipe this one was saved from. */
+    val savedFrom: String? = null,
+    val publicCode: String? = null,
+    val publicState: String? = null,
+    val publicShowName: Boolean? = null,
 )
 
 @Serializable

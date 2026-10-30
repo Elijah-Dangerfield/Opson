@@ -175,6 +175,7 @@ internal fun ResultRow.toRecipe(): Recipe {
         notes = this[RecipesTable.notes],
         clientUpdatedAt = this[RecipesTable.clientUpdatedAt].toKotlinInstant(),
         deleted = this[RecipesTable.deleted],
+        savedFrom = this[RecipesTable.savedFrom],
         sharing = RecipeSharing(
             code = this[RecipesTable.publicCode],
             state = PublicState.fromWire(this[RecipesTable.publicState]),

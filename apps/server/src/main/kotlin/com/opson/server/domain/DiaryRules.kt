@@ -114,6 +114,7 @@ object DiaryRules {
                 !row.servings.isFinite() || row.servings < RecipeRules.MIN_SERVINGS || row.servings > RecipeRules.MAX_SERVINGS ->
                     "servings is out of range"
                 row.itemCount > RecipeRules.MAX_ITEMS -> "items has too many entries"
+                row.savedFrom != null && !RecipeRules.isCode(row.savedFrom) -> "savedFrom is not a share code"
                 else -> null
             }
             ?: jsonSize("items", row.itemsJson)

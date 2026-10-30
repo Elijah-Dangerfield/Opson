@@ -266,6 +266,8 @@ data class RecipeRowDto(
     val notes: String? = null,
     val clientUpdatedAtEpochMs: Long,
     val deleted: Boolean = false,
+    /** The share code of someone else's recipe this one was saved from. */
+    val savedFrom: String? = null,
     val publicCode: String? = null,
     /** `private`, `live`, `hidden` or `removed`. */
     val publicState: String? = null,
@@ -457,6 +459,7 @@ fun RecipeRowDto.toDomain(): Recipe = Recipe(
     notes = notes,
     clientUpdatedAt = instant(clientUpdatedAtEpochMs),
     deleted = deleted,
+    savedFrom = savedFrom,
 )
 
 fun Recipe.toRowDto(): RecipeRowDto = RecipeRowDto(
@@ -467,6 +470,7 @@ fun Recipe.toRowDto(): RecipeRowDto = RecipeRowDto(
     notes = notes,
     clientUpdatedAtEpochMs = clientUpdatedAt.toEpochMilliseconds(),
     deleted = deleted,
+    savedFrom = savedFrom,
     publicCode = sharing?.code,
     publicState = sharing?.state?.wire,
     publicShowName = sharing?.showName,

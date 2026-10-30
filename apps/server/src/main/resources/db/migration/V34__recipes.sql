@@ -6,7 +6,9 @@
 -- client's id, last write wins on client_updated_at, server_seq for the pull),
 -- and /v1/sync only returns recipes to a request that accepts `recipe`, so
 -- older clients never see one. `items` is the client's array of ingredient
--- snapshots, the same shape as a saved meal's.
+-- snapshots, the same shape as a saved meal's; `saved_from` is the share code
+-- of the recipe it was saved from, so a copy of someone else's stays marked
+-- as theirs.
 --
 -- Sharing is server state on the same row, written only by the publish routes
 -- and the admin console, never by sync: `public_code` (8 characters, kept when
@@ -32,6 +34,8 @@ CREATE TABLE IF NOT EXISTS recipes (
     servings          REAL NOT NULL CHECK (servings > 0 AND servings <= 1000),
     items             JSONB NOT NULL DEFAULT '[]'::jsonb,
     notes             TEXT CHECK (char_length(notes) <= 4000),
+    -- The share code this one was saved from, when someone saved another person's recipe.
+    saved_from        TEXT CHECK (saved_from ~ '^[2-9a-z]{8}$'),
     client_updated_at TIMESTAMPTZ NOT NULL,
     server_seq        BIGINT NOT NULL DEFAULT nextval('public.sync_seq'),
     deleted           BOOLEAN NOT NULL DEFAULT FALSE,

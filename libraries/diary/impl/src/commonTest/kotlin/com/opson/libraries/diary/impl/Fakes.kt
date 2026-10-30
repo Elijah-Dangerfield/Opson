@@ -20,6 +20,8 @@ import com.opson.libraries.diary.db.MealFeelingDao
 import com.opson.libraries.diary.db.MealFeelingEntity
 import com.opson.libraries.diary.db.OutboxDao
 import com.opson.libraries.diary.db.OutboxEntity
+import com.opson.libraries.diary.db.RecipeDao
+import com.opson.libraries.diary.db.RecipeEntity
 import com.opson.libraries.diary.db.RepeatLogDao
 import com.opson.libraries.diary.db.RepeatLogEntity
 import com.opson.libraries.diary.db.RepeatRuleDao
@@ -91,6 +93,7 @@ class FakeDiaryDb {
     val savedMeals = FakeTable<String, SavedMealEntity>()
     val fasts = FakeTable<String, FastEntity>()
     val exercises = FakeTable<String, ExerciseEntity>()
+    val recipes = FakeTable<String, RecipeEntity>()
     val outbox = FakeTable<String, OutboxEntity>()
     val syncState = FakeTable<Int, SyncStateEntity>()
     val repeats = FakeTable<String, RepeatRuleEntity>()
@@ -129,6 +132,7 @@ class FakeDiaryDb {
         entries.state.value, days.state.value, feelings.state.value, weighIns.state.value,
         customFoods.state.value, savedMeals.state.value, outbox.state.value, syncState.state.value,
         fasts.state.value, exercises.state.value, repeats.state.value, repeatLogs.state.value,
+        recipes.state.value,
     )
 
     @Suppress("UNCHECKED_CAST")
@@ -143,6 +147,7 @@ class FakeDiaryDb {
         syncState.state.value = s[7] as Map<Int, SyncStateEntity>
         fasts.state.value = s[8] as Map<String, FastEntity>
         exercises.state.value = s[9] as Map<String, ExerciseEntity>
+        recipes.state.value = s[12] as Map<String, RecipeEntity>
         repeats.state.value = s[10] as Map<String, RepeatRuleEntity>
         repeatLogs.state.value = s[11] as Map<String, RepeatLogEntity>
     }
@@ -338,6 +343,30 @@ class FakeDiaryDb {
         override suspend fun deleteAll() = exercises.clear()
     }
 
+    val recipeDao = object : RecipeDao {
+        override suspend fun upsert(rows: List<RecipeEntity>) {
+            recordWrite("recipes")
+            rows.forEach { recipes.put(it.id, it) }
+        }
+
+        override suspend fun get(id: String) = recipes.state.value[id]
+
+        override fun observe(id: String) = recipes.observe().map { rows -> rows[id]?.takeUnless { it.deleted } }
+
+        override suspend fun byPublicCode(code: String) = recipes.state.value.values.firstOrNull { it.publicCode == code && !it.deleted }
+
+        override fun observeAll() = recipes.observe().map { rows ->
+            rows.values.filter { !it.deleted }.sortedWith(compareBy<RecipeEntity> { it.name.lowercase() }.thenBy { it.id })
+        }
+
+        override suspend fun delete(id: String) {
+            recordWrite("recipes")
+            recipes.remove(id)
+        }
+
+        override suspend fun deleteAll() = recipes.clear()
+    }
+
     val outboxDao = object : OutboxDao {
         override suspend fun insert(row: OutboxEntity) {
             recordWrite("outbox")
@@ -441,6 +470,7 @@ class FakeDiaryDb {
         savedMeals = savedMealDao,
         fasts = fastDao,
         exercises = exerciseDao,
+        recipes = recipeDao,
         outbox = outboxDao,
         syncState = syncStateDao,
         transactor = transactor,

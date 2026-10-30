@@ -11,6 +11,7 @@ import com.opson.libraries.diary.db.LogEntryDao
 import com.opson.libraries.diary.db.MealFeelingDao
 import com.opson.libraries.diary.db.OutboxDao
 import com.opson.libraries.diary.db.OutboxEntity
+import com.opson.libraries.diary.db.RecipeDao
 import com.opson.libraries.diary.db.RepeatLogDao
 import com.opson.libraries.diary.db.RepeatRuleDao
 import com.opson.libraries.diary.db.SavedMealDao
@@ -28,7 +29,7 @@ import kotlin.math.max
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
-/** Every diary table and the transactor that writes them together. One parameter instead of thirteen. */
+/** Every diary table and the transactor that writes them together. One parameter instead of fourteen. */
 @Inject
 class DiaryTables(
     val entries: LogEntryDao,
@@ -39,6 +40,7 @@ class DiaryTables(
     val savedMeals: SavedMealDao,
     val fasts: FastDao,
     val exercises: ExerciseDao,
+    val recipes: RecipeDao,
     val outbox: OutboxDao,
     val syncState: SyncStateDao,
     val transactor: DatabaseTransactor,

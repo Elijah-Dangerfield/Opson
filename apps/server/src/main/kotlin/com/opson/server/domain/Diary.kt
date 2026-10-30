@@ -221,6 +221,8 @@ data class Recipe(
     val notes: String?,
     override val clientUpdatedAt: Instant,
     override val deleted: Boolean,
+    /** The share code of someone else's recipe this one was saved from. */
+    val savedFrom: String? = null,
     val sharing: RecipeSharing? = null,
 ) : DiaryRow
 

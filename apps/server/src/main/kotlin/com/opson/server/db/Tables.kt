@@ -344,6 +344,7 @@ object RecipesTable : SyncedTable("recipes") {
     val servings = float("servings")
     val items = jsonb("items")
     val notes = text("notes").nullable()
+    val savedFrom = text("saved_from").nullable()
 
     /*
      * Everything below is the server's: raw SQL in PostgresPublicRecipeRepository writes it. Marked

@@ -453,6 +453,7 @@ internal fun upsertRecipe(userId: UserId, row: Recipe) {
         it[servings] = row.servings.toFloat()
         it[items] = row.itemsJson
         it[notes] = row.notes
+        it[savedFrom] = row.savedFrom
         it[clientUpdatedAt] = row.clientUpdatedAt.toJavaInstant()
         it[deleted] = row.deleted
     }
