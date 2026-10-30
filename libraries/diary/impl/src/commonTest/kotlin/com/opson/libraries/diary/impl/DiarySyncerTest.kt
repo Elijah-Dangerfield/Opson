@@ -216,6 +216,34 @@ class DiarySyncerTest : CoroutineTest() {
     }
 
     @Test
+    fun aRefusedRecipeEditRollsBack_andKeepsItsSharing() = runUnitTest {
+        val json = com.opson.libraries.diary.impl.wire.WireJson
+        val shared = RecipeRowDto(
+            id = "00000000-0000-4000-8000-0000000000a2",
+            name = "Chili",
+            servings = 6.0,
+            clientUpdatedAtEpochMs = 1_000,
+            publicCode = "abcd2345",
+            publicState = "live",
+            publicShowName = true,
+        ).toEntity()
+        val edited = shared.copy(name = "x".repeat(300), clientUpdatedAtEpochMs = 2_000)
+        db.recipes.put(edited.id, edited)
+        db.outboxDao.enqueue(
+            SyncEntity.Recipe,
+            edited.id,
+            json.encodeToString(RecipeRowDto.serializer(), edited.toRow()),
+            base = json.encodeToString(RecipeRowDto.serializer(), shared.toRow()),
+            nowEpochMs = 2_000,
+        )
+        api.respond = { request -> refuseEverything(request) }
+
+        syncer.sync()
+
+        assertEquals(shared, db.recipes.state.value[shared.id], "the edit is gone and the recipe is still shared")
+    }
+
+    @Test
     fun aPulledExerciseIsStoredUnlessALocalChangeIsWaiting() = runUnitTest {
         val pulled = ExerciseRowDto(
             id = "00000000-0000-4000-8000-000000000001",
