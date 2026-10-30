@@ -81,9 +81,9 @@ fun DateField(
     // The cursor moves on the next frame, never inside the edit that asks for it: a box losing
     // focus mid-edit records its undo against text it has not committed yet, and throws. Digits
     // typed before the move lands still reach the right box (DateEntry carries them on).
-    var moveTo by remember { mutableStateOf<FocusMove?>(null) }
-    boxes.moveTo = { part -> moveTo = FocusMove(part) }
-    LaunchedEffect(moveTo) { moveTo?.let { Catching { focus.getValue(it.part).requestFocus() } } }
+    var focusMove by remember { mutableStateOf<FocusMove?>(null) }
+    boxes.moveTo = { part -> focusMove = FocusMove(part) }
+    LaunchedEffect(focusMove) { focusMove?.let { Catching { focus.getValue(it.part).requestFocus() } } }
     SideEffect { boxes.heard(parts) }
 
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(AppTheme.spacing.row)) {
