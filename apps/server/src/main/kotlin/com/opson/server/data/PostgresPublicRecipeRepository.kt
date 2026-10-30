@@ -1,6 +1,7 @@
 package com.opson.server.data
 
 import com.opson.server.db.Database
+import com.opson.server.db.SqlArg
 import com.opson.server.db.boolArg
 import com.opson.server.db.execute
 import com.opson.server.db.instantArg
@@ -39,6 +40,11 @@ import kotlin.time.ExperimentalTime
  * Postgres-backed [PublicRecipeRepository] over the sharing columns of `recipes` and
  * `recipe_reports` (V35). The owner's display name comes from `profiles`, and a name the server
  * made up (`user-1a2b3c4d`) counts as none.
+ *
+ * Every write to a recipe row bumps its `server_seq`, the owner's pull cursor, so each one first
+ * takes the owner's diary lock ([lockUser]) and runs at READ COMMITTED, as sync's writes do. A
+ * write that skipped the lock could commit below a cursor the owner's other phone had already
+ * pulled past, and that phone would never hear of it.
  */
 @OptIn(ExperimentalTime::class)
 @SingleIn(ServerScope::class)
@@ -104,7 +110,8 @@ class PostgresPublicRecipeRepository(
         ) { PublishOutcome.Published(it.getString("public_code"), PublicState.fromWire(it.getString("public_state"))) }.single()
     }
 
-    override suspend fun unpublish(userId: UserId, recipeId: UUID): Boolean = database.transaction {
+    override suspend fun unpublish(userId: UserId, recipeId: UUID): Boolean = database.readCommittedTransaction {
+        lockUser(userId)
         queryRows(
             """
             UPDATE recipes SET public_state = CASE WHEN public_state = 'removed' THEN 'removed' ELSE 'private' END
@@ -133,13 +140,14 @@ class PostgresPublicRecipeRepository(
         ) { it.toStored() }
     }
 
-    override suspend fun countSave(code: String, userId: UserId): Boolean = database.transaction {
+    override suspend fun countSave(code: String, userId: UserId): Boolean = database.readCommittedTransaction {
+        lockOwnerOf("public_code = ?", textArg(code)) ?: return@readCommittedTransaction false
         val (recipeId, ownerId) = queryRows(
             "SELECT id, user_id FROM recipes WHERE public_code = ? AND public_state = 'live' AND NOT deleted",
             listOf(textArg(code)),
         ) { rs -> rs.getObject("id", UUID::class.java) to rs.getObject("user_id", UUID::class.java) }.singleOrNull()
-            ?: return@transaction false
-        if (ownerId == userId.value) return@transaction true
+            ?: return@readCommittedTransaction false
+        if (ownerId == userId.value) return@readCommittedTransaction true
         val first = queryRows(
             "INSERT INTO recipe_saves (recipe_id, user_id, saved_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING RETURNING recipe_id",
             listOf(uuidArg(recipeId), uuidArg(userId.value), instantArg(clock.now())),
@@ -148,14 +156,15 @@ class PostgresPublicRecipeRepository(
         true
     }
 
-    override suspend fun report(report: NewRecipeReport): RecipeReportOutcome = database.transaction {
+    override suspend fun report(report: NewRecipeReport): RecipeReportOutcome = database.readCommittedTransaction {
+        lockOwnerOf("public_code = ?", textArg(report.code)) ?: return@readCommittedTransaction RecipeReportOutcome.NotFound
         val target = queryRows(
             "SELECT id, user_id FROM recipes WHERE public_code = ? AND public_state IN ('live', 'hidden') AND NOT deleted FOR UPDATE",
             listOf(textArg(report.code)),
         ) { rs -> rs.getObject("id", UUID::class.java) to rs.getObject("user_id", UUID::class.java) }.singleOrNull()
-            ?: return@transaction RecipeReportOutcome.NotFound
+            ?: return@readCommittedTransaction RecipeReportOutcome.NotFound
         val (recipeId, ownerId) = target
-        if (ownerId == report.reporter.value) return@transaction RecipeReportOutcome.OwnRecipe
+        if (ownerId == report.reporter.value) return@readCommittedTransaction RecipeReportOutcome.OwnRecipe
         val inserted = queryRows(
             """
             INSERT INTO recipe_reports (id, recipe_id, user_id, created_at, reason, note)
@@ -172,7 +181,7 @@ class PostgresPublicRecipeRepository(
                 textArg(report.note),
             ),
         ) { true }.isNotEmpty()
-        if (!inserted) return@transaction RecipeReportOutcome.Repeat
+        if (!inserted) return@readCommittedTransaction RecipeReportOutcome.Repeat
         execute(
             """
             UPDATE recipes SET public_state = 'hidden'
@@ -242,7 +251,8 @@ class PostgresPublicRecipeRepository(
         }
     }
 
-    override suspend fun remove(id: UUID, actor: String, reason: String): Boolean = database.transaction {
+    override suspend fun remove(id: UUID, actor: String, reason: String): Boolean = database.readCommittedTransaction {
+        lockOwnerOf("id = ?", uuidArg(id)) ?: return@readCommittedTransaction false
         val now = instantArg(clock.now())
         val removed = queryRows(
             """
@@ -256,7 +266,8 @@ class PostgresPublicRecipeRepository(
         removed
     }
 
-    override suspend fun restore(id: UUID, actor: String): Boolean = database.transaction {
+    override suspend fun restore(id: UUID, actor: String): Boolean = database.readCommittedTransaction {
+        lockOwnerOf("id = ?", uuidArg(id)) ?: return@readCommittedTransaction false
         val restored = queryRows(
             """
             UPDATE recipes SET
@@ -271,10 +282,19 @@ class PostgresPublicRecipeRepository(
         restored
     }
 
-    override suspend fun dismissReports(id: UUID, actor: String): Int = database.transaction {
+    override suspend fun dismissReports(id: UUID, actor: String): Int = database.readCommittedTransaction {
+        lockOwnerOf("id = ?", uuidArg(id)) ?: return@readCommittedTransaction 0
         val dismissed = decideOpenReports(id, "dismissed", actor)
         execute("UPDATE recipes SET public_state = 'live' WHERE id = ? AND public_state = 'hidden'", listOf(uuidArg(id)))
         dismissed
+    }
+
+    /** Takes the diary lock of whoever owns the recipe [where] names. Null when no recipe matches. */
+    private fun lockOwnerOf(where: String, arg: SqlArg): UserId? {
+        val owner = queryRows("SELECT user_id FROM recipes WHERE $where", listOf(arg)) { UserId(it.getObject("user_id", UUID::class.java)) }
+            .singleOrNull() ?: return null
+        lockUser(owner)
+        return owner
     }
 
     private fun decideOpenReports(recipeId: UUID, status: String, actor: String): Int =

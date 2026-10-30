@@ -33,7 +33,9 @@ class RecipeReverter(
     override val kind: String = "recipe"
 
     override suspend fun revert(userId: UserId, actor: String, reason: String, actionId: UUID?): RevertedContributions =
-        database.transaction {
+        // The owner's diary lock, as every write to their recipes takes (PostgresPublicRecipeRepository).
+        database.readCommittedTransaction {
+            lockUser(userId)
             val now = instantArg(clock.now())
             val by = textArg(actor.take(MAX_ACTOR))
             val removed = queryRows(

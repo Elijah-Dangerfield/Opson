@@ -627,7 +627,11 @@ was saved from. The sharing columns on the same row (`public_code`,
 `published_at`, `removed_*`, `save_count`) are written only by the routes
 below and the console, never by sync (`RecipesTable` marks them
 database-generated so an Exposed upsert can't null them), and changing them
-bumps `server_seq`, so the owner's other phones learn a recipe is shared. A
+bumps `server_seq`, so the owner's other phones learn a recipe is shared.
+Every one of those writes (publish, stop, a save, a report and the hiding it
+can cause, the console's remove, restore and dismiss, a moderation rollback)
+takes the owner's diary lock (`lockUser`) at READ COMMITTED, as sync's do, so
+it can't commit below a cursor one of their phones already pulled past. A
 public read never shows the creator's totals: `PublicRecipes.serve` works each
 catalog ingredient with a weight out again from the catalog's numbers (with
 corrections), and counts it as checked when that food is verified and
