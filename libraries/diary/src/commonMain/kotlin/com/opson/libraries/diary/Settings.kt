@@ -309,6 +309,12 @@ data class Settings(
      * [celebrationStyle].
      */
     val celebrationCounts: Boolean? = null,
+    /**
+     * A second streak for a goal whose "met" is never eating less: tracking every day, meals, burn
+     * or steps (`GoalStreaks.eligible`). Off until the person turns it on; onboarding asks when a
+     * goal is set. The showing-up streak doesn't read it. A top-level key, synced with the rest.
+     */
+    val goalStreakEnabled: Boolean = false,
 ) {
     /** [birthDate] while it agrees with [birthYear]: an older build that changed only the year leaves the day unknown. */
     val knownBirthDate: LocalDate? get() = birthDate?.takeIf { it.year == birthYear }
