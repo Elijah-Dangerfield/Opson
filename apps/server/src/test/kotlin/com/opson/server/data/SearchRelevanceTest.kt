@@ -95,7 +95,7 @@ class SearchRelevanceTest : DatabaseTest() {
         const val SUITE = "src/test/resources/search-relevance.tsv"
         val SEED = File("fooddb/usda_foods.sql.gz")
         val BRANDED = File("src/test/resources/search-relevance-branded.sql.gz")
-        /** 78 of 78 on 2026-10-26 (67 of 78 before the 0.2 ranking change). */
+        /** 83 of 83 on 2026-10-30 (78 of 83 before the plural fix); 78 of 78 on 2026-10-26, 67 before 0.2. */
         const val FLOOR = 0.95
     }
 }

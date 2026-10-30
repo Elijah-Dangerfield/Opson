@@ -218,6 +218,13 @@ of 44 after. On a full local copy of dev's catalog (445,414 foods) search got
 faster too, because Branded rows are only read when they can reach the
 results: p50 52 to 37 ms, p95 281 to 269 ms, slowest 963 to 385 ms.
 
+**Plurals and plain forms (2026-10-30).** `strawberry` showed "Strawberry
+milk" first because the plural rule only added an s, so "Strawberries, raw"
+never matched as the food. English plural rules, the plain form among head
+matches and a graded evaluation (`SearchEvaluationTest`, 58 queries): MRR 0.914
+to 0.991, NDCG@10 0.822 to 0.890, relevance suite 78 to 83 of 83. Details in
+`docs/plans/search-ranking.md`.
+
 **Default servings.** The app logs a food's first portion. 1,318 of the
 13,324 generic foods had a crumb or a bulk measure first ("1 berry", "1 fl
 oz" of coffee, "1 cup" of almonds at 828 kcal); they now start with a typical
