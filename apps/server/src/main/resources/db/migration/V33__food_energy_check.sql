@@ -292,6 +292,42 @@ $$;
 -- monthly Open Food Facts table; `off` in `foods` is the one-at-a-time barcode
 -- cache. Only approved foods: a pending submission is its submitter's alone.
 -- No names, barcodes or stated values, as in every analytics view.
+--
+-- No view may depend on `off_foods`: the reload swaps the table by renaming it
+-- and drops the old one, and a view would follow the rename and block the
+-- drop. So `off_foods` is read through these two functions, whose SQL bodies
+-- name the table afresh on every call. SECURITY DEFINER because grafana_ro
+-- reads no table; they live in `analytics`, which only grafana_ro can reach.
+CREATE OR REPLACE FUNCTION analytics.off_foods_energy_counts()
+    RETURNS TABLE (tier SMALLINT, foods BIGINT, consistent BIGINT, inconsistent BIGINT, unknown BIGINT, unchecked BIGINT)
+    LANGUAGE sql
+    STABLE
+    SECURITY DEFINER
+    SET search_path = ''
+AS $$
+    SELECT o.tier, count(*),
+           count(*) FILTER (WHERE o.energy_consistent),
+           count(*) FILTER (WHERE NOT o.energy_consistent),
+           count(*) FILTER (WHERE o.energy_checked_at IS NOT NULL AND o.energy_consistent IS NULL),
+           count(*) FILTER (WHERE o.energy_checked_at IS NULL)
+    FROM public.off_foods o
+    GROUP BY o.tier
+$$;
+
+CREATE OR REPLACE FUNCTION analytics.off_foods_energy_worst(how_many INTEGER)
+    RETURNS TABLE (food_id UUID, tier SMALLINT, gap_kcal_per_100 REAL, checked_at TIMESTAMPTZ)
+    LANGUAGE sql
+    STABLE
+    SECURITY DEFINER
+    SET search_path = ''
+AS $$
+    SELECT o.id, o.tier, o.energy_gap_kcal, o.energy_checked_at
+    FROM public.off_foods o
+    WHERE o.energy_consistent = FALSE
+    ORDER BY abs(o.energy_gap_kcal) DESC, o.id
+    LIMIT how_many
+$$;
+
 CREATE OR REPLACE VIEW analytics.food_energy_by_source AS
 SELECT source, tier,
        count(*) AS foods,
@@ -299,12 +335,12 @@ SELECT source, tier,
        count(*) FILTER (WHERE NOT energy_consistent) AS inconsistent,
        count(*) FILTER (WHERE energy_checked_at IS NOT NULL AND energy_consistent IS NULL) AS unknown,
        count(*) FILTER (WHERE energy_checked_at IS NULL) AS unchecked
-FROM (
-    SELECT source, tier, energy_consistent, energy_checked_at FROM public.foods WHERE review_status = 'approved'
-    UNION ALL
-    SELECT 'off_export', tier, energy_consistent, energy_checked_at FROM public.off_foods
-) f
-GROUP BY source, tier;
+FROM public.foods
+WHERE review_status = 'approved'
+GROUP BY source, tier
+UNION ALL
+SELECT 'off_export', tier, foods, consistent, inconsistent, unknown, unchecked
+FROM analytics.off_foods_energy_counts();
 
 CREATE OR REPLACE VIEW analytics.food_energy_worst AS
 SELECT food_id, source, tier, gap_kcal_per_100, checked_at
@@ -312,8 +348,8 @@ FROM (
     SELECT id AS food_id, source, tier, energy_gap_kcal AS gap_kcal_per_100, energy_checked_at AS checked_at
     FROM public.foods WHERE energy_consistent = FALSE AND review_status = 'approved'
     UNION ALL
-    SELECT id, 'off_export', tier, energy_gap_kcal, energy_checked_at
-    FROM public.off_foods WHERE energy_consistent = FALSE
+    SELECT food_id, 'off_export', tier, gap_kcal_per_100, checked_at
+    FROM analytics.off_foods_energy_worst(200)
 ) f
 ORDER BY abs(gap_kcal_per_100) DESC, food_id
 LIMIT 200;

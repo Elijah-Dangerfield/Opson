@@ -95,6 +95,20 @@ class DatabaseSchemaTest : DatabaseTest() {
     }
 
     /**
+     * The Open Food Facts reload swaps `off_foods` by renaming it and dropping the old table. A
+     * view follows the rename and blocks the drop, so nothing may depend on the table: the V33
+     * analytics read it through functions instead.
+     */
+    @Test
+    fun noViewDependsOnOffFoods() {
+        val views = strings(
+            "SELECT DISTINCT r.ev_class::regclass::text FROM pg_depend d JOIN pg_rewrite r ON r.oid = d.objid " +
+                "WHERE d.refobjid = 'public.off_foods'::regclass AND r.ev_class <> 'public.off_foods'::regclass",
+        )
+        assertEquals(emptyList(), views)
+    }
+
+    /**
      * V17 was applied to opson-dev by hand before Flyway saw it, like V12, so
      * a second run changes nothing. The Kotlin enum and the CHECK must agree,
      * or the backfill could write a value the server can't read back.
