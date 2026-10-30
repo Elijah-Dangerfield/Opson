@@ -35,6 +35,11 @@ private fun LoggerScanDarkPreview() = Scanner(LoggerFixtures.scanning, dark = tr
 @Composable
 private fun LoggerScanLightOnPreview() = Scanner(LoggerFixtures.scanningLit)
 
+/** The camera finds the kitchen too dark and the light is off: the hint suggests it. */
+@Preview(widthDp = 390, heightDp = 844)
+@Composable
+private fun LoggerScanDimPreview() = Scanner(LoggerFixtures.scanningDim)
+
 /** A Builder with Also read the label on: after the code, the label. */
 @Preview(widthDp = 390, heightDp = 844)
 @Composable

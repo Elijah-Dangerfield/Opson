@@ -56,7 +56,8 @@ interface BarcodeCamera {
     /**
      * The live camera, reading EAN-13, EAN-8, UPC-A and UPC-E inside
      * [scanArea]. Calls [onCode] on the main thread for every read, many times
-     * a second for the same pack; the caller decides which to keep. Calls
+     * a second for the same pack; the caller decides which to keep. With more
+     * than one code in the area, the one nearest the middle is read. Calls
      * [onUnavailable] on the main thread when the camera cannot run even
      * though it is allowed: no back camera (the iOS simulator), a failed
      * start, or another app holding it. The camera stops when this leaves
@@ -65,6 +66,10 @@ interface BarcodeCamera {
      * [onTorchAvailable] says, once the camera is up, whether it has a torch
      * for [torchOn] to light. A new [focusPoint] focuses and meters there, and
      * keeps focusing there as the pack moves.
+     *
+     * [onLowLight] says, on the main thread, when the scene has stayed too dark
+     * to read well for a moment (true) and when it is lit again (false). It is
+     * judged from the camera's own exposure, so a lit torch counts as light.
      */
     @Composable
     fun Viewfinder(
@@ -73,6 +78,7 @@ interface BarcodeCamera {
         scanArea: ScanArea,
         torchOn: Boolean,
         onTorchAvailable: (Boolean) -> Unit,
+        onLowLight: (Boolean) -> Unit,
         focusPoint: FocusPoint?,
         modifier: Modifier,
     )
