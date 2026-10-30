@@ -20,9 +20,9 @@ import com.opson.features.settings.EnergyTodayRoute
 import com.opson.features.settings.FastingRoute
 import com.opson.features.settings.FindSupportEnabled
 import com.opson.features.settings.FindSupportRoute
+import com.opson.features.settings.GoalsRoute
 import com.opson.features.settings.ModesRoute
 import com.opson.features.settings.SupportRoute
-import com.opson.features.settings.TargetsRoute
 import com.opson.features.settings.TodayScreenSettingsRoute
 import com.opson.features.settings.RestingEnergyRoute
 import com.opson.features.settings.ProfileRoute
@@ -458,8 +458,8 @@ class TodayFeatureEntryPoint(
             is TodayEvent.OpenWaterSheet -> router.navigate(WaterSheetRoute(event.day.toString()))
             is TodayEvent.OpenDayClosed -> router.navigate(DayClosedRoute(event.day.toString()))
             is TodayEvent.OpenPause -> router.navigate(event.change.toRoute())
-            // Targets until the goal has its own screen: it shows the goal setting the target, and Change.
-            is TodayEvent.OpenGoal -> router.navigate(TargetsRoute())
+            // The goals page, that goal first: its week, where it leads, and Change.
+            is TodayEvent.OpenGoal -> router.navigate(GoalsRoute(event.goalId))
             is TodayEvent.ShowToast -> showToast(event.toast)
         }
     }
