@@ -3,6 +3,7 @@ package com.opson.server.routes
 import com.opson.server.domain.DiaryChanges
 import com.opson.server.domain.DiaryRules
 import com.opson.server.domain.Exercise
+import com.opson.server.domain.Recipe
 import com.opson.server.domain.Fast
 import com.opson.server.domain.LogEntry
 import com.opson.server.domain.SyncMutation
@@ -42,6 +43,7 @@ import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -83,6 +85,7 @@ class SyncRoutesTest {
         val pulledFasts = mutableListOf<Boolean>()
         val pulledExercises = mutableListOf<Boolean>()
         val knewCheckIn = mutableListOf<Boolean>()
+        val pulledRecipes = mutableListOf<Boolean>()
         override suspend fun sync(
             userId: UserId,
             cursor: Long,
@@ -90,8 +93,10 @@ class SyncRoutesTest {
             pullFasts: Boolean,
             pullExercises: Boolean,
             clientKnowsCheckIn: Boolean,
+            pullRecipes: Boolean,
         ): SyncResult {
             calls += Triple(userId, cursor, mutations)
+            pulledRecipes += pullRecipes
             pulledFasts += pullFasts
             pulledExercises += pullExercises
             knewCheckIn += clientKnowsCheckIn
@@ -203,7 +208,7 @@ class SyncRoutesTest {
         val repo = FakeSyncRepository()
         val mutations = listOf(
             SyncMutationDto("ok", "log_entry", entryRow()),
-            SyncMutationDto("entity", "recipe", entryRow()),
+            SyncMutationDto("entity", "smoothie", entryRow()),
             SyncMutationDto("slot", "log_entry", entryRow(slot = "brunch")),
             SyncMutationDto("negative", "log_entry", entryRow(kcal = -5.0)),
             SyncMutationDto("future", "log_entry", entryRow(day = "2027-01-01")),
@@ -282,6 +287,35 @@ class SyncRoutesTest {
             val exercise = assertIs<Exercise>(repo.calls.single().third.single().row)
             assertEquals(290, exercise.kcal)
             assertEquals("running_10", exercise.activity)
+        }
+    }
+
+    @Test
+    fun aRecipeIsDecodedWithoutItsSharing_andOneOutOfRangeIsRefused() = runTest {
+        val repo = FakeSyncRepository()
+        fun recipeRow(servings: Double = 6.0, items: Int = 2) = buildJsonObject {
+            put("id", UUID.randomUUID().toString())
+            put("name", "Chili")
+            put("servings", servings)
+            put("items", kotlinx.serialization.json.JsonArray(List(items) { buildJsonObject { put("name", "Beans") } }))
+            put("clientUpdatedAtEpochMs", now.toEpochMilliseconds())
+            // A client can't make its recipe public through sync.
+            put("publicCode", "abcd2345")
+            put("publicState", "live")
+        }
+        val mutations = listOf(
+            SyncMutationDto("ok", "recipe", recipeRow()),
+            SyncMutationDto("none", "recipe", recipeRow(servings = 0.0)),
+            SyncMutationDto("crowded", "recipe", recipeRow(items = 61)),
+        )
+        withApp(repo) { client ->
+            val body = client.sync(SyncRequest(mutations = mutations, accepts = listOf("recipe"))).body<SyncResponse>()
+            assertEquals(listOf("ok"), body.applied)
+            assertEquals(mapOf("none" to "invalid_row", "crowded" to "invalid_row"), body.rejected.associate { it.id to it.code })
+            val recipe = assertIs<Recipe>(repo.calls.single().third.single().row)
+            assertEquals(2, recipe.itemCount)
+            assertNull(recipe.sharing)
+            assertEquals(listOf(true), repo.pulledRecipes)
         }
     }
 

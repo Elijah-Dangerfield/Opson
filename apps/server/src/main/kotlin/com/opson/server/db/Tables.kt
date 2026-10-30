@@ -344,15 +344,21 @@ object RecipesTable : SyncedTable("recipes") {
     val servings = float("servings")
     val items = jsonb("items")
     val notes = text("notes").nullable()
+
+    /*
+     * Everything below is the server's: raw SQL in PostgresPublicRecipeRepository writes it. Marked
+     * database-generated so an Exposed upsert of a synced row never names them; it would otherwise
+     * write NULL over a nullable one and take a shared recipe's code away on every edit.
+     */
     val createdAt = timestamp("created_at").databaseGenerated()
-    val publicCode = text("public_code").nullable()
-    val publicState = text("public_state")
-    val publicShowName = bool("public_show_name")
-    val publishedAt = timestamp("published_at").nullable()
-    val removedAt = timestamp("removed_at").nullable()
-    val removedBy = text("removed_by").nullable()
-    val removedReason = text("removed_reason").nullable()
-    val saveCount = integer("save_count")
+    val publicCode = text("public_code").nullable().databaseGenerated()
+    val publicState = text("public_state").databaseGenerated()
+    val publicShowName = bool("public_show_name").databaseGenerated()
+    val publishedAt = timestamp("published_at").nullable().databaseGenerated()
+    val removedAt = timestamp("removed_at").nullable().databaseGenerated()
+    val removedBy = text("removed_by").nullable().databaseGenerated()
+    val removedReason = text("removed_reason").nullable().databaseGenerated()
+    val saveCount = integer("save_count").databaseGenerated()
     override val primaryKey = PrimaryKey(id)
 }
 

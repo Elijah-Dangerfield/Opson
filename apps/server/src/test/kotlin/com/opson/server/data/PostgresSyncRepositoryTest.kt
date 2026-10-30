@@ -9,6 +9,9 @@ import com.opson.server.domain.FoodSize
 import com.opson.server.domain.DayRecord
 import com.opson.server.domain.DiaryRules
 import com.opson.server.domain.Exercise
+import com.opson.server.domain.PublicState
+import com.opson.server.domain.PublishOutcome
+import com.opson.server.domain.RecipeSharing
 import com.opson.server.domain.Fast
 import com.opson.server.domain.MealFeeling
 import com.opson.server.domain.MealSlot
@@ -22,6 +25,7 @@ import com.opson.server.testing.DiaryFixtures.T0
 import com.opson.server.testing.DiaryFixtures.entry
 import com.opson.server.testing.DiaryFixtures.mutation
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.selectAll
 import org.junit.After
@@ -388,6 +392,30 @@ class PostgresSyncRepositoryTest : DatabaseTest() {
 
         val gone = exercise(minutes = 45, updatedAt = evening + 2.hours, deleted = true)
         assertEquals(listOf(gone), repo.sync(user, 0, listOf(mutation(gone)), pullExercises = true).changes.exercises)
+    }
+
+    @Test
+    fun recipesArePulledOnlyByAClientThatAsks_andSyncNeverTouchesTheirSharing() = runTest {
+        val user = seedAuthUser()
+        val chili = DiaryFixtures.recipe()
+        val pushed = repo.sync(user, 0, listOf(mutation(chili, "r1")))
+        assertEquals(listOf("r1"), pushed.applied)
+        assertNull(pushed.changes.recipes, "a client that did not ask never sees the key")
+
+        val pulled = repo.sync(user, 0, emptyList(), pullRecipes = true).changes.recipes.orEmpty().single()
+        // jsonb hands the items back in its own spelling; the same JSON either way.
+        assertEquals(Json.parseToJsonElement(chili.itemsJson), Json.parseToJsonElement(pulled.itemsJson))
+        assertEquals(
+            chili.copy(sharing = RecipeSharing(code = null, state = PublicState.Private, showName = false)),
+            pulled.copy(itemsJson = chili.itemsJson),
+        )
+
+        val shared = PostgresPublicRecipeRepository(database, kotlin.time.Clock.System).publish(user, chili, showName = true)
+        val code = (shared as PublishOutcome.Published).code
+        val edited = chili.copy(name = "Chili for six", clientUpdatedAt = T0 + 1.hours)
+        val after = repo.sync(user, 0, listOf(mutation(edited)), pullRecipes = true).changes.recipes.orEmpty().single()
+        assertEquals("Chili for six", after.name)
+        assertEquals(RecipeSharing(code, PublicState.Live, showName = true), after.sharing, "an edit keeps the recipe shared")
     }
 
     @Test
