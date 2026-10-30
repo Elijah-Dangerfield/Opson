@@ -138,14 +138,14 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Any other opson:// link (the OAuth return, an email confirmation) goes through the
-     * DeepLinkBridge, as on iOS: App.kt hands the OAuth return to supabase-kt and routes the
+     * Any other opson:// link (the OAuth return, an email confirmation), and a shared recipe's
+     * https link, goes through the DeepLinkBridge, as on iOS: App.kt hands the OAuth return to supabase-kt and routes the
      * rest. NavHost only reads the intent at its first composition, so a link that arrives
      * while the app is open would otherwise be dropped. Cleared so NavHost never routes it twice.
      */
     private fun handleLink(intent: Intent?) {
         val url = intent?.dataString ?: return
-        if (!url.startsWith(APP_SCHEME)) return
+        if (!url.startsWith(APP_SCHEME) && !isRecipeLink(url)) return
         appComponent.deepLinkBridge.emit(url)
         intent.data = null
     }
@@ -183,3 +183,9 @@ class MainActivity : ComponentActivity() {
 }
 
 private const val APP_SCHEME = "opson://"
+
+/** A shared recipe's web link, which App Links hand the app once the site's assetlinks.json verifies it. */
+private fun isRecipeLink(url: String): Boolean =
+    RECIPE_LINK_PREFIXES.any { url.startsWith(it, ignoreCase = true) }
+
+private val RECIPE_LINK_PREFIXES = listOf("https://www.opsontracker.com/r/", "https://opsontracker.com/r/")

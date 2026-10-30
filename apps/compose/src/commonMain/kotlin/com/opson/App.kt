@@ -130,6 +130,13 @@ fun App(appComponent: AppComponent) {
                     .logOnFailure { "Failed to complete OAuth redirect" }
             } else if (appComponent.widgetOpens.opened(url)) {
                 // A home screen widget's +: WidgetOpens answers through its requests, below.
+            } else if (appComponent.recipeLinkRoutes.routeFor(url) != null) {
+                // A recipe's link or QR code (release.recipes): its page, through the router so a
+                // link that cold-starts the app still lands, and only while the app is someone's.
+                // Before sign-in it opens nothing; the web page the link also is shows the recipe.
+                val recipe = appComponent.recipeLinkRoutes.routeFor(url)
+                val onboarded = Catching { appComponent.appCache.get().hasUserOnboarded }.getOrNull() == true
+                if (recipe != null && authRepository.current().isSomeones(onboarded)) router.navigate(recipe)
             } else {
                 Catching {
                     val request = NavDeepLinkRequest.Builder.fromUri(NavUri(url)).build()

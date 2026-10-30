@@ -41,9 +41,11 @@ struct iOSApp: App {
                 nativeViewFactory: nativeViewFactory
             )
             .onOpenURL { url in
-                // Every opson:// link goes to the Kotlin DeepLinkBridge. App.kt
-                // hands the OAuth return to supabase-kt, a widget's + to
-                // WidgetOpens, and routes the rest through the nav graph.
+                // Every opson:// link goes to the Kotlin DeepLinkBridge, and so does
+                // a shared recipe's universal link (www.opsontracker.com/r/<code>),
+                // which SwiftUI delivers here too. App.kt hands the OAuth return to
+                // supabase-kt, a widget's + to WidgetOpens, a recipe link to its
+                // page, and routes the rest through the nav graph.
                 iOSAppComponent.deepLinkBridge.emit(url: url.absoluteString)
             }
         }
